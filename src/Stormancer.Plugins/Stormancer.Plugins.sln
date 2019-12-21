@@ -1,0 +1,48 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29519.87
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Management", "Management", "{65550213-0737-4F41-83F4-DC2EB84415AB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Management", "Management\Stormancer.Server.Plugins.Management\Stormancer.Server.Plugins.Management.csproj", "{07DEF021-11C9-4334-954B-8A7B7EEDE43C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Database", "Database", "{402B76D2-4FBE-4B23-BF8C-19DE49E9D06E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Database.Elasticsearch", "Database\Stormancer.Server.Plugins.Database.Elasticsearch\Stormancer.Server.Plugins.Database.Elasticsearch.csproj", "{1BF95354-F5E4-4488-9FA7-9326744DC8FC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Configuration", "Configuration", "{B74452AA-C538-4B1D-A910-0D2404089D49}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Configuration", "Configuration\Stormancer.Server.Plugins.Configuration\Stormancer.Server.Plugins.Configuration.csproj", "{AE100FDD-53EB-40AB-A244-2F3352EBBBA6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{07DEF021-11C9-4334-954B-8A7B7EEDE43C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07DEF021-11C9-4334-954B-8A7B7EEDE43C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07DEF021-11C9-4334-954B-8A7B7EEDE43C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07DEF021-11C9-4334-954B-8A7B7EEDE43C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1BF95354-F5E4-4488-9FA7-9326744DC8FC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1BF95354-F5E4-4488-9FA7-9326744DC8FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1BF95354-F5E4-4488-9FA7-9326744DC8FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1BF95354-F5E4-4488-9FA7-9326744DC8FC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE100FDD-53EB-40AB-A244-2F3352EBBBA6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE100FDD-53EB-40AB-A244-2F3352EBBBA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE100FDD-53EB-40AB-A244-2F3352EBBBA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE100FDD-53EB-40AB-A244-2F3352EBBBA6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{07DEF021-11C9-4334-954B-8A7B7EEDE43C} = {65550213-0737-4F41-83F4-DC2EB84415AB}
+		{1BF95354-F5E4-4488-9FA7-9326744DC8FC} = {402B76D2-4FBE-4B23-BF8C-19DE49E9D06E}
+		{AE100FDD-53EB-40AB-A244-2F3352EBBBA6} = {B74452AA-C538-4B1D-A910-0D2404089D49}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}
+	EndGlobalSection
+EndGlobal
