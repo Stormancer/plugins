@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.0.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />
+  </ItemGroup>
+
+</Project>

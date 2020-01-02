@@ -5,15 +5,39 @@ VisualStudioVersion = 16.0.29519.87
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Management", "Management", "{65550213-0737-4F41-83F4-DC2EB84415AB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Management", "Management\Stormancer.Server.Plugins.Management\Stormancer.Server.Plugins.Management.csproj", "{07DEF021-11C9-4334-954B-8A7B7EEDE43C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Management", "Management\Stormancer.Server.Plugins.Management\Stormancer.Server.Plugins.Management.csproj", "{07DEF021-11C9-4334-954B-8A7B7EEDE43C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Database", "Database", "{402B76D2-4FBE-4B23-BF8C-19DE49E9D06E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Database.Elasticsearch", "Database\Stormancer.Server.Plugins.Database.Elasticsearch\Stormancer.Server.Plugins.Database.Elasticsearch.csproj", "{1BF95354-F5E4-4488-9FA7-9326744DC8FC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Database.Elasticsearch", "Database\Stormancer.Server.Plugins.Database.Elasticsearch\Stormancer.Server.Plugins.Database.Elasticsearch.csproj", "{1BF95354-F5E4-4488-9FA7-9326744DC8FC}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Configuration", "Configuration", "{B74452AA-C538-4B1D-A910-0D2404089D49}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Configuration", "Configuration\Stormancer.Server.Plugins.Configuration\Stormancer.Server.Plugins.Configuration.csproj", "{AE100FDD-53EB-40AB-A244-2F3352EBBBA6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Configuration", "Configuration\Stormancer.Server.Plugins.Configuration\Stormancer.Server.Plugins.Configuration.csproj", "{AE100FDD-53EB-40AB-A244-2F3352EBBBA6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Users", "Users", "{4F181B0F-E420-462E-9658-7AE8F1B0F36F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GameFinder", "GameFinder", "{859E7CD1-B3D2-40CD-A1BE-A6472AA24A2B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Party", "Party", "{B3DAD533-ED3E-47F8-848F-9D864267C349}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Api", "Api", "{9C2B89C8-B81A-46B9-877D-4FC15B58F099}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Analytics", "Analytics", "{275883BD-CC75-44F6-86BF-F867AE9E2A0C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Leaderboards", "Leaderboards", "{FD4F5652-8F9E-458F-A054-5A576948B74E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.TestApp", "Stormancer.Server.TestApp\Stormancer.Server.TestApp.csproj", "{8240A689-D421-4D4C-9A23-EF0E38D85D74}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Api", "Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj", "{59EBAC2A-6170-487B-9660-F13D8F0A255A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Users", "Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj", "{83965663-8871-4C88-BED0-A9F84653F6F9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "WebApi", "WebApi", "{6766D603-9686-4B20-873F-4E404D50CD14}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.WebApi", "Admin\Stormancer.Server.Plugins.AdminApi\Stormancer.Server.Plugins.WebApi.csproj", "{F5536D18-7EFB-4AC6-B285-95ABF4CE6F4D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Analytics", "Analytics\Stormancer.Server.Plugins.Analytics\Stormancer.Server.Plugins.Analytics.csproj", "{18EF2FE1-1B0F-437A-9746-2D3EC5BEC0B1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +57,26 @@ Global
 		{AE100FDD-53EB-40AB-A244-2F3352EBBBA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AE100FDD-53EB-40AB-A244-2F3352EBBBA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AE100FDD-53EB-40AB-A244-2F3352EBBBA6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8240A689-D421-4D4C-9A23-EF0E38D85D74}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8240A689-D421-4D4C-9A23-EF0E38D85D74}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8240A689-D421-4D4C-9A23-EF0E38D85D74}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8240A689-D421-4D4C-9A23-EF0E38D85D74}.Release|Any CPU.Build.0 = Release|Any CPU
+		{59EBAC2A-6170-487B-9660-F13D8F0A255A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{59EBAC2A-6170-487B-9660-F13D8F0A255A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{59EBAC2A-6170-487B-9660-F13D8F0A255A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{59EBAC2A-6170-487B-9660-F13D8F0A255A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{83965663-8871-4C88-BED0-A9F84653F6F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83965663-8871-4C88-BED0-A9F84653F6F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83965663-8871-4C88-BED0-A9F84653F6F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83965663-8871-4C88-BED0-A9F84653F6F9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5536D18-7EFB-4AC6-B285-95ABF4CE6F4D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5536D18-7EFB-4AC6-B285-95ABF4CE6F4D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5536D18-7EFB-4AC6-B285-95ABF4CE6F4D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5536D18-7EFB-4AC6-B285-95ABF4CE6F4D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{18EF2FE1-1B0F-437A-9746-2D3EC5BEC0B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{18EF2FE1-1B0F-437A-9746-2D3EC5BEC0B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{18EF2FE1-1B0F-437A-9746-2D3EC5BEC0B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{18EF2FE1-1B0F-437A-9746-2D3EC5BEC0B1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -41,6 +85,10 @@ Global
 		{07DEF021-11C9-4334-954B-8A7B7EEDE43C} = {65550213-0737-4F41-83F4-DC2EB84415AB}
 		{1BF95354-F5E4-4488-9FA7-9326744DC8FC} = {402B76D2-4FBE-4B23-BF8C-19DE49E9D06E}
 		{AE100FDD-53EB-40AB-A244-2F3352EBBBA6} = {B74452AA-C538-4B1D-A910-0D2404089D49}
+		{59EBAC2A-6170-487B-9660-F13D8F0A255A} = {9C2B89C8-B81A-46B9-877D-4FC15B58F099}
+		{83965663-8871-4C88-BED0-A9F84653F6F9} = {4F181B0F-E420-462E-9658-7AE8F1B0F36F}
+		{F5536D18-7EFB-4AC6-B285-95ABF4CE6F4D} = {6766D603-9686-4B20-873F-4E404D50CD14}
+		{18EF2FE1-1B0F-437A-9746-2D3EC5BEC0B1} = {275883BD-CC75-44F6-86BF-F867AE9E2A0C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}
