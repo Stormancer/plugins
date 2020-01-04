@@ -102,7 +102,7 @@ namespace Stormancer.Server.Plugins.GameSession
         private readonly ISceneHost _scene;
         private readonly IEnvironment _environment;
         private readonly IDelegatedTransports _pools;
-       
+
         private TimeSpan _gameSessionTimeout = TimeSpan.MaxValue;
         private GameSessionConfiguration _config;
         private CancellationTokenSource _sceneCts = new CancellationTokenSource();
@@ -251,7 +251,15 @@ namespace Stormancer.Server.Plugins.GameSession
                 if (currentClient.Status < PlayerStatus.Ready)
                 {
                     currentClient.Status = PlayerStatus.Ready;
+                    var ctx = new ClientReadyContext(peer);
 
+                    using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+                    {
+                        await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.OnClientReady(ctx), ex =>
+                        {
+                            _logger.Log(LogLevel.Error, "gameSession", "An error occured while running gameSession.OnClientReady event handlers", ex);
+                        });
+                    }
                     BroadcastClientUpdate(currentClient, user, packet.ReadObject<string>());
                 }
 
@@ -945,6 +953,6 @@ namespace Stormancer.Server.Plugins.GameSession
             return new GameSessionConfigurationDto { Teams = _config.Teams, Parameters = _config.Parameters, UserIds = _config.UserIds };
         }
 
-       
+
     }
 }

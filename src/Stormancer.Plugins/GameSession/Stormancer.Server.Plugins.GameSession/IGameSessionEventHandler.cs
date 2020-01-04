@@ -34,6 +34,8 @@ namespace Stormancer.Server.Plugins.GameSession
         Task GameSessionStarted(GameSessionStartedCtx ctx);
 
         Task GameSessionCompleted(GameSessionCompleteCtx ctx);
+
+        Task OnClientReady(ClientReadyContext ctx);
     }
 
     public class GameSessionContext
@@ -63,6 +65,15 @@ namespace Stormancer.Server.Plugins.GameSession
 
     }
 
+    public class ClientReadyContext
+    {
+        public ClientReadyContext(IScenePeerClient peer)
+        {
+            Peer = peer;
+        }
+
+        public IScenePeerClient Peer { get; }
+    }
 
     public class Player
     {

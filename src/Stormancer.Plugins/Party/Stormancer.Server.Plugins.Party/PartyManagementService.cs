@@ -76,7 +76,7 @@ namespace Stormancer.Server.PartyManagement
 
             await _management.CreateScene(
                 sceneUri,
-                PartyPlugin.PARTY_SCENE_TYPE,
+                PartyConstants.PARTY_SCENE_TYPE,
                 false,
                 false,
                 metadata

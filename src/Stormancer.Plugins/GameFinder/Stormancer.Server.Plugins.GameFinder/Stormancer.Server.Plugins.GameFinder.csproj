@@ -24,8 +24,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj" />
     <ProjectReference Include="..\..\Configuration\Stormancer.Server.Plugins.Configuration\Stormancer.Server.Plugins.Configuration.csproj" />
+    <ProjectReference Include="..\..\GameSession\Stormancer.Server.Plugins.GameSession\Stormancer.Server.Plugins.GameSession.csproj" />
     <ProjectReference Include="..\..\Notification\Stormancer.Server.Plugins.Notification\Stormancer.Server.Plugins.Notification.csproj" />
-    <ProjectReference Include="..\..\Stormancer.Server.Plugins.GameSession\Stormancer.Server.Plugins.GameSession.csproj" />
     <ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />
   </ItemGroup>
   <ItemGroup>

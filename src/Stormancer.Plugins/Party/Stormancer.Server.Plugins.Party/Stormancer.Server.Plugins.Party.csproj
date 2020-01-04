@@ -5,7 +5,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>1.0.0.1</Version>
+    <Version>1.0.0.2</Version>
     <AssemblyVersion>$(Version)</AssemblyVersion>
     <FileVersion>$(Version)</FileVersion>
     <IncludeSymbols>true</IncludeSymbols>
@@ -26,9 +26,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GameFinder\Stormancer.Server.Plugins.GameFinder\Stormancer.Server.Plugins.GameFinder.csproj" />
-    <ProjectReference Include="..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />
-    <ProjectReference Include="..\Utilities\Stormancer.Server.Plugins.Utilities\Stormancer.Server.Plugins.Utilities.csproj" />
+    <ProjectReference Include="..\..\GameFinder\Stormancer.Server.Plugins.GameFinder\Stormancer.Server.Plugins.GameFinder.csproj" />
+    <ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />
+    <ProjectReference Include="..\..\Utilities\Stormancer.Server.Plugins.Utilities\Stormancer.Server.Plugins.Utilities.csproj" />
   </ItemGroup>
   <Target Name="PostPack" AfterTargets="Pack">
     <Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages/$(ConfigurationName)" />

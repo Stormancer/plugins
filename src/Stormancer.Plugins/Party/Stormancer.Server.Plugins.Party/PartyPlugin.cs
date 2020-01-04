@@ -28,6 +28,10 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Party
 {
+    public class PartyConstants
+    {
+        public const string PARTY_SCENE_TYPE = "party";
+    }
     /// <summary>
     /// A plugin for managing player parties.
     /// </summary>
@@ -46,7 +50,7 @@ namespace Stormancer.Server.Party
     {
         internal const string PARTY_METADATA_KEY = "stormancer.party";
         internal const string PARTYMANAGEMENT_METADATA_KEY = "stormancer.partymanagement";
-        public const string PARTY_SCENE_TYPE = "party";
+       
         public const string CLIENT_METADATA_KEY = "stormancer.party.plugin";
 
         public void Build(HostPluginBuildContext ctx)
@@ -60,7 +64,7 @@ namespace Stormancer.Server.Party
                 builder.Register<PartyState>().InstancePerScene();
             };
             ctx.HostStarting += (host) => {
-                host.AddSceneTemplate(PARTY_SCENE_TYPE, (ISceneHost scene) => {
+                host.AddSceneTemplate(PartyConstants.PARTY_SCENE_TYPE, (ISceneHost scene) => {
                     scene.AddParty();
                 });
             };
