@@ -29,8 +29,15 @@ using System.Threading.Tasks;
 
 namespace Server.Plugins.AdminApi
 {
+    /// <summary>
+    /// Class implementing this interface can add parts to the admin web API.
+    /// </summary>
     public interface IAdminWebApiConfig
     {
+        /// <summary>
+        /// Configures the admin web API parts manager.
+        /// </summary>
+        /// <param name="apm"></param>
         void ConfigureApplicationParts(ApplicationPartManager apm);
     }
 }

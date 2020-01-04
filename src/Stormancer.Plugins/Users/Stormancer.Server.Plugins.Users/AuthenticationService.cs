@@ -35,7 +35,7 @@ namespace Stormancer.Server.Plugins.Users
 {
     class AuthenticationService : IAuthenticationService
     {
-        private readonly UserManagementConfig _config;
+        private readonly IConfiguration config;
         private readonly ILogger _logger;
 
         private readonly IEnumerable<IAuthenticationProvider> _authProviders;
@@ -50,14 +50,15 @@ namespace Stormancer.Server.Plugins.Users
         public AuthenticationService(
             Func<IEnumerable<IAuthenticationEventHandler>> handlers,
             IEnumerable<IAuthenticationProvider> providers,
-            UserManagementConfig config,
+            IConfiguration config,
             IUserService users,
             IUserSessions sessions,
             ILogger logger,
             ISceneHost scene
             )
         {
-            _config = config;
+            this.config = config;
+         
             _logger = logger;
             _authProviders = providers;
             _users = users;
@@ -66,13 +67,12 @@ namespace Stormancer.Server.Plugins.Users
             _scene = scene;
         }
 
-        private void ApplyConfig(IConfiguration config)
-        {
-
-        }
+        private bool IsProviderEnabled(string type)=> (bool?)(config.Settings.auth?[type]?.enabled) ?? false;
+    
+        
         private IEnumerable<IAuthenticationProvider> GetProviders()
         {
-            return _authProviders;//.Where(p => _config.EnabledAuthenticationProviders.Contains(p.GetType()));
+            return _authProviders.Where(p => IsProviderEnabled(p.Type));//.Where(p => _config.EnabledAuthenticationProviders.Contains(p.GetType()));
         }
         public Dictionary<string, string> GetMetadata()
         {

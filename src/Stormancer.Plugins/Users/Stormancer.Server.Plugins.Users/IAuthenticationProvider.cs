@@ -29,33 +29,84 @@ using Stormancer.Core;
 
 namespace Stormancer.Server.Plugins.Users
 {
+
+    /// <summary>
+    /// Provids data about the current authentication attempt.
+    /// </summary>
     public class AuthenticationContext
     {
-        public AuthenticationContext(Dictionary<string, string> ctx, IScenePeerClient peer, Session currentSession)
+        internal AuthenticationContext(Dictionary<string, string> ctx, IScenePeerClient peer, Session? currentSession)
         {
             Parameters = ctx;
             Peer = peer;
             CurrentSession = currentSession;
         }
+
+        /// <summary>
+        /// Authentication parameters sent by the client.
+        /// </summary>
         public Dictionary<string, string> Parameters { get; }
+
+        /// <summary>
+        /// Peers requesting the authentication.
+        /// 
+        /// </summary>
         public IScenePeerClient Peer { get; }
+
         /// <summary>
         /// If the user is already authenticated, gets her session
         /// </summary>
-        public Session CurrentSession { get; }
+        public Session? CurrentSession { get; }
         
     }
 
+    /// <summary>
+    /// Contract for authentication providers.
+    /// </summary>
     public interface IAuthenticationProvider
     {
+        /// <summary>
+        /// Type of the authentication provider. 
+        /// </summary>
         string Type { get; }
 
+        /// <summary>
+        /// Called when a client requests authentication capabilities.
+        /// </summary>
+        /// <param name="result"></param>
         void AddMetadata(Dictionary<string, string> result);
 
+        /// <summary>
+        /// Performs an authentication attempt.
+        /// </summary>
+        /// <param name="authenticationCtx"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
         Task<AuthenticationResult> Authenticate(AuthenticationContext authenticationCtx, CancellationToken ct);
 
+        /// <summary>
+        /// Configures the authentication system for an user.
+        /// </summary>
+        /// <param name="parameters"></param>
+        /// <remarks>
+        /// Use this function to implement create account or auth update capabilities.
+        /// </remarks>
+        /// <returns></returns>
         Task Setup(Dictionary<string, string> parameters);
+
+        /// <summary>
+        /// Called when the client requests their authentication status.
+        /// </summary>
+        /// <param name="status"></param>
+        /// <param name="session"></param>
+        /// <returns></returns>
         Task OnGetStatus(Dictionary<string, string> status, Session session);
+
+        /// <summary>
+        /// Unlinks an user with the authentication method implemented by the provider.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
         Task Unlink(User user);
 
         /// <summary>

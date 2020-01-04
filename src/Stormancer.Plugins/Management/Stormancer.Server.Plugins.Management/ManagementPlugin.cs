@@ -33,8 +33,15 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Management
 {
+    /// <summary>
+    /// Plugin startup class
+    /// </summary>
     public class Startup
     {
+        /// <summary>
+        /// Run method for the plugin.
+        /// </summary>
+        /// <param name="builder"></param>
         public void Run(IAppBuilder builder)
         {
             builder.AddPlugin(new ManagementPlugin());
@@ -51,6 +58,9 @@ namespace Stormancer.Server.Plugins.Management
         }
     }
 
+    /// <summary>
+    /// Provides a preconfigured management client for the federation.
+    /// </summary>
     public class ManagementClientProvider
     {
         private readonly IEnvironment _environment;
@@ -97,14 +107,31 @@ namespace Stormancer.Server.Plugins.Management
 
         }
 
-        public async Task<string> CreateConnectionToken(string sceneUri, byte[] payload = null, string contentType = "application/octet-stream")
+        /// <summary>
+        /// Creates a connection token for a scene in the federation.
+        /// </summary>
+        /// <param name="sceneUri"></param>
+        /// <param name="payload"></param>
+        /// <param name="contentType"></param>
+        /// <returns></returns>
+        public async Task<string> CreateConnectionToken(string sceneUri, byte[]? payload = null, string contentType = "application/octet-stream")
         {
 
             (var clusterId, var accountId, var applicationId, var sceneId) = await DecomposeSceneId(sceneUri);
             return await _client.Applications.CreateConnectionToken(clusterId, accountId, applicationId, sceneId, payload ?? new byte[0], contentType);
 
         }
-        public async Task CreateScene(string sceneUri, string template, bool isPublic, bool isPersistent, JObject metadata = null)
+
+        /// <summary>
+        /// Creates a scene in the federation using the provider scene uri.
+        /// </summary>
+        /// <param name="sceneUri"></param>
+        /// <param name="template"></param>
+        /// <param name="isPublic"></param>
+        /// <param name="isPersistent"></param>
+        /// <param name="metadata"></param>
+        /// <returns></returns>
+        public async Task CreateScene(string sceneUri, string template, bool isPublic, bool isPersistent, JObject? metadata = null)
         {
 
             (var clusterId, var accountId, var applicationId, var sceneId) = await DecomposeSceneId(sceneUri);
@@ -143,10 +170,10 @@ namespace Stormancer.Server.Plugins.Management
         }
 
         
-        private (string, string, string, string) ParseSceneUri(string uri)
+        private (string?, string?, string?, string) ParseSceneUri(string uri)
         {
-            string clusterId = null, account = null, application = null, sceneId = null;
-
+            string? clusterId = null, account = null, application = null;
+            string sceneId;
             if (uri.ToLowerInvariant().StartsWith("scene:"))
             {
                 var segments = uri.Split('/');
@@ -178,6 +205,10 @@ namespace Stormancer.Server.Plugins.Management
             return (clusterId, account, application, sceneId);
         }
 
+        /// <summary>
+        /// Gets a management client instance for the current application.
+        /// </summary>
+        /// <returns></returns>
         public ManagementClient GetManagementClient()
         {
             return _client;

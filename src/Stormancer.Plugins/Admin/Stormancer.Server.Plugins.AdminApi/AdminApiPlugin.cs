@@ -63,7 +63,7 @@ namespace Server.Plugins.AdminApi
 
 
 
-                }, (services, env, scene) =>
+                }, (services, scene) =>
                 {
                     services.AddLocalization();
                     services.AddMvc(options =>
@@ -98,7 +98,7 @@ namespace Server.Plugins.AdminApi
 
 
 
-                }, (services, env, scene) =>
+                }, (services, scene) =>
                 {
                     services.AddLocalization();
                     var configs = scene.DependencyResolver.Resolve<IEnumerable<IAdminWebApiConfig>>();

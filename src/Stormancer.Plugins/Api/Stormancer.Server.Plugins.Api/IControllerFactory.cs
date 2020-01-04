@@ -31,7 +31,7 @@ using System.Linq.Expressions;
 using Stormancer.Diagnostics;
 using System.IO;
 
-namespace Server.Plugins.API
+namespace Stormancer.Server.Plugins.API
 {
     /// <summary>
     /// Constants related to APIs.

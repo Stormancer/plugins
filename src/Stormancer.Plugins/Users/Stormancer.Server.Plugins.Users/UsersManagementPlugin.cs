@@ -34,6 +34,14 @@ using Stormancer.Server.Plugins.ServiceLocator;
 
 namespace Stormancer.Server.Plugins.Users
 {
+    public class Constants
+    {
+        public const string SCENE_TEMPLATE = "authenticator";
+        public static string GetSceneId()
+        {
+            return SCENE_TEMPLATE;
+        }
+    }
     public class UserManagementConfig
     {
         public void AddAuthenticationProvider<TProvider>() where TProvider : IAuthenticationProvider
@@ -44,13 +52,9 @@ namespace Stormancer.Server.Plugins.Users
     }
     class UsersManagementPlugin : Stormancer.Plugins.IHostPlugin
     {
-        public const string SCENE_TEMPLATE = "authenticator";
+       
 
-
-        public static string GetSceneId()
-        {
-            return SCENE_TEMPLATE;
-        }
+        
 
         public UsersManagementPlugin()
         {
@@ -66,7 +70,7 @@ namespace Stormancer.Server.Plugins.Users
             ctx.SceneCreated += SceneCreated;
             ctx.SceneStarted += (ISceneHost scene) =>
             {
-                if (scene.Template == SCENE_TEMPLATE)
+                if (scene.Template == Constants.SCENE_TEMPLATE)
                 {
                     // Push authenticated users count
                     scene.RunTask(async ct =>
@@ -89,7 +93,7 @@ namespace Stormancer.Server.Plugins.Users
 
         private void SceneCreated(ISceneHost scene)
         {
-            if (scene.Template != SCENE_TEMPLATE)
+            if (scene.Template != Constants.SCENE_TEMPLATE)
             {
                 var index = scene.DependencyResolver.Resolve<UserSessionCache>();
                 scene.Connected.Add(index.OnConnected, 1000);
@@ -99,7 +103,7 @@ namespace Stormancer.Server.Plugins.Users
 
         private void RegisterSceneDependencies(IDependencyBuilder b, ISceneHost scene)
         {
-            if (scene.Template == SCENE_TEMPLATE)
+            if (scene.Template == Constants.SCENE_TEMPLATE)
             {
                 b.Register<UserSessions>().As<IUserSessions>();
                 b.Register<UserPeerIndex>().As<IUserPeerIndex>().SingleInstance();
@@ -127,7 +131,7 @@ namespace Stormancer.Server.Plugins.Users
             var managementAccessor = host.DependencyResolver.Resolve<Management.ManagementClientProvider>();
             if (managementAccessor != null)
             {
-                _ = managementAccessor.CreateScene(GetSceneId(), SCENE_TEMPLATE, true, true);
+                _ = managementAccessor.CreateScene(Constants.GetSceneId(), Constants.SCENE_TEMPLATE, true, true);
 
 
             }
@@ -157,7 +161,7 @@ namespace Stormancer.Server.Plugins.Users
 
         private void HostStarting(IHost host)
         {
-            host.AddSceneTemplate(SCENE_TEMPLATE, AuthenticatorSceneFactory);
+            host.AddSceneTemplate(Constants.SCENE_TEMPLATE, AuthenticatorSceneFactory);
         }
 
         private void AuthenticatorSceneFactory(ISceneHost scene)

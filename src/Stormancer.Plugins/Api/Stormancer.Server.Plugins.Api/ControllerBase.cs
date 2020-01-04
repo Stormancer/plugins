@@ -29,7 +29,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Server.Plugins.API
+namespace Stormancer.Server.Plugins.API
 {
     public abstract class ControllerBase
     {

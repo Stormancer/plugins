@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Server.Plugins.API;
+using Stormancer.Server.Plugins.API;
 using Stormancer;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;

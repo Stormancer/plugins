@@ -40,7 +40,7 @@ namespace Stormancer.Server.Plugins.Users.Test
             };
 
             ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) => {
-                if (scene.Template == UsersManagementPlugin.SCENE_TEMPLATE)
+                if (scene.Template == Constants.SCENE_TEMPLATE)
                 {
                     builder.Register<TestAuthenticationProvider>().As<IAuthenticationProvider>();
                 }

@@ -29,7 +29,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Server.Plugins.API
+namespace Stormancer.Server.Plugins.API
 {
     public class ApiCallContext<T>
     {

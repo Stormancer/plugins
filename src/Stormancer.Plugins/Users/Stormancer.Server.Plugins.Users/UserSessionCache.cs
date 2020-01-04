@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Server.Plugins.API;
+using Stormancer.Server.Plugins.API;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
@@ -186,7 +186,7 @@ namespace Stormancer.Server.Plugins.Users
 
         private async Task<TOut> AuthenticatorRpc<TOut, TArg1>(string route, string type, TArg1 arg1)
         {
-            using (var scope = scene.DependencyResolver.CreateChild(global::Server.Plugins.API.Constants.ApiRequestTag))
+            using (var scope = scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 var rpc = scope.Resolve<RpcService>();
                 var locator = scope.Resolve<IServiceLocator>();

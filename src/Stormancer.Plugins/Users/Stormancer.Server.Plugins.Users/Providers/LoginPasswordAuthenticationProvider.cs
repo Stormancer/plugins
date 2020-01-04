@@ -32,8 +32,10 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
-    public class LoginPasswordAuthRecord
+    internal class LoginPasswordAuthRecord
     {
+        public string? email { get; set; }
+
         public string login { get; set; }
         public byte[] salt { get; set; }
         public int iterations { get; set; }
@@ -58,6 +60,7 @@ namespace Stormancer.Server.Plugins.Users
         public string Type => PROVIDER_NAME;
 
         public bool IsEnabled => ((bool?)config.Settings.auth?.loginPassword?.enabled) ?? false;
+        public bool RequiresEmail => ((bool?)config.Settings.auth?.loginPassword?.requiresEmail) ?? true;
         public void AddMetadata(Dictionary<string, string> result)
         {
             if (IsEnabled)
@@ -70,7 +73,7 @@ namespace Stormancer.Server.Plugins.Users
         {
 
             var pId = new PlatformId { Platform = PROVIDER_NAME };
-            if (!authenticationCtx.Parameters.TryGetValue("login", out var login))
+            if (!authenticationCtx.Parameters.TryGetValue("username", out var login))
             {
                 return AuthenticationResult.CreateFailure("loginPassword.login.missingArgument?id=login", pId, authenticationCtx.Parameters);
             }
@@ -87,6 +90,11 @@ namespace Stormancer.Server.Plugins.Users
                 return AuthenticationResult.CreateFailure("loginPassword.login.invalidCredentials", pId, authenticationCtx.Parameters);
             }
             var authParams = user.Auth[ClaimPath]?.ToObject<LoginPasswordAuthRecord>();
+
+            if(authParams == null)
+            {
+                return AuthenticationResult.CreateFailure("loginPassword.login.invalidCredentials", pId, authenticationCtx.Parameters);
+            }
 
             var derivedKey = DeriveKey(password, authParams.iterations, authParams.salt, new HashAlgorithmName(authParams.algorithm));
 
@@ -107,7 +115,7 @@ namespace Stormancer.Server.Plugins.Users
         public async Task Setup(Dictionary<string, string> parameters)
         {
             var pId = new PlatformId { Platform = PROVIDER_NAME };
-            if (!parameters.TryGetValue("login", out var login))
+            if (!parameters.TryGetValue("username", out var login))
             {
                 throw new ClientException("auth.loginPassword.create.missingParameter?id=login");
             }
@@ -115,6 +123,11 @@ namespace Stormancer.Server.Plugins.Users
             if (!parameters.TryGetValue("password", out var password))
             {
                 throw new ClientException("auth.loginPassword.create.missingParameter?id=password");
+            }
+
+            if (!parameters.TryGetValue("email", out var email) && RequiresEmail)
+            {
+                throw new ClientException("auth.loginPassword.create.missingParameter?id=email");
             }
 
             pId.OnlineId = login;
@@ -136,12 +149,13 @@ namespace Stormancer.Server.Plugins.Users
                 {
                     claim[ClaimPath] = JObject.FromObject(new LoginPasswordAuthRecord
                     {
+                        email = email,
                         login = login,
                         salt = salt,
                         iterations = iterations,
                         algorithm = algorithm.Name,
                         derivedKey = hash
-                    });
+                    }) ;
                 }, new Dictionary<string, string> { { ClaimPath, login } });
             }
         }

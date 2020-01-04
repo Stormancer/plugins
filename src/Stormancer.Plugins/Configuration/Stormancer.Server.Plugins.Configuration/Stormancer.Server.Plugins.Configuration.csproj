@@ -17,7 +17,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.0.0.3" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.0.0.7" />
   </ItemGroup>
-
+  <ItemGroup>
+    <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
+  </ItemGroup>
+  <Target Name="PostPack" AfterTargets="Pack">
+    <Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages/$(ConfigurationName)" />
+  </Target>
 </Project>

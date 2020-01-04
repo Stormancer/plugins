@@ -20,11 +20,16 @@
     <PackageReference Include="NEST" Version="7.5.1" />
     <PackageReference Include="NEST.JsonNetSerializer" Version="7.5.1" />
     <PackageReference Include="SmartFormat.NET" Version="2.5.0" />
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.0.0.3" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.0.0.7" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Configuration\Stormancer.Server.Plugins.Configuration\Stormancer.Server.Plugins.Configuration.csproj" />
   </ItemGroup>
-
+  <ItemGroup>
+    <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
+  </ItemGroup>
+  <Target Name="PostPack" AfterTargets="Pack">
+    <Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages/$(ConfigurationName)" />
+  </Target>
 </Project>

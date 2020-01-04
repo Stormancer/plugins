@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 using Newtonsoft.Json.Linq;
-using Server.Plugins.API;
+using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Core;
 using Stormancer.Diagnostics;

@@ -32,7 +32,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
 
             ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
               {
-                  if (scene.Template == UsersManagementPlugin.SCENE_TEMPLATE)
+                  if (scene.Template == Constants.SCENE_TEMPLATE)
                   {
                       builder.Register<LocatorController>().InstancePerRequest();
 
@@ -44,7 +44,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
               };
             ctx.SceneCreated += (ISceneHost scene) =>
             {
-                if (scene.Template == UsersManagementPlugin.SCENE_TEMPLATE)
+                if (scene.Template == Constants.SCENE_TEMPLATE)
                 {
                     scene.AddController<LocatorController>();
                 }

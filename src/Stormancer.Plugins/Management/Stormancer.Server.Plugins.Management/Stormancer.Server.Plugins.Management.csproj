@@ -5,7 +5,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>1.0.0</Version>
+    <Version>1.0.0.5</Version>
     <AssemblyVersion>$(Version)</AssemblyVersion>
     <FileVersion>$(Version)</FileVersion>
     <IncludeSymbols>true</IncludeSymbols>
@@ -17,8 +17,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.0.0.3" />
-    <PackageReference Include="Stormancer.Management" Version="3.0.0.3" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.0.0.7" />
+    <PackageReference Include="Stormancer.Management" Version="3.0.0.4" />
   </ItemGroup>
-
+  <ItemGroup>
+    <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
+  </ItemGroup>
+  <Target Name="PostPack" AfterTargets="Pack">
+    <Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages/$(ConfigurationName)" />
+  </Target>
 </Project>

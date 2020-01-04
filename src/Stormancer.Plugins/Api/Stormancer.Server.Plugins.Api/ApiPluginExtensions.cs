@@ -19,7 +19,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using Server.Plugins.API;
+using Stormancer.Server.Plugins.API;
 using Stormancer.Core;
 using System;
 using System.Collections.Generic;
@@ -48,7 +48,7 @@ namespace Stormancer
 
         public static IRegistrationBuilder InstancePerRequest(this IRegistrationBuilder builder)
         {
-            return builder.InstancePerNamedLifetimeScope(global::Server.Plugins.API.Constants.ApiRequestTag);
+            return builder.InstancePerNamedLifetimeScope(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag);
         }
 
     }
