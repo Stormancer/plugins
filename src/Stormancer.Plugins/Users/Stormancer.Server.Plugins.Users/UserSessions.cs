@@ -98,7 +98,7 @@ namespace Stormancer.Server.Plugins.Users
         public DateTimeOffset? MaxAge { get; internal set; }
     }
 
-    public class UserSessions : IUserSessions
+    internal class UserSessions : IUserSessions
     {
         private readonly IUserPeerIndex _userPeerIndex;
         private readonly IUserService _userService;
@@ -443,79 +443,11 @@ namespace Stormancer.Server.Plugins.Users
             return random;
         });
 
-        private static bool _handleUserMappingCreated = false;
-        private static AsyncLock _mappingLock = new AsyncLock();
+       
 
-        private const string UserHandleKey = "handle";
-
-        private int _handleSuffixUpperBound = 10000;
-        private int _handleMaxNumCharacters = 32;
-
-        private async Task EnsureHandleUserMappingCreated()
+        public Task UpdateUserHandle(string userId, string newHandle, bool appendHash)
         {
-            if (!_handleUserMappingCreated)
-            {
-                using (await _mappingLock.LockAsync())
-                {
-                    if (!_handleUserMappingCreated)
-                    {
-                        _handleUserMappingCreated = true;
-                        await _esClientFactory.EnsureMappingCreated<HandleUserRelation>("handleUserMapping", m => m
-                            .Properties(pd => pd
-                                .Keyword(kpd => kpd.Name(record => record.Id).Index())
-                                .Keyword(kpd => kpd.Name(record => record.HandleWithoutNum).Index())
-                                .Number(npd => npd.Name(record => record.HandleNum).Type(Nest.NumberType.Integer).Index())
-                                .Keyword(kpd => kpd.Name(record => record.UserId).Index(false))
-                                ));
-                    }
-                }
-            }
-        }
-
-        public async Task UpdateUserHandle(string userId, string newHandle, bool appendHash)
-        {
-            // Check handle validity
-            if (!Regex.IsMatch(newHandle, @"^[\p{Ll}\p{Lu}\p{Lt}\p{Lo}0-9]*$"))
-            {
-                throw new ArgumentException("Handle must consist of letters and digits only", nameof(newHandle));
-            }
-            if (newHandle.Length > _handleMaxNumCharacters)
-            {
-                throw new ArgumentException("Handle too long", nameof(newHandle));
-            }
-            await EnsureHandleUserMappingCreated();
-            var client = await _esClientFactory.CreateClient<HandleUserRelation>("handleUserRelationClient");
-            var user = await _userService.GetUser(userId);
-            if (user == null)
-            {
-                throw new ClientException("notFound?user");
-            }
-            var newUserData = user.UserData;
-
-            bool foundUnusedHandle = false;
-            string newHandleWithSuffix;
-            if (appendHash)
-            {
-                do
-                {
-                    var suffix = _random.Value.Next(0, _handleSuffixUpperBound);
-                    newHandleWithSuffix = newHandle + "#" + suffix;
-
-                    // Check conflicts
-                    var relation = new HandleUserRelation { Id = newHandleWithSuffix, HandleNum = suffix, HandleWithoutNum = newHandle, UserId = userId };
-                    var response = await client.IndexAsync(relation, d => d.OpType(Elasticsearch.Net.OpType.Create));
-                    foundUnusedHandle = response.IsValid;
-
-                } while (!foundUnusedHandle);
-                newUserData[UserHandleKey] = newHandleWithSuffix;
-            }
-            else
-            {
-                newUserData[UserHandleKey] = newHandle;
-            }
-
-
-            await _userService.UpdateUserData(userId, newUserData);
+            return _userService.UpdateUserHandle(userId, newHandle, appendHash);
         }
 
         public int AuthenticatedUsersCount

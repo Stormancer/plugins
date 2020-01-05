@@ -38,10 +38,10 @@ namespace Stormancer.Server.Plugins.Users
         public bool Success { get; set; }
         
         [MessagePackMember(2)]
-        public string UserId { get; set; } = "";
+        public string? UserId { get; set; }
 
         [MessagePackMember(3)]
-        public string Username { get; set; } = "";
+        public string? Username { get; set; }
 
         [MessagePackMember(4)]
         public Dictionary<string, string> Authentications { get; set; } = new Dictionary<string, string>();

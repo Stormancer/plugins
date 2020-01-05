@@ -43,6 +43,7 @@ namespace Stormancer.Server.Plugins.Users
         public string algorithm { get; set; }
 
     }
+
     class LoginPasswordAuthenticationProvider : IAuthenticationProvider
     {
 
@@ -50,11 +51,13 @@ namespace Stormancer.Server.Plugins.Users
         public const string ClaimPath = "loginpassword";
         private readonly IConfiguration config;
         private readonly IUserService users;
+        private readonly IUserSessions sessions;
 
-        public LoginPasswordAuthenticationProvider(IConfiguration config, IUserService users)
+        public LoginPasswordAuthenticationProvider(IConfiguration config, IUserService users, IUserSessions sessions)
         {
             this.config = config;
             this.users = users;
+            this.sessions = sessions;
         }
 
         public string Type => PROVIDER_NAME;
@@ -85,24 +88,24 @@ namespace Stormancer.Server.Plugins.Users
             pId.OnlineId = login;
 
             var user = await users.GetUserByClaim(PROVIDER_NAME, ClaimPath + ".login", login);
-            if(user == null)
+            if (user == null)
             {
                 return AuthenticationResult.CreateFailure("loginPassword.login.invalidCredentials", pId, authenticationCtx.Parameters);
             }
-            var authParams = user.Auth[ClaimPath]?.ToObject<LoginPasswordAuthRecord>();
+            var authParams = user.Auth[PROVIDER_NAME]?[ClaimPath]?.ToObject<LoginPasswordAuthRecord>();
 
-            if(authParams == null)
+            if (authParams == null)
             {
                 return AuthenticationResult.CreateFailure("loginPassword.login.invalidCredentials", pId, authenticationCtx.Parameters);
             }
 
             var derivedKey = DeriveKey(password, authParams.iterations, authParams.salt, new HashAlgorithmName(authParams.algorithm));
 
-            if(!BytesEqual(derivedKey,authParams.derivedKey))
+            if (!BytesEqual(derivedKey, authParams.derivedKey))
             {
                 return AuthenticationResult.CreateFailure("loginPassword.login.invalidCredentials", pId, authenticationCtx.Parameters);
             }
-               
+
 
             return AuthenticationResult.CreateSuccess(user, pId, authenticationCtx.Parameters);
         }
@@ -141,8 +144,12 @@ namespace Stormancer.Server.Plugins.Users
             {
 
                 var uid = Guid.NewGuid().ToString("N");
-                user = await users.CreateUser(uid, JObject.FromObject(new { login = login }));
+                user = await users.CreateUser(uid, JObject.FromObject(new { login, email = email ?? "" }));
 
+                if (parameters.TryGetValue("pseudo", out var pseudo))
+                {
+                    await users.UpdateUserHandle(uid, pseudo, true);
+                }
                 var hash = DeriveKey(password, out var iterations, out var salt, out var algorithm);
 
                 user = await users.AddAuthentication(user, PROVIDER_NAME, claim =>
@@ -155,7 +162,7 @@ namespace Stormancer.Server.Plugins.Users
                         iterations = iterations,
                         algorithm = algorithm.Name,
                         derivedKey = hash
-                    }) ;
+                    });
                 }, new Dictionary<string, string> { { ClaimPath, login } });
             }
         }

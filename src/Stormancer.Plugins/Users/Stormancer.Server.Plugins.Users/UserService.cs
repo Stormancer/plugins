@@ -30,6 +30,7 @@ using Stormancer.Server.Plugins.Database;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using LogLevel = Stormancer.Diagnostics.LogLevel;
@@ -126,7 +127,7 @@ namespace Stormancer.Server.Plugins.Users
             authDataModifier?.Invoke(auth);
             foreach (var entry in cacheEntries)
             {
-                var result = await c.IndexAsync(new AuthenticationClaim { Id = $"{provider}_{entry.Key}_{entry.Value}", UserId = user.Id, Provider = provider }, s => s.Index(GetIndex<AuthenticationClaim>()).OpType(Elasticsearch.Net.OpType.Create));
+                var result = await c.IndexAsync(new AuthenticationClaim { Id = $"{provider}_{entry.Key}_{entry.Value}", UserId = user.Id, Provider = provider }, s => s.Index(GetIndex<AuthenticationClaim>()).OpType(Elasticsearch.Net.OpType.Create).Refresh(Elasticsearch.Net.Refresh.WaitFor));
 
                 if (!result.IsValid)
                 {
@@ -310,7 +311,7 @@ namespace Stormancer.Server.Plugins.Users
             else
             {
 
-                var r = await c.SearchAsync<User>(sd => sd.Query(qd => qd.Term("auth." + provider + "." + claimPath, login)));
+                var r = await c.SearchAsync<User>(sd => sd.Query(qd => qd.Term("auth." + provider + "." + claimPath+".keyword", login)));
 
 
 
@@ -471,6 +472,79 @@ namespace Stormancer.Server.Plugins.Users
             return sources.ToDictionary(s => s.Id);
         }
 
+        private static bool _handleUserMappingCreated = false;
+        private static AsyncLock _mappingLock = new AsyncLock();
 
+        private const string UserHandleKey = "handle";
+
+        private int _handleSuffixUpperBound = 10000;
+        private int _handleMaxNumCharacters = 32;
+
+        private async Task EnsureHandleUserMappingCreated()
+        {
+            if (!_handleUserMappingCreated)
+            {
+                using (await _mappingLock.LockAsync())
+                {
+                    if (!_handleUserMappingCreated)
+                    {
+                        _handleUserMappingCreated = true;
+                        await _clientFactory.EnsureMappingCreated<HandleUserRelation>("handleUserMapping", m => m
+                            .Properties(pd => pd
+                                .Keyword(kpd => kpd.Name(record => record.Id).Index())
+                                .Keyword(kpd => kpd.Name(record => record.HandleWithoutNum).Index())
+                                .Number(npd => npd.Name(record => record.HandleNum).Type(Nest.NumberType.Integer).Index())
+                                .Keyword(kpd => kpd.Name(record => record.UserId).Index(false))
+                                ));
+                    }
+                }
+            }
+        }
+
+        public async Task UpdateUserHandle(string userId, string newHandle, bool appendHash)
+        {
+            // Check handle validity
+            if (!Regex.IsMatch(newHandle, @"^[\p{Ll}\p{Lu}\p{Lt}\p{Lo}0-9]*$"))
+            {
+                throw new ArgumentException("Handle must consist of letters and digits only", nameof(newHandle));
+            }
+            if (newHandle.Length > _handleMaxNumCharacters)
+            {
+                throw new ArgumentException("Handle too long", nameof(newHandle));
+            }
+            await EnsureHandleUserMappingCreated();
+            var client = await _clientFactory.CreateClient<HandleUserRelation>("handleUserRelationClient");
+            var user = await this.GetUser(userId);
+            if (user == null)
+            {
+                throw new ClientException("notFound?user");
+            }
+            var newUserData = user.UserData;
+
+            bool foundUnusedHandle = false;
+            string newHandleWithSuffix;
+            if (appendHash)
+            {
+                do
+                {
+                    var suffix = _random.Next(0, _handleSuffixUpperBound);
+                    newHandleWithSuffix = newHandle + "#" + suffix;
+
+                    // Check conflicts
+                    var relation = new HandleUserRelation { Id = newHandleWithSuffix, HandleNum = suffix, HandleWithoutNum = newHandle, UserId = userId };
+                    var response = await client.IndexAsync(relation, d => d.OpType(Elasticsearch.Net.OpType.Create));
+                    foundUnusedHandle = response.IsValid;
+
+                } while (!foundUnusedHandle);
+                newUserData[UserHandleKey] = newHandleWithSuffix;
+            }
+            else
+            {
+                newUserData[UserHandleKey] = newHandle;
+            }
+
+
+            await this.UpdateUserData(userId, newUserData);
+        }
     }
 }

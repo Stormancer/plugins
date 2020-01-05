@@ -103,14 +103,14 @@ namespace Stormancer.Server.Plugins.Users
 
             if (!validationCtx.HasError)
             {
-                AuthenticationResult authResult = null;
+              
                 var provider = GetProviders().FirstOrDefault(p => p.Type == auth.Type);
                 if (provider == null)
                 {
-                    throw new ClientException($"authentication.notSupported?type={auth.Type}");
+                    return new LoginResult { Success = false, ErrorMsg = $"authentication.notSupported?type={auth.Type}" };
                 }
 
-                authResult = await provider.Authenticate(authenticationCtx, ct);
+                var authResult = await provider.Authenticate(authenticationCtx, ct);
 
 
                 if (authResult.Success)
@@ -156,7 +156,7 @@ namespace Stormancer.Server.Plugins.Users
                     });
                     result.Success = true;
                     result.UserId = authResult?.AuthenticatedUser?.Id;
-                    result.Username = authResult.Username;
+                    result.Username = authResult?.Username;
                     session = await sessions.GetSessionRecordById(peer.SessionId);
                     result.Authentications = session.Authentications.ToDictionary(entry => entry.Key, entry => entry.Value);
                     var ctx = new LoggedInCtx { Result = result, Session = session };
@@ -306,6 +306,11 @@ namespace Stormancer.Server.Plugins.Users
         private async Task<DateTime?> RenewCredentials(TimeSpan threshold, IScenePeerClient peer)
         {
             var sessions = _sessions as UserSessions;
+            if (sessions == null)
+            {
+                throw new InvalidOperationException("Cannot call login on another scene than the authenticator scene");
+            }
+
             var session = await sessions.GetSessionRecordById(peer.SessionId);
             if (session == null)
             {
