@@ -446,6 +446,16 @@ namespace Stormancer.Server.Plugins.GameFinder
                     customData = _gameFinder.ComputeDataAnalytics(mmCtx)
                 }));
 
+                foreach ((Group group, string reason) in mmCtx.FailedClients)
+                {
+                    var client = waitingClients[group];
+                    client.State = RequestState.Rejected;
+                    // If this group is an S2S group, the exception will be forwarded to the S2S caller which is responsible for handling it
+                    client.Tcs.TrySetException(new ClientException(reason));
+                    // Remove games that contain a rejected group
+                    games.Games.RemoveAll(m => m.AllGroups.Contains(group));
+                }
+
                 if (games.Games.Any())
                 {
                     //_logger.Log(LogLevel.Debug, $"{LOG_CATEGORY}.FindGamesOnce", $"Prepare resolutions {waitingClients.Count} players for {matches.Matches.Count} matches.", new { waitingCount = waitingClients.Count });
