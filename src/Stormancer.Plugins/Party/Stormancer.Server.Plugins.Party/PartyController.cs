@@ -33,7 +33,7 @@ namespace Stormancer.Server.Party
 {
     class PartyController : ControllerBase
     {
-        public const string PROTOCOL_VERSION = "2019-23-10.1";
+        public const string PROTOCOL_VERSION = "2020-01-07.1";
 
         private const string NotInPartyError = "party.notInParty";
         private readonly IPartyService _partyService;

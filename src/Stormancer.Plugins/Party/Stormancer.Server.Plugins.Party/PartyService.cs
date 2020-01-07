@@ -48,7 +48,7 @@ namespace Stormancer.Server.Party
         // Revision is independent from protocol version. Revision changes when a modification is made to server code (e.g bugfix).
         // Protocol version changes when a change to the communication protocol is made.
         // Protocol versions between client and server are not obligated to match.
-        public const string REVISION = "2019-10-31.1";
+        public const string REVISION = "2020-01-07.1";
         public const string REVISION_METADATA_KEY = "stormancer.party.revision";
         private const string LOG_CATEGORY = "PartyService";
 
@@ -100,6 +100,7 @@ namespace Stormancer.Server.Party
         private const string LeaderChangedRoute = "party.leaderChanged";
         private const string MemberConnectedRoute = "party.memberConnected";
         private const string SendPartyStateRoute = "party.getPartyStateResponse";
+        private const string GameFinderFailedRoute = "party.gameFinderFailed";
 
         private void ApplySettings(dynamic settings)
         {
@@ -508,6 +509,7 @@ namespace Stormancer.Server.Party
             catch (Exception ex)
             {
                 Log(LogLevel.Error, "FindGame_Impl", "An error occurred during the S2S FindGame request", ex);
+                BroadcastFFNotification(GameFinderFailedRoute, new GameFinderFailureDto { Reason = ex.Message });
             }
             finally
             {
@@ -597,6 +599,12 @@ namespace Stormancer.Server.Party
                     ) // PartyMembers.Values.Select()
                 ); // Task.WhenAll()
             } // using cts
+        }
+
+        // This method should be used to broadcast a notification to party members that is not part of the party state.
+        private void BroadcastFFNotification<T>(string route, T data)
+        {
+            _scene.Broadcast(route, data);
         }
 
         public Task SendPartyState(string recipientUserId)
