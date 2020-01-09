@@ -23,6 +23,7 @@
 using Stormancer.Core;
 using Stormancer.Core.Helpers;
 using Stormancer.Diagnostics;
+using Stormancer.Plugins;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Database;
 using System;
@@ -30,6 +31,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -41,6 +43,9 @@ namespace Stormancer.Server.Plugins.Users
 
     public interface IPeerUserIndex : IIndex<SessionRecord> { }
     internal class PeerUserIndex : InMemoryIndex<SessionRecord>, IPeerUserIndex { }
+
+    public interface IHandleUserIndex : IIndex<string> { }
+    internal class HandleUserIndex : InMemoryIndex<string>, IHandleUserIndex { }
 
     public class SessionRecord
     {
@@ -109,6 +114,8 @@ namespace Stormancer.Server.Plugins.Users
         private readonly IEnvironment env;
         private readonly ISceneHost _scene;
         private readonly ILogger logger;
+        private readonly RpcService rpcService;
+        private readonly IHandleUserIndex _handleUserIndex;
 
       
         public UserSessions(IUserService userService,
@@ -118,7 +125,9 @@ namespace Stormancer.Server.Plugins.Users
             ISerializer serializer,
             IESClientFactory eSClientFactory,
             IEnvironment env,
-            ISceneHost scene, ILogger logger)
+            ISceneHost scene, ILogger logger,
+            RpcService rpcService,
+            IHandleUserIndex handleUserIndex)
         {
             _esClientFactory = eSClientFactory;
             _userService = userService;
@@ -126,12 +135,12 @@ namespace Stormancer.Server.Plugins.Users
             _userPeerIndex = userPeerIndex;
             _eventHandlers = eventHandlers;
             _scene = scene;
+            _handleUserIndex = handleUserIndex;
 
             this.serializer = serializer;
             this.env = env;
             this.logger = logger;
-
-
+            this.rpcService = rpcService;
         }
 
         public async Task<User> GetUser(IScenePeerClient peer)
@@ -443,11 +452,155 @@ namespace Stormancer.Server.Plugins.Users
             return random;
         });
 
-       
+        private static bool _handleUserMappingCreated = false;
+        private static AsyncLock _mappingLock = new AsyncLock();
 
-        public Task UpdateUserHandle(string userId, string newHandle, bool appendHash)
+        private const string UserHandleKey = "handle";
+
+        private int _handleSuffixUpperBound = 10000;
+        private int _handleMaxNumCharacters = 32;
+
+        private async Task EnsureHandleUserMappingCreated()
         {
-            return _userService.UpdateUserHandle(userId, newHandle, appendHash);
+            if (!_handleUserMappingCreated)
+            {
+                using (await _mappingLock.LockAsync())
+                {
+                    if (!_handleUserMappingCreated)
+                    {
+                        _handleUserMappingCreated = true;
+                        await _esClientFactory.EnsureMappingCreated<HandleUserRelation>("handleUserMapping", m => m
+                            .Properties(pd => pd
+                                .Keyword(kpd => kpd.Name(record => record.Id).Index())
+                                .Keyword(kpd => kpd.Name(record => record.HandleWithoutNum).Index())
+                                .Number(npd => npd.Name(record => record.HandleNum).Type(Nest.NumberType.Integer).Index())
+                                .Keyword(kpd => kpd.Name(record => record.UserId).Index(false))
+                                ));
+                    }
+                }
+            }
+        }
+
+        public async Task UpdateUserHandle(string userId, string newHandle, bool appendHash)
+        {
+            // Check handle validity
+            if (!Regex.IsMatch(newHandle, @"^[\p{Ll}\p{Lu}\p{Lt}\p{Lo}0-9]*$"))
+            {
+                throw new ClientException("badHandle?badCharacters");
+            }
+            if (newHandle.Length > _handleMaxNumCharacters)
+            {
+                throw new ClientException($"badHandle?tooLong&maxLength={_handleMaxNumCharacters}");
+            }
+
+            var ctx = new UpdateUserHandleCtx(userId, newHandle);
+            await _eventHandlers().RunEventHandler(handler => handler.OnUpdatingUserHandle(ctx), ex => logger.Log(LogLevel.Error, "usersessions", "An exception was thrown by an OnUpdatingUserHandle event handler", ex));
+
+            if (!ctx.Accept)
+            {
+                throw new ClientException(ctx.ErrorMessage);
+            }
+
+            var session = await GetSessionByUserId(userId);
+
+            async Task UpdateHandleDatabase()
+            {
+                await EnsureHandleUserMappingCreated();
+                var client = await _esClientFactory.CreateClient<HandleUserRelation>("handleUserRelationClient");
+                var user = await _userService.GetUser(userId);
+                if (user == null)
+                {
+                    throw new ClientException("notFound?user");
+                }
+                var newUserData = user.UserData;
+
+                bool foundUnusedHandle = false;
+                string newHandleWithSuffix;
+                if (appendHash)
+                {
+                    do
+                    {
+                        var suffix = _random.Value.Next(0, _handleSuffixUpperBound);
+                        newHandleWithSuffix = newHandle + "#" + suffix;
+
+                        // Check conflicts
+                        var relation = new HandleUserRelation { Id = newHandleWithSuffix, HandleNum = suffix, HandleWithoutNum = newHandle, UserId = userId };
+                        var response = await client.IndexAsync(relation, d => d.OpType(Elasticsearch.Net.OpType.Create));
+                        foundUnusedHandle = response.IsValid;
+
+                    } while (!foundUnusedHandle);
+                    newUserData[UserHandleKey] = newHandleWithSuffix;
+                }
+                else
+                {
+                    newUserData[UserHandleKey] = newHandle;
+                }
+                if (session != null)
+                {
+                    session.User.UserData = newUserData;
+                }
+                await _userService.UpdateUserData(userId, newUserData);
+            }
+
+            async Task UpdateHandleEphemeral()
+            {
+                var userData = session.User.UserData;
+                if (!appendHash)
+                {
+                    userData[UserHandleKey] = newHandle;
+                }
+                else
+                {
+                    string newHandleWithSuffix;
+                    bool added = false;
+                    do
+                    {
+                        var suffix = _random.Value.Next(0, _handleSuffixUpperBound);
+                        newHandleWithSuffix = newHandle + "#" + suffix;
+                        // Check conflicts
+                        added = await _handleUserIndex.TryAdd(newHandleWithSuffix, userId);
+                    } while (!added);
+
+                    userData[UserHandleKey] = newHandleWithSuffix;
+                }
+                session.User.UserData = userData;
+            }
+
+            if (session != null &&
+                session.User.UserData.TryGetValue(EphemeralAuthenticationProvider.IsEphemeralKey, out var isEphemeral) && (bool)isEphemeral)
+            {
+                await UpdateHandleEphemeral();
+            }
+            else
+            {
+                await UpdateHandleDatabase();
+            }
+        }
+
+        public IObservable<byte[]> SendRequest(string operationName, string senderUserId, string recipientUserId, Action<Stream> writer, CancellationToken cancellationToken)
+        {
+            return Observable.FromAsync(() => GetPeer(recipientUserId))
+            .Select(peer =>
+            {
+                if (peer == null)
+                {
+                    throw new TaskCanceledException("Peer disconnected");
+                }
+
+                return peer.Rpc("sendRequest", stream =>
+                {
+                    peer.Serializer().Serialize(senderUserId, stream);
+                    peer.Serializer().Serialize(operationName, stream);
+                    writer?.Invoke(stream);
+                }, cancellationToken)
+                .Select(packet =>
+                {
+                    using var stream = new MemoryStream();
+                    packet.Stream.CopyTo(stream);
+                    return stream.ToArray();
+                });
+            })
+            .Switch();
         }
 
         public int AuthenticatedUsersCount

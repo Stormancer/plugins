@@ -21,11 +21,6 @@
 // SOFTWARE.
 
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Utilities
@@ -50,7 +45,7 @@ namespace Stormancer.Server.Plugins.Utilities
         {
             lock (_currentWorkLock)
             {
-                _currentWork = _currentWork.ContinueWith(_ => work()).Unwrap();
+                _currentWork = _currentWork.ContinueWith(async _ => await work()).Unwrap();
 
                 return _currentWork;
             }
@@ -71,7 +66,7 @@ namespace Stormancer.Server.Plugins.Utilities
         {
             lock (_currentWorkLock)
             {
-                var myWork = _currentWork.ContinueWith(_ => work()).Unwrap();
+                var myWork = _currentWork.ContinueWith(async _ => await work()).Unwrap();
                 _currentWork = myWork;
 
                 return myWork;

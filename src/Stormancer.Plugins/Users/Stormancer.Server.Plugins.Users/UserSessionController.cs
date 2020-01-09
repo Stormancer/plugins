@@ -202,5 +202,13 @@ namespace Stormancer.Server.Plugins.Users
             return _sessions.UpdateUserHandle(userId, newHandle, appendHash);
         }
 
+        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
+        public async Task SendRequest(string operationName, string senderUserId, string recipientUserId, RequestContext<IScenePeer> ctx)
+        {
+            await foreach (var data in _sessions.SendRequest(operationName, senderUserId, recipientUserId, s => ctx.InputStream.CopyTo(s), ctx.CancellationToken).ToAsyncEnumerable())
+            {
+                await ctx.SendValue(stream => stream.Write(data, 0, data.Length));
+            }
+        }
     }
 }

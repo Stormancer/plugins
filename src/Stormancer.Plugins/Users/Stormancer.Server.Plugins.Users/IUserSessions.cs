@@ -24,8 +24,10 @@ using Newtonsoft.Json.Linq;
 using Stormancer;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
@@ -126,6 +128,8 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="appendHash"></param>
         /// <returns></returns>
         Task UpdateUserHandle(string userId, string newHandle, bool appendHash);
+
+        IObservable<byte[]> SendRequest(string operationName, string senderUserId, string recipientUserId, Action<Stream> writer, CancellationToken cancellationToken);
     }
 
     public class BearerTokenData

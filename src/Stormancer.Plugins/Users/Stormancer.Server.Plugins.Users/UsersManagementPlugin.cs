@@ -108,9 +108,11 @@ namespace Stormancer.Server.Plugins.Users
                 b.Register<UserSessions>().As<IUserSessions>();
                 b.Register<UserPeerIndex>().As<IUserPeerIndex>().SingleInstance();
                 b.Register<PeerUserIndex>().As<IPeerUserIndex>().SingleInstance();
+                b.Register<HandleUserIndex>().As<IHandleUserIndex>().SingleInstance();
                 b.Register<DeviceIdentifierAuthenticationProvider>().As<IAuthenticationProvider>();
                 b.Register<LoginPasswordAuthenticationProvider>().As<IAuthenticationProvider>();
                 b.Register<AdminImpersonationAuthenticationProvider>().As<IAuthenticationProvider>();
+                b.Register<EphemeralAuthenticationProvider>().As<IAuthenticationProvider>();
                 b.Register<CredentialsRenewer>().AsSelf().As<IAuthenticationEventHandler>().SingleInstance();
 
             }

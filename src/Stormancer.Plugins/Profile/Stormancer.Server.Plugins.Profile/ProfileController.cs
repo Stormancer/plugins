@@ -23,13 +23,10 @@ using MsgPack.Serialization;
 using Stormancer.Server.Plugins.API;
 using Stormancer.Core;
 using Stormancer.Server.Plugins.Users;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Stormancer.Plugins;
-using System.ComponentModel.DataAnnotations;
 
 namespace Stormancer.Server.Plugins.Profile
 {
@@ -73,7 +70,7 @@ namespace Stormancer.Server.Plugins.Profile
             {
                 await _profiles.UpdateUserHandle(session, handle);
             }
-            catch (ValidationException ex)
+            catch (RpcException ex)
             {
                 throw new ClientException(ex);
             }

@@ -37,11 +37,30 @@ namespace Stormancer.Server.Plugins.Users
         public DateTime ConnectedOn { get; set; }
     }
 
+    public class UpdateUserHandleCtx
+    {
+        public UpdateUserHandleCtx(string userId, string newHandle)
+        {
+            UserId = userId;
+            NewHandle = newHandle;
+        }
+
+        public string UserId { get; }
+        public string NewHandle { get; }
+        public bool Accept { get; set; } = true;
+        public string ErrorMessage { get; set; } = "";
+    }
+
     public interface IUserSessionEventHandler
     {
         Task OnLoggedIn(LoginContext ctx);
 
         Task OnLoggedOut(LogoutContext ctx);
+
+        Task OnUpdatingUserHandle(UpdateUserHandleCtx ctx)
+        {
+            return Task.CompletedTask;
+        }
     }
 }
 

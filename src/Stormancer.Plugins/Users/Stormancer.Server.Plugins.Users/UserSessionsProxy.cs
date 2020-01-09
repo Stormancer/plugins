@@ -29,6 +29,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
@@ -54,25 +55,37 @@ namespace Stormancer.Server.Plugins.Users
 
         private async Task<Packet<IScenePeer>> AuthenticatorRpc(string targetSessionId, string route, Action<Stream> writer, string type = "")
         {
+            return await AuthenticatorRpc(targetSessionId, route, writer, CancellationToken.None, type).LastOrDefaultAsync();
+        }
 
-            var session = targetSessionId != null ? await this.cache.GetSessionBySessionId(targetSessionId, false, string.Empty, false) : null;
-            string sceneId;
-            if (session != null)
+        private IObservable<Packet<IScenePeer>> AuthenticatorRpc(string targetSessionId, string route, Action<Stream> writer, CancellationToken cancellationToken, string type = "")
+        {
+            return Observable.FromAsync(async () =>
             {
-                sceneId = session.AuthenticatorUrl;
-            }
-            else
-            {
-                sceneId = await _locator.GetSceneId("stormancer.authenticator" + (string.IsNullOrEmpty(type) ? "" : "-" + type), "");
-            }
-            return await AuthenticatorRpcWithSceneId(sceneId, route, writer);
+                var session = targetSessionId != null ? await this.cache.GetSessionBySessionId(targetSessionId, false, string.Empty, false) : null;
+                if (session != null)
+                {
+                    return session.AuthenticatorUrl;
+                }
+                else
+                {
+                    return await _locator.GetSceneId("stormancer.authenticator" + (string.IsNullOrEmpty(type) ? "" : "-" + type), "");
+                }
+            })
+            .Select(sceneId => AuthenticatorRpcWithSceneId(sceneId, route, writer, cancellationToken))
+            .Switch();
+        }
+
+        private IObservable<Packet<IScenePeer>> AuthenticatorRpcWithSceneId(string sceneId, string route, Action<Stream> writer, CancellationToken cancellationToken)
+        {
+            var rpc = _scene.DependencyResolver.Resolve<RpcService>();
+
+            return rpc.Rpc(route, new MatchSceneFilter(sceneId), writer, PacketPriority.MEDIUM_PRIORITY, cancellationToken);
         }
 
         private async Task<Packet<IScenePeer>> AuthenticatorRpcWithSceneId(string sceneId, string route, Action<Stream> writer)
         {
-            var rpc = _scene.DependencyResolver.Resolve<RpcService>();
-
-            return await rpc.Rpc(route, new MatchSceneFilter(sceneId), writer, PacketPriority.MEDIUM_PRIORITY).LastOrDefaultAsync();
+            return await AuthenticatorRpcWithSceneId(sceneId, route, writer, CancellationToken.None);
         }
 
         private async Task<string> GetSessionIdForUser(string userId)
@@ -385,12 +398,29 @@ namespace Stormancer.Server.Plugins.Users
 
         public async Task UpdateUserHandle(string userId, string newHandle, bool appendHash)
         {
-            var response = await AuthenticatorRpc(null, $"UserSession.{nameof(UpdateUserHandle)}", s =>
+            await AuthenticatorRpc(null, $"UserSession.{nameof(UpdateUserHandle)}", s =>
              {
                  _serializer.Serialize(userId, s);
                  _serializer.Serialize(newHandle, s);
                  _serializer.Serialize(appendHash, s);
              });
+        }
+
+        public IObservable<byte[]> SendRequest(string operationName, string senderUserId, string recipientUserId, Action<Stream> writer, CancellationToken cancellationToken)
+        {
+            return AuthenticatorRpc(null, $"UserSession.{nameof(SendRequest)}", s =>
+            {
+                _serializer.Serialize(operationName, s);
+                _serializer.Serialize(senderUserId, s);
+                _serializer.Serialize(recipientUserId, s);
+                writer?.Invoke(s);
+            }, cancellationToken)
+            .Select(packet =>
+            {
+                using var stream = new MemoryStream();
+                packet.Stream.CopyTo(stream);
+                return stream.ToArray();
+            });
         }
     }
 }

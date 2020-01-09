@@ -46,7 +46,5 @@ namespace Stormancer.Server.Plugins.Users
 
         Task UpdateLastLoginDate(string userId);
         Task<Dictionary<string, User>> GetUsers(params string[] userIds);
-
-        Task UpdateUserHandle(string userId, string newHandle, bool appendHash);
     }
 }

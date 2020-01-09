@@ -148,7 +148,7 @@ namespace Stormancer.Server.Plugins.Users
 
                 if (parameters.TryGetValue("pseudo", out var pseudo))
                 {
-                    await users.UpdateUserHandle(uid, pseudo, true);
+                    await sessions.UpdateUserHandle(uid, pseudo, true);
                 }
                 var hash = DeriveKey(password, out var iterations, out var salt, out var algorithm);
 
