@@ -19,20 +19,22 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using Stormancer;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Stormancer.Core;
+using Stormancer.Plugins;
+using Stormancer.Server.Plugins.GameSession;
 
-namespace Stormancer.Server.Plugins.Profile
+namespace Stormancer.Server.Plugins.Friends.RecentlyMet
 {
-    public class App
+    class RecentlyMetFriendsPlugin : IHostPlugin
     {
-        public void Run(IAppBuilder builder)
+
+        public void Build(HostPluginBuildContext ctx)
         {
-            builder.AddPlugin(new ProfilePlugin());
+            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
+            {
+              
+                builder.Register<RecentlyMetUsersEventHandler>().As<IFriendsEventHandler>().As<IGameSessionEventHandler>().InstancePerRequest();
+            };
         }
     }
 }

@@ -19,20 +19,19 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using Stormancer;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using MsgPack.Serialization;
 
-namespace Stormancer.Server.Plugins.Profile
+namespace Stormancer.Server.Plugins.Friends
 {
-    public class App
+    public class FriendListUpdateDto
     {
-        public void Run(IAppBuilder builder)
-        {
-            builder.AddPlugin(new ProfilePlugin());
-        }
+        [MessagePackMember(0)]
+        public string ItemId { get; set; }
+
+        [MessagePackMember(1)]
+        public string Operation { get; set; }
+
+        [MessagePackMember(2)]
+        public Friend Data { get; set; }
     }
 }

@@ -28,7 +28,10 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.ServiceLocator
 {
-    class App
+    /// <summary>
+    /// Startup class for the locator.
+    /// </summary>
+    public class App
     {
         public void Run(IAppBuilder builder)
         {

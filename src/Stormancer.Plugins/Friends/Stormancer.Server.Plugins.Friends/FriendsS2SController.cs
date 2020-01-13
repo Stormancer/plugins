@@ -19,20 +19,28 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using Stormancer;
+using Stormancer.Server.Plugins.API;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.Profile
+namespace Stormancer.Server.Plugins.Friends
 {
-    public class App
+    public class FriendsS2SController: ControllerBase
     {
-        public void Run(IAppBuilder builder)
+        private readonly IFriendsService _friends;
+
+        public FriendsS2SController(IFriendsService friends)
         {
-            builder.AddPlugin(new ProfilePlugin());
+            _friends = friends;
+        }
+        [Api( ApiAccess.Scene2Scene, ApiType.Rpc)]
+        public Task AddNonPersistedFriends(string userId, IEnumerable<Friend> friends)
+        {
+            return _friends.AddNonPersistedFriends(userId, friends);
+
         }
     }
 }

@@ -19,20 +19,28 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using Stormancer;
-using System;
+using Stormancer.Server.Plugins.Users;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.Profile
+namespace Stormancer.Server.Plugins.Friends
 {
-    public class App
+    public interface IFriendsService
     {
-        public void Run(IAppBuilder builder)
-        {
-            builder.AddPlugin(new ProfilePlugin());
-        }
+        Task Invite(User user, User friendId);
+
+        Task<bool> IsInFriendList(string userId, string friendId);
+
+        Task ManageInvitation(User user, string senderId, bool accept);
+
+        Task RemoveFriend(User user, string friendId);
+
+        Task Subscribe(IScenePeerClient peer);
+
+        Task Unsubscribe(IScenePeerClient peer);
+
+        Task SetStatus(User user, FriendListStatusConfig status, string customData);
+
+        Task AddNonPersistedFriends(string userId, IEnumerable<Friend> friends);
     }
 }
