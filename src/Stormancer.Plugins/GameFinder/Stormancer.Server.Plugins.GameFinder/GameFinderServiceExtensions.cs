@@ -30,6 +30,7 @@ namespace Stormancer
         {
             GameFinderPlugin.Configs[scene.Id] = config;
             scene.Metadata[GameFinderPlugin.METADATA_KEY] = scene.Id;
+            scene.Metadata[GameFinderPlugin.ProtocolVersionKey] = GameFinderService.ProtocolVersion.ToString();
         }
     }
 }

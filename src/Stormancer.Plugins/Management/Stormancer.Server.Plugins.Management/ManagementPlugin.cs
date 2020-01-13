@@ -66,15 +66,16 @@ namespace Stormancer.Server.Plugins.Management
         private readonly IEnvironment _environment;
         private readonly ILogger _logger;
 
-        private ManagementClient _client;
+        private ManagementClient _clientV3;
+        private Lazy<ManagementClient> _clientV1;
+        private ManagementClient clientV1 { get => _clientV1.Value; }
 
         public ManagementClientProvider(IEnvironment environment, ILogger logger)
         {
             _environment = environment;
             _logger = logger;
 
-
-            _client = new ManagementClient(async clusterId =>
+            async Task<Uri> EndpointResolver(string? clusterId)
             {
                 var fed = await _environment.GetFederation();
                 if (string.IsNullOrEmpty(clusterId))
@@ -99,12 +100,12 @@ namespace Stormancer.Server.Plugins.Management
                         throw new InvalidOperationException($"No admin endpoint found on {cluster.id}");
                     }
                     return new Uri(cluster.adminEndpoints.First());
-
                 }
-            },
-            environment.GetBearerToken);
+            }
 
+            _clientV3 = new ManagementClient(EndpointResolver, environment.GetBearerToken);
 
+            _clientV1 = new Lazy<ManagementClient>(() => new ManagementClient(EndpointResolver, environment.GetBearerToken, "1"));
         }
 
         /// <summary>
@@ -118,7 +119,22 @@ namespace Stormancer.Server.Plugins.Management
         {
 
             (var clusterId, var accountId, var applicationId, var sceneId) = await DecomposeSceneId(sceneUri);
-            return await _client.Applications.CreateConnectionToken(clusterId, accountId, applicationId, sceneId, payload ?? new byte[0], contentType);
+            return await _clientV3.Applications.CreateConnectionToken(clusterId, accountId, applicationId, sceneId, payload ?? new byte[0], contentType);
+
+        }
+
+        /// <summary>
+        /// Creates a connection token for a scene in the federation, using the V1 protocol.
+        /// </summary>
+        /// <param name="sceneUri"></param>
+        /// <param name="payload"></param>
+        /// <param name="contentType"></param>
+        /// <returns></returns>
+        public async Task<string> CreateConnectionTokenV1(string sceneUri, byte[]? payload = null, string contentType = "application/octet-stream")
+        {
+
+            (var clusterId, var accountId, var applicationId, var sceneId) = await DecomposeSceneId(sceneUri);
+            return await clientV1.Applications.CreateConnectionToken(clusterId, accountId, applicationId, sceneId, payload ?? new byte[0], contentType);
 
         }
 
@@ -137,7 +153,7 @@ namespace Stormancer.Server.Plugins.Management
             (var clusterId, var accountId, var applicationId, var sceneId) = await DecomposeSceneId(sceneUri);
             try
             {
-                await _client.Applications.CreateScene(clusterId, accountId, applicationId, sceneId, template, isPublic, metadata, isPersistent);
+                await _clientV3.Applications.CreateScene(clusterId, accountId, applicationId, sceneId, template, isPublic, metadata, isPersistent);
             }
             catch (Exception ex)
             {
@@ -211,7 +227,7 @@ namespace Stormancer.Server.Plugins.Management
         /// <returns></returns>
         public ManagementClient GetManagementClient()
         {
-            return _client;
+            return _clientV3;
         }
     }
 }
