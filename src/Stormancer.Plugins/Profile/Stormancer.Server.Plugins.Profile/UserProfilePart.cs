@@ -31,17 +31,21 @@ namespace Stormancer.Server.Plugins.Profile
     class PseudoProfilePart : IProfilePartBuilder
     {
         private readonly IUserService _users;
+        private readonly IUserSessions _sessions;
 
-        public PseudoProfilePart(IUserService users)
+        public PseudoProfilePart(IUserService users, IUserSessions sessions)
         {
             _users = users;
+            _sessions = sessions;
         }
 
         public async Task GetProfiles(ProfileCtx ctx)
         {
             foreach (var id in ctx.Users)
             {
-                var user = await _users.GetUser(id);
+                // Prefer to retrieve the user directly from the session. If the user is offline, use the database.
+                var session = await _sessions.GetSessionByUserId(id);
+                var user = session?.User ?? await _users.GetUser(id);
                 ctx.UpdateProfileData(id, "user", j =>
                   {
                       if (user != null)
