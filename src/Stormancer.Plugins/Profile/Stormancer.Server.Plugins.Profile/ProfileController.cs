@@ -84,7 +84,7 @@ namespace Stormancer.Server.Plugins.Profile
             {
                 throw new ClientException("profiles.query.notEnoughCharacters?minLength=3");
             }
-            var users = await _users.Query(new[] { new KeyValuePair<string, string>("userData.handle", pseudoPrefix + "*") }, take, skip);
+            var users = await _users.QueryUserHandlePrefix(pseudoPrefix, take, skip);
             var profiles = await _profiles.GetProfiles(users.Select(u => u.Id), new Dictionary<string, string> { { "displayType", "summary" } }, await _sessions.GetSession(this.Request.RemotePeer));
             return profiles.ToDictionary(kvp => kvp.Key, kvp => new ProfileDto { Data = kvp.Value.ToDictionary(kvp2 => kvp2.Key, kvp2 => kvp2.Value.ToString()) });
         }
