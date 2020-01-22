@@ -1,4 +1,4 @@
-// MIT License
+﻿// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -19,25 +19,21 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.Profile
+namespace Stormancer.Server.Plugins.GameVersion
 {
-    public class HandleUserRelation
+    /// <summary>
+    /// This class is used for automated plugin registration. It should not be instantiated by user code.
+    /// </summary>
+    public class App
     {
         /// <summary>
-        /// Indexed by user's handle
-        /// </summary>       
-        public string Id { get; set; }
-
-        public string HandleWithoutNum { get; set; }
-
-        public int HandleNum { get; set; }
-
-        public string UserId { get; set; }
+        /// Register the plugin. This method is called automatically.
+        /// </summary>
+        /// <param name="builder"></param>
+        public void Run(IAppBuilder builder)
+        {
+            builder.AddPlugin(new GameVersionPlugin());
+        }
     }
 }

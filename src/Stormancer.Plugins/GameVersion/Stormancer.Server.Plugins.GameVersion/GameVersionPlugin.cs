@@ -1,4 +1,4 @@
-// MIT License
+﻿// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -19,42 +19,42 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
+using Stormancer.Plugins;
+using Stormancer.Core;
 using Stormancer.Server.Plugins.Users;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.Profile
+namespace Stormancer.Server.Plugins.GameVersion
 {
-    class PseudoProfilePart : IProfilePartBuilder
+    internal class GameVersionPlugin : IHostPlugin
     {
-        private readonly IUserService _users;
-        private readonly IUserSessions _sessions;
+        public const string METADATA_KEY = "stormancer.gameVersion";
 
-        public PseudoProfilePart(IUserService users, IUserSessions sessions)
+        public void Build(HostPluginBuildContext ctx)
         {
-            _users = users;
-            _sessions = sessions;
-        }
-
-        public async Task GetProfiles(ProfileCtx ctx)
-        {
-            foreach (var id in ctx.Users)
+            ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
             {
-                // Prefer to retrieve the user directly from the session. If the user is offline, use the database.
-                var session = await _sessions.GetSessionByUserId(id);
-                var user = session?.User ?? await _users.GetUser(id);
-                ctx.UpdateProfileData(id, "user", j =>
-                  {
-                      if (user != null)
-                      {
-                          j["userhandle"] = user.UserData["handle"];
-                      }
-                      return j;
-                  });
-            }
+                if (scene.Metadata.ContainsKey(METADATA_KEY))
+                {
+                    builder.Register<GameVersionService>().InstancePerScene();
+                    builder.Register<AuthenticationEventHandler>().As<IAuthenticationEventHandler>().InstancePerDependency();
+                }
+            };
+
+            ctx.SceneCreated += (ISceneHost scene) =>
+            {
+                scene.DependencyResolver.Resolve<GameVersionService>();
+            };
+
+            ctx.HostStarting += (IHost host) =>
+            {
+                host.AddSceneTemplate(Users.Constants.SCENE_TEMPLATE, (ISceneHost scene) =>
+                {
+                    scene.AddGameVersion("gameVersion");
+                });
+            };
         }
     }
+
+
 }

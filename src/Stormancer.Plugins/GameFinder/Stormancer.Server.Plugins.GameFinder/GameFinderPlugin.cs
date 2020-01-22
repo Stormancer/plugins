@@ -31,6 +31,10 @@ namespace Stormancer.Server.Plugins.GameFinder
     public class GameFinderPlugin : IHostPlugin
     {
         public const string METADATA_KEY = "stormancer.plugins.gamefinder";
+        /// <summary>
+        /// Key of the protocol version metadata entry.
+        /// </summary>
+        public const string ProtocolVersionKey = "stormancer.plugins.gamefinder.protocol";
 
         internal static Dictionary<string, GameFinderConfig> Configs = new Dictionary<string, GameFinderConfig>();
 

@@ -33,10 +33,23 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
+    public enum TokenVersion
+    {
+        V1,
+        V3
+    }
+
     public interface IGameSessions
     {
         Task Create(string template, string id, GameSessionConfiguration config);
-        Task<string> CreateConnectionToken(string id, string userSessionId);
+        /// <summary>
+        /// Create a connection token for a given user and game session scene.
+        /// </summary>
+        /// <param name="id">Id of the game session's scene</param>
+        /// <param name="userSessionId">Session Id of the target user</param>
+        /// <param name="version">Version of the resulting token payload</param>
+        /// <returns>The new connection token</returns>
+        Task<string> CreateConnectionToken(string id, string userSessionId, TokenVersion version = TokenVersion.V3);
         Task<string> CreateServerConnectionToken(string gameSessionId, Guid serverId);
     }
 
@@ -57,16 +70,18 @@ namespace Stormancer.Server.Plugins.GameSession
             return management.CreateScene(id, template, false, false, JObject.FromObject(new { gameSession = config }));
         }
 
-        public async Task<string> CreateConnectionToken(string id, string userSessionId)
+        public async Task<string> CreateConnectionToken(string id, string userSessionId, TokenVersion version)
         {
 
             using (var stream = new MemoryStream())
             {
                 var session = await sessions.GetSessionById(userSessionId);
                 serializer.Serialize(session, stream);
-                return await TaskHelper.Retry(async () =>
+                return await TaskHelper.Retry(async () => version switch
                 {
-                    return await management.CreateConnectionToken(id, stream.ToArray(), "stormancer/userSession");
+                    TokenVersion.V3 => await management.CreateConnectionToken(id, stream.ToArray(), "stormancer/userSession"),
+                    TokenVersion.V1 => await management.CreateConnectionTokenV1(id, stream.ToArray(), "stormancer/userSession"),
+                    _ => throw new InvalidOperationException("Unhandled TokenVersion value")
 
                 }, RetryPolicies.IncrementalDelay(4, TimeSpan.FromSeconds(200)), CancellationToken.None, ex => true);
             }

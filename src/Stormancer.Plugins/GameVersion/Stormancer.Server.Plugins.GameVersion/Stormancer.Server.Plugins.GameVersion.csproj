@@ -5,7 +5,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>1.1.1</Version>
+    <Version>1.0.0</Version>
     <AssemblyVersion>$(Version)</AssemblyVersion>
     <FileVersion>$(Version)</FileVersion>
     <IncludeSymbols>true</IncludeSymbols>
@@ -13,27 +13,23 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <Description>Provides P2P and client/server gamesession features to a Stormancer server application.</Description>
+    <Description>Game client and server version tracking tools.</Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="providers\" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.*" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="MsgPack.Cli" Version="1.0.1" />
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.1.0.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj" />
-    <ProjectReference Include="..\..\Management\Stormancer.Server.Plugins.Management\Stormancer.Server.Plugins.Management.csproj" />
+    <ProjectReference Include="..\..\Configuration\Stormancer.Server.Plugins.Configuration\Stormancer.Server.Plugins.Configuration.csproj" />
     <ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />
   </ItemGroup>
+
   <ItemGroup>
     <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
   </ItemGroup>
   <Target Name="PostPack" AfterTargets="Pack">
     <Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages/$(ConfigurationName)" />
   </Target>
+
 </Project>

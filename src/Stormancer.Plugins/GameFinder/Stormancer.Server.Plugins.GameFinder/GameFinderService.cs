@@ -37,6 +37,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
@@ -58,6 +59,8 @@ namespace Stormancer.Server.Plugins.GameFinder
         private const string UPDATE_READYCHECK_ROUTE = "gamefinder.ready.update";
         private const string UPDATE_FINDGAME_REQUEST_PARAMS_ROUTE = "gamefinder.parameters.update";
         private const string LOG_CATEGORY = "GameFinderService";
+
+        public const long ProtocolVersion = 2020_01_10_1;
 
         private ISceneHost _scene;
 
@@ -563,7 +566,11 @@ namespace Stormancer.Server.Plugins.GameFinder
                                 using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
                                 {
                                     var gameSessions = scope.Resolve<IGameSessions>();
-                                    var token = await gameSessions.CreateConnectionToken(resolverCtx.GameSceneId, player.SessionId);
+                                    var token = ClientSupportsV3Token(player) switch
+                                    {
+                                        true => await gameSessions.CreateConnectionToken(resolverCtx.GameSceneId, player.SessionId, TokenVersion.V3),
+                                        false => await gameSessions.CreateConnectionToken(resolverCtx.GameSceneId, player.SessionId, TokenVersion.V1)
+                                    };
                                     writerContext.WriteObjectToStream(token);
                                 }
                             }
@@ -873,6 +880,18 @@ namespace Stormancer.Server.Plugins.GameFinder
             {
                 writer(_stream);
             }
+        }
+
+        private static bool ClientSupportsV3Token(IScenePeerClient client)
+        {
+            if (client.Metadata.TryGetValue(GameFinderPlugin.ProtocolVersionKey, out var versionString))
+            {
+                if (long.TryParse(versionString, out long version) && version >= 2020_01_10_1)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }

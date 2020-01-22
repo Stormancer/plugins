@@ -61,9 +61,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.G
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Friends", "Friends", "{DAE06765-99AC-47F9-A7B2-8E21448600AA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Friends", "Friends\Stormancer.Server.Plugins.Friends\Stormancer.Server.Plugins.Friends.csproj", "{4F8A6C4E-4E6F-4FFE-A425-B6A59673ED35}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Friends", "Friends\Stormancer.Server.Plugins.Friends\Stormancer.Server.Plugins.Friends.csproj", "{4F8A6C4E-4E6F-4FFE-A425-B6A59673ED35}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Friends.RecentlyMet", "Friends\Stormancer.Server.Plugins.Friends.RecentlyMet\Stormancer.Server.Plugins.Friends.RecentlyMet.csproj", "{A502804A-6D2D-4201-A48B-87C46F023887}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Friends.RecentlyMet", "Friends\Stormancer.Server.Plugins.Friends.RecentlyMet\Stormancer.Server.Plugins.Friends.RecentlyMet.csproj", "{A502804A-6D2D-4201-A48B-87C46F023887}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GameVersion", "GameVersion", "{B6D0762D-F756-429F-A87E-F670319C01D4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.GameVersion", "GameVersion\Stormancer.Server.Plugins.GameVersion\Stormancer.Server.Plugins.GameVersion.csproj", "{79DB11AB-6B3A-4E40-A5BF-F93A954C2934}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -135,6 +139,10 @@ Global
 		{A502804A-6D2D-4201-A48B-87C46F023887}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A502804A-6D2D-4201-A48B-87C46F023887}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A502804A-6D2D-4201-A48B-87C46F023887}.Release|Any CPU.Build.0 = Release|Any CPU
+		{79DB11AB-6B3A-4E40-A5BF-F93A954C2934}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{79DB11AB-6B3A-4E40-A5BF-F93A954C2934}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{79DB11AB-6B3A-4E40-A5BF-F93A954C2934}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{79DB11AB-6B3A-4E40-A5BF-F93A954C2934}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -155,6 +163,7 @@ Global
 		{0A37FA9A-4F9E-4C23-A64C-E9597EAF15A9} = {27B34EA5-8608-49FA-96F0-DEC4C3A5A7B3}
 		{4F8A6C4E-4E6F-4FFE-A425-B6A59673ED35} = {DAE06765-99AC-47F9-A7B2-8E21448600AA}
 		{A502804A-6D2D-4201-A48B-87C46F023887} = {DAE06765-99AC-47F9-A7B2-8E21448600AA}
+		{79DB11AB-6B3A-4E40-A5BF-F93A954C2934} = {B6D0762D-F756-429F-A87E-F670319C01D4}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}

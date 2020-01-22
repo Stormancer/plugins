@@ -1,4 +1,4 @@
-// MIT License
+﻿// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -19,42 +19,33 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using Stormancer.Server.Plugins.Users;
+
+using Stormancer.Core;
+using Stormancer.Server.Plugins.GameVersion;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.Profile
+namespace Stormancer
 {
-    class PseudoProfilePart : IProfilePartBuilder
+    /// <summary>
+    /// Extension methods to Stormancer types for the GameVersion plugin
+    /// </summary>
+    public static class GameVersionExtensions
     {
-        private readonly IUserService _users;
-        private readonly IUserSessions _sessions;
-
-        public PseudoProfilePart(IUserService users, IUserSessions sessions)
+        /// <summary>
+        /// Add GameVersion functionality to a scene.
+        /// </summary>
+        /// <remarks>
+        /// GameVersion is always enabled on the authenticator scene. Use this method if you want to enable it on additional scenes.
+        /// </remarks>
+        /// <param name="builder"></param>
+        /// <param name="prefix">Configuration prefix for this instance of GameVersion</param>
+        public static void AddGameVersion(this ISceneHost builder, string? prefix = null)
         {
-            _users = users;
-            _sessions = sessions;
-        }
-
-        public async Task GetProfiles(ProfileCtx ctx)
-        {
-            foreach (var id in ctx.Users)
-            {
-                // Prefer to retrieve the user directly from the session. If the user is offline, use the database.
-                var session = await _sessions.GetSessionByUserId(id);
-                var user = session?.User ?? await _users.GetUser(id);
-                ctx.UpdateProfileData(id, "user", j =>
-                  {
-                      if (user != null)
-                      {
-                          j["userhandle"] = user.UserData["handle"];
-                      }
-                      return j;
-                  });
-            }
+            builder.Metadata[GameVersionPlugin.METADATA_KEY] = prefix ?? "default";
         }
     }
 }
