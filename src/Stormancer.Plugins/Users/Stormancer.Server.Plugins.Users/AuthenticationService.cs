@@ -92,7 +92,6 @@ namespace Stormancer.Server.Plugins.Users
             {
                 throw new InvalidOperationException("Cannot call login on another scene than the authenticator scene");
             }
-            _logger.Log(LogLevel.Debug, "user.login", "AuthenticationService login", auth);
 
             var result = new LoginResult();
             var session = await sessions.GetSessionRecordById(peer.SessionId);

@@ -164,7 +164,7 @@ namespace Stormancer.Server.Plugins.Users
 
                 return user;
             }
-            catch(InvalidOperationException)
+            catch (InvalidOperationException)
             {
                 foreach (var entry in cacheEntries)
                 {
@@ -311,7 +311,7 @@ namespace Stormancer.Server.Plugins.Users
             else
             {
 
-                var r = await c.SearchAsync<User>(sd => sd.Query(qd => qd.Term("auth." + provider + "." + claimPath+".keyword", login)));
+                var r = await c.SearchAsync<User>(sd => sd.Query(qd => qd.Term("auth." + provider + "." + claimPath + ".keyword", login)));
 
 
 
@@ -401,7 +401,17 @@ namespace Stormancer.Server.Plugins.Users
                 await (await Client<User>()).IndexAsync(user, s => s);
             }
         }
+        public async Task<IEnumerable<User>> QueryUserHandlePrefix(string prefix, int take, int skip)
+        {
+            var c = await Client<User>();
+            var result = await c.SearchAsync<User>(s =>
+                s.Query(
+                    q => q.MatchPhrasePrefix(desc => desc.Field("userData.handle").Query(prefix))
+                    )
+            );
 
+            return result.Documents;
+        }
         public async Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string, string>> query, int take, int skip)
         {
             var c = await Client<User>();

@@ -32,32 +32,32 @@ namespace Stormancer
 {
     public static class UserExtensions
     {
-        public static ulong? GetSteamId(this User user)
-        {
-            var steamId = user.UserData["steamid"].ToObject<string>();
-            if (steamId == null)
-            {
-                return null;
-            }
-            else
-            {
-                return ulong.Parse(steamId);
-            }
-        }
+        //public static ulong? GetSteamId(this User user)
+        //{
+        //    var steamId = user.UserData["steamid"].ToObject<string>();
+        //    if (steamId == null)
+        //    {
+        //        return null;
+        //    }
+        //    else
+        //    {
+        //        return ulong.Parse(steamId);
+        //    }
+        //}
 
-        public static ulong? GetMailRuId(this User user)
-        {
-            // TODO UPDATE FOR MAIL RU
-            var mailruId = user.UserData["steamid"].ToObject<string>();
-            if (mailruId == null)
-            {
-                return null;
-            }
-            else
-            {
-                return ulong.Parse(mailruId);
-            }
-        }
+        //public static ulong? GetMailRuId(this User user)
+        //{
+        //    // TODO UPDATE FOR MAIL RU
+        //    var mailruId = user.UserData["steamid"].ToObject<string>();
+        //    if (mailruId == null)
+        //    {
+        //        return null;
+        //    }
+        //    else
+        //    {
+        //        return ulong.Parse(mailruId);
+        //    }
+        //}
 
         public static T GetSessionValue<T>(this Session session, string key, ISerializer serializer)
         {

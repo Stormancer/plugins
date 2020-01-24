@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using Newtonsoft.Json.Linq;
+using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Configuration;
 using System;
 using System.Collections.Generic;
@@ -52,12 +53,14 @@ namespace Stormancer.Server.Plugins.Users
         private readonly IConfiguration config;
         private readonly IUserService users;
         private readonly IUserSessions sessions;
+        private readonly ILogger logger;
 
-        public LoginPasswordAuthenticationProvider(IConfiguration config, IUserService users, IUserSessions sessions)
+        public LoginPasswordAuthenticationProvider(IConfiguration config, IUserService users, IUserSessions sessions, ILogger logger)
         {
             this.config = config;
             this.users = users;
             this.sessions = sessions;
+            this.logger = logger;
         }
 
         public string Type => PROVIDER_NAME;
@@ -90,12 +93,14 @@ namespace Stormancer.Server.Plugins.Users
             var user = await users.GetUserByClaim(PROVIDER_NAME, ClaimPath + ".login", login);
             if (user == null)
             {
+                logger.Log(LogLevel.Trace, "auth.loginPassword", "Failed to find user for login.", new { login });
                 return AuthenticationResult.CreateFailure("loginPassword.login.invalidCredentials", pId, authenticationCtx.Parameters);
             }
             var authParams = user.Auth[PROVIDER_NAME]?[ClaimPath]?.ToObject<LoginPasswordAuthRecord>();
 
             if (authParams == null)
             {
+                logger.Log(LogLevel.Trace, "auth.loginPassword", $"User {user.Id} doesn't have login password configured.", new { login });
                 return AuthenticationResult.CreateFailure("loginPassword.login.invalidCredentials", pId, authenticationCtx.Parameters);
             }
 
@@ -103,6 +108,7 @@ namespace Stormancer.Server.Plugins.Users
 
             if (!BytesEqual(derivedKey, authParams.derivedKey))
             {
+                logger.Log(LogLevel.Trace, "auth.loginPassword", "Invalid password.", new { login });
                 return AuthenticationResult.CreateFailure("loginPassword.login.invalidCredentials", pId, authenticationCtx.Parameters);
             }
 

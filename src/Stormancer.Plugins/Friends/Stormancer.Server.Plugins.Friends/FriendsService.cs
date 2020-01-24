@@ -39,7 +39,7 @@ namespace Stormancer.Server.Plugins.Friends
         private readonly FriendsRepository _channel;
         private readonly ISceneHost _scene;
         private readonly IUserService _users;
-      
+
         private readonly ILogger _logger;
         private readonly IESClientFactory _esClient;
 
@@ -52,7 +52,7 @@ namespace Stormancer.Server.Plugins.Friends
             IUserService users
             )
         {
-          
+
             _logger = logger;
             _scene = scene;
             _channel = repository;
@@ -113,7 +113,7 @@ namespace Stormancer.Server.Plugins.Friends
             await Notify(new FriendListUpdateDto
             {
                 ItemId = user.Id,
-                Operation = "add",
+                Operation = FriendListUpdateDtoOperation.Add,
                 Data = CreateFriendDtoSummary(friendRecord)
             }, friend.Id);
         }
@@ -163,7 +163,7 @@ namespace Stormancer.Server.Plugins.Friends
             }
 
             friend.Details = config.CustomData;
-            friend.LastConnected = config.LastConnected;
+            friend.LastConnected = config.LastConnected == DateTime.MinValue ? DateTimeOffset.UnixEpoch : config.LastConnected;
             return friend;
         }
 
@@ -246,7 +246,7 @@ namespace Stormancer.Server.Plugins.Friends
             if (!accept)
             {
                 await client.DeleteAsync<MemberRecord>(targetFriendRecord.Id, desc => desc.Routing(user.Id));
-                await Notify(new FriendListUpdateDto { Operation = "remove", ItemId = senderId, Data = new Friend { } }, user.Id);
+                await Notify(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.Remove, ItemId = senderId, Data = new Friend { } }, user.Id);
             }
             else
             {
@@ -255,8 +255,8 @@ namespace Stormancer.Server.Plugins.Friends
                 var senderFriendRecord = new MemberRecord { FriendId = user.Id, OwnerId = senderId, Status = FriendRecordStatus.Accepted };
 
                 await client.IndexAsync<MemberRecord>(senderFriendRecord, desc => desc.Routing(senderId));
-                await Notify(new FriendListUpdateDto { Operation = "update", ItemId = senderId, Data = await CreateFriendDtoDetailed(targetFriendRecord) }, user.Id);
-                await Notify(new FriendListUpdateDto { Operation = "add", ItemId = user.Id, Data = await CreateFriendDtoDetailed(senderFriendRecord) }, senderId);
+                await Notify(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.Update, ItemId = senderId, Data = await CreateFriendDtoDetailed(targetFriendRecord) }, user.Id);
+                await Notify(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.Add, ItemId = user.Id, Data = await CreateFriendDtoDetailed(senderFriendRecord) }, senderId);
             }
         }
 
@@ -267,8 +267,8 @@ namespace Stormancer.Server.Plugins.Friends
             await client.DeleteAsync<MemberRecord>(friendId + "_" + user.Id, desc => desc.Routing(friendId));
             //var r = await client.UpdateAsync<object>(friendId + "_" + user.Id, desc => desc.Doc(new { Status = FriendRecordStatus.RemovedByFriend }).FilterPath(new[] { "status" }).DocAsUpsert(false).Routing(friendId));
 
-            await Notify(new FriendListUpdateDto { Operation = "update.status", ItemId = user.Id, Data = new Friend { Status = FriendStatus.Disconnected } }, friendId);
-            await Notify(new FriendListUpdateDto { Operation = "remove", ItemId = friendId, Data = new Friend { } }, user.Id);
+            await Notify(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.UpdateStatus, ItemId = user.Id, Data = new Friend { Status = FriendStatus.Disconnected } }, friendId);
+            await Notify(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.Remove, ItemId = friendId, Data = new Friend { } }, user.Id);
         }
 
         public async Task SetStatus(User user, FriendListStatusConfig status, string details)
@@ -299,7 +299,7 @@ namespace Stormancer.Server.Plugins.Friends
             var _ = Notify(new FriendListUpdateDto
             {
                 ItemId = user.Id,
-                Operation = "update",
+                Operation = FriendListUpdateDtoOperation.Update,
                 Data = CreateFriendDtoDetailed(config, user, online)
             }, friends.Where(f => f.Status == FriendRecordStatus.Accepted).Select(f => f.FriendId).ToArray());
         }
@@ -326,12 +326,12 @@ namespace Stormancer.Server.Plugins.Friends
                 await scope.ResolveAll<IFriendsEventHandler>().RunEventHandler(h => h.OnGetFriends(ctx), ex => { _logger.Log(LogLevel.Warn, "FriendsEventHandlers", "An error occured while executing the friends event handlers", ex); });
                 foreach (var friend in friends)
                 {
-                    await Notify(new FriendListUpdateDto { ItemId = friend.UserId, Operation = "add", Data = friend }, user.Id);
+                    await Notify(new FriendListUpdateDto { ItemId = friend.UserId, Operation = FriendListUpdateDtoOperation.Add, Data = friend }, user.Id);
                 }
                 var newStatus = ComputeStatus(statusConfig, true);
                 if (newStatus == FriendStatus.Online)
                 {
-                    await Notify(new FriendListUpdateDto { ItemId = user.Id, Operation = "update.status", Data = new Friend { Status = newStatus } }, friendsRecords.Select(f => f.FriendId).ToArray());
+                    await Notify(new FriendListUpdateDto { ItemId = user.Id, Operation = FriendListUpdateDtoOperation.UpdateStatus, Data = new Friend { Status = newStatus } }, friendsRecords.Select(f => f.FriendId).ToArray());
                 }
             }
         }
@@ -345,7 +345,7 @@ namespace Stormancer.Server.Plugins.Friends
                 if (oldStatus != FriendStatus.Disconnected)
                 {
                     var friends = await GetFriends(config.Item2);
-                    await Notify(new FriendListUpdateDto { ItemId = config.Item2, Operation = "update.status", Data = new Friend { Status = FriendStatus.Disconnected } }, friends.Select(f => f.FriendId).ToArray());
+                    await Notify(new FriendListUpdateDto { ItemId = config.Item2, Operation = FriendListUpdateDtoOperation.UpdateStatus, Data = new Friend { Status = FriendStatus.Disconnected } }, friends.Select(f => f.FriendId).ToArray());
                 }
             }
         }
@@ -464,7 +464,7 @@ namespace Stormancer.Server.Plugins.Friends
         {
             foreach (var friend in friends)
             {
-                await Notify(new FriendListUpdateDto { ItemId = friend.UserId, Operation = "add", Data = friend }, userId);
+                await Notify(new FriendListUpdateDto { ItemId = friend.UserId, Operation = FriendListUpdateDtoOperation.Add, Data = friend }, userId);
             }
         }
     }
