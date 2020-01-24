@@ -1,0 +1,130 @@
+﻿// MIT License
+//
+// Copyright (c) 2019 Stormancer
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+using Newtonsoft.Json.Linq;
+using Stormancer.Server.Members;
+using Stormancer.Server.Plugins.Steam.Models;
+using Stormancer.Server.Users;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace Stormancer.Server.Plugins.Steam
+{
+    public class SteamFriendsEventHandler : IFriendsEventHandler
+    {
+        private IUserService _userService;
+        private ISteamService _steamService;
+
+        public SteamFriendsEventHandler(IUserService userService, ISteamService steamService)
+        {
+            _userService = userService;
+            _steamService = steamService;
+        }
+
+        private class SteamFriendUser
+        {
+            public SteamFriend SteamFriend { get; set; } = null;
+            public User User { get; set; } = null;
+            public SteamPlayerSummary SteamPlayerSummary { get; set; } = null;
+        }
+
+        private FriendStatus SteamPersonaStateToStormancerFriendsStatus(int steamPersonaState)
+        {
+            switch (steamPersonaState)
+            {
+                case 1: // Online
+                case 5: // Looking to trade
+                case 6: // Looking to play
+                    return FriendStatus.Online;
+                case 2: // Busy
+                case 3: // Away
+                case 4: // Snooze
+                    return FriendStatus.Away;
+                case 0: // Offline
+                default: // Default
+                    return FriendStatus.Disconnected;
+            }
+        }
+
+        public async Task OnGetFriends(GetFriendsCtx getMetUsersCtx)
+        {
+            // Get current user
+            var user = await _userService.GetUser(getMetUsersCtx.UserId);
+            var steamId = user.Auth[SteamAuthenticationProvider.PROVIDER_NAME]?[SteamAuthenticationProvider.ClaimPath]?.ToObject<ulong>() ?? 0;
+
+            if (steamId == 0)
+            {
+                return;
+            }
+
+            // Get steam friends
+            var steamFriends = (await _steamService.GetFriendList(steamId)).ToArray();
+
+            if (steamFriends.Count() == 0)
+            {
+                return;
+            }
+
+            // Get users from friends
+            var users = await _userService.GetUsersByClaim(SteamAuthenticationProvider.PROVIDER_NAME, SteamAuthenticationProvider.ClaimPath, steamFriends.Select(steamFriend => steamFriend.steamid).ToArray());
+
+            // Remove users not found or already present in context friendList
+            var datas = steamFriends
+                .Select(steamFriend => new SteamFriendUser
+                {
+                    SteamFriend = steamFriend,
+                    User = users.ContainsKey(steamFriend.steamid) ? users[steamFriend.steamid] : null
+                })
+                .Where(data => data.User != null && !getMetUsersCtx.Friends.Any(friend => friend.UserId == data.User.Id))
+                .ToArray();
+
+            if (datas.Count() == 0)
+            {
+                return;
+            }
+
+            // Get steam player summaries
+            var steamIds = datas.Select(data => ulong.Parse(data.SteamFriend.steamid));
+            var steamPlayerSummaries = await _steamService.GetPlayerSummaries(steamIds);
+
+            // Populate data with steam player summaries
+            foreach (var data in datas)
+            {
+                data.SteamPlayerSummary = steamPlayerSummaries.FirstOrDefault(kvp => kvp.Value.steamid.ToString() == data.SteamFriend.steamid).Value;
+            }
+
+            // Add steam friends to friends list
+            foreach (var data in datas)
+            {
+                getMetUsersCtx.Friends.Add(new Friend {
+                    UserId = data.User.Id,
+                    Status = SteamPersonaStateToStormancerFriendsStatus(data.SteamPlayerSummary.personastate),
+                    LastConnected = DateTimeOffset.FromUnixTimeSeconds(data.SteamPlayerSummary.lastlogoff),
+                    Tags = new List<string> { "steam" },
+                    Details = "steamFriend"
+                });
+            }
+        }
+    }
+}
