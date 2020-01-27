@@ -20,15 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Stormancer;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-
-namespace Server.Plugins.AdminApi
+namespace Stormancer.Server.Plugins.AdminApi
 {
     public class App
     {
@@ -38,4 +30,3 @@ namespace Server.Plugins.AdminApi
         }
     }
 }
-

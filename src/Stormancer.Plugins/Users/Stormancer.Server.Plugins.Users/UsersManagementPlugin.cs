@@ -21,16 +21,16 @@
 // SOFTWARE.
 
 using Newtonsoft.Json.Linq;
-using Server.Plugins.AdminApi;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
+using Stormancer.Server.Components;
+using Stormancer.Server.Plugins.AdminApi;
 using Stormancer.Server.Plugins.Analytics;
+using Stormancer.Server.Plugins.ServiceLocator;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Stormancer.Server.Components;
-using Stormancer.Server.Plugins.ServiceLocator;
 
 namespace Stormancer.Server.Plugins.Users
 {
@@ -42,6 +42,7 @@ namespace Stormancer.Server.Plugins.Users
             return SCENE_TEMPLATE;
         }
     }
+
     public class UserManagementConfig
     {
         public void AddAuthenticationProvider<TProvider>() where TProvider : IAuthenticationProvider
@@ -50,15 +51,11 @@ namespace Stormancer.Server.Plugins.Users
         }
         public List<Type> EnabledAuthenticationProviders { get; } = new List<Type>();
     }
+
     class UsersManagementPlugin : Stormancer.Plugins.IHostPlugin
     {
-       
-
-        
-
         public UsersManagementPlugin()
         {
-
         }
 
         public void Build(HostPluginBuildContext ctx)
@@ -114,18 +111,16 @@ namespace Stormancer.Server.Plugins.Users
                 b.Register<AdminImpersonationAuthenticationProvider>().As<IAuthenticationProvider>();
                 b.Register<EphemeralAuthenticationProvider>().As<IAuthenticationProvider>();
                 b.Register<CredentialsRenewer>().AsSelf().As<IAuthenticationEventHandler>().SingleInstance();
-
             }
             else
             {
-
                 b.Register<UserSessionsProxy>(dr => new UserSessionsProxy(
                       dr.Resolve<ISceneHost>(),
                       dr.Resolve<ISerializer>(),
                       dr.Resolve<IEnvironment>(),
                       dr.Resolve<IServiceLocator>(),
-                      dr.Resolve<UserSessionCache>()))
-                   .As<IUserSessions>().InstancePerRequest();
+                      dr.Resolve<UserSessionCache>()
+                )).As<IUserSessions>().InstancePerRequest();
             }
         }
 
@@ -135,8 +130,6 @@ namespace Stormancer.Server.Plugins.Users
             if (managementAccessor != null)
             {
                 _ = managementAccessor.CreateScene(Constants.GetSceneId(), Constants.SCENE_TEMPLATE, true, true);
-
-
             }
         }
 
@@ -169,21 +162,10 @@ namespace Stormancer.Server.Plugins.Users
 
         private void AuthenticatorSceneFactory(ISceneHost scene)
         {
-
-
-
-
             //scene.AddController<GroupController>();
             scene.AddController<AuthenticationController>();
             scene.AddController<SceneAuthorizationController>();
             scene.AddController<UserSessionController>();
-
-
-
-
         }
-
-
     }
 }
-
