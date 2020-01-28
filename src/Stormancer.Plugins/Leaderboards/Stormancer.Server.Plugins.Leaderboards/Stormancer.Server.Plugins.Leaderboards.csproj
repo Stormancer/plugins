@@ -19,6 +19,9 @@
     <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.1.0.1" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\Admin\Stormancer.Server.Plugins.AdminApi\Stormancer.Server.Plugins.WebApi.csproj" />
     <ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj" />
     <ProjectReference Include="..\..\Configuration\Stormancer.Server.Plugins.Configuration\Stormancer.Server.Plugins.Configuration.csproj" />

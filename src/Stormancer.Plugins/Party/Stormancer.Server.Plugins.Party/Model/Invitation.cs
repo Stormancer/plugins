@@ -1,4 +1,4 @@
-// MIT License
+﻿// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -20,13 +20,23 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-namespace Stormancer.Server.Plugins.Party
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Stormancer.Server.Plugins.Party.Model
 {
-    public class App
+    internal class Invitation
     {
-        public void Run(IAppBuilder builder)
+        public Invitation(string platformName, CancellationToken invitationRequestToken)
         {
-            builder.AddPlugin(new PartyPlugin());
+            PlatformName = platformName;
+            Cts = CancellationTokenSource.CreateLinkedTokenSource(invitationRequestToken);
         }
+
+        public string PlatformName { get; }
+
+        public CancellationTokenSource Cts { get; }
+
+        public TaskCompletionSource<bool> TaskCompletionSource { get; set; } = new TaskCompletionSource<bool>();
     }
 }

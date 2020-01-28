@@ -35,5 +35,9 @@ namespace Stormancer.Server.PartyManagement
         public string CustomData { get; set; }
         [MessagePackMember(3)]
         public Dictionary<string, string> ServerSettings { get; set; } = new Dictionary<string, string>();
+        [MessagePackMember(4)]
+        public bool OnlyLeaderCanInvite { get; set; } = true;
+        [MessagePackMember(5)]
+        public bool IsJoinable { get; set; } = true;
     }
 }

@@ -20,12 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using System;
-using System.Collections.Generic;
-using System.Text;
 using MsgPack.Serialization;
 
-namespace Stormancer.Server.Party.Dto
+namespace Stormancer.Server.Plugins.Party.Dto
 {
     /// <summary>
     /// Sent to party members when a GameFinder request fails.
