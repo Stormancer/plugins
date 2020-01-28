@@ -492,6 +492,14 @@ namespace Stormancer.Server.Plugins.GameSession
 
                     peer.Send(P2P_TOKEN_ROUTE, _p2pToken);
                 }
+
+                var playerConnectedCtx = new ClientConnectedContext { Player = new Player(peer, userId), GameSession = this, IsHost = (_config.HostUserId == userId) };
+                using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
+                {
+                    await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
+                        h => h.OnClientConnected(playerConnectedCtx),
+                        ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing OnClientConnected event", ex));
+                }
             }
         }
 
@@ -949,8 +957,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public GameSessionConfigurationDto GetGameSessionConfig()
         {
-
-            return new GameSessionConfigurationDto { Teams = _config.Teams, Parameters = _config.Parameters, UserIds = _config.UserIds };
+            return new GameSessionConfigurationDto { Teams = _config.Teams, Parameters = _config.Parameters, UserIds = _config.UserIds, HostUserId = _config.HostUserId };
         }
 
 

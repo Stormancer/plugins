@@ -35,6 +35,16 @@ namespace Stormancer.Server.Plugins.GameSession
 
         Task GameSessionCompleted(GameSessionCompleteCtx ctx);
 
+        /// <summary>
+        /// This method is called when a client player has connected to the game session.
+        /// </summary>
+        /// <param name="ctx">Object containing information about the event</param>
+        /// <returns></returns>
+        Task OnClientConnected(ClientConnectedContext ctx)
+        {
+            return Task.CompletedTask;
+        }
+
         Task OnClientReady(ClientReadyContext ctx);
     }
 
@@ -119,4 +129,12 @@ namespace Stormancer.Server.Plugins.GameSession
 
     }
 
+    public class ClientConnectedContext
+    {
+        public Player Player { get; set; }
+
+        public bool IsHost { get; set; }
+
+        public IGameSessionService GameSession { get; set; }
+    }
 }
