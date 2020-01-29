@@ -26,7 +26,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Party.Model
+namespace Stormancer.Server.Plugins.Party.Model
 {
     internal class PartyState
     {
@@ -96,5 +96,15 @@ namespace Stormancer.Server.Party.Model
         /// For instance, this can be used to store the unique Id of a platform-specific session that mirrors the party.
         /// </remarks>
         public ConcurrentDictionary<string, object> ServerData { get; } = new ConcurrentDictionary<string, object>();
+
+        /// <summary>
+        /// Invitations that have been sent for this party, and are pending approval, refusal or cancellation.
+        /// </summary>
+        /// <remarks>
+        /// The format is [invited user Id]=>([sender user Id]=>[(invitation system name, invitation task)]).
+        /// There can be at most one pending invitation for a given sender/recipient couple at a time.
+        /// If one is issued while another one exists, the existing one is canceled.
+        /// </remarks>
+        public Dictionary<string, ConcurrentDictionary<string, Invitation>> PendingInvitations { get; } = new Dictionary<string, ConcurrentDictionary<string, Invitation>>();
     }
 }

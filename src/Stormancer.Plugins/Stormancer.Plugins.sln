@@ -67,7 +67,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.F
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GameVersion", "GameVersion", "{B6D0762D-F756-429F-A87E-F670319C01D4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.GameVersion", "GameVersion\Stormancer.Server.Plugins.GameVersion\Stormancer.Server.Plugins.GameVersion.csproj", "{79DB11AB-6B3A-4E40-A5BF-F93A954C2934}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.GameVersion", "GameVersion\Stormancer.Server.Plugins.GameVersion\Stormancer.Server.Plugins.GameVersion.csproj", "{79DB11AB-6B3A-4E40-A5BF-F93A954C2934}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Leaderboards", "Leaderboards\Stormancer.Server.Plugins.Leaderboards\Stormancer.Server.Plugins.Leaderboards.csproj", "{292FFA5D-7582-4882-BB14-6B1013824CE4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -143,6 +145,10 @@ Global
 		{79DB11AB-6B3A-4E40-A5BF-F93A954C2934}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{79DB11AB-6B3A-4E40-A5BF-F93A954C2934}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{79DB11AB-6B3A-4E40-A5BF-F93A954C2934}.Release|Any CPU.Build.0 = Release|Any CPU
+		{292FFA5D-7582-4882-BB14-6B1013824CE4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{292FFA5D-7582-4882-BB14-6B1013824CE4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{292FFA5D-7582-4882-BB14-6B1013824CE4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{292FFA5D-7582-4882-BB14-6B1013824CE4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -164,6 +170,7 @@ Global
 		{4F8A6C4E-4E6F-4FFE-A425-B6A59673ED35} = {DAE06765-99AC-47F9-A7B2-8E21448600AA}
 		{A502804A-6D2D-4201-A48B-87C46F023887} = {DAE06765-99AC-47F9-A7B2-8E21448600AA}
 		{79DB11AB-6B3A-4E40-A5BF-F93A954C2934} = {B6D0762D-F756-429F-A87E-F670319C01D4}
+		{292FFA5D-7582-4882-BB14-6B1013824CE4} = {FD4F5652-8F9E-458F-A054-5A576948B74E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}

@@ -21,9 +21,9 @@
 // SOFTWARE.
 
 using MsgPack.Serialization;
-using Stormancer.Server.Party.Model;
+using Stormancer.Server.Plugins.Party.Model;
 
-namespace Stormancer.Server.Party.Dto
+namespace Stormancer.Server.Plugins.Party.Dto
 {
     public class PartyMemberDto
     {

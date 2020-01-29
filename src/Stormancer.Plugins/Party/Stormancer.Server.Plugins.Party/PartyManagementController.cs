@@ -20,14 +20,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Stormancer.Server.Plugins.API;
-using Stormancer.Server.Plugins.Users;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
-using System;
-using System.Threading.Tasks;
+using Stormancer.Server.Plugins.API;
+using Stormancer.Server.Plugins.Party;
+using Stormancer.Server.Plugins.Users;
 using System.Collections.Generic;
-using Stormancer.Server.Party;
+using System.Threading.Tasks;
 
 namespace Stormancer.Server.PartyManagement
 {

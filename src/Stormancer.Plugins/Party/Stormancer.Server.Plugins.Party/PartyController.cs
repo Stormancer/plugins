@@ -20,22 +20,22 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Stormancer.Core;
+using Stormancer.Plugins;
+using Stormancer.Server.Plugins.API;
+using Stormancer.Server.Plugins.Party.Dto;
+using Stormancer.Server.Plugins.Party.Model;
 using System;
 using System.Threading.Tasks;
-using Stormancer.Server.Plugins.API;
-using Stormancer.Core;
-using Stormancer.Diagnostics;
-using Stormancer.Plugins;
-using Stormancer.Server.Party.Dto;
-using Stormancer.Server.Party.Model;
 
-namespace Stormancer.Server.Party
+namespace Stormancer.Server.Plugins.Party
 {
     class PartyController : ControllerBase
     {
-        public const string PROTOCOL_VERSION = "2020-01-07.1";
+        public const string PROTOCOL_VERSION = "2020-01-28.1";
 
         private const string NotInPartyError = "party.notInParty";
+        private const string UnauthorizedError = "party.unauthorized";
         private readonly IPartyService _partyService;
         private readonly ISerializer _serializer;
 
@@ -58,7 +58,7 @@ namespace Stormancer.Server.Party
 
             if (member.UserId != _partyService.Settings.PartyLeaderId)
             {
-                throw new ClientException("unauthorized");
+                throw new ClientException(UnauthorizedError);
             }
             await _partyService.UpdateSettings(partySettings);
         }
@@ -153,24 +153,46 @@ namespace Stormancer.Server.Party
             }
         }
 
+        public async Task SendInvitation(RequestContext<IScenePeerClient> ctx)
+        {
+            if (_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var user))
+            {
+                if (_partyService.CanSendInvitation(user.UserId))
+                {
+                    var recipient = ctx.ReadObject<string>();
+                    var forceStormancerInvite = ctx.ReadObject<bool>();
+                    var accepted = await _partyService.SendInvitation(user.UserId, recipient, forceStormancerInvite, ctx.CancellationToken);
+                    await ctx.SendValue(accepted);
+                }
+                else
+                {
+                    throw new ClientException(UnauthorizedError);
+                }
+            }
+            else
+            {
+                throw new ClientException(NotInPartyError);
+            }
+        }
+
         protected override Task OnConnecting(IScenePeerClient client)
         {
-            return (_partyService as PartyService)?.OnConnecting(client)?? Task.CompletedTask;
+            return (_partyService as PartyService).OnConnecting(client);
         }
 
         protected override Task OnConnectionRejected(IScenePeerClient client)
         {
-            return (_partyService as PartyService)?.OnConnectionRejected(client) ?? Task.CompletedTask;
+            return (_partyService as PartyService).OnConnectionRejected(client);
         }
 
         protected override Task OnConnected(IScenePeerClient client)
         {
-            return (_partyService as PartyService)?.OnConnected(client) ?? Task.CompletedTask;
+            return (_partyService as PartyService).OnConnected(client);
         }
 
         protected override Task OnDisconnected(DisconnectedArgs args)
         {
-            return (_partyService as PartyService)?.OnDisconnected(args) ?? Task.CompletedTask;
+            return (_partyService as PartyService).OnDisconnected(args);
         }
     }
 }

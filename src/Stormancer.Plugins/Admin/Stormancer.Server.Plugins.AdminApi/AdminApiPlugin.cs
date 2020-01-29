@@ -20,20 +20,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Stormancer.Plugins;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Models;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Mvc.Controllers;
-using Microsoft.AspNetCore.Mvc.ApplicationParts;
+using Stormancer.Plugins;
+using System.Collections.Generic;
 
-namespace Server.Plugins.AdminApi
+namespace Stormancer.Server.Plugins.AdminApi
 {
     class AdminApiPlugin : IHostPlugin
     {
@@ -44,7 +37,6 @@ namespace Server.Plugins.AdminApi
                 //Configure 
                 host.AddAdminApiConfiguration((app, env, scene) =>
                 {
-
                     app.UseRouting();
 
                     app.UseCors(option => option
@@ -59,10 +51,6 @@ namespace Server.Plugins.AdminApi
                     {
                         endpoints.MapControllers();
                     });
-
-
-
-
                 }, (services, scene) =>
                 {
                     services.AddLocalization();
@@ -95,9 +83,6 @@ namespace Server.Plugins.AdminApi
                     {
                         endpoints.MapControllers();
                     });
-
-
-
                 }, (services, scene) =>
                 {
                     services.AddLocalization();
@@ -119,8 +104,4 @@ namespace Server.Plugins.AdminApi
             };
         }
     }
-
-
-
 }
-
