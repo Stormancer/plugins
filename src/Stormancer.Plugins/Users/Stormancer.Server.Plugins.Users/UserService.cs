@@ -127,7 +127,7 @@ namespace Stormancer.Server.Plugins.Users
             authDataModifier?.Invoke(auth);
             foreach (var entry in cacheEntries)
             {
-                var result = await c.IndexAsync(new AuthenticationClaim { Id = $"{provider}_{entry.Key}_{entry.Value}", UserId = user.Id, Provider = provider }, s => s.Index(GetIndex<AuthenticationClaim>()).OpType(Elasticsearch.Net.OpType.Create).Refresh(Elasticsearch.Net.Refresh.WaitFor));
+                var result = await c.IndexAsync(new AuthenticationClaim { Id = $"{provider}_{entry.Key}_{entry.Value}", UserId = user.Id, Provider = provider }, s => s.Index(GetIndex<AuthenticationClaim>()).OpType(Elasticsearch.Net.OpType.Create));
 
                 if (!result.IsValid)
                 {
@@ -150,7 +150,7 @@ namespace Stormancer.Server.Plugins.Users
                 await TaskHelper.Retry(async () =>
                 {
 
-                    var response = await c.IndexAsync(user, s => s.Index(GetIndex<User>()));
+                    var response = await c.IndexAsync(user, s => s.Index(GetIndex<User>()).Refresh(Elasticsearch.Net.Refresh.WaitFor));
                     if (!response.IsValid)
                     {
                         throw new InvalidOperationException(response.DebugInformation);
