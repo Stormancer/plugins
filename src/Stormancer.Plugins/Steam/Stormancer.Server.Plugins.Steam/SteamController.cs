@@ -20,8 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Server.Plugins.API;
-using Stormancer.Server.Users;
+using Stormancer.Server.Plugins.API;
+using Stormancer.Server.Plugins.Users;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -36,11 +36,11 @@ namespace Stormancer.Server.Plugins.Steam
         {
             _userService = userService;
         }
-        
+
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task<Dictionary<ulong, string>> QueryUserIds(IEnumerable<ulong> steamIds)
         {
-            var users = await _userService.GetUsersByClaim(SteamAuthenticationProvider.PROVIDER_NAME, SteamAuthenticationProvider.ClaimPath, steamIds.Select(steamId => steamId.ToString()).ToArray());
+            var users = await _userService.GetUsersByClaim2(SteamAuthenticationProvider.PROVIDER_NAME, SteamAuthenticationProvider.ClaimPath, steamIds.Select(steamId => steamId.ToString()).ToArray());
             return users.ToDictionary(kvp => ulong.Parse(kvp.Key), kvp => kvp.Value.Id);
         }
     }

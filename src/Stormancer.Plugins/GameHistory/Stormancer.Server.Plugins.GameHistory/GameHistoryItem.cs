@@ -1,4 +1,4 @@
-﻿// MIT License
+// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -20,13 +20,36 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
 
-namespace WindJammers2Server.Plugins.Steam.Dto
+namespace Stormancer.Server.GameHistory
 {
-    public class SteamUserJoinLobbyDto
+    public class HistoryRecord
     {
-        [MessagePackMember(0)]
-        public ulong lobbyIdSteam { get; set; }
+        public string Id { get; set; }
+       
+        public JObject Data { get; set; }
+
+        public DateTime GameStartedOn { get; set; }
+
+        public DateTime GameEndedOn { get; set; }
+    }
+
+    public class GameHistoryRecord : HistoryRecord
+    {
+        public List<PlayerHistoryRecord> players { get; set; }
+
+        public string WinningTeam { get; set; }
+    }
+
+    public class PlayerHistoryRecord : HistoryRecord
+    {
+        public string GameId { get; set; }
+
+        public string PlayerId { get; set; }
+
+        public string TeamId { get; set; }
     }
 }

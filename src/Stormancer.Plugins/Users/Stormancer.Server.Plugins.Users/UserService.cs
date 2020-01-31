@@ -38,7 +38,9 @@ using LogLevel = Stormancer.Diagnostics.LogLevel;
 namespace Stormancer.Server.Plugins.Users
 {
     class ConflictException : Exception
-    { }
+    {
+    }
+
     class UserService : IUserService
     {
         private readonly IESClientFactory _clientFactory;
@@ -75,14 +77,12 @@ namespace Stormancer.Server.Plugins.Users
                 );
         }
 
-
         public UserService(
-
             Database.IESClientFactory clientFactory,
             IEnvironment environment,
             ILogger logger,
             Func<IEnumerable<IUserEventHandler>> eventHandlers
-            )
+        )
         {
             _indexName = (string)(environment.Configuration.users?.index) ?? "gameData";
             _handlers = eventHandlers;
@@ -217,12 +217,19 @@ namespace Stormancer.Server.Plugins.Users
             public User User { get; set; } = null;
         }
 
+        [Obsolete("Use IUserService.GetUsersByClaim2() instead")]
         public async Task<IEnumerable<User>> GetUsersByClaim(string provider, string claimPath, string[] logins)
+        {
+            var result = await GetUsersByClaim2(provider, claimPath, logins);
+            return result.Values;
+        }
+
+        public async Task<Dictionary<string, User>> GetUsersByClaim2(string provider, string claimPath, string[] logins)
         {
             var c = await Client<User>();
 
             // Create datas
-            var datas = logins.Select(login => new ClaimUser { Login = login, CacheId = provider + "_" + login });
+            var datas = logins.Select(login => new ClaimUser { Login = login, CacheId = $"{provider}_{login}" }).ToArray();
 
             // Get all auth claims
             var response = await c.MultiGetAsync(desc => desc.GetMany<AuthenticationClaim>(datas.Select(data => data.CacheId)).Index(GetIndex<AuthenticationClaim>()));
@@ -244,7 +251,7 @@ namespace Stormancer.Server.Plugins.Users
                     // Search user if no claim
                     async Task SearchUser()
                     {
-                        var r = await c.SearchAsync<User>(sd => sd.Query(qd => qd.Term("auth." + provider + "." + claimPath, data.Login)));
+                        var r = await c.SearchAsync<User>(sd => sd.Query(qd => qd.Term($"auth.{provider}.{claimPath}", data.Login)));
 
                         if (r.Hits.Count() > 1)
                         {
@@ -266,7 +273,7 @@ namespace Stormancer.Server.Plugins.Users
                         }
 
                         // Create cached claim
-                        await c.IndexAsync<AuthenticationClaim>(new AuthenticationClaim { Id = data.CacheId, UserId = data.User.Id }, s => s.Index(GetIndex<AuthenticationClaim>()));
+                        await c.IndexAsync(new AuthenticationClaim { Id = data.CacheId, UserId = data.User.Id }, s => s.Index(GetIndex<AuthenticationClaim>()));
                     }
                     searchUsersTasks.Add(SearchUser());
                 }
@@ -283,12 +290,12 @@ namespace Stormancer.Server.Plugins.Users
             // Populate users from cached claims
             foreach (var user in users)
             {
-                var data = datas.Where(data2 => data2.Claim.UserId == user.Id).First();
+                var data = datas.First(data2 => data2.Claim?.UserId == user.Id);
                 data.User = user;
             }
 
             // Return found users
-            return datas.Select(data => data.User).ToArray();
+            return datas.ToDictionary(data => data.Login, data => data.User);
         }
 
         public async Task<User> GetUserByClaim(string provider, string claimPath, string login)
@@ -310,10 +317,7 @@ namespace Stormancer.Server.Plugins.Users
             }
             else
             {
-
-                var r = await c.SearchAsync<User>(sd => sd.Query(qd => qd.Term("auth." + provider + "." + claimPath + ".keyword", login)));
-
-
+                var r = await c.SearchAsync<User>(sd => sd.Query(qd => qd.Term($"auth.{provider}.{claimPath}", login)));
 
                 User user;
                 if (r.Hits.Count() > 1)
@@ -323,7 +327,6 @@ namespace Stormancer.Server.Plugins.Users
                 else
                 {
                     var h = r.Hits.FirstOrDefault();
-
 
                     if (h != null)
                     {
@@ -335,11 +338,10 @@ namespace Stormancer.Server.Plugins.Users
                         return null;
                     }
                 }
-                await c.IndexAsync<AuthenticationClaim>(new AuthenticationClaim { Id = cacheId, UserId = user.Id }, s => s.Index(GetIndex<AuthenticationClaim>()));
+                await c.IndexAsync(new AuthenticationClaim { Id = cacheId, UserId = user.Id }, s => s.Index(GetIndex<AuthenticationClaim>()));
 
                 return user;
             }
-
         }
 
         private async Task<User> MergeUsers(IEnumerable<User> users)

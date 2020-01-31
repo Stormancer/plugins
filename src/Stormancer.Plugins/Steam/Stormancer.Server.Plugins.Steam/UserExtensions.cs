@@ -20,13 +20,23 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using Stormancer.Server.Plugins.Users;
 
-namespace WindJammers2Server.Plugins.Steam.Dto
+namespace Stormancer
 {
-    public class SteamUserJoinLobbyDto
+    public static class UserExtensions
     {
-        [MessagePackMember(0)]
-        public ulong lobbyIdSteam { get; set; }
+        public static ulong? GetSteamId(this User user)
+        {
+            var steamId = user.UserData["steamid"].ToObject<string>();
+            if (steamId == null)
+            {
+                return null;
+            }
+            else
+            {
+                return ulong.Parse(steamId);
+            }
+        }
     }
 }

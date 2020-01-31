@@ -22,10 +22,10 @@
 
 using Stormancer.Core;
 using Stormancer.Plugins;
-using Stormancer.Plugins.Profile;
-using Stormancer.Server.Party;
+using Stormancer.Server.Plugins.Party;
+using Stormancer.Server.Plugins.Profile;
 using Stormancer.Server.Plugins.Steam;
-using Stormancer.Server.Users;
+using Stormancer.Server.Plugins.Users;
 
 namespace Stormancer.Server.Plugins.Steam
 {
@@ -46,7 +46,7 @@ namespace Stormancer.Server.Plugins.Steam
 
             ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
             {
-                if (scene.Template == UsersManagementPlugin.SCENE_TEMPLATE)
+                if (scene.Template == Users.Constants.SCENE_TEMPLATE)
                 {
                     builder.Register<SteamAuthenticationProvider>().As<IAuthenticationProvider>();
                     builder.Register<SteamUserTicketAuthenticator>().As<ISteamUserTicketAuthenticator>();

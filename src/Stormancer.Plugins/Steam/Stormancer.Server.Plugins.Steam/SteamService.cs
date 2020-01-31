@@ -22,8 +22,8 @@
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Server.Plugins.Configuration;
 using Stormancer.Diagnostics;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Steam.Models;
 using System;
 using System.Collections.Generic;

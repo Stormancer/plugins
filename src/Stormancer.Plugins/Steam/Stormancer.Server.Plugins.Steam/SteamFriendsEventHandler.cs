@@ -20,10 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Newtonsoft.Json.Linq;
-using Stormancer.Server.Members;
+using Stormancer.Server.Plugins.Friends;
 using Stormancer.Server.Plugins.Steam.Models;
-using Stormancer.Server.Users;
+using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -87,7 +86,7 @@ namespace Stormancer.Server.Plugins.Steam
             }
 
             // Get users from friends
-            var users = await _userService.GetUsersByClaim(SteamAuthenticationProvider.PROVIDER_NAME, SteamAuthenticationProvider.ClaimPath, steamFriends.Select(steamFriend => steamFriend.steamid).ToArray());
+            var users = await _userService.GetUsersByClaim2(SteamAuthenticationProvider.PROVIDER_NAME, SteamAuthenticationProvider.ClaimPath, steamFriends.Select(steamFriend => steamFriend.steamid).ToArray());
 
             // Remove users not found or already present in context friendList
             var datas = steamFriends
@@ -117,7 +116,8 @@ namespace Stormancer.Server.Plugins.Steam
             // Add steam friends to friends list
             foreach (var data in datas)
             {
-                getMetUsersCtx.Friends.Add(new Friend {
+                getMetUsersCtx.Friends.Add(new Friend
+                {
                     UserId = data.User.Id,
                     Status = SteamPersonaStateToStormancerFriendsStatus(data.SteamPlayerSummary.personastate),
                     LastConnected = DateTimeOffset.FromUnixTimeSeconds(data.SteamPlayerSummary.lastlogoff),

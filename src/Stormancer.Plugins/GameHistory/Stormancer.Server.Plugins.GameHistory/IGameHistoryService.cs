@@ -1,4 +1,4 @@
-﻿// MIT License
+// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -20,13 +20,37 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using Nest;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
-namespace WindJammers2Server.Plugins.Steam.Dto
+namespace Stormancer.Server.GameHistory
 {
-    public class SteamUserJoinLobbyDto
+    public interface IGameHistoryService
     {
-        [MessagePackMember(0)]
-        public ulong lobbyIdSteam { get; set; }
+        Task AddToHistory<T>(IEnumerable<T> item) where T : HistoryRecord;
+
+        Task<GameHistorySearchResult<PlayerHistoryRecord>> GetPlayerHistory(string playerId, int count);
+
+        Task<GameHistorySearchResult<PlayerHistoryRecord>> GetPlayerHistoryByCursor(string cursor);
+
+        Task<GameHistoryRecord> GetGameHistory(string gameId);
+
+        Task<GameHistorySearchResult<GameHistoryRecord>> GetGameHistoryForPlayer(string playerId, int count);
+
+        Task<GameHistorySearchResult<GameHistoryRecord>> GetGameHistoryForPlayer(string cursor);
+
+        Task<IElasticClient> GetESClient<T>(string historyType) where T : HistoryRecord;
+    }
+
+    public class GameHistorySearchResult<T> where T : HistoryRecord
+    {
+        public IEnumerable<T> Documents { get; set; }
+
+        public string Previous { get; set; }
+
+        public string Next { get; set; }
+
+        public long Total { get; set; }
     }
 }

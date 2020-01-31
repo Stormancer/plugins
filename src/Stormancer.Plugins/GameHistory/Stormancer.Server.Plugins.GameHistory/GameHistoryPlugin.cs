@@ -1,4 +1,4 @@
-﻿// MIT License
+// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -20,13 +20,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using Stormancer.Plugins;
 
-namespace WindJammers2Server.Plugins.Steam.Dto
+namespace Stormancer.Server.GameHistory
 {
-    public class SteamUserJoinLobbyDto
+    public class GameHistoryPlugin : IHostPlugin
     {
-        [MessagePackMember(0)]
-        public ulong lobbyIdSteam { get; set; }
+        public void Build(HostPluginBuildContext ctx)
+        {
+            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
+            {
+                builder.Register<GameHistoryService>().As<IGameHistoryService>();
+            };
+        }
     }
 }

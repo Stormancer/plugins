@@ -21,8 +21,8 @@
 // SOFTWARE.
 
 using Stormancer.Diagnostics;
-using Stormancer.Plugins.Profile;
-using Stormancer.Server.Users;
+using Stormancer.Server.Plugins.Profile;
+using Stormancer.Server.Plugins.Users;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -48,13 +48,13 @@ namespace Stormancer.Server.Plugins.Steam
             var steamProfiles = await _steam.GetPlayerSummaries(users.Select(u => (ulong)u.UserData["steamid"]));
 
             foreach (var user in users)
-            {             
+            {
                 ctx.UpdateProfileData(user.Id, "steam", j =>
                 {
                     if (user != null)
-                    {                        
+                    {
                         var steamId = (ulong)user.UserData["steamid"];
-                        var steamProfile = steamProfiles[steamId];                        
+                        var steamProfile = steamProfiles[steamId];
                         j["steamid"] = steamId;
                         j["personaname"] = steamProfile.personaname;
                         j["avatar"] = steamProfile.avatarfull;
@@ -65,4 +65,3 @@ namespace Stormancer.Server.Plugins.Steam
         }
     }
 }
-

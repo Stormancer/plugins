@@ -20,7 +20,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Steam.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;

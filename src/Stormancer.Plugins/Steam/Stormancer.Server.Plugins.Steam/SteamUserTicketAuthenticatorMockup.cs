@@ -22,13 +22,13 @@
 
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Users
+namespace Stormancer.Server.Plugins.Users
 {
     public class SteamUserTicketAuthenticatorMockup : ISteamUserTicketAuthenticator
     {
         public Task<ulong?> AuthenticateUserTicket(string ticket)
         {
-            if(ticket  == "invalid")
+            if (ticket == "invalid")
             {
                 return Task.FromResult<ulong?>(null);
             }
@@ -39,4 +39,3 @@ namespace Stormancer.Server.Users
         }
     }
 }
-

@@ -35,7 +35,7 @@ namespace Stormancer.Server.Plugins.Steam.Models
     {
         public IEnumerable<SteamFriend> friends { get; set; }
     }
-    
+
     public class SteamGetFriendsResponse
     {
         public SteamFriendsList friendslist { get; set; }

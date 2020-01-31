@@ -23,7 +23,7 @@
 using Stormancer.Server.Plugins.Steam;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Users
+namespace Stormancer.Server.Plugins.Users
 {
     public class SteamUserTicketAuthenticator : ISteamUserTicketAuthenticator
     {

@@ -21,8 +21,8 @@
 // SOFTWARE.
 
 using Newtonsoft.Json.Linq;
-using Server.Plugins.Configuration;
 using Stormancer.Diagnostics;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Steam;
 using System;
 using System.Collections.Concurrent;
@@ -30,7 +30,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Users
+namespace Stormancer.Server.Plugins.Users
 {
     public class SteamAuthenticationProvider : IAuthenticationProvider, IUserSessionEventHandler
     {

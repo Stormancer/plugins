@@ -22,7 +22,7 @@
 
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Users
+namespace Stormancer.Server.Plugins.Users
 {
     public interface ISteamUserTicketAuthenticator
     {

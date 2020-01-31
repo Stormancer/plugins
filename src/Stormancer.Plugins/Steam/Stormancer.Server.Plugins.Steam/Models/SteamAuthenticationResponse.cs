@@ -24,13 +24,13 @@ namespace Stormancer.Server.Plugins.Steam.Models
 {
     public class SteamAuthenticationResponse
     {
-        public InnerResponse response { get; set; } 
+        public InnerResponse response { get; set; }
     }
 
     public class InnerResponse
     {
         public ErrorResponse error { get; set; }
-        public ParamsResponse @params {get; set;}
+        public ParamsResponse @params { get; set; }
     }
 
     public class ParamsResponse
