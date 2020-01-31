@@ -61,6 +61,9 @@ namespace Stormancer.Server.Plugins.Leaderboards
         }
     }
 
+    /// <summary>
+    /// Provides methods to query and manage leaderboards.
+    /// </summary>
     public interface ILeaderboardService
     {
         /// <summary>
