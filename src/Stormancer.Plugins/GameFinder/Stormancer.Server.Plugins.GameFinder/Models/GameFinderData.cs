@@ -34,6 +34,8 @@ namespace Stormancer.Server.Plugins.GameFinder.Models
         public ConcurrentDictionary<Group, GameFinderRequestState> waitingGroups { get; } = new ConcurrentDictionary<Group, GameFinderRequestState>();
         public ConcurrentDictionary<string, Group> peersToGroup { get; } = new ConcurrentDictionary<string, Group>();
 
+        public ConcurrentDictionary<string, OpenGameSession> openGameSessions { get; } = new ConcurrentDictionary<string, OpenGameSession>();
+
         public bool IsRunning { get; set; }
         public string kind { get; set; }
         public TimeSpan interval { get; set; }

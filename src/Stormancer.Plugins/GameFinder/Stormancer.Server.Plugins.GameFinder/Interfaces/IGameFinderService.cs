@@ -19,6 +19,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Plugins;
 using System.Collections.Generic;
@@ -37,6 +38,8 @@ namespace Stormancer.Server.Plugins.GameFinder
         Task CancelGame(Packet<IScenePeerClient> packet);
         Task CancelGame(IScenePeerClient peer, bool playerRequest);
 
-        Dictionary<string, int> GetMetrics(); 
+        Dictionary<string, int> GetMetrics();
+
+        internal Task OpenGameSession(JObject data, RequestContext<IScenePeer> request);
     }
 }

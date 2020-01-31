@@ -20,13 +20,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 using Newtonsoft.Json.Linq;
+using Stormancer.Server.Plugins.GameFinder.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
-    public class Game
+    public class Game : IGameCandidate
     {
         #region constructors
         public Game(JObject customData = null)
@@ -72,6 +73,8 @@ namespace Stormancer.Server.Plugins.GameFinder
         public object CommonCustomData { get; set; }
 
         public List<Team> Teams { get; set; } = new List<Team>();
+
+        IEnumerable<Team> IGameCandidate.Teams { get => Teams; }
 
         public IEnumerable<Group> AllGroups => Teams.SelectMany(team => team.Groups);
 

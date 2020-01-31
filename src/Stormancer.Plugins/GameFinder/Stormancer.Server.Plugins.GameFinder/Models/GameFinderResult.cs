@@ -19,6 +19,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+using Stormancer.Server.Plugins.GameFinder.Models;
 using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.GameFinder
@@ -33,5 +34,11 @@ namespace Stormancer.Server.Plugins.GameFinder
         }
         
         public List<Game> Games { get; } = new List<Game>();
+
+        /// <summary>
+        /// A list of tickets to open game sessions, filled by <see cref="IGameFinder"/>.
+        /// </summary>
+        /// <seealso cref="OpenGameSession"/>
+        public List<OpenGameSessionTicket> GameSessionTickets { get; } = new List<OpenGameSessionTicket>();
     }
 }
