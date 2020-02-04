@@ -1,4 +1,4 @@
-// MIT License
+﻿// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -20,36 +20,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-
 namespace Stormancer.Server.Plugins.GameHistory
 {
-    public class HistoryRecord
+    public class App
     {
-        public string Id { get; set; }
-       
-        public JObject Data { get; set; }
-
-        public DateTime GameStartedOn { get; set; }
-
-        public DateTime GameEndedOn { get; set; }
-    }
-
-    public class GameHistoryRecord : HistoryRecord
-    {
-        public List<PlayerHistoryRecord> players { get; set; }
-
-        public string WinningTeam { get; set; }
-    }
-
-    public class PlayerHistoryRecord : HistoryRecord
-    {
-        public string GameId { get; set; }
-
-        public string PlayerId { get; set; }
-
-        public string TeamId { get; set; }
+        public void Run(IAppBuilder builder)
+        {
+            builder.AddPlugin(new GameHistoryPlugin());
+        }
     }
 }

@@ -24,7 +24,7 @@ using Nest;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.GameHistory
+namespace Stormancer.Server.Plugins.GameHistory
 {
     public interface IGameHistoryService
     {

@@ -29,7 +29,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.GameHistory
+namespace Stormancer.Server.Plugins.GameHistory
 {
     class GameHistoryService : IGameHistoryService
     {

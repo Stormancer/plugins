@@ -22,9 +22,9 @@
 
 using Stormancer.Plugins;
 
-namespace Stormancer.Server.GameHistory
+namespace Stormancer.Server.Plugins.GameHistory
 {
-    public class GameHistoryPlugin : IHostPlugin
+    class GameHistoryPlugin : IHostPlugin
     {
         public void Build(HostPluginBuildContext ctx)
         {
