@@ -20,8 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Stormancer.Plugins;
 using Stormancer.Core;
+using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Users;
 
 namespace Stormancer.Server.Plugins.GameVersion
@@ -55,6 +55,4 @@ namespace Stormancer.Server.Plugins.GameVersion
             };
         }
     }
-
-
 }
