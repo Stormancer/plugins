@@ -20,19 +20,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Stormancer.Server.Plugins.Models;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder.Models
 {
     internal class GameFinderData
     {
-        public ConcurrentDictionary<Group, GameFinderRequestState> waitingGroups { get; } = new ConcurrentDictionary<Group, GameFinderRequestState>();
-        public ConcurrentDictionary<string, Group> peersToGroup { get; } = new ConcurrentDictionary<string, Group>();
+        public ConcurrentDictionary<Party, GameFinderRequestState> waitingGroups { get; } = new ConcurrentDictionary<Party, GameFinderRequestState>();
+        public ConcurrentDictionary<string, Party> peersToGroup { get; } = new ConcurrentDictionary<string, Party>();
 
         public bool IsRunning { get; set; }
         public string kind { get; set; }
@@ -42,4 +39,3 @@ namespace Stormancer.Server.Plugins.GameFinder.Models
         public bool acceptRequests { get; set; } = true;
     }
 }
-

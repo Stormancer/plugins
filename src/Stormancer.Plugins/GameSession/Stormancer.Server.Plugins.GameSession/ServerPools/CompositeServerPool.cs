@@ -20,13 +20,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json.Linq;
+using Stormancer.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
-using Stormancer.Diagnostics;
 
 namespace Stormancer.Server.Plugins.GameSession
 {

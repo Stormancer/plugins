@@ -1,4 +1,4 @@
-// MIT License
+﻿// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -19,36 +19,35 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
+using MsgPack.Serialization;
 using System;
 using System.Collections.Generic;
 
-namespace Stormancer.Server.Plugins.GameFinder
+namespace Stormancer.Server.Plugins.Models
 {
-    public class GameFinderGroupData
+    public class Party
     {
-        public GameFinderGroupData()
+        public Party()
         {
-            
+            // Default ctor for backward compatibility
         }
-        public uint TeamSize { get; set; }
-        public int PastGameFinderPasses { get; set; }
-        public object Options { get; set; }
 
-    }
-    public class Group
-    {
-        public Group() { }
+        public Party(Dictionary<string, Player> players)
+        {
+            Players = players;
+        }
 
-        public List<Player> Players { get; } = new List<Player>();
+        [MessagePackMember(0)]
+        public string PartyId { get; set; }
 
-        public GameFinderGroupData GroupData { get; } = new GameFinderGroupData();
+        [MessagePackMember(1)]
+        public Dictionary<string, Player> Players { get; } = new Dictionary<string, Player>();
+
+        public object PartyData { get; set; }
 
         public DateTime CreationTimeUtc { get; } = DateTime.UtcNow;
 
-        public T Options<T>() where T : class
-        {
-            var groupData = (GameFinderGroupData)GroupData;
-            return groupData.Options as T;
-        }
+        public int PastPasses { get; set; }
     }
 }

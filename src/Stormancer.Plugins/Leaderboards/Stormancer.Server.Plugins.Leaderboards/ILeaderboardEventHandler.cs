@@ -29,6 +29,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
     {
         string GetIndex(string leaderboardName);
     }
+
     public interface ILeaderboardEventHandler
     {
         Task UpdatingScores(UpdatingScoreCtx score);
@@ -48,12 +49,12 @@ namespace Stormancer.Server.Plugins.Leaderboards
         }
 
        public IEnumerable<ScoreUpdate> Updates { get; }
-
-     
     }
+
     public class ScoreUpdate
     {
         public ScoreRecord OldValue { get; set; }
+
         public ScoreRecord NewValue { get; set; }
     }
 

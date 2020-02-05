@@ -19,6 +19,8 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
+using Stormancer.Server.Plugins.Models;
 using System;
 
 namespace Stormancer.Server.Plugins.GameFinder
@@ -27,6 +29,6 @@ namespace Stormancer.Server.Plugins.GameFinder
     {
         DateTime CreationTimeUTC { get; }
 
-        Group Group { get; set; }
+        Party Party { get; set; }
     }
 }

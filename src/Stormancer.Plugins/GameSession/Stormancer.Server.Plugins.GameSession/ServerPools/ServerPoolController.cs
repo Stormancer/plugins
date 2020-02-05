@@ -21,13 +21,9 @@
 // SOFTWARE.
 
 using MsgPack.Serialization;
-using Stormancer.Server.Plugins.API;
 using Stormancer.Core;
+using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Users;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
@@ -39,8 +35,10 @@ namespace Stormancer.Server.Plugins.GameSession
 
         [MessagePackMember(1)]
         public GameSessionConfiguration Config { get; set; }
+
         public string GameSessionId { get; internal set; }
     }
+
     class ServerPoolController : ControllerBase
     {
         private readonly ServerPools pools;

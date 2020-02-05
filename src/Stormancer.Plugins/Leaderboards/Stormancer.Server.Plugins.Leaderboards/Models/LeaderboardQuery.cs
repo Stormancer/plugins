@@ -62,7 +62,5 @@ namespace Stormancer.Server.Plugins.Leaderboards
         /// </summary>
         [MessagePackMember(8)]
         public string ScorePath { get; set; }
-        
-        
     }
 }

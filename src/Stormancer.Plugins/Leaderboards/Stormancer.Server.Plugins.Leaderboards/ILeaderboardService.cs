@@ -44,6 +44,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
         public string LeaderboardName { get; set; }
 
         public string Id { get; set; }
+
         public override int GetHashCode()
         {
             return LeaderboardName.GetHashCode() * 17 + Id.GetHashCode();
@@ -51,7 +52,6 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
         public override bool Equals(object obj)
         {
-            
             if(!(obj is LeaderboardEntryId other))
             {
                 return false;

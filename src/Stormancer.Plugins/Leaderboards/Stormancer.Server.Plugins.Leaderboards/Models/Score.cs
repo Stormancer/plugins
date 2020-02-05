@@ -40,6 +40,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
         }
 
         public string Id { get; set; }
+
         public string LeaderboardName { get; set; }
 
         public JObject Scores { get; set; }

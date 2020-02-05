@@ -19,10 +19,12 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using System.Collections.Generic;
-using System.Linq;
+
 using MsgPack.Serialization;
 using Newtonsoft.Json.Linq;
+using Stormancer.Server.Plugins.Models;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Stormancer.Server.Plugins.GameSession
 {

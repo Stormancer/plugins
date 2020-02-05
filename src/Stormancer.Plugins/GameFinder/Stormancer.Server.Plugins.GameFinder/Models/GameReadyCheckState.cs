@@ -19,6 +19,8 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
+using Stormancer.Server.Plugins.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -96,15 +98,15 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
             else if (globalState == Readiness.Ready)
             {
-                _tcs.TrySetResult(new GameReadyCheckResult(true, Enumerable.Empty<Group>(), Game.AllGroups));
+                _tcs.TrySetResult(new GameReadyCheckResult(true, Enumerable.Empty<Party>(), Game.AllParties));
             }
             else
             {
-                var unReadyGroupList = new List<Group>();
-                var readyGroupList = new List<Group>();
-                foreach(var group in Game.AllGroups)
+                var unReadyGroupList = new List<Party>();
+                var readyGroupList = new List<Party>();
+                foreach(var group in Game.AllParties)
                 {
-                    if(group.Players.Any(p=>PlayersReadyState[p.UserId] == Readiness.NotReady))
+                    if(group.Players.Any(p => PlayersReadyState[p.Value.UserId] == Readiness.NotReady))
                     {
                         unReadyGroupList.Add(group);
                     }
@@ -133,6 +135,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 return checkState;
             }
         }
+
         private void RaiseStateChanged()
         {
             if (Game != null)
@@ -167,7 +170,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
     class GameReadyCheckResult
     {
-        public GameReadyCheckResult(bool success, IEnumerable<Group> timeoutedGroups, IEnumerable<Group> readyGroups)
+        public GameReadyCheckResult(bool success, IEnumerable<Party> timeoutedGroups, IEnumerable<Party> readyGroups)
         {
             Success = success;
             UnreadyGroups = timeoutedGroups;
@@ -176,8 +179,8 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         public bool Success { get; private set; }
 
-        public IEnumerable<Group> UnreadyGroups { get; private set; }
+        public IEnumerable<Party> UnreadyGroups { get; private set; }
 
-        public IEnumerable<Group> ReadyGroups { get; private set; }
+        public IEnumerable<Party> ReadyGroups { get; private set; }
     }
 }

@@ -1,4 +1,4 @@
-// MIT License
+﻿// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -19,35 +19,22 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using MsgPack.Serialization;
-using System.Collections.Generic;
-using System.Linq;
 
-namespace Stormancer.Server.Plugins.GameSession
+namespace Stormancer.Server.Plugins.Models
 {
-    public class Team
+    public class Player
     {
-        public Team(params Group[] groups)
+        public Player(string sessionId, string userId, object data = null)
         {
-            Groups = new List<Group>(groups);
+            UserId = userId;
+            SessionId = sessionId;
+            Data = data;
         }
 
-        public Team(IEnumerable<Group> groups)
-        {
-            Groups = new List<Group>(groups);
-        }
+        public string UserId { get; }
 
-        public Team()
-        {
-            // Default ctor for backward compatibility
-        }
+        public string SessionId { get; }
 
-        [MessagePackMember(0)]
-        public string TeamId { get; set; }
-        [MessagePackMember(1)]
-        public List<Group> Groups { get; set; } = new List<Group>();
-
-        [MessagePackMember(2)]
-        public IEnumerable<string> PlayerIds { get => Groups.SelectMany(group => group.PlayersId); }
+        public object Data { get; set; }
     }
 }

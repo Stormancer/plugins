@@ -22,11 +22,6 @@
 
 using MsgPack.Serialization;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Leaderboards
 {
@@ -34,6 +29,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
     {
         [MessagePackMember(0)]
         public string Field { get; set; }
+
         [MessagePackMember(1)]
         public JToken Value { get; set; }
     }

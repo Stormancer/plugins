@@ -170,40 +170,41 @@ namespace Stormancer.Server.Plugins.Leaderboards
             var index = GetIndexName(leaderboardName);
             var client = await CreateESClient<ScoreRecord>(index);
             var rankResult = await client.CountAsync<ScoreRecord>(desc => desc
-                    .Query(query =>
-                        CreateQuery(query, filters,
-                            q =>
+                .Query(query =>
+                    CreateQuery(query, filters,
+                        q =>
+                        {
+                            var shouldClauses = new List<Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>>();
+                            if (filters.Order == LeaderboardOrdering.Descending)
                             {
-                                var shouldClauses = new List<Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>>();
-                                if (filters.Order == LeaderboardOrdering.Descending)
+                                shouldClauses.Add(q1 => q1.Range(r => r.Field(fullScorePath).GreaterThan(scoreValue)));
+
+                                if (!EnableExequo)
                                 {
-                                    shouldClauses.Add(q1 => q1.Range(r => r.Field(fullScorePath).GreaterThan(scoreValue)));
-
-                                    if (!EnableExequo)
-                                    {
-                                        shouldClauses.Add(q1 => q1.Bool(b2 => b2.Must(
-                                            q2 => q2.Term(t => t.Field(fullScorePath).Value(scoreValue)),
-                                            q2 => q2.DateRange(r => r.Field(record => record.CreatedOn).LessThan(score.CreatedOn))
-                                        )));
-                                    }
-
+                                    shouldClauses.Add(q1 => q1.Bool(b2 => b2.Must(
+                                        q2 => q2.Term(t => t.Field(fullScorePath).Value(scoreValue)),
+                                        q2 => q2.DateRange(r => r.Field(record => record.CreatedOn).LessThan(score.CreatedOn))
+                                    )));
                                 }
-                                else if (filters.Order == LeaderboardOrdering.Ascending)
-                                {
-                                    shouldClauses.Add(q1 => q1.Range(r => r.Field(fullScorePath).LessThan(scoreValue)));
-
-                                    if (!EnableExequo)
-                                    {
-                                        shouldClauses.Add(q1 => q1.Bool(b2 => b2.Must(
-                                            q2 => q2.Term(t => t.Field(fullScorePath).Value(scoreValue)),
-                                            q2 => q2.DateRange(r => r.Field(record => record.CreatedOn).GreaterThan(score.CreatedOn))
-                                        )));
-                                    }
-                                }
-
-                                return q.Bool(b => b.Should(shouldClauses));
                             }
-                            )));
+                            else if (filters.Order == LeaderboardOrdering.Ascending)
+                            {
+                                shouldClauses.Add(q1 => q1.Range(r => r.Field(fullScorePath).LessThan(scoreValue)));
+
+                                if (!EnableExequo)
+                                {
+                                    shouldClauses.Add(q1 => q1.Bool(b2 => b2.Must(
+                                        q2 => q2.Term(t => t.Field(fullScorePath).Value(scoreValue)),
+                                        q2 => q2.DateRange(r => r.Field(record => record.CreatedOn).GreaterThan(score.CreatedOn))
+                                    )));
+                                }
+                            }
+
+                            return q.Bool(b => b.Should(shouldClauses));
+                        }
+                    )
+                )
+            );
 
             if (!rankResult.IsValid)
             {
@@ -478,9 +479,6 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 var indices = results.Where(e => !e.Value).Select(e => _clientFactory.GetIndex<ScoreRecord>(INDEX_NAME, GetIndexName(e.Key.LeaderboardName))).Distinct();
                 var response = await client.MultiGetAsync(desc => desc.GetMany<ScoreRecord>(idsToUpdate).Index(string.Join(",", indices)));
 
-
-
-
                 var records = response.GetMany<ScoreRecord>(idsToUpdate);
 
                 var updates = new List<(ScoreUpdate, Nest.IMultiGetHit<ScoreRecord>)>();
@@ -540,10 +538,8 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 var ctx = new UpdatingScoreCtx(updates.Select(u => u.Item1));
                 await eventHandlers().RunEventHandler(e => e.UpdatingScores(ctx), ex => _logger.Log(LogLevel.Error, "leaderboard", "An error occured while running leaderboard.UpdatingScore event handler", ex));
 
-
                 var bulkResponse = await client.BulkAsync(desc =>
                 {
-
                     foreach (var (score, record) in updates)
                     {
                         if (score.NewValue != null && score.OldValue != null)
@@ -580,7 +576,6 @@ namespace Stormancer.Server.Plugins.Leaderboards
                     {
                         results[GetEntryIdFromDocumentId(item.Id)] = true;
                     }
-
                 }
                 success = results.Select(kvp => kvp.Value).All(v => v);
 
@@ -592,7 +587,6 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 }
             }
             while (!success && tries < 5);
-
         }
 
         //public async Task IncrementScore(int increment, string userId, string leaderboardName, LeaderboardOptions options = null)
@@ -699,7 +693,6 @@ namespace Stormancer.Server.Plugins.Leaderboards
                     {
                         return q => q.Range(r =>
                         {
-
                             r = r.Field("scores." + f.Path);
                             switch (f.Type)
                             {

@@ -19,18 +19,41 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-namespace Stormancer.Server.Plugins.GameFinder
+
+using MsgPack.Serialization;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Stormancer.Server.Plugins.Models
 {
-    public class Player
+    public class Team
     {
-        public Player(string sessionId, string userId)
+        public Team()
         {
-            UserId = userId;
-            SessionId = sessionId;
+            // Default ctor for backward compatibility
         }
 
-        public string UserId { get; }
-        public string SessionId { get; }
-        public object Data { get; set; }
+        public Team(params Party[] parties) : this(parties, null)
+        {
+        }
+
+        public Team(IEnumerable<Party> parties, object? customData = null)
+        {
+            CustomData = customData;
+            Parties.AddRange(parties);
+        }
+
+        [MessagePackMember(0)]
+        public string TeamId { get; set; }
+
+        [MessagePackMember(1)]
+        public List<Party> Parties { get; set; } = new List<Party>();
+
+        [MessagePackMember(2)]
+        public IEnumerable<string> PlayerIds { get => Parties.SelectMany(group => group.Players.Keys); }
+
+        public object? CustomData { get; set; }
+
+        public IEnumerable<Player> AllPlayers => Parties.SelectMany(g => g.Players.Values);
     }
 }

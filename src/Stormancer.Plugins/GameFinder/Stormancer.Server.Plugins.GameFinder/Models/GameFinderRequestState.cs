@@ -20,26 +20,23 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using Stormancer.Server.Plugins.Models;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder.Models
 {
     internal class GameFinderRequestState
     {
-        public GameFinderRequestState(Group group)
+        public GameFinderRequestState(Party party)
         {
-            Group = group;
+            Party = party;
         }
 
         public TaskCompletionSource<IGameResolverContext> Tcs { get; } = new TaskCompletionSource<IGameResolverContext>();
 
         public RequestState State { get; set; } = RequestState.NotStarted;
 
-        public Group Group { get; }
+        public Party Party { get; }
 
         public Game Candidate { get; set; }
     }
@@ -54,4 +51,3 @@ namespace Stormancer.Server.Plugins.GameFinder.Models
         Rejected
     }
 }
-

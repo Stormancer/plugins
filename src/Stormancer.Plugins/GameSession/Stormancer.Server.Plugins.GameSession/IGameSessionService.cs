@@ -19,10 +19,11 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
+using Stormancer.Server.Plugins.GameSession.Models;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using Stormancer.Server.Plugins.GameSession.Models;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
@@ -39,7 +40,5 @@ namespace Stormancer.Server.Plugins.GameSession
         Task TryStart();
 
         bool IsHost(string sessionId);
-
-     
     }
 }

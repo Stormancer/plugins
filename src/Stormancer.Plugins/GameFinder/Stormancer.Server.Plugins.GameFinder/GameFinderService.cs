@@ -19,15 +19,17 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
 using Newtonsoft.Json.Linq;
-using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
-using Stormancer.Server.Plugins.Analytics;
 using Stormancer.Server.Components;
+using Stormancer.Server.Plugins.Analytics;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.GameFinder.Models;
 using Stormancer.Server.Plugins.GameSession;
+using Stormancer.Server.Plugins.Models;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Concurrent;
@@ -37,19 +39,18 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Text.RegularExpressions;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
     public class GameFinderContext
     {
-        public List<Group> WaitingClient { get; set; } = new List<Group>();
+        public List<Party> WaitingClient { get; set; } = new List<Party>();
 
-        public List<(Group client, string reason)> FailedClients { get; set; } = new List<(Group client, string reason)>();
+        public List<(Party client, string reason)> FailedClients { get; set; } = new List<(Party client, string reason)>();
 
-        public void SetFailed(Group group, string reason)
+        public void SetFailed(Party party, string reason)
         {
-            FailedClients.Add((group, reason));
+            FailedClients.Add((party, reason));
         }
     }
 
@@ -156,26 +157,20 @@ namespace Stormancer.Server.Plugins.GameFinder
             this._scene = gameFinderScene;
         }
 
-        private class PeerInGroup
-        {
-            public IScenePeerClient Peer { get; set; }
-            public Player Player { get; set; }
-        }
-
         public async Task FindGameS2S(RequestContext<IScenePeer> requestS2S)
         {
             if (!_data.acceptRequests)
             {
                 throw new ClientException("gamefinder.disabled?reason=deploymentNotActive");
             }
-            var group = new Group();
+            var party = new Party();
             var provider = _serializer.Deserialize<string>(requestS2S.InputStream);
 
             try
             {
                 foreach (var extractor in _extractors)
                 {
-                    if (await extractor.ExtractDataS2S(provider, requestS2S.InputStream, group))
+                    if (await extractor.ExtractDataS2S(provider, requestS2S.InputStream, party))
                     {
                         break;
                     }
@@ -183,17 +178,17 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
             catch (Exception)
             {
-                await BroadcastToPlayers(group, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Failed));
+                await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Failed));
                 throw;
             }
 
-            PeerInGroup[] peersInGroup = null;
-            using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+            PlayerPeer[] peersInGroup = null;
+            using (var scope = _scene.DependencyResolver.CreateChild(Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 var sessions = scope.Resolve<IUserSessions>();
-                peersInGroup = await Task.WhenAll(group.Players.Select(async p => new PeerInGroup { Peer = await sessions.GetPeer(p.UserId), Player = p }));
+                peersInGroup = await Task.WhenAll(party.Players.Select(async p => new PlayerPeer { Peer = await sessions.GetPeer(p.Value.UserId), Player = p.Value }));
             }
-            var state = new GameFinderRequestState(group);
+            var state = new GameFinderRequestState(party);
 
             try
             {
@@ -210,10 +205,10 @@ namespace Stormancer.Server.Plugins.GameFinder
                     //}
                 }
 
-                _data.waitingGroups[group] = state;
+                _data.waitingGroups[party] = state;
                 foreach (var p in peersInGroup)
                 {
-                    _data.peersToGroup[p.Peer.SessionId] = group;
+                    _data.peersToGroup[p.Peer.SessionId] = party;
                 }
 
                 requestS2S.CancellationToken.Register(() =>
@@ -224,12 +219,12 @@ namespace Stormancer.Server.Plugins.GameFinder
                 var memStream = new MemoryStream();
                 requestS2S.InputStream.Seek(0, SeekOrigin.Begin);
                 requestS2S.InputStream.CopyTo(memStream);
-                await BroadcastToPlayers(group, UPDATE_FINDGAME_REQUEST_PARAMS_ROUTE, (s, sz) =>
+                await BroadcastToPlayers(party, UPDATE_FINDGAME_REQUEST_PARAMS_ROUTE, (s, sz) =>
                 {
                     memStream.Seek(0, System.IO.SeekOrigin.Begin);
                     memStream.CopyTo(s);
                 });
-                await BroadcastToPlayers(group, UPDATE_NOTIFICATION_ROUTE, (s, sz) =>
+                await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) =>
                 {
                     s.WriteByte((byte)GameFinderStatusUpdate.SearchStart);
 
@@ -239,7 +234,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             catch (Exception ex)
             {
                 state.Tcs.SetException(ex);
-                await BroadcastToPlayers(group, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Failed));
+                await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Failed));
 
             }
             IGameResolverContext resolutionContext;
@@ -250,20 +245,20 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
             catch (TaskCanceledException)
             {
-                await BroadcastToPlayers(group, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Cancelled));
+                await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Cancelled));
             }
-            finally //Always remove group from list.
+            finally //Always remove party from list.
             {
                 GameFinderRequestState _;
                 foreach (var p in peersInGroup)
                 {
-                    Group grp1;
+                    Party grp1;
                     if (p?.Peer?.SessionId != null)
                     {
                         _data.peersToGroup.TryRemove(p.Peer.SessionId, out grp1);
                     }
                 }
-                _data.waitingGroups.TryRemove(group, out _);
+                _data.waitingGroups.TryRemove(party, out _);
                 if (_.Candidate != null)
                 {
                     if (_pendingReadyChecks.TryGetValue(_.Candidate.Id, out var rc))
@@ -285,7 +280,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 throw new ClientException("gamefinder.disabled?reason=deploymentNotActive");
             }
 
-            var group = new Group();
+            var party = new Party();
             var provider = request.ReadObject<string>();
 
             User currentUser = null;
@@ -296,21 +291,21 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
             foreach (var extractor in _extractors)
             {
-                if (await extractor.ExtractData(provider, request, group))
+                if (await extractor.ExtractData(provider, request, party))
                 {
                     break;
                 }
             }
-            if (!group.Players.Any())
+            if (!party.Players.Any())
             {
-                group.Players.Add(new Player(request.RemotePeer.SessionId, currentUser.Id) { });
+                party.Players.Add(currentUser.Id, new Player(request.RemotePeer.SessionId, currentUser.Id) { });
             }
 
-            PeerInGroup[] peersInGroup = null;
+            PlayerPeer[] peersInGroup = null;
             using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 var sessions = scope.Resolve<IUserSessions>();
-                peersInGroup = await Task.WhenAll(group.Players.Select(async p => new PeerInGroup { Peer = await sessions.GetPeer(p.UserId), Player = p }));
+                peersInGroup = await Task.WhenAll(party.Players.Select(async p => new PlayerPeer { Peer = await sessions.GetPeer(p.Value.UserId), Player = p.Value }));
             }
 
             foreach (var p in peersInGroup)
@@ -325,12 +320,12 @@ namespace Stormancer.Server.Plugins.GameFinder
                 }
             }
 
-            var state = new GameFinderRequestState(group);
+            var state = new GameFinderRequestState(party);
 
-            _data.waitingGroups[group] = state;
+            _data.waitingGroups[party] = state;
             foreach (var p in peersInGroup)
             {
-                _data.peersToGroup[p.Peer.SessionId] = group;
+                _data.peersToGroup[p.Peer.SessionId] = party;
             }
 
             request.CancellationToken.Register(() =>
@@ -341,12 +336,12 @@ namespace Stormancer.Server.Plugins.GameFinder
             var memStream = new MemoryStream();
             request.InputStream.Seek(0, SeekOrigin.Begin);
             request.InputStream.CopyTo(memStream);
-            await BroadcastToPlayers(group, UPDATE_FINDGAME_REQUEST_PARAMS_ROUTE, (s, sz) =>
+            await BroadcastToPlayers(party, UPDATE_FINDGAME_REQUEST_PARAMS_ROUTE, (s, sz) =>
             {
                 memStream.Seek(0, System.IO.SeekOrigin.Begin);
                 memStream.CopyTo(s);
             });
-            await BroadcastToPlayers(group, UPDATE_NOTIFICATION_ROUTE, (s, sz) =>
+            await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) =>
             {
                 s.WriteByte((byte)GameFinderStatusUpdate.SearchStart);
 
@@ -360,26 +355,26 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
             catch (TaskCanceledException)
             {
-                await BroadcastToPlayers(group, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Cancelled));
+                await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Cancelled));
 
             }
             catch (ClientException ex)
             {
-                await BroadcastToPlayers(group, UPDATE_NOTIFICATION_ROUTE, (s, sz) =>
+                await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) =>
                 {
                     s.WriteByte((byte)GameFinderStatusUpdate.Failed);
                     sz.Serialize(ex.Message, s);
                 });
             }
-            finally //Always remove group from list.
+            finally //Always remove party from list.
             {
                 GameFinderRequestState _;
                 foreach (var p in peersInGroup)
                 {
-                    Group grp1;
+                    Party grp1;
                     _data.peersToGroup.TryRemove(p.Peer.SessionId, out grp1);
                 }
-                _data.waitingGroups.TryRemove(group, out _);
+                _data.waitingGroups.TryRemove(party, out _);
                 if (_.Candidate != null)
                 {
                     if (_pendingReadyChecks.TryGetValue(_.Candidate.Id, out var rc))
@@ -408,7 +403,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
                     var playersNum = this._data.waitingGroups.Where(kvp => kvp.Value.State == RequestState.Ready).Sum(kvp => kvp.Key.Players.Count);
                     var groupsNum = this._data.waitingGroups.Where(kvp => kvp.Value.State == RequestState.Ready).Count();
-                    //_logger.Log(LogLevel.Trace, $"{LOG_CATEGORY}.Run", $"A {_data.kind} pass was run for {playersNum} players and {groupsNum} groups", new
+                    //_logger.Log(LogLevel.Trace, $"{LOG_CATEGORY}.Run", $"A {_data.kind} pass was run for {playersNum} players and {groupsNum} parties", new
                     //{
                     //    Time = watch.Elapsed,
                     //    playersWaiting = playersNum,
@@ -445,18 +440,18 @@ namespace Stormancer.Server.Plugins.GameFinder
                 {
                     type = _data.kind,
                     playersWaiting = _data.waitingGroups.SelectMany(kvp => kvp.Key.Players).Count(),
-                    groups = _data.waitingGroups.Count(),
+                    parties = _data.waitingGroups.Count(),
                     customData = _gameFinder.ComputeDataAnalytics(mmCtx)
                 }));
 
-                foreach ((Group group, string reason) in mmCtx.FailedClients)
+                foreach ((Party party, string reason) in mmCtx.FailedClients)
                 {
-                    var client = waitingClients[group];
+                    var client = waitingClients[party];
                     client.State = RequestState.Rejected;
-                    // If this group is an S2S group, the exception will be forwarded to the S2S caller which is responsible for handling it
+                    // If this party is an S2S party, the exception will be forwarded to the S2S caller which is responsible for handling it
                     client.Tcs.TrySetException(new ClientException(reason));
-                    // Remove games that contain a rejected group
-                    games.Games.RemoveAll(m => m.AllGroups.Contains(group));
+                    // Remove games that contain a rejected party
+                    games.Games.RemoveAll(m => m.AllParties.Contains(party));
                 }
 
                 if (games.Games.Any())
@@ -467,9 +462,9 @@ namespace Stormancer.Server.Plugins.GameFinder
 
                 foreach (var game in games.Games)
                 {
-                    foreach (var group in game.Teams.SelectMany(t => t.Groups)) //Set game found to prevent players from being gameed again
+                    foreach (var party in game.Teams.SelectMany(t => t.Parties)) //Set game found to prevent players from being gameed again
                     {
-                        var state = waitingClients[group];
+                        var state = waitingClients[party];
                         state.State = RequestState.Found;
                         state.Candidate = game;
                     }
@@ -489,7 +484,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
         }
 
-        private async Task ResolveGameFound(Game game, Dictionary<Group, GameFinderRequestState> waitingClients)
+        private async Task ResolveGameFound(Game game, Dictionary<Party, GameFinderRequestState> waitingClients)
         {
             try
             {
@@ -523,21 +518,21 @@ namespace Stormancer.Server.Plugins.GameFinder
 
                         if (!result.Success)
                         {
-                            foreach (var group in result.UnreadyGroups)//Cancel gameFinder for timeouted groups
+                            foreach (var party in result.UnreadyGroups)//Cancel gameFinder for timeouted parties
                             {
                                 GameFinderRequestState mrs;
-                                if (_data.waitingGroups.TryGetValue(group, out mrs))
+                                if (_data.waitingGroups.TryGetValue(party, out mrs))
                                 {
                                     mrs.Tcs.TrySetCanceled();
                                 }
                             }
-                            foreach (var group in result.ReadyGroups)//Put ready groups back in queue.
+                            foreach (var party in result.ReadyGroups)//Put ready parties back in queue.
                             {
                                 GameFinderRequestState mrs;
-                                if (_data.waitingGroups.TryGetValue(group, out mrs))
+                                if (_data.waitingGroups.TryGetValue(party, out mrs))
                                 {
                                     mrs.State = RequestState.Ready;
-                                    await BroadcastToPlayers(group, UPDATE_NOTIFICATION_ROUTE, (s, sz) =>
+                                    await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) =>
                                     {
                                         s.WriteByte((byte)GameFinderStatusUpdate.SearchStart);
                                     });
@@ -553,7 +548,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                     }
                 }
 
-                foreach (var player in await GetPlayers(game.AllGroups.ToArray()))
+                foreach (var player in await GetPlayers(game.AllParties.ToArray()))
                 {
                     try
                     {
@@ -602,18 +597,18 @@ namespace Stormancer.Server.Plugins.GameFinder
                     }
                 }
 
-                foreach (var group in game.AllGroups)
+                foreach (var party in game.AllParties)
                 {
-                    foreach (var player in group.Players)
+                    foreach (var player in party.Players)
                     {
                         var sectx = new SearchEndContext();
                         sectx.GameFinderId = this._scene.Id;
-                        sectx.Group = group;
-                        sectx.PassesCount = ((GameFinderGroupData)group.GroupData).PastGameFinderPasses;
+                        sectx.Party = party;
+                        sectx.PassesCount = party.PastPasses;
                         sectx.Reason = SearchEndReason.Succeeded;
                         await handlers().RunEventHandler(h => h.OnEnd(sectx), ex => { });
                     }
-                    var state = waitingClients[group];
+                    var state = waitingClients[party];
                     state.Tcs.TrySetResult(resolverCtx);
                 }
             }
@@ -703,29 +698,29 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         public Task CancelGame(IScenePeerClient peer, bool requestedByPlayer)
         {
-            Group group;
-            if (!_data.peersToGroup.TryGetValue(peer.SessionId, out group))
+            Party party;
+            if (!_data.peersToGroup.TryGetValue(peer.SessionId, out party))
             {
                 return Task.CompletedTask;
             }
 
-            return Cancel(group, requestedByPlayer);
+            return Cancel(party, requestedByPlayer);
         }
 
         public async Task CancelAll()
         {
             var tasks = new List<Task>();
-            foreach (var group in _data.peersToGroup.Values.ToArray())
+            foreach (var party in _data.peersToGroup.Values.ToArray())
             {
-                tasks.Add(Cancel(group, false));
+                tasks.Add(Cancel(party, false));
             }
             await Task.WhenAll(tasks);
         }
 
-        public Task Cancel(Group group, bool requestedByPlayer)
+        public Task Cancel(Party party, bool requestedByPlayer)
         {
             GameFinderRequestState mmrs;
-            if (!_data.waitingGroups.TryGetValue(group, out mmrs))
+            if (!_data.waitingGroups.TryGetValue(party, out mmrs))
             {
                 return Task.CompletedTask;
             }
@@ -734,8 +729,8 @@ namespace Stormancer.Server.Plugins.GameFinder
 
             var sectx = new SearchEndContext();
             sectx.GameFinderId = this._scene.Id;
-            sectx.Group = group;
-            sectx.PassesCount = ((GameFinderGroupData)group.GroupData).PastGameFinderPasses;
+            sectx.Party = party;
+            sectx.PassesCount = party.PastPasses;
             sectx.Reason = requestedByPlayer ? SearchEndReason.Canceled : SearchEndReason.Disconnected;
             return handlers().RunEventHandler(h => h.OnEnd(sectx), ex => { });
         }
@@ -749,37 +744,36 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
         }
 
-        private async Task<IEnumerable<IScenePeerClient>> GetPlayers(Group group)
+        private async Task<IEnumerable<IScenePeerClient>> GetPlayers(Party party)
         {
-            return await Task.WhenAll(group.Players.Select(GetPlayer));
+            return await Task.WhenAll(party.Players.Values.Select(GetPlayer));
         }
 
-        private async Task<IEnumerable<IScenePeerClient>> GetPlayers(params Group[] groups)
+        private async Task<IEnumerable<IScenePeerClient>> GetPlayers(params Party[] parties)
         {
-            return await Task.WhenAll(groups.SelectMany(g => g.Players).Select(GetPlayer));
+            return await Task.WhenAll(parties.SelectMany(g => g.Players.Values).Select(GetPlayer));
         }
 
         private Task BroadcastToPlayers(Game game, string route, Action<System.IO.Stream, ISerializer> writer)
         {
-            return BroadcastToPlayers(game.Teams.SelectMany(t => t.Groups), route, writer);
+            return BroadcastToPlayers(game.Teams.SelectMany(t => t.Parties), route, writer);
         }
 
-        private Task BroadcastToPlayers(Group group, string route, Action<System.IO.Stream, ISerializer> writer)
+        private Task BroadcastToPlayers(Party party, string route, Action<System.IO.Stream, ISerializer> writer)
         {
-            return BroadcastToPlayers(new Group[] { group }, route, writer);
+            return BroadcastToPlayers(new Party[] { party }, route, writer);
         }
 
-        private async Task BroadcastToPlayers(IEnumerable<Group> groups, string route, Action<System.IO.Stream, ISerializer> writer)
+        private async Task BroadcastToPlayers(IEnumerable<Party> parties, string route, Action<System.IO.Stream, ISerializer> writer)
         {
-            var peers = await GetPlayers(groups.ToArray());
-            foreach (var group in peers.Where(p => p != null).GroupBy(p => p.Serializer()))
+            var peers = await GetPlayers(parties.ToArray());
+            foreach (var party in peers.Where(p => p != null).GroupBy(p => p.Serializer()))
             {
-                await _scene.Send(new MatchArrayFilter(group), route, s => writer(s, group.Key), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+                await _scene.Send(new MatchArrayFilter(party), route, s => writer(s, party.Key), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
             }
         }
 
         public Dictionary<string, int> GetMetrics() => _gameFinder.GetMetrics();
-
 
         //private class GameFinderContext : IGameFinderContext
         //{

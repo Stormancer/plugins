@@ -20,21 +20,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json.Linq;
+using Stormancer.Diagnostics;
+using Stormancer.Server.Plugins.Configuration;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
-using Stormancer.Server.Plugins.Configuration;
-using Stormancer.Diagnostics;
+
 namespace Stormancer.Server.Plugins.GameSession
 {
     public interface IServerPools
     {
         IServerPool GetPool(string id);
     }
+
     public class ServerPools : IServerPools, IDisposable
     {
         private readonly ILogger logger;
@@ -79,6 +79,7 @@ namespace Stormancer.Server.Plugins.GameSession
         }
         
         private ConcurrentDictionary<string,string > _sessionToOnlineId = new ConcurrentDictionary<string, string>();
+
         internal Task<GameServerStartupParameters> SetReady(string onlineId, IScenePeerClient peer)
         {
             var poolId = onlineId.Split('/')[0];
@@ -118,10 +119,9 @@ namespace Stormancer.Server.Plugins.GameSession
                 return null;
             }
         }
+
         public IServerPool GetPool(string id)
         {
-            
-
             return _pools.GetOrAdd(id, _ =>
              {
                  var config = GetConfiguration(id);

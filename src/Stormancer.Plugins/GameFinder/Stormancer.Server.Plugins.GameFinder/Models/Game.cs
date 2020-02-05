@@ -19,7 +19,9 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
 using Newtonsoft.Json.Linq;
+using Stormancer.Server.Plugins.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -59,6 +61,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             Teams.AddRange(teams);
             Id = Guid.NewGuid().ToString();
         }
+
         public static Game Create<T>(IEnumerable<Team> teams, T customData = null) where T:class
         {
             return new Game(teams, customData != null ? JObject.FromObject(customData) : null);
@@ -73,7 +76,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         public List<Team> Teams { get; set; } = new List<Team>();
 
-        public IEnumerable<Group> AllGroups => Teams.SelectMany(team => team.Groups);
+        public IEnumerable<Party> AllParties => Teams.SelectMany(team => team.Parties);
 
         public IEnumerable<Player> AllPlayers => Teams.SelectMany(team => team.AllPlayers);
     }

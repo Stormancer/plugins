@@ -19,7 +19,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using Stormancer.Core;
+
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.GameSession;
 
@@ -27,12 +27,10 @@ namespace Stormancer.Server.Plugins.Friends.RecentlyMet
 {
     class RecentlyMetFriendsPlugin : IHostPlugin
     {
-
         public void Build(HostPluginBuildContext ctx)
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
-              
                 builder.Register<RecentlyMetUsersEventHandler>().As<IFriendsEventHandler>().As<IGameSessionEventHandler>().InstancePerRequest();
             };
         }

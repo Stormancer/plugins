@@ -22,9 +22,6 @@
 
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
@@ -32,7 +29,6 @@ namespace Stormancer.Server.Plugins.GameSession
     public interface IServerPoolProvider
     {
         bool TryCreate(string id, JObject config,out IServerPool pool);
-
     }
 
     public class Server : IDisposable
@@ -45,7 +41,6 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public void Dispose()
         {
-           
         }
     }
 

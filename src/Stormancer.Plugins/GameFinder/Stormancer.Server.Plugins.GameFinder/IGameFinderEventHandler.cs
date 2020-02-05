@@ -19,6 +19,8 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
+using Stormancer.Server.Plugins.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -34,13 +36,13 @@ namespace Stormancer.Server.Plugins.GameFinder
     public class SearchStartContext
     {
         public string GameFinderId { get; set; }
-        public IEnumerable<Group> Groups { get; set; }
+        public IEnumerable<Party> Groups { get; set; }
     }
 
     public class SearchEndContext
     {
         public string GameFinderId { get; set; }
-        public Group Group { get; set; }
+        public Party Party { get; set; }
         public SearchEndReason Reason { get; set; }
         public int PassesCount { get; set; }
     }

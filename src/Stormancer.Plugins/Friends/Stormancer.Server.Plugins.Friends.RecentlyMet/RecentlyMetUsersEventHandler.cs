@@ -19,11 +19,10 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
 using Nest;
-using Server;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Database;
-using Stormancer.Server.Plugins.Friends;
 using Stormancer.Server.Plugins.GameSession;
 using System;
 using System.Collections.Generic;
@@ -62,7 +61,7 @@ namespace Stormancer.Server.Plugins.Friends.RecentlyMet
 
             foreach (var team in ctx.Config.Teams)
             {
-                var recentTeam = new RecentTeam { Id = Guid.NewGuid().ToString("N"), Date = date, UserIds = team.Groups.SelectMany(g => g.PlayersId).ToList() };
+                var recentTeam = new RecentTeam { Id = Guid.NewGuid().ToString("N"), Date = date, UserIds = team.Parties.SelectMany(g => g.Players.Keys).ToList() };
                 tasks.Add(client.IndexDocumentAsync(recentTeam));
                 foreach (var userId in recentTeam.UserIds)
                 {

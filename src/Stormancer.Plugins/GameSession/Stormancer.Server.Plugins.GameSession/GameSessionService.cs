@@ -22,12 +22,12 @@
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Core;
 using Stormancer.Core.Helpers;
 using Stormancer.Diagnostics;
-using Stormancer.Server.Plugins.Analytics;
 using Stormancer.Server.Components;
+using Stormancer.Server.Plugins.Analytics;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.GameSession.Models;
 using Stormancer.Server.Plugins.Management;
 using Stormancer.Server.Plugins.Users;
@@ -79,6 +79,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 GameCompleteTcs = new TaskCompletionSource<Action<Stream, ISerializer>>();
                 ResultData = null;
             }
+
             public IScenePeerClient Peer { get; set; }
 
             public Stream ResultData { get; set; }
@@ -129,8 +130,6 @@ namespace Stormancer.Server.Plugins.GameSession
         private ShutdownMode _shutdownMode;
         private DateTime _shutdownDate;
 
-
-
         public GameSessionService(
             ISceneHost scene,
             IConfiguration configuration,
@@ -147,7 +146,6 @@ namespace Stormancer.Server.Plugins.GameSession
             _logger = logger;
             _environment = environment;
             _pools = pools;
-
 
             _configuration.SettingsChanged += OnSettingsChange;
             OnSettingsChange(_configuration, _configuration.Settings);
@@ -219,7 +217,6 @@ namespace Stormancer.Server.Plugins.GameSession
                         await SignalServerReady(peer.SessionId);
                         return;
                     }
-
                 }
                 if (IsWorker(packet.Connection))
                 {
@@ -275,9 +272,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     {
                         p.Send(P2P_TOKEN_ROUTE, p2pToken);
                     }
-
                 }
-
             }
             catch (Exception ex)
             {
@@ -331,8 +326,6 @@ namespace Stormancer.Server.Plugins.GameSession
                 || this._status == ServerStatus.AllPlayersConnected)
             {
                 this._status = ServerStatus.Faulted;
-
-
             }
         }
 
@@ -385,7 +378,6 @@ namespace Stormancer.Server.Plugins.GameSession
                 {
                     throw new ClientException("Failed to add player to the game session.");
                 }
-
             }
 
             client.Status = PlayerStatus.Connected;
@@ -431,7 +423,6 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 GetServerTcs().TrySetResult(peer);
 
-
                 peer.Send(P2P_TOKEN_ROUTE, "");
                 return;
             }
@@ -469,7 +460,6 @@ namespace Stormancer.Server.Plugins.GameSession
                 }
                 else
                 {
-
                 }
 
                 foreach (var uId in _clients.Keys)
@@ -504,7 +494,6 @@ namespace Stormancer.Server.Plugins.GameSession
                 {
                     _serverStartTask = Start();
                 }
-
             }
             return _serverStartTask;
         }
@@ -524,7 +513,6 @@ namespace Stormancer.Server.Plugins.GameSession
             var stormancerPort = ((ushort?)_configuration.Settings?.gameServer?.stormancerPort) ?? 30000;
             var arguments = string.Join(" ", ((JArray)_configuration.Settings?.gameServer?.arguments ?? new JArray()).ToObject<IEnumerable<string>>());
             var mapName = _config.Parameters?.GetValue("mapName")?.Value<string>() ?? null;
-
 
             if (!_serverEnabled)
             {
@@ -546,8 +534,6 @@ namespace Stormancer.Server.Plugins.GameSession
                     throw new InvalidOperationException("Missing gameFinder.[gameFinderKind].mapName configuration value");
                 }
 
-
-
                 await LeaseServerPort();
                 _serverGuid = Guid.NewGuid().ToByteArray();
                 var token = await _management.CreateConnectionToken(_scene.Id, _serverGuid, "application/server-id");
@@ -555,7 +541,6 @@ namespace Stormancer.Server.Plugins.GameSession
                 //Token used to authenticate the DS with the DedicatedServerAuthProvider
                 //TODO: Reimplement security
                 var authenticationToken = this._scene.Id;
-
 
                 var startInfo = new System.Diagnostics.ProcessStartInfo();
                 startInfo.Arguments = $"PORT={_serverDedicatedPort.ToString()} { (log ? "-log" : "")} " + arguments; // { (log ? "-log" : "")}";//$"-port={_port} {(log ? "-log" : "")}";               
@@ -601,7 +586,6 @@ namespace Stormancer.Server.Plugins.GameSession
                     var cts = CancellationTokenSource.CreateLinkedTokenSource(serverCt);
                     cts.CancelAfter(_gameSessionTimeout);
                     serverCt = cts.Token;
-
                 }
                 serverCt.Register(() => { _ = CloseGameServerProcess(); });
                 if (prc != null)
@@ -638,12 +622,6 @@ namespace Stormancer.Server.Plugins.GameSession
                 };
 
                 _gameServerProcess = prc;
-
-
-
-
-
-
             }
             catch (Exception ex)
             {
@@ -668,18 +646,14 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private async Task LeaseServerPort()
         {
-
-
             var p2pLease = await _pools.AcquirePort((string)_configuration.Settings?.gameServer?.publicPool ?? "public1");
             if (!p2pLease.Success)
             {
-
                 throw new InvalidOperationException("Unable to acquire port for the server");
             }
             var serverLease = await _pools.AcquirePort((string)_configuration.Settings?.gameServer?.serverPool ?? "private1");
             if (!serverLease.Success)
             {
-
                 throw new InvalidOperationException("Unable to acquire port for the server");
             }
             _serverPortLease = serverLease;
@@ -687,7 +661,6 @@ namespace Stormancer.Server.Plugins.GameSession
             _serverDedicatedPort = p2pLease.Port;
             _serverPort = serverLease.Port;
             _ip = p2pLease.PublicIp;
-
         }
 
         private TaskCompletionSource<IScenePeerClient> GetServerTcs()
@@ -734,7 +707,6 @@ namespace Stormancer.Server.Plugins.GameSession
                     break;
                 }
             }
-
 
             if (client != null)
             {
@@ -819,7 +791,6 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async Task<Action<Stream, ISerializer>> PostResults(Stream inputStream, IScenePeerClient remotePeer)
         {
-
             if (!_serverEnabled)
             {
                 if (this._status != ServerStatus.Started)
@@ -866,11 +837,11 @@ namespace Stormancer.Server.Plugins.GameSession
             // FIXME: Temporary workaround to issue where disconnections cause large increases in CPU/Memory usage
             //await Task.WhenAll(_scene.RemotePeers.Select(user => user.Disconnect("Game complete")));
 
-
             await _scene.KeepAlive(TimeSpan.Zero);
-
         }
+
         private AsyncLock _asyncLock = new AsyncLock();
+
         private async Task EvaluateGameComplete()
         {
             using (await _asyncLock.LockAsync())
@@ -915,31 +886,24 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 return await _scene.DependencyResolver.Resolve<IPeerInfosService>().CreateP2pToken(hostPeer.SessionId, _scene.Id);
             }
-
         }
 
         public async Task UpdateShutdownMode(ShutdownModeParameters shutdown)
         {
-
-
             if (shutdown.shutdownMode == ShutdownMode.SceneShutdown)
             {
                 _shutdownMode = shutdown.shutdownMode;
                 _shutdownDate = await _scene.KeepAlive(new TimeSpan(0, 0, shutdown.keepSceneAliveFor));
-
             }
-
         }
 
         public bool IsHost(string sessionId)
         {
-
             if (!GetServerTcs().Task.IsCompleted)
             {
                 return false;
             }
             return sessionId == GetServerTcs().Task.Result.SessionId;
-
         }
 
         public void Dispose()
@@ -949,10 +913,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public GameSessionConfigurationDto GetGameSessionConfig()
         {
-
             return new GameSessionConfigurationDto { Teams = _config.Teams, Parameters = _config.Parameters, UserIds = _config.UserIds };
         }
-
-
     }
 }
