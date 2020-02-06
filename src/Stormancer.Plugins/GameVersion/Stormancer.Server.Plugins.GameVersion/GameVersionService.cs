@@ -100,7 +100,7 @@ namespace Stormancer.Server.Plugins.GameVersion
 
             try
             {
-                checkClientVersion = (bool?)configuration?.enabled ?? false;
+                checkClientVersion = (bool?)configuration?.enableVersionChecking ?? false;
             }
             catch (Exception)
             {
