@@ -50,7 +50,7 @@ namespace Stormancer.Server.Plugins.GameVersion
             {
                 host.AddSceneTemplate(Users.Constants.SCENE_TEMPLATE, (ISceneHost scene) =>
                 {
-                    scene.AddGameVersion("gameVersion");
+                    scene.AddGameVersion();
                 });
             };
         }
