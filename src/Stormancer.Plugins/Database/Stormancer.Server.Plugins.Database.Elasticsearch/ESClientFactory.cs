@@ -322,9 +322,9 @@ namespace Stormancer.Server.Plugins.Database
                 pattern = _config.defaultPattern;
             }
 
-            {
-                indexName = SmartFormat.Smart.Format(pattern, formatCtx);
-            }
+
+            indexName = SmartFormat.Smart.Format(pattern, formatCtx);
+
 
             if (string.IsNullOrWhiteSpace(indexName))
             {
@@ -348,12 +348,12 @@ namespace Stormancer.Server.Plugins.Database
             return _clients.GetOrAdd(p.IndexName, i =>
             {
                 var t = typeof(JToken);
-               
 
-                ConnectionSettings.SourceSerializerFactory s = (IElasticsearchSerializer s, IConnectionSettingsValues v) => new JsonNetSerializer(s,v);
+
+                ConnectionSettings.SourceSerializerFactory s = (IElasticsearchSerializer s, IConnectionSettingsValues v) => new JsonNetSerializer(s, v);
 
                 var settings = new ConnectionSettings(connectionPool.Pool, s).DefaultIndex(p.IndexName.ToLowerInvariant()).MaximumRetries(p.maxRetries).MaxRetryTimeout(TimeSpan.FromSeconds(p.retryTimeout));
-                if(connectionPool?.Credentials?.Basic?.Login != null && connectionPool?.Credentials?.Basic?.Password != null)
+                if (connectionPool?.Credentials?.Basic?.Login != null && connectionPool?.Credentials?.Basic?.Password != null)
                 {
                     settings.BasicAuthentication(connectionPool?.Credentials?.Basic?.Login, connectionPool?.Credentials?.Basic?.Password);
                 }

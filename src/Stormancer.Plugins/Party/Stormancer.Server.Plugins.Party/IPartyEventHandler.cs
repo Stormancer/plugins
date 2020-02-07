@@ -20,18 +20,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Stormancer.Server.Plugins.Users;
-using Stormancer.Server.Party.Dto;
-using Stormancer.Server.Party.Model;
 using Stormancer.Core;
 using Stormancer.Server.PartyManagement;
+using Stormancer.Server.Plugins.Party.Dto;
+using Stormancer.Server.Plugins.Party.Model;
+using Stormancer.Server.Plugins.Users;
+using System.Threading.Tasks;
 
-namespace Stormancer.Server.Party
+namespace Stormancer.Server.Plugins.Party
 {
     public class PartyCreationContext
     {

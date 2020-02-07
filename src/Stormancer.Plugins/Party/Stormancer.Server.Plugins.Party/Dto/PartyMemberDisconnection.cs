@@ -21,14 +21,9 @@
 // SOFTWARE.
 
 using MsgPack.Serialization;
-using Stormancer.Server.Party.Model;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Stormancer.Server.Plugins.Party.Model;
 
-namespace Stormancer.Server.Party.Dto
+namespace Stormancer.Server.Plugins.Party.Dto
 {
     public class PartyMemberDisconnection
     {

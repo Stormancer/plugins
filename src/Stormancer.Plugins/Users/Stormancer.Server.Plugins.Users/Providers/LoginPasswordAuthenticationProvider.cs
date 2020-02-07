@@ -171,6 +171,7 @@ namespace Stormancer.Server.Plugins.Users
                         derivedKey = hash
                     });
                 }, new Dictionary<string, string> { { ClaimPath, login } });
+               
             }
             await Task.Delay(1000);
         }

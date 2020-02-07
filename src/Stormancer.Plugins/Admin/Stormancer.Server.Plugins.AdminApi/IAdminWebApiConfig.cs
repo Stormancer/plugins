@@ -21,13 +21,8 @@
 // SOFTWARE.
 
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Server.Plugins.AdminApi
+namespace Stormancer.Server.Plugins.AdminApi
 {
     /// <summary>
     /// Class implementing this interface can add parts to the admin web API.
@@ -41,4 +36,3 @@ namespace Server.Plugins.AdminApi
         void ConfigureApplicationParts(ApplicationPartManager apm);
     }
 }
-

@@ -21,13 +21,14 @@
 // SOFTWARE.
 
 using Stormancer.Plugins;
-using Stormancer.Server.Party.Dto;
-using Stormancer.Server.Party.Model;
+using Stormancer.Server.Plugins.Party.Dto;
+using Stormancer.Server.Plugins.Party.Model;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Party
+namespace Stormancer.Server.Plugins.Party
 {
     public interface IPartyService
     {
@@ -58,8 +59,32 @@ namespace Stormancer.Server.Party
         /// This allows blocking the party for a much shorter time.
         /// </remarks>
         /// <param name="ctx">Context for a client RPC requesting the party state.</param>
-        /// <returns>Task that completes</returns>
+        /// <returns>Task that completes when the party state has been sent.</returns>
         Task SendPartyStateAsRequestAnswer(RequestContext<IScenePeerClient> ctx);
+
+        /// <summary>
+        /// Check whether the given user has the permission to send invitations to the party.
+        /// </summary>
+        /// <param name="senderUserId">The stormancer Id of the user</param>
+        /// <returns><c>true</c> if the user can send invitations, <c>false</c> otherwise.</returns>
+        bool CanSendInvitation(string senderUserId);
+
+        /// <summary>
+        /// Invite a user to this party.
+        /// </summary>
+        /// <param name="senderUserId">The stormancer Id of the user who sends the invitation.</param>
+        /// <param name="recipientUserId">The stormancer Id of the user who will receive the invitation.</param>
+        /// <param name="forceStormancerInvite">
+        /// If <c>false</c>, the underlying invitation system to use for this invitation will be chosen automatically, prioritizing platform-specific systems.
+        /// If <c>true</c>, only the base Stormancer invitation system will be used.
+        /// </param>
+        /// <param name="cancellationToken">A token with which the sender can cancel the invitation.</param>
+        /// <returns>
+        /// A task that lasts as long as the invitation can be canceled, if the underlying invitation system supports cancelling.
+        /// The result of the task is <c>true</c> if the recipient accepted the invitation, <c>false</c> if they refused it.
+        /// If the underlying invitation system doesn't support the notion of refusing an invitation, it will always be true.
+        /// </returns>
+        Task<bool> SendInvitation(string senderUserId, string recipientUserId, bool forceStormancerInvite, CancellationToken cancellationToken);
 
         void SetConfiguration(dynamic metadata);
 
@@ -79,6 +104,6 @@ namespace Stormancer.Server.Party
         /// <remarks>
         /// This doesn't include the users that are currently in the connection process.
         /// </remarks>
-        ConcurrentDictionary<string, PartyMember> PartyMembers { get; }
+        IReadOnlyDictionary<string, PartyMember> PartyMembers { get; }
     }
 }

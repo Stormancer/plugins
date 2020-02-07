@@ -25,7 +25,7 @@ using Stormancer.Server.Plugins.GameFinder;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Party
+namespace Stormancer.Server.Plugins.Party
 {
     interface IPartyProxy
     {

@@ -21,10 +21,10 @@
 // SOFTWARE.
 
 using MsgPack.Serialization;
-using Stormancer.Server.Party.Model;
+using Stormancer.Server.Plugins.Party.Model;
 using System.Collections.Generic;
 
-namespace Stormancer.Server.Party.Dto
+namespace Stormancer.Server.Plugins.Party.Dto
 {
     /// <summary>
     /// Status update for a single client, sent from the server to the clients.

@@ -20,19 +20,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using MsgPack.Serialization;
+using System.Collections.Generic;
 
-namespace Stormancer.Server.Party.Dto
+namespace Stormancer.Server.Plugins.Party.Dto
 {
     public class PartyStateDto
     {
         [MessagePackMember(0)]
-        public PartySettingsDto Settings { get; set; }
+        public PartySettingsUpdateDto Settings { get; set; }
 
         [MessagePackMember(1)]
         public string LeaderId { get; set; }

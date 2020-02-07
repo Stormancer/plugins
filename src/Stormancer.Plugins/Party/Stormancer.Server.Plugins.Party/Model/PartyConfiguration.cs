@@ -20,10 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using System;
 using System.Collections.Generic;
 
-namespace Stormancer.Server.Party.Model
+namespace Stormancer.Server.Plugins.Party.Model
 {
     public class PartyConfiguration
     {
@@ -43,6 +42,16 @@ namespace Stormancer.Server.Party.Model
         public bool IsPublic { get; set; }
 
         /// <summary>
+        /// When true, only the party leader can send invitations. When false, every party member can send invitations.
+        /// </summary>
+        public bool OnlyLeaderCanInvite { get; set; }
+
+        /// <summary>
+        /// When true (the default), players can join the party. When false, nobody can join the party.
+        /// </summary>
+        public bool IsJoinable { get; set; }
+
+        /// <summary>
         /// The name of game finder scene
         /// </summary>
         public string GameFinderName { get; set; }
@@ -55,6 +64,11 @@ namespace Stormancer.Server.Party.Model
         /// <summary>
         /// Client-specified settings that can be used by other server components
         /// </summary>
-        public Dictionary<string, string> ServerSettings { get; set; }
+        public Dictionary<string, string> ServerSettings { get; set; } = new Dictionary<string, string>();
+
+        /// <summary>
+        /// Server-specified data that are sent to clients (cannot be modified by clients)
+        /// </summary>
+        public Dictionary<string, string> PublicServerData { get; set; } = new Dictionary<string, string>();
     }
 }
