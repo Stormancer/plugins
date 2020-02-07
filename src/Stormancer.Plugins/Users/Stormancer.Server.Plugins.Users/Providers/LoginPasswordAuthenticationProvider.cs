@@ -172,6 +172,7 @@ namespace Stormancer.Server.Plugins.Users
                     });
                 }, new Dictionary<string, string> { { ClaimPath, login } });
             }
+            await Task.Delay(1000);
         }
 
         private static byte[] DeriveKey(string password, out int iterations, out byte[] salt,
