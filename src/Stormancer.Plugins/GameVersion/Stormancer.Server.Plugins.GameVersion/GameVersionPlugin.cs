@@ -37,7 +37,7 @@ namespace Stormancer.Server.Plugins.GameVersion
                 if (scene.Metadata.ContainsKey(METADATA_KEY))
                 {
                     builder.Register<GameVersionService>().InstancePerScene();
-                    builder.Register<AuthenticationEventHandler>().As<IAuthenticationEventHandler>().InstancePerDependency();
+                    builder.Register<AuthenticationEventHandler>().As<IAuthenticationEventHandler>().InstancePerRequest();
                 }
             };
 

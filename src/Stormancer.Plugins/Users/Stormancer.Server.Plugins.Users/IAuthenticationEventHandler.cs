@@ -28,9 +28,8 @@ namespace Stormancer.Server.Plugins.Users
     {
         Task OnLoggingIn(LoggingInCtx authenticationCtx);
         Task OnLoggedIn(LoggedInCtx ctx);
-      
     }
-    
+
     public class LoggingInCtx
     {
         public AuthenticationContext AuthCtx { get; set; }
@@ -41,8 +40,8 @@ namespace Stormancer.Server.Plugins.Users
 
     public class LoggedInCtx
     {
+        public AuthenticationContext AuthCtx { get; set; }
         public LoginResult Result { get; set; }
         public SessionRecord Session { get; set; }
     }
-
 }

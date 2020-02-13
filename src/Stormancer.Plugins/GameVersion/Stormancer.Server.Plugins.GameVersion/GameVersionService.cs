@@ -107,7 +107,7 @@ namespace Stormancer.Server.Plugins.GameVersion
                 checkClientVersion = false;
             }
 
-            if(gameVersion == null)
+            if (gameVersion == null)
             {
                 gameVersion = "NA";
             }
