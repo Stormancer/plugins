@@ -952,7 +952,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             {
                 request.CancellationToken.Register(() =>
                 {
-                    session.IsOpen = false;
+                    session.Close();
                     if (!IsRunning)
                     {
                         session.Complete();

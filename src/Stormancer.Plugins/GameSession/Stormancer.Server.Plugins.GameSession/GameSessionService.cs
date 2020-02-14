@@ -43,6 +43,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Stormancer.Plugins;
 using System.Runtime.CompilerServices;
+using Stormancer.Server.Plugins.ServiceLocator;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
@@ -971,7 +972,12 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async IAsyncEnumerable<Team> OpenToGameFinder(JObject data, string gameFinder, [EnumeratorCancellation] CancellationToken ct)
         {
-            var observable = _rpc.Rpc("GameFinder.OpenGameSession", new MatchSceneFilter(gameFinder), stream =>
+            using var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag);
+            var serviceLocator = scope.Resolve<IServiceLocator>();
+
+            var gameFinderScene = await serviceLocator.GetSceneId("stormancer.plugins.gamefinder", gameFinder);
+
+            var observable = _rpc.Rpc("GameFinder.OpenGameSession", new MatchSceneFilter(gameFinderScene), stream =>
             {
                 _serializer.Serialize(data, stream);
             }, PacketPriority.MEDIUM_PRIORITY, ct);

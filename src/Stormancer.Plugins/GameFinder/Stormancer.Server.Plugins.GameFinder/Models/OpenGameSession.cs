@@ -27,7 +27,15 @@ namespace Stormancer.Server.Plugins.GameFinder.Models
         /// <summary>
         /// Whether this game session still accepts players.
         /// </summary>
-        public bool IsOpen { get; internal set; } = true;
+        public bool IsOpen { get; private set; } = true;
+
+        /// <summary>
+        /// Close this game session, marking it to be removed from the game finder.
+        /// </summary>
+        public void Close()
+        {
+            IsOpen = false;
+        }
 
         /// <summary>
         /// How many game finder passes this game session has been open for.
