@@ -291,6 +291,10 @@ namespace Stormancer.Server.Plugins.API
             _scene.Disconnected.Add(args => ExecuteDisconnected(args));
             foreach (var method in type.GetMethods())
             {
+                if (TryAddRoute(type, method))
+                {
+                    continue;
+                }
                 var procedureName = GetProcedureName(type, method);
                 if (IsRawRpc<IScenePeerClient>(method))
                 {
@@ -376,10 +380,6 @@ namespace Stormancer.Server.Plugins.API
                         }
                         return next(initialApiCallCtx);
                     }, _ => _);
-                }
-                else
-                {
-                    TryAddRoute(type, method);
                 }
             }
 
