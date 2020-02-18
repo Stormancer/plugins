@@ -117,8 +117,9 @@ namespace Stormancer.Server.Plugins.GameSession
         private byte[] _serverGuid;
 
         private ConcurrentDictionary<string, Client> _clients = new ConcurrentDictionary<string, Client>();
-        private ConcurrentDictionary<string, string> _sessionIdToUserIdMap = new ConcurrentDictionary<string, string>();
         private ServerStatus _status = ServerStatus.WaitingPlayers;
+        // A source that is canceled when the game session is complete
+        private CancellationTokenSource _gameCompleteCts = new CancellationTokenSource();
 
         private string _ip = "";
         private IDisposable _serverPortLease;
@@ -203,12 +204,6 @@ namespace Stormancer.Server.Plugins.GameSession
                     return (await sessions.GetUser(peer)).Id;
                 }
             }
-        }
-
-        private string RemoveUserId(IScenePeerClient peer)
-        {
-            _sessionIdToUserIdMap.TryRemove(peer.SessionId, out string userId);
-            return userId;
         }
 
         private async Task ReceivedReady(Packet<IScenePeerClient> packet)
@@ -487,7 +482,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     if (uId != userId)
                     {
                         var currentClient = _clients[uId];
-                        var isHost = GetServerTcs().Task.IsCompleted && GetServerTcs().Task.Result.SessionId == currentClient.Peer.SessionId;
+                        var isHost = GetServerTcs().Task.IsCompleted && GetServerTcs().Task.Result.SessionId == currentClient.Peer?.SessionId;
                         peer.Send("player.update",
                             new PlayerUpdate { UserId = uId, IsHost = isHost, Status = (byte)currentClient.Status, Data = currentClient.FaultReason ?? "" },
                             PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
@@ -732,7 +727,6 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 throw new ArgumentNullException("peer");
             }
-            var user = RemoveUserId(peer);
             _analytics.Push("gamesession", "playerLeft", JObject.FromObject(new { sessionId = peer.SessionId, gameSessionId = this._scene.Id }));
             Client client = null;
             string userId = null;
@@ -743,6 +737,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 if (kvp.Value.Peer == peer)
                 {
                     userId = kvp.Key;
+                    client = kvp.Value;
 
                     if (_config.Public)
                     {
@@ -884,10 +879,10 @@ namespace Stormancer.Server.Plugins.GameSession
             // FIXME: Temporary workaround to issue where disconnections cause large increases in CPU/Memory usage
             //await Task.WhenAll(_scene.RemotePeers.Select(user => user.Disconnect("Game complete")));
 
-
+            _gameCompleteCts.Cancel();
             await _scene.KeepAlive(TimeSpan.Zero);
-
         }
+
         private AsyncLock _asyncLock = new AsyncLock();
         private async Task EvaluateGameComplete()
         {
@@ -917,6 +912,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     // FIXME: Temporary workaround to issue where disconnections cause large increases in CPU/Memory usage
                     //await Task.WhenAll(_scene.RemotePeers.Select(user => user.Disconnect("Game complete")));
 
+                    _gameCompleteCts.Cancel();
                     await _scene.KeepAlive(TimeSpan.Zero);
                 }
             }
@@ -962,6 +958,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public void Dispose()
         {
+            _gameCompleteCts?.Dispose();
             CloseGameServerProcess().Wait();
         }
 
@@ -972,6 +969,9 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async IAsyncEnumerable<Team> OpenToGameFinder(JObject data, string gameFinder, [EnumeratorCancellation] CancellationToken ct)
         {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct, _gameCompleteCts.Token);
+            ct = cts.Token;
+
             using var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag);
             var serviceLocator = scope.Resolve<IServiceLocator>();
 
