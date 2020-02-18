@@ -19,35 +19,37 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using MsgPack.Serialization;
+
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
-using System.Linq;
 
-namespace Stormancer.Server.Plugins.GameSession
+namespace Stormancer.Server.Plugins.GameHistory
 {
-    public class Team
+    public class HistoryRecord
     {
-        public Team(params Group[] groups)
-        {
-            Groups = new List<Group>(groups);
-        }
+        public string Id { get; set; }
+       
+        public JObject Data { get; set; }
 
-        public Team(IEnumerable<Group> groups)
-        {
-            Groups = new List<Group>(groups);
-        }
+        public DateTime GameStartedOn { get; set; }
 
-        public Team()
-        {
-            // Default ctor for backward compatibility
-        }
+        public DateTime GameEndedOn { get; set; }
+    }
 
-        [MessagePackMember(0)]
+    public class GameHistoryRecord : HistoryRecord
+    {
+        public List<PlayerHistoryRecord> players { get; set; }
+
+        public string WinningTeam { get; set; }
+    }
+
+    public class PlayerHistoryRecord : HistoryRecord
+    {
+        public string GameId { get; set; }
+
+        public string PlayerId { get; set; }
+
         public string TeamId { get; set; }
-        [MessagePackMember(1)]
-        public List<Group> Groups { get; set; } = new List<Group>();
-
-        [MessagePackMember(2)]
-        public IEnumerable<string> PlayerIds { get => Groups.SelectMany(group => group.PlayersId); }
     }
 }

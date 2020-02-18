@@ -21,19 +21,12 @@
 // SOFTWARE.
 
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
-using Server.Plugins.AdminApi;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Stormancer.Server.Plugins.AdminApi;
 
 namespace Stormancer.Server.Plugins.Users
 {
     class AdminWebApiConfig : IAdminWebApiConfig
     {
-        
-
         public void ConfigureApplicationParts(ApplicationPartManager apm)
         {
             apm.ApplicationParts.Add(new AssemblyPart(this.GetType().Assembly));

@@ -22,7 +22,7 @@
 
 using MsgPack.Serialization;
 
-namespace Stormancer.Server.Party.Dto
+namespace Stormancer.Server.Plugins.Party.Dto
 {
     public class PartyMemberDataUpdate
     {

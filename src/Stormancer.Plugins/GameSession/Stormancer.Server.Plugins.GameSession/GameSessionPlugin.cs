@@ -19,20 +19,15 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
 using Stormancer.Core;
 using Stormancer.Plugins;
-using Stormancer;
+using Stormancer.Server.Components;
+using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Stormancer.Server.Plugins.API;
-using Stormancer.Server;
-using Stormancer.Server.Plugins.Users;
-using Stormancer.Server.Components;
-using Stormancer.Server.Plugins.Configuration;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
@@ -55,10 +50,11 @@ namespace Stormancer.Server.Plugins.GameSession
                 }
                 builder.Register<GameSessions>().As<IGameSessions>();
             };
+
             ctx.HostStarted += (IHost host) =>
             {
-
             };
+
             ctx.SceneCreated += (ISceneHost scene) =>
             {
                 if (scene.Metadata.ContainsKey(METADATA_KEY))
@@ -67,7 +63,6 @@ namespace Stormancer.Server.Plugins.GameSession
 
                     scene.Starting.Add(metadata =>
                     {
-                        
                         var service = scene.DependencyResolver.Resolve<IGameSessionService>();
                         service.SetConfiguration(metadata);
                         service.TryStart();
@@ -78,6 +73,7 @@ namespace Stormancer.Server.Plugins.GameSession
             };
         }
     }
+
     class DedicatedServerAuthProvider : IAuthenticationProvider
     {
         public const string PROVIDER_NAME = "dedicatedServer";
@@ -96,8 +92,6 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async Task<AuthenticationResult> Authenticate(AuthenticationContext authenticationCtx, CancellationToken ct)
         {
-
-
             var token = authenticationCtx.Parameters["token"];
             var appInfos = await _env.GetApplicationInfos();
 
@@ -106,9 +100,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 //TODO: Reimplement security.
                 var gameId = token;
 
-
                 return AuthenticationResult.CreateSuccess(new User { Id = "ds-" + gameId }, new PlatformId { OnlineId = gameId, Platform = PROVIDER_NAME }, authenticationCtx.Parameters);
-
             }
             catch (Exception ex)
             {

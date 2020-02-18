@@ -28,15 +28,25 @@ namespace Stormancer.Server.Plugins.GameVersion
     internal class AuthenticationEventHandler : IAuthenticationEventHandler
     {
         private readonly GameVersionService gameVersionService;
+        private readonly IUserSessions _userSessions;
 
-        public AuthenticationEventHandler(GameVersionService gameVersionService)
+        public AuthenticationEventHandler(GameVersionService gameVersionService, IUserSessions userSessions)
         {
             this.gameVersionService = gameVersionService;
+            _userSessions = userSessions;
         }
 
-        public Task OnLoggedIn(LoggedInCtx ctx)
+        public async Task OnLoggedIn(LoggedInCtx ctx)
         {
-            return Task.CompletedTask;
+            if (ctx.AuthCtx.Parameters.TryGetValue("gameVersion.clientVersion", out var version))
+            {
+                if (version != null)
+                {
+                    await _userSessions.UpdateSessionData(ctx.Session.SessionId, "gameVersion.clientVersion", version);
+                }
+            }
+
+            return;
         }
 
         public Task OnLoggingIn(LoggingInCtx authenticationCtx)

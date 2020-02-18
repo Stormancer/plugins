@@ -19,16 +19,15 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using Stormancer.Server.Plugins.API;
-using Stormancer;
+
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
-using System.Threading.Tasks;
-using Stormancer.Server.Plugins.GameSession.Models;
 using Stormancer.Server.Components;
+using Stormancer.Server.Plugins.API;
+using Stormancer.Server.Plugins.GameSession.Models;
 using Stormancer.Server.Plugins.Users;
-using System;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
@@ -55,7 +54,6 @@ namespace Stormancer.Server.Plugins.GameSession
                 var oldPosition = s.Position;
                 writer(s, ctx.RemotePeer.Serializer());
             });
-
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
@@ -93,6 +91,5 @@ namespace Stormancer.Server.Plugins.GameSession
                 throw new ClientException($"unauthorized");
             }
         }
-
     }
 }

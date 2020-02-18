@@ -21,9 +21,9 @@
 // SOFTWARE.
 
 using Stormancer.Core;
-using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Management;
-using Stormancer.Server.Party;
+using Stormancer.Server.Plugins.Party;
+using Stormancer.Server.Plugins.ServiceLocator;
 using System;
 using System.Threading.Tasks;
 
@@ -32,7 +32,7 @@ namespace Stormancer.Server.PartyManagement
     //Todo jojo need cleanup if the aren't complete session creation
     class PartyManagementService : IPartyManagementService
     {
-        public const string PROTOCOL_VERSION = "2019-10-31.1";
+        public const string PROTOCOL_VERSION = "2019-12-13.1";
 
         private readonly IServiceLocator _serviceLocator;
 
@@ -67,16 +67,18 @@ namespace Stormancer.Server.PartyManagement
                 {
                     PartyId = partyId,
                     PartyLeaderId = leaderUserId,
-                    CustomData = partyRequest.CustomData,
-                    GameFinderName = partyRequest.GameFinderName,
+                    partyRequest.CustomData,
+                    partyRequest.GameFinderName,
                     partyRequest.ServerSettings,
-                    IsPublic = false
+                    IsPublic = false,
+                    partyRequest.OnlyLeaderCanInvite,
+                    partyRequest.IsJoinable
                 }
             });
 
             await _management.CreateScene(
                 sceneUri,
-                PartyConstants.PARTY_SCENE_TYPE,
+                PartyPlugin.PARTY_SCENE_TYPE,
                 false,
                 false,
                 metadata

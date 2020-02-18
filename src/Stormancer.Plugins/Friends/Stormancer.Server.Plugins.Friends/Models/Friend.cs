@@ -125,7 +125,7 @@ namespace Stormancer.Server.Plugins.Friends
         public string Details { get; set; }
 
         [MessagePackMember(2), MessagePackDateTimeMember(DateTimeConversionMethod = DateTimeMemberConversionMethod.UnixEpoc)]
-        public DateTimeOffset LastConnected { get; set; }
+        public DateTimeOffset LastConnected { get; set; } = DateTimeOffset.UnixEpoch;
 
         [MessagePackMember(3)]
         public FriendStatus Status { get; set; }

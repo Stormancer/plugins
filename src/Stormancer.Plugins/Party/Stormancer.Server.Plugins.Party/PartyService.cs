@@ -21,14 +21,15 @@
 // SOFTWARE.
 
 using Newtonsoft.Json.Linq;
-using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
-using Stormancer.Server.Plugins.ServiceLocator;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.GameFinder;
-using Stormancer.Server.Party.Dto;
-using Stormancer.Server.Party.Model;
+using Stormancer.Server.Plugins.Party.Dto;
+using Stormancer.Server.Plugins.Party.Interfaces;
+using Stormancer.Server.Plugins.Party.Model;
+using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Concurrent;
@@ -39,7 +40,7 @@ using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Party
+namespace Stormancer.Server.Plugins.Party
 {
     class PartyService : IPartyService
     {
@@ -48,7 +49,7 @@ namespace Stormancer.Server.Party
         // Revision is independent from protocol version. Revision changes when a modification is made to server code (e.g bugfix).
         // Protocol version changes when a change to the communication protocol is made.
         // Protocol versions between client and server are not obligated to match.
-        public const string REVISION = "2020-01-07.1";
+        public const string REVISION = "2020-01-28.1";
         public const string REVISION_METADATA_KEY = "stormancer.party.revision";
         private const string LOG_CATEGORY = "PartyService";
 
@@ -61,8 +62,11 @@ namespace Stormancer.Server.Party
         private readonly Func<IEnumerable<IPartyEventHandler>> _handlers;
         private readonly PartyState _partyState;
         private readonly RpcService _rpcService;
+        private readonly IUserService _users;
+        private readonly IEnumerable<IPartyPlatformSupport> _platformSupports;
+        private readonly StormancerPartyPlatformSupport _stormancerPartyPlatformSupport;
 
-        public ConcurrentDictionary<string, PartyMember> PartyMembers => _partyState.PartyMembers;
+        public IReadOnlyDictionary<string, PartyMember> PartyMembers => _partyState.PartyMembers;
 
         public PartyConfiguration Settings => _partyState.Settings;
 
@@ -77,7 +81,10 @@ namespace Stormancer.Server.Party
             Func<IEnumerable<IPartyEventHandler>> handlers,
             PartyState partyState,
             RpcService rpcService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IUserService users,
+            IEnumerable<IPartyPlatformSupport> platformSupports,
+            StormancerPartyPlatformSupport stormancerPartyPlatformSupport)
         {
             _handlers = handlers;
             _scene = scene;
@@ -87,6 +94,9 @@ namespace Stormancer.Server.Party
             _locator = locator;
             _partyState = partyState;
             _rpcService = rpcService;
+            _users = users;
+            _platformSupports = platformSupports;
+            _stormancerPartyPlatformSupport = stormancerPartyPlatformSupport;
 
             ApplySettings(configuration.Settings);
         }
@@ -118,6 +128,8 @@ namespace Stormancer.Server.Party
         }
 
         private string NoSuchMemberError(string userId) => $"party.noSuchMember?userId={userId}";
+
+        private string NoSuchUserError(string userId) => $"party.noSuchUser?userId={userId}";
 
         private bool TryGetMemberByUserId(string userId, out PartyMember member)
         {
@@ -162,6 +174,11 @@ namespace Stormancer.Server.Party
                 //      1. Si il y a un party demande à celui-ci (S2S) si l'utilisateur et bien connecter dessus.
                 //  2. Si il ne l'est pas alors on continue le pipeline normal
                 //  3. Si il l'est alors on selon la config on change du SA on bloque ou on déconnect depuis l'autre scene et on la co à la nouvelle.
+                if (!_partyState.Settings.IsJoinable)
+                {
+                    throw new ClientException(JoinDeniedError);
+                }
+
                 var session = await _userSessions.GetSession(peer);
                 if (session == null)
                 {
@@ -212,6 +229,15 @@ namespace Stormancer.Server.Party
                 }
                 var partyUser = new PartyMember { UserId = user.Id, StatusInParty = PartyMemberStatus.NotReady, Peer = peer };
                 _partyState.PartyMembers.TryAdd(peer.SessionId, partyUser);
+                // Complete existing invtations for the new user. These invitations should all have been completed by now, but this is hard to guarantee.
+                if (_partyState.PendingInvitations.TryGetValue(user.Id, out var invitations))
+                {
+                    foreach (var invitation in invitations)
+                    {
+                        invitation.Value.TaskCompletionSource.TrySetResult(true);
+                    }
+                    _partyState.PendingInvitations.Remove(user.Id);
+                }
 
                 var session = await _userSessions.GetSession(peer);
                 var ctx = new JoinedPartyContext(this, session);
@@ -301,7 +327,7 @@ namespace Stormancer.Server.Party
                 {
                     throw new ClientException(GameFinderNameError);
                 }
-                var originalDto = new PartySettingsDto { CustomData = string.Copy(partySettingsDto.CustomData), GameFinderName = string.Copy(partySettingsDto.GameFinderName) };
+                var originalDto = partySettingsDto.Clone();
                 var ctx = new PartySettingsUpdateCtx(this, partySettingsDto);
                 await _handlers().RunEventHandler(h => h.OnUpdatingSettings(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnOpudatingPartySettings", ex));
 
@@ -317,25 +343,27 @@ namespace Stormancer.Server.Party
                 // If the event handlers have modified the settings, we need to notify the leader to invalidate their local copy.
                 // Make an additional bump to the version number to achieve this.
                 int newSettingsVersion = _partyState.SettingsVersionNumber + 1;
-                if (originalDto.CustomData != partySettingsDto.CustomData || originalDto.GameFinderName != partySettingsDto.GameFinderName)
+                if (!partySettingsDto.Equals(originalDto))
                 {
                     newSettingsVersion = _partyState.SettingsVersionNumber + 2;
                 }
 
                 _partyState.Settings.GameFinderName = partySettingsDto.GameFinderName;
                 _partyState.Settings.CustomData = partySettingsDto.CustomData;
+                _partyState.Settings.OnlyLeaderCanInvite = partySettingsDto.OnlyLeaderCanInvite;
+                _partyState.Settings.IsJoinable = partySettingsDto.IsJoinable;
+                if (partySettingsDto.PublicServerData != null)
+                {
+                    _partyState.Settings.PublicServerData = partySettingsDto.PublicServerData;
+                }
                 _partyState.SettingsVersionNumber = newSettingsVersion;
 
                 await TryCancelPendingGameFinder();
 
                 await BroadcastStateUpdateRpc(
-                    PartySettingsDto.Route,
-                    new PartySettingsDto
-                    {
-                        GameFinderName = _partyState.Settings.GameFinderName,
-                        CustomData = _partyState.Settings.CustomData,
-                        SettingsVersion = _partyState.SettingsVersionNumber
-                    });
+                    PartySettingsUpdateDto.Route,
+                    new PartySettingsUpdateDto(_partyState)
+                    );
             });
         }
 
@@ -654,16 +682,157 @@ namespace Stormancer.Server.Party
             return new PartyStateDto
             {
                 LeaderId = _partyState.Settings.PartyLeaderId,
-                Settings = new PartySettingsDto
-                {
-                    CustomData = _partyState.Settings.CustomData,
-                    GameFinderName = _partyState.Settings.GameFinderName,
-                    SettingsVersion = _partyState.SettingsVersionNumber
-                },
+                Settings = new PartySettingsUpdateDto(_partyState),
                 PartyMembers = _partyState.PartyMembers.Values.Select(member =>
                     new PartyMemberDto { PartyUserStatus = member.StatusInParty, UserData = member.UserData, UserId = member.UserId }).ToList(),
                 Version = _partyState.VersionNumber
             };
+        }
+
+        public async Task<bool> SendInvitation(string senderUserId, string recipientUserId, bool forceStormancerInvite, CancellationToken cancellationToken)
+        {
+            PartyMember senderMember;
+            if (!TryGetMemberByUserId(senderUserId, out senderMember))
+            {
+                throw new ClientException(NoSuchMemberError(senderUserId));
+            }
+
+            User recipientUser = null;
+            var recipientSession = await _userSessions.GetSessionByUserId(recipientUserId);
+            if (recipientSession == null)
+            {
+                recipientUser = await _users.GetUser(recipientUserId);
+                if (recipientUser == null)
+                {
+                    throw new ClientException(NoSuchUserError(recipientUserId));
+                }
+            }
+
+            var senderSession = await _userSessions.GetSession(senderMember.Peer);
+
+            IPartyPlatformSupport ChooseInvitationPlatform()
+            {
+                if (forceStormancerInvite)
+                {
+                    return _stormancerPartyPlatformSupport;
+                }
+
+                IPartyPlatformSupport platform = null;
+                // If the recipient is connected
+                if (recipientSession != null)
+                {
+                    // If they are on the same platform, choose this platform's handler in priority
+                    if (recipientSession.platformId.Platform == senderSession.platformId.Platform)
+                    {
+                        platform = _platformSupports.FirstOrDefault(platformSupport => platformSupport.PlatformName == senderSession.platformId.Platform);
+                    }
+                    // If they aren't, or if there is no handler for their platform, try a generic one (stormancer)
+                    if (platform == null)
+                    {
+                        platform = _platformSupports.FirstOrDefault(platformSupport =>
+                        platformSupport.IsInvitationCompatibleWith(recipientSession.platformId.Platform) && platformSupport.IsInvitationCompatibleWith(senderSession.platformId.Platform));
+                    }
+                }
+                else
+                {
+                    if (recipientUser.Auth.ContainsKey(senderSession.platformId.Platform))
+                    {
+                        platform = _platformSupports.FirstOrDefault(platformSupport =>
+                        platformSupport.PlatformName == senderSession.platformId.Platform && platformSupport.CanSendInviteToDisconnectedPlayer);
+                    }
+                    if (platform == null)
+                    {
+                        platform = _platformSupports.FirstOrDefault(platformSupport =>
+                        platformSupport.CanSendInviteToDisconnectedPlayer &&
+                        recipientUser.Auth.Properties().Any(prop => platformSupport.IsInvitationCompatibleWith(prop.Name)) &&
+                        platformSupport.IsInvitationCompatibleWith(senderSession.platformId.Platform));
+                    }
+                }
+                return platform;
+            }
+
+            var platform = ChooseInvitationPlatform();
+            if (platform == null)
+            {
+                Log(LogLevel.Error, "SendInvitation", "No suitable invitation platform found", new
+                {
+                    senderUserId,
+                    recipientUserId,
+                    senderPlatformId = senderSession.platformId,
+                    recipientPlatformId = recipientSession?.platformId.Platform ?? "<N.A.: recipient is not online>",
+                    recipientAuth = recipientUser?.Auth.Properties().Select(prop => prop.Name),
+                    recipientIsOnline = recipientSession != null
+                }, senderUserId, senderSession.SessionId, recipientUserId);
+                throw new Exception("No suitable invitation platform found");
+            }
+
+            // Do not block the party's TaskQueue.
+            var invitation = new Invitation(platform.PlatformName, cancellationToken);
+            await _partyState.TaskQueue.PushWork(async () =>
+            {
+                if (TryGetMemberByUserId(recipientUserId, out _))
+                {
+                    invitation.TaskCompletionSource.TrySetResult(true);
+                    return;
+                }
+
+                ConcurrentDictionary<string, Invitation> recipientInvitations;
+                if (!_partyState.PendingInvitations.TryGetValue(recipientUserId, out recipientInvitations))
+                {
+                    recipientInvitations = new ConcurrentDictionary<string, Invitation>();
+                    _partyState.PendingInvitations.Add(recipientUserId, recipientInvitations);
+                }
+
+                if (recipientInvitations.TryGetValue(senderUserId, out var existingInvitation))
+                {
+                    if (existingInvitation.PlatformName == platform.PlatformName)
+                    {
+                        invitation.TaskCompletionSource = existingInvitation.TaskCompletionSource;
+                        return;
+                    }
+                    else
+                    {
+                        existingInvitation.Cts.Cancel();
+                    }
+                }
+                recipientInvitations[senderUserId] = invitation;
+                _ = platform.SendInvitation(new InvitationContext(this, senderSession, recipientUserId, invitation.Cts.Token))
+                .ContinueWith(task =>
+                {
+                    if (task.Exception != null)
+                    {
+                        invitation.TaskCompletionSource.TrySetException(task.Exception);
+                    }
+                    else if (task.IsCanceled)
+                    {
+                        invitation.TaskCompletionSource.TrySetCanceled();
+                    }
+                    else
+                    {
+                        invitation.TaskCompletionSource.TrySetResult(task.Result);
+                    }
+                    // This line here is the reason recipientInvitations is a concurrent dictionary. This may happen concurrently with the invitee's connection process that iterates over the dic.
+                    recipientInvitations.TryRemove(senderUserId, out _);
+                });
+                await Task.CompletedTask; // Silence warning
+            });
+
+            return await invitation.TaskCompletionSource.Task;
+        }
+
+        public bool CanSendInvitation(string senderUserId)
+        {
+            if (Settings.PartyLeaderId == senderUserId)
+            {
+                return true;
+            }
+
+            if (TryGetMemberByUserId(senderUserId, out _) && !Settings.OnlyLeaderCanInvite)
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 }

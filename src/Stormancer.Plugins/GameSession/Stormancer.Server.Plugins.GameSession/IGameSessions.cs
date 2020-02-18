@@ -24,10 +24,7 @@ using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Management;
 using Stormancer.Server.Plugins.Users;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -65,6 +62,7 @@ namespace Stormancer.Server.Plugins.GameSession
             this.sessions = sessions;
             this.serializer = serializer;
         }
+
         public Task Create(string template, string id, GameSessionConfiguration config)
         {
             return management.CreateScene(id, template, false, false, JObject.FromObject(new { gameSession = config }));
@@ -72,7 +70,6 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async Task<string> CreateConnectionToken(string id, string userSessionId, TokenVersion version)
         {
-
             using (var stream = new MemoryStream())
             {
                 var session = await sessions.GetSessionById(userSessionId);
@@ -85,12 +82,10 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 }, RetryPolicies.IncrementalDelay(4, TimeSpan.FromSeconds(200)), CancellationToken.None, ex => true);
             }
-
         }
 
         public Task<string> CreateServerConnectionToken(string gameSessionId, Guid serverId)
         {
-           
             return management.CreateConnectionToken(gameSessionId, serverId.ToByteArray(), "application/server-id");
         }
     }

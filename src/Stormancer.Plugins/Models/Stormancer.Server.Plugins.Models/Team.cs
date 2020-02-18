@@ -1,4 +1,4 @@
-// MIT License
+﻿// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -19,31 +19,41 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
+using MsgPack.Serialization;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Stormancer.Server.Plugins.GameFinder
+namespace Stormancer.Server.Plugins.Models
 {
     public class Team
     {
         public Team()
         {
+            // Default ctor for backward compatibility
         }
 
-        public Team(params Group[] groups) : this(groups, null)
+        public Team(params Party[] parties) : this(parties, null)
         {
         }
 
-        public Team(IEnumerable<Group> groups, object customData = null)
+        public Team(IEnumerable<Party> parties, object? customData = null)
         {
             CustomData = customData;
-            Groups.AddRange(groups);
+            Parties.AddRange(parties);
         }
 
-        public object CustomData { get; set; }
+        [MessagePackMember(0)]
+        public string TeamId { get; set; }
 
-        public List<Group> Groups { get; set; } = new List<Group>();
+        [MessagePackMember(1)]
+        public List<Party> Parties { get; set; } = new List<Party>();
 
-        public IEnumerable<Player> AllPlayers => Groups.SelectMany(g => g.Players);
+        [MessagePackMember(2)]
+        public IEnumerable<string> PlayerIds { get => Parties.SelectMany(group => group.Players.Keys); }
+
+        public object? CustomData { get; set; }
+
+        public IEnumerable<Player> AllPlayers => Parties.SelectMany(g => g.Players.Values);
     }
 }

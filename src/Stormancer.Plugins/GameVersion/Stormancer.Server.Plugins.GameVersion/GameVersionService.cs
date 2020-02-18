@@ -20,9 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Stormancer.Server.Plugins.Configuration;
+using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Server.Components;
+using Stormancer.Server.Plugins.Configuration;
 using System;
 using System.Threading.Tasks;
 
@@ -35,6 +36,7 @@ namespace Stormancer.Server.Plugins.GameVersion
         public bool CheckClientVersion { get; private set; } = false;
 
         private readonly string prefix;
+
         private readonly ISceneHost scene;
 
         public GameVersionService(IConfiguration configuration, IEnvironment environment, ISceneHost scene)
@@ -62,45 +64,54 @@ namespace Stormancer.Server.Plugins.GameVersion
 
         private void UpdateSettings(dynamic configuration)
         {
-            dynamic configEntry;
+            dynamic? configEntry;
             if (prefix == "default")
             {
-                configEntry = configuration;
+                configEntry = configuration?.clientVersion;
             }
             else
             {
-                configEntry = configuration[prefix];
+                configEntry = configuration?.clientVersion?[prefix];
             }
 
-            var newGameVersion = GetVersion(configEntry);
+            var (newGameVersion, checkClientVersion) = GetVersion((JObject?)configEntry);
             if (newGameVersion != CurrentGameVersion)
             {
                 CurrentGameVersion = newGameVersion;
                 scene.Broadcast("gameVersion.update", CurrentGameVersion);
             }
 
-            CheckClientVersion = (bool?)configEntry?.checkClientVersion ?? false;
+            CheckClientVersion = checkClientVersion;
         }
 
-        private string GetVersion(dynamic configuration)
+        private (string, bool) GetVersion(JObject? c)
         {
+            dynamic? configuration = c;
+            string? gameVersion;
+            bool checkClientVersion;
             try
             {
-                dynamic gameVersion = configuration.gameVersion;
-                if (gameVersion != null)
-                {
-                    try
-                    {
-                        return (string)gameVersion;
-                    }
-                    catch (Exception) { }
-                }
+                gameVersion = configuration?.version;
             }
             catch (Exception)
             {
-
+                gameVersion = null;
             }
-            return "NA";
+
+            try
+            {
+                checkClientVersion = (bool?)configuration?.enableVersionChecking ?? false;
+            }
+            catch (Exception)
+            {
+                checkClientVersion = false;
+            }
+
+            if (gameVersion == null)
+            {
+                gameVersion = "NA";
+            }
+            return (gameVersion, checkClientVersion);
         }
     }
 }

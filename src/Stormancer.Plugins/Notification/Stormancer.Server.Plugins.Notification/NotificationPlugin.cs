@@ -19,8 +19,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using Server.Plugins.AdminApi;
-using Stormancer;
+
 using Stormancer.Core;
 using Stormancer.Plugins;
 using System;
@@ -57,7 +56,7 @@ namespace Stormancer.Server.Plugins.Notification
                 if (scene.Metadata.ContainsKey(METADATA_KEY))
                 {
                     scene.AddController<NotificationChannelController>();
-                     // Instantiate InAppNotificationProvider singleton to subscribe to scene events
+                    // Instantiate InAppNotificationProvider singleton to subscribe to scene events
                     scene.DependencyResolver.Resolve<InAppNotificationProvider>();
                 }
             };

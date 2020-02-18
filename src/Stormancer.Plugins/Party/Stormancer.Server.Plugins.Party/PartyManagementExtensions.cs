@@ -21,8 +21,8 @@
 // SOFTWARE.
 
 using Stormancer.Core;
-using Stormancer.Server.Party;
 using Stormancer.Server.PartyManagement;
+using Stormancer.Server.Plugins.Party;
 
 namespace Stormancer
 {

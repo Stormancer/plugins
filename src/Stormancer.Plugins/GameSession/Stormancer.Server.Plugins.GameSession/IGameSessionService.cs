@@ -19,14 +19,16 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
+using Newtonsoft.Json.Linq;
+using Stormancer.Server.Plugins.GameSession.Models;
+using Stormancer.Server.Plugins.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
-using Stormancer.Server.Plugins.GameSession.Models;
 
 namespace Stormancer.Server.Plugins.GameSession
 {

@@ -19,15 +19,16 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using Stormancer.Server.Plugins.API;
+
+using MsgPack.Serialization;
+using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Plugins;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
-using MsgPack.Serialization;
+using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.ServiceLocator;
+using System.Collections.Generic;
 using System.Reactive.Linq;
+using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {

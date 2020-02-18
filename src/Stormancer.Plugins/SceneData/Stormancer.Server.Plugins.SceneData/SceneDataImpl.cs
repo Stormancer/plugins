@@ -1,4 +1,4 @@
-// MIT License
+﻿// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -19,31 +19,42 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using MsgPack.Serialization;
+
+using Newtonsoft.Json.Linq;
+using Stormancer.Core;
+using Stormancer.Plugins;
+using System;
 using System.Collections.Generic;
+using System.Reactive.Linq;
+using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.GameSession
+namespace Stormancer.Server.Plugins.SceneData
 {
-    public class Group
+    class SceneDataImpl : ISceneData
     {
-        public Group(IEnumerable<string> userIds)
+        private readonly RpcService rpc;
+        private readonly ISerializer serializer;
+
+        public SceneDataImpl(RpcService rpc, ISerializer serializer)
         {
-            PlayersId = new List<string>(userIds);
+            this.rpc = rpc;
+            this.serializer = serializer;
         }
 
-        public Group(params string[] userIds)
+        public async Task<Dictionary<string, JObject>> GetSceneData(string sceneId, IEnumerable<string> options)
         {
-            PlayersId = new List<string>(userIds);
+            var result = await rpc.Rpc("SceneData.Get", new MatchSceneFilter(sceneId), s => serializer.Serialize(options, s), PacketPriority.MEDIUM_PRIORITY).LastOrDefaultAsync();
+            if (result != null)
+            {
+                using (result.Stream)
+                {
+                    return serializer.Deserialize<Dictionary<string, JObject>>(result.Stream);
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException("SceneData.Get returned no result.");
+            }
         }
-
-        public Group()
-        {
-            // Default ctor for backward compatibility
-        }
-
-        [MessagePackMember(0)]
-        public string GroupId { get; set; }
-        [MessagePackMember(1)]
-        public List<string> PlayersId { get; set; } = new List<string>();
     }
 }

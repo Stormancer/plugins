@@ -23,15 +23,12 @@
 using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.PartyManagement;
-using Stormancer.Server.Party.Model;
+using Stormancer.Server.Plugins.Party.Interfaces;
+using Stormancer.Server.Plugins.Party.Model;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Party
+namespace Stormancer.Server.Plugins.Party
 {
-    public class PartyConstants
-    {
-        public const string PARTY_SCENE_TYPE = "party";
-    }
     /// <summary>
     /// A plugin for managing player parties.
     /// </summary>
@@ -50,7 +47,7 @@ namespace Stormancer.Server.Party
     {
         internal const string PARTY_METADATA_KEY = "stormancer.party";
         internal const string PARTYMANAGEMENT_METADATA_KEY = "stormancer.partymanagement";
-       
+        public const string PARTY_SCENE_TYPE = "party";
         public const string CLIENT_METADATA_KEY = "stormancer.party.plugin";
 
         public void Build(HostPluginBuildContext ctx)
@@ -62,9 +59,10 @@ namespace Stormancer.Server.Party
                 builder.Register<PartyManagementService>().As<IPartyManagementService>().InstancePerRequest();
                 builder.Register<PartyManagementController>().InstancePerRequest();
                 builder.Register<PartyState>().InstancePerScene();
+                builder.Register<StormancerPartyPlatformSupport>().As<IPartyPlatformSupport>().AsSelf().InstancePerRequest();
             };
             ctx.HostStarting += (host) => {
-                host.AddSceneTemplate(PartyConstants.PARTY_SCENE_TYPE, (ISceneHost scene) => {
+                host.AddSceneTemplate(PARTY_SCENE_TYPE, (ISceneHost scene) => {
                     scene.AddParty();
                 });
             };

@@ -21,7 +21,6 @@
 // SOFTWARE.
 
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Configuration;
@@ -55,10 +54,10 @@ namespace Stormancer.Server.Plugins.Users
             IUserSessions sessions,
             ILogger logger,
             ISceneHost scene
-            )
+        )
         {
             this.config = config;
-         
+
             _logger = logger;
             _authProviders = providers;
             _users = users;
@@ -67,13 +66,13 @@ namespace Stormancer.Server.Plugins.Users
             _scene = scene;
         }
 
-        private bool IsProviderEnabled(string type)=> (bool?)(config.Settings.auth?[type]?.enabled) ?? false;
-    
-        
+        private bool IsProviderEnabled(string type) => (bool?)(config.Settings.auth?[type]?.enabled) ?? false;
+
         private IEnumerable<IAuthenticationProvider> GetProviders()
         {
             return _authProviders.Where(p => IsProviderEnabled(p.Type));//.Where(p => _config.EnabledAuthenticationProviders.Contains(p.GetType()));
         }
+
         public Dictionary<string, string> GetMetadata()
         {
             var metadata = new Dictionary<string, string>();
@@ -92,7 +91,6 @@ namespace Stormancer.Server.Plugins.Users
             {
                 throw new InvalidOperationException("Cannot call login on another scene than the authenticator scene");
             }
-            _logger.Log(LogLevel.Debug, "user.login", "AuthenticationService login", auth);
 
             var result = new LoginResult();
             var session = await sessions.GetSessionRecordById(peer.SessionId);
@@ -100,10 +98,8 @@ namespace Stormancer.Server.Plugins.Users
             var validationCtx = new LoggingInCtx { AuthCtx = authenticationCtx, Type = auth.Type };
             await _handlers().RunEventHandler(h => h.OnLoggingIn(validationCtx), ex => _logger.Log(LogLevel.Error, "user.login", "An error occured while running Validate event handler", ex));
 
-
             if (!validationCtx.HasError)
             {
-              
                 var provider = GetProviders().FirstOrDefault(p => p.Type == auth.Type);
                 if (provider == null)
                 {
@@ -111,7 +107,6 @@ namespace Stormancer.Server.Plugins.Users
                 }
 
                 var authResult = await provider.Authenticate(authenticationCtx, ct);
-
 
                 if (authResult.Success)
                 {
@@ -141,8 +136,6 @@ namespace Stormancer.Server.Plugins.Users
 
                     await sessions.Login(peer, authResult.AuthenticatedUser, authResult.PlatformId, authResult.initialSessionData);
 
-
-
                     await sessions.UpdateSession(peer.SessionId, s =>
                     {
                         s.Authentications[provider.Type] = authResult.PlatformId.ToString();
@@ -159,17 +152,13 @@ namespace Stormancer.Server.Plugins.Users
                     result.Username = authResult?.Username;
                     session = await sessions.GetSessionRecordById(peer.SessionId);
                     result.Authentications = session.Authentications.ToDictionary(entry => entry.Key, entry => entry.Value);
-                    var ctx = new LoggedInCtx { Result = result, Session = session };
+                    var ctx = new LoggedInCtx { Result = result, Session = session, AuthCtx = authenticationCtx };
                     await _handlers().RunEventHandler(h => h.OnLoggedIn(ctx), ex => _logger.Log(LogLevel.Error, "user.login", "An error occured while running OnLoggedIn event handler", ex));
-
-
                 }
                 else
                 {
                     //_logger.Log(LogLevel.Warn, "user.login", $"Authentication failed, reason: {authResult.ReasonMsg}", authResult);
-
                     result.ErrorMsg = authResult.ReasonMsg;
-
                 }
             }
             else
@@ -247,7 +236,7 @@ namespace Stormancer.Server.Plugins.Users
         public async Task<Dictionary<string, string>> GetStatus(IScenePeerClient peer)
         {
             var session = await _sessions.GetSession(peer);
-            var result = new Dictionary<string, string>(session.Authentications.ToDictionary(entry=>entry.Key,entry=>entry.Value));
+            var result = new Dictionary<string, string>(session.Authentications.ToDictionary(entry => entry.Key, entry => entry.Value));
             var tasks = new List<Task>();
             foreach (var provider in _authProviders)
             {

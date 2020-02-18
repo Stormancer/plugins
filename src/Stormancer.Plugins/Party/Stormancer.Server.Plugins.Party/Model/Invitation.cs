@@ -19,18 +19,24 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-namespace Stormancer.Server.Plugins.GameFinder
+
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Stormancer.Server.Plugins.Party.Model
 {
-    public class Player
+    internal class Invitation
     {
-        public Player(string sessionId, string userId)
+        public Invitation(string platformName, CancellationToken invitationRequestToken)
         {
-            UserId = userId;
-            SessionId = sessionId;
+            PlatformName = platformName;
+            Cts = CancellationTokenSource.CreateLinkedTokenSource(invitationRequestToken);
         }
 
-        public string UserId { get; }
-        public string SessionId { get; }
-        public object Data { get; set; }
+        public string PlatformName { get; }
+
+        public CancellationTokenSource Cts { get; }
+
+        public TaskCompletionSource<bool> TaskCompletionSource { get; set; } = new TaskCompletionSource<bool>();
     }
 }

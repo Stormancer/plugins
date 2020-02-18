@@ -20,6 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Stormancer.Diagnostics;
+using Stormancer.Server.Components;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -28,10 +32,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using Stormancer.Diagnostics;
-using Stormancer.Server.Components;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
@@ -40,7 +40,6 @@ namespace Stormancer.Server.Plugins.GameSession
         private readonly ILogger _logger;
         private readonly IEnvironment _environment;
         private readonly IDelegatedTransports pools;
-
 
         private class GameServerContainer : IDisposable
         {
@@ -70,8 +69,6 @@ namespace Stormancer.Server.Plugins.GameSession
             _logger = logger;
             _environment = env;
             this.pools = pools;
-
-
         }
 
         public async Task<GameServer> StartServer(string id, JObject c, CancellationToken ct)
@@ -86,18 +83,13 @@ namespace Stormancer.Server.Plugins.GameSession
             var stormancerPort = ((ushort?)config.stormancerPort) ?? 30000;
             var arguments = string.Join(" ", ((JArray)config.arguments ?? new JArray()).ToObject<IEnumerable<string>>());
 
-
             var server = await LeaseServerPort(c);
-
-
 
             var serverGuid = Guid.NewGuid();
             var result = new GameServer { Id = serverGuid };
 
-
             //Token used to authenticate the DS with the DedicatedServerAuthProvider
             var authenticationToken = id;
-
 
             var startInfo = new System.Diagnostics.ProcessStartInfo();
             startInfo.Arguments = $"PORT={server.ServerDedicatedPort.ToString()} { (log ? "-log" : "")} " + arguments; // { (log ? "-log" : "")}";//$"-port={_port} {(log ? "-log" : "")}";               
@@ -123,9 +115,7 @@ namespace Stormancer.Server.Plugins.GameSession
             startInfo.EnvironmentVariables.Add("gameSessionConfiguration", b64gameSessionsConfiguration);
             _logger.Log(LogLevel.Debug, "gamesession", $"Starting server {startInfo.FileName} with args {startInfo.Arguments}", new { env = startInfo.EnvironmentVariables });
 
-
             server.ServerProcess = Process.Start(startInfo);
-
 
             server.ServerProcess.Exited += (sender, args) =>
             {
@@ -138,9 +128,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             _servers.TryAdd(id, server);
 
-
             return result;
-
         }
 
         public Task StopServer(string id)
@@ -154,13 +142,11 @@ namespace Stormancer.Server.Plugins.GameSession
                     {
                         _logger.Log(LogLevel.Info, "gameserver", $"Closing down game server for scene {id}.", new { prcId = prc.Id });
                         
-
                         if (!(prc?.HasExited ?? true))
                         {
                             _logger.Log(LogLevel.Error, "gameserver", $"Failed to close dedicated server. Killing it instead. The server should shutdown when receiving a message on the 'gameSession.shutdown' route.", new { prcId = prc.Id });
                             prc.Kill();
                         }
-
                     }
                     catch (Exception ex)
                     {
@@ -170,7 +156,6 @@ namespace Stormancer.Server.Plugins.GameSession
                     {
                         server.Dispose();
                     }
-
                 }
                 _logger.Log(LogLevel.Trace, "gameserver", $"Game server for scene {id} shut down.", new { id, P2PPort = server.ServerPort, ServerPort = server.ServerDedicatedPort });
             }
@@ -178,11 +163,8 @@ namespace Stormancer.Server.Plugins.GameSession
             return Task.CompletedTask;
         }
 
-
         private async Task<GameServerContainer> LeaseServerPort(dynamic config)
         {
-
-
             var p2pLease = await pools.AcquirePort((string)config.publicPool ?? "public1");
             if (!p2pLease.Success)
             {
@@ -205,7 +187,6 @@ namespace Stormancer.Server.Plugins.GameSession
 
             };
             return server;
-
         }
     }
 }

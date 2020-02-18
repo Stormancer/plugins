@@ -21,15 +21,15 @@
 // SOFTWARE.
 
 using Stormancer.Core;
-using Stormancer.Server.Plugins.GameFinder;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.GameFinder;
 using System;
 using System.IO;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Party
+namespace Stormancer.Server.Plugins.Party
 {
     class PartyProxy : IPartyProxy
     {

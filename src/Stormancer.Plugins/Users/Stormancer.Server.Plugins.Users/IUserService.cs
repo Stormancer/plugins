@@ -36,8 +36,10 @@ namespace Stormancer.Server.Plugins.Users
         Task<User> RemoveAuthentication(User user, string provider);
         Task<User> GetUserByClaim(string provider, string claimPath, string login);
         Task<IEnumerable<User>> GetUsersByClaim(string provider, string claimPath, string[] logins);
+        Task<Dictionary<string, User>> GetUsersByClaim2(string provider, string claimPath, string[] logins);
         Task<User> CreateUser(string uid, JObject userData);
 
+        Task<IEnumerable<User>> QueryUserHandlePrefix(string prefix, int take, int skip);
 
         Task UpdateUserData<T>(string uid, T data);
 

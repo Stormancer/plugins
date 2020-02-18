@@ -1,4 +1,4 @@
-// MIT License
+﻿// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -19,36 +19,14 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using System;
-using System.Collections.Generic;
 
-namespace Stormancer.Server.Plugins.GameFinder
+using MsgPack.Serialization;
+
+namespace WindJammers2Server.Plugins.Steam.Dto
 {
-    public class GameFinderGroupData
+    public class SteamUserJoinLobbyDto
     {
-        public GameFinderGroupData()
-        {
-            
-        }
-        public uint TeamSize { get; set; }
-        public int PastGameFinderPasses { get; set; }
-        public object Options { get; set; }
-
-    }
-    public class Group
-    {
-        public Group() { }
-
-        public List<Player> Players { get; } = new List<Player>();
-
-        public GameFinderGroupData GroupData { get; } = new GameFinderGroupData();
-
-        public DateTime CreationTimeUtc { get; } = DateTime.UtcNow;
-
-        public T Options<T>() where T : class
-        {
-            var groupData = (GameFinderGroupData)GroupData;
-            return groupData.Options as T;
-        }
+        [MessagePackMember(0)]
+        public ulong lobbyIdSteam { get; set; }
     }
 }

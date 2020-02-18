@@ -20,8 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Stormancer.Plugins;
 using Stormancer.Core;
+using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Users;
 
 namespace Stormancer.Server.Plugins.GameVersion
@@ -37,7 +37,7 @@ namespace Stormancer.Server.Plugins.GameVersion
                 if (scene.Metadata.ContainsKey(METADATA_KEY))
                 {
                     builder.Register<GameVersionService>().InstancePerScene();
-                    builder.Register<AuthenticationEventHandler>().As<IAuthenticationEventHandler>().InstancePerDependency();
+                    builder.Register<AuthenticationEventHandler>().As<IAuthenticationEventHandler>().InstancePerRequest();
                 }
             };
 
@@ -50,11 +50,9 @@ namespace Stormancer.Server.Plugins.GameVersion
             {
                 host.AddSceneTemplate(Users.Constants.SCENE_TEMPLATE, (ISceneHost scene) =>
                 {
-                    scene.AddGameVersion("gameVersion");
+                    scene.AddGameVersion();
                 });
             };
         }
     }
-
-
 }

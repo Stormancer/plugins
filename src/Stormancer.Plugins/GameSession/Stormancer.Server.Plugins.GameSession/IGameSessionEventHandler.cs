@@ -19,8 +19,9 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
 using Stormancer.Core;
-using Stormancer.Server.Plugins.GameSession.Models;
+using Stormancer.Server.Plugins.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -66,13 +67,12 @@ namespace Stormancer.Server.Plugins.GameSession
 
     public class GameSessionStartedCtx : GameSessionContext
     {
-        public GameSessionStartedCtx(IGameSessionService service, ISceneHost scene, IEnumerable<Player> peers, GameSessionConfiguration config) : base(scene, config, service)
+        public GameSessionStartedCtx(IGameSessionService service, ISceneHost scene, IEnumerable<PlayerPeer> peers, GameSessionConfiguration config) : base(scene, config, service)
         {
             Peers = peers;
         }
-        public IEnumerable<Player> Peers { get; }
 
-
+        public IEnumerable<PlayerPeer> Peers { get; }
     }
 
     public class ClientReadyContext
@@ -83,18 +83,6 @@ namespace Stormancer.Server.Plugins.GameSession
         }
 
         public IScenePeerClient Peer { get; }
-    }
-
-    public class Player
-    {
-        public Player(IScenePeerClient client, string uid)
-        {
-            UserId = uid;
-            Peer = client;
-        }
-        public IScenePeerClient Peer { get; }
-
-        public string UserId { get; }
     }
 
     public class GameSessionCompleteCtx : GameSessionContext
@@ -109,6 +97,7 @@ namespace Stormancer.Server.Plugins.GameSession
         public IEnumerable<GameSessionResult> Results { get; }
 
         public IEnumerable<string> PlayerIds { get; }
+
         public Action<Stream, ISerializer> ResultsWriter { get; set; }
     }
 
@@ -125,8 +114,6 @@ namespace Stormancer.Server.Plugins.GameSession
         public string UserId { get; }
 
         public Stream Data { get; }
-
-
     }
 
     public class ClientConnectedContext

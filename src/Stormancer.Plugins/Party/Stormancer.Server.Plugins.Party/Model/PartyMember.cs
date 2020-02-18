@@ -21,9 +21,8 @@
 // SOFTWARE.
 
 using MsgPack.Serialization;
-using System;
 
-namespace Stormancer.Server.Party.Model
+namespace Stormancer.Server.Plugins.Party.Model
 {
     [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
     public enum PartyMemberStatus
