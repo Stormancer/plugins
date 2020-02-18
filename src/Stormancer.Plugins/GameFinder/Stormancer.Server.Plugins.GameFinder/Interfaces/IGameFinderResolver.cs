@@ -19,6 +19,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+using Stormancer.Server.Plugins.GameFinder.Models;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
@@ -28,6 +29,19 @@ namespace Stormancer.Server.Plugins.GameFinder
         Task PrepareGameResolution(GameFinderResult gameFinderResult);
 
         Task ResolveGame(IGameResolverContext gameCtx);
+
+        /// <summary>
+        /// This method is called when a ticket to join an open game session is issued.
+        /// </summary>
+        /// <remarks>
+        /// Override this method if you need to perform special actions and/or send custom data to the clients who are about to join the game.
+        /// </remarks>
+        /// <param name="joinGameCtx">Object containing information about the ticket.</param>
+        /// <returns></returns>
+        Task ResolveJoinOpenGame(JoinOpenGameContext joinGameCtx)
+        {
+            return Task.CompletedTask;
+        }
 
         void RefreshConfig(dynamic config);
     }

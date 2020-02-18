@@ -19,6 +19,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+using Stormancer.Server.Plugins.GameFinder.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,14 +29,14 @@ namespace Stormancer.Server.Plugins.GameFinder
 {
     class GameReadyCheck : IDisposable
     {
-        public GameReadyCheck(int timeout, Action closeReadyCheck, Game game)
+        public GameReadyCheck(int timeout, Action closeReadyCheck, IGameCandidate game)
         {
             TimeoutTask = Task.Delay(timeout);
             _startDate = DateTime.UtcNow;
             _timeout = timeout;
             _closeReadyCheck = closeReadyCheck;
             PlayersReadyState = new Dictionary<string, Readiness>();
-            foreach (var player in game.AllPlayers)
+            foreach (var player in game.AllPlayers())
             {
                 PlayersReadyState[player.UserId] = Readiness.Unknown;
             }
@@ -46,7 +47,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         private DateTime _startDate;
         private Action _closeReadyCheck;
 
-        public Game Game { get; set; }
+        public IGameCandidate Game { get; set; }
 
         public Dictionary<string, Readiness> PlayersReadyState
         {
@@ -96,13 +97,13 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
             else if (globalState == Readiness.Ready)
             {
-                _tcs.TrySetResult(new GameReadyCheckResult(true, Enumerable.Empty<Group>(), Game.AllGroups));
+                _tcs.TrySetResult(new GameReadyCheckResult(true, Enumerable.Empty<Group>(), Game.AllGroups()));
             }
             else
             {
                 var unReadyGroupList = new List<Group>();
                 var readyGroupList = new List<Group>();
-                foreach(var group in Game.AllGroups)
+                foreach(var group in Game.AllGroups())
                 {
                     if(group.Players.Any(p=>PlayersReadyState[p.UserId] == Readiness.NotReady))
                     {

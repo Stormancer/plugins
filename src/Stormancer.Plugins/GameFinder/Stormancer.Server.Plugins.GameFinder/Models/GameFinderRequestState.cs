@@ -35,13 +35,13 @@ namespace Stormancer.Server.Plugins.GameFinder.Models
             Group = group;
         }
 
-        public TaskCompletionSource<IGameResolverContext> Tcs { get; } = new TaskCompletionSource<IGameResolverContext>();
+        public TaskCompletionSource<object?> Tcs { get; } = new TaskCompletionSource<object?>();
 
         public RequestState State { get; set; } = RequestState.NotStarted;
 
         public Group Group { get; }
 
-        public Game Candidate { get; set; }
+        public IGameCandidate? Candidate { get; set; }
     }
 
     internal enum RequestState

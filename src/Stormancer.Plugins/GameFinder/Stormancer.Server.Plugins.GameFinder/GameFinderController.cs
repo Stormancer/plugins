@@ -24,6 +24,7 @@ using Stormancer.Core;
 using Stormancer.Plugins;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
@@ -47,6 +48,18 @@ namespace Stormancer.Server.Plugins.GameFinder
         public Dictionary<string, int> GetMetrics()
         {
             return _gameFinderService.GetMetrics();
+        }
+
+        /// <summary>
+        /// Open an existing game session to receive new players through this GameFinder.
+        /// </summary>
+        /// <param name="data">Custom data that game code will have access to in <see cref="GameFinderContext"/>.</param>
+        /// <param name="request">S2S request context.</param>
+        /// <returns></returns>
+        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
+        public async Task OpenGameSession(JObject data, RequestContext<IScenePeer> request)
+        {
+            await _gameFinderService.OpenGameSession(data, request);
         }
     }
 }

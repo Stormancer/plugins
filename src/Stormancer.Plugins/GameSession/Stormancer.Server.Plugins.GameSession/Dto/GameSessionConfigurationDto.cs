@@ -42,5 +42,10 @@ namespace Stormancer.Server.Plugins.GameSession
         /// List of players expected in the game session.
         /// </summary>
         public IEnumerable<string> UserIds { get; set; }
+
+        /// <summary>
+        /// User Id of the game session's P2P host, if it has one.
+        /// </summary>
+        public string? HostUserId { get; set; }
     }
 }
