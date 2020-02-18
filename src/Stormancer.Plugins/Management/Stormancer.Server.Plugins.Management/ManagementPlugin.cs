@@ -194,22 +194,32 @@ namespace Stormancer.Server.Plugins.Management
             {
                 var segments = uri.Split('/');
                 sceneId = segments[segments.Length - 1];
-                //scene:/app/scene
-                if (segments.Length > 2)
+                if (segments.Length == 7)
                 {
-                    application = segments[segments.Length - 2];
-
+                    // scene:/cluster/account/application/deployment/shard/sceneId
+                    clusterId = segments[1];
+                    account = segments[2];
+                    application = segments[3];
                 }
-                //scene:/account/app/scene
-                if (segments.Length > 3)
+                else
                 {
-                    account = segments[segments.Length - 3];
-                }
+                    //scene:/app/scene
+                    if (segments.Length > 2)
+                    {
+                        application = segments[segments.Length - 2];
 
-                //scene:/clusterId/account/app/scene
-                if (segments.Length > 4)
-                {
-                    clusterId = segments[segments.Length - 4];
+                    }
+                    //scene:/account/app/scene
+                    if (segments.Length > 3)
+                    {
+                        account = segments[segments.Length - 3];
+                    }
+
+                    //scene:/clusterId/account/app/scene
+                    if (segments.Length > 4)
+                    {
+                        clusterId = segments[segments.Length - 4];
+                    }
                 }
             }
             else
