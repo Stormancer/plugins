@@ -110,9 +110,9 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
         Task ClearAllScores(string leaderboardName);
 
-        Task<ScoreRecord> GetScore(string playerId, string leaderboardName);
+        Task<ScoreRecord?> GetScore(string playerId, string leaderboardName);
 
-        Task<Dictionary<string, ScoreRecord>> GetScores(List<string> playerIds, string leaderboardName);
+        Task<Dictionary<string, ScoreRecord?>> GetScores(List<string> playerIds, string leaderboardName);
 
         Task<long> GetRanking(ScoreRecord score, LeaderboardQuery filters, string leaderboardName);
 

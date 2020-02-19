@@ -28,19 +28,31 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Steam
 {
+    /// <summary>
+    /// Steam controller.
+    /// </summary>
     public class SteamController : ControllerBase
     {
         private IUserService _userService { get; set; }
 
+        /// <summary>
+        /// Steam controller constructor.
+        /// </summary>
+        /// <param name="userService"></param>
         public SteamController(IUserService userService)
         {
             _userService = userService;
         }
 
+        /// <summary>
+        /// Query stormancer user ids from steam ids.
+        /// </summary>
+        /// <param name="steamIds"></param>
+        /// <returns></returns>
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task<Dictionary<ulong, string>> QueryUserIds(IEnumerable<ulong> steamIds)
         {
-            var users = await _userService.GetUsersByClaim2(SteamAuthenticationProvider.PROVIDER_NAME, SteamAuthenticationProvider.ClaimPath, steamIds.Select(steamId => steamId.ToString()).ToArray());
+            var users = await _userService.GetUsersByClaim2(SteamConstants.PROVIDER_NAME, SteamConstants.ClaimPath, steamIds.Select(steamId => steamId.ToString()).ToArray());
             return users.ToDictionary(kvp => ulong.Parse(kvp.Key), kvp => kvp.Value.Id);
         }
     }

@@ -25,7 +25,7 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
-    public class SteamUserTicketAuthenticator : ISteamUserTicketAuthenticator
+    internal class SteamUserTicketAuthenticator : ISteamUserTicketAuthenticator
     {
         private readonly ISteamService _steamService;
 
@@ -40,4 +40,3 @@ namespace Stormancer.Server.Plugins.Users
         }
     }
 }
-

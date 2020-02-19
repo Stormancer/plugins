@@ -56,6 +56,9 @@ namespace Stormancer.Server.Plugins.Party
         }
     }
 
+    /// <summary>
+    /// Context provided when firing the JoiningParty event.
+    /// </summary>
     public class JoiningPartyContext
     {
         public IPartyService Party { get; }

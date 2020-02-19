@@ -24,8 +24,14 @@ using MsgPack.Serialization;
 
 namespace WindJammers2Server.Plugins.Steam.Dto
 {
+    /// <summary>
+    /// Join lobby dto.
+    /// </summary>
     public class SteamUserJoinLobbyDto
     {
+        /// <summary>
+        /// Stam lobby id.
+        /// </summary>
         [MessagePackMember(0)]
         public ulong lobbyIdSteam { get; set; }
     }

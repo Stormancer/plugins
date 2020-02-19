@@ -98,7 +98,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
             JToken current = record.Scores;
             foreach (var segment in scorePath.Split('.'))
             {
-                current = current[segment];
+                current = current[segment]??throw new ArgumentException($"Path {scorePath} does not exist in score.");
             }
             return current.ToObject<double>();
         }
@@ -142,7 +142,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
             );
         }
 
-        public async Task<ScoreRecord> GetScore(string playerId, string leaderboardName)
+        public async Task<ScoreRecord?> GetScore(string playerId, string leaderboardName)
         {
             var index = GetIndexName(leaderboardName);
             var client = await CreateESClient<ScoreRecord>(index);
@@ -154,7 +154,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
             return startResult.Source;
         }
 
-        public async Task<Dictionary<string, ScoreRecord>> GetScores(List<string> playerIds, string leaderboardName)
+        public async Task<Dictionary<string, ScoreRecord?>> GetScores(List<string> playerIds, string leaderboardName)
         {
             var index = GetIndexName(leaderboardName);
             var client = await CreateESClient<ScoreRecord>(index);

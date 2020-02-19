@@ -20,25 +20,67 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-namespace Stormancer.Server.Plugins.Steam.Models
+namespace Stormancer.Server.Plugins.Steam
 {
+    /// <summary>
+    /// Steam lobby types
+    /// </summary>
     public enum LobbyType
     {
-        Private = 0, // The only way to join the lobby is from an invite.
-        FriendsOnly = 1, // Joinable by friends and invitees, but does not show up in the lobby list.
-        Public = 2, // Returned by search and visible to friends.
-        Invisible = 3, // Returned by search, but not visible to other friends. This is useful if you want a user in two lobbies, for example matching groups together. A user can be in only one regular lobby, and up to two invisible lobbies.
-        PrivateUnique = 4 // Private unique lobby. Not deleted when empty. Unique by appid/lobby_name. 
+        /// <summary>
+        /// The only way to join the lobby is from an invite.
+        /// </summary>
+        Private = 0,
+
+        /// <summary>
+        /// Joinable by friends and invitees, but does not show up in the lobby list.
+        /// </summary>
+        FriendsOnly = 1,
+
+        /// <summary>
+        /// Returned by search and visible to friends.
+        /// </summary>
+        Public = 2,
+
+        /// <summary>
+        /// Returned by search, but not visible to other friends. This is useful if you want a user in two lobbies, for example matching groups together. A user can be in only one regular lobby, and up to two invisible lobbies.
+        /// </summary>
+        Invisible = 3,
+
+        /// <summary>
+        /// Private unique lobby. Not deleted when empty. Unique by appid/lobby_name.
+        /// </summary>
+        PrivateUnique = 4
     }
 
+#pragma warning disable IDE1006 // Naming Styles
+
+    /// <summary>
+    /// Steam create lobby data dto.
+    /// </summary>
     public class SteamCreateLobbyData
     {
+        /// <summary>
+        /// Steam AppId
+        /// </summary>
         public uint appid { get; set; }
-        public string steamid_lobby { get; set; }
+
+        /// <summary>
+        /// Steam LobbyId
+        /// </summary>
+        public string? steamid_lobby { get; set; }
     }
 
+    /// <summary>
+    /// Steam create lobby response dto
+    /// </summary>
     public class SteamCreateLobbyResponse
     {
-        public SteamCreateLobbyData response { get; set; }
+        /// <summary>
+        /// Response data dto.
+        /// </summary>
+        public SteamCreateLobbyData? response { get; set; }
     }
+
+#pragma warning restore IDE1006 // Naming Styles
 }

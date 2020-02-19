@@ -42,6 +42,7 @@ namespace Stormancer.Server.Plugins.Steam
                 builder.Register<SteamService>().As<ISteamService>().InstancePerScene();
                 //builder.Register<SteamFriendsEventHandler>().As<IFriendsEventHandler>();
                 builder.Register<SteamPartyEventHandler>().As<IPartyEventHandler>().InstancePerRequest();
+                builder.Register<SteamUserTicketAuthenticator>().As<ISteamUserTicketAuthenticator>();
             };
 
             ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
@@ -66,8 +67,16 @@ namespace Stormancer.Server.Plugins.Steam
 
 namespace Stormancer
 {
+    /// <summary>
+    /// Steam plugin extension methods.
+    /// </summary>
     public static class SteamExtensions
     {
+        /// <summary>
+        /// Adds the Steam plugin on the scene.
+        /// </summary>
+        /// <param name="scene"></param>
+        /// <returns></returns>
         public static ISceneHost AddSteam(this ISceneHost scene)
         {
             scene.Metadata[SteamPlugin.METADATA_KEY] = "enabled";

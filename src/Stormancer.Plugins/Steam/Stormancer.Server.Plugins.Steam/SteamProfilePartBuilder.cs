@@ -45,7 +45,7 @@ namespace Stormancer.Server.Plugins.Steam
         public async Task GetProfiles(ProfileCtx ctx)
         {
             var users = await Task.WhenAll(ctx.Users.Select(id => _users.GetUser(id)));
-            var steamProfiles = await _steam.GetPlayerSummaries(users.Select(u => (ulong)u.UserData["steamid"]));
+            var steamProfiles = await _steam.GetPlayerSummaries(users.Select(u => (ulong)(u.UserData["steamid"] ?? 0)));
 
             foreach (var user in users)
             {
@@ -53,7 +53,7 @@ namespace Stormancer.Server.Plugins.Steam
                 {
                     if (user != null)
                     {
-                        var steamId = (ulong)user.UserData["steamid"];
+                        var steamId = (ulong)(user.UserData["steamid"] ?? 0);
                         var steamProfile = steamProfiles[steamId];
                         j["steamid"] = steamId;
                         j["personaname"] = steamProfile.personaname;

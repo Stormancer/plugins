@@ -20,32 +20,35 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-namespace Stormancer.Server.Plugins.Steam.Models
+namespace Stormancer.Server.Plugins.Steam
 {
-    public class SteamAuthenticationResponse
+#pragma warning disable IDE1006 // Naming Styles
+
+    internal class SteamAuthenticationResponse
     {
-        public InnerResponse response { get; set; }
+        public InnerResponse? response { get; set; }
     }
 
-    public class InnerResponse
+    internal class InnerResponse
     {
-        public ErrorResponse error { get; set; }
-        public ParamsResponse @params { get; set; }
+        public ErrorResponse? error { get; set; }
+        public ParamsResponse? @params { get; set; }
     }
 
-    public class ParamsResponse
+    internal class ParamsResponse
     {
-        public string result { get; set; }
+        public string? result { get; set; }
         public ulong steamid { get; set; }
         public ulong ownersteamid { get; set; }
         public bool vacbanned { get; set; }
         public bool publisherbanned { get; set; }
     }
 
-    public class ErrorResponse
+    internal class ErrorResponse
     {
         public int errorcode { get; set; }
-        public string errordesc { get; set; }
+        public string? errordesc { get; set; }
     }
-}
 
+#pragma warning restore IDE1006 // Naming Styles
+}

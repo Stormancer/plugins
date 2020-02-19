@@ -24,11 +24,19 @@ using Stormancer.Server.Plugins.Users;
 
 namespace Stormancer
 {
-    public static class UserExtensions
+    /// <summary>
+    /// Steam user extensions
+    /// </summary>
+    public static class SteamUserExtensions
     {
+        /// <summary>
+        /// Steam user extension to get the steam id of a stormancer user.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
         public static ulong? GetSteamId(this User user)
         {
-            var steamId = user.UserData["steamid"].ToObject<string>();
+            var steamId = user.UserData["steamid"]?.ToObject<string>();
             if (steamId == null)
             {
                 return null;

@@ -24,7 +24,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Configuration;
-using Stormancer.Server.Plugins.Steam.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,13 +33,13 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Steam
 {
-    public class SteamService : ISteamService
+    internal class SteamService : ISteamService
     {
         private const string ApiRoot = "https://partner.steam-api.com";
         private const string FallbackApiRoot = "https://api.steampowered.com";
         private const string FallbackApiRooWithIp = "https://208.64.202.87";
 
-        private string _apiKey;
+        private string _apiKey = "";
         private uint _appId;
 
         private bool _usemockup;
@@ -49,6 +48,11 @@ namespace Stormancer.Server.Plugins.Steam
 
         public static HttpClient client = new HttpClient();
 
+        /// <summary>
+        /// Steam service constructor.
+        /// </summary>
+        /// <param name="configuration"></param>
+        /// <param name="logger"></param>
         public SteamService(IConfiguration configuration, ILogger logger)
         {
             _logger = logger;
@@ -62,7 +66,7 @@ namespace Stormancer.Server.Plugins.Steam
 
         private void ApplyConfig(dynamic steamElement)
         {
-            _apiKey = (string)steamElement?.apiKey;
+            _apiKey = ((string?)steamElement?.apiKey) ?? "";
 
             var dynamicAppId = steamElement?.appId;
             if (dynamicAppId != null)
@@ -98,14 +102,22 @@ namespace Stormancer.Server.Plugins.Steam
                 var json = await response.Content.ReadAsStringAsync();
                 var steamResponse = JsonConvert.DeserializeObject<SteamAuthenticationResponse>(json);
 
+                if (steamResponse.response == null)
+                {
+                    throw new Exception($"The Steam API failed to authenticate user ticket. The response is null.'. AppId : {_appId}");
+                }
+
                 if (steamResponse.response.error != null)
                 {
                     throw new Exception($"The Steam API failed to authenticate user ticket : {steamResponse.response.error.errorcode} : '{steamResponse.response.error.errordesc}'. AppId : {_appId}");
                 }
-                else
+
+                if (steamResponse.response.@params == null)
                 {
-                    return steamResponse.response.@params.steamid;
+                    throw new Exception($"The Steam API failed to authenticate user ticket. The response params is null.'. AppId : {_appId}");
                 }
+
+                return steamResponse.response.@params.steamid;
             }
         }
 
@@ -217,7 +229,7 @@ namespace Stormancer.Server.Plugins.Steam
             return result;
         }
 
-        public async Task<SteamPlayerSummary> GetPlayerSummary(ulong steamId)
+        public async Task<SteamPlayerSummary?> GetPlayerSummary(ulong steamId)
         {
             return (await GetPlayerSummaries(new[] { steamId }))?[steamId];
         }
@@ -236,11 +248,17 @@ namespace Stormancer.Server.Plugins.Steam
                 response.EnsureSuccessStatusCode();
                 var json = await response.Content.ReadAsStringAsync();
                 var steamResponse = JsonConvert.DeserializeObject<SteamGetFriendsResponse>(json);
+
+                if (steamResponse.friendslist == null || steamResponse.friendslist.friends == null)
+                {
+                    throw new Exception("GetFriendList failed: The Steam API response is null.");
+                }
+
                 return steamResponse.friendslist.friends;
             }
         }
 
-        public async Task<SteamCreateLobbyData> CreateLobby(string lobbyName, LobbyType lobbyType, int maxMembers, IEnumerable<ulong> steamIdInvitedMembers = null, Dictionary<string, string> lobbyMetadata = null)
+        public async Task<SteamCreateLobbyData> CreateLobby(string lobbyName, LobbyType lobbyType, int maxMembers, IEnumerable<ulong>? steamIdInvitedMembers = null, Dictionary<string, string>? lobbyMetadata = null)
         {
             if (string.IsNullOrEmpty(lobbyName))
             {
@@ -275,6 +293,12 @@ namespace Stormancer.Server.Plugins.Steam
             response.EnsureSuccessStatusCode();
             var jsonResponse = await response.Content.ReadAsStringAsync();
             var json = JsonConvert.DeserializeObject<SteamCreateLobbyResponse>(jsonResponse);
+
+            if (json.response == null)
+            {
+                throw new InvalidOperationException("Lobby creation failed (response is null).");
+            }
+
             return json.response;
         }
 

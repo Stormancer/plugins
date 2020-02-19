@@ -22,22 +22,41 @@
 
 using System.Collections.Generic;
 
-namespace Stormancer.Server.Plugins.Steam.Models
+namespace Stormancer.Server.Plugins.Steam
 {
+#pragma warning disable IDE1006 // Naming Styles
+
+    /// <summary>
+    /// Steam friend.
+    /// </summary>
     public class SteamFriend
     {
-        public string steamid { get; set; }
-        public string relationship { get; set; }
+        /// <summary>
+        /// Steam Id.
+        /// </summary>
+        public string? steamid { get; set; }
+
+        /// <summary>
+        /// Relationship type.
+        /// </summary>
+        public string? relationship { get; set; }
+
+        /// <summary>
+        /// Date of relation creation.
+        /// </summary>
         public ulong friend_since { get; set; }
     }
 
-    public class SteamFriendsList
+
+    internal class SteamFriendsList
     {
-        public IEnumerable<SteamFriend> friends { get; set; }
+        public IEnumerable<SteamFriend>? friends { get; set; }
     }
 
-    public class SteamGetFriendsResponse
+    internal class SteamGetFriendsResponse
     {
-        public SteamFriendsList friendslist { get; set; }
+        public SteamFriendsList? friendslist { get; set; }
     }
+
+#pragma warning restore IDE1006 // Naming Styles
 }
