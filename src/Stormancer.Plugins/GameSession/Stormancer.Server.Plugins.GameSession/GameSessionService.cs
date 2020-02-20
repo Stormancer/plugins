@@ -492,7 +492,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     peer.Send(P2P_TOKEN_ROUTE, _p2pToken);
                 }
 
-                var playerConnectedCtx = new ClientConnectedContext { Player = new Player(peer.SessionId, userId), GameSession = this, IsHost = (_config.HostUserId == userId) };
+                var playerConnectedCtx = new ClientConnectedContext { Player = new PlayerPeer(peer, new Player(peer.SessionId, userId)), GameSession = this, IsHost = (_config.HostUserId == userId) };
                 using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
                 {
                     await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
@@ -938,8 +938,10 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async IAsyncEnumerable<Team> OpenToGameFinder(JObject data, string gameFinder, [EnumeratorCancellation] CancellationToken ct)
         {
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct, _gameCompleteCts.Token);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct, _gameCompleteCts.Token, _sceneCts.Token);
             ct = cts.Token;
+
+            ct.ThrowIfCancellationRequested();
 
             using var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag);
             var serviceLocator = scope.Resolve<IServiceLocator>();
@@ -951,7 +953,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 _serializer.Serialize(data, stream);
             }, PacketPriority.MEDIUM_PRIORITY, ct);
 
-            await foreach (var packet in observable.ToAsyncEnumerable())
+            await foreach (var packet in observable.ToAsyncEnumerable().WithCancellation(ct))
             {
                 var teams = _serializer.Deserialize<IEnumerable<Team>>(packet.Stream);
 

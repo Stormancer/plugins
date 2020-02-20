@@ -118,7 +118,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
     public class ClientConnectedContext
     {
-        public Player Player { get; set; }
+        public PlayerPeer Player { get; set; }
 
         public bool IsHost { get; set; }
 
