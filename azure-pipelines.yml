@@ -31,3 +31,4 @@ steps:
     nuGetFeedType: 'external'
     publishFeedCredentials: 'nuget stormancer'
     includeSymbols: true
+    allowPackageConflicts: true
