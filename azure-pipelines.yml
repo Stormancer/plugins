@@ -5,12 +5,16 @@
 
 trigger:
 - master
+- develop
 
 pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  buildConfiguration: 'Release'
+  ${{ if eq( variables['Build.SourceBranchName'], 'master' ) }}: 
+    buildConfiguration: 'Release'
+  ${{ if ne( variables['Build.SourceBranchName'], 'master' ) }}: 
+    buildConfiguration: 'Debug'
 
 steps:
 - task: UseDotNet@2
@@ -22,14 +26,14 @@ steps:
   inputs:
     command: 'build'
     projects: 'src/Stormancer.Plugins/**/*.csproj'
-    arguments: '--configuration Release'
+    arguments: '--configuration $(buildConfiguration)'
     workingDirectory: 'src/Stormancer.Plugins'
-- task: NuGetAuthenticate@0
+
+- task: PowerShell@2
+  displayName: 'Publish packages'
   inputs:
-    nuGetServiceConnections: 'nuget stormancer'
-- task: NuGetCommand@2
-  inputs:
-    command: 'push'
-    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
-    nuGetFeedType: 'external'
-    publishFeedCredentials: 'nuget stormancer'
+    targetType: 'inline'
+    script: |
+      dotnet nuget push output/packages/$(buildConfiguration)/*.nupkg -s https://api.nuget.org/v3/index.json -k $env:KEY --skip-duplicate
+  env:
+    KEY: $(nuget_apikey)
