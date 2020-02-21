@@ -24,11 +24,11 @@ steps:
     projects: 'src/Stormancer.Plugins/**/*.csproj'
     arguments: '--configuration Release'
     workingDirectory: 'src/Stormancer.Plugins'
+
 - task: NuGetCommand@2
   inputs:
     command: 'push'
     packagesToPush: 'src/Stormancer.Plugins/**/*.nupkg'
     nuGetFeedType: 'external'
     publishFeedCredentials: 'nuget stormancer'
-    includeSymbols: true
     allowPackageConflicts: true
