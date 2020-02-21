@@ -24,9 +24,6 @@ steps:
     projects: 'src/Stormancer.Plugins/**/*.csproj'
     arguments: '--configuration Release'
     workingDirectory: 'src/Stormancer.Plugins'
-- task: NuGetAuthenticate@0
-  inputs:
-    nuGetServiceConnections: 'nuget stormancer'
 - task: NuGetCommand@2
   inputs:
     command: 'push'
