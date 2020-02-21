@@ -30,6 +30,4 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-      # Write your PowerShell commands here.
-      
-      dotnet nuget push output/**/*.nupkg -s https://api.nuget.org/v3/index.json -k $env:NUGET_APIKEY --skip-duplicate*
+      dotnet nuget push output/**/*.nupkg -s https://api.nuget.org/v3/index.json -k $env:NUGET_APIKEY --skip-duplicate
