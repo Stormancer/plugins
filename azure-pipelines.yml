@@ -28,6 +28,12 @@ steps:
     projects: 'src/Stormancer.Plugins/**/*.csproj'
     arguments: '--configuration $(buildConfiguration)'
     workingDirectory: 'src/Stormancer.Plugins'
+- task: PowerShell@2
+  displayName: 'list outputs'
+  inputs:
+    targetType: 'inline'
+    script: |
+      gci output/packages/$(buildConfiguration)
 
 - task: PowerShell@2
   displayName: 'Publish packages'
