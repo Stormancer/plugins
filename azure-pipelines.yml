@@ -25,10 +25,11 @@ steps:
     arguments: '--configuration Release'
     workingDirectory: 'src/Stormancer.Plugins'
 
-- task: NuGetCommand@2
+- task: PowerShell@2
+  displayName: 'Publish packages'
   inputs:
-    command: 'push'
-    packagesToPush: 'src/Stormancer.Plugins/**/*.nupkg'
-    nuGetFeedType: 'external'
-    publishFeedCredentials: 'nuget stormancer'
-    allowPackageConflicts: true
+    targetType: 'inline'
+    script: |
+      # Write your PowerShell commands here.
+      
+      dotnet nuget push output/**/*.nupkg -s https://api.nuget.org/v3/index.json -k $env:NUGET_APIKEY --skip-duplicate*
