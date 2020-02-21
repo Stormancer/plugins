@@ -15,6 +15,7 @@ variables:
   ${{ if ne( variables['Build.SourceBranchName'], 'master' ) }}: 
     buildConfiguration: 'Debug'
 
+steps:
 - task: UseDotNet@2
   inputs:
     packageType: 'sdk'
