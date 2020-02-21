@@ -10,7 +10,10 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  buildConfiguration: 'Debug'
+  ${{ if eq( variables['Build.SourceBranchName'], 'master' ) }}: 
+    buildConfiguration: 'Release'
+  ${{ if ne( variables['Build.SourceBranchName'], 'master' ) }}: 
+    buildConfiguration: 'Debug'
 
 steps:
 - task: UseDotNet@2
@@ -22,7 +25,7 @@ steps:
   inputs:
     command: 'build'
     projects: 'src/Stormancer.Plugins/**/*.csproj'
-    arguments: '--configuration Release'
+    arguments: '--configuration $(buildConfiguration)'
     workingDirectory: 'src/Stormancer.Plugins'
 
 - task: PowerShell@2
@@ -30,4 +33,4 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-      dotnet nuget push output/**/*.nupkg -s https://api.nuget.org/v3/index.json -k $env:NUGET_APIKEY --skip-duplicate
+      dotnet nuget push output/$(buildConfiguration)/*.nupkg -s https://api.nuget.org/v3/index.json -k $env:NUGET_APIKEY --skip-duplicate
