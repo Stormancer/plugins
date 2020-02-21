@@ -27,6 +27,7 @@ steps:
 - task: NuGetCommand@2
   inputs:
     command: 'push'
-    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+    packagesToPush: 'src/Stormancer.Plugins/**/*.nupkg'
     nuGetFeedType: 'external'
     publishFeedCredentials: 'nuget stormancer'
+    includeSymbols: true
