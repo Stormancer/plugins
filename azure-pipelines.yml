@@ -15,9 +15,6 @@ variables:
   ${{ if ne( variables['Build.SourceBranchName'], 'master' ) }}: 
     buildConfiguration: 'Debug'
 
-steps:
-- script: echo $env:NUGET_APIKEY
-  displayName: 'Printing the variable'
 - task: UseDotNet@2
   inputs:
     packageType: 'sdk'
@@ -35,4 +32,6 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-      dotnet nuget push output/packages/$(buildConfiguration)/*.nupkg -s https://api.nuget.org/v3/index.json -k $env:NUGET_APIKEY --skip-duplicate
+      dotnet nuget push output/packages/$(buildConfiguration)/*.nupkg -s https://api.nuget.org/v3/index.json -k $env:KEY --skip-duplicate
+  env:
+    KEY: $(nuget_apikey)
