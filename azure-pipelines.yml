@@ -33,4 +33,4 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-      dotnet nuget push output/$(buildConfiguration)/*.nupkg -s https://api.nuget.org/v3/index.json -k $env:NUGET_APIKEY --skip-duplicate
+      dotnet nuget push output/packages/$(buildConfiguration)/*.nupkg -s https://api.nuget.org/v3/index.json -k $env:NUGET_APIKEY --skip-duplicate
