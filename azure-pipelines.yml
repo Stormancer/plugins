@@ -16,7 +16,7 @@ variables:
     buildConfiguration: 'Debug'
 
 steps:
-- script: echo $(nuget_apikey)
+- script: echo $env:NUGET_APIKEY
   displayName: 'Printing the variable'
 - task: UseDotNet@2
   inputs:
