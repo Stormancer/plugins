@@ -16,6 +16,8 @@ variables:
     buildConfiguration: 'Debug'
 
 steps:
+- script: echo $(nuget_apikey)
+  displayName: 'Printing the variable'
 - task: UseDotNet@2
   inputs:
     packageType: 'sdk'
