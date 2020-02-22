@@ -14,6 +14,9 @@
     <Description>Leaderboard system for Stormancer server applications.</Description>
     
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <Version>$(Version)-pre</Version>
+  </PropertyGroup>
   <ItemGroup>
     <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
   </ItemGroup>
@@ -29,10 +32,8 @@
   </ItemGroup>
   
   <Target Name="PostPack" AfterTargets="Pack">
-    <Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages/$(ConfigurationName)" >
-      <Output
-            TaskParameter="CopiedFiles"
-            ItemName="Changed" />
+    <Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages/$(ConfigurationName)">
+      <Output TaskParameter="CopiedFiles" ItemName="Changed" />
     </Copy>
     <Message Text="Copied @(Changed)" Importance="High" />
   </Target>

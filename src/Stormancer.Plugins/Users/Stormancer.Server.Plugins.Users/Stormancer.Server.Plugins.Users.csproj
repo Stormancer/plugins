@@ -15,7 +15,9 @@
     <LangVersion>latest</LangVersion>
     <Description>Provides authentication, user management and sessions features to a Stormancer server application.</Description>
   </PropertyGroup>
-
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <Version>$(Version)-pre</Version>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="MsgPack.Cli" Version="1.0.1" />
     <PackageReference Include="Stormancer.Abstractions.Server" Version="3.1.0.1" />
