@@ -22,7 +22,7 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-     Remove-Item "output/packages/$(buildConfiguration)\*.*"
+     gci output/packages/$(buildConfiguration) | % {  Remove-Item $_ }
 - task: UseDotNet@2
   inputs:
     packageType: 'sdk'
@@ -46,7 +46,7 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-      gci output/packages/$(buildConfiguration) | % {  dotnet nuget push $_  -s https://api.nuget.org/v3/index.json -k $env:KEY --skip-duplicate }
+      gci output/packages/$(buildConfiguration)/*.nupkg | % {  dotnet nuget push $_  -s https://api.nuget.org/v3/index.json -k $env:KEY --skip-duplicate }
      
   env:
     KEY: $(nuget_apikey)
