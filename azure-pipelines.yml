@@ -17,6 +17,12 @@ variables:
     buildConfiguration: 'Debug'
 
 steps:
+- task: PowerShell@2
+  displayName: 'Clear output'
+  inputs:
+    targetType: 'inline'
+    script: |
+     Remove-Item "output/packages/$(buildConfiguration)\*.*"
 - task: UseDotNet@2
   inputs:
     packageType: 'sdk'
