@@ -22,7 +22,7 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-     gci output/packages/$(buildConfiguration) | % {  Remove-Item $_ }
+     gci output/packages/$(buildConfiguration) -ErrorAction SilentlyContinue | % {  Remove-Item $_ }
 - task: UseDotNet@2
   inputs:
     packageType: 'sdk'
