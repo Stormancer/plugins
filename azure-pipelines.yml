@@ -17,6 +17,12 @@ variables:
     buildConfiguration: 'Debug'
 
 steps:
+- task: PowerShell@2
+  displayName: 'Clear output'
+  inputs:
+    targetType: 'inline'
+    script: |
+     @(gci output/packages/$(buildConfiguration) -ErrorAction SilentlyContinue) | % {  Remove-Item $_ }
 - task: UseDotNet@2
   inputs:
     packageType: 'sdk'
@@ -28,12 +34,19 @@ steps:
     projects: 'src/Stormancer.Plugins/**/*.csproj'
     arguments: '--configuration $(buildConfiguration)'
     workingDirectory: 'src/Stormancer.Plugins'
+- task: PowerShell@2
+  displayName: 'list outputs'
+  inputs:
+    targetType: 'inline'
+    script: |
+      gci output/packages/$(buildConfiguration)
 
 - task: PowerShell@2
   displayName: 'Publish packages'
   inputs:
     targetType: 'inline'
     script: |
-      dotnet nuget push output/packages/$(buildConfiguration)/*.nupkg -s https://api.nuget.org/v3/index.json -k $env:KEY --skip-duplicate
+      gci output/packages/$(buildConfiguration)/*.nupkg | % {  dotnet nuget push $_  -s https://api.nuget.org/v3/index.json -k $env:KEY --skip-duplicate }
+     
   env:
     KEY: $(nuget_apikey)
