@@ -27,6 +27,7 @@ using Stormancer.Plugins;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.AdminApi;
 using Stormancer.Server.Plugins.Analytics;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.ServiceLocator;
 using System;
 using System.Collections.Generic;
@@ -144,7 +145,7 @@ namespace Stormancer.Server.Plugins.Users
             b.Register<UserSessionController>();
             b.Register<AuthenticationController>().InstancePerRequest();
             b.Register<AuthenticationService>().As<IAuthenticationService>().InstancePerRequest();
-
+            b.Register<LocatorProvider>().As<IServiceLocatorProvider>();
             b.Register<UserService>().As<IUserService>();
 
             b.Register<UserManagementConfig>().SingleInstance();
@@ -166,6 +167,26 @@ namespace Stormancer.Server.Plugins.Users
             scene.AddController<AuthenticationController>();
             scene.AddController<SceneAuthorizationController>();
             scene.AddController<UserSessionController>();
+        }
+    }
+
+    internal class LocatorProvider : IServiceLocatorProvider
+    {
+        private readonly IConfiguration config;
+
+        public LocatorProvider(IConfiguration config)
+        {
+            this.config = config;
+        }
+        public Task LocateService(ServiceLocationCtx ctx)
+        {
+            if (ctx.ServiceType == "stormancer.authenticator")
+            {
+                string authenticatorSceneId = config.Settings?.auth?.sceneId ?? Constants.GetSceneId();
+                ctx.SceneId = authenticatorSceneId;
+            }
+            return Task.CompletedTask;
+            
         }
     }
 }
