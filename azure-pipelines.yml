@@ -50,7 +50,7 @@ steps:
 - task: ado-discord-webhook@1
   inputs:
     channelId: '684384565711863818'
-    webhookKey: 'Ls_6uZhNd0ztBX1r99dqgAdrgpllKyDNqcuPHVY4G2zRH87e-GYuAMZS-M7Oqt0Br0Aa'
+    webhookKey: $(discord_releases_webhook_key)
     name: 'Stormancer CI'
     messageType: 'embeds'
     embeds: |
@@ -63,3 +63,4 @@ steps:
       }]
   env:
     KEY: $(nuget_apikey)
+    
