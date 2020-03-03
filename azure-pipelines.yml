@@ -47,6 +47,17 @@ steps:
     targetType: 'inline'
     script: |
       gci output/packages/$(buildConfiguration)/*.nupkg | % {  dotnet nuget push $_  -s https://api.nuget.org/v3/index.json -k $env:KEY --skip-duplicate }
-     
+- task: ado-discord-webhook@1
+  inputs:
+    name: 'Stormancer CI'
+    messageType: 'embeds'
+    embeds: |
+      [{
+      "title":"Server plugins development build complete",
+      "description":"",
+      "author":{
+      "name":"CI"
+      }
+      }]
   env:
     KEY: $(nuget_apikey)
