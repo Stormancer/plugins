@@ -49,6 +49,8 @@ steps:
       gci output/packages/$(buildConfiguration)/*.nupkg | % {  dotnet nuget push $_  -s https://api.nuget.org/v3/index.json -k $env:KEY --skip-duplicate }
 - task: ado-discord-webhook@1
   inputs:
+    channelId: '684384565711863818'
+    webhookKey: 'Ls_6uZhNd0ztBX1r99dqgAdrgpllKyDNqcuPHVY4G2zRH87e-GYuAMZS-M7Oqt0Br0Aa'
     name: 'Stormancer CI'
     messageType: 'embeds'
     embeds: |
