@@ -56,5 +56,5 @@ steps:
       }
       }]
   env:
-    KEY: $(nuget_apikey)
+    KEY: $(nuget_ci_key)
     
