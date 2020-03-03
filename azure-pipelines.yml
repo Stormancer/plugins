@@ -35,19 +35,13 @@ steps:
     arguments: '--configuration $(buildConfiguration)'
     workingDirectory: 'src/Stormancer.Plugins'
 - task: PowerShell@2
-  displayName: 'list outputs'
-  inputs:
-    targetType: 'inline'
-    script: |
-      gci output/packages/$(buildConfiguration)
-
-- task: PowerShell@2
   displayName: 'Publish packages'
   inputs:
     targetType: 'inline'
     script: |
       gci output/packages/$(buildConfiguration)/*.nupkg | % {  dotnet nuget push $_  -s https://api.nuget.org/v3/index.json -k $env:KEY --skip-duplicate }
 - task: ado-discord-webhook@1
+  displayName: 'Send Discord notification'
   inputs:
     channelId: '684384565711863818'
     webhookKey: $(discord_releases_webhook_key)
