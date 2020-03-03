@@ -40,6 +40,8 @@ steps:
     targetType: 'inline'
     script: |
       gci output/packages/$(buildConfiguration)/*.nupkg | % {  dotnet nuget push $_  -s https://api.nuget.org/v3/index.json -k $env:KEY --skip-duplicate }
+  env:
+    KEY: $(nuget_ci_key)
 - task: ado-discord-webhook@1
   displayName: 'Send Discord notification'
   inputs:
@@ -55,6 +57,5 @@ steps:
       "name":"CI"
       }
       }]
-  env:
-    KEY: $(nuget_ci_key)
+
     
