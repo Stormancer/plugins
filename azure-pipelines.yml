@@ -44,7 +44,7 @@ steps:
   displayName: 'Send Discord notification'
   inputs:
     channelId: '684384565711863818'
-    webhookKey: $(discord_releases_webhook_key)
+    webhookKey: '$(discord_releases_webhook_key)'
     name: 'Stormancer CI'
     messageType: 'embeds'
     embeds: |
