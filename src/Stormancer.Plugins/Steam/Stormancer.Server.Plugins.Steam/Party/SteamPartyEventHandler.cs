@@ -30,10 +30,10 @@ using Stormancer.Server.Plugins.Utilities;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using WindJammers2Server.Plugins.Steam.Dto;
 
 namespace Stormancer.Server.Plugins.Steam
 {
@@ -48,7 +48,7 @@ namespace Stormancer.Server.Plugins.Steam
     {
         public TaskQueue TaskQueue { get; } = new TaskQueue();
 
-        public ulong SteamIdLobby { get; set; } = 0;
+        public ulong SteamIDLobby { get; set; } = 0;
 
         public int NumMembers { get => _numMembers; }
 
@@ -176,8 +176,10 @@ namespace Stormancer.Server.Plugins.Steam
                             }
 
                             // If Steam lobby does not exist, we create it
-                            if (data.SteamIdLobby == 0)
+                            if (data.SteamIDLobby == 0)
                             {
+                                // Create
+
                                 var maxMembers = 5;
                                 if (ctx.Party.Settings.ServerSettings.ContainsKey("platform.maxMembers"))
                                 {
@@ -200,6 +202,15 @@ namespace Stormancer.Server.Plugins.Steam
                                     }
                                 }
 
+                                var joinable = true;
+                                if (ctx.Party.Settings.ServerSettings.ContainsKey("platform.joinable"))
+                                {
+                                    if (!bool.TryParse(ctx.Party.Settings.ServerSettings["platform.joinable"], out joinable))
+                                    {
+                                        // Do nothing (default value already set)
+                                    }
+                                }
+
                                 _logger.Log(LogLevel.Trace, "SteamPartyEventHandler.OnJoining", "Creating steam lobby...", new
                                 {
                                     ctx.Party.Settings.PartyId,
@@ -208,13 +219,20 @@ namespace Stormancer.Server.Plugins.Steam
                                 });
 
                                 var lobbyName = $"{LobbyPrefix}{ctx.Party.Settings.PartyId}";
-                                var result = await _steam.CreateLobby(lobbyName, LobbyType.FriendsOnly, maxMembers, new List<ulong> { steamId }, new Dictionary<string, string> { { "PartyId", ctx.Party.Settings.PartyId } });
 
-                                if (result.appid != 0 && !string.IsNullOrEmpty(result.steamid_lobby))
+                                var createLobbyResult = await _sessions.SendRequest("Steam.CreateLobby", "", ctx.Session.User.Id, stream =>
                                 {
-                                    _logger.Log(LogLevel.Trace, "SteamPartyEventHandler.OnJoining", "Steam lobby created", new
+                                    _serializer.Serialize(new CreateLobbyDto { LobbyType = lobbyType, MaxMembers = maxMembers, Joinable = true, Metadata = new Dictionary<string, string> { { "PartyId", ctx.Party.Settings.PartyId } } }, stream);
+                                }, CancellationToken.None).LastOrDefaultAsync();
+
+                                using var stream = new MemoryStream(createLobbyResult);
+                                var steamIDLobby = _serializer.Deserialize<ulong>(stream);
+
+                                if (steamIDLobby > 0)
+                                {
+                                    _logger.Log(LogLevel.Trace, "SteamPartyEventHandler.OnJoining", "Steam lobby created by client", new
                                     {
-                                        SteamIdLobby = result.steamid_lobby,
+                                        steamIDLobby,
                                         ctx.Party.Settings.PartyId,
                                         UserId = ctx.Session.User.Id,
                                         ctx.Session.SessionId
@@ -227,9 +245,9 @@ namespace Stormancer.Server.Plugins.Steam
                                         OnlyLeaderCanInvite = ctx.Party.Settings.OnlyLeaderCanInvite,
                                         PublicServerData = ctx.Party.Settings.PublicServerData
                                     };
-                                    partySettingsDto.PublicServerData["SteamIdLobby"] = result.steamid_lobby;
+                                    partySettingsDto.PublicServerData["SteamIDLobby"] = steamIDLobby.ToString();
                                     _ = ctx.Party.UpdateSettings(partySettingsDto);
-                                    data.SteamIdLobby = ulong.Parse(result.steamid_lobby);
+                                    data.SteamIDLobby = steamIDLobby;
                                 }
                                 else
                                 {
@@ -242,12 +260,13 @@ namespace Stormancer.Server.Plugins.Steam
                                     ctx.Accept = false;
                                 }
                             }
-
-                            if (ctx.Accept)
+                            else
                             {
+                                // Join lobby
+
                                 await _sessions.SendRequest("Steam.JoinLobby", "", ctx.Session.User.Id, stream =>
                                 {
-                                    _serializer.Serialize(new SteamUserJoinLobbyDto { lobbyIdSteam = data.SteamIdLobby }, stream);
+                                    _serializer.Serialize(new JoinLobbyDto { SteamIDLobby = data.SteamIDLobby }, stream);
                                 }, CancellationToken.None).LastOrDefaultAsync();
 
                                 data.UserData[ctx.Session.SessionId] = new SteamUserData { SessionId = ctx.Session.SessionId, SteamId = steamId };
@@ -316,11 +335,11 @@ namespace Stormancer.Server.Plugins.Steam
             if (serverData.TryGetValue(PartyLobbyKey, out var dataObject))
             {
                 var data = (SteamPartyData)dataObject;
-                if (data != null && data.SteamIdLobby != 0 && data.UserData.TryGetValue(sessionId, out var steamUserData))
+                if (data != null && data.SteamIDLobby != 0 && data.UserData.TryGetValue(sessionId, out var steamUserData))
                 {
                     await data.TaskQueue.PushWork(async () =>
                     {
-                        await _steam.RemoveUserFromLobby(steamUserData.SteamId, data.SteamIdLobby);
+                        await _steam.RemoveUserFromLobby(steamUserData.SteamId, data.SteamIDLobby);
                         data.DecrementNumMembers();
                         data.UserData.TryRemove(sessionId, out var _);
                     });

@@ -79,9 +79,9 @@ namespace Stormancer.Server.Plugins.Steam
         /// Remove a Steam user from the reserved slots of a Steam Lobby.
         /// </summary>
         /// <param name="steamIdToRemove"></param>
-        /// <param name="steamIdLobby"></param>
+        /// <param name="steamIDLobby"></param>
         /// <returns></returns>
-        Task RemoveUserFromLobby(ulong steamIdToRemove, ulong steamIdLobby);
+        Task RemoveUserFromLobby(ulong steamIdToRemove, ulong steamIDLobby);
 
         // ICheatReportingService
 

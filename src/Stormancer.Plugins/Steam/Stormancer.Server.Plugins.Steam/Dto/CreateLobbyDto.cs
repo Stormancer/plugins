@@ -21,18 +21,37 @@
 // SOFTWARE.
 
 using MsgPack.Serialization;
+using System.Collections.Generic;
 
-namespace WindJammers2Server.Plugins.Steam.Dto
+namespace Stormancer.Server.Plugins.Steam
 {
     /// <summary>
     /// Join lobby dto.
     /// </summary>
-    public class SteamUserJoinLobbyDto
+    public class CreateLobbyDto
     {
         /// <summary>
         /// Stam lobby id.
         /// </summary>
         [MessagePackMember(0)]
-        public ulong lobbyIdSteam { get; set; }
+        public LobbyType LobbyType { get; set; } = LobbyType.Private;
+
+        /// <summary>
+        /// Max members authorized to join the lobby.
+        /// </summary>
+        [MessagePackMember(1)]
+        public int MaxMembers { get; set; }
+
+        /// <summary>
+        /// Set Lobby to be joinable or not.
+        /// </summary>
+        [MessagePackMember(2)]
+        public bool Joinable { get; set; }
+
+        /// <summary>
+        /// Set lobby metadata.
+        /// </summary>
+        [MessagePackMember(3)]
+        public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
     }
 }
