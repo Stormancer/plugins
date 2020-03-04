@@ -51,6 +51,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// <summary>
         /// Set lobby metadata.
         /// </summary>
+        /// <remarks>The steam API alterates the keys to "camelCase" format (first letter becomes lower case).</remarks>
         [MessagePackMember(3)]
         public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
     }

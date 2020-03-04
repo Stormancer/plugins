@@ -222,7 +222,7 @@ namespace Stormancer.Server.Plugins.Steam
 
                                 var createLobbyResult = await _sessions.SendRequest("Steam.CreateLobby", "", ctx.Session.User.Id, stream =>
                                 {
-                                    _serializer.Serialize(new CreateLobbyDto { LobbyType = lobbyType, MaxMembers = maxMembers, Joinable = true, Metadata = new Dictionary<string, string> { { "PartyId", ctx.Party.Settings.PartyId } } }, stream);
+                                    _serializer.Serialize(new CreateLobbyDto { LobbyType = lobbyType, MaxMembers = maxMembers, Joinable = true, Metadata = new Dictionary<string, string> { { "partyId", ctx.Party.Settings.PartyId } } }, stream);
                                 }, CancellationToken.None).LastOrDefaultAsync();
 
                                 using var stream = new MemoryStream(createLobbyResult);
