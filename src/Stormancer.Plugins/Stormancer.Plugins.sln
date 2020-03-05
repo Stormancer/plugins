@@ -83,6 +83,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Models", "Models", "{32FFED
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Models", "Models\Stormancer.Server.Plugins.Models\Stormancer.Server.Plugins.Models.csproj", "{95C93690-3573-4238-BF0A-B5AC4BE21246}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Facebook", "Facebook", "{AF8B1410-55EA-4204-ABF3-68E01F60C5EC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Facebook", "Facebook\Stormancer.Server.Plugins.Facebook\Stormancer.Server.Plugins.Facebook.csproj", "{0A8880BC-9058-4F53-AFED-95C1F90852B5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Firebase", "Firebase", "{3EFD36B7-E9BE-48F8-9E8B-41596F511339}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.server.Plugins.Firebase", "Firebase\Stormancer.server.Plugins.Firebase\Stormancer.server.Plugins.Firebase.csproj", "{AB01796F-F86B-446F-A897-24586791B16E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -173,6 +181,14 @@ Global
 		{95C93690-3573-4238-BF0A-B5AC4BE21246}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{95C93690-3573-4238-BF0A-B5AC4BE21246}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{95C93690-3573-4238-BF0A-B5AC4BE21246}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A8880BC-9058-4F53-AFED-95C1F90852B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A8880BC-9058-4F53-AFED-95C1F90852B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A8880BC-9058-4F53-AFED-95C1F90852B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A8880BC-9058-4F53-AFED-95C1F90852B5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AB01796F-F86B-446F-A897-24586791B16E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AB01796F-F86B-446F-A897-24586791B16E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AB01796F-F86B-446F-A897-24586791B16E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AB01796F-F86B-446F-A897-24586791B16E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -198,6 +214,8 @@ Global
 		{3B5355D4-590E-42F2-AE80-8FB5433D1198} = {9EC2D3BA-63A6-44F1-B843-E900CEB409BE}
 		{3ACA378B-9698-480E-9D64-D29C90EFC0E9} = {5A055E20-253E-47B9-BBBD-B6CB22E6F461}
 		{95C93690-3573-4238-BF0A-B5AC4BE21246} = {32FFED99-42F2-4E37-93C9-B3F293588F54}
+		{0A8880BC-9058-4F53-AFED-95C1F90852B5} = {AF8B1410-55EA-4204-ABF3-68E01F60C5EC}
+		{AB01796F-F86B-446F-A897-24586791B16E} = {3EFD36B7-E9BE-48F8-9E8B-41596F511339}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}
