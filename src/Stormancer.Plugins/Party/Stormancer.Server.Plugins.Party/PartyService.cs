@@ -161,9 +161,9 @@ namespace Stormancer.Server.Plugins.Party
                 totalParams);
         }
 
-        internal Task OnConnecting(IScenePeerClient peer)
+        internal async Task OnConnecting(IScenePeerClient peer)
         {
-            return _partyState.TaskQueue.PushWork(async () =>
+            await _partyState.TaskQueue.PushWork(async () =>
             {
                 //Todo jojo later
                 // Quand un utilisateur essais de ce connecter au party.
@@ -198,9 +198,9 @@ namespace Stormancer.Server.Plugins.Party
             });
         }
 
-        internal Task OnConnectionRejected(IScenePeerClient peer)
+        internal async Task OnConnectionRejected(IScenePeerClient peer)
         {
-            return _partyState.TaskQueue.PushWork(() =>
+            await _partyState.TaskQueue.PushWork(() =>
             {
                 Log(LogLevel.Trace, "OnConnectionRejected", "Connection to party was rejected", peer.SessionId);
                 _partyState.PendingAcceptedPeers.Remove(peer);
@@ -216,9 +216,9 @@ namespace Stormancer.Server.Plugins.Party
             });
         }
 
-        internal Task OnConnected(IScenePeerClient peer)
+        internal async Task OnConnected(IScenePeerClient peer)
         {
-            return _partyState.TaskQueue.PushWork(async () =>
+            await _partyState.TaskQueue.PushWork(async () =>
             {
                 _partyState.PendingAcceptedPeers.Remove(peer);
                 var user = await _userSessions.GetUser(peer);
@@ -278,9 +278,9 @@ namespace Stormancer.Server.Plugins.Party
             return PartyDisconnectionReason.Left;
         }
 
-        internal Task OnDisconnected(DisconnectedArgs args)
+        internal async Task OnDisconnected(DisconnectedArgs args)
         {
-            return _partyState.TaskQueue.PushWork(async () =>
+            await _partyState.TaskQueue.PushWork(async () =>
             {
                 PartyMember partyUser = null;
                 if (_partyState.PartyMembers.TryRemove(args.Peer.SessionId, out partyUser))
@@ -319,9 +319,9 @@ namespace Stormancer.Server.Plugins.Party
             }
         }
 
-        public Task UpdateSettings(PartySettingsDto partySettingsDto)
+        public async Task UpdateSettings(PartySettingsDto partySettingsDto)
         {
-            return _partyState.TaskQueue.PushWork(async () =>
+            await _partyState.TaskQueue.PushWork(async () =>
             {
                 if (partySettingsDto.GameFinderName == "")
                 {
@@ -373,9 +373,9 @@ namespace Stormancer.Server.Plugins.Party
         /// <param name="peer"></param>
         /// <param name="partyUserStatus"></param>
         /// <returns></returns>
-        public Task UpdateGameFinderPlayerStatus(string userId, PartyMemberStatusUpdateRequest partyUserStatus)
+        public async Task UpdateGameFinderPlayerStatus(string userId, PartyMemberStatusUpdateRequest partyUserStatus)
         {
-            return _partyState.TaskQueue.PushWork(async () =>
+            await _partyState.TaskQueue.PushWork(async () =>
             {
                 PartyMember user = null;
                 if (!TryGetMemberByUserId(userId, out user))
@@ -439,9 +439,9 @@ namespace Stormancer.Server.Plugins.Party
 
         public ConcurrentDictionary<string, object> ServerData => _partyState.ServerData;
 
-        public Task UpdatePartyUserData(string userId, byte[] data)
+        public async Task UpdatePartyUserData(string userId, byte[] data)
         {
-            return _partyState.TaskQueue.PushWork(async () =>
+            await _partyState.TaskQueue.PushWork(async () =>
             {
                 PartyMember partyUser = null;
                 if (!TryGetMemberByUserId(userId, out partyUser))
@@ -456,9 +456,9 @@ namespace Stormancer.Server.Plugins.Party
             });
         }
 
-        public Task PromoteLeader(string playerToPromote)
+        public async Task PromoteLeader(string playerToPromote)
         {
-            return _partyState.TaskQueue.PushWork(async () =>
+            await _partyState.TaskQueue.PushWork(async () =>
             {
                 PartyMember user;
                 if (!TryGetMemberByUserId(playerToPromote, out user))
@@ -478,9 +478,9 @@ namespace Stormancer.Server.Plugins.Party
             });
         }
 
-        public Task KickPlayerByLeader(string playerToKick)
+        public async Task KickPlayerByLeader(string playerToKick)
         {
-            return _partyState.TaskQueue.PushWork(async () =>
+            await _partyState.TaskQueue.PushWork(async () =>
             {
                 if (TryGetMemberByUserId(playerToKick, out var partyUser))
                 {
@@ -552,17 +552,17 @@ namespace Stormancer.Server.Plugins.Party
             }
         }
 
-        private Task TryCancelPendingGameFinder()
+        private async Task TryCancelPendingGameFinder()
         {
             if (_partyState.FindGameCts != null)
             {
                 // In this case, the party members' status will be reset after the request is canceled.
                 _partyState.FindGameCts.Cancel();
-                return Task.CompletedTask;
+                return;
             }
             else
             {
-                return ResetMembersReadiness();
+                await ResetMembersReadiness();
             }
         }
 
@@ -635,9 +635,9 @@ namespace Stormancer.Server.Plugins.Party
             _scene.Broadcast(route, data);
         }
 
-        public Task SendPartyState(string recipientUserId)
+        public async Task SendPartyState(string recipientUserId)
         {
-            return _partyState.TaskQueue.PushWork(async () =>
+            await _partyState.TaskQueue.PushWork(async () =>
             {
                 PartyMember partyUser;
                 if (!TryGetMemberByUserId(recipientUserId, out partyUser))
@@ -662,9 +662,9 @@ namespace Stormancer.Server.Plugins.Party
             });
         }
 
-        public Task SendPartyStateAsRequestAnswer(RequestContext<IScenePeerClient> ctx)
+        public async Task SendPartyStateAsRequestAnswer(RequestContext<IScenePeerClient> ctx)
         {
-            return _partyState.TaskQueue.PushWork(() =>
+            await _partyState.TaskQueue.PushWork(() =>
             {
                 if (!_partyState.PartyMembers.ContainsKey(ctx.RemotePeer.SessionId))
                 {
