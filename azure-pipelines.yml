@@ -47,7 +47,7 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-      $packages = "##vso[task.setvariable variable=packages]" + (Get-ChildItem -Path output/packages/$(buildConfiguration)/*.nupkg | select -ExpandProperty FullName) -join '\n'
+      $packages = "##vso[task.setvariable variable=packages]" + (Get-ChildItem -Path output/packages/$(buildConfiguration)/*.nupkg | select -ExpandProperty Name | ForEach-Object -Process {[System.IO.Path]::GetFileNameWithoutExtension($_)}) -join '\n'
       echo $packages
 - task: ado-discord-webhook@1
   displayName: 'Send Discord notification'
