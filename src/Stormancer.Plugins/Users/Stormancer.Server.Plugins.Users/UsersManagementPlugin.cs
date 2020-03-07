@@ -152,7 +152,7 @@ namespace Stormancer.Server.Plugins.Users
             b.Register<UsersAdminController>();
             b.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
 
-            b.Register<UserSessionCache>().AsSelf().InstancePerScene();
+            b.Register<UserSessionCache>(dr => new UserSessionCache(dr.Resolve<ISceneHost>(), dr.Resolve<ISerializer>(), dr.Resolve<ILogger>())).AsSelf().InstancePerScene();
             b.Register<PlatformSpecificServices>().As<IPlatformSpecificServices>();
         }
 
@@ -186,7 +186,7 @@ namespace Stormancer.Server.Plugins.Users
                 ctx.SceneId = authenticatorSceneId;
             }
             return Task.CompletedTask;
-            
+
         }
     }
 }
