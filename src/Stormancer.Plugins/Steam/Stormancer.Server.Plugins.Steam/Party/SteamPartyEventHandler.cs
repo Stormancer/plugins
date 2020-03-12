@@ -149,7 +149,7 @@ namespace Stormancer.Server.Plugins.Steam
         {
             if (ctx.Accept && ctx.Session.platformId.Platform == SteamConstants.PROVIDER_NAME)
             {
-                if (ctx.Party.Settings.ServerSettings.TryGetValue(SteamSettingsConstants.CreateLobbyPartyServerSetting, out var createLobby) && createLobby != "false")
+                if (ctx.Party.Settings.ServerSettings.SteamCreateLobby() == true)
                 {
                     var data = (SteamPartyData)ctx.Party.ServerData.GetOrAdd(PartyLobbyKey, new SteamPartyData());
 
@@ -179,37 +179,10 @@ namespace Stormancer.Server.Plugins.Steam
                             if (data.SteamIDLobby == 0)
                             {
                                 // Create
-
-                                var maxMembers = 5;
-                                if (ctx.Party.Settings.ServerSettings.ContainsKey("platform.maxMembers"))
-                                {
-                                    try
-                                    {
-                                        maxMembers = int.Parse(ctx.Party.Settings.ServerSettings["platform.maxMembers"]);
-                                    }
-                                    catch (Exception)
-                                    {
-                                        // Do nothing (default value already set)
-                                    }
-                                }
-
-                                var lobbyType = LobbyType.FriendsOnly;
-                                if (ctx.Party.Settings.ServerSettings.ContainsKey("platform.lobbyType"))
-                                {
-                                    if (!Enum.TryParse(ctx.Party.Settings.ServerSettings["platform.lobbyType"], true, out lobbyType))
-                                    {
-                                        // Do nothing (default value already set)
-                                    }
-                                }
-
-                                var joinable = true;
-                                if (ctx.Party.Settings.ServerSettings.ContainsKey("platform.joinable"))
-                                {
-                                    if (!bool.TryParse(ctx.Party.Settings.ServerSettings["platform.joinable"], out joinable))
-                                    {
-                                        // Do nothing (default value already set)
-                                    }
-                                }
+                                var lobbyName = $"{LobbyPrefix}{ctx.Party.Settings.PartyId}";
+                                var joinable = ctx.Party.Settings.IsJoinable;
+                                var maxMembers = ctx.Party.Settings.ServerSettings.SteamMaxMembers() ?? 5;
+                                var lobbyType = ctx.Party.Settings.ServerSettings.SteamLobbyType() ?? LobbyType.FriendsOnly;
 
                                 _logger.Log(LogLevel.Trace, "SteamPartyEventHandler.OnJoining", "Creating steam lobby...", new
                                 {
@@ -217,8 +190,6 @@ namespace Stormancer.Server.Plugins.Steam
                                     UserId = ctx.Session.User.Id,
                                     ctx.Session.SessionId
                                 });
-
-                                var lobbyName = $"{LobbyPrefix}{ctx.Party.Settings.PartyId}";
 
                                 var createLobbyResult = await _sessions.SendRequest("Steam.CreateLobby", "", ctx.Session.User.Id, stream =>
                                 {
@@ -228,7 +199,7 @@ namespace Stormancer.Server.Plugins.Steam
                                 using var stream = new MemoryStream(createLobbyResult);
                                 var steamIDLobby = _serializer.Deserialize<ulong>(stream);
 
-                                if (steamIDLobby > 0)
+                                if (steamIDLobby != 0)
                                 {
                                     _logger.Log(LogLevel.Trace, "SteamPartyEventHandler.OnJoining", "Steam lobby created by client", new
                                     {
@@ -237,14 +208,7 @@ namespace Stormancer.Server.Plugins.Steam
                                         UserId = ctx.Session.User.Id,
                                         ctx.Session.SessionId
                                     });
-                                    var partySettingsDto = new PartySettingsDto
-                                    {
-                                        CustomData = ctx.Party.Settings.CustomData,
-                                        GameFinderName = ctx.Party.Settings.GameFinderName,
-                                        IsJoinable = ctx.Party.Settings.IsJoinable,
-                                        OnlyLeaderCanInvite = ctx.Party.Settings.OnlyLeaderCanInvite,
-                                        PublicServerData = ctx.Party.Settings.PublicServerData
-                                    };
+                                    var partySettingsDto = new PartySettingsDto(ctx.Party.Settings);
                                     partySettingsDto.PublicServerData["SteamIDLobby"] = steamIDLobby.ToString();
                                     _ = ctx.Party.UpdateSettings(partySettingsDto);
                                     data.SteamIDLobby = steamIDLobby;
