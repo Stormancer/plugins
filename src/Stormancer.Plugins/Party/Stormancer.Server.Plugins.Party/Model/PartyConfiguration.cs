@@ -64,7 +64,7 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// <summary>
         /// Client-specified settings that can be used by other server components
         /// </summary>
-        public Dictionary<string, string> ServerSettings { get; set; } = new Dictionary<string, string>();
+        public ServerPartySettings ServerSettings { get; set; } = new ServerPartySettings();
 
         /// <summary>
         /// Server-specified data that are sent to clients (cannot be modified by clients)

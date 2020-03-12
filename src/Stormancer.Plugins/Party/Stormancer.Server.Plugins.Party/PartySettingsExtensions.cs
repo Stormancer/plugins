@@ -26,20 +26,27 @@
         /// </summary>
         /// <param name="settings"></param>
         /// <returns></returns>
-        public static bool CreatePlatformLobby(this ServerPartySettings settings)
+        public static bool? CreatePlatformLobby(this ServerPartySettings settings)
         {
-            return settings.TryGetValue(SettingsConstants.CreatePlatformLobby, out var createPlatformLobby) ? bool.Parse(createPlatformLobby) : true;
+            return settings.TryGetValue(SettingsConstants.CreatePlatformLobby, out var createPlatformLobby) ? (bool?)bool.Parse(createPlatformLobby) : null;
         }
 
         /// <summary>
-        /// Sets the platform lobby creation
+        /// Sets the platform lobby creation.
         /// </summary>
         /// <param name="settings"></param>
-        /// <param name="value"></param>
+        /// <param name="createPlatformLobby"></param>
         /// <returns></returns>
-        public static ServerPartySettings CreatePlatformLobby(this ServerPartySettings settings, bool value)
+        public static ServerPartySettings CreatePlatformLobby(this ServerPartySettings settings, bool? createPlatformLobby)
         {
-            settings[SettingsConstants.CreatePlatformLobby] = value.ToString();
+            if (createPlatformLobby != null)
+            {
+                settings[SettingsConstants.CreatePlatformLobby] = createPlatformLobby.ToString()!;
+            }
+            else
+            {
+                settings.Remove(SettingsConstants.CreatePlatformLobby);
+            }
             return settings;
         }
 
@@ -57,13 +64,13 @@
         /// Sets the maximum number of members in the party.
         /// </summary>
         /// <param name="settings"></param>
-        /// <param name="value"></param>
+        /// <param name="maxMembers"></param>
         /// <returns></returns>
-        public static ServerPartySettings MaxMembers(this ServerPartySettings settings, int? value)
+        public static ServerPartySettings MaxMembers(this ServerPartySettings settings, int? maxMembers)
         {
-            if (value != null)
+            if (maxMembers != null)
             {
-                settings[SettingsConstants.MaxMembers] = value.ToString()!;
+                settings[SettingsConstants.MaxMembers] = maxMembers.ToString()!;
             }
             else
             {
