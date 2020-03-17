@@ -22,17 +22,17 @@
 
 using MsgPack.Serialization;
 
-namespace WindJammers2Server.Plugins.Steam.Dto
+namespace Stormancer.Server.Plugins.Steam
 {
     /// <summary>
     /// Join lobby dto.
     /// </summary>
-    public class SteamUserJoinLobbyDto
+    public class JoinLobbyDto
     {
         /// <summary>
-        /// Stam lobby id.
+        /// Steam lobby id.
         /// </summary>
         [MessagePackMember(0)]
-        public ulong lobbyIdSteam { get; set; }
+        public ulong SteamIDLobby { get; set; }
     }
 }

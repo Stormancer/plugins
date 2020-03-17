@@ -20,7 +20,7 @@
         ///     ctx.PartyRequest.ServerSettings[Settings.CreateLobbyPartyServerSetting] = "false";
         /// }
         /// </example>
-        public const string CreateLobbyPartyServerSetting = "steam.createLobby";
+        public const string CreateLobby = "steam.createLobby";
 
         /// <summary>
         /// Setting key used to set the type of lobby
@@ -37,7 +37,7 @@
         ///     ctx.PartyRequest.ServerSettings[Settings.LobbyTypePartyServerSetting] = LobbyType.FriendsOnly.ToString();
         /// }
         /// </example>
-        public const string LobbyTypePartyServerSetting = "steam.lobbyType";
+        public const string LobbyType = "steam.lobbyType";
 
         /// <summary>
         /// Setting key used to set the max number of players in a Steam lobby
@@ -54,6 +54,6 @@
         ///     ctx.PartyRequest.ServerSettings[Settings.MaxMembersPartyServerSettings] = "5";
         /// }
         /// </example>
-        public const string MaxMembersPartyServerSettings = "steam.maxMembers";
+        public const string MaxMembers = "steam.maxMembers";
     }
 }

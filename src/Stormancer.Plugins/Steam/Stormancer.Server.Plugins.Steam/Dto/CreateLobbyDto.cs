@@ -1,4 +1,4 @@
-// MIT License
+﻿// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -19,16 +19,40 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using Newtonsoft.Json.Linq;
-using Stormancer.Server.Users;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
-namespace Stormancer.Plugins.ServiceLocator
+using MsgPack.Serialization;
+using System.Collections.Generic;
+
+namespace Stormancer.Server.Plugins.Steam
 {
-    public interface IServiceLocator
+    /// <summary>
+    /// Join lobby dto.
+    /// </summary>
+    public class CreateLobbyDto
     {
-        Task<string> GetSceneConnectionToken(string serviceType, string serviceName, Session session);
-		Task<string> GetSceneId(string serviceType, string serviceName, Session session = null);
+        /// <summary>
+        /// Stam lobby id.
+        /// </summary>
+        [MessagePackMember(0)]
+        public LobbyType LobbyType { get; set; } = LobbyType.Private;
+
+        /// <summary>
+        /// Max members authorized to join the lobby.
+        /// </summary>
+        [MessagePackMember(1)]
+        public int MaxMembers { get; set; }
+
+        /// <summary>
+        /// Set Lobby to be joinable or not.
+        /// </summary>
+        [MessagePackMember(2)]
+        public bool Joinable { get; set; }
+
+        /// <summary>
+        /// Set lobby metadata.
+        /// </summary>
+        /// <remarks>The steam API alterates the keys to "camelCase" format (first letter becomes lower case).</remarks>
+        [MessagePackMember(3)]
+        public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
     }
 }

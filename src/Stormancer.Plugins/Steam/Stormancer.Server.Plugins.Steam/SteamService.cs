@@ -258,6 +258,16 @@ namespace Stormancer.Server.Plugins.Steam
             }
         }
 
+        /// <summary>
+        /// Create a Steam lobby
+        /// </summary>
+        /// <param name="lobbyName"></param>
+        /// <param name="lobbyType"></param>
+        /// <param name="maxMembers"></param>
+        /// <param name="steamIdInvitedMembers"></param>
+        /// <param name="lobbyMetadata"></param>
+        /// <returns></returns>
+        /// <remarks>metadata does not work</remarks>
         public async Task<SteamCreateLobbyData> CreateLobby(string lobbyName, LobbyType lobbyType, int maxMembers, IEnumerable<ulong>? steamIdInvitedMembers = null, Dictionary<string, string>? lobbyMetadata = null)
         {
             if (string.IsNullOrEmpty(lobbyName))
@@ -302,16 +312,16 @@ namespace Stormancer.Server.Plugins.Steam
             return json.response;
         }
 
-        public async Task RemoveUserFromLobby(ulong steamIdToRemove, ulong steamIdLobby)
+        public async Task RemoveUserFromLobby(ulong steamIdToRemove, ulong steamIDLobby)
         {
             if (steamIdToRemove == 0)
             {
                 throw new ArgumentException("value is not correct", nameof(steamIdToRemove));
             }
 
-            if (steamIdLobby == 0)
+            if (steamIDLobby == 0)
             {
-                throw new ArgumentException("value is not correct", nameof(steamIdLobby));
+                throw new ArgumentException("value is not correct", nameof(steamIDLobby));
             }
 
             var requestUrl = "ILobbyMatchmakingService/RemoveUserFromLobby/v1/";
@@ -320,7 +330,7 @@ namespace Stormancer.Server.Plugins.Steam
             {
                 appid = _appId,
                 steamid_to_remove = steamIdToRemove,
-                steamid_lobby = steamIdLobby,
+                steamid_lobby = steamIDLobby,
             };
             var input_json = JsonConvert.SerializeObject(removeUserFromLobbyInputJson, Formatting.None, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
 

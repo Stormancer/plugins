@@ -5,7 +5,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>1.4.1</Version>
+    <Version>1.4.3</Version>
     <AssemblyVersion>$(Version)</AssemblyVersion>
     <FileVersion>$(Version)</FileVersion>
     <IncludeSymbols>true</IncludeSymbols>
@@ -15,8 +15,14 @@
     <LangVersion>latest</LangVersion>
     <Description>Provides authentication, user management and sessions features to a Stormancer server application.</Description>
   </PropertyGroup>
-
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <Version>$(Version)-pre</Version>
+  </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="MsgPack.Cli" Version="1.0.1" />
     <PackageReference Include="Stormancer.Abstractions.Server" Version="3.1.0.1" />
     <PackageReference Include="System.Linq.Async" Version="4.0.0" />
@@ -34,7 +40,7 @@
   
   <ItemGroup>
     <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
-    <Pdbs Include="$(TargetDir)*.pdb"/>
+    <Pdbs Include="$(TargetDir)*.pdb" />
   </ItemGroup>
   
   <Target Name="PostPack" AfterTargets="Pack">

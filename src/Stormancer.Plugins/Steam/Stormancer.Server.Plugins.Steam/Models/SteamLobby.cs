@@ -20,11 +20,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using MsgPack.Serialization;
+
 namespace Stormancer.Server.Plugins.Steam
 {
     /// <summary>
     /// Steam lobby types
     /// </summary>
+    [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
     public enum LobbyType
     {
         /// <summary>

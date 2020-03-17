@@ -51,8 +51,17 @@ namespace Stormancer.Server.Plugins.ServiceLocator
         public Session Session { get; internal set; }
     }
 
+
+    /// <summary>
+    /// Class implementing this interface can participate in the scene location process.
+    /// </summary>
     public interface IServiceLocatorProvider
     {
+        /// <summary>
+        /// Called whenever the locator is trying to find a service.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
         Task LocateService(ServiceLocationCtx ctx);
     }
 }
