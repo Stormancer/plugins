@@ -32,7 +32,7 @@ using System.Threading;
 
 namespace Stormancer.Server.Plugins.Users
 {
-    public class DeviceIdentifierAuthenticationProvider : IAuthenticationProvider
+    internal class DeviceIdentifierAuthenticationProvider : IAuthenticationProvider
     {
         public const string PROVIDER_NAME = "deviceidentifier";
         private const string ClaimPath = "deviceid";
@@ -55,8 +55,8 @@ namespace Stormancer.Server.Plugins.Users
         public async Task<AuthenticationResult> Authenticate(AuthenticationContext authenticationCtx, CancellationToken ct)
         {
             var pId = new PlatformId { Platform = PROVIDER_NAME };
-            string identifier;
-            if (!authenticationCtx.Parameters.TryGetValue("deviceidentifier", out identifier))
+          
+            if (!authenticationCtx.Parameters.TryGetValue("deviceidentifier", out var identifier))
             {
                 return AuthenticationResult.CreateFailure("Device identifier must not be empty.", pId, authenticationCtx.Parameters);
             }

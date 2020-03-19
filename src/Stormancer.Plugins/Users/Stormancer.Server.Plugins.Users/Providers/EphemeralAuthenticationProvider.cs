@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
+    /// <summary>
+    /// Provides an ephemeral user 
+    /// </summary>
     class EphemeralAuthenticationProvider : IAuthenticationProvider
     {
         public const string ProviderName = "ephemeral";

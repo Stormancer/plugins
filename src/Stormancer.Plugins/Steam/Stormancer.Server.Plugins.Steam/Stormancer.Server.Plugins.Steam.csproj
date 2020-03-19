@@ -18,12 +18,12 @@
 
   <ItemGroup>
     <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
-    <Pdbs Include="$(TargetDir)*.pdb"/>
+    <Pdbs Include="$(TargetDir)*.pdb" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="MsgPack.Cli" Version="1.0.1" />
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.1.0.1" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.3.1.1" />
   </ItemGroup>
 
   <ItemGroup>
