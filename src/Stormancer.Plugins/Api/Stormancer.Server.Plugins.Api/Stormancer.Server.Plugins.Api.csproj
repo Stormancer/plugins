@@ -13,7 +13,9 @@
     <LangVersion>latest</LangVersion>
     <Description>Declare server routes using the controller/action pattern.</Description>
   </PropertyGroup>
-
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <Version>$(Version)-pre</Version>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Stormancer.Abstractions.Server" Version="3.3.1.1" />
   </ItemGroup>

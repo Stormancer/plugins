@@ -15,7 +15,9 @@
     <LangVersion>latest</LangVersion>
     <Description>Provides analytics services to a Stormancer application.</Description>
   </PropertyGroup>
-
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <Version>$(Version)-pre</Version>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="MsgPack.Cli" Version="1.0.1" />
     <PackageReference Include="Stormancer.Abstractions.Server" Version="3.3.1.1" />

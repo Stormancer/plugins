@@ -15,7 +15,9 @@
     <LangVersion>latest</LangVersion>
     <Description>Provides extensibility points to add admin and public web APIs to a Stormancer App.</Description>
   </PropertyGroup>
-
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <Version>$(Version)-pre</Version>
+  </PropertyGroup>
   <ItemGroup>
     <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
   </ItemGroup>

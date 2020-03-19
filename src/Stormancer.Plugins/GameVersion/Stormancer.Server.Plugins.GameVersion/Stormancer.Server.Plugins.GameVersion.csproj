@@ -13,7 +13,9 @@
     <LangVersion>latest</LangVersion>
     <Description>Game client and server version tracking tools.</Description>
   </PropertyGroup>
-
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <Version>$(Version)-pre</Version>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Stormancer.Abstractions.Server" Version="3.3.1.1" />
   </ItemGroup>

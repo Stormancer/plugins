@@ -15,7 +15,9 @@
     <LangVersion>latest</LangVersion>
     <Description>Provides an elasticsearch client configured with the server app configuration.</Description>
   </PropertyGroup>
-
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <Version>$(Version)-pre</Version>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="NEST" Version="7.5.1" />
     <PackageReference Include="SmartFormat.NET" Version="2.5.0" />
