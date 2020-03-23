@@ -91,6 +91,9 @@ namespace Stormancer.Server.Plugins.Users
             pId.OnlineId = login;
 
             var user = await users.GetUserByClaim(PROVIDER_NAME, ClaimPath + ".login", login);
+
+            
+
             if (user == null)
             {
                 logger.Log(LogLevel.Trace, "auth.loginPassword", "Failed to find user for login.", new { login });
