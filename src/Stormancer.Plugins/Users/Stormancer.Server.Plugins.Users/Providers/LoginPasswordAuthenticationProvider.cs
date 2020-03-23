@@ -37,11 +37,11 @@ namespace Stormancer.Server.Plugins.Users
     {
         public string? email { get; set; }
 
-        public string login { get; set; }
-        public byte[] salt { get; set; }
+        public string? login { get; set; }
+        public byte[]? salt { get; set; }
         public int iterations { get; set; }
-        public byte[] derivedKey { get; set; }
-        public string algorithm { get; set; }
+        public byte[]? derivedKey { get; set; }
+        public string? algorithm { get; set; }
 
     }
 
@@ -107,9 +107,10 @@ namespace Stormancer.Server.Plugins.Users
                 return AuthenticationResult.CreateFailure("loginPassword.login.invalidCredentials", pId, authenticationCtx.Parameters);
             }
 
-            var derivedKey = DeriveKey(password, authParams.iterations, authParams.salt, new HashAlgorithmName(authParams.algorithm));
+            
+            var derivedKey = DeriveKey(password, authParams.iterations, authParams.salt!, new HashAlgorithmName(authParams.algorithm));
 
-            if (!BytesEqual(derivedKey, authParams.derivedKey))
+            if (!BytesEqual(derivedKey, authParams.derivedKey!))
             {
                 logger.Log(LogLevel.Trace, "auth.loginPassword", "Invalid password.", new { login });
                 return AuthenticationResult.CreateFailure("loginPassword.login.invalidCredentials", pId, authenticationCtx.Parameters);
@@ -124,7 +125,7 @@ namespace Stormancer.Server.Plugins.Users
             return Task.CompletedTask;
         }
 
-        public async Task Setup(Dictionary<string, string> parameters)
+        public async Task Setup(Dictionary<string, string> parameters, Session? session)
         {
             var pId = new PlatformId { Platform = PROVIDER_NAME };
             if (!parameters.TryGetValue("username", out var login))
@@ -151,10 +152,22 @@ namespace Stormancer.Server.Plugins.Users
             }
             if (user == null)
             {
+                string uid;
+                if (session != null)
+                {
+                    user = session.User;
+                }
 
-                var uid = Guid.NewGuid().ToString("N");
-                user = await users.CreateUser(uid, JObject.FromObject(new { login, email = email ?? "" }));
-
+                if(user !=null)
+                {
+                    uid = user.Id;
+                }
+                else
+                {
+                    uid = Guid.NewGuid().ToString("N");
+                    user = await users.CreateUser(uid, JObject.FromObject(new { login, email = email ?? "" }));
+                }
+                     
                 if (parameters.TryGetValue("pseudo", out var pseudo))
                 {
                     await sessions.UpdateUserHandle(uid, pseudo, true);

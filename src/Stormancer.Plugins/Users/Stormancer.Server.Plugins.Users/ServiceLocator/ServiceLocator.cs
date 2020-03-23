@@ -34,12 +34,23 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.ServiceLocator
 {
+    /// <summary>
+    /// Configuration of the service locator.
+    /// </summary>
     public class ServiceLocatorConfig
     {
+        /// <summary>
+        /// Default service locator mappings.
+        /// </summary>
+        /// <remarks>
+        /// serviceType => sceneIdPattern
+        /// The scene id pattern uses the SmartFormat format and is provided with serviceName and Context arguments.
+        /// The default mapping is executed if no IServiceLocator implementation could locate the service.
+        /// </remarks>
         public Dictionary<string, string> DefaultMapping { get; set; } = new Dictionary<string, string>();
 
     }
-    
+
     internal class ServiceLocator : IServiceLocator
     {
         private readonly IEnvironment _env;
@@ -48,7 +59,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
         private readonly Func<IEnumerable<IServiceLocatorProvider>> _handlers;
         private readonly ILogger _logger;
 
-        private ServiceLocatorConfig _config;
+        private ServiceLocatorConfig? _config;
 
         public ServiceLocator(
             Func<IEnumerable<IServiceLocatorProvider>> handlers,
@@ -73,12 +84,12 @@ namespace Stormancer.Server.Plugins.ServiceLocator
             _config = (e.serviceLocator as JObject)?.ToObject<ServiceLocatorConfig>() ?? new ServiceLocatorConfig();
         }
 
-        public async Task<string> GetSceneConnectionToken(string serviceType, string serviceName, Session session)
+        public async Task<string> GetSceneConnectionToken(string serviceType, string serviceName, Session? session)
         {
 
 
             var sceneUri = await GetSceneId(serviceType, serviceName, session);
-            
+
             if (sceneUri == null)
             {
                 throw new ClientException("notFound");
@@ -90,19 +101,19 @@ namespace Stormancer.Server.Plugins.ServiceLocator
                     _logger.Log(LogLevel.Warn, "locator", "session is null", new { });
                 }
                 serializer.Serialize(session, stream);
-                var token = await _managementClientAccessor.CreateConnectionToken(sceneUri ,stream.ToArray(), "stormancer/userSession");
-                
+                var token = await _managementClientAccessor.CreateConnectionToken(sceneUri, stream.ToArray(), "stormancer/userSession");
+
                 return token;
             }
         }
-        
-        public async Task<string> GetSceneId(string serviceType, string serviceName,Session session)
+
+        public async Task<string> GetSceneId(string serviceType, string serviceName, Session? session)
         {
             var handlers = _handlers();
             var ctx = new ServiceLocationCtx { ServiceName = serviceName, ServiceType = serviceType, Session = session };
             await handlers.RunEventHandler(slp => slp.LocateService(ctx), ex => _logger.Log(LogLevel.Error, "serviceLocator", "An error occured while executing the LocateService extensibility point", ex));
 
-            if (string.IsNullOrEmpty(ctx.SceneId) && _config.DefaultMapping.TryGetValue(ctx.ServiceType, out var template))
+            if (_config !=null && string.IsNullOrEmpty(ctx.SceneId) && _config.DefaultMapping.TryGetValue(ctx.ServiceType, out var template))
             {
                 ctx.SceneId = Smart.Format(template, ctx);
             }

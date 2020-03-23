@@ -28,13 +28,13 @@ using System.Text;
 namespace Stormancer.Server.Plugins.Facebook
 {
     /// <summary>
-    /// Plugin's initialization class.
+    /// Plugin's initialization class (internal use only).
     /// </summary>
     public class App
     {
 
         /// <summary>
-        /// Initializes the plugin.
+        /// Initializes the plugin (internal use only).
         /// </summary>
         /// <param name="builder"></param>
         public void Run(IAppBuilder builder)
@@ -43,7 +43,7 @@ namespace Stormancer.Server.Plugins.Facebook
         }
     }
 
-    public class FacebookPlugin : IHostPlugin
+    internal class FacebookPlugin : IHostPlugin
     {
         public void Build(HostPluginBuildContext ctx)
         {

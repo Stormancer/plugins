@@ -30,6 +30,9 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.ServiceLocator
 {
+    /// <summary>
+    /// Context passed to a service location request.
+    /// </summary>
     public class ServiceLocationCtx
     {
         /// <summary>
@@ -40,28 +43,31 @@ namespace Stormancer.Server.Plugins.ServiceLocator
         /// <summary>
         /// Name of the specific instance of the service we are trying to locate
         /// </summary>
-        public string ServiceName { get; set; }
+        public string? ServiceName { get; set; }
 
         public string SceneId { get; set; }
 
-
+        /// <summary>
+        /// Additionnal context for the request.
+        /// </summary>
         public Dictionary<string, string> Context { get; set; } = new Dictionary<string, string>();
 
-       
-        public Session Session { get; internal set; }
+        /// <summary>
+        /// Session of the user doing the request.
+        /// </summary>
+        public Session? Session { get; internal set; }
     }
 
-
     /// <summary>
-    /// Class implementing this interface can participate in the scene location process.
+    /// Classes implementing this interface can participate in the service location process.
     /// </summary>
     public interface IServiceLocatorProvider
     {
         /// <summary>
-        /// Called whenever the locator is trying to find a service.
+        /// Tries to locate a service.
         /// </summary>
-        /// <param name="ctx"></param>
-        /// <returns></returns>
+        /// <param name="ctx">Service location context.</param>
+        /// <returns>A task that completes when the method completes.</returns>
         Task LocateService(ServiceLocationCtx ctx);
     }
 }
