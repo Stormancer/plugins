@@ -44,7 +44,20 @@ namespace Stormancer.Server.Plugins.Steam
 
         public async Task GetProfiles(ProfileCtx ctx)
         {
-            var users = await Task.WhenAll(ctx.Users.Select(id => _users.GetUser(id)));
+            if (!ctx.DisplayOptions.ContainsKey("steam"))
+            {
+                return;
+            }
+
+            var users = (await Task.WhenAll(ctx.Users.Select(id => _users.GetUser(id))))
+                .Where(u => u.UserData.ContainsKey("steamid"))
+                .ToList();
+
+            if (users.Count == 0)
+            {
+                return;
+            }
+
             var steamProfiles = await _steam.GetPlayerSummaries(users.Select(u => (ulong)(u.UserData["steamid"] ?? 0)));
 
             foreach (var user in users)
@@ -55,9 +68,14 @@ namespace Stormancer.Server.Plugins.Steam
                     {
                         var steamId = (ulong)(user.UserData["steamid"] ?? 0);
                         var steamProfile = steamProfiles[steamId];
-                        j["steamid"] = steamId;
-                        j["personaname"] = steamProfile.personaname;
-                        j["avatar"] = steamProfile.avatarfull;
+                        if (steamProfile != null)
+                        {
+                            j["steamid"] = steamId;
+                            j["personaname"] = steamProfile.personaname;
+                            j["personastate"] = steamProfile.personastate;
+                            j["avatar"] = steamProfile.avatarfull;
+                            j["profileurl"] = steamProfile.profileurl;
+                        }
                     }
                     return j;
                 });
