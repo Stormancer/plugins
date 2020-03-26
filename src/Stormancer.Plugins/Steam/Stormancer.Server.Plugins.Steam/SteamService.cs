@@ -350,32 +350,18 @@ namespace Stormancer.Server.Plugins.Steam
             response.EnsureSuccessStatusCode();
         }
 
-        public async Task<IEnumerable<LobbyMetadataDto>> DecodeLobbyMetadataBearerTokens(IEnumerable<string> tokens)
+        public Task<IEnumerable<LobbyMetadataDto>> DecodePartyDataBearerTokens(IEnumerable<string> tokens)
         {
-            return tokens.Select(token => TokenGenerator.DecodeToken<LobbyMetadataDto>(token, _lobbyMetadataBearerTokenKey));
+            return Task.FromResult(
+                tokens.Select(token => TokenGenerator.DecodeToken<LobbyMetadataDto>(token, _lobbyMetadataBearerTokenKey))
+            );
         }
 
-        public async Task<string> CreateLobbyMetadataBearerToken(ulong? steamId = null, string? userId = null, string? partyId = null)
+        public Task<string> CreatePartyDataBearerToken(ulong steamId, string userId, string partyId)
         {
-            if (steamId == null || userId == null)
-            {
-                if (steamId == null)
-                {
-                    steamId = 0;
-                }
-
-                if (userId == null)
-                {
-                    userId = "";
-                }
-            }
-
-            if (partyId == null)
-            {
-                partyId = "";
-            }
-
-            return TokenGenerator.CreateToken(new LobbyMetadataDto { SteamId = (ulong)steamId, UserId = userId, PartyId = partyId }, _lobbyMetadataBearerTokenKey);
+            return Task.FromResult(
+                TokenGenerator.CreateToken(new LobbyMetadataDto { SteamId = steamId, UserId = userId, PartyId = partyId }, _lobbyMetadataBearerTokenKey)
+            );
         }
 
         private async Task<HttpResponseMessage> TryGetAsync(string requestUrl)

@@ -42,7 +42,8 @@ namespace Stormancer.Server.Plugins.Steam
         /// Steam controller constructor.
         /// </summary>
         /// <param name="userService"></param>
-        public SteamController(IUserService userService, IUserSessions userSessions, ISteamService steamService)
+        /// <param name="steamService"></param>
+        public SteamController(IUserService userService, ISteamService steamService)
         {
             _userService = userService;
             _steamService = steamService;
@@ -68,9 +69,9 @@ namespace Stormancer.Server.Plugins.Steam
         /// <param name="tokens">Tokens to decode</param>
         /// <returns></returns>
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<IEnumerable<LobbyMetadataDto>> DecodeLobbyMetadataBearerTokens(IEnumerable<string> tokens)
+        public async Task<IEnumerable<LobbyMetadataDto>> DecodePartyDataBearerTokens(IEnumerable<string> tokens)
         {
-            return await _steamService.DecodeLobbyMetadataBearerTokens(tokens);
+            return await _steamService.DecodePartyDataBearerTokens(tokens);
         }
     }
 
@@ -80,14 +81,20 @@ namespace Stormancer.Server.Plugins.Steam
     public class SteamPartyController : ControllerBase
     {
         private IPartyService _partyService { get; set; }
+        private IUserSessions _userSessions { get; set; }
+        private ISteamService _steamService { get; set; }
 
         /// <summary>
         /// Steam party controller constructor
         /// </summary>
         /// <param name="partyService"></param>
-        public SteamPartyController(IPartyService partyService)
+        /// <param name="userSessions"></param>
+        /// <param name="steamService"></param>
+        public SteamPartyController(IPartyService partyService, IUserSessions userSessions, ISteamService steamService)
         {
-            _partyService = _partyService;
+            _partyService = partyService;
+            _userSessions = userSessions;
+            _steamService = steamService;
         }
 
         /// <summary>
@@ -95,10 +102,27 @@ namespace Stormancer.Server.Plugins.Steam
         /// </summary>
         /// <returns></returns>
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<string> CreateLobbyMetadataBearerToken()
+        public async Task<string> CreatePartyDataBearerToken()
         {
-            var user = _userSessions.GetUser(this.Request.RemotePeer);
-            return await _steamService.CreateLobbyMetadataBearerToken(0, user.Id, _partyService.partyId());
+            var user = await _userSessions.GetUser(Request.RemotePeer);
+            var steamIdStr = (string?)user.Auth[SteamConstants.PROVIDER_NAME]?[SteamConstants.ClaimPath];
+            ulong steamId;
+
+            if (steamIdStr == null)
+            {
+                throw new Exception("SteamId is null");
+            }
+
+            try
+            {
+                steamId = ulong.Parse(steamIdStr);
+            }
+            catch (Exception)
+            {
+                throw new Exception("SteamId is invalid");
+            }
+
+            return await _steamService.CreatePartyDataBearerToken(steamId, user.Id, _partyService.PartyId);
         }
     }
 }

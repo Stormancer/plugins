@@ -47,7 +47,7 @@ namespace Stormancer.Server.Plugins.Steam
 
             ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
             {
-                if (scene.Template == Users.Constants.SCENE_TEMPLATE)
+                if (scene.Template == Constants.SCENE_TEMPLATE)
                 {
                     builder.Register<SteamAuthenticationProvider>().As<IAuthenticationProvider>();
                     builder.Register<SteamUserTicketAuthenticator>().As<ISteamUserTicketAuthenticator>();
@@ -59,6 +59,11 @@ namespace Stormancer.Server.Plugins.Steam
                 if (scene.Metadata.ContainsKey(METADATA_KEY))
                 {
                     scene.AddController<SteamController>();
+                }
+                
+                if (scene.Metadata.ContainsKey(PartyConstants.METADATA_KEY))
+                {
+                    scene.AddController<SteamPartyController>();
                 }
             };
         }
