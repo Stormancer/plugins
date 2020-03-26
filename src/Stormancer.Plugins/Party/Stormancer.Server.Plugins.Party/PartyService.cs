@@ -439,6 +439,8 @@ namespace Stormancer.Server.Plugins.Party
 
         public ConcurrentDictionary<string, object> ServerData => _partyState.ServerData;
 
+        public string PartyId => _scene.Id;
+
         public async Task UpdatePartyUserData(string userId, byte[] data)
         {
             await _partyState.TaskQueue.PushWork(async () =>
