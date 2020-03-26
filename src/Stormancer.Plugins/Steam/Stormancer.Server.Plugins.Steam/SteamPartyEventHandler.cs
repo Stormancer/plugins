@@ -22,6 +22,7 @@
 
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Party;
 using Stormancer.Server.Plugins.Party.Dto;
 using Stormancer.Server.Plugins.ServiceLocator;
@@ -84,6 +85,8 @@ namespace Stormancer.Server.Plugins.Steam
         private readonly ISerializer _serializer;
         private readonly IServiceLocator _locator;
 
+        private string _lobbyMetadataBearerTokenKey;
+
         /// <summary>
         /// Steam Party Event Handler contructor.
         /// </summary>
@@ -99,7 +102,8 @@ namespace Stormancer.Server.Plugins.Steam
             ILogger logger,
             RpcService rpc,
             ISerializer serializer,
-            IServiceLocator locator
+            IServiceLocator locator,
+            IConfiguration config
         )
         {
             _rpc = rpc;
@@ -108,6 +112,21 @@ namespace Stormancer.Server.Plugins.Steam
             _logger = logger;
             _serializer = serializer;
             _locator = locator;
+
+            config.SettingsChanged += (s, c) => ApplyConfig(c);
+            ApplyConfig(config.Settings);
+        }
+
+        private void ApplyConfig(dynamic config)
+        {
+            if (config.lobbyMetadataBearerTokenKey != null)
+            {
+                _lobbyMetadataBearerTokenKey = (string)config.lobbyBearerTokenKey;
+            }
+            else
+            {
+                _lobbyMetadataBearerTokenKey = "";
+            }
         }
 
         /// <summary>
@@ -191,9 +210,10 @@ namespace Stormancer.Server.Plugins.Steam
                                     ctx.Session.SessionId
                                 });
 
-                                var createLobbyResult = await _sessions.SendRequest("Steam.CreateLobby", "", ctx.Session.User.Id, stream =>
+                                var createLobbyResult = await _sessions.SendRequest("Steam.CreateLobby", "", ctx.Session.User.Id, async stream =>
                                 {
-                                    _serializer.Serialize(new CreateLobbyDto { LobbyType = lobbyType, MaxMembers = maxMembers, Joinable = true, Metadata = new Dictionary<string, string> { { "partyId", ctx.Party.Settings.PartyId } } }, stream);
+                                    var partyToken = await _steam.CreateLobbyMetadataBearerToken(steamId, ctx.Session.User.Id, ctx.Party.Settings.PartyId);
+                                    _serializer.Serialize(new CreateLobbyDto { LobbyType = lobbyType, MaxMembers = maxMembers, Joinable = true, Metadata = new Dictionary<string, string> { { "partyToken", partyToken } } }, stream);
                                 }, CancellationToken.None).LastOrDefaultAsync();
 
                                 using var stream = new MemoryStream(createLobbyResult);

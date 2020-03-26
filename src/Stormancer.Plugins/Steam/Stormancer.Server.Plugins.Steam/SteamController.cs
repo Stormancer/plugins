@@ -21,7 +21,9 @@
 // SOFTWARE.
 
 using Stormancer.Server.Plugins.API;
+using Stormancer.Server.Plugins.Party;
 using Stormancer.Server.Plugins.Users;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -34,26 +36,69 @@ namespace Stormancer.Server.Plugins.Steam
     public class SteamController : ControllerBase
     {
         private IUserService _userService { get; set; }
+        private ISteamService _steamService { get; set; }
 
         /// <summary>
         /// Steam controller constructor.
         /// </summary>
         /// <param name="userService"></param>
-        public SteamController(IUserService userService)
+        public SteamController(IUserService userService, IUserSessions userSessions, ISteamService steamService)
         {
             _userService = userService;
+            _steamService = steamService;
         }
 
         /// <summary>
         /// Query stormancer user ids from steam ids.
         /// </summary>
         /// <param name="steamIds"></param>
-        /// <returns></returns>
+        /// <returns>Map<steamId, userId></returns>
+        /// <remarks>Obsolete: This api has some security issues</remarks>
+        [Obsolete]
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task<Dictionary<ulong, string>> QueryUserIds(IEnumerable<ulong> steamIds)
         {
             var users = await _userService.GetUsersByClaim2(SteamConstants.PROVIDER_NAME, SteamConstants.ClaimPath, steamIds.Select(steamId => steamId.ToString()).ToArray());
             return users.ToDictionary(kvp => ulong.Parse(kvp.Key), kvp => kvp.Value.Id);
+        }
+
+        /// <summary>
+        /// Decode Lobby metadata bearer token.
+        /// </summary>
+        /// <param name="tokens">Tokens to decode</param>
+        /// <returns></returns>
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task<IEnumerable<LobbyMetadataDto>> DecodeLobbyMetadataBearerTokens(IEnumerable<string> tokens)
+        {
+            return await _steamService.DecodeLobbyMetadataBearerTokens(tokens);
+        }
+    }
+
+    /// <summary>
+    /// Steam party controller
+    /// </summary>
+    public class SteamPartyController : ControllerBase
+    {
+        private IPartyService _partyService { get; set; }
+
+        /// <summary>
+        /// Steam party controller constructor
+        /// </summary>
+        /// <param name="partyService"></param>
+        public SteamPartyController(IPartyService partyService)
+        {
+            _partyService = _partyService;
+        }
+
+        /// <summary>
+        /// Create lobby metadata bearer token.
+        /// </summary>
+        /// <returns></returns>
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task<string> CreateLobbyMetadataBearerToken()
+        {
+            var user = _userSessions.GetUser(this.Request.RemotePeer);
+            return await _steamService.CreateLobbyMetadataBearerToken(0, user.Id, _partyService.partyId());
         }
     }
 }

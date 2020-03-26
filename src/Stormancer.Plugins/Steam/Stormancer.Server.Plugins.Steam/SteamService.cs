@@ -24,6 +24,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Configuration;
+using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,10 +42,12 @@ namespace Stormancer.Server.Plugins.Steam
 
         private string _apiKey = "";
         private uint _appId;
+        private string _lobbyMetadataBearerTokenKey = "";
 
         private bool _usemockup;
 
         private ILogger _logger;
+        private IUserSessions _userSessions;
 
         public static HttpClient client = new HttpClient();
 
@@ -53,9 +56,11 @@ namespace Stormancer.Server.Plugins.Steam
         /// </summary>
         /// <param name="configuration"></param>
         /// <param name="logger"></param>
-        public SteamService(IConfiguration configuration, ILogger logger)
+        /// <param name="userSessions"></param>
+        public SteamService(IConfiguration configuration, ILogger logger, IUserSessions userSessions)
         {
             _logger = logger;
+            _userSessions = userSessions;
 
             var steamElement = configuration.Settings?.steam;
 
@@ -67,6 +72,7 @@ namespace Stormancer.Server.Plugins.Steam
         private void ApplyConfig(dynamic steamElement)
         {
             _apiKey = ((string?)steamElement?.apiKey) ?? "";
+            _lobbyMetadataBearerTokenKey = ((string?)steamElement?.lobbyMetadataBearerTokenKey) ?? "";
 
             var dynamicAppId = steamElement?.appId;
             if (dynamicAppId != null)
@@ -342,6 +348,34 @@ namespace Stormancer.Server.Plugins.Steam
 
             var response = await TryPostForServiceAsync(requestUrl, body);
             response.EnsureSuccessStatusCode();
+        }
+
+        public async Task<IEnumerable<LobbyMetadataDto>> DecodeLobbyMetadataBearerTokens(IEnumerable<string> tokens)
+        {
+            return tokens.Select(token => TokenGenerator.DecodeToken<LobbyMetadataDto>(token, _lobbyMetadataBearerTokenKey));
+        }
+
+        public async Task<string> CreateLobbyMetadataBearerToken(ulong? steamId = null, string? userId = null, string? partyId = null)
+        {
+            if (steamId == null || userId == null)
+            {
+                if (steamId == null)
+                {
+                    steamId = 0;
+                }
+
+                if (userId == null)
+                {
+                    userId = "";
+                }
+            }
+
+            if (partyId == null)
+            {
+                partyId = "";
+            }
+
+            return TokenGenerator.CreateToken(new LobbyMetadataDto { SteamId = (ulong)steamId, UserId = userId, PartyId = partyId }, _lobbyMetadataBearerTokenKey);
         }
 
         private async Task<HttpResponseMessage> TryGetAsync(string requestUrl)
