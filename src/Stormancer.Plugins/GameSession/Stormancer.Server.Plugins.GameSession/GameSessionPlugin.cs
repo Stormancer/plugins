@@ -108,7 +108,7 @@ namespace Stormancer.Server.Plugins.GameSession
             }
         }
 
-        public Task Setup(Dictionary<string, string> parameters)
+        public Task Setup(Dictionary<string, string> parameters, Session? session)
         {
             throw new NotSupportedException();
         }

@@ -35,7 +35,7 @@ namespace Stormancer.Server.Plugins.Steam
     /// <summary>
     /// Steam authentication provider.
     /// </summary>
-    public class SteamAuthenticationProvider : IAuthenticationProvider, IUserSessionEventHandler
+    class SteamAuthenticationProvider : IAuthenticationProvider, IUserSessionEventHandler
     {
         private ConcurrentDictionary<ulong, string> _vacSessions = new ConcurrentDictionary<ulong, string>();
         private bool _vacEnabled = false;
@@ -209,7 +209,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// </summary>
         /// <param name="parameters"></param>
         /// <returns></returns>
-        public Task Setup(Dictionary<string, string> parameters)
+        public Task Setup(Dictionary<string, string> parameters, Session? session)
         {
             throw new NotImplementedException();
         }

@@ -860,6 +860,8 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private AsyncLock _asyncLock = new AsyncLock();
 
+        public string PartyId => _scene.Id;
+
         private async Task EvaluateGameComplete()
         {
             using (await _asyncLock.LockAsync())

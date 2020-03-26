@@ -34,6 +34,10 @@ namespace Stormancer.Server.Plugins.GameSession
 {
     public interface IGameSessionService
     {
+        /// <summary>
+        /// Returns the id of the party.
+        /// </summary>
+        string PartyId { get; }
         void SetConfiguration(dynamic metadata);
         Task<Action<Stream,ISerializer>> PostResults(Stream inputStream, IScenePeerClient remotePeer);
         Task UpdateShutdownMode(ShutdownModeParameters shutdown);

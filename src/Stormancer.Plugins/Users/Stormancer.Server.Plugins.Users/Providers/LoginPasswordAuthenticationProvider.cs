@@ -150,6 +150,8 @@ namespace Stormancer.Server.Plugins.Users
             {
                 throw new ClientException("auth.loginPassword.create.accountAlreadyExist");
             }
+
+
             if (user == null)
             {
                 string uid;

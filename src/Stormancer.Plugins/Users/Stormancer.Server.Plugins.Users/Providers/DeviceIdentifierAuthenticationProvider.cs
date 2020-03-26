@@ -84,7 +84,7 @@ namespace Stormancer.Server.Plugins.Users
 
         }
 
-        public Task Setup(Dictionary<string, string> parameters)
+        public Task Setup(Dictionary<string, string> parameters, Session? session)
         {
             throw new NotImplementedException();
         }
