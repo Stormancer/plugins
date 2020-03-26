@@ -212,8 +212,8 @@ namespace Stormancer.Server.Plugins.Steam
 
                                 var createLobbyResult = await _userSessions.SendRequest("Steam.CreateLobby", "", ctx.Session.User.Id, async stream =>
                                 {
-                                    var lobbyBearerToken = await _steamService.CreatePartyDataBearerToken(steamId, ctx.Session.User.Id, ctx.Party.Settings.PartyId);
-                                    _serializer.Serialize(new CreateLobbyDto { LobbyType = lobbyType, MaxMembers = maxMembers, Joinable = true, Metadata = new Dictionary<string, string> { { "partyDataToken", lobbyBearerToken } } }, stream);
+                                    var partyDataBearerToken = await _steamService.CreatePartyDataBearerToken(steamId, ctx.Session.User.Id, ctx.Party.Settings.PartyId);
+                                    _serializer.Serialize(new CreateLobbyDto { LobbyType = lobbyType, MaxMembers = maxMembers, Joinable = true, Metadata = new Dictionary<string, string> { { "partyDataToken", partyDataBearerToken } } }, stream);
                                 }, CancellationToken.None).LastOrDefaultAsync();
 
                                 using var stream = new MemoryStream(createLobbyResult);
