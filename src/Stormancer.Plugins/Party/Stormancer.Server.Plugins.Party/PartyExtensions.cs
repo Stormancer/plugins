@@ -29,7 +29,7 @@ namespace Stormancer
     {
         public static void AddParty(this ISceneHost scene)
         {
-            scene.Metadata[PartyPlugin.PARTY_METADATA_KEY] = PartyController.PROTOCOL_VERSION;
+            scene.Metadata[PartyConstants.METADATA_KEY] = PartyController.PROTOCOL_VERSION;
             scene.Metadata[PartyService.REVISION_METADATA_KEY] = PartyService.REVISION;
         }
     }
