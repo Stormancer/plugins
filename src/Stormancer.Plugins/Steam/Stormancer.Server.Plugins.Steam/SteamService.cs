@@ -350,17 +350,17 @@ namespace Stormancer.Server.Plugins.Steam
             response.EnsureSuccessStatusCode();
         }
 
-        public Task<IEnumerable<LobbyMetadataDto>> DecodePartyDataBearerTokens(IEnumerable<string> tokens)
+        public Task<IEnumerable<PartyDataDto>> DecodePartyDataBearerTokens(IEnumerable<string> tokens)
         {
             return Task.FromResult(
-                tokens.Select(token => TokenGenerator.DecodeToken<LobbyMetadataDto>(token, _lobbyMetadataBearerTokenKey))
+                tokens.Select(token => TokenGenerator.DecodeToken<PartyDataDto>(token, _lobbyMetadataBearerTokenKey))
             );
         }
 
         public Task<string> CreatePartyDataBearerToken(ulong steamId, string userId, string partyId)
         {
             return Task.FromResult(
-                TokenGenerator.CreateToken(new LobbyMetadataDto { SteamId = steamId, UserId = userId, PartyId = partyId }, _lobbyMetadataBearerTokenKey)
+                TokenGenerator.CreateToken(new PartyDataDto { SteamId = steamId, UserId = userId, PartyId = partyId }, _lobbyMetadataBearerTokenKey)
             );
         }
 

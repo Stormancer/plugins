@@ -68,7 +68,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// <param name="tokens">Tokens to decode</param>
         /// <returns></returns>
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<IEnumerable<LobbyMetadataDto>> DecodePartyDataBearerTokens(IEnumerable<string> tokens)
+        public async Task<IEnumerable<PartyDataDto>> DecodePartyDataBearerTokens(IEnumerable<string> tokens)
         {
             return await _steamService.DecodePartyDataBearerTokens(tokens);
         }
