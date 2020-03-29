@@ -87,7 +87,7 @@ namespace Stormancer.server.Plugins.Firebase
             throw new NotImplementedException();
         }
 
-        public Task Setup(Dictionary<string, string> parameters)
+        public Task Setup(Dictionary<string, string> parameters, Session? session)
         {
             throw new ClientException("notSupported");
         }
