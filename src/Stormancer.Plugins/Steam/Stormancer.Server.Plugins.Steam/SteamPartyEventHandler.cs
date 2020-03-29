@@ -22,6 +22,7 @@
 
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Party;
 using Stormancer.Server.Plugins.Party.Dto;
 using Stormancer.Server.Plugins.ServiceLocator;
@@ -78,11 +79,13 @@ namespace Stormancer.Server.Plugins.Steam
         private const string PartyLobbyKey = "steam.lobby";
 
         private readonly RpcService _rpc;
-        private readonly IUserSessions _sessions;
-        private readonly ISteamService _steam;
+        private readonly IUserSessions _userSessions;
+        private readonly ISteamService _steamService;
         private readonly ILogger _logger;
         private readonly ISerializer _serializer;
-        private readonly IServiceLocator _locator;
+        private readonly IServiceLocator _serviceLocator;
+
+        private string _lobbyMetadataBearerTokenKey;
 
         /// <summary>
         /// Steam Party Event Handler contructor.
@@ -99,15 +102,31 @@ namespace Stormancer.Server.Plugins.Steam
             ILogger logger,
             RpcService rpc,
             ISerializer serializer,
-            IServiceLocator locator
+            IServiceLocator locator,
+            IConfiguration config
         )
         {
             _rpc = rpc;
-            _sessions = sessions;
-            _steam = steam;
+            _userSessions = sessions;
+            _steamService = steam;
             _logger = logger;
             _serializer = serializer;
-            _locator = locator;
+            _serviceLocator = locator;
+
+            config.SettingsChanged += (s, c) => ApplyConfig(c);
+            ApplyConfig(config.Settings);
+        }
+
+        private void ApplyConfig(dynamic config)
+        {
+            if (config.lobbyMetadataBearerTokenKey != null)
+            {
+                _lobbyMetadataBearerTokenKey = (string)config.lobbyBearerTokenKey;
+            }
+            else
+            {
+                _lobbyMetadataBearerTokenKey = "";
+            }
         }
 
         /// <summary>
@@ -191,9 +210,10 @@ namespace Stormancer.Server.Plugins.Steam
                                     ctx.Session.SessionId
                                 });
 
-                                var createLobbyResult = await _sessions.SendRequest("Steam.CreateLobby", "", ctx.Session.User.Id, stream =>
+                                var createLobbyResult = await _userSessions.SendRequest("Steam.CreateLobby", "", ctx.Session.User.Id, async stream =>
                                 {
-                                    _serializer.Serialize(new CreateLobbyDto { LobbyType = lobbyType, MaxMembers = maxMembers, Joinable = true, Metadata = new Dictionary<string, string> { { "partyId", ctx.Party.Settings.PartyId } } }, stream);
+                                    var partyDataBearerToken = await _steamService.CreatePartyDataBearerToken(steamId, ctx.Session.User.Id, ctx.Party.Settings.PartyId);
+                                    _serializer.Serialize(new CreateLobbyDto { LobbyType = lobbyType, MaxMembers = maxMembers, Joinable = true, Metadata = new Dictionary<string, string> { { "partyDataToken", partyDataBearerToken } } }, stream);
                                 }, CancellationToken.None).LastOrDefaultAsync();
 
                                 using var stream = new MemoryStream(createLobbyResult);
@@ -228,7 +248,7 @@ namespace Stormancer.Server.Plugins.Steam
                             {
                                 // Join lobby
 
-                                await _sessions.SendRequest("Steam.JoinLobby", "", ctx.Session.User.Id, stream =>
+                                await _userSessions.SendRequest("Steam.JoinLobby", "", ctx.Session.User.Id, stream =>
                                 {
                                     _serializer.Serialize(new JoinLobbyDto { SteamIDLobby = data.SteamIDLobby }, stream);
                                 }, CancellationToken.None).LastOrDefaultAsync();
@@ -303,7 +323,7 @@ namespace Stormancer.Server.Plugins.Steam
                 {
                     await data.TaskQueue.PushWork(async () =>
                     {
-                        await _steam.RemoveUserFromLobby(steamUserData.SteamId, data.SteamIDLobby);
+                        await _steamService.RemoveUserFromLobby(steamUserData.SteamId, data.SteamIDLobby);
                         data.DecrementNumMembers();
                         data.UserData.TryRemove(sessionId, out var _);
                     });

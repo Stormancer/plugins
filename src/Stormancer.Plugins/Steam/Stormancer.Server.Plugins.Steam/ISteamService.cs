@@ -107,5 +107,18 @@ namespace Stormancer.Server.Plugins.Steam
         /// <param name="sessionId"></param>
         /// <returns></returns>
         Task<bool> RequestVACStatusForUser(string steamId, string sessionId);
+
+        /// <summary>
+        /// Decode Lobby metadata bearer token.
+        /// </summary>
+        /// <param name="tokens"></param>
+        /// <returns></returns>
+        Task<IEnumerable<PartyDataDto>> DecodePartyDataBearerTokens(IEnumerable<string> tokens);
+
+        /// <summary>
+        /// Create lobby metadata bearer token.
+        /// </summary>
+        /// <returns></returns>
+        Task<string> CreatePartyDataBearerToken(ulong steamId, string userId, string partyId);
     }
 }

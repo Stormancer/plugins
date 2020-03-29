@@ -45,7 +45,6 @@ namespace Stormancer.Server.Plugins.Party
     /// <seealso cref="GameFinder.GameFinderPlugin"/>
     class PartyPlugin : IHostPlugin
     {
-        internal const string PARTY_METADATA_KEY = "stormancer.party";
         internal const string PARTYMANAGEMENT_METADATA_KEY = "stormancer.partymanagement";
         public const string PARTY_SCENE_TYPE = "party";
         public const string CLIENT_METADATA_KEY = "stormancer.party.plugin";
@@ -61,14 +60,16 @@ namespace Stormancer.Server.Plugins.Party
                 builder.Register<PartyState>().InstancePerScene();
                 builder.Register<StormancerPartyPlatformSupport>().As<IPartyPlatformSupport>().AsSelf().InstancePerRequest();
             };
+
             ctx.HostStarting += (host) => {
                 host.AddSceneTemplate(PARTY_SCENE_TYPE, (ISceneHost scene) => {
                     scene.AddParty();
                 });
             };
+
             ctx.SceneCreated += (ISceneHost scene) =>
             {
-                if (scene.Metadata.ContainsKey(PARTY_METADATA_KEY))
+                if (scene.Metadata.ContainsKey(PartyConstants.METADATA_KEY))
                 {
                     scene.AddController<PartyController>();
 
