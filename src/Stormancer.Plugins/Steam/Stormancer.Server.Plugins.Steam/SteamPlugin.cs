@@ -39,7 +39,7 @@ namespace Stormancer.Server.Plugins.Steam
             {
                 builder.Register<SteamController>().InstancePerRequest();
                 builder.Register<SteamProfilePartBuilder>().As<IProfilePartBuilder>();
-                builder.Register<SteamService>().As<ISteamService>().InstancePerScene();
+                builder.Register<SteamService>().As<ISteamService>().InstancePerRequest();
                 //builder.Register<SteamFriendsEventHandler>().As<IFriendsEventHandler>();
                 builder.Register<SteamPartyEventHandler>().As<IPartyEventHandler>().InstancePerRequest();
                 builder.Register<SteamUserTicketAuthenticator>().As<ISteamUserTicketAuthenticator>();
