@@ -93,7 +93,7 @@ namespace Stormancer.Server.Plugins.Users
         /// Use this function to implement create account or auth update capabilities.
         /// </remarks>
         /// <returns></returns>
-        Task Setup(Dictionary<string, string> parameters, Session? session);
+        Task Setup(Dictionary<string, string> parameters, Session? session) => throw new NotSupportedException();
 
         /// <summary>
         /// Called when the client requests their authentication status.
