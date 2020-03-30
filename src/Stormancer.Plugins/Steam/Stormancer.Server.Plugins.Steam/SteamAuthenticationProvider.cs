@@ -53,13 +53,15 @@ namespace Stormancer.Server.Plugins.Steam
         /// <param name="users"></param>
         /// <param name="steam"></param>
         /// <param name="authenticator"></param>
-        public SteamAuthenticationProvider(IConfiguration config, ILogger logger, IUserService users, ISteamService steam, ISteamUserTicketAuthenticator authenticator)
+        public SteamAuthenticationProvider(IConfiguration configuration, ILogger logger, IUserService users, ISteamService steam, ISteamUserTicketAuthenticator authenticator)
         {
             _logger = logger;
             _users = users;
             _steam = steam;
             _authenticator = authenticator;
-            ApplyConfig(config);
+
+            ApplyConfig(configuration.Settings);
+            configuration.SettingsChanged += (s, c) => ApplyConfig(c);
         }
 
         /// <summary>
@@ -71,11 +73,9 @@ namespace Stormancer.Server.Plugins.Steam
             result["provider.steamauthentication"] = "enabled";
         }
 
-        private void ApplyConfig(IConfiguration config)
+        private void ApplyConfig(dynamic config)
         {
-            var steamConfig = config.Settings.steam;
-
-            _vacEnabled = steamConfig != null && steamConfig?.vac != null && (bool)steamConfig?.vac;
+            _vacEnabled = config?.steam?.vac ?? false;
         }
 
         /// <summary>

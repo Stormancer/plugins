@@ -40,11 +40,10 @@ namespace Stormancer.Server.Plugins.Steam
         private const string FallbackApiRoot = "https://api.steampowered.com";
         private const string FallbackApiRooWithIp = "https://208.64.202.87";
 
-        private string _apiKey = "";
-        private uint _appId;
-        private string _lobbyMetadataBearerTokenKey = "";
-
         private bool _usemockup;
+        private uint _appId;
+        private string _apiKey = "";
+        private string _lobbyMetadataBearerTokenKey = "";
 
         private ILogger _logger;
         private IUserSessions _userSessions;
@@ -62,29 +61,16 @@ namespace Stormancer.Server.Plugins.Steam
             _logger = logger;
             _userSessions = userSessions;
 
-            var steamElement = configuration.Settings?.steam;
-
-            ApplyConfig(steamElement);
-
-            configuration.SettingsChanged += (sender, settings) => ApplyConfig(settings?.steam);
+            ApplyConfig(configuration.Settings);
+            configuration.SettingsChanged += (sender, settings) => ApplyConfig(settings);
         }
 
-        private void ApplyConfig(dynamic steamElement)
+        private void ApplyConfig(dynamic config)
         {
-            _apiKey = ((string?)steamElement?.apiKey) ?? "";
-            _lobbyMetadataBearerTokenKey = ((string?)steamElement?.lobbyMetadataBearerTokenKey) ?? "";
-
-            var dynamicAppId = steamElement?.appId;
-            if (dynamicAppId != null)
-            {
-                _appId = (uint)dynamicAppId;
-            }
-
-            var dynamicUseMockup = steamElement?.usemockup;
-            if (dynamicUseMockup != null)
-            {
-                _usemockup = (bool)dynamicUseMockup;
-            }
+            _usemockup = (bool?)config?.steam?.usemockup ?? false;
+            _appId = (uint?)config?.steam?.appId ?? (uint)0;
+            _apiKey = (string?)config?.steam?.apiKey ?? "";
+            _lobbyMetadataBearerTokenKey = (string?)config?.steam?.lobbyMetadataBearerTokenKey ?? "";
         }
 
         public async Task<ulong?> AuthenticateUserTicket(string ticket)

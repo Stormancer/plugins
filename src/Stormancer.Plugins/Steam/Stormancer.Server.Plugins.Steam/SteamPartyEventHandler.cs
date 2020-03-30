@@ -103,7 +103,7 @@ namespace Stormancer.Server.Plugins.Steam
             RpcService rpc,
             ISerializer serializer,
             IServiceLocator locator,
-            IConfiguration config
+            IConfiguration configuration
         )
         {
             _rpc = rpc;
@@ -113,20 +113,13 @@ namespace Stormancer.Server.Plugins.Steam
             _serializer = serializer;
             _serviceLocator = locator;
 
-            config.SettingsChanged += (s, c) => ApplyConfig(c);
-            ApplyConfig(config.Settings);
+            ApplyConfig(configuration.Settings);
+            configuration.SettingsChanged += (s, c) => ApplyConfig(c);
         }
 
         private void ApplyConfig(dynamic config)
         {
-            if (config.lobbyMetadataBearerTokenKey != null)
-            {
-                _lobbyMetadataBearerTokenKey = (string)config.lobbyBearerTokenKey;
-            }
-            else
-            {
-                _lobbyMetadataBearerTokenKey = "";
-            }
+            _lobbyMetadataBearerTokenKey = config?.steam?.lobbyMetadataBearerTokenKey ?? "";
         }
 
         /// <summary>
