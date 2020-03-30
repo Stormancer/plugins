@@ -84,6 +84,7 @@ namespace Stormancer.server.Plugins.Firebase
 
         public Task<DateTime?> RenewCredentials(AuthenticationContext authenticationContext)
         {
+
             throw new NotImplementedException();
         }
 
