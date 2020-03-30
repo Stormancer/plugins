@@ -119,7 +119,7 @@ namespace Stormancer.Server.Plugins.Steam
 
         private void ApplyConfig(dynamic config)
         {
-            _lobbyMetadataBearerTokenKey = config?.steam?.lobbyMetadataBearerTokenKey ?? "";
+            _lobbyMetadataBearerTokenKey = (string?)config?.steam?.lobbyMetadataBearerTokenKey ?? "";
         }
 
         /// <summary>
