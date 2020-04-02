@@ -20,7 +20,7 @@
         ///     ctx.PartyRequest.ServerSettings[Settings.CreateLobbyPartyServerSetting] = "false";
         /// }
         /// </example>
-        public const string CreateLobby = "steam.createLobby";
+        public const string ShouldCreateLobby = "steam.shouldCreateLobby";
 
         /// <summary>
         /// Setting key used to set the type of lobby

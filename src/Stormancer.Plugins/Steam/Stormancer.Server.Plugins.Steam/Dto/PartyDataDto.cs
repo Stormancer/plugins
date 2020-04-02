@@ -11,18 +11,18 @@ namespace Stormancer.Server.Plugins.Steam
         /// User Id
         /// </summary>
         [MessagePackMember(0)]
-        public string UserId { get; set; } = "";
+        public string PartyId { get; set; } = "";
 
         /// <summary>
         /// Party Id
         /// </summary>
         [MessagePackMember(1)]
-        public string PartyId { get; set; } = "";
+        public string LeaderUserId { get; set; } = "";
 
         /// <summary>
         /// Steam Id
         /// </summary>
         [MessagePackMember(2)]
-        public ulong SteamId { get; set; }
+        public ulong LeaderSteamId { get; set; }
     }
 }

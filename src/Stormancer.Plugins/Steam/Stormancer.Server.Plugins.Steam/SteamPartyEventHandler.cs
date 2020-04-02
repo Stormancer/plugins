@@ -159,9 +159,14 @@ namespace Stormancer.Server.Plugins.Steam
         /// <returns></returns>
         public async Task OnJoining(JoiningPartyContext ctx)
         {
+            if (ctx.Session.platformId.Platform != SteamConstants.PROVIDER_NAME)
+            {
+                return;
+            }
+
             if (ctx.Accept && ctx.Session.platformId.Platform == SteamConstants.PROVIDER_NAME)
             {
-                if (ctx.Party.Settings.ServerSettings.SteamCreateLobby() == true)
+                if (ctx.Party.Settings.ServerSettings.ShouldCreateSteamLobby() == true)
                 {
                     var data = (SteamPartyData)ctx.Party.ServerData.GetOrAdd(PartyLobbyKey, new SteamPartyData());
 
@@ -187,10 +192,9 @@ namespace Stormancer.Server.Plugins.Steam
                                 throw new Exception("SteamId is invalid");
                             }
 
-                            // If Steam lobby does not exist, we create it
+                            // If the Steam lobby does not exist, we create it
                             if (data.SteamIDLobby == 0)
                             {
-                                // Create
                                 var lobbyName = $"{LobbyPrefix}{ctx.Party.Settings.PartyId}";
                                 var joinable = ctx.Party.Settings.IsJoinable;
                                 var maxMembers = ctx.Party.Settings.ServerSettings.SteamMaxMembers() ?? 5;
@@ -205,7 +209,7 @@ namespace Stormancer.Server.Plugins.Steam
 
                                 var createLobbyResult = await _userSessions.SendRequest("Steam.CreateLobby", "", ctx.Session.User.Id, async stream =>
                                 {
-                                    var partyDataBearerToken = await _steamService.CreatePartyDataBearerToken(steamId, ctx.Session.User.Id, ctx.Party.Settings.PartyId);
+                                    var partyDataBearerToken = await _steamService.CreatePartyDataBearerToken(ctx.Party.Settings.PartyId, ctx.Session.User.Id, steamId);
                                     _serializer.Serialize(new CreateLobbyDto { LobbyType = lobbyType, MaxMembers = maxMembers, Joinable = true, Metadata = new Dictionary<string, string> { { "partyDataToken", partyDataBearerToken } } }, stream);
                                 }, CancellationToken.None).LastOrDefaultAsync();
 
@@ -237,10 +241,9 @@ namespace Stormancer.Server.Plugins.Steam
                                     ctx.Accept = false;
                                 }
                             }
+                            // else we only join the Steam lobby
                             else
                             {
-                                // Join lobby
-
                                 await _userSessions.SendRequest("Steam.JoinLobby", "", ctx.Session.User.Id, stream =>
                                 {
                                     _serializer.Serialize(new JoinLobbyDto { SteamIDLobby = data.SteamIDLobby }, stream);

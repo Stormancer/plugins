@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Stormancer.Server.Plugins.Steam;
 using Stormancer.Server.Plugins.Users;
 
 namespace Stormancer
@@ -36,15 +37,16 @@ namespace Stormancer
         /// <returns></returns>
         public static ulong? GetSteamId(this User user)
         {
-            var steamId = user.UserData["steamid"]?.ToObject<string>();
-            if (steamId == null)
+            if (user.Auth.TryGetValue(SteamConstants.PROVIDER_NAME, out var steamAuth))
             {
-                return null;
+                var steamId = steamAuth[SteamConstants.ClaimPath];
+                if (steamId != null)
+                {
+                    return ulong.Parse(steamId.ToString());
+                }
             }
-            else
-            {
-                return ulong.Parse(steamId);
-            }
+
+            return null;
         }
     }
 }

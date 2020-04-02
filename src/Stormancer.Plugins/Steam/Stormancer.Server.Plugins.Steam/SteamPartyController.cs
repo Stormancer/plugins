@@ -34,19 +34,19 @@ namespace Stormancer.Server.Plugins.Steam
     public class SteamPartyController : ControllerBase
     {
         private IPartyService _partyService { get; set; }
-        private IUserSessions _userSessions { get; set; }
+        private IUserService _userService { get; set; }
         private ISteamService _steamService { get; set; }
 
         /// <summary>
         /// Steam party controller constructor
         /// </summary>
         /// <param name="partyService"></param>
-        /// <param name="userSessions"></param>
+        /// <param name="userService"></param>
         /// <param name="steamService"></param>
-        public SteamPartyController(IPartyService partyService, IUserSessions userSessions, ISteamService steamService)
+        public SteamPartyController(IPartyService partyService, IUserService userService, ISteamService steamService)
         {
             _partyService = partyService;
-            _userSessions = userSessions;
+            _userService = userService;
             _steamService = steamService;
         }
 
@@ -57,25 +57,10 @@ namespace Stormancer.Server.Plugins.Steam
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task<string> CreatePartyDataBearerToken()
         {
-            var user = await _userSessions.GetUser(Request.RemotePeer);
-            var steamIdStr = (string?)user.Auth[SteamConstants.PROVIDER_NAME]?[SteamConstants.ClaimPath];
-            ulong steamId;
-
-            if (steamIdStr == null)
-            {
-                throw new Exception("SteamId is null");
-            }
-
-            try
-            {
-                steamId = ulong.Parse(steamIdStr);
-            }
-            catch (Exception)
-            {
-                throw new Exception("SteamId is invalid");
-            }
-
-            return await _steamService.CreatePartyDataBearerToken(steamId, user.Id, _partyService.PartyId);
+            var leaderUserId = _partyService.Settings.PartyLeaderId;
+            var leaderUser = await _userService.GetUser(leaderUserId);
+            var leaderSteamId = leaderUser.GetSteamId() ?? 0;
+            return await _steamService.CreatePartyDataBearerToken(_partyService.PartyId, leaderUserId, leaderSteamId);
         }
     }
 }

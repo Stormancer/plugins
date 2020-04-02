@@ -13,9 +13,9 @@ namespace Stormancer.Server.Plugins.Party
         /// </summary>
         /// <param name="settings">Settings.</param>
         /// <returns>Boolena value indicating the party will create a steam lobby.</returns>
-        public static bool? SteamCreateLobby(this ServerPartySettings settings)
+        public static bool? ShouldCreateSteamLobby(this ServerPartySettings settings)
         {
-            return settings.TryGetValue(SteamSettingsConstants.CreateLobby, out var steamCreateLobby) ? bool.Parse(steamCreateLobby) : settings.CreatePlatformLobby();
+            return settings.TryGetValue(SteamSettingsConstants.ShouldCreateLobby, out var steamCreateLobby) ? bool.Parse(steamCreateLobby) : settings.ShouldCreatePlatformLobby();
         }
 
         /// <summary>
@@ -24,15 +24,15 @@ namespace Stormancer.Server.Plugins.Party
         /// <param name="settings">Settings</param>
         /// <param name="create">A boolean value indicating whether a Steam lobby should be created.</param>
         /// <returns>Settings.</returns>
-        public static ServerPartySettings SteamCreateLobby(this ServerPartySettings settings, bool? create)
+        public static ServerPartySettings ShouldSteamCreateLobby(this ServerPartySettings settings, bool? create)
         {
             if (create != null)
             {
-                settings[SteamSettingsConstants.CreateLobby] = create.ToString()!;
+                settings[SteamSettingsConstants.ShouldCreateLobby] = create.ToString()!;
             }
             else
             {
-                settings.Remove(SteamSettingsConstants.CreateLobby);
+                settings.Remove(SteamSettingsConstants.ShouldCreateLobby);
             }
             return settings;
         }

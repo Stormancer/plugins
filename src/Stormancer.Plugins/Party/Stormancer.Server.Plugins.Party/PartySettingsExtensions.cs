@@ -8,7 +8,7 @@
         /// <summary>
         /// Create a platform lobby
         /// </summary>
-        public const string CreatePlatformLobby = "party.createPlatformLobby";
+        public const string ShouldCreatePlatformLobby = "party.shouldCreatePlatformLobby";
 
         /// <summary>
         /// Max member party settings key.
@@ -26,9 +26,9 @@
         /// </summary>
         /// <param name="settings"></param>
         /// <returns></returns>
-        public static bool? CreatePlatformLobby(this ServerPartySettings settings)
+        public static bool? ShouldCreatePlatformLobby(this ServerPartySettings settings)
         {
-            return settings.TryGetValue(SettingsConstants.CreatePlatformLobby, out var createPlatformLobby) ? (bool?)bool.Parse(createPlatformLobby) : null;
+            return settings.TryGetValue(SettingsConstants.ShouldCreatePlatformLobby, out var createPlatformLobby) ? (bool?)bool.Parse(createPlatformLobby) : null;
         }
 
         /// <summary>
@@ -37,15 +37,15 @@
         /// <param name="settings"></param>
         /// <param name="createPlatformLobby"></param>
         /// <returns></returns>
-        public static ServerPartySettings CreatePlatformLobby(this ServerPartySettings settings, bool? createPlatformLobby)
+        public static ServerPartySettings ShouldCreatePlatformLobby(this ServerPartySettings settings, bool? createPlatformLobby)
         {
             if (createPlatformLobby != null)
             {
-                settings[SettingsConstants.CreatePlatformLobby] = createPlatformLobby.ToString()!;
+                settings[SettingsConstants.ShouldCreatePlatformLobby] = createPlatformLobby.ToString()!;
             }
             else
             {
-                settings.Remove(SettingsConstants.CreatePlatformLobby);
+                settings.Remove(SettingsConstants.ShouldCreatePlatformLobby);
             }
             return settings;
         }

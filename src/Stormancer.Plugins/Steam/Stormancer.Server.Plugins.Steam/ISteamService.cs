@@ -113,12 +113,12 @@ namespace Stormancer.Server.Plugins.Steam
         /// </summary>
         /// <param name="tokens"></param>
         /// <returns></returns>
-        Task<IEnumerable<PartyDataDto>> DecodePartyDataBearerTokens(IEnumerable<string> tokens);
+        Task<Dictionary<string, PartyDataDto>> DecodePartyDataBearerTokens(Dictionary<string, string> tokens);
 
         /// <summary>
         /// Create lobby metadata bearer token.
         /// </summary>
         /// <returns></returns>
-        Task<string> CreatePartyDataBearerToken(ulong steamId, string userId, string partyId);
+        Task<string> CreatePartyDataBearerToken(string partyId, string leaderUserId, ulong leaderSteamId);
     }
 }
