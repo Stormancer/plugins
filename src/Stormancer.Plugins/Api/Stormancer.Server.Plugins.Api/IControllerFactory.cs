@@ -566,10 +566,27 @@ namespace Stormancer.Server.Plugins.API
             {
                 return ctx.SendValue(value);
             }
+
+            public static async Task WriteResultAsyncEnumerable<TData>(RequestContext<IScenePeerClient> ctx, IAsyncEnumerable<TData> value, IDependencyResolver resolver)
+            {
+                await foreach(var v in value)
+                {
+                    await ctx.SendValue(v);
+                }
+            }
             public static Task WriteResult<TData>(RequestContext<IScenePeer> ctx, TData value, IDependencyResolver resolver)
             {
                 var serializer = resolver.Resolve<ISerializer>();
                 return ctx.SendValue(s => serializer.Serialize(value, s));
+            }
+
+            public static async Task WriteResulttAsyncEnumerable<TData>(RequestContext<IScenePeer> ctx, IAsyncEnumerable<TData> values, IDependencyResolver resolver)
+            {
+                await foreach (var value in values)
+                {
+                    var serializer = resolver.Resolve<ISerializer>();
+                    await ctx.SendValue(s => serializer.Serialize(value, s));
+                }
             }
 
             public static async Task ExecuteActionAndSendResult<TRq, TReturn>(T controller, TRq ctx, IDependencyResolver resolver, Func<T, TRq, IDependencyResolver, Task<TReturn>> executeControllerActionFunction, Func<TRq, TReturn, IDependencyResolver,Task> sendResultAction)
@@ -673,8 +690,16 @@ namespace Stormancer.Server.Plugins.API
                 var resolver = Expression.Parameter(typeof(IDependencyResolver), "resolver");
                 var data = Expression.Parameter(returnType, "value");
 
-                var writeResultMethod = typeof(ApiHelpers).GetRuntimeMethodExt("WriteResult", p => p[0].ParameterType == typeof(TRq));
-                return Expression.Lambda<Func<TRq, TReturn, IDependencyResolver,Task>>(Expression.Call(writeResultMethod.MakeGenericMethod(returnType), ctx, data, resolver), ctx, data, resolver).Compile();
+                if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>))
+                {
+                    var writeResultMethod = typeof(ApiHelpers).GetRuntimeMethodExt("WriteResultAsyncEnumerable", p => p[0].ParameterType == typeof(TRq));
+                    return Expression.Lambda<Func<TRq, TReturn, IDependencyResolver, Task>>(Expression.Call(writeResultMethod.MakeGenericMethod(returnType.GetGenericArguments()[0]), ctx, data, resolver), ctx, data, resolver).Compile();
+                }
+                else
+                {
+                    var writeResultMethod = typeof(ApiHelpers).GetRuntimeMethodExt("WriteResult", p => p[0].ParameterType == typeof(TRq));
+                    return Expression.Lambda<Func<TRq, TReturn, IDependencyResolver, Task>>(Expression.Call(writeResultMethod.MakeGenericMethod(returnType), ctx, data, resolver), ctx, data, resolver).Compile();
+                }
             }
         }
     }
