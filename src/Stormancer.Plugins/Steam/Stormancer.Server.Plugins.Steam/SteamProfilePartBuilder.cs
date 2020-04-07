@@ -30,7 +30,7 @@ namespace Stormancer.Server.Plugins.Steam
 {
     class SteamProfilePartBuilder : IProfilePartBuilder
     {
-        private const string LOG_CATEGORY = "SteamProgilePartBuilder";
+        private const string LOG_CATEGORY = "SteamProfilePartBuilder";
         private readonly IUserService _users;
         private readonly ISteamService _steam;
         private readonly ILogger _logger;
@@ -58,27 +58,45 @@ namespace Stormancer.Server.Plugins.Steam
                 return;
             }
 
-            var steamProfiles = await _steam.GetPlayerSummaries(users.Select(u => (ulong)(u.UserData["steamid"] ?? 0)));
-
-            foreach (var user in users)
+            if (ctx.DisplayOptions["steam"] == "details")
             {
-                ctx.UpdateProfileData(user.Id, "steam", j =>
+                var steamProfiles = await _steam.GetPlayerSummaries(users.Select(u => (ulong)(u.UserData["steamid"] ?? 0)));
+
+                foreach (var user in users)
                 {
-                    if (user != null)
+                    ctx.UpdateProfileData(user.Id, "steam", j =>
                     {
-                        var steamId = (ulong)(user.UserData["steamid"] ?? 0);
-                        var steamProfile = steamProfiles[steamId];
-                        if (steamProfile != null)
+                        if (user != null)
                         {
-                            j["steamid"] = steamId;
-                            j["personaname"] = steamProfile.personaname;
-                            j["personastate"] = steamProfile.personastate;
-                            j["avatar"] = steamProfile.avatarfull;
-                            j["profileurl"] = steamProfile.profileurl;
+                            var steamId = (ulong)(user.UserData["steamid"] ?? 0);
+                            var steamProfile = steamProfiles[steamId];
+                            if (steamProfile != null)
+                            {
+                                j["steamid"] = steamId;
+                                j["personaname"] = steamProfile.personaname;
+                                j["personastate"] = steamProfile.personastate;
+                                j["avatar"] = steamProfile.avatarfull;
+                                j["profileurl"] = steamProfile.profileurl;
+                            }
                         }
+                        return j;
+                    });
+                }
+            }
+            else
+            {
+                if (ctx.DisplayOptions["steam"] != "details")
+                {
+                    foreach (var user in users)
+                    {
+                        ctx.UpdateProfileData(user.Id, "steam", j =>
+                        {
+                            var steamId = (ulong)(user.UserData["steamid"] ?? 0);
+                            j["steamid"] = steamId;
+                            return j;
+                        });
                     }
-                    return j;
-                });
+                }
             }
         }
     }
