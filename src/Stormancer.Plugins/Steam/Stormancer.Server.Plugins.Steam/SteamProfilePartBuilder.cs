@@ -85,17 +85,14 @@ namespace Stormancer.Server.Plugins.Steam
             }
             else
             {
-                if (ctx.DisplayOptions["steam"] != "details")
+                foreach (var user in users)
                 {
-                    foreach (var user in users)
+                    ctx.UpdateProfileData(user.Id, "steam", j =>
                     {
-                        ctx.UpdateProfileData(user.Id, "steam", j =>
-                        {
-                            var steamId = (ulong)(user.UserData["steamid"] ?? 0);
-                            j["steamid"] = steamId;
-                            return j;
-                        });
-                    }
+                        var steamId = (ulong)(user.UserData["steamid"] ?? 0);
+                        j["steamid"] = steamId;
+                        return j;
+                    });
                 }
             }
         }
