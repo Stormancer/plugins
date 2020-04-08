@@ -37,38 +37,13 @@ namespace Stormancer.Server.Plugins.AdminApi
                 //Configure 
                 host.AddAdminApiConfiguration((app, env, scene) =>
                 {
-                    app.UseRouting();
-
-                    app.UseCors(option => option
-                       .AllowAnyOrigin()
-                       .AllowAnyMethod()
-                       .AllowAnyHeader());
-
-                    app.UseAuthentication();
-                    app.UseAuthorization();
-
-                    app.UseEndpoints(endpoints =>
+                    app.UseSwagger();
+                    app.UseSwaggerUI(c =>
                     {
-                        endpoints.MapControllers();
+                        c.SwaggerEndpoint("/swagger/v3/swagger.json", "Stormancer Web API V3");
+
                     });
-                }, (services, scene) =>
-                {
-                    services.AddLocalization();
-                    services.AddMvc(options =>
-                    {
-                    })
-                    .AddNewtonsoftJson()
-                    .AddControllersAsServices();
 
-                    services.AddSwaggerGen(c =>
-                    {
-
-                        c.SwaggerDoc("v3", new OpenApiInfo { Title = "Stormancer Grid web API", Version = "v3" });
-                    });
-                });
-
-                host.AddWebApiConfiguration((app, env, scene) =>
-                {
                     app.UseRouting();
 
                     app.UseCors(option => option
@@ -96,6 +71,53 @@ namespace Stormancer.Server.Plugins.AdminApi
                             foreach (var config in configs)
                             {
                                 config.ConfigureApplicationParts(apm);
+                            }
+                        })
+                        .AddNewtonsoftJson()
+                        .AddControllersAsServices();
+  
+                    services.AddSwaggerGen(c =>
+                    {
+
+                        c.SwaggerDoc("v3", new OpenApiInfo { Title = "Stormancer Grid web API", Version = "v3" });
+                    });
+                });
+
+                host.AddWebApiConfiguration((app, env, scene) =>
+                {
+                    app.UseSwagger();
+                    app.UseSwaggerUI(c =>
+                    {
+                        c.SwaggerEndpoint("/swagger/v3/swagger.json", "Stormancer Web API V3");
+
+                    });
+                    app.UseRouting();
+
+                    app.UseCors(option => option
+                       .AllowAnyOrigin()
+                       .AllowAnyMethod()
+                       .AllowAnyHeader());
+
+                    app.UseAuthentication();
+                    app.UseAuthorization();
+
+                    app.UseEndpoints(endpoints =>
+                    {
+                        endpoints.MapControllers();
+                    });
+                }, (services, scene) =>
+                {
+                    services.AddLocalization();
+                    var configs = scene.DependencyResolver.Resolve<IEnumerable<IPublicWebApiConfig>>();
+
+                    services.AddMvc(options =>
+                    {
+                    })
+                        .ConfigureApplicationPartManager(apm =>
+                        {
+                            foreach (var config in configs)
+                            {
+                                //config.ConfigureApplicationParts(apm);
                             }
                         })
                         .AddNewtonsoftJson()

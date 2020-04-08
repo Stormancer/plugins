@@ -25,9 +25,21 @@ using Microsoft.AspNetCore.Mvc.ApplicationParts;
 namespace Stormancer.Server.Plugins.AdminApi
 {
     /// <summary>
-    /// Class implementing this interface can add parts to the admin web API.
+    /// Classes implementing this interface can add parts to the admin web API.
     /// </summary>
     public interface IAdminWebApiConfig
+    {
+        /// <summary>
+        /// Configures the admin web API parts manager.
+        /// </summary>
+        /// <param name="apm"></param>
+        void ConfigureApplicationParts(ApplicationPartManager apm);
+    }
+
+    /// <summary>
+    /// Classes implementing this interface can add parts to the public web API.
+    /// </summary>
+    public interface IPublicWebApiConfig
     {
         /// <summary>
         /// Configures the admin web API parts manager.
