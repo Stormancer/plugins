@@ -176,20 +176,13 @@ namespace Stormancer.Server.Plugins.Steam
                         {
                             // Get steamId
                             ulong steamId;
-                            var steamIdStr = (string?)ctx.Session.User.Auth[SteamConstants.PROVIDER_NAME]?[SteamConstants.ClaimPath];
-
-                            if (steamIdStr == null)
-                            {
-                                throw new Exception("SteamId is null");
-                            }
-
                             try
                             {
-                                steamId = ulong.Parse(steamIdStr);
+                                steamId = (ulong)ctx.Session.User.GetSteamId()!;
                             }
-                            catch (Exception)
+                            catch (Exception ex)
                             {
-                                throw new Exception("SteamId is invalid");
+                                throw new AggregateException("SteamId is invalid", ex);
                             }
 
                             // If the Steam lobby does not exist, we create it
@@ -210,7 +203,12 @@ namespace Stormancer.Server.Plugins.Steam
                                 var createLobbyResult = await _userSessions.SendRequest("Steam.CreateLobby", "", ctx.Session.User.Id, async stream =>
                                 {
                                     var partyDataBearerToken = await _steamService.CreatePartyDataBearerToken(ctx.Party.Settings.PartyId, ctx.Session.User.Id, steamId);
-                                    _serializer.Serialize(new CreateLobbyDto { LobbyType = lobbyType, MaxMembers = maxMembers, Joinable = true, Metadata = new Dictionary<string, string> { { "partyDataToken", partyDataBearerToken } } }, stream);
+                                    _serializer.Serialize(new CreateLobbyDto {
+                                        LobbyType = lobbyType,
+                                        MaxMembers = maxMembers,
+                                        Joinable = true,
+                                        Metadata = new Dictionary<string, string> { { "partyDataToken", partyDataBearerToken } }
+                                    }, stream);
                                 }, CancellationToken.None).LastOrDefaultAsync();
 
                                 using var stream = new MemoryStream(createLobbyResult);
