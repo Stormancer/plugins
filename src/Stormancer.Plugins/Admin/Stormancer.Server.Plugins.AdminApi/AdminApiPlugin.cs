@@ -37,11 +37,12 @@ namespace Stormancer.Server.Plugins.AdminApi
                 //Configure 
                 host.AddAdminApiConfiguration((app, env, scene) =>
                 {
+                    System.Diagnostics.Debug.WriteLine("start admin swagger");
                     app.UseSwagger();
                     app.UseSwaggerUI(c =>
                     {
-                        c.SwaggerEndpoint("v3/swagger.json", "Stormancer Web API V3");
-
+                        c.SwaggerEndpoint("v3/swagger.json", "Stormancer Admin Web API V3");
+                        
                     });
 
                     app.UseRouting();
@@ -78,8 +79,8 @@ namespace Stormancer.Server.Plugins.AdminApi
   
                     services.AddSwaggerGen(c =>
                     {
-
-                        c.SwaggerDoc("v3", new OpenApiInfo { Title = "Stormancer Grid web API", Version = "v3" });
+                        
+                        c.SwaggerDoc("v3", new OpenApiInfo { Title = "Stormancer Admin web API", Version = "v3"    });
                     });
                 });
 
