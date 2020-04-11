@@ -40,7 +40,7 @@ namespace Stormancer.Server.Plugins.AdminApi
                     app.UseSwagger();
                     app.UseSwaggerUI(c =>
                     {
-                        c.SwaggerEndpoint("/swagger/v3/swagger.json", "Stormancer Web API V3");
+                        c.SwaggerEndpoint("v3/swagger.json", "Stormancer Web API V3");
 
                     });
 
