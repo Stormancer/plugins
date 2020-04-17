@@ -63,7 +63,7 @@ namespace Stormancer.Server.Plugins.Users
 
             var user = await _users.GetUserByClaim(PROVIDER_NAME, ClaimPath, identifier);
 
-            if (user != null && authenticationCtx.CurrentSession?.User?.Id != user?.Id)
+            if (user != null && authenticationCtx.CurrentSession?.User != null && authenticationCtx.CurrentSession.User.Id != user.Id)
             {
                 return AuthenticationResult.CreateFailure("This device identifier is already linked to another account.", pId, authenticationCtx.Parameters);
             }
