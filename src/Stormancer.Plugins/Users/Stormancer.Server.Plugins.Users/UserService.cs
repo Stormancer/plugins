@@ -134,7 +134,7 @@ namespace Stormancer.Server.Plugins.Users
                     var r = await c.GetAsync<AuthenticationClaim>($"{provider}_{entry.Key}_{entry.Value}", s => s.Index(GetIndex<AuthenticationClaim>()));
                     if (r.IsValid && r.Source.UserId != user.Id)
                     {
-                        if (result.ServerError?.Error?.Type == "document_already_exists_exception")
+                        if (result.ServerError?.Error?.Type == "version_conflict_engine_exception")
                         {
                             throw new ConflictException();
                         }
