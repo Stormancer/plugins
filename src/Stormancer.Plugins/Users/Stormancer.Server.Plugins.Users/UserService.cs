@@ -298,7 +298,7 @@ namespace Stormancer.Server.Plugins.Users
             return datas.ToDictionary(data => data.Login, data => data.User);
         }
 
-        public async Task<User> GetUserByClaim(string provider, string claimPath, string login)
+        public async Task<User?> GetUserByClaim(string provider, string claimPath, string login)
         {
             var c = await Client<User>();
             var cacheId = $"{provider}_{claimPath}_{login}";
@@ -312,6 +312,7 @@ namespace Stormancer.Server.Plugins.Users
                 }
                 else
                 {
+                    await c.DeleteAsync<AuthenticationClaim>(cacheId);
                     return null;
                 }
             }

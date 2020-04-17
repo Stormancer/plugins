@@ -86,7 +86,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public Task Setup(Dictionary<string, string> parameters, Session? session)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         public Task OnGetStatus(Dictionary<string, string> status, Session session)
@@ -101,7 +101,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public Task<DateTime?> RenewCredentials(AuthenticationContext authenticationContext)
         {
-            throw new NotImplementedException();
+            return Task.FromResult<DateTime?>(null);
         }
     }
 }
