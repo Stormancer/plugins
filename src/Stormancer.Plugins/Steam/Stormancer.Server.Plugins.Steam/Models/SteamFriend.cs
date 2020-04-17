@@ -34,7 +34,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// <summary>
         /// Steam Id.
         /// </summary>
-        public string? steamid { get; set; }
+        public string steamid { get; set; } = string.Empty;
 
         /// <summary>
         /// Relationship type.

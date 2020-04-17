@@ -58,7 +58,7 @@ namespace Stormancer.Server.Plugins.Steam
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task<Dictionary<ulong, string>> QueryUserIds(IEnumerable<ulong> steamIds)
         {
-            var users = await _userService.GetUsersByClaim2(SteamConstants.PROVIDER_NAME, SteamConstants.ClaimPath, steamIds.Select(steamId => steamId.ToString()).ToArray());
+            var users = await _userService.GetUsersByClaim(SteamConstants.PROVIDER_NAME, SteamConstants.ClaimPath, steamIds.Select(steamId => steamId.ToString()).ToArray());
             return users.ToDictionary(kvp => ulong.Parse(kvp.Key), kvp => kvp.Value.Id);
         }
 
