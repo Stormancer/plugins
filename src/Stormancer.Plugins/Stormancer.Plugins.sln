@@ -94,9 +94,14 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Facebook", "Facebook\Stormancer.Server.Plugins.Facebook\Stormancer.Server.Plugins.Facebook.csproj", "{86DD130C-A52B-461F-A1F3-00A175C9BB34}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.server.Plugins.Firebase", "Firebase\Stormancer.server.Plugins.Firebase\Stormancer.server.Plugins.Firebase.csproj", "{DDC7F922-BD93-4D63-9396-323948A64738}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SpatialOS", "SpatialOS", "{33707C73-0398-48B4-BF07-392F500CC19B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.SpatialOS", "SpatialOS\Stormancer.Server.Plugins.SpatialOS\Stormancer.Server.Plugins.SpatialOS.csproj", "{673DC354-0751-4A1E-91D0-4A05E87EE738}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.SpatialOS", "SpatialOS\Stormancer.Server.Plugins.SpatialOS\Stormancer.Server.Plugins.SpatialOS.csproj", "{673DC354-0751-4A1E-91D0-4A05E87EE738}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DataProtection", "DataProtection", "{7BCEF864-753C-4147-925B-83EE2F2D9E18}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.DataProtection", "DataProtection\Stormancer.Server.Plugins.DataProtection\Stormancer.Server.Plugins.DataProtection.csproj", "{DCB40DCC-4CB7-470D-B919-FB580F7966F9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -200,6 +205,10 @@ Global
 		{673DC354-0751-4A1E-91D0-4A05E87EE738}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{673DC354-0751-4A1E-91D0-4A05E87EE738}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{673DC354-0751-4A1E-91D0-4A05E87EE738}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DCB40DCC-4CB7-470D-B919-FB580F7966F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DCB40DCC-4CB7-470D-B919-FB580F7966F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DCB40DCC-4CB7-470D-B919-FB580F7966F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DCB40DCC-4CB7-470D-B919-FB580F7966F9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -228,6 +237,7 @@ Global
 		{86DD130C-A52B-461F-A1F3-00A175C9BB34} = {680CF2F3-1478-4BDD-AB21-990EE4B770A0}
 		{DDC7F922-BD93-4D63-9396-323948A64738} = {786BF13F-7662-414C-9436-052E6441EDC7}
 		{673DC354-0751-4A1E-91D0-4A05E87EE738} = {33707C73-0398-48B4-BF07-392F500CC19B}
+		{DCB40DCC-4CB7-470D-B919-FB580F7966F9} = {7BCEF864-753C-4147-925B-83EE2F2D9E18}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}

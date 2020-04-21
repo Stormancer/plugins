@@ -131,7 +131,7 @@ namespace Stormancer.Server.Plugins.Users
 
                 if (!result.IsValid)
                 {
-                    var r = await c.GetAsync<AuthenticationClaim>($"{provider}_{entry.Key}_{entry.Value}", s => s.Index(GetIndex<AuthenticationClaim>()));
+                    var r = await c.GetAsync<AuthenticationClaim>(GetCacheId(provider, entry.Key, entry.Value), s => s.Index(GetIndex<AuthenticationClaim>()));
                     if (r.IsValid && r.Source.UserId != user.Id)
                     {
                         if (result.ServerError?.Error?.Type == "version_conflict_engine_exception")
@@ -193,7 +193,7 @@ namespace Stormancer.Server.Plugins.Users
 
             var user = new User() { Id = id, UserData = userData, };
             var esClient = await Client<User>();
-            await esClient.IndexAsync(user, s => s);
+            await esClient.IndexAsync(user, s => s.Refresh(Elasticsearch.Net.Refresh.WaitFor));
 
             return user;
         }
