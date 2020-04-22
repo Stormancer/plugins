@@ -1,4 +1,4 @@
-// MIT License
+﻿// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -19,37 +19,22 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using System;
+
+using Microsoft.Extensions.Http;
 
 
-namespace Server.Helpers
+namespace Stormancer.Server.Plugins.HttpClientFactory
 {
     /// <summary>
-    /// Unit Timestamp manipulation helpers.
+    /// Provides extensibility points for http client factories.
     /// </summary>
-    public static class TimestampHelper
+    public interface IHttpClientFactoryEventHandler
     {
         /// <summary>
-        /// Convert an Unix Timestamp into a DateTime instance.
+        /// Get options for a given httpClientFactory request.
         /// </summary>
-        /// <param name="unixTimeStamp"></param>
+        /// <param name="name"></param>
         /// <returns></returns>
-        static public DateTime UnixTimeStampSecondToDateTime(long unixTimeStamp)
-        {
-            return DateTimeOffset.FromUnixTimeSeconds(unixTimeStamp).DateTime;
-        }
-
-        /// <summary>
-        /// Convert a DateTime instance into an Unix timestamp.
-        /// </summary>
-        /// <param name="date"></param>
-        /// <returns></returns>
-        static public long DateTimeToUnixTimeStamp(this DateTime date)
-        {
-            DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
-            TimeSpan t = date - UnixEpoch;
-            return (long)t.TotalSeconds;
-        }
+        HttpClientFactoryOptions? GetOptions(string name);
     }
-
 }

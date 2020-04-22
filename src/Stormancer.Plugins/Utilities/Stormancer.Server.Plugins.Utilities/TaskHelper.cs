@@ -93,9 +93,25 @@ namespace Stormancer
             }
         }
 
+        /// <summary>
+        /// Retry
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="operation"></param>
+        /// <param name="delayPolicy"></param>
+        /// <param name="cancellationToken"></param>
+        /// <param name="canRetry"></param>
+        /// <returns></returns>
         public static Task<T> Retry<T>(Func<int,T> operation, IEnumerable<TimeSpan> delayPolicy, CancellationToken cancellationToken, Func<Exception, bool> canRetry)
             => Retry((@try) => Task.FromResult(operation(@try)), delayPolicy, cancellationToken, canRetry);
 
+        /// <summary>
+        /// Retry
+        /// </summary>
+        /// <param name="operation"></param>
+        /// <param name="delayPolicy"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         public static Task Retry(Action operation, IEnumerable<TimeSpan> delayPolicy, CancellationToken cancellationToken) =>
             Retry((@try) =>
             {
@@ -103,6 +119,16 @@ namespace Stormancer
                 return Task.FromResult(true);
             }, delayPolicy, cancellationToken);
 
+        /// <summary>
+        /// Retry
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="operation"></param>
+        /// <param name="maxRetries"></param>
+        /// <param name="maxTotalTime"></param>
+        /// <param name="cancellationToken"></param>
+        /// <param name="shouldRetry"></param>
+        /// <returns></returns>
         public static async Task<T> Retry<T>(Func<Task<T>> operation, int maxRetries, TimeSpan maxTotalTime, CancellationToken cancellationToken, Func<Exception, Task<DateTimeOffset?>> shouldRetry)
         {
             Contract.Requires(maxRetries >= 0);
