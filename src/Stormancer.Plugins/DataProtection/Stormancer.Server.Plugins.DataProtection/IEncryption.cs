@@ -31,6 +31,22 @@ namespace Stormancer.Server.Plugins.DataProtection
     /// <summary>
     /// Provides data protection services
     /// </summary>
+    /// <remarks>
+    /// Configuration:
+    /// 
+    ///     "dataProtection":{
+    ///        "policyId":{
+    ///             "provider":"aes-gcm",
+    ///             "key":"path-to-key", //path to key on disk
+    ///             "nonce":"dkMRLIlJJAKZjQPx" //optional nonce. 
+    ///        }
+    ///     }
+    /// 
+    /// If nonce is set, it will be reused for all data protection operations using this policy. This ensures that
+    /// protecting twice the same data results in the same cyphertext. This way, cyphertexts become searchable in
+    /// the db. If not set, random nonces are generated for each data protection operations. Data that are not
+    /// expected to be searchable MUST NOT be protected using a reused nonce.
+    /// </remarks>
     public interface IDataProtector
     {
         /// <summary>
