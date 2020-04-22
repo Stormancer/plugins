@@ -61,7 +61,7 @@ namespace Stormancer.Server.Plugins.Steam
             _authenticator = authenticator;
 
             ApplyConfig(configuration.Settings);
-            configuration.SettingsChanged += (s, c) => ApplyConfig(c);
+           
         }
 
         /// <summary>
