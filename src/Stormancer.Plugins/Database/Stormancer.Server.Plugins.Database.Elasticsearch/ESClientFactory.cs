@@ -35,6 +35,7 @@ using Elasticsearch.Net;
 using Nest.JsonNetSerializer;
 using Stormancer.Server;
 using Stormancer.Server.Plugins.Configuration;
+using Newtonsoft.Json;
 
 namespace Stormancer.Server.Plugins.Database
 {
@@ -58,7 +59,9 @@ namespace Stormancer.Server.Plugins.Database
     }
     public class ESConnectionPoolConfig
     {
-        public List<string> Endpoints { get; set; } = new List<string> { };
+        // Replace : when the config specifies one or more endpoints, do not keep the default one.
+        [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
+        public List<string> Endpoints { get; set; } = new List<string> { "http://localhost:9200" };
         public bool Sniffing { get; set; } = false;
         public ESCredentials Credentials { get; set; }
     }
