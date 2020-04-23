@@ -103,6 +103,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DataProtection", "DataProte
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.DataProtection", "DataProtection\Stormancer.Server.Plugins.DataProtection\Stormancer.Server.Plugins.DataProtection.csproj", "{DCB40DCC-4CB7-470D-B919-FB580F7966F9}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Gog", "Gog", "{81550A48-AC59-49E8-8B35-B5BDC1526D2C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Galaxy", "Gog\Stormancer.Server.Plugins.Galaxy\Stormancer.Server.Plugins.Galaxy.csproj", "{401BE992-6208-4B9B-87AE-17CF64B8637E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -209,6 +213,10 @@ Global
 		{DCB40DCC-4CB7-470D-B919-FB580F7966F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DCB40DCC-4CB7-470D-B919-FB580F7966F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DCB40DCC-4CB7-470D-B919-FB580F7966F9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{401BE992-6208-4B9B-87AE-17CF64B8637E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{401BE992-6208-4B9B-87AE-17CF64B8637E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{401BE992-6208-4B9B-87AE-17CF64B8637E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{401BE992-6208-4B9B-87AE-17CF64B8637E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -238,6 +246,7 @@ Global
 		{DDC7F922-BD93-4D63-9396-323948A64738} = {786BF13F-7662-414C-9436-052E6441EDC7}
 		{673DC354-0751-4A1E-91D0-4A05E87EE738} = {33707C73-0398-48B4-BF07-392F500CC19B}
 		{DCB40DCC-4CB7-470D-B919-FB580F7966F9} = {7BCEF864-753C-4147-925B-83EE2F2D9E18}
+		{401BE992-6208-4B9B-87AE-17CF64B8637E} = {81550A48-AC59-49E8-8B35-B5BDC1526D2C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}

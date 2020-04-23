@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json.Linq;
 using Stormancer.Server.Components;
 using System;
 using System.Collections.Generic;
@@ -29,11 +30,30 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Configuration
 {
+    /// <summary>
+    /// Application configuration.
+    /// </summary>
     public interface IConfiguration
     {
+        /// <summary>
+        /// App config tree.
+        /// </summary>
         dynamic Settings { get; }
 
+        /// <summary>
+        /// Event fired whenever the configuration changes.
+        /// </summary>
         event EventHandler<dynamic> SettingsChanged;
+
+        /// <summary>
+        /// Gets a configuration object from the provided path.
+        /// </summary>
+        /// <typeparam name="T">Type of the object to deserialize.</typeparam>
+        /// <param name="path"></param>
+        /// <param name="defaultValue"></param>
+        /// <returns></returns>
+        T GetValue<T>(string path, T defaultValue = default);
+
     }
     internal class DefaultConfiguration : IConfiguration, IDisposable
     {
@@ -85,6 +105,23 @@ namespace Stormancer.Server.Plugins.Configuration
                 _subscribed = false;
                 _env.ConfigurationChanged -= RaiseSettingsChanged;
             }
+        }
+
+        public T GetValue<T>(string path, T defaultValue = default)
+        {
+            var segments = path.Split('.');
+            var node = this.Settings;
+            for (int i = 0; i < segments.Length; i++)
+            {
+                node = node[segments[i]];
+                if(node == null)
+                {
+                    return defaultValue;
+                }
+            }
+            
+            return ((JToken)node).ToObject<T>()??defaultValue;
+
         }
     }
 
