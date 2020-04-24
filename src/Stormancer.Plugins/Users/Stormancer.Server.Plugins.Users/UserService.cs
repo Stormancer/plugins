@@ -295,7 +295,7 @@ namespace Stormancer.Server.Plugins.Users
                 var data = datas.First(data2 => data2.Claim?.UserId == user.Id);
                 if (data.Claim != null)
                 {
-                    await c.DeleteAsync<AuthenticationClaim>(data.Claim.Id);
+                    await c.DeleteAsync<AuthenticationClaim>(data.Claim.Id, s => s.Index(GetIndex<AuthenticationClaim>()));
                 }
             }
             // Populate users from cached claims
@@ -323,7 +323,7 @@ namespace Stormancer.Server.Plugins.Users
                 }
                 else
                 {
-                    await c.DeleteAsync<AuthenticationClaim>(cacheId);
+                    await c.DeleteAsync<AuthenticationClaim>(cacheId, s => s.Index(GetIndex<AuthenticationClaim>()));
                     return null;
                 }
             }
