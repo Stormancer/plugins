@@ -26,31 +26,48 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Leaderboards
 {
-    public enum UpdateScorePolicy
-    {
-        UpdateAlways,
-        UpdateIfGreater,
-        UpdateIfLower
-    }
 
+    /// <summary>
+    /// Id of a leaderboard entry.
+    /// </summary>
     public struct LeaderboardEntryId
     {
+        /// <summary>
+        /// Creates a <see cref="LeaderboardEntryId"/> instance.
+        /// </summary>
+        /// <param name="leaderboard"></param>
+        /// <param name="id"></param>
         public LeaderboardEntryId(string leaderboard, string id)
         {
             LeaderboardName = leaderboard;
             Id = id;
         }
 
+        /// <summary>
+        /// Name of the leaderboard.
+        /// </summary>
         public string LeaderboardName { get; set; }
 
+        /// <summary>
+        /// Id of the score in the leaderboard.
+        /// </summary>
         public string Id { get; set; }
 
+        /// <summary>
+        /// Computes an hashcode.
+        /// </summary>
+        /// <returns></returns>
         public override int GetHashCode()
         {
             return LeaderboardName.GetHashCode() * 17 + Id.GetHashCode();
         }
 
-        public override bool Equals(object obj)
+        /// <summary>
+        /// Equals
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public override bool Equals(object? obj)
         {
             if(!(obj is LeaderboardEntryId other))
             {
@@ -66,6 +83,13 @@ namespace Stormancer.Server.Plugins.Leaderboards
     /// </summary>
     public interface ILeaderboardService
     {
+        /// <summary>
+        /// Gets the index of a leaderboard.
+        /// </summary>
+        /// <param name="leaderboardName"></param>
+        /// <returns></returns>
+        string GetIndex(string leaderboardName);
+
         /// <summary>
         /// Runs a leaderboard query
         /// </summary>
@@ -83,9 +107,9 @@ namespace Stormancer.Server.Plugins.Leaderboards
         /// <summary>
         /// Updates a score in the leaderboard
         /// </summary>
+        /// <param name="id">id of the score to look for.</param>
         /// <param name="scoreUpdater">An updater function</param>
         /// <param name="leaderboardName">Name of the leaderboard</param>
-        /// <param name="options">An pptional parameter representing leaderboard options</param>
         /// <remarks>
         ///     <list>
         ///         If scoreUpdater param is null, returned score is created in the database.
@@ -94,34 +118,93 @@ namespace Stormancer.Server.Plugins.Leaderboards
         ///     </list>
         /// </remarks>
         /// <returns></returns>
-        Task UpdateScore(string id, string leaderboardName, Func<ScoreRecord, Task<ScoreRecord>> scoreUpdater);
+        Task UpdateScore(string id, string leaderboardName, Func<ScoreRecord?, Task<ScoreRecord>> scoreUpdater);
 
-        Task UpdateScores(IEnumerable<LeaderboardEntryId> ids, Func<LeaderboardEntryId, ScoreRecord, Task<ScoreRecord>> scoreUpdater); 
+        /// <summary>
+        /// Batch update of several scores in leaderboards.
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <param name="scoreUpdater"></param>
+        /// <returns></returns>
+        Task UpdateScores(IEnumerable<LeaderboardEntryId> ids, Func<LeaderboardEntryId, ScoreRecord?, Task<ScoreRecord>> scoreUpdater); 
         
         /// <summary>
+        /// Removes an entry in a leaderboard.
         /// </summary>
         /// <param name="leaderboardName"></param>
         /// <param name="entryId"></param>
-        /// <param name="options"></param>
         /// <returns></returns>
         Task RemoveLeaderboardEntry(string leaderboardName, string entryId);
 
+        /// <summary>
+        /// Clears all scores in all leaderboards.
+        /// </summary>
+        /// <remarks>This operation is definitive. Use with caution.</remarks>
+        /// <returns></returns>
         Task ClearAllScores();
 
+        /// <summary>
+        /// Clears all scores in a leaderboard.
+        /// </summary>
+        /// <remarks>
+        /// * is supported in leaderboard names to delete several leaderboards at once.
+        /// </remarks>
+        /// <param name="leaderboardName"></param>
+        /// <returns></returns>
         Task ClearAllScores(string leaderboardName);
 
-        Task<ScoreRecord?> GetScore(string playerId, string leaderboardName);
+        /// <summary>
+        /// Gets a score entry in a leaderboard
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="leaderboardName"></param>
+        /// <returns></returns>
+        Task<ScoreRecord?> GetScore(string id, string leaderboardName);
 
-        Task<Dictionary<string, ScoreRecord?>> GetScores(List<string> playerIds, string leaderboardName);
+        /// <summary>
+        /// Gets scores in a leaderboard
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <param name="leaderboardName"></param>
+        /// <returns></returns>
+        Task<Dictionary<string, ScoreRecord?>> GetScores(List<string> ids, string leaderboardName);
 
+        /// <summary>
+        /// Gets the ranking associated with a score in a leaderboard.
+        /// </summary>
+        /// <param name="score"></param>
+        /// <param name="filters"></param>
+        /// <param name="leaderboardName"></param>
+        /// <returns></returns>
         Task<long> GetRanking(ScoreRecord score, LeaderboardQuery filters, string leaderboardName);
 
+        /// <summary>
+        /// Gets the total of scores matching a filter in a leaderboard.
+        /// </summary>
+        /// <param name="filters"></param>
+        /// <param name="leaderboardName"></param>
+        /// <returns></returns>
         Task<long> GetTotal(LeaderboardQuery filters, string leaderboardName);
 
+        /// <summary>
+        /// Gets a list of favorite leaderboards.
+        /// </summary>
+        /// <returns></returns>
         Task<List<QuickAccessLeaderboard>> GetQuickAccessLeaderboards();
 
+        /// <summary>
+        /// Adds a leaderboard to the quick access list.
+        /// </summary>
+        /// <param name="leaderboard"></param>
+        /// <returns></returns>
         Task AddQuickAccessLeaderboard(QuickAccessLeaderboard leaderboard);
 
+
+        /// <summary>
+        /// Removes a leaderboard from the quick access list.
+        /// </summary>
+        /// <param name="leaderboardName"></param>
+        /// <returns></returns>
         Task RemoveQuickAccessLeaderboard(string leaderboardName);
     }
 }

@@ -42,7 +42,7 @@ namespace Stormancer.Server.Plugins.AdminApi
     public interface IPublicWebApiConfig
     {
         /// <summary>
-        /// Configures the admin web API parts manager.
+        /// Configures the public web API parts manager.
         /// </summary>
         /// <param name="apm"></param>
         void ConfigureApplicationParts(ApplicationPartManager apm);

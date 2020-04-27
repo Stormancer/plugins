@@ -118,11 +118,19 @@ namespace Stormancer.Server.Plugins.AdminApi
                         {
                             foreach (var config in configs)
                             {
-                                //config.ConfigureApplicationParts(apm);
+                                config.ConfigureApplicationParts(apm);
                             }
                         })
                         .AddNewtonsoftJson()
                         .AddControllersAsServices();
+
+
+                    services.AddSwaggerGen(c =>
+                    {
+
+                        c.SwaggerDoc("v3", new OpenApiInfo { Title = "Application public web API", Version = "v3" });
+                    });
+
                 });
             };
         }

@@ -25,8 +25,15 @@ using Stormancer.Server.Plugins.Leaderboards;
 
 namespace Stormancer
 {
+    /// <summary>
+    /// Leaderboard extensions class.
+    /// </summary>
     public static class LeaderboardExtensions
     {
+        /// <summary>
+        /// Adds the leaderboard API to a scene.
+        /// </summary>
+        /// <param name="scene"></param>
         public static void AddLeaderboard(this ISceneHost scene)
         {
             scene.Metadata[LeaderboardPlugin.METADATA_KEY] = "enabled";
