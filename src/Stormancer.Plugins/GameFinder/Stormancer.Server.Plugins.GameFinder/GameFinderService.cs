@@ -504,10 +504,10 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
             finally
             {
-
                 foreach (var value in waitingClients.Values.Where(v => v.State == RequestState.Searching))
                 {
                     value.State = RequestState.Ready;
+                    value.Party.PastPasses++;
                 }
             }
         }

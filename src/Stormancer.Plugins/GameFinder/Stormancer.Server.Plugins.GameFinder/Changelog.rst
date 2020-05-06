@@ -16,3 +16,8 @@ Added
 *****
 
 - Open Game Sessions feature: Allows opening existing game sessions to new players on the GameFinder.
+
+Changed
+*******
+
+- Automatic increment of party passes (PastPasses)
