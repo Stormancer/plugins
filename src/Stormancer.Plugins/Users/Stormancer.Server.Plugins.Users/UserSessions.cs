@@ -603,6 +603,22 @@ namespace Stormancer.Server.Plugins.Users
             .Switch();
         }
 
+        public async Task<Dictionary<PlatformId, Session>> GetSessions(IEnumerable<PlatformId> platformIds, bool forceRefresh = false)
+        {
+            Dictionary<PlatformId, Session> sessions = new Dictionary<PlatformId, Session>();
+
+            foreach (var id in platformIds)
+            {
+                var session = await GetSession(id, forceRefresh);
+                if (session != null)
+                {
+                    sessions.TryAdd(id, session);
+                }
+            }
+
+            return sessions;
+        }
+
         public int AuthenticatedUsersCount
         {
             get

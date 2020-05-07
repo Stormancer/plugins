@@ -72,7 +72,21 @@ namespace Stormancer.Server.Plugins.Users
 
         Task<Session> GetSessionById(string sessionId, string authType, bool forceRefresh = false);
 
+        /// <summary>
+        /// Get the session of a connected user through their platform-specific Id.
+        /// </summary>
+        /// <param name="platformId">Platform-specific Id of the user</param>
+        /// <param name="forceRefresh"><c>true</c> to bypass the scene-local session cache</param>
+        /// <returns>The session for <paramref name="platformId"/>. <c>null</c> if the session could not be found.</returns>
         Task<Session> GetSession(PlatformId platformId, bool forceRefresh = false);
+
+        /// <summary>
+        /// Get sessions of connected users from their platform-specific Ids.
+        /// </summary>
+        /// <param name="platformIds">Platform-specific Ids of users to retrieve the sessions of</param>
+        /// <param name="forceRefresh"><c>true</c> to bypass the scene-local session cache</param>
+        /// <returns>List of PlatformId => Session pairs. If one or more sessions could not be found, the corresponding pairs will not be present in the dictionary.</returns>
+        Task<Dictionary<PlatformId, Session>> GetSessions(IEnumerable<PlatformId> platformIds, bool forceRefresh = false);
 
         /// <summary>
         /// Update a user's session data entry with raw data.
