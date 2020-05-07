@@ -21,5 +21,16 @@ namespace Stormancer.Server.Plugins.Utilities.Extensions
         {
             return source.Where(x => x != null)!;
         }
+
+        /// <summary>
+        /// Make a single-item IEnumerable from an object.
+        /// </summary>
+        /// <typeparam name="T">Type of the object</typeparam>
+        /// <param name="item">Object to create an IEnumerable from.</param>
+        /// <returns>An IEnumerable that contains <paramref name="item"/></returns>
+        public static IEnumerable<T> ToEnumerable<T>(this T item)
+        {
+            yield return item;
+        }
     }
 }
