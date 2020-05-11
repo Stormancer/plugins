@@ -136,8 +136,8 @@ namespace Stormancer.Server.Plugins.Galaxy
             }
             catch (Exception ex)
             {
-                logger.Log(LogLevel.Debug, "authenticator.steam", $"Steam authentication failed. Ticket : {ticketB64}", ex);
-                return AuthenticationResult.CreateFailure($"Invalid steam session ticket.", pId, authenticationCtx.Parameters);
+                logger.Log(LogLevel.Debug, "authenticator.gog", $"Gog authentication failed. Ticket : {ticketB64}", ex);
+                return AuthenticationResult.CreateFailure($"Invalid gog session ticket.", pId, authenticationCtx.Parameters);
             }
         }
 

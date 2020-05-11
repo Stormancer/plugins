@@ -90,7 +90,15 @@ namespace Stormancer.Server.Plugins.Steam
 
             using (var response = await TryGetAsync(AuthenticateUri + querystring))
             {
-                response.EnsureSuccessStatusCode();
+                if (!response.IsSuccessStatusCode)
+                {
+                    var contentStr = await response.Content.ReadAsStringAsync();
+
+                    _logger.Log(LogLevel.Error, "authenticator.steam", "The Steam API failed to authenticate user ticket. No success status code.", new { AuthenticateUri, QueryParams = querystring, StatusCode = $"{response.StatusCode} {response.ReasonPhrase}", Response = contentStr });
+
+                    throw new Exception($"The Steam API failed to authenticate user ticket. No success status code.");
+                }
+                
                 var json = await response.Content.ReadAsStringAsync();
                 var steamResponse = JsonConvert.DeserializeObject<SteamAuthenticationResponse>(json);
 
