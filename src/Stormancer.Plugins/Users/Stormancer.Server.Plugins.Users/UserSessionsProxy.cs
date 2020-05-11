@@ -25,9 +25,11 @@ using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.ServiceLocator;
+using Stormancer.Server.Plugins.Utilities.Extensions;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -194,16 +196,12 @@ namespace Stormancer.Server.Plugins.Users
         /// Get the player session from the active authenticator scene (returns null for players authenticated on an older deployment.
         /// </summary>
         /// <param name="platformId"></param>
+        /// <param name="forceRefresh"></param>
         /// <returns></returns>
         public async Task<Session> GetSession(PlatformId platformId, bool forceRefresh)
         {
-            var response = await AuthenticatorRpc(null, "usersession.getsessionbyplatformid", s => _serializer.Serialize(platformId, s));
-            using (response.Stream)
-            {
-                var result = _serializer.Deserialize<Session>(response.Stream);
-
-                return result;
-            }
+            var session = await GetSessions(platformId.ToEnumerable(), forceRefresh);
+            return session.Values.FirstOrDefault();
         }
 
         public async Task UpdateSessionData(string sessionId, string key, byte[] data)
@@ -421,6 +419,11 @@ namespace Stormancer.Server.Plugins.Users
                 packet.Stream.CopyTo(stream);
                 return stream.ToArray();
             });
+        }
+
+        public Task<Dictionary<PlatformId, Session>> GetSessions(IEnumerable<PlatformId> platformIds, bool forceRefresh = false)
+        {
+            return cache.GetSessionsByPlatformIds(platformIds, true, "", forceRefresh);
         }
     }
 }

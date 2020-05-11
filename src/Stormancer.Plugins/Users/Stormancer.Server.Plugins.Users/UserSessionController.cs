@@ -122,12 +122,12 @@ namespace Stormancer.Server.Plugins.Users
             await rq.SendValue(s => _serializer.Serialize(session, s));
         }
 
-        public async Task GetSessionByPlatformId(RequestContext<IScenePeer> rq)
+        public async Task GetSessionsByPlatformIds(RequestContext<IScenePeer> rq)
         {
-            var platformId = _serializer.Deserialize<PlatformId>(rq.InputStream);
-            var session = await _sessions.GetSession(platformId);
+            var platformIds = _serializer.Deserialize<IEnumerable<PlatformId>>(rq.InputStream);
+            var sessions = await _sessions.GetSessions(platformIds);
 
-            await rq.SendValue(s => _serializer.Serialize(session, s));
+            await rq.SendValue(s => _serializer.Serialize(sessions, s));
         }
 
         public async Task UpdateSessionData(RequestContext<IScenePeer> rq)

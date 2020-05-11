@@ -38,7 +38,7 @@ namespace Stormancer.Server.Plugins.Users
 {
     class UserSessionCache 
     {
-        //(userId=> sessionId)
+        //(userId=> sessionId),(platformId=>sessionId)
         private readonly ConcurrentDictionary<string, string> _userIdToSessionId = new ConcurrentDictionary<string, string>();
         //(sessionId =>session)
         private readonly ConcurrentDictionary<string, Task<Session>> _sessions = new ConcurrentDictionary<string, Task<Session>>();
@@ -63,6 +63,7 @@ namespace Stormancer.Server.Plugins.Users
                 {
                     var session = serializer.Deserialize<Session>(stream);
                     _userIdToSessionId.AddOrUpdate(session.User.Id, session.SessionId, (uid, old) => session.SessionId);
+                    _userIdToSessionId.AddOrUpdate(session.platformId.ToString(), session.SessionId, (pid, old) => session.SessionId);
                     _sessions.AddOrUpdate(session.SessionId, Task.FromResult(session), (uid, old) => Task.FromResult(session));
                 }
             }
@@ -94,6 +95,7 @@ namespace Stormancer.Server.Plugins.Users
                 if (session?.User?.Id != null)
                 {
                     _userIdToSessionId.TryRemove(session.User.Id, out _);
+                    _userIdToSessionId.TryRemove(session.platformId.ToString(), out _);
                 }
             }
         }
@@ -107,6 +109,7 @@ namespace Stormancer.Server.Plugins.Users
                 if (peer == null)
                 {
                     _userIdToSessionId.TryRemove(userId, out _);
+                    _userIdToSessionId.TryRemove(session.platformId.ToString(), out _);
                 }
                 return peer;
             }
@@ -151,6 +154,7 @@ namespace Stormancer.Server.Plugins.Users
             if (session != null)
             {
                 _userIdToSessionId.AddOrUpdate(session.User.Id, session.SessionId, (id, old) => session.SessionId);
+                _userIdToSessionId.AddOrUpdate(session.platformId.ToString(), session.SessionId, (pid, old) => session.SessionId);
                 await _sessions.AddOrUpdate(session.SessionId, Task.FromResult(session), (id, old) => Task.FromResult(session));
             }
             return session;
@@ -162,8 +166,21 @@ namespace Stormancer.Server.Plugins.Users
             if (session != null)
             {
                 _userIdToSessionId.AddOrUpdate(session.User.Id, session.SessionId, (id, old) => session.SessionId);
+                _userIdToSessionId.AddOrUpdate(session.platformId.ToString(), session.SessionId, (pid, old) => session.SessionId);
             }
             return session;
+        }
+
+        private async Task<Dictionary<PlatformId, Session>> GetSessionsFromAuthenticatorByPlatformIds(IEnumerable<PlatformId> platformIds, string authType)
+        {
+            var sessions = await AuthenticatorRpc<Dictionary<PlatformId, Session>, IEnumerable<PlatformId>>("usersession.getsessionsbyplatformids", authType, platformIds);
+            foreach (var session in sessions.Values)
+            {
+                _userIdToSessionId.AddOrUpdate(session.User.Id, session.SessionId, (id, old) => session.SessionId);
+                _userIdToSessionId.AddOrUpdate(session.platformId.ToString(), session.SessionId, (pid, old) => session.SessionId);
+                await _sessions.AddOrUpdate(session.SessionId, Task.FromResult(session), (id, old) => Task.FromResult(session));
+            }
+            return sessions;
         }
 
         public Task<Session> GetSessionByUserId(string userId, bool allowRemoteFetch, string authType, bool forceRefresh)
@@ -182,7 +199,33 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
- 
+        public async Task<Dictionary<PlatformId, Session>> GetSessionsByPlatformIds(IEnumerable<PlatformId> platformIds, bool allowRemoteFetch, string authType, bool forceRefresh)
+        {
+            var result = new Dictionary<PlatformId, Session>();
+            var idsToQuery = new List<PlatformId>();
+
+            foreach (var id in platformIds)
+            {
+                if (_userIdToSessionId.TryGetValue(id.ToString(), out var sessionId))
+                {
+                    result[id] = await GetSessionBySessionId(sessionId, allowRemoteFetch, authType, forceRefresh);
+                }
+                else
+                {
+                    idsToQuery.Add(id);
+                }
+            }
+
+            if (allowRemoteFetch)
+            {
+                foreach (var session in await GetSessionsFromAuthenticatorByPlatformIds(idsToQuery, authType))
+                {
+                    result[session.Key] = session.Value;
+                }
+            }
+
+            return result;
+        }
 
         private async Task<TOut> AuthenticatorRpc<TOut, TArg1>(string route, string type, TArg1 arg1)
         {
