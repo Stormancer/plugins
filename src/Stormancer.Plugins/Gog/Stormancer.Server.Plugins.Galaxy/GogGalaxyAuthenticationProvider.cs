@@ -77,22 +77,30 @@ namespace Stormancer.Server.Plugins.Galaxy
             {
                 throw new InvalidOperationException("Missing gog.ticketPrivateKey config value.");
             }
-            var key = Convert.FromBase64String(c.ticketPrivateKey);
+            var key = FromBase64Url(c.ticketPrivateKey);
 
             //Cypher mode is AES 256 CBC
             // See : https://github.com/gogcom/galaxy-session-tickets-php/blob/master/src/GOG/SessionTickets/OpenSSLSessionTicketDecoder.php
-            var iv = ticket.AsSpan(0, IV_SIZE);
-
-
-            using (var aes = AesManaged.Create())
-            using (var decryptor = aes.CreateDecryptor(key, iv.ToArray()))
-            using (MemoryStream msDecrypt = new MemoryStream(ticket, IV_SIZE, ticket.Length - IV_SIZE))
-            using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
-            using (StreamReader srDecrypt = new StreamReader(csDecrypt))
+            using (RijndaelManaged alg = new RijndaelManaged())
             {
-                return srDecrypt.ReadToEnd();
-            }
 
+                var iv = ticket.AsSpan(0, IV_SIZE).ToArray();
+                alg.IV = iv;
+                alg.KeySize = 256;
+                alg.Key = key;
+                alg.Mode = CipherMode.CBC;
+                alg.Padding = PaddingMode.Zeros;
+
+
+
+                using (var decryptor = alg.CreateDecryptor())
+                using (MemoryStream msDecrypt = new MemoryStream(ticket, IV_SIZE, ticket.Length - IV_SIZE))
+                using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
+                using (StreamReader srDecrypt = new StreamReader(csDecrypt))
+                {
+                    return srDecrypt.ReadToEnd();
+                }
+            }
         }
 
         public async Task<AuthenticationResult> Authenticate(AuthenticationContext authenticationCtx, CancellationToken ct)
@@ -108,29 +116,43 @@ namespace Stormancer.Server.Plugins.Galaxy
 
 
 
+
             try
             {
                 var ticketData = FromBase64Url(ticketB64);
                 var plainText = DecryptSessionTicket(ticketData);
 
 
-                var id = "xxx";
+                if(!authenticationCtx.Parameters.TryGetValue("uid", out var id))
+                {
+                    return AuthenticationResult.CreateFailure("Gog galaxy uid must not be empty.", pId, authenticationCtx.Parameters);
+                }
+                authenticationCtx.Parameters.TryGetValue("displayName", out var pseudo);
                 pId.OnlineId = id;
 
 
 
-               
+
                 var user = await users.GetUserByClaim(GogConstants.PROVIDER_NAME, CLAIM_PATH, id);
-             
+
                 if (user == null)
                 {
                     var uid = Guid.NewGuid().ToString("N");
 
-                    user = await users.CreateUser(uid, JObject.FromObject(new { gogUserId = id }));
+
+                    user = await users.CreateUser(uid, JObject.FromObject(new { gogUserId = id, pseudo = pseudo ?? "unknown" }));
 
                     user = await users.AddAuthentication(user, GogConstants.PROVIDER_NAME, claim => claim[CLAIM_PATH] = id, new Dictionary<string, string> { { CLAIM_PATH, id } });
                 }
-               
+                else
+                {
+                    var currentPseudo = user.UserData["pseudo"]?.ToObject<string>();
+                    if (currentPseudo == null || currentPseudo != pseudo)
+                    {
+                        user.UserData["pseudo"] = pseudo;
+                        await users.UpdateUserData(user.Id, user.UserData);
+                    }
+                }
 
                 return AuthenticationResult.CreateSuccess(user, pId, authenticationCtx.Parameters);
             }

@@ -27,19 +27,7 @@ namespace Stormancer
 {
     public static class UserExtensions
     {
-        //public static ulong? GetMailRuId(this User user)
-        //{
-        //    // TODO UPDATE FOR MAIL RU
-        //    var mailruId = user.UserData["steamid"].ToObject<string>();
-        //    if (mailruId == null)
-        //    {
-        //        return null;
-        //    }
-        //    else
-        //    {
-        //        return ulong.Parse(mailruId);
-        //    }
-        //}
+
 
         public static T GetSessionValue<T>(this Session session, string key, ISerializer serializer)
         {
@@ -54,6 +42,16 @@ namespace Stormancer
             {
                 return default(T);
             }
+        }
+
+        /// <summary>
+        /// Gets the pseudo of the user.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
+        public static string GetPseudo(this User user)
+        {
+            return user?.UserData?["pseudo"]?.ToObject<string>() ?? "unknown";
         }
     }
 }

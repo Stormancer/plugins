@@ -41,12 +41,26 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
+    /// <summary>
+    /// Context of a Gamefinding pass.
+    /// </summary>
     public class GameFinderContext
     {
+        /// <summary>
+        /// Parties in the queue.
+        /// </summary>
         public List<Party> WaitingClient { get; set; } = new List<Party>();
 
+        /// <summary>
+        /// List of parties which failed matchmaking during this pass.
+        /// </summary>
         public List<(Party client, string reason)> FailedClients { get; set; } = new List<(Party client, string reason)>();
 
+        /// <summary>
+        /// Sets a party as having failed matchmaking.
+        /// </summary>
+        /// <param name="party"></param>
+        /// <param name="reason"></param>
         public void SetFailed(Party party, string reason)
         {
             FailedClients.Add((party, reason));
@@ -102,7 +116,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             _logger = logger;
             _serializer = serializer;
             _data = data;
-
+            _scene = scene;
             Init(scene);
             env.ActiveDeploymentChanged += Env_ActiveDeploymentChanged;
             config.SettingsChanged += (s, c) => ApplyConfig(c);
@@ -114,7 +128,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             scene.AddRoute("gamefinder.cancel", CancelGame, r => r);
         }
 
-        private void Env_ActiveDeploymentChanged(object sender, ActiveDeploymentChangedEventArgs e)
+        private void Env_ActiveDeploymentChanged(object? sender, ActiveDeploymentChangedEventArgs e)
         {
             if (!e.IsActive)
             {
@@ -131,8 +145,8 @@ namespace Stormancer.Server.Plugins.GameFinder
                 return;
             }
 
-            var gameFinderConfigs = (JObject)config.gamefinder?.configs;
-            dynamic specificConfig = gameFinderConfigs?.GetValue(_data.kind);
+            var gameFinderConfigs = (JObject?)config?.gamefinder?.configs;
+            dynamic? specificConfig = gameFinderConfigs?.GetValue(_data.kind);
 
             _data.interval = TimeSpan.FromSeconds((double)(specificConfig?.interval ?? 1));
             _data.isReadyCheckEnabled = (bool?)specificConfig?.readyCheck?.enabled ?? false;
@@ -159,7 +173,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 throw new InvalidOperationException("The gameFinder service may only be initialized once.");
             }
 
-            this._scene = gameFinderScene;
+            
         }
 
         public async Task FindGameS2S(RequestContext<IScenePeer> requestS2S)
@@ -187,7 +201,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 throw;
             }
 
-            PlayerPeer[] peersInGroup = null;
+            PlayerPeer[]? peersInGroup = null;
             using (var scope = _scene.DependencyResolver.CreateChild(Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 var sessions = scope.Resolve<IUserSessions>();
@@ -253,19 +267,19 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
             finally //Always remove party from list.
             {
-                GameFinderRequestState _;
+              
                 foreach (var p in peersInGroup)
                 {
-                    Party grp1;
+                  
                     if (p?.Peer?.SessionId != null)
                     {
-                        _data.peersToGroup.TryRemove(p.Peer.SessionId, out grp1);
+                        _data.peersToGroup.TryRemove(p.Peer.SessionId, out _);
                     }
                 }
-                _data.waitingGroups.TryRemove(party, out _);
-                if (_.Candidate != null)
+               
+                if (_data.waitingGroups.TryRemove(party, out var group) && group.Candidate != null)
                 {
-                    if (_pendingReadyChecks.TryGetValue(_.Candidate.Id, out var rc))
+                    if (_pendingReadyChecks.TryGetValue(group.Candidate.Id, out var rc))
                     {
                         if (!rc.RanToCompletion)
                         {
@@ -889,7 +903,26 @@ namespace Stormancer.Server.Plugins.GameFinder
 
             public Func<IGameFinderResolutionWriterContext, Task> ResolutionAction { get; set; }
 
-            public string GameSceneId { get; set; }
+            private string? _gameSceneId;
+
+            public string GameSceneId { 
+                get
+                {
+                    if(_gameSceneId!=null)
+                    {
+                        return _gameSceneId;
+                    }
+                    else
+                    {
+                        return Game.Id;
+                    }
+
+                }
+                set
+                {
+                    _gameSceneId = value;
+                }
+            }
         }
 
         private class GameFinderResolutionWriterContext : IGameFinderResolutionWriterContext

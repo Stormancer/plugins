@@ -97,6 +97,10 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
         private double GetValue(ScoreRecord record, string scorePath)
         {
+            if(string.IsNullOrEmpty(scorePath))
+            {
+                throw new ArgumentException($"scorePath must be non null nor empty", nameof(scorePath));
+            }
             JToken current = record.Scores;
             foreach (var segment in scorePath.Split('.'))
             {
