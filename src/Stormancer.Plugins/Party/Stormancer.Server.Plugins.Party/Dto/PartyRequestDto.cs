@@ -64,5 +64,16 @@ namespace Stormancer.Server.Plugins.Party
         /// </summary>
         [MessagePackMember(5)]
         public bool IsJoinable { get; set; } = true;
+
+        /// <summary>
+        /// Whether the party should be public or private.
+        /// </summary>
+        /// <remarks>
+        /// This has implications for party's platform-specific functionality.
+        /// A public party is always visible to other players.
+        /// A private party is visible only to players who have received an invitation.
+        /// </remarks>
+        [MessagePackMember(6)]
+        public bool IsPublic { get; set; } = false;
     }
 }

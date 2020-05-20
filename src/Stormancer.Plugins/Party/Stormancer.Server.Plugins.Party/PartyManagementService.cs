@@ -32,7 +32,7 @@ namespace Stormancer.Server.PartyManagement
     //Todo jojo need cleanup if the aren't complete session creation
     class PartyManagementService : IPartyManagementService
     {
-        public const string PROTOCOL_VERSION = "2019-12-13.1";
+        public const string PROTOCOL_VERSION = "2020-05-20.1";
 
         private readonly IServiceLocator _serviceLocator;
 
@@ -70,7 +70,7 @@ namespace Stormancer.Server.PartyManagement
                     partyRequest.CustomData,
                     partyRequest.GameFinderName,
                     partyRequest.ServerSettings,
-                    IsPublic = false,
+                    partyRequest.IsPublic,
                     partyRequest.OnlyLeaderCanInvite,
                     partyRequest.IsJoinable
                 }
