@@ -1,0 +1,68 @@
+# ASP.NET Core
+# Build and test ASP.NET Core projects targeting .NET Core.
+# Add steps that run tests, create a NuGet package, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
+
+trigger:
+- master
+- develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  ${{ if eq( variables['Build.SourceBranchName'], 'master' ) }}: 
+    buildConfiguration: 'Release'
+  ${{ if ne( variables['Build.SourceBranchName'], 'master' ) }}: 
+    buildConfiguration: 'Debug'
+
+steps:
+- task: PowerShell@2
+  displayName: 'Clear output'
+  inputs:
+    targetType: 'inline'
+    script: |
+     @(gci output/packages/$(buildConfiguration) -ErrorAction SilentlyContinue) | % {  Remove-Item $_ }
+- task: UseDotNet@2
+  inputs:
+    packageType: 'sdk'
+    version: '3.1.x'
+- task: DotNetCoreCLI@2
+  displayName: Build
+  inputs:
+    command: 'build'
+    projects: 'src/Stormancer.Plugins/**/*.csproj'
+    arguments: '--configuration $(buildConfiguration)'
+    workingDirectory: 'src/Stormancer.Plugins'
+- task: PowerShell@2
+  displayName: 'Publish packages'
+  inputs:
+    targetType: 'inline'
+    script: |
+      gci output/packages/$(buildConfiguration)/*.nupkg | % {  dotnet nuget push $_  -s https://api.nuget.org/v3/index.json -k $env:KEY --skip-duplicate }
+  env:
+    KEY: $(nuget_ci_key)
+- task: PowerShell@2
+  displayName: 'get built packages'
+  inputs:
+    targetType: 'inline'
+    script: |
+      $packages = "##vso[task.setvariable variable=packages]" + ((Get-ChildItem -Path output/packages/$(buildConfiguration)/*.nupkg | select -ExpandProperty Name | ForEach-Object -Process {[System.IO.Path]::GetFileNameWithoutExtension($_)}) -join "\n")
+      echo $packages
+- task: ado-discord-webhook@1
+  displayName: 'Send Discord notification'
+  inputs:
+    channelId: '684384565711863818'
+    webhookKey: '$(discord_releases_webhook_key)'
+    name: 'Stormancer CI'
+    messageType: 'embeds'
+    embeds: |
+      [{
+      "title":"Server plugins development build complete",
+      "description":"$(packages)",
+      "author":{
+      "name":"CI"
+      }
+      }]
+
+    
