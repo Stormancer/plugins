@@ -117,7 +117,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             _serializer = serializer;
             _data = data;
             _scene = scene;
-            Init(scene);
+            _data.kind = _scene.Metadata[GameFinderPlugin.METADATA_KEY];
             env.ActiveDeploymentChanged += Env_ActiveDeploymentChanged;
             config.SettingsChanged += (s, c) => ApplyConfig(c);
             ApplyConfig(config.Settings);
@@ -126,6 +126,8 @@ namespace Stormancer.Server.Plugins.GameFinder
             scene.AddProcedure("gamefinder.find", FindGame);
             scene.AddRoute("gamefinder.ready.resolve", ResolveReadyRequest, r => r);
             scene.AddRoute("gamefinder.cancel", CancelGame, r => r);
+
+            _logger.Log(LogLevel.Trace, LOG_CATEGORY, "Initializing the GameFinderService.", new { extractors = _extractors.Select(e => e.GetType().ToString()) });
         }
 
         private void Env_ActiveDeploymentChanged(object? sender, ActiveDeploymentChangedEventArgs e)
@@ -159,21 +161,6 @@ namespace Stormancer.Server.Plugins.GameFinder
 
             _gameFinder.RefreshConfig(specificConfig, config);
             _resolver.RefreshConfig(specificConfig);
-        }
-
-        // This function called from GameFinder plugin
-        public void Init(ISceneHost gameFinderScene)
-        {
-            _data.kind = gameFinderScene.Metadata[GameFinderPlugin.METADATA_KEY];
-
-            _logger.Log(LogLevel.Trace, LOG_CATEGORY, "Initializing the GameFinderService.", new { extractors = _extractors.Select(e => e.GetType().ToString()) });
-
-            if (this._scene != null)
-            {
-                throw new InvalidOperationException("The gameFinder service may only be initialized once.");
-            }
-
-            
         }
 
         public async Task FindGameS2S(RequestContext<IScenePeer> requestS2S)
