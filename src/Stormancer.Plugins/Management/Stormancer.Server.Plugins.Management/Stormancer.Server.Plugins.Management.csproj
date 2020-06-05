@@ -22,7 +22,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Stormancer.Abstractions.Server" Version="3.4.0-pre" />
-    <PackageReference Include="Stormancer.Management" Version="3.1.0-pre" />
+    <PackageReference Include="Stormancer.Management" Version="3.1.1-pre" />
   </ItemGroup>
   <ItemGroup>
     <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
