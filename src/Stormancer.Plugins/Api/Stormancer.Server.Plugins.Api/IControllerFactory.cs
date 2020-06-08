@@ -113,15 +113,15 @@ namespace Stormancer.Server.Plugins.API
     internal interface IControllerFactory
     {
         void RegisterControllers();
-        
+
     }
 
     internal class ControllerFactory<T> : IControllerFactory where T : ControllerBase
     {
-        
+
         private readonly ISceneHost _scene;
 
-        
+
         public ControllerFactory(ISceneHost scene)
         {
             _scene = scene;
@@ -239,13 +239,36 @@ namespace Stormancer.Server.Plugins.API
                 {
                     throw;
                 }
+                catch (AggregateException ex)
+                {
+                    var clientEx = ex.InnerExceptions.FirstOrDefault(ex => ex is ClientException);
+                    if (clientEx == null || ex.InnerExceptions.Count > 1)
+                    {
+                        if (controller == null || !await controller.HandleException(new ApiExceptionContext(ctx.Route, ex, ctx.Context)))
+                        {
+                            scope.Resolve<ILogger>().Log(LogLevel.Error, ctx.Route, $"An exception occurred while executing action '{ctx.Route}' in controller '{typeof(T).Name}'.", ex);
+                            
+                        }
+                    }
+
+                    if (clientEx != null)
+                    {
+                        throw clientEx;
+                    }
+                    else
+                    {
+                        throw;
+                    }
+
+                }
                 catch (Exception ex)
                 {
                     if (controller == null || !await controller.HandleException(new ApiExceptionContext(ctx.Route, ex, ctx.Context)))
                     {
                         scope.Resolve<ILogger>().Log(LogLevel.Error, ctx.Route, $"An exception occurred while executing action '{ctx.Route}' in controller '{typeof(T).Name}'.", ex);
-                        throw;
+                       
                     }
+                    throw;
                 }
             }
         }
@@ -539,7 +562,7 @@ namespace Stormancer.Server.Plugins.API
                 //public static Func<TRq, TReturn, IDependencyResolver> CreateWriteResultLambda<TRq, TReturn>()
                 var sendResultFunction = Expression.Constant(
                     typeof(ApiHelpers).GetRuntimeMethodExt("CreateWriteResultLambda", p => true).MakeGenericMethod(typeof(TRq), returnType).Invoke(null, new object[] { }),
-                    typeof(Func<,,,>).MakeGenericType(typeof(TRq), returnType, typeof(IDependencyResolver),typeof(Task))
+                    typeof(Func<,,,>).MakeGenericType(typeof(TRq), returnType, typeof(IDependencyResolver), typeof(Task))
                     );
 
                 //public static async Task ExecuteActionAndSendResult<TRq, TReturn>(T controller, TRq ctx, IDependencyResolver resolver, Func<T, TRq, IDependencyResolver, Task<TReturn>> executeControllerActionFunction, Action<TRq, TReturn, IDependencyResolver> sendResultAction)
@@ -569,7 +592,7 @@ namespace Stormancer.Server.Plugins.API
 
             public static async Task WriteResultAsyncEnumerable<TData>(RequestContext<IScenePeerClient> ctx, IAsyncEnumerable<TData> value, IDependencyResolver resolver)
             {
-                await foreach(var v in value)
+                await foreach (var v in value)
                 {
                     await ctx.SendValue(v);
                 }
@@ -589,7 +612,7 @@ namespace Stormancer.Server.Plugins.API
                 }
             }
 
-            public static async Task ExecuteActionAndSendResult<TRq, TReturn>(T controller, TRq ctx, IDependencyResolver resolver, Func<T, TRq, IDependencyResolver, Task<TReturn>> executeControllerActionFunction, Func<TRq, TReturn, IDependencyResolver,Task> sendResultAction)
+            public static async Task ExecuteActionAndSendResult<TRq, TReturn>(T controller, TRq ctx, IDependencyResolver resolver, Func<T, TRq, IDependencyResolver, Task<TReturn>> executeControllerActionFunction, Func<TRq, TReturn, IDependencyResolver, Task> sendResultAction)
             {
                 var result = await executeControllerActionFunction(controller, ctx, resolver);
                 await sendResultAction(ctx, result, resolver);
@@ -681,7 +704,7 @@ namespace Stormancer.Server.Plugins.API
             }
 
             //Action<TRq, TReturn, IDependencyResolver>
-            public static Func<TRq, TReturn, IDependencyResolver,Task> CreateWriteResultLambda<TRq, TReturn>()
+            public static Func<TRq, TReturn, IDependencyResolver, Task> CreateWriteResultLambda<TRq, TReturn>()
             {
                 var ctxType = typeof(TRq);
                 var returnType = typeof(TReturn);
