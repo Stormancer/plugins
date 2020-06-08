@@ -55,12 +55,12 @@ namespace Stormancer.Server.Plugins.Users
             this.env = env;
         }
 
-        private async Task<Packet<IScenePeer>> AuthenticatorRpc(string targetSessionId, string route, Action<Stream> writer, string type = "")
+        private async Task<Packet<IScenePeer>> AuthenticatorRpc(string? targetSessionId, string route, Action<Stream> writer, string type = "")
         {
             return await AuthenticatorRpc(targetSessionId, route, writer, CancellationToken.None, type).LastOrDefaultAsync();
         }
 
-        private IObservable<Packet<IScenePeer>> AuthenticatorRpc(string targetSessionId, string route, Action<Stream> writer, CancellationToken cancellationToken, string type = "")
+        private IObservable<Packet<IScenePeer>> AuthenticatorRpc(string? targetSessionId, string route, Action<Stream> writer, CancellationToken cancellationToken, string type = "")
         {
             return Observable.FromAsync(async () =>
             {
@@ -424,6 +424,16 @@ namespace Stormancer.Server.Plugins.Users
         public Task<Dictionary<PlatformId, Session>> GetSessions(IEnumerable<PlatformId> platformIds, bool forceRefresh = false)
         {
             return cache.GetSessionsByPlatformIds(platformIds, true, "", forceRefresh);
+        }
+
+        public async Task<int> GetAuthenticatedUsersCount()
+        {
+            var p = await AuthenticatorRpc(null, $"UserSession.{nameof(GetAuthenticatedUsersCount)}", s => { });
+            using (p.Stream)
+            {
+                return _serializer.Deserialize<int>(p.Stream);
+
+            }
         }
     }
 }

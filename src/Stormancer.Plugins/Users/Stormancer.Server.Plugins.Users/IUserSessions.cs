@@ -48,10 +48,28 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="userId"></param>
         /// <returns>A peer instance of null if no peer is currently authenticated with this identity.</returns>
         Task<IScenePeerClient> GetPeer(string userId);
+
+        /// <summary>
+        /// Updates data associated with the user.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="peer"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
         Task UpdateUserData<T>(IScenePeerClient peer, T data);
 
+        /// <summary>
+        /// Gets a boolean indicating whether a peer is authenticated.
+        /// </summary>
+        /// <param name="peer"></param>
+        /// <returns></returns>
         Task<bool> IsAuthenticated(IScenePeerClient peer);
 
+        /// <summary>
+        /// Gets the main platform id the user id is associated with.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
         Task<PlatformId> GetPlatformId(string userId);
 
         /// <summary>
@@ -143,7 +161,23 @@ namespace Stormancer.Server.Plugins.Users
         /// <returns></returns>
         Task UpdateUserHandle(string userId, string newHandle, bool appendHash);
 
+        /// <summary>
+        /// Sends a request to an user.
+        /// </summary>
+        /// <param name="operationName"></param>
+        /// <param name="senderUserId"></param>
+        /// <param name="recipientUserId"></param>
+        /// <param name="writer"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         IObservable<byte[]> SendRequest(string operationName, string senderUserId, string recipientUserId, Action<Stream> writer, CancellationToken cancellationToken);
+
+
+        /// <summary>
+        /// Gets the number of authenticated users.
+        /// </summary>
+        /// <returns></returns>
+        Task<int> GetAuthenticatedUsersCount();
     }
 
     public class BearerTokenData
@@ -157,21 +191,48 @@ namespace Stormancer.Server.Plugins.Users
         public string AuthenticatorUrl { get; set; }
     }
 
+    /// <summary>
+    /// Represents the Id of an user in a platform.
+    /// </summary>
+    /// <remarks>
+    /// An user may be authenticated to several platforms, in this case he will be associated to a main <see cref="PlatformId"/> and secondary ones.
+    /// </remarks>
     public struct PlatformId
     {
+
+        /// <summary>
+        /// Gets a string rep
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
             return Platform + ":" + OnlineId;
         }
+
+        /// <summary>
+        /// Parses a platform id string.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
         public static PlatformId Parse(string value)
         {
             var els = value.Split(':');
             return new PlatformId { Platform = els[0], OnlineId = els[1] };
         }
 
+        /// <summary>
+        /// Platform used to authenticate the user.
+        /// </summary>
         public string Platform { get; set; }
+
+        /// <summary>
+        /// Online id of the user in the platform.
+        /// </summary>
         public string OnlineId { get; set; }
 
+        /// <summary>
+        /// Returns true if the platform id is "unknown".
+        /// </summary>
         public bool IsUnknown
         {
             get
@@ -180,6 +241,9 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
+        /// <summary>
+        /// Represents an Unknow platform Id.
+        /// </summary>
         public static PlatformId Unknown
         {
             get

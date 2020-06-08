@@ -210,5 +210,17 @@ namespace Stormancer.Server.Plugins.Users
                 await ctx.SendValue(stream => stream.Write(data, 0, data.Length));
             }
         }
+
+        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
+        public Task<int> GetAuthenticatedUsersCount()
+        {
+            return _sessions.GetAuthenticatedUsersCount();
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public Task<int> GetAuthenticatedUsersCountPublic()
+        {
+            return _sessions.GetAuthenticatedUsersCount();
+        }
     }
 }

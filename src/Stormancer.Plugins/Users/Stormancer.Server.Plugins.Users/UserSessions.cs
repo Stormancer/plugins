@@ -619,6 +619,11 @@ namespace Stormancer.Server.Plugins.Users
             return sessions;
         }
 
+        public Task<int> GetAuthenticatedUsersCount()
+        {
+            return Task.FromResult(AuthenticatedUsersCount);
+        }
+
         public int AuthenticatedUsersCount
         {
             get
