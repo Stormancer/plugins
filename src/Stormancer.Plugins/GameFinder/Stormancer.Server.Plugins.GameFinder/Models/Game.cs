@@ -41,7 +41,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         }
 
         public Game(int teamCount, JObject customData = null) 
-            : this(teamCount, () => new Team(), customData)
+            : this(teamCount, () => new Team() { TeamId = Guid.NewGuid().ToString() }, customData)
         {
         }
 

@@ -492,7 +492,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     peer.Send(P2P_TOKEN_ROUTE, _p2pToken);
                 }
 
-                var playerConnectedCtx = new ClientConnectedContext { Player = new PlayerPeer(peer, new Player(peer.SessionId, userId)), GameSession = this, IsHost = (_config.HostUserId == userId) };
+                var playerConnectedCtx = new ClientConnectedContext(this, new PlayerPeer(peer, new Player(peer.SessionId, userId)), _config.HostUserId == userId);
                 using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
                 {
                     await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
