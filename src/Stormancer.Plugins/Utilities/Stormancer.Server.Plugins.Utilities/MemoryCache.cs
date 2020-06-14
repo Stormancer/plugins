@@ -27,9 +27,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.Database
+namespace Stormancer.Server.Plugins
 {
-    class MemoryCache<T> : IDisposable where T : class
+
+    /// <summary>
+    /// Represents a simple memory cache.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public class MemoryCache<T> : IDisposable where T : class
     {
         private class CacheEntry
         {
@@ -70,6 +75,10 @@ namespace Stormancer.Server.Plugins.Database
         ConcurrentDictionary<string, CacheEntry> cache = new ConcurrentDictionary<string, CacheEntry>();
         private bool _running = true;
 
+
+        /// <summary>
+        /// Creates the memory cache.
+        /// </summary>
         public MemoryCache()
         {
             Task.Run(async () =>
@@ -91,7 +100,6 @@ namespace Stormancer.Server.Plugins.Database
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="id"></param>
-        /// <param name="cache"></param>
         /// <param name="addFunction"></param>
         /// <param name="invalidationDelay"></param>
         /// <returns></returns>
