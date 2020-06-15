@@ -955,7 +955,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 _serializer.Serialize(data, stream);
             }, PacketPriority.MEDIUM_PRIORITY, ct);
 
-            await foreach (var packet in observable.ToAsyncEnumerable().WithCancellation(ct))
+            await foreach (var packet in observable.ToAsyncEnumerable())
             {
                 var teams = _serializer.Deserialize<IEnumerable<Team>>(packet.Stream);
 
