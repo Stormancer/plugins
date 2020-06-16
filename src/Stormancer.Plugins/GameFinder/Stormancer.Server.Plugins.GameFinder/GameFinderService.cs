@@ -738,15 +738,16 @@ namespace Stormancer.Server.Plugins.GameFinder
             return CancelGame(packet.Connection, true);
         }
 
-        public Task CancelGame(IScenePeerClient peer, bool requestedByPlayer)
+        public async Task CancelGame(IScenePeerClient peer, bool requestedByPlayer)
         {
             Party party;
             if (!_data.peersToGroup.TryGetValue(peer.SessionId, out party))
             {
-                return Task.CompletedTask;
+                await _scene.Send(new MatchPeerFilter(peer), UPDATE_NOTIFICATION_ROUTE, s => s.WriteByte((byte)GameFinderStatusUpdate.Cancelled), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+                
             }
 
-            return Cancel(party, requestedByPlayer);
+            await Cancel(party, requestedByPlayer);
         }
 
         public async Task CancelAll()

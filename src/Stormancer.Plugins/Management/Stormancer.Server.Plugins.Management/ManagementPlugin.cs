@@ -67,8 +67,9 @@ namespace Stormancer.Server.Plugins.Management
         private readonly ILogger _logger;
 
         private ManagementClient _clientV3;
-       
-    
+
+        private Lazy<ManagementClient> _clientV1;
+        private ManagementClient clientV1 { get => _clientV1.Value; }
 
         public ManagementClientProvider(IEnvironment environment, ILogger logger)
         {
@@ -113,7 +114,15 @@ namespace Stormancer.Server.Plugins.Management
                  return rq;
              });
 
-        
+            _clientV1 = new Lazy<ManagementClient>(() => new ManagementClient(EndpointResolver, async rq =>
+            {
+                var creds = await environment.GetAdminApiCredentials();
+                foreach (var header in creds.Headers)
+                {
+                    rq.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                }
+                return rq;
+            }, "1"));
         }
 
         /// <summary>
@@ -131,7 +140,21 @@ namespace Stormancer.Server.Plugins.Management
 
         }
 
-       
+
+        /// <summary>
+        /// Creates a connection token for a scene in the federation, using the V1 protocol.
+        /// </summary>
+        /// <param name="sceneUri"></param>
+        /// <param name="payload"></param>
+        /// <param name="contentType"></param>
+        /// <returns></returns>
+        public async Task<string> CreateConnectionTokenV1(string sceneUri, byte[]? payload = null, string contentType = "application/octet-stream")
+        {
+
+            (var clusterId, var accountId, var applicationId, var sceneId) = await DecomposeSceneId(sceneUri);
+            return await clientV1.Applications.CreateConnectionToken(clusterId, accountId, applicationId, sceneId, payload ?? new byte[0], contentType);
+
+        }
 
         /// <summary>
         /// Creates a scene in the federation using the provider scene uri.

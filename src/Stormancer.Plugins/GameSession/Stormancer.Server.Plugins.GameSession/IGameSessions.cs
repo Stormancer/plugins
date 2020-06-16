@@ -77,7 +77,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 return await TaskHelper.Retry(async () => version switch
                 {
                     TokenVersion.V3 => await management.CreateConnectionToken(id, stream.ToArray(), "stormancer/userSession"),
-                    //TokenVersion.V1 => await management.CreateConnectionTokenV1(id, stream.ToArray(), "stormancer/userSession"),
+                    TokenVersion.V1 => await management.CreateConnectionTokenV1(id, stream.ToArray(), "stormancer/userSession"),
                     _ => throw new InvalidOperationException("Unhandled TokenVersion value")
 
                 }, RetryPolicies.IncrementalDelay(4, TimeSpan.FromSeconds(200)), CancellationToken.None, ex => true);
