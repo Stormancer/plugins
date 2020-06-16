@@ -288,7 +288,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             var party = new Party();
             var provider = request.ReadObject<string>();
 
-            User currentUser = null;
+            User? currentUser = null;
             using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 var sessions = scope.Resolve<IUserSessions>();
@@ -306,7 +306,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 party.Players.Add(currentUser.Id, new Player(request.RemotePeer.SessionId, currentUser.Id) { });
             }
 
-            PlayerPeer[] peersInGroup = null;
+            PlayerPeer[]? peersInGroup = null;
             using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 var sessions = scope.Resolve<IUserSessions>();
@@ -372,16 +372,16 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
             finally //Always remove party from list.
             {
-                GameFinderRequestState _;
+              
                 foreach (var p in peersInGroup)
                 {
-                    Party grp1;
-                    _data.peersToGroup.TryRemove(p.Peer.SessionId, out grp1);
+                 
+                    _data.peersToGroup.TryRemove(p.Peer.SessionId, out var grp1);
                 }
-                _data.waitingGroups.TryRemove(party, out _);
-                if (_.Candidate != null)
+               
+                if (_data.waitingGroups.TryRemove(party, out var g) && g.Candidate != null)
                 {
-                    if (_pendingReadyChecks.TryGetValue(_.Candidate.Id, out var rc))
+                    if (_pendingReadyChecks.TryGetValue(g.Candidate.Id, out var rc))
                     {
                         if (!rc.RanToCompletion)
                         {
@@ -566,16 +566,16 @@ namespace Stormancer.Server.Plugins.GameFinder
                         {
                             foreach (var party in result.UnreadyGroups)//Cancel gameFinder for timeouted parties
                             {
-                                GameFinderRequestState mrs;
-                                if (_data.waitingGroups.TryGetValue(party, out mrs))
+                               
+                                if (_data.waitingGroups.TryGetValue(party, out var mrs))
                                 {
                                     mrs.Tcs.TrySetCanceled();
                                 }
                             }
                             foreach (var party in result.ReadyGroups)//Put ready parties back in queue.
                             {
-                                GameFinderRequestState mrs;
-                                if (_data.waitingGroups.TryGetValue(party, out mrs))
+                               
+                                if (_data.waitingGroups.TryGetValue(party, out var mrs))
                                 {
                                     mrs.State = RequestState.Ready;
                                     await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) =>
@@ -676,7 +676,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             _pendingReadyChecks.TryRemove(id, out _);
         }
 
-        private GameReadyCheck GetReadyCheck(IScenePeerClient peer)
+        private GameReadyCheck? GetReadyCheck(IScenePeerClient peer)
         {
             if (_data.peersToGroup.TryGetValue(peer.SessionId, out var g))
             {
@@ -691,10 +691,10 @@ namespace Stormancer.Server.Plugins.GameFinder
             return null;
         }
 
-        private GameReadyCheck GetReadyCheck(string gameId)
+        private GameReadyCheck? GetReadyCheck(string gameId)
         {
-            GameReadyCheck check;
-            if (_pendingReadyChecks.TryGetValue(gameId, out check))
+           
+            if (_pendingReadyChecks.TryGetValue(gameId, out var check))
             {
                 return check;
             }
@@ -706,7 +706,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         public async Task ResolveReadyRequest(Packet<IScenePeerClient> packet)
         {
-            User user = null;
+            User? user = null;
             using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 var sessions = scope.Resolve<IUserSessions>();
@@ -740,14 +740,17 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         public async Task CancelGame(IScenePeerClient peer, bool requestedByPlayer)
         {
-            Party party;
-            if (!_data.peersToGroup.TryGetValue(peer.SessionId, out party))
+           
+            if (!_data.peersToGroup.TryGetValue(peer.SessionId, out var party))
             {
                 await _scene.Send(new MatchPeerFilter(peer), UPDATE_NOTIFICATION_ROUTE, s => s.WriteByte((byte)GameFinderStatusUpdate.Cancelled), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
-                
-            }
 
-            await Cancel(party, requestedByPlayer);
+            }
+            else
+            {
+
+                await Cancel(party, requestedByPlayer);
+            }
         }
 
         public async Task CancelAll()
@@ -762,8 +765,8 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         public Task Cancel(Party party, bool requestedByPlayer)
         {
-            GameFinderRequestState mmrs;
-            if (!_data.waitingGroups.TryGetValue(party, out mmrs))
+
+            if (!_data.waitingGroups.TryGetValue(party, out var mmrs))
             {
                 return Task.CompletedTask;
             }
