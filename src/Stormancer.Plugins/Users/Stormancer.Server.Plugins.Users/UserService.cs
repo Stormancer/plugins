@@ -327,7 +327,7 @@ namespace Stormancer.Server.Plugins.Users
                     return null;
                 }
             }
-            else
+            else if(claim.IsValid)
             {
                 var r = await c.SearchAsync<User>(sd => sd.Query(qd => qd.Term($"auth.{provider}.{claimPath}", login)));
 
@@ -353,6 +353,11 @@ namespace Stormancer.Server.Plugins.Users
                 await c.IndexAsync(new AuthenticationClaim { Id = cacheId, UserId = user.Id }, s => s.Index(GetIndex<AuthenticationClaim>()));
 
                 return user;
+            }
+            else
+            {
+                _logger.Log(LogLevel.Error, "users", "Get user by claim failed.", new { error = claim.ServerError });
+                throw new InvalidOperationException("Failed to get user.");
             }
         }
 
