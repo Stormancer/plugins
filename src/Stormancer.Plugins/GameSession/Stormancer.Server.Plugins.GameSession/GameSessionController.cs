@@ -49,11 +49,14 @@ namespace Stormancer.Server.Plugins.GameSession
         public async Task PostResults(RequestContext<IScenePeerClient> ctx)
         {
             var writer = await _service.PostResults(ctx.InputStream, ctx.RemotePeer);
-            await ctx.SendValue(s =>
+            if (!ctx.CancellationToken.IsCancellationRequested)
             {
-                var oldPosition = s.Position;
-                writer(s, ctx.RemotePeer.Serializer());
-            });
+                await ctx.SendValue(s =>
+                {
+                    var oldPosition = s.Position;
+                    writer(s, ctx.RemotePeer.Serializer());
+                });
+            }
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]

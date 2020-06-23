@@ -587,20 +587,41 @@ namespace Stormancer.Server.Plugins.API
 
             public static Task WriteResult<TData>(RequestContext<IScenePeerClient> ctx, TData value, IDependencyResolver resolver)
             {
-                return ctx.SendValue(value);
+                if (!ctx.CancellationToken.IsCancellationRequested)
+                {
+                    return ctx.SendValue(value);
+                }
+                else
+                {
+                    return Task.CompletedTask;
+                }
             }
 
             public static async Task WriteResultAsyncEnumerable<TData>(RequestContext<IScenePeerClient> ctx, IAsyncEnumerable<TData> value, IDependencyResolver resolver)
             {
                 await foreach (var v in value)
                 {
-                    await ctx.SendValue(v);
+                    if (!ctx.CancellationToken.IsCancellationRequested)
+                    {
+                        await ctx.SendValue(v);
+                    }
+                    else
+                    {
+                        return;
+                    }
                 }
             }
             public static Task WriteResult<TData>(RequestContext<IScenePeer> ctx, TData value, IDependencyResolver resolver)
             {
-                var serializer = resolver.Resolve<ISerializer>();
-                return ctx.SendValue(s => serializer.Serialize(value, s));
+                if (!ctx.CancellationToken.IsCancellationRequested)
+                {
+                    var serializer = resolver.Resolve<ISerializer>();
+                    return ctx.SendValue(s => serializer.Serialize(value, s));
+                }
+                else
+                {
+                    return Task.CompletedTask;
+                }
             }
 
             public static async Task WriteResulttAsyncEnumerable<TData>(RequestContext<IScenePeer> ctx, IAsyncEnumerable<TData> values, IDependencyResolver resolver)
@@ -608,7 +629,14 @@ namespace Stormancer.Server.Plugins.API
                 await foreach (var value in values)
                 {
                     var serializer = resolver.Resolve<ISerializer>();
-                    await ctx.SendValue(s => serializer.Serialize(value, s));
+                    if (!ctx.CancellationToken.IsCancellationRequested)
+                    {
+                        await ctx.SendValue(s => serializer.Serialize(value, s));
+                    }
+                    else
+                    {
+                        return;
+                    }
                 }
             }
 
