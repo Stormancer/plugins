@@ -238,6 +238,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
         public async Task<LeaderboardResult<ScoreRecord>> Query(LeaderboardQuery leaderboardQuery)
         {
+            await this.eventHandlers().RunEventHandler(eh => eh.OnQueryingLeaderboard(leaderboardQuery), ex => _logger.Log(LogLevel.Error, "leaderboard", "An error occured while running OnQueryingLeaderboard event handlers", ex));
             if (string.IsNullOrEmpty(leaderboardQuery.ScorePath))
             {
                 throw new ArgumentNullException("ScorePath");
