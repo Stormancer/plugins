@@ -157,6 +157,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
             {
                 return null;
             }
+            startResult.Source.Id = ParseDocumentId(startResult.Id).Item2;
             return startResult.Source;
         }
 
@@ -377,6 +378,10 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
                 foreach (var doc in documents.Take(leaderboardQuery.Count))
                 {
+                    //Remove leaderboardName from document.
+                    var (_, id) = ParseDocumentId(doc.Id);
+                    doc.Id = id;
+
                     if (EnableExequo)
                     {
                         int currentRank;
@@ -431,7 +436,12 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
             return leaderboardResult;
         }
-
+        
+        private static (string,string) ParseDocumentId(string documentId)
+        {
+            var segments = documentId.Split('#');
+            return (segments[0], segments[1]);
+        }
         private string SerializeContinuationQuery(LeaderboardContinuationQuery query)
         {
             var json = Newtonsoft.Json.JsonConvert.SerializeObject(query);
