@@ -152,12 +152,12 @@ namespace Stormancer.Server.Plugins.Leaderboards
         {
             var index = GetModifiedLeaderboardName(leaderboardName);
             var client = await CreateESClient<ScoreRecord>(index);
-            var startResult = await client.GetAsync<ScoreRecord>(GetDocumentId(leaderboardName, playerId));
+            var startResult = await client.GetAsync<ScoreRecord>(GetDocumentId(index, playerId));
             if (!startResult.Found)
             {
                 return null;
             }
-            startResult.Source.Id = ParseDocumentId(startResult.Id).Item2;
+            
             return startResult.Source;
         }
 
@@ -379,8 +379,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 foreach (var doc in documents.Take(leaderboardQuery.Count))
                 {
                     //Remove leaderboardName from document.
-                    var (_, id) = ParseDocumentId(doc.Id);
-                    doc.Id = id;
+                   
 
                     if (EnableExequo)
                     {
@@ -437,11 +436,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
             return leaderboardResult;
         }
         
-        private static (string,string) ParseDocumentId(string documentId)
-        {
-            var segments = documentId.Split('#');
-            return (segments[0], segments[1]);
-        }
+
         private string SerializeContinuationQuery(LeaderboardContinuationQuery query)
         {
             var json = Newtonsoft.Json.JsonConvert.SerializeObject(query);
