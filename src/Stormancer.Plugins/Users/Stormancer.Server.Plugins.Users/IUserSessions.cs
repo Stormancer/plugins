@@ -86,9 +86,9 @@ namespace Stormancer.Server.Plugins.Users
         /// </summary>
         /// <param name="sessionId"></param>
         /// <returns></returns>
-        Task<Session> GetSessionById(string sessionId, bool forceRefresh = false);
+        Task<Session?> GetSessionById(string sessionId, bool forceRefresh = false);
 
-        Task<Session> GetSessionById(string sessionId, string authType, bool forceRefresh = false);
+        Task<Session?> GetSessionById(string sessionId, string authType, bool forceRefresh = false);
 
         /// <summary>
         /// Get the session of a connected user through their platform-specific Id.

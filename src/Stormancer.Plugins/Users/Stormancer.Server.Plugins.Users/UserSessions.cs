@@ -327,7 +327,7 @@ namespace Stormancer.Server.Plugins.Users
         }
 
 
-        public async Task<SessionRecord> GetSessionRecordById(string sessionId)
+        public async Task<SessionRecord?> GetSessionRecordById(string sessionId)
         {
             var result = await _peerUserIndex.TryGet(sessionId);
             if (result.Success)
@@ -337,12 +337,12 @@ namespace Stormancer.Server.Plugins.Users
             else
             {
 
-                logger.Log(LogLevel.Trace, "usersession", $"Get session failed for id {sessionId}, {_peerUserIndex.Count} sessions found", new { });
+                //logger.Log(LogLevel.Trace, "usersession", $"Get session failed for id {sessionId}, {_peerUserIndex.Count} sessions found", new { });
                 return null;
             }
         }
 
-        public async Task<Session> GetSessionById(string sessionId, bool forceRefresh = false)
+        public async Task<Session?> GetSessionById(string sessionId, bool forceRefresh = false)
         {
             var session = await GetSessionRecordById(sessionId);
             return session?.CreateView();

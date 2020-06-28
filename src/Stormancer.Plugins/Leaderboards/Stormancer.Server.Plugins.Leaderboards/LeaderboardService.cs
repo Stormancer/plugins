@@ -703,6 +703,10 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 {
                     mustClauses = mustClauses.Concat(rq.ScoreFilters.Select<ScoreFilter, Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>>(f =>
                     {
+                        if(string.IsNullOrEmpty(f.Path))
+                        {
+                            throw new ArgumentException("Range filtering clause provided without a 'Path' parameter.");
+                        }
                         return q => q.Range(r =>
                         {
                             r = r.Field("scores." + f.Path);
