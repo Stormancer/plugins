@@ -199,8 +199,8 @@ namespace Stormancer.Server.Plugins.Steam
             }
             catch (Exception ex)
             {
-                _logger.Log(LogLevel.Debug, "authenticator.steam", $"Steam authentication failed. Ticket : {ticket}", ex);
-                return AuthenticationResult.CreateFailure($"Invalid steam session ticket.", pId, authenticationCtx.Parameters);
+                _logger.Log(LogLevel.Debug, "authenticator.steam", $"Steam authentication failed.", ex);
+                throw;
             }
         }
 
