@@ -327,7 +327,7 @@ namespace Stormancer.Server.Plugins.Users
                     return null;
                 }
             }
-            else if(claim.IsValid)
+            else if(claim.IsValid || claim.ServerError == null)
             {
                 var r = await c.SearchAsync<User>(sd => sd.Query(qd => qd.Term($"auth.{provider}.{claimPath}", login)));
 
