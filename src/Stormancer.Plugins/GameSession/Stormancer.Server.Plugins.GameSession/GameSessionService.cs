@@ -97,7 +97,7 @@ namespace Stormancer.Server.Plugins.GameSession
         }
 
         // Constant variable
-        private const string LOG_CATEOGRY = "Game session service";
+        private const string LOG_CATEOGRY = "gamesession";
         private const string P2P_TOKEN_ROUTE = "player.p2ptoken";
         private const string ALL_PLAYER_READY_ROUTE = "players.allReady";
 
