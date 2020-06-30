@@ -188,7 +188,7 @@ namespace Stormancer.Server.Plugins.Users
 
         private async Task<Dictionary<string, Session?>> GetSessionsFromAuthenticatorBySessionIds(IEnumerable<string> sessionIds, string authType)
         {
-            var sessions = await AuthenticatorRpc<Dictionary<string, Session?>, IEnumerable<string>>("usersession.GetSessionsbySessionIds", authType, sessionIds);
+            var sessions = await AuthenticatorRpc<Dictionary<string, Session?>, IEnumerable<string>>("UserSessions.GetSessionsbySessionIds", authType, sessionIds);
             foreach (var session in sessions.Values)
             {
                 _userIdToSessionId.AddOrUpdate(session.User.Id, session.SessionId, (id, old) => session.SessionId);
