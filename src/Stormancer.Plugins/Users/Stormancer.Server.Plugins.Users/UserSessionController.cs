@@ -130,6 +130,12 @@ namespace Stormancer.Server.Plugins.Users
             await rq.SendValue(s => _serializer.Serialize(sessions, s));
         }
 
+        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
+        public Task<Dictionary<string,Session?>> GetSessionsbySessionIds(IEnumerable<string> sessionIds)
+        {
+            return _sessions.GetSessions(sessionIds);
+        }
+
         public async Task UpdateSessionData(RequestContext<IScenePeer> rq)
         {
             var sessionId = _serializer.Deserialize<string>(rq.InputStream);

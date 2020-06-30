@@ -107,6 +107,15 @@ namespace Stormancer.Server.Plugins.Users
         Task<Dictionary<PlatformId, Session>> GetSessions(IEnumerable<PlatformId> platformIds, bool forceRefresh = false);
 
         /// <summary>
+        /// Gets sessions from session ids.
+        /// </summary>
+        /// <param name="sessionIds"></param>
+        /// <param name="forceRefresh"></param>
+        /// <returns></returns>
+        Task<Dictionary<string, Session?>> GetSessions(IEnumerable<string> sessionIds, bool forceRefresh = false);
+
+
+        /// <summary>
         /// Update a user's session data entry with raw data.
         /// </summary>
         /// <remarks>If <paramref name="key"/> is not present in the session data, it will be added.</remarks>

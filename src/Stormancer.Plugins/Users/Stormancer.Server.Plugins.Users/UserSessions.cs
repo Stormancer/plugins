@@ -117,7 +117,7 @@ namespace Stormancer.Server.Plugins.Users
         private readonly RpcService rpcService;
         private readonly IHandleUserIndex _handleUserIndex;
 
-      
+
         public UserSessions(IUserService userService,
             IPeerUserIndex peerUserIndex,
             IUserPeerIndex userPeerIndex,
@@ -622,6 +622,24 @@ namespace Stormancer.Server.Plugins.Users
         public Task<int> GetAuthenticatedUsersCount()
         {
             return Task.FromResult(AuthenticatedUsersCount);
+        }
+
+        public async Task<Dictionary<string, Session?>> GetSessions(IEnumerable<string> sessionIds, bool forceRefresh = false)
+        {
+
+            var sessions = new Dictionary<string, Session?>();
+
+            foreach (var id in sessionIds)
+            {
+                var session = await GetSession(id, forceRefresh);
+                if (session != null)
+                {
+                    sessions.TryAdd(id, session);
+                }
+            }
+
+            return sessions;
+
         }
 
         public int AuthenticatedUsersCount
