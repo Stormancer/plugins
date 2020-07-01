@@ -94,5 +94,22 @@ namespace Stormancer.Server.Plugins.GameSession
                 throw new ClientException($"unauthorized");
             }
         }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task<string> GetGameSessionConnectionUrl()
+        {
+            var id = _service.GetGameSessionConfig().HostUserId;
+
+            if (!string.IsNullOrEmpty(id))
+            {
+                var session = await _sessions.GetSessionByUserId(id);
+                if (session != null)
+                {
+                    return "strm." + session.SessionId;
+                }
+            }
+
+            throw new ClientException("no host configured in gameSession.");
+        }
     }
 }
