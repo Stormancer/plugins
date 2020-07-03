@@ -47,10 +47,27 @@ namespace Stormancer.Server.Plugins.Profile
             Origin = origin;
         }
 
+        /// <summary>
+        /// The list of user ids we are computing profile information for.
+        /// </summary>
         public IEnumerable<string> Users { get; }
+
+        /// <summary>
+        /// Display options for profile generation.
+        /// </summary>
         public Dictionary<string, string> DisplayOptions { get; }
+
+        /// <summary>
+        /// Origin of the request.
+        /// </summary>
         public Session Origin { get; }
 
+        /// <summary>
+        /// Update profile data in the result.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="key"></param>
+        /// <param name="updater"></param>
         public void UpdateProfileData(string userId, string key, Func<JObject,JObject> updater)
         {
             var data = _data.GetOrAdd(userId, (string id) => new ConcurrentDictionary<string, JObject>());
@@ -68,8 +85,12 @@ namespace Stormancer.Server.Plugins.Profile
 
     }
 
+    /// <summary>
+    /// Classes implementing the <see cref="IProfilePartBuilder"/> interface  participate in the profile generation process.
+    /// </summary>
     public interface IProfilePartBuilder
     {
+
         Task GetProfiles(ProfileCtx ctx);
     }
 }
