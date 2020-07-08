@@ -491,7 +491,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 var indices = results.Where(e => !e.Value).Select(e => GetIndex(e.Key.LeaderboardName)).Distinct();
                 var response = await client.MultiGetAsync(desc => desc.GetMany<ScoreRecord>(idsToUpdate).Index(string.Join(",", indices)));
 
-                var records = response.GetMany<ScoreRecord>(idsToUpdate);
+                var records = response.GetMany<ScoreRecord>(idsToUpdate).ToList();
 
                 var updates = new List<(ScoreUpdate, Nest.IMultiGetHit<ScoreRecord>)>();
                 foreach (var record in records)
