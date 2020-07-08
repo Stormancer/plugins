@@ -169,15 +169,9 @@ namespace Stormancer.Server.Plugins.Management
         {
 
             (var clusterId, var accountId, var applicationId, var sceneId) = await DecomposeSceneId(sceneUri);
-            try
-            {
-                await _clientV3.Applications.CreateScene(clusterId, accountId, applicationId, sceneId, template, isPublic, metadata, isPersistent);
-            }
-            catch (Exception ex)
-            {
-                _logger.Log(LogLevel.Error, "manage", $"Failed to create the scene {sceneUri} on {clusterId}", ex);
-                throw;
-            }
+
+            await _clientV3.Applications.CreateScene(clusterId, accountId, applicationId, sceneId, template, isPublic, metadata, isPersistent);
+
         }
 
         private async Task<(string, string, string, string)> DecomposeSceneId(string sceneUri)
