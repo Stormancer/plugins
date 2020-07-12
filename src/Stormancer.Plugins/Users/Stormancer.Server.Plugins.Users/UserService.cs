@@ -327,9 +327,9 @@ namespace Stormancer.Server.Plugins.Users
                     return null;
                 }
             }
-            else if(claim.IsValid || claim.ServerError == null)
+            else if(claim.IsValid ||  claim.ServerError == null || claim.ServerError.Status == 404)
             {
-                var r = await c.SearchAsync<User>(sd => sd.Query(qd => qd.Term($"auth.{provider}.{claimPath}", login)));
+                var r = await c.SearchAsync<User>(sd => sd.Query(qd => qd.Term($"auth.{provider}.{claimPath}", login)).AllowNoIndices());
 
                 User user;
                 if (r.Hits.Count() > 1)
