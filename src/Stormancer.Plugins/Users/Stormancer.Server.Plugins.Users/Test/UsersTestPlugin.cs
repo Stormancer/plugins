@@ -30,7 +30,13 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users.Test
 {
-    class UsersTestPlugin : IHostPlugin
+    /// <summary>
+    /// This plugin contains test code for the Users plugin.
+    /// </summary>
+    /// <remarks>
+    /// This plugin has no place in regular apps. It is intended only for testing.
+    /// </remarks>
+    public class UsersTestPlugin : IHostPlugin
     {
         public void Build(HostPluginBuildContext ctx)
         {
