@@ -869,16 +869,26 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public string GameSessionId => _scene.Id;
 
+        private bool _gameCompleteExecuted = false;
         private async Task EvaluateGameComplete()
         {
             using (await _asyncLock.LockAsync())
             {
+                
+
                 if (_clients.Values.All(c => c.ResultData != null || c.Peer == null))//All remaining clients sent their data
                 {
                     var ctx = new GameSessionCompleteCtx(this, _scene, _config, _clients.Select(kvp => new GameSessionResult(kvp.Key, kvp.Value.Peer, kvp.Value.ResultData)), _clients.Keys);
 
+                    if (_gameCompleteExecuted)
+                    {
+                        return;
+                    }
+                    _gameCompleteExecuted = true;
+
                     using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
                     {
+
                         await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.GameSessionCompleted(ctx), ex =>
                         {
                             _logger.Log(LogLevel.Error, "gameSession", "An error occured while running gameSession.GameSessionCompleted event handlers", ex);
@@ -894,8 +904,7 @@ namespace Stormancer.Server.Plugins.GameSession
                         client.GameCompleteTcs.TrySetResult(ctx.ResultsWriter);
                     }
 
-                    // FIXME: Temporary workaround to issue where disconnections cause large increases in CPU/Memory usage
-                    //await Task.WhenAll(_scene.RemotePeers.Select(user => user.Disconnect("Game complete")));
+                    await Task.WhenAll(_scene.RemotePeers.Select(user => user.Disconnect("gamesession.completed")));
 
                     _gameCompleteCts.Cancel();
                     await _scene.KeepAlive(TimeSpan.Zero);
