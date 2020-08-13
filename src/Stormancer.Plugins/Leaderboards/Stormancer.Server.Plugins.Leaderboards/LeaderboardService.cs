@@ -262,7 +262,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 start = await GetScore(leaderboardQuery.StartId, leaderboardQuery.Name);
                 if (start == null)
                 {
-                    throw new ClientException($"Record {leaderboardQuery.StartId} not found in leaderboard.");
+                    throw new ClientException($"Record {leaderboardQuery.StartId} not found in leaderboard {leaderboardQuery.Name}.");
                 }
             }
 
