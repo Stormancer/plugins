@@ -262,7 +262,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 start = await GetScore(leaderboardQuery.StartId, leaderboardQuery.Name);
                 if (start == null)
                 {
-                    throw new ClientException("Player not found in leadeboard.");
+                    throw new ClientException($"Record {leaderboardQuery.StartId} not found in leaderboard.");
                 }
             }
 
@@ -425,7 +425,8 @@ namespace Stormancer.Server.Plugins.Leaderboards
                     nextQuery.Skip = 0;
                     nextQuery.Count = leaderboardQuery.Count;
                     nextQuery.IsPrevious = false;
-                    nextQuery.StartId = results.Last().Document.Id;
+                    nextQuery.StartId =results.Last().Document.Id;
+                    
                     leaderboardResult.Next = SerializeContinuationQuery(nextQuery);
                 }
 

@@ -197,10 +197,10 @@ namespace Stormancer.Server.Plugins.Steam
 
                 return AuthenticationResult.CreateSuccess(user, pId, authenticationCtx.Parameters);
             }
-            catch (Exception ex)
+            catch (SteamException)
             {
-                _logger.Log(LogLevel.Debug, "authenticator.steam", $"Steam authentication failed.", ex);
-                throw;
+                return AuthenticationResult.CreateFailure($"Authentication refused by steam.", pId, authenticationCtx.Parameters);
+             
             }
         }
 
