@@ -489,7 +489,8 @@ namespace Stormancer.Server.Plugins.Leaderboards
             {
                 var idsToUpdate = results.Where(e => !e.Value).Select(e => GetDocumentId(e.Key.LeaderboardName, e.Key.Id));
                 var indices = results.Where(e => !e.Value).Select(e => GetIndex(e.Key.LeaderboardName)).Distinct();
-                var response = await client.MultiGetAsync(desc => desc.GetMany<ScoreRecord>(idsToUpdate).Index(string.Join(",", indices)));
+                var indicesParams = string.Join(",", indices);
+                var response = await client.MultiGetAsync(desc => desc.GetMany<ScoreRecord>(idsToUpdate, (mgdesc, _) => mgdesc.Index(indicesParams)).Index(indicesParams));
 
                 var records = response.GetMany<ScoreRecord>(idsToUpdate).ToList();
 
