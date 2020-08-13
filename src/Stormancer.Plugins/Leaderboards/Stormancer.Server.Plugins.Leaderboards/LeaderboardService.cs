@@ -673,7 +673,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
             return desc.Bool(s2 =>
             {
                 IEnumerable< Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>> mustClauses = new List<Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>> { 
-                q=>q.Term(qt=>qt.Field("leaderboardName").Value(rq.Name))
+                q=>q.Term(qt=>qt.Field("leaderboardName.keyword").Value(rq.Name))
                 
                 };
 
