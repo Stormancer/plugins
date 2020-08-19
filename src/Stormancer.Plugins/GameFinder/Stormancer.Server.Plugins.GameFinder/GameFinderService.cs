@@ -124,6 +124,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
             scene.Disconnected.Add(args => CancelGame(args.Peer, false));
             scene.AddProcedure("gamefinder.find", FindGame);
+            scene.AddProcedure("gamefinder.getmetrics", GetMetricsProcedure);
             scene.AddRoute("gamefinder.ready.resolve", ResolveReadyRequest, r => r);
             scene.AddRoute("gamefinder.cancel", CancelGame, r => r);
 
@@ -820,6 +821,13 @@ namespace Stormancer.Server.Plugins.GameFinder
         }
 
         public Dictionary<string, int> GetMetrics() => _gameFinder.GetMetrics();
+        
+        public Task GetMetricsProcedure(RequestContext<IScenePeerClient> request)
+        {
+            request.SendValue(GetMetrics());
+
+            return Task.CompletedTask;
+        }
 
         //private class GameFinderContext : IGameFinderContext
         //{
