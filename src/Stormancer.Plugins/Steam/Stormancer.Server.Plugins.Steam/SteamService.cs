@@ -131,7 +131,7 @@ namespace Stormancer.Server.Plugins.Steam
 
                     _logger.Log(LogLevel.Error, "authenticator.steam", "The Steam API failed to authenticate user ticket. No success status code.", new { AuthenticateUri, StatusCode = $"{(int)response.StatusCode} {response.ReasonPhrase}", Response = contentStr });
 
-                    throw new InvalidOperationException($"The Steam API failed to authenticate user ticket. No success status code.");
+                    throw new SteamException($"The Steam API failed to authenticate user ticket. No success status code.");
                 }
                 
                 var json = await response.Content.ReadAsStringAsync();
