@@ -69,7 +69,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         public DateTime CreationTimeUtc { get; internal set; } = DateTime.UtcNow;
 
         internal TaskCompletionSource<object?> Tcs { get; } = new TaskCompletionSource<object?>();
-        
+
         private RequestContext<IScenePeer> requestContext;
 
         /// <summary>

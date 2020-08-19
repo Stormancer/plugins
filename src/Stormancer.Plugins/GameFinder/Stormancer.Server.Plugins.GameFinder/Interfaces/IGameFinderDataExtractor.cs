@@ -27,7 +27,7 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
-    public interface IGameFinderDataExtractor 
+    public interface IGameFinderDataExtractor
     {
         Task<bool> ExtractDataS2S(string provider, Stream requestStream, Party group);
         Task<bool> ExtractData(string provider, RequestContext<IScenePeerClient> request, Party group);

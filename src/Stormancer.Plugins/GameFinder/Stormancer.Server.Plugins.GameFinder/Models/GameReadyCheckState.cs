@@ -82,7 +82,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             PlayersReadyState[id] = accepts ? Readiness.Ready : Readiness.NotReady;
 
             RaiseStateChanged();
-            
+
             if (GlobalState != Readiness.Unknown)
             {
                 ResolveReadyPhase();
@@ -104,9 +104,9 @@ namespace Stormancer.Server.Plugins.GameFinder
             {
                 var unReadyGroupList = new List<Party>();
                 var readyGroupList = new List<Party>();
-                foreach(var group in Game.AllParties())
+                foreach (var group in Game.AllParties())
                 {
-                    if(group.Players.Any(p => PlayersReadyState[p.Value.UserId] == Readiness.NotReady))
+                    if (group.Players.Any(p => PlayersReadyState[p.Value.UserId] == Readiness.NotReady))
                     {
                         unReadyGroupList.Add(group);
                     }

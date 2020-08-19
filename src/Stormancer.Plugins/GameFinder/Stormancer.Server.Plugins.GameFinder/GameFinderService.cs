@@ -65,7 +65,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         {
             FailedClients.Add((party, reason));
         }
-        
+
         /// <summary>
         /// Game Sessions that are open to new players.
         /// </summary>
@@ -121,12 +121,6 @@ namespace Stormancer.Server.Plugins.GameFinder
             env.ActiveDeploymentChanged += Env_ActiveDeploymentChanged;
             config.SettingsChanged += (s, c) => ApplyConfig(c);
             ApplyConfig(config.Settings);
-
-            scene.Disconnected.Add(args => CancelGame(args.Peer, false));
-            scene.AddProcedure("gamefinder.find", FindGame);
-            scene.AddProcedure("gamefinder.getmetrics", GetMetricsProcedure);
-            scene.AddRoute("gamefinder.ready.resolve", ResolveReadyRequest, r => r);
-            scene.AddRoute("gamefinder.cancel", CancelGame, r => r);
 
             _logger.Log(LogLevel.Trace, LOG_CATEGORY, "Initializing the GameFinderService.", new { extractors = _extractors.Select(e => e.GetType().ToString()) });
         }
@@ -255,16 +249,16 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
             finally //Always remove party from list.
             {
-              
+
                 foreach (var p in peersInGroup)
                 {
-                  
+
                     if (p?.Peer?.SessionId != null)
                     {
                         _data.peersToGroup.TryRemove(p.Peer.SessionId, out _);
                     }
                 }
-               
+
                 if (_data.waitingGroups.TryRemove(party, out var group) && group.Candidate != null)
                 {
                     if (_pendingReadyChecks.TryGetValue(group.Candidate.Id, out var rc))
@@ -373,13 +367,13 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
             finally //Always remove party from list.
             {
-              
+
                 foreach (var p in peersInGroup)
                 {
-                 
+
                     _data.peersToGroup.TryRemove(p.Peer.SessionId, out var grp1);
                 }
-               
+
                 if (_data.waitingGroups.TryRemove(party, out var g) && g.Candidate != null)
                 {
                     if (_pendingReadyChecks.TryGetValue(g.Candidate.Id, out var rc))
@@ -567,7 +561,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                         {
                             foreach (var party in result.UnreadyGroups)//Cancel gameFinder for timeouted parties
                             {
-                               
+
                                 if (_data.waitingGroups.TryGetValue(party, out var mrs))
                                 {
                                     mrs.Tcs.TrySetCanceled();
@@ -575,7 +569,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                             }
                             foreach (var party in result.ReadyGroups)//Put ready parties back in queue.
                             {
-                               
+
                                 if (_data.waitingGroups.TryGetValue(party, out var mrs))
                                 {
                                     mrs.State = RequestState.Ready;
@@ -694,7 +688,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         private GameReadyCheck? GetReadyCheck(string gameId)
         {
-           
+
             if (_pendingReadyChecks.TryGetValue(gameId, out var check))
             {
                 return check;
@@ -741,7 +735,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         public async Task CancelGame(IScenePeerClient peer, bool requestedByPlayer)
         {
-           
+
             if (!_data.peersToGroup.TryGetValue(peer.SessionId, out var party))
             {
                 await _scene.Send(new MatchPeerFilter(peer), UPDATE_NOTIFICATION_ROUTE, s => s.WriteByte((byte)GameFinderStatusUpdate.Cancelled), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
@@ -821,13 +815,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         }
 
         public Dictionary<string, int> GetMetrics() => _gameFinder.GetMetrics();
-        
-        public Task GetMetricsProcedure(RequestContext<IScenePeerClient> request)
-        {
-            request.SendValue(GetMetrics());
 
-            return Task.CompletedTask;
-        }
 
         //private class GameFinderContext : IGameFinderContext
         //{
@@ -904,10 +892,11 @@ namespace Stormancer.Server.Plugins.GameFinder
 
             private string? _gameSceneId;
 
-            public string GameSceneId { 
+            public string GameSceneId
+            {
                 get
                 {
-                    if(_gameSceneId!=null)
+                    if (_gameSceneId != null)
                     {
                         return _gameSceneId;
                     }

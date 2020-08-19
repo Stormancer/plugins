@@ -40,7 +40,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         {
         }
 
-        public Game(int teamCount, JObject customData = null) 
+        public Game(int teamCount, JObject customData = null)
             : this(teamCount, () => new Team() { TeamId = Guid.NewGuid().ToString() }, customData)
         {
         }
@@ -48,7 +48,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         public Game(int teamCount, Func<Team> teamFactory, JObject customData = null)
         {
             CustomData = customData;
-            for(var i = 0; i< teamCount; i++)
+            for (var i = 0; i < teamCount; i++)
             {
                 Teams.Add(teamFactory());
             }
@@ -62,7 +62,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             Id = Guid.NewGuid().ToString();
         }
 
-        public static Game Create<T>(IEnumerable<Team> teams, T customData = null) where T:class
+        public static Game Create<T>(IEnumerable<Team> teams, T customData = null) where T : class
         {
             return new Game(teams, customData != null ? JObject.FromObject(customData) : null);
         }
