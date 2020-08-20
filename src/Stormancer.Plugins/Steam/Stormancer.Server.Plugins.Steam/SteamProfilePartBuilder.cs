@@ -49,8 +49,9 @@ namespace Stormancer.Server.Plugins.Steam
                 return;
             }
 
-            var users = (await Task.WhenAll(ctx.Users.Select(id => _users.GetUser(id))))
-                .Where(u => u.UserData.ContainsKey("steamid"))
+            var users = (await _users.GetUsers(ctx.Users.ToArray()))
+                .Where(kvp => kvp.Value.UserData.ContainsKey("steamid"))
+                .Select(kvp => kvp.Value)
                 .ToList();
 
             if (users.Count == 0)
