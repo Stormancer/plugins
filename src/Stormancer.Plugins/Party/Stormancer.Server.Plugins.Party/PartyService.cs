@@ -360,9 +360,14 @@ namespace Stormancer.Server.Plugins.Party
 
                 await TryCancelPendingGameFinder();
 
+                Dictionary<PartyMember, PartySettingsUpdateDto> updates = _partyState.PartyMembers.Values.ToDictionary(m => m, _ => new PartySettingsUpdateDto(_partyState));
+
+                await _handlers().RunEventHandler(h => h.OnSendingSettingsUpdateToMembers(new PartySettingsMemberUpdateCtx(this, updates)),
+                ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnSendingSettingsToMember", ex));
+
                 await BroadcastStateUpdateRpc(
                     PartySettingsUpdateDto.Route,
-                    new PartySettingsUpdateDto(_partyState)
+                    updates
                     );
             });
         }
@@ -586,8 +591,15 @@ namespace Stormancer.Server.Plugins.Party
             }
         }
 
-        // This method should be called to notify party members when the party's state is updated.
-        private async Task BroadcastStateUpdateRpc<T>(string route, T data)
+        /// <summary>
+        /// This method should be called to notify party members when the party's state is updated.
+        /// </summary>
+        /// <remarks>This overload allows sending specific data per member.</remarks>
+        /// <typeparam name="T">Type of the data to send to the party members.</typeparam>
+        /// <param name="route">RPC route on which the data will be sent.</param>
+        /// <param name="dataPerMember">The data to send to each member. In this overload, the data is member-specific.</param>
+        /// <returns>Task that completes when every member has received the data, or when <c>_clientRpcTimeout</c> has been reached.</returns>
+        private async Task BroadcastStateUpdateRpc<T>(string route, Dictionary<PartyMember, T> dataPerMember)
         {
             _partyState.VersionNumber++;
 
@@ -601,34 +613,47 @@ namespace Stormancer.Server.Plugins.Party
                 cts.CancelAfter(_clientRpcTimeout);
 
                 await Task.WhenAll(
-                    _partyState.PartyMembers.Values.Select(member =>
+                    dataPerMember.Select(kvp =>
                         _rpcService.Rpc(
                             route,
-                            member.Peer,
+                            kvp.Key.Peer,
                             s =>
                             {
-                                member.Peer.Serializer().Serialize(_partyState.VersionNumber, s);
-                                member.Peer.Serializer().Serialize(data, s);
+                                kvp.Key.Peer.Serializer().Serialize(_partyState.VersionNumber, s);
+                                kvp.Key.Peer.Serializer().Serialize(kvp.Value, s);
                             },
                             PacketPriority.MEDIUM_PRIORITY,
                             cts.Token
                         ).LastOrDefaultAsync().ToTask()
                         .ContinueWith(task =>
                         {
-                            if (task.IsFaulted && !(task.Exception.InnerException is OperationCanceledException))
+                            if (task.IsFaulted && !(task.Exception?.InnerException is OperationCanceledException))
                             {
                                 Log(
                                     LogLevel.Trace,
                                     "BroadcastStateUpdateRpc",
                                     $"An error occurred during a client RPC (route: '{route}')",
-                                    new { member.UserId, member.Peer.SessionId, task.Exception, Route = route },
-                                    member.UserId, member.Peer.SessionId
+                                    new { kvp.Key.UserId, kvp.Key.Peer.SessionId, task.Exception, Route = route },
+                                    kvp.Key.UserId, kvp.Key.Peer.SessionId
                                 );
                             }
                         })
-                    ) // PartyMembers.Values.Select()
+                    ) // dataPerMember.Select()
                 ); // Task.WhenAll()
             } // using cts
+        }
+
+        /// <summary>
+        /// This method should be called to notify party members when the party's state is updated.
+        /// </summary>
+        /// <remarks>This overload sends the same data to all members.</remarks>
+        /// <typeparam name="T">Type of the data to send to the party members.</typeparam>
+        /// <param name="route">RPC route on which the data will be sent.</param>
+        /// <param name="data">Data to send to the party members.</param>
+        /// <returns></returns>
+        private async Task BroadcastStateUpdateRpc<T>(string route, T data)
+        {
+            await BroadcastStateUpdateRpc(route, _partyState.PartyMembers.Values.ToDictionary(member => member, _ => data));
         }
 
         // This method should be used to broadcast a notification to party members that is not part of the party state.
@@ -641,13 +666,13 @@ namespace Stormancer.Server.Plugins.Party
         {
             await _partyState.TaskQueue.PushWork(async () =>
             {
-                PartyMember partyUser;
-                if (!TryGetMemberByUserId(recipientUserId, out partyUser))
+                PartyMember member;
+                if (!TryGetMemberByUserId(recipientUserId, out member))
                 {
                     throw new ClientException(NoSuchMemberError(recipientUserId));
                 }
 
-                var state = MakePartyStateDto();
+                var state = MakePartyStateDto(member);
 
                 using (var cts = new CancellationTokenSource())
                 {
@@ -655,8 +680,8 @@ namespace Stormancer.Server.Plugins.Party
 
                     await _rpcService.Rpc(
                         SendPartyStateRoute,
-                        partyUser.Peer,
-                        s => partyUser.Peer.Serializer().Serialize(state, s),
+                        member.Peer,
+                        s => member.Peer.Serializer().Serialize(state, s),
                         PacketPriority.HIGH_PRIORITY,
                         cts.Token
                         ).LastOrDefaultAsync().ToTask();
@@ -668,20 +693,22 @@ namespace Stormancer.Server.Plugins.Party
         {
             await _partyState.TaskQueue.PushWork(() =>
             {
-                if (!_partyState.PartyMembers.ContainsKey(ctx.RemotePeer.SessionId))
+                if (_partyState.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
+                {
+                    var dto = MakePartyStateDto(member);
+
+                    return ctx.SendValue(dto);
+                }
+                else
                 {
                     throw new ClientException(NoSuchMemberError(ctx.RemotePeer.SessionId));
                 }
-
-                var dto = MakePartyStateDto();
-
-                return ctx.SendValue(dto);
             });
         }
 
-        private PartyStateDto MakePartyStateDto()
+        private async Task<PartyStateDto> MakePartyStateDto(PartyMember recipient)
         {
-            return new PartyStateDto
+            var dto = new PartyStateDto
             {
                 LeaderId = _partyState.Settings.PartyLeaderId,
                 Settings = new PartySettingsUpdateDto(_partyState),
@@ -689,6 +716,12 @@ namespace Stormancer.Server.Plugins.Party
                     new PartyMemberDto { PartyUserStatus = member.StatusInParty, UserData = member.UserData, UserId = member.UserId }).ToList(),
                 Version = _partyState.VersionNumber
             };
+
+            await _handlers().RunEventHandler(
+                h => h.OnSendingSettingsUpdateToMembers(new PartySettingsMemberUpdateCtx(this, new Dictionary<PartyMember, PartySettingsUpdateDto> { { recipient, dto.Settings } })),
+                ex => Log(LogLevel.Error, "MakePartyStateDto", "An exception was thrown by a OnSendingSettingsUpdateToMembers handler"));
+
+            return dto;
         }
 
         public async Task<bool> SendInvitation(string senderUserId, string recipientUserId, bool forceStormancerInvite, CancellationToken cancellationToken)
