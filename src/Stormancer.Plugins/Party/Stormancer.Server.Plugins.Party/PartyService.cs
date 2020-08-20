@@ -672,7 +672,7 @@ namespace Stormancer.Server.Plugins.Party
                     throw new ClientException(NoSuchMemberError(recipientUserId));
                 }
 
-                var state = MakePartyStateDto(member);
+                var state = await MakePartyStateDto(member);
 
                 using (var cts = new CancellationTokenSource())
                 {
@@ -691,11 +691,11 @@ namespace Stormancer.Server.Plugins.Party
 
         public async Task SendPartyStateAsRequestAnswer(RequestContext<IScenePeerClient> ctx)
         {
-            await _partyState.TaskQueue.PushWork(() =>
+            await _partyState.TaskQueue.PushWork(async () =>
             {
                 if (_partyState.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
                 {
-                    var dto = MakePartyStateDto(member);
+                    var dto = await MakePartyStateDto(member);
 
                     return ctx.SendValue(dto);
                 }
