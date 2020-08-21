@@ -49,7 +49,7 @@ namespace Stormancer.Server.Plugins.Party
         // Revision is independent from protocol version. Revision changes when a modification is made to server code (e.g bugfix).
         // Protocol version changes when a change to the communication protocol is made.
         // Protocol versions between client and server are not obligated to match.
-        public const string REVISION = "2020-01-28.1";
+        public const string REVISION = "2020-08-21.1";
         public const string REVISION_METADATA_KEY = "stormancer.party.revision";
         private const string LOG_CATEGORY = "PartyService";
 
