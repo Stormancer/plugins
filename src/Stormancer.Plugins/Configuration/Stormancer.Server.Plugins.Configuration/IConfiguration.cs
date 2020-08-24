@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json.Linq;
 using Stormancer.Server.Components;
 using System;
 using System.Collections.Generic;
@@ -34,6 +35,8 @@ namespace Stormancer.Server.Plugins.Configuration
         dynamic Settings { get; }
 
         event EventHandler<dynamic> SettingsChanged;
+
+        void SetDefaultValue<T>(string key, T value)
     }
     internal class DefaultConfiguration : IConfiguration, IDisposable
     {
@@ -47,7 +50,9 @@ namespace Stormancer.Server.Plugins.Configuration
             Settings = environment.Configuration;
         }
 
-
+        public void SetDefaultValue<T>(string key, T value)
+        {
+        }
 
         public dynamic Settings
         {
