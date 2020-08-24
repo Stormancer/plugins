@@ -20,10 +20,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Components;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -54,7 +56,13 @@ namespace Stormancer.Server.Plugins.Configuration
         /// <returns></returns>
         T GetValue<T>(string path, T defaultValue = default);
 
-        void SetDefaultValue<T>(string key, T value)
+        /// <summary>
+        /// Sets a default value for a configuration item.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
+        void SetDefaultValue<T>(string key, T value);
     }
     internal class DefaultConfiguration : IConfiguration, IDisposable
     {
@@ -68,9 +76,7 @@ namespace Stormancer.Server.Plugins.Configuration
             Settings = environment.Configuration;
         }
 
-        public void SetDefaultValue<T>(string key, T value)
-        {
-        }
+        private JObject defaultSettings = new JObject();
 
         public dynamic Settings
         {
@@ -78,7 +84,7 @@ namespace Stormancer.Server.Plugins.Configuration
             protected set;
         }
 
-        private void RaiseSettingsChanged(object sender, dynamic args)
+        private void RaiseSettingsChanged(object? sender, dynamic args)
         {
             Settings = _env.Configuration;
             SettingsChangedImpl?.Invoke(this, Settings);
@@ -110,6 +116,25 @@ namespace Stormancer.Server.Plugins.Configuration
             }
         }
 
+        public void SetDefaultValue<T>(string path, T value)
+        {
+            var segments = path.Split('.');
+            JObject node = this.defaultSettings;
+            for (int i = 0; i < segments.Length -1; i++)
+            {
+                var next = node[segments[i]] as JObject;
+                if (next == null)
+                {
+                    next = new JObject();
+                    node[segments[i]] = next;
+                }
+                node = next;
+            }
+            node[segments.Last()] = JToken.FromObject(value!); //Ignore nullable error because FromObject supports null.
+            
+
+        }
+
         public T GetValue<T>(string path, T defaultValue = default)
         {
             var segments = path.Split('.');
@@ -117,14 +142,45 @@ namespace Stormancer.Server.Plugins.Configuration
             for (int i = 0; i < segments.Length; i++)
             {
                 node = node[segments[i]];
-                if(node == null)
+                if (node == null)
                 {
                     return defaultValue;
                 }
             }
-            
-            return ((JToken)node).ToObject<T>()??defaultValue;
 
+            if(TryGetValue<T>(segments, Settings, out T result))
+            {
+                return result;
+            }
+            else if(TryGetValue<T>(segments,defaultSettings,out result))
+            {
+                return result;
+            }
+            else
+            {
+                return defaultValue;
+            }
+
+        }
+
+        private bool TryGetValue<T>(string[] segments, JObject container,[MaybeNullWhen(false)] out T value)
+        {
+
+            var dic = new Dictionary<string, string>();
+           
+            JToken? node = container;
+            for (int i = 0; i < segments.Length; i++)
+            {
+                node = node[segments[i]];
+                if (node == null)
+                {
+                    value = default;
+                    return false;
+                }
+            }
+            
+            value = node.ToObject<T>()!;
+            return true;
         }
     }
 
