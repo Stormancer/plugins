@@ -38,15 +38,17 @@ namespace Stormancer.Server.Plugins.Steam
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
                 builder.Register<SteamController>().InstancePerRequest();
+                builder.Register<SteamPartyController>().InstancePerRequest();
                 builder.Register<SteamProfilePartBuilder>().As<IProfilePartBuilder>();
-                builder.Register<SteamService>().As<ISteamService>().InstancePerScene();
+                builder.Register<SteamService>().As<ISteamService>();
                 //builder.Register<SteamFriendsEventHandler>().As<IFriendsEventHandler>();
                 builder.Register<SteamPartyEventHandler>().As<IPartyEventHandler>().InstancePerRequest();
+                builder.Register<SteamUserTicketAuthenticator>().As<ISteamUserTicketAuthenticator>();
             };
 
             ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
             {
-                if (scene.Template == Users.Constants.SCENE_TEMPLATE)
+                if (scene.Template == Constants.SCENE_TEMPLATE)
                 {
                     builder.Register<SteamAuthenticationProvider>().As<IAuthenticationProvider>();
                     builder.Register<SteamUserTicketAuthenticator>().As<ISteamUserTicketAuthenticator>();
@@ -59,6 +61,11 @@ namespace Stormancer.Server.Plugins.Steam
                 {
                     scene.AddController<SteamController>();
                 }
+                
+                if (scene.Metadata.ContainsKey(PartyConstants.METADATA_KEY))
+                {
+                    scene.AddController<SteamPartyController>();
+                }
             };
         }
     }
@@ -66,8 +73,16 @@ namespace Stormancer.Server.Plugins.Steam
 
 namespace Stormancer
 {
+    /// <summary>
+    /// Steam plugin extension methods.
+    /// </summary>
     public static class SteamExtensions
     {
+        /// <summary>
+        /// Adds the Steam plugin on the scene.
+        /// </summary>
+        /// <param name="scene"></param>
+        /// <returns></returns>
         public static ISceneHost AddSteam(this ISceneHost scene)
         {
             scene.Metadata[SteamPlugin.METADATA_KEY] = "enabled";

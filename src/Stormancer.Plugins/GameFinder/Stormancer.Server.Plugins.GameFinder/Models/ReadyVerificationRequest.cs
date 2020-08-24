@@ -33,9 +33,9 @@ namespace Stormancer.Server.Plugins.GameFinder
 
     public class ReadyVerificationRequest
     {
-        public Dictionary<string,Readiness> members;
+        public Dictionary<string, Readiness> members;
         public string gameId;
-        
+
         public int timeout;
     }
 }

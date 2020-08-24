@@ -5,7 +5,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>1.1.0.1</Version>
+    <Version>2.1.2</Version>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -13,10 +13,16 @@
     <LangVersion>latest</LangVersion>
     <Description>Exposes the Stormancer Management client to the server application using the application's identity.</Description>
   </PropertyGroup>
-
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <Version>$(Version)-pre</Version>
+  </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.1.0.1" />
-    <PackageReference Include="Stormancer.Management" Version="3.0.0.4" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.4.0-pre" />
+    <PackageReference Include="Stormancer.Management" Version="3.1.1.1-pre" />
   </ItemGroup>
   <ItemGroup>
     <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />

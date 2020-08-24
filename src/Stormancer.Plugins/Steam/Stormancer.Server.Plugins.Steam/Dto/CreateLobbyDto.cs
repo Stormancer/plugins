@@ -1,4 +1,4 @@
-// MIT License
+﻿// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -19,40 +19,40 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using Newtonsoft.Json.Linq;
-using Stormancer.Server.Users;
-using System;
-using System.Collections.Concurrent;
+
+using MsgPack.Serialization;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Stormancer.Plugins.ServiceLocator
+namespace Stormancer.Server.Plugins.Steam
 {
-    public class ServiceLocationCtx
+    /// <summary>
+    /// Join lobby dto.
+    /// </summary>
+    public class CreateLobbyDto
     {
         /// <summary>
-        /// Type of the service
+        /// Stam lobby id.
         /// </summary>
-        public string ServiceType { get; set; }
+        [MessagePackMember(0)]
+        public LobbyType LobbyType { get; set; } = LobbyType.Private;
 
         /// <summary>
-        /// Name of the specific instance of the service we are trying to locate
+        /// Max members authorized to join the lobby.
         /// </summary>
-        public string ServiceName { get; set; }
+        [MessagePackMember(1)]
+        public int MaxMembers { get; set; }
 
-        public string SceneId { get; set; }
+        /// <summary>
+        /// Set Lobby to be joinable or not.
+        /// </summary>
+        [MessagePackMember(2)]
+        public bool Joinable { get; set; }
 
-
-        public Dictionary<string, string> Context { get; set; } = new Dictionary<string, string>();
-
-       
-        public Session Session { get; internal set; }
-    }
-
-    public interface IServiceLocatorProvider
-    {
-        Task LocateService(ServiceLocationCtx ctx);
+        /// <summary>
+        /// Set lobby metadata.
+        /// </summary>
+        /// <remarks>The steam API alterates the keys to "camelCase" format (first letter becomes lower case).</remarks>
+        [MessagePackMember(3)]
+        public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
     }
 }

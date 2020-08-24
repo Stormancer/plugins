@@ -41,6 +41,7 @@ namespace Stormancer.Server.Plugins.Profile
 
         public async Task GetProfiles(ProfileCtx ctx)
         {
+            //TODO: Optimize.
             foreach (var id in ctx.Users)
             {
                 // Prefer to retrieve the user directly from the session. If the user is offline, use the database.
@@ -50,7 +51,15 @@ namespace Stormancer.Server.Plugins.Profile
                   {
                       if (user != null)
                       {
-                          j["userhandle"] = user.UserData["handle"];
+                          if (user.UserData.ContainsKey("handle"))
+                          {
+                              j["userhandle"] = user.UserData["handle"];
+                          }
+
+                          if (user.UserData.ContainsKey("pseudo"))
+                          {
+                              j["pseudo"] = user.UserData["pseudo"];
+                          }
                       }
                       return j;
                   });

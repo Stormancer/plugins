@@ -5,7 +5,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>1.0.0.2</Version>
+    <Version>1.0.3.4</Version>
     <AssemblyVersion>$(Version)</AssemblyVersion>
     <FileVersion>$(Version)</FileVersion>
     <IncludeSymbols>true</IncludeSymbols>
@@ -15,11 +15,17 @@
     <LangVersion>latest</LangVersion>
     <Description>Provides an elasticsearch client configured with the server app configuration.</Description>
   </PropertyGroup>
-
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <Version>$(Version)-pre</Version>
+  </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="NEST" Version="7.5.1" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="NEST" Version="7.8.2" />
     <PackageReference Include="SmartFormat.NET" Version="2.5.0" />
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.1.0.1" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.4.0-pre" />
   </ItemGroup>
 
   <ItemGroup>

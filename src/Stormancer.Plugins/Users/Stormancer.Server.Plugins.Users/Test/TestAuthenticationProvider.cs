@@ -93,7 +93,7 @@ namespace Stormancer.Server.Plugins.Users.Test
             return null;
         }
 
-        public Task Setup(Dictionary<string, string> parameters)
+        public Task Setup(Dictionary<string, string> parameters, Session? session)
         {
             return Task.CompletedTask;
         }

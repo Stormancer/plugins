@@ -88,11 +88,12 @@ namespace Stormancer.Server.Plugins.Users
         /// Configures the authentication system for an user.
         /// </summary>
         /// <param name="parameters"></param>
+        /// <param name="session">Current session if the user is currently connected.</param>
         /// <remarks>
         /// Use this function to implement create account or auth update capabilities.
         /// </remarks>
         /// <returns></returns>
-        Task Setup(Dictionary<string, string> parameters);
+        Task Setup(Dictionary<string, string> parameters, Session? session) => throw new NotSupportedException();
 
         /// <summary>
         /// Called when the client requests their authentication status.

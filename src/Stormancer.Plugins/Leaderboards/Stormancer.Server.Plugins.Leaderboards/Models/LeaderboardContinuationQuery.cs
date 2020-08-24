@@ -37,6 +37,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
             Count = parent.Count;
             Skip = parent.Skip;
             Name = parent.Name;
+            ScorePath = parent.ScorePath;
         }
 
         public bool IsPrevious { get; set; }

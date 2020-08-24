@@ -19,14 +19,38 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+using Stormancer.Plugins;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-using MsgPack.Serialization;
-
-namespace WindJammers2Server.Plugins.Steam.Dto
+namespace Stormancer.Server.Plugins.Users
 {
-    public class SteamUserJoinLobbyDto
+    /// <summary>
+    /// Plugin startup class (internal use only)
+    /// </summary>
+    public class App
     {
-        [MessagePackMember(0)]
-        public ulong lobbyIdSteam { get; set; }
+        /// <summary>
+        /// Plugin startup function (internal use only)
+        /// </summary>
+        public void Run(IAppBuilder builder)
+        {
+            builder.AddPlugin(new FirebasePlugin());
+        }
+    }
+
+    internal class FirebasePlugin : IHostPlugin
+    {
+        public void Build(HostPluginBuildContext ctx)
+        {
+            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) => { 
+            
+            
+            };
+        }
     }
 }
+

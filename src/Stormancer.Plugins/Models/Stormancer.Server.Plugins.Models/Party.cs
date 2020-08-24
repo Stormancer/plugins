@@ -26,28 +26,53 @@ using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.Models
 {
+    /// <summary>
+    /// Party.
+    /// </summary>
     public class Party
     {
+        /// <summary>
+        /// Party default constructor.
+        /// </summary>
         public Party()
         {
             // Default ctor for backward compatibility
         }
 
+        /// <summary>
+        /// Party constructor with player list.
+        /// </summary>
+        /// <param name="players"></param>
         public Party(Dictionary<string, Player> players)
         {
             Players = players;
         }
 
+        /// <summary>
+        /// Party Id.
+        /// </summary>
         [MessagePackMember(0)]
-        public string PartyId { get; set; }
+        public string PartyId { get; set; } = "";
 
+        /// <summary>
+        /// Players in party.
+        /// </summary>
         [MessagePackMember(1)]
         public Dictionary<string, Player> Players { get; } = new Dictionary<string, Player>();
 
-        public object PartyData { get; set; }
+        /// <summary>
+        /// Party custom data.
+        /// </summary>
+        public object? PartyData { get; set; }
 
+        /// <summary>
+        /// Party creation date.
+        /// </summary>
         public DateTime CreationTimeUtc { get; } = DateTime.UtcNow;
 
+        /// <summary>
+        /// Number of passes of gamefinder without finding an opponent.
+        /// </summary>
         public int PastPasses { get; set; }
     }
 }

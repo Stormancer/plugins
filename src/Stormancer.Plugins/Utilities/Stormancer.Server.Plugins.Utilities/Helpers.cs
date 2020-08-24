@@ -24,13 +24,26 @@ using System;
 
 namespace Server.Helpers
 {
+    /// <summary>
+    /// Unit Timestamp manipulation helpers.
+    /// </summary>
     public static class TimestampHelper
     {
+        /// <summary>
+        /// Convert an Unix Timestamp into a DateTime instance.
+        /// </summary>
+        /// <param name="unixTimeStamp"></param>
+        /// <returns></returns>
         static public DateTime UnixTimeStampSecondToDateTime(long unixTimeStamp)
         {
             return DateTimeOffset.FromUnixTimeSeconds(unixTimeStamp).DateTime;
         }
 
+        /// <summary>
+        /// Convert a DateTime instance into an Unix timestamp.
+        /// </summary>
+        /// <param name="date"></param>
+        /// <returns></returns>
         static public long DateTimeToUnixTimeStamp(this DateTime date)
         {
             DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);

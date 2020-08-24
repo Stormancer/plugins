@@ -21,23 +21,59 @@
 // SOFTWARE.
 
 using MsgPack.Serialization;
-using System.Collections.Generic;
 
-namespace Stormancer.Server.PartyManagement
+namespace Stormancer.Server.Plugins.Party
 {
+    /// <summary>
+    /// Party request Dto.
+    /// </summary>
     public class PartyRequestDto
     {
+        /// <summary>
+        /// Platform Session Id.
+        /// </summary>
         [MessagePackMember(0)]
         public string PlatformSessionId { get; set; }
+
+        /// <summary>
+        /// GameFinder name.
+        /// </summary>
         [MessagePackMember(1)]
         public string GameFinderName { get; set; }
+
+        /// <summary>
+        /// Custom Data.
+        /// </summary>
         [MessagePackMember(2)]
         public string CustomData { get; set; }
+
+        /// <summary>
+        /// Server settings set by client.
+        /// </summary>
         [MessagePackMember(3)]
-        public Dictionary<string, string> ServerSettings { get; set; } = new Dictionary<string, string>();
+        public ServerPartySettings ServerSettings { get; set; } = new ServerPartySettings();
+
+        /// <summary>
+        /// Only leader can invite players in the party.
+        /// </summary>
         [MessagePackMember(4)]
         public bool OnlyLeaderCanInvite { get; set; } = true;
+
+        /// <summary>
+        /// Party is joinable.
+        /// </summary>
         [MessagePackMember(5)]
         public bool IsJoinable { get; set; } = true;
+
+        /// <summary>
+        /// Whether the party should be public or private.
+        /// </summary>
+        /// <remarks>
+        /// This has implications for party's platform-specific functionality.
+        /// A public party is always visible to other players.
+        /// A private party is visible only to players who have received an invitation.
+        /// </remarks>
+        [MessagePackMember(6)]
+        public bool IsPublic { get; set; } = false;
     }
 }

@@ -113,15 +113,15 @@ namespace Stormancer.Server.Plugins.API
     internal interface IControllerFactory
     {
         void RegisterControllers();
-        
+
     }
 
     internal class ControllerFactory<T> : IControllerFactory where T : ControllerBase
     {
-        
+
         private readonly ISceneHost _scene;
 
-        
+
         public ControllerFactory(ISceneHost scene)
         {
             _scene = scene;
@@ -239,13 +239,36 @@ namespace Stormancer.Server.Plugins.API
                 {
                     throw;
                 }
+                catch (AggregateException ex)
+                {
+                    var clientEx = ex.InnerExceptions.FirstOrDefault(ex => ex is ClientException);
+                    if (clientEx == null || ex.InnerExceptions.Count > 1)
+                    {
+                        if (controller == null || !await controller.HandleException(new ApiExceptionContext(ctx.Route, ex, ctx.Context)))
+                        {
+                            scope.Resolve<ILogger>().Log(LogLevel.Error, ctx.Route, $"An exception occurred while executing action '{ctx.Route}' in controller '{typeof(T).Name}'.", ex);
+                            
+                        }
+                    }
+
+                    if (clientEx != null)
+                    {
+                        throw clientEx;
+                    }
+                    else
+                    {
+                        throw;
+                    }
+
+                }
                 catch (Exception ex)
                 {
                     if (controller == null || !await controller.HandleException(new ApiExceptionContext(ctx.Route, ex, ctx.Context)))
                     {
                         scope.Resolve<ILogger>().Log(LogLevel.Error, ctx.Route, $"An exception occurred while executing action '{ctx.Route}' in controller '{typeof(T).Name}'.", ex);
-                        throw;
+                       
                     }
+                    throw;
                 }
             }
         }
@@ -539,7 +562,7 @@ namespace Stormancer.Server.Plugins.API
                 //public static Func<TRq, TReturn, IDependencyResolver> CreateWriteResultLambda<TRq, TReturn>()
                 var sendResultFunction = Expression.Constant(
                     typeof(ApiHelpers).GetRuntimeMethodExt("CreateWriteResultLambda", p => true).MakeGenericMethod(typeof(TRq), returnType).Invoke(null, new object[] { }),
-                    typeof(Func<,,,>).MakeGenericType(typeof(TRq), returnType, typeof(IDependencyResolver),typeof(Task))
+                    typeof(Func<,,,>).MakeGenericType(typeof(TRq), returnType, typeof(IDependencyResolver), typeof(Task))
                     );
 
                 //public static async Task ExecuteActionAndSendResult<TRq, TReturn>(T controller, TRq ctx, IDependencyResolver resolver, Func<T, TRq, IDependencyResolver, Task<TReturn>> executeControllerActionFunction, Action<TRq, TReturn, IDependencyResolver> sendResultAction)
@@ -564,15 +587,60 @@ namespace Stormancer.Server.Plugins.API
 
             public static Task WriteResult<TData>(RequestContext<IScenePeerClient> ctx, TData value, IDependencyResolver resolver)
             {
-                return ctx.SendValue(value);
+                if (!ctx.CancellationToken.IsCancellationRequested)
+                {
+                    return ctx.SendValue(value);
+                }
+                else
+                {
+                    return Task.CompletedTask;
+                }
+            }
+
+            public static async Task WriteResultAsyncEnumerable<TData>(RequestContext<IScenePeerClient> ctx, IAsyncEnumerable<TData> value, IDependencyResolver resolver)
+            {
+                await foreach (var v in value)
+                {
+                    if (!ctx.CancellationToken.IsCancellationRequested)
+                    {
+                        await ctx.SendValue(v);
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
             }
             public static Task WriteResult<TData>(RequestContext<IScenePeer> ctx, TData value, IDependencyResolver resolver)
             {
-                var serializer = resolver.Resolve<ISerializer>();
-                return ctx.SendValue(s => serializer.Serialize(value, s));
+                if (!ctx.CancellationToken.IsCancellationRequested)
+                {
+                    var serializer = resolver.Resolve<ISerializer>();
+                    return ctx.SendValue(s => serializer.Serialize(value, s));
+                }
+                else
+                {
+                    return Task.CompletedTask;
+                }
             }
 
-            public static async Task ExecuteActionAndSendResult<TRq, TReturn>(T controller, TRq ctx, IDependencyResolver resolver, Func<T, TRq, IDependencyResolver, Task<TReturn>> executeControllerActionFunction, Func<TRq, TReturn, IDependencyResolver,Task> sendResultAction)
+            public static async Task WriteResulttAsyncEnumerable<TData>(RequestContext<IScenePeer> ctx, IAsyncEnumerable<TData> values, IDependencyResolver resolver)
+            {
+                await foreach (var value in values)
+                {
+                    var serializer = resolver.Resolve<ISerializer>();
+                    if (!ctx.CancellationToken.IsCancellationRequested)
+                    {
+                        await ctx.SendValue(s => serializer.Serialize(value, s));
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
+            }
+
+            public static async Task ExecuteActionAndSendResult<TRq, TReturn>(T controller, TRq ctx, IDependencyResolver resolver, Func<T, TRq, IDependencyResolver, Task<TReturn>> executeControllerActionFunction, Func<TRq, TReturn, IDependencyResolver, Task> sendResultAction)
             {
                 var result = await executeControllerActionFunction(controller, ctx, resolver);
                 await sendResultAction(ctx, result, resolver);
@@ -664,7 +732,7 @@ namespace Stormancer.Server.Plugins.API
             }
 
             //Action<TRq, TReturn, IDependencyResolver>
-            public static Func<TRq, TReturn, IDependencyResolver,Task> CreateWriteResultLambda<TRq, TReturn>()
+            public static Func<TRq, TReturn, IDependencyResolver, Task> CreateWriteResultLambda<TRq, TReturn>()
             {
                 var ctxType = typeof(TRq);
                 var returnType = typeof(TReturn);
@@ -673,8 +741,16 @@ namespace Stormancer.Server.Plugins.API
                 var resolver = Expression.Parameter(typeof(IDependencyResolver), "resolver");
                 var data = Expression.Parameter(returnType, "value");
 
-                var writeResultMethod = typeof(ApiHelpers).GetRuntimeMethodExt("WriteResult", p => p[0].ParameterType == typeof(TRq));
-                return Expression.Lambda<Func<TRq, TReturn, IDependencyResolver,Task>>(Expression.Call(writeResultMethod.MakeGenericMethod(returnType), ctx, data, resolver), ctx, data, resolver).Compile();
+                if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>))
+                {
+                    var writeResultMethod = typeof(ApiHelpers).GetRuntimeMethodExt("WriteResultAsyncEnumerable", p => p[0].ParameterType == typeof(TRq));
+                    return Expression.Lambda<Func<TRq, TReturn, IDependencyResolver, Task>>(Expression.Call(writeResultMethod.MakeGenericMethod(returnType.GetGenericArguments()[0]), ctx, data, resolver), ctx, data, resolver).Compile();
+                }
+                else
+                {
+                    var writeResultMethod = typeof(ApiHelpers).GetRuntimeMethodExt("WriteResult", p => p[0].ParameterType == typeof(TRq));
+                    return Expression.Lambda<Func<TRq, TReturn, IDependencyResolver, Task>>(Expression.Call(writeResultMethod.MakeGenericMethod(returnType), ctx, data, resolver), ctx, data, resolver).Compile();
+                }
             }
         }
     }

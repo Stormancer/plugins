@@ -29,99 +29,192 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
+    /// <summary>
+    /// Provides extensisibility points during game session's lifecycles.
+    /// </summary>
     public interface IGameSessionEventHandler
     {
-        Task GameSessionStarting(GameSessionContext ctx);
-        Task GameSessionStarted(GameSessionStartedCtx ctx);
-
-        Task GameSessionCompleted(GameSessionCompleteCtx ctx);
+        /// <summary>
+        /// Event executed when the game session is starting.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task GameSessionStarting(GameSessionContext ctx) => Task.CompletedTask;
 
         /// <summary>
-        /// This method is called when a client player has connected to the game session.
+        /// Event executed when the game session is started.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task GameSessionStarted(GameSessionStartedCtx ctx) => Task.CompletedTask;
+
+        /// <summary>
+        /// Event executed when  the game session is complete.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task GameSessionCompleted(GameSessionCompleteCtx ctx) => Task.CompletedTask;
+
+        /// <summary>
+        /// Event executed when a client player has connected to the game session.
         /// </summary>
         /// <param name="ctx">Object containing information about the event</param>
         /// <returns></returns>
-        Task OnClientConnected(ClientConnectedContext ctx)
-        {
-            return Task.CompletedTask;
-        }
+        Task OnClientConnected(ClientConnectedContext ctx) => Task.CompletedTask;
 
-        Task OnClientReady(ClientReadyContext ctx);
+        /// <summary>
+        /// Eent executed when a client is ready in the gamesession.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task OnClientReady(ClientReadyContext ctx) => Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Base context for game session events.
+    /// </summary>
     public class GameSessionContext
     {
-        public GameSessionContext(ISceneHost scene, GameSessionConfiguration config, IGameSessionService service)
+        internal GameSessionContext(ISceneHost scene, GameSessionConfiguration config, IGameSessionService service)
         {
             Scene = scene;
             Config = config;
             Service = service;
         }
 
+        /// <summary>
+        /// Scene running the game session.
+        /// </summary>
         public ISceneHost Scene { get; }
+
+        /// <summary>
+        /// Id of the game session scene.
+        /// </summary>
         public string Id { get => Scene.Id; }
-        public string DedicatedServerPath { get; set; }
+
+        /// <summary>
+        /// Configuration of the gamesession.
+        /// </summary>
         public GameSessionConfiguration Config { get; }
+
+        /// <summary>
+        /// Game session service class associated with the current gamesession.
+        /// </summary>
         public IGameSessionService Service { get; }
     }
 
+    /// <summary>
+    /// Context passed to a <see cref="IGameSessionEventHandler.GameSessionStarted(GameSessionStartedCtx)"/> event.
+    /// </summary>
     public class GameSessionStartedCtx : GameSessionContext
     {
-        public GameSessionStartedCtx(IGameSessionService service, ISceneHost scene, IEnumerable<PlayerPeer> peers, GameSessionConfiguration config) : base(scene, config, service)
+        internal GameSessionStartedCtx(IGameSessionService service, ISceneHost scene, IEnumerable<PlayerPeer> peers, GameSessionConfiguration config) : base(scene, config, service)
         {
             Peers = peers;
         }
 
+        /// <summary>
+        /// Players in the game session.
+        /// </summary>
         public IEnumerable<PlayerPeer> Peers { get; }
     }
 
+    /// <summary>
+    /// Context passed to a <see cref="IGameSessionEventHandler.OnClientReady(ClientReadyContext)"/> event.
+    /// </summary>
     public class ClientReadyContext
     {
-        public ClientReadyContext(IScenePeerClient peer)
+        internal ClientReadyContext(IScenePeerClient peer)
         {
             Peer = peer;
         }
 
+        /// <summary>
+        /// Peer that sent the ready message to the server.
+        /// </summary>
         public IScenePeerClient Peer { get; }
     }
 
+    /// <summary>
+    /// Context passed to a <see cref="IGameSessionEventHandler.GameSessionCompleted(GameSessionCompleteCtx)"/> event.
+    /// </summary>
     public class GameSessionCompleteCtx : GameSessionContext
     {
-        public GameSessionCompleteCtx(IGameSessionService service, ISceneHost scene, GameSessionConfiguration config, IEnumerable<GameSessionResult> results, IEnumerable<string> players) : base(scene, config, service)
+        internal GameSessionCompleteCtx(IGameSessionService service, ISceneHost scene, GameSessionConfiguration config, IEnumerable<GameSessionResult> results, IEnumerable<string> players) : base(scene, config, service)
         {
             Results = results;
             PlayerIds = players;
             ResultsWriter = (p, s) => { };
         }
 
+        /// <summary>
+        /// Sequence of <see cref="GameSessionResult"/> sent by the clients of the gamesession.
+        /// </summary>
         public IEnumerable<GameSessionResult> Results { get; }
 
+        /// <summary>
+        /// Id of the players in the gamesession.
+        /// </summary>
         public IEnumerable<string> PlayerIds { get; }
 
+        /// <summary>
+        /// A function executed to send back data to the players.
+        /// </summary>
         public Action<Stream, ISerializer> ResultsWriter { get; set; }
     }
 
+    /// <summary>
+    /// Represents a game session result sent by a client.
+    /// </summary>
     public class GameSessionResult
     {
-        public GameSessionResult(string userId, IScenePeerClient client, Stream data)
+        internal GameSessionResult(string userId, IScenePeerClient client, Stream data)
         {
             Peer = client;
             Data = data;
             UserId = userId;
         }
+
+        /// <summary>
+        /// Client peer.
+        /// </summary>
         public IScenePeerClient Peer { get; }
 
+        /// <summary>
+        /// User id of the client.
+        /// </summary>
         public string UserId { get; }
 
+        /// <summary>
+        /// Custom data sent by the client.
+        /// </summary>
         public Stream Data { get; }
     }
 
+    /// <summary>
+    /// Context passed to a <see cref="IGameSessionEventHandler.OnClientConnected(ClientConnectedContext)"/> event.
+    /// </summary>
     public class ClientConnectedContext
     {
-        public Player Player { get; set; }
+        internal ClientConnectedContext(IGameSessionService service, PlayerPeer player, bool isHost)
+        {
+            GameSession = service;
+            Player = player;
+            IsHost = isHost;
+        }
+        /// <summary>
+        /// Gets the player associated with the event.
+        /// </summary>
+        public PlayerPeer Player { get;  }
 
-        public bool IsHost { get; set; }
+        /// <summary>
+        /// Gets a value indicating whether the client is the host of the game.
+        /// </summary>
+        public bool IsHost { get;  }
 
-        public IGameSessionService GameSession { get; set; }
+        /// <summary>
+        /// Current game session service.
+        /// </summary>
+        public IGameSessionService GameSession { get;  }
     }
 }

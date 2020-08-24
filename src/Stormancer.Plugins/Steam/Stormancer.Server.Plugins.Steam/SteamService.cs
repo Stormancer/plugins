@@ -24,57 +24,88 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Configuration;
-using Stormancer.Server.Plugins.Steam.Models;
+using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Steam
 {
-    public class SteamService : ISteamService
+    /// <summary>
+    /// Represents an error returned by the steam API.
+    /// </summary>
+    public class SteamException : Exception
+    {
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        public SteamException()
+        {
+        }
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        public SteamException(string? message) : base(message)
+        {
+        }
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        public SteamException(string? message, Exception? innerException) : base(message, innerException)
+        {
+        }
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        protected SteamException(SerializationInfo info, StreamingContext context) : base(info, context)
+        {
+        }
+    }
+
+    internal class SteamService : ISteamService
     {
         private const string ApiRoot = "https://partner.steam-api.com";
         private const string FallbackApiRoot = "https://api.steampowered.com";
         private const string FallbackApiRooWithIp = "https://208.64.202.87";
 
-        private string _apiKey;
-        private uint _appId;
-
         private bool _usemockup;
+        private uint _appId;
+        private string _apiKey = "";
+        private string _lobbyMetadataBearerTokenKey = "";
 
         private ILogger _logger;
+        private IUserSessions _userSessions;
 
         public static HttpClient client = new HttpClient();
 
-        public SteamService(IConfiguration configuration, ILogger logger)
+        /// <summary>
+        /// Steam service constructor.
+        /// </summary>
+        /// <param name="configuration"></param>
+        /// <param name="logger"></param>
+        /// <param name="userSessions"></param>
+        public SteamService(IConfiguration configuration, ILogger logger, IUserSessions userSessions)
         {
             _logger = logger;
+            _userSessions = userSessions;
 
-            var steamElement = configuration.Settings?.steam;
-
-            ApplyConfig(steamElement);
-
-            configuration.SettingsChanged += (sender, settings) => ApplyConfig(settings?.steam);
+            ApplyConfig(configuration.Settings);
+            configuration.SettingsChanged += (sender, settings) => ApplyConfig(settings);
         }
 
-        private void ApplyConfig(dynamic steamElement)
+        private void ApplyConfig(dynamic config)
         {
-            _apiKey = (string)steamElement?.apiKey;
-
-            var dynamicAppId = steamElement?.appId;
-            if (dynamicAppId != null)
-            {
-                _appId = (uint)dynamicAppId;
-            }
-
-            var dynamicUseMockup = steamElement?.usemockup;
-            if (dynamicUseMockup != null)
-            {
-                _usemockup = (bool)dynamicUseMockup;
-            }
+            _usemockup = (bool?)config?.steam?.usemockup ?? false;
+            _appId = (uint?)config?.steam?.appId ?? (uint)0;
+            _apiKey = (string?)config?.steam?.apiKey ?? "";
+            _lobbyMetadataBearerTokenKey = (string?)config?.steam?.lobbyMetadataBearerTokenKey ?? "";
         }
 
         public async Task<ulong?> AuthenticateUserTicket(string ticket)
@@ -94,18 +125,34 @@ namespace Stormancer.Server.Plugins.Steam
 
             using (var response = await TryGetAsync(AuthenticateUri + querystring))
             {
-                response.EnsureSuccessStatusCode();
+                if (!response.IsSuccessStatusCode)
+                {
+                    var contentStr = await response.Content.ReadAsStringAsync();
+
+                    _logger.Log(LogLevel.Error, "authenticator.steam", "The Steam API failed to authenticate user ticket. No success status code.", new { AuthenticateUri, StatusCode = $"{(int)response.StatusCode} {response.ReasonPhrase}", Response = contentStr });
+
+                    throw new SteamException($"The Steam API failed to authenticate user ticket. No success status code.");
+                }
+                
                 var json = await response.Content.ReadAsStringAsync();
                 var steamResponse = JsonConvert.DeserializeObject<SteamAuthenticationResponse>(json);
 
+                if (steamResponse.response == null)
+                {
+                    throw new SteamException($"The Steam API failed to authenticate user ticket. The response is null.'. AppId : {_appId}");
+                }
+
                 if (steamResponse.response.error != null)
                 {
-                    throw new Exception($"The Steam API failed to authenticate user ticket : {steamResponse.response.error.errorcode} : '{steamResponse.response.error.errordesc}'. AppId : {_appId}");
+                    throw new SteamException($"The Steam API failed to authenticate user ticket : {steamResponse.response.error.errorcode} : '{steamResponse.response.error.errordesc}'. AppId : {_appId}");
                 }
-                else
+
+                if (steamResponse.response.@params == null)
                 {
-                    return steamResponse.response.@params.steamid;
+                    throw new SteamException($"The Steam API failed to authenticate user ticket. The response params is null.'. AppId : {_appId}");
                 }
+
+                return steamResponse.response.@params.steamid;
             }
         }
 
@@ -217,7 +264,7 @@ namespace Stormancer.Server.Plugins.Steam
             return result;
         }
 
-        public async Task<SteamPlayerSummary> GetPlayerSummary(ulong steamId)
+        public async Task<SteamPlayerSummary?> GetPlayerSummary(ulong steamId)
         {
             return (await GetPlayerSummaries(new[] { steamId }))?[steamId];
         }
@@ -236,11 +283,27 @@ namespace Stormancer.Server.Plugins.Steam
                 response.EnsureSuccessStatusCode();
                 var json = await response.Content.ReadAsStringAsync();
                 var steamResponse = JsonConvert.DeserializeObject<SteamGetFriendsResponse>(json);
+
+                if (steamResponse.friendslist == null || steamResponse.friendslist.friends == null)
+                {
+                    throw new Exception("GetFriendList failed: The Steam API response is null.");
+                }
+
                 return steamResponse.friendslist.friends;
             }
         }
 
-        public async Task<SteamCreateLobbyData> CreateLobby(string lobbyName, LobbyType lobbyType, int maxMembers, IEnumerable<ulong> steamIdInvitedMembers = null, Dictionary<string, string> lobbyMetadata = null)
+        /// <summary>
+        /// Create a Steam lobby
+        /// </summary>
+        /// <param name="lobbyName"></param>
+        /// <param name="lobbyType"></param>
+        /// <param name="maxMembers"></param>
+        /// <param name="steamIdInvitedMembers"></param>
+        /// <param name="lobbyMetadata"></param>
+        /// <returns></returns>
+        /// <remarks>metadata does not work</remarks>
+        public async Task<SteamCreateLobbyData> CreateLobby(string lobbyName, LobbyType lobbyType, int maxMembers, IEnumerable<ulong>? steamIdInvitedMembers = null, Dictionary<string, string>? lobbyMetadata = null)
         {
             if (string.IsNullOrEmpty(lobbyName))
             {
@@ -275,19 +338,25 @@ namespace Stormancer.Server.Plugins.Steam
             response.EnsureSuccessStatusCode();
             var jsonResponse = await response.Content.ReadAsStringAsync();
             var json = JsonConvert.DeserializeObject<SteamCreateLobbyResponse>(jsonResponse);
+
+            if (json.response == null)
+            {
+                throw new InvalidOperationException("Lobby creation failed (response is null).");
+            }
+
             return json.response;
         }
 
-        public async Task RemoveUserFromLobby(ulong steamIdToRemove, ulong steamIdLobby)
+        public async Task RemoveUserFromLobby(ulong steamIdToRemove, ulong steamIDLobby)
         {
             if (steamIdToRemove == 0)
             {
                 throw new ArgumentException("value is not correct", nameof(steamIdToRemove));
             }
 
-            if (steamIdLobby == 0)
+            if (steamIDLobby == 0)
             {
-                throw new ArgumentException("value is not correct", nameof(steamIdLobby));
+                throw new ArgumentException("value is not correct", nameof(steamIDLobby));
             }
 
             var requestUrl = "ILobbyMatchmakingService/RemoveUserFromLobby/v1/";
@@ -296,7 +365,7 @@ namespace Stormancer.Server.Plugins.Steam
             {
                 appid = _appId,
                 steamid_to_remove = steamIdToRemove,
-                steamid_lobby = steamIdLobby,
+                steamid_lobby = steamIDLobby,
             };
             var input_json = JsonConvert.SerializeObject(removeUserFromLobbyInputJson, Formatting.None, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
 
@@ -308,6 +377,20 @@ namespace Stormancer.Server.Plugins.Steam
 
             var response = await TryPostForServiceAsync(requestUrl, body);
             response.EnsureSuccessStatusCode();
+        }
+
+        public Task<Dictionary<string, PartyDataDto>> DecodePartyDataBearerTokens(Dictionary<string, string> tokens)
+        {
+            return Task.FromResult(
+                tokens.ToDictionary(kvp => kvp.Key, kvp => TokenGenerator.DecodeToken<PartyDataDto>(kvp.Value, _lobbyMetadataBearerTokenKey))
+            );
+        }
+
+        public Task<string> CreatePartyDataBearerToken(string partyId, string leaderUserId, ulong leaderSteamId)
+        {
+            return Task.FromResult(
+                TokenGenerator.CreateToken(new PartyDataDto { PartyId = partyId, LeaderUserId = leaderUserId, LeaderSteamId = leaderSteamId }, _lobbyMetadataBearerTokenKey)
+            );
         }
 
         private async Task<HttpResponseMessage> TryGetAsync(string requestUrl)

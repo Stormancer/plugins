@@ -127,14 +127,14 @@ namespace Stormancer.Server.Plugins.Users
             authDataModifier?.Invoke(auth);
             foreach (var entry in cacheEntries)
             {
-                var result = await c.IndexAsync(new AuthenticationClaim { Id = $"{provider}_{entry.Key}_{entry.Value}", UserId = user.Id, Provider = provider }, s => s.Index(GetIndex<AuthenticationClaim>()).OpType(Elasticsearch.Net.OpType.Create));
+                var result = await c.IndexAsync(new AuthenticationClaim { Id = GetCacheId(provider, entry.Key, entry.Value), UserId = user.Id, Provider = provider }, s => s.Index(GetIndex<AuthenticationClaim>()).OpType(Elasticsearch.Net.OpType.Create));
 
                 if (!result.IsValid)
                 {
-                    var r = await c.GetAsync<AuthenticationClaim>($"{provider}_{entry.Key}_{entry.Value}", s => s.Index(GetIndex<AuthenticationClaim>()));
+                    var r = await c.GetAsync<AuthenticationClaim>(GetCacheId(provider, entry.Key, entry.Value), s => s.Index(GetIndex<AuthenticationClaim>()));
                     if (r.IsValid && r.Source.UserId != user.Id)
                     {
-                        if (result.ServerError?.Error?.Type == "document_already_exists_exception")
+                        if (result.ServerError?.Error?.Type == "version_conflict_engine_exception")
                         {
                             throw new ConflictException();
                         }
@@ -193,7 +193,7 @@ namespace Stormancer.Server.Plugins.Users
 
             var user = new User() { Id = id, UserData = userData, };
             var esClient = await Client<User>();
-            await esClient.IndexAsync(user, s => s);
+            await esClient.IndexAsync(user, s => s.Refresh(Elasticsearch.Net.Refresh.WaitFor));
 
             return user;
         }
@@ -211,25 +211,28 @@ namespace Stormancer.Server.Plugins.Users
 
         private class ClaimUser
         {
-            public string Login { get; set; } = null;
-            public string CacheId { get; set; } = null;
-            public AuthenticationClaim Claim { get; set; } = null;
-            public User User { get; set; } = null;
+            public ClaimUser(string login, string cacheId)
+            {
+                Login = login;
+                CacheId = cacheId;
+            }
+            public string Login { get; set; }
+            public string CacheId { get; set; }
+            public AuthenticationClaim? Claim { get; set; } = null;
+            public User? User { get; set; } = null;
         }
 
-        [Obsolete("Use IUserService.GetUsersByClaim2() instead")]
-        public async Task<IEnumerable<User>> GetUsersByClaim(string provider, string claimPath, string[] logins)
-        {
-            var result = await GetUsersByClaim2(provider, claimPath, logins);
-            return result.Values;
-        }
 
-        public async Task<Dictionary<string, User>> GetUsersByClaim2(string provider, string claimPath, string[] logins)
+        private string GetCacheId(string provider, string claimPath, string login) => $"{provider}_{claimPath}_{login}";
+
+
+
+        public async Task<Dictionary<string, User?>> GetUsersByClaim(string provider, string claimPath, string[] logins)
         {
             var c = await Client<User>();
 
             // Create datas
-            var datas = logins.Select(login => new ClaimUser { Login = login, CacheId = $"{provider}_{login}" }).ToArray();
+            var datas = logins.Select(login => new ClaimUser(login, GetCacheId(provider, claimPath, login))).ToArray();
 
             // Get all auth claims
             var response = await c.MultiGetAsync(desc => desc.GetMany<AuthenticationClaim>(datas.Select(data => data.CacheId)).Index(GetIndex<AuthenticationClaim>()));
@@ -287,6 +290,14 @@ namespace Stormancer.Server.Plugins.Users
             // Get users by cached claims
             var users = response2.GetMany<User>(usersToGet).Where(hit => hit.Found).Select(hit => hit.Source).ToArray();
 
+            foreach (var user in response2.GetMany<User>(usersToGet).Where(hit => !hit.Found))
+            {
+                var data = datas.First(data2 => data2.Claim?.UserId == user.Id);
+                if (data.Claim != null)
+                {
+                    await c.DeleteAsync<AuthenticationClaim>(data.Claim.Id, s => s.Index(GetIndex<AuthenticationClaim>()));
+                }
+            }
             // Populate users from cached claims
             foreach (var user in users)
             {
@@ -298,10 +309,10 @@ namespace Stormancer.Server.Plugins.Users
             return datas.ToDictionary(data => data.Login, data => data.User);
         }
 
-        public async Task<User> GetUserByClaim(string provider, string claimPath, string login)
+        public async Task<User?> GetUserByClaim(string provider, string claimPath, string login)
         {
             var c = await Client<User>();
-            var cacheId = $"{provider}_{claimPath}_{login}";
+            var cacheId = GetCacheId(provider, claimPath, login);
             var claim = await c.GetAsync<AuthenticationClaim>(cacheId, s => s.Index(GetIndex<AuthenticationClaim>()));
             if (claim.Found)
             {
@@ -312,12 +323,13 @@ namespace Stormancer.Server.Plugins.Users
                 }
                 else
                 {
+                    await c.DeleteAsync<AuthenticationClaim>(cacheId, s => s.Index(GetIndex<AuthenticationClaim>()));
                     return null;
                 }
             }
-            else
+            else if(claim.IsValid ||  claim.ServerError == null || claim.ServerError.Status == 404)
             {
-                var r = await c.SearchAsync<User>(sd => sd.Query(qd => qd.Term($"auth.{provider}.{claimPath}", login)));
+                var r = await c.SearchAsync<User>(sd => sd.Query(qd => qd.Term($"auth.{provider}.{claimPath}", login)).AllowNoIndices());
 
                 User user;
                 if (r.Hits.Count() > 1)
@@ -341,6 +353,11 @@ namespace Stormancer.Server.Plugins.Users
                 await c.IndexAsync(new AuthenticationClaim { Id = cacheId, UserId = user.Id }, s => s.Index(GetIndex<AuthenticationClaim>()));
 
                 return user;
+            }
+            else
+            {
+                _logger.Log(LogLevel.Error, "users", "Get user by claim failed.", new { error = claim.ServerError });
+                throw new InvalidOperationException("Failed to get user.");
             }
         }
 

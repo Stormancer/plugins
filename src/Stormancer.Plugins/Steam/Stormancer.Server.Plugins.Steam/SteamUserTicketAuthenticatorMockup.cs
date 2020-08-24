@@ -24,8 +24,16 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
+    /// <summary>
+    /// Steam authentication mockup.
+    /// </summary>
     public class SteamUserTicketAuthenticatorMockup : ISteamUserTicketAuthenticator
     {
+        /// <summary>
+        /// Authenticate user ticket mockup implementation.
+        /// </summary>
+        /// <param name="ticket"></param>
+        /// <returns></returns>
         public Task<ulong?> AuthenticateUserTicket(string ticket)
         {
             if (ticket == "invalid")

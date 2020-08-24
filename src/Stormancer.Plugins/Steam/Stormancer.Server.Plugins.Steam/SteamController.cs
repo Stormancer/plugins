@@ -22,26 +22,55 @@
 
 using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Users;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Steam
 {
+    /// <summary>
+    /// Steam controller.
+    /// </summary>
     public class SteamController : ControllerBase
     {
         private IUserService _userService { get; set; }
+        private ISteamService _steamService { get; set; }
 
-        public SteamController(IUserService userService)
+        /// <summary>
+        /// Steam controller constructor.
+        /// </summary>
+        /// <param name="userService"></param>
+        /// <param name="steamService"></param>
+        public SteamController(IUserService userService, ISteamService steamService)
         {
             _userService = userService;
+            _steamService = steamService;
         }
 
+        /// <summary>
+        /// Query stormancer user ids from steam ids.
+        /// </summary>
+        /// <param name="steamIds"></param>
+        /// <returns>Map<steamId, userId></returns>
+        /// <remarks>Obsolete: This api has some security issues</remarks>
+        [Obsolete]
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task<Dictionary<ulong, string>> QueryUserIds(IEnumerable<ulong> steamIds)
         {
-            var users = await _userService.GetUsersByClaim2(SteamAuthenticationProvider.PROVIDER_NAME, SteamAuthenticationProvider.ClaimPath, steamIds.Select(steamId => steamId.ToString()).ToArray());
+            var users = await _userService.GetUsersByClaim(SteamConstants.PROVIDER_NAME, SteamConstants.ClaimPath, steamIds.Select(steamId => steamId.ToString()).ToArray());
             return users.ToDictionary(kvp => ulong.Parse(kvp.Key), kvp => kvp.Value.Id);
+        }
+
+        /// <summary>
+        /// Decode Lobby metadata bearer token.
+        /// </summary>
+        /// <param name="tokens">Tokens to decode</param>
+        /// <returns></returns>
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task<Dictionary<string, PartyDataDto>> DecodePartyDataBearerTokens(Dictionary<string, string> tokens)
+        {
+            return await _steamService.DecodePartyDataBearerTokens(tokens);
         }
     }
 }

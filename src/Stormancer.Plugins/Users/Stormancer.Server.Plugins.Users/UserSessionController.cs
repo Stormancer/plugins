@@ -122,12 +122,18 @@ namespace Stormancer.Server.Plugins.Users
             await rq.SendValue(s => _serializer.Serialize(session, s));
         }
 
-        public async Task GetSessionByPlatformId(RequestContext<IScenePeer> rq)
+        public async Task GetSessionsByPlatformIds(RequestContext<IScenePeer> rq)
         {
-            var platformId = _serializer.Deserialize<PlatformId>(rq.InputStream);
-            var session = await _sessions.GetSession(platformId);
+            var platformIds = _serializer.Deserialize<IEnumerable<PlatformId>>(rq.InputStream);
+            var sessions = await _sessions.GetSessions(platformIds);
 
-            await rq.SendValue(s => _serializer.Serialize(session, s));
+            await rq.SendValue(s => _serializer.Serialize(sessions, s));
+        }
+
+        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
+        public Task<Dictionary<string,Session?>> GetSessionsbySessionIds(IEnumerable<string> sessionIds)
+        {
+            return _sessions.GetSessions(sessionIds);
         }
 
         public async Task UpdateSessionData(RequestContext<IScenePeer> rq)
@@ -209,6 +215,18 @@ namespace Stormancer.Server.Plugins.Users
             {
                 await ctx.SendValue(stream => stream.Write(data, 0, data.Length));
             }
+        }
+
+        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
+        public Task<int> GetAuthenticatedUsersCount()
+        {
+            return _sessions.GetAuthenticatedUsersCount();
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public Task<int> GetAuthenticatedUsersCountPublic()
+        {
+            return _sessions.GetAuthenticatedUsersCount();
         }
     }
 }

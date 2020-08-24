@@ -37,38 +37,14 @@ namespace Stormancer.Server.Plugins.AdminApi
                 //Configure 
                 host.AddAdminApiConfiguration((app, env, scene) =>
                 {
-                    app.UseRouting();
-
-                    app.UseCors(option => option
-                       .AllowAnyOrigin()
-                       .AllowAnyMethod()
-                       .AllowAnyHeader());
-
-                    app.UseAuthentication();
-                    app.UseAuthorization();
-
-                    app.UseEndpoints(endpoints =>
+                    System.Diagnostics.Debug.WriteLine("start admin swagger");
+                    app.UseSwagger();
+                    app.UseSwaggerUI(c =>
                     {
-                        endpoints.MapControllers();
+                        c.SwaggerEndpoint("v3/swagger.json", "Stormancer Admin Web API V3");
+                        
                     });
-                }, (services, scene) =>
-                {
-                    services.AddLocalization();
-                    services.AddMvc(options =>
-                    {
-                    })
-                    .AddNewtonsoftJson()
-                    .AddControllersAsServices();
 
-                    services.AddSwaggerGen(c =>
-                    {
-
-                        c.SwaggerDoc("v3", new OpenApiInfo { Title = "Stormancer Grid web API", Version = "v3" });
-                    });
-                });
-
-                host.AddWebApiConfiguration((app, env, scene) =>
-                {
                     app.UseRouting();
 
                     app.UseCors(option => option
@@ -100,6 +76,61 @@ namespace Stormancer.Server.Plugins.AdminApi
                         })
                         .AddNewtonsoftJson()
                         .AddControllersAsServices();
+  
+                    services.AddSwaggerGen(c =>
+                    {
+                        
+                        c.SwaggerDoc("v3", new OpenApiInfo { Title = "Stormancer Admin web API", Version = "v3"    });
+                    });
+                });
+
+                host.AddWebApiConfiguration((app, env, scene) =>
+                {
+                    app.UseSwagger();
+                    app.UseSwaggerUI(c =>
+                    {
+                        c.SwaggerEndpoint("v3/swagger.json", "Stormancer public Web API V3");
+
+                    });
+                    app.UseRouting();
+
+                    app.UseCors(option => option
+                       .AllowAnyOrigin()
+                       .AllowAnyMethod()
+                       .AllowAnyHeader());
+
+                    app.UseAuthentication();
+                    app.UseAuthorization();
+
+                    app.UseEndpoints(endpoints =>
+                    {
+                        endpoints.MapControllers();
+                    });
+                }, (services, scene) =>
+                {
+                    services.AddLocalization();
+                    var configs = scene.DependencyResolver.Resolve<IEnumerable<IPublicWebApiConfig>>();
+
+                    services.AddMvc(options =>
+                    {
+                    })
+                        .ConfigureApplicationPartManager(apm =>
+                        {
+                            foreach (var config in configs)
+                            {
+                                config.ConfigureApplicationParts(apm);
+                            }
+                        })
+                        .AddNewtonsoftJson()
+                        .AddControllersAsServices();
+
+
+                    services.AddSwaggerGen(c =>
+                    {
+
+                        c.SwaggerDoc("v3", new OpenApiInfo { Title = "Application public web API", Version = "v3" });
+                    });
+
                 });
             };
         }

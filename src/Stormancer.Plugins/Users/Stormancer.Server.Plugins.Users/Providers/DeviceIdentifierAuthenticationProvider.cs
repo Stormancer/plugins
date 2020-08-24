@@ -32,7 +32,7 @@ using System.Threading;
 
 namespace Stormancer.Server.Plugins.Users
 {
-    public class DeviceIdentifierAuthenticationProvider : IAuthenticationProvider
+    internal class DeviceIdentifierAuthenticationProvider : IAuthenticationProvider
     {
         public const string PROVIDER_NAME = "deviceidentifier";
         private const string ClaimPath = "deviceid";
@@ -55,12 +55,19 @@ namespace Stormancer.Server.Plugins.Users
         public async Task<AuthenticationResult> Authenticate(AuthenticationContext authenticationCtx, CancellationToken ct)
         {
             var pId = new PlatformId { Platform = PROVIDER_NAME };
-            string identifier;
-            if (!authenticationCtx.Parameters.TryGetValue("deviceidentifier", out identifier))
+
+            if (!authenticationCtx.Parameters.TryGetValue("deviceidentifier", out var identifier))
             {
                 return AuthenticationResult.CreateFailure("Device identifier must not be empty.", pId, authenticationCtx.Parameters);
             }
+
             var user = await _users.GetUserByClaim(PROVIDER_NAME, ClaimPath, identifier);
+
+            if (user != null && authenticationCtx.CurrentSession?.User != null && authenticationCtx.CurrentSession.User.Id != user.Id)
+            {
+                return AuthenticationResult.CreateFailure("This device identifier is already linked to another account.", pId, authenticationCtx.Parameters);
+            }
+
             if (user == null)
             {
                 var uid = Guid.NewGuid().ToString("N");
@@ -70,14 +77,16 @@ namespace Stormancer.Server.Plugins.Users
                 user = await _users.AddAuthentication(user, PROVIDER_NAME, claim => claim[ClaimPath] = identifier, new Dictionary<string, string> { { ClaimPath, identifier } });
             }
 
+
             pId.OnlineId = user.Id;
 
             return AuthenticationResult.CreateSuccess(user, pId, authenticationCtx.Parameters);
+
         }
 
-        public Task Setup(Dictionary<string, string> parameters)
+        public Task Setup(Dictionary<string, string> parameters, Session? session)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         public Task OnGetStatus(Dictionary<string, string> status, Session session)
@@ -92,7 +101,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public Task<DateTime?> RenewCredentials(AuthenticationContext authenticationContext)
         {
-            throw new NotImplementedException();
+            return Task.FromResult<DateTime?>(null);
         }
     }
 }

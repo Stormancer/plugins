@@ -31,12 +31,21 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Leaderboards
 {
+    /// <summary>
+    /// Leaderboard constants
+    /// </summary>
+    public class LeaderboardConstants
+    {
+        /// <summary>
+        /// Id of the policy used to generate leaderboard index names.
+        /// </summary>
+        public const string INDEX_ID = "leaderboards";
+    }
     class LeaderboardService : ILeaderboardService
     {
         private readonly ILogger _logger;
         private readonly IESClientFactory _clientFactory;
         private readonly IUserService _userService;
-        private const string INDEX_NAME = "leaderboards";
         private Func<IEnumerable<ILeaderboardEventHandler>> eventHandlers;
         private Func<IEnumerable<ILeaderboardIndexMapping>> leaderboardIndexMapping;
 
@@ -59,7 +68,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
             this.leaderboardIndexMapping = leaderboardIndexMapping;
         }
 
-        private string GetIndexName(string leaderboardName)
+        private string GetModifiedLeaderboardName(string leaderboardName)
         {
             foreach (var mapper in leaderboardIndexMapping())
             {
@@ -74,31 +83,28 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
         public async Task<Nest.IElasticClient> CreateESClient<T>(params object[] parameters)
         {
-            var result = await _clientFactory.CreateClient<T>(INDEX_NAME, parameters);
-            if (typeof(T) == typeof(ScoreRecord))
-            {
-                await _clientFactory.EnsureMappingCreated<ScoreRecord>(result.ConnectionSettings.DefaultIndex, m =>
-                      m.DynamicTemplates(templates => templates
-                          .DynamicTemplate("dates", t => t
-                               .Match("CreatedOn")
-                               .Mapping(ma => ma.Date(s => s))
-                              )
-                           .DynamicTemplate("score", t =>
-                              t.MatchMappingType("string")
-                               .Mapping(ma => ma.Keyword(s => s.Index()))
-                               )
-                          ));
-            }
+            var result = await _clientFactory.CreateClient<T>(LeaderboardConstants.INDEX_ID, parameters);
+
 
             return result;
         }
 
+        public string GetIndex(string leaderboardName)
+        {
+            return _clientFactory.GetIndex<ScoreRecord>(LeaderboardConstants.INDEX_ID, GetModifiedLeaderboardName(leaderboardName));
+
+        }
+
         private double GetValue(ScoreRecord record, string scorePath)
         {
+            if(string.IsNullOrEmpty(scorePath))
+            {
+                throw new ArgumentException($"scorePath must be non null nor empty", nameof(scorePath));
+            }
             JToken current = record.Scores;
             foreach (var segment in scorePath.Split('.'))
             {
-                current = current[segment];
+                current = current[segment] ?? throw new ArgumentException($"Path {scorePath} does not exist in score.");
             }
             return current.ToObject<double>();
         }
@@ -142,21 +148,22 @@ namespace Stormancer.Server.Plugins.Leaderboards
             );
         }
 
-        public async Task<ScoreRecord> GetScore(string playerId, string leaderboardName)
+        public async Task<ScoreRecord?> GetScore(string playerId, string leaderboardName)
         {
-            var index = GetIndexName(leaderboardName);
+            var index = GetModifiedLeaderboardName(leaderboardName);
             var client = await CreateESClient<ScoreRecord>(index);
-            var startResult = await client.GetAsync<ScoreRecord>(GetDocumentId(leaderboardName, playerId));
+            var startResult = await client.GetAsync<ScoreRecord>(GetDocumentId(index, playerId));
             if (!startResult.Found)
             {
                 return null;
             }
+            
             return startResult.Source;
         }
 
-        public async Task<Dictionary<string, ScoreRecord>> GetScores(List<string> playerIds, string leaderboardName)
+        public async Task<Dictionary<string, ScoreRecord?>> GetScores(List<string> playerIds, string leaderboardName)
         {
-            var index = GetIndexName(leaderboardName);
+            var index = GetModifiedLeaderboardName(leaderboardName);
             var client = await CreateESClient<ScoreRecord>(index);
             var startResult = await client.MultiGetAsync(v => v.GetMany<ScoreRecord>(playerIds.Select(id => GetDocumentId(leaderboardName, id))));
             var results = startResult.GetMany<ScoreRecord>(playerIds);
@@ -167,7 +174,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
         {
             var scoreValue = GetValue(score, filters.ScorePath);
             var fullScorePath = "scores." + filters.ScorePath;
-            var index = GetIndexName(leaderboardName);
+            var index = GetModifiedLeaderboardName(leaderboardName);
             var client = await CreateESClient<ScoreRecord>(index);
             var rankResult = await client.CountAsync<ScoreRecord>(desc => desc
                 .Query(query =>
@@ -215,7 +222,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
         public async Task<long> GetTotal(LeaderboardQuery filters, string leaderboardName)
         {
-            var index = GetIndexName(leaderboardName);
+            var index = GetModifiedLeaderboardName(leaderboardName);
             var client = await CreateESClient<ScoreRecord>(index);
 
             var rankResult = await client.CountAsync<ScoreRecord>(desc => desc
@@ -231,6 +238,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
         public async Task<LeaderboardResult<ScoreRecord>> Query(LeaderboardQuery leaderboardQuery)
         {
+            await this.eventHandlers().RunEventHandler(eh => eh.OnQueryingLeaderboard(leaderboardQuery), ex => _logger.Log(LogLevel.Error, "leaderboard", "An error occured while running OnQueryingLeaderboard event handlers", ex));
             if (string.IsNullOrEmpty(leaderboardQuery.ScorePath))
             {
                 throw new ArgumentNullException("ScorePath");
@@ -244,17 +252,17 @@ namespace Stormancer.Server.Plugins.Leaderboards
             var leaderboardContinuationQuery = leaderboardQuery as LeaderboardContinuationQuery;
 
             var isContinuation = leaderboardContinuationQuery != null;
-            var isPreviousContinuation = isContinuation && leaderboardContinuationQuery.IsPrevious;
+            var isPreviousContinuation = leaderboardContinuationQuery != null && leaderboardContinuationQuery.IsPrevious;
 
-            var index = GetIndexName(leaderboardQuery.Name);
+            var index = GetModifiedLeaderboardName(leaderboardQuery.Name);
             var client = await CreateESClient<ScoreRecord>(index);
-            ScoreRecord start = null;
+            ScoreRecord? start = null;
             if (!string.IsNullOrEmpty(leaderboardQuery.StartId))
             {
                 start = await GetScore(leaderboardQuery.StartId, leaderboardQuery.Name);
                 if (start == null)
                 {
-                    throw new ClientException("Player not found in leadeboard.");
+                    throw new ClientException($"Record {leaderboardQuery.StartId} not found in leaderboard {leaderboardQuery.Name}.");
                 }
             }
 
@@ -371,6 +379,9 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
                 foreach (var doc in documents.Take(leaderboardQuery.Count))
                 {
+                    //Remove leaderboardName from document.
+                   
+
                     if (EnableExequo)
                     {
                         int currentRank;
@@ -414,17 +425,19 @@ namespace Stormancer.Server.Plugins.Leaderboards
                     nextQuery.Skip = 0;
                     nextQuery.Count = leaderboardQuery.Count;
                     nextQuery.IsPrevious = false;
-                    nextQuery.StartId = results.Last().Document.Id;
+                    nextQuery.StartId =results.Last().Document.Id;
+                    
                     leaderboardResult.Next = SerializeContinuationQuery(nextQuery);
                 }
 
                 var ctx = new QueryResponseCtx(leaderboardQuery, leaderboardResult);
 
-                await eventHandlers()?.RunEventHandler(eh => eh.OnQueryResponse(ctx), ex => _logger.Log(LogLevel.Error, "leaderboard", "An error occured while running QueryResponse event handlers", ex));
+                await eventHandlers().RunEventHandler(eh => eh.OnQueryResponse(ctx), ex => _logger.Log(LogLevel.Error, "leaderboard", "An error occured while running QueryResponse event handlers", ex));
             }
 
             return leaderboardResult;
         }
+        
 
         private string SerializeContinuationQuery(LeaderboardContinuationQuery query)
         {
@@ -449,7 +462,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
             return Query(query);
         }
 
-        public Task UpdateScore(string id, string leaderboardName, Func<ScoreRecord, Task<ScoreRecord>> updater)
+        public Task UpdateScore(string id, string leaderboardName, Func<ScoreRecord?, Task<ScoreRecord>> updater)
         {
             return UpdateScores(new[] { new LeaderboardEntryId(leaderboardName, id) }, (i, old) => updater(old));
         }
@@ -467,7 +480,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
             return new LeaderboardEntryId(els[0], els[1]);
         }
 
-        public async Task UpdateScores(IEnumerable<LeaderboardEntryId> ids, Func<LeaderboardEntryId, ScoreRecord, Task<ScoreRecord>> scoreUpdater)
+        public async Task UpdateScores(IEnumerable<LeaderboardEntryId> ids, Func<LeaderboardEntryId, ScoreRecord?, Task<ScoreRecord>> scoreUpdater)
         {
             var client = await CreateESClient<ScoreRecord>("");
             var results = ids.ToDictionary(id => id, id => false);
@@ -476,10 +489,11 @@ namespace Stormancer.Server.Plugins.Leaderboards
             do
             {
                 var idsToUpdate = results.Where(e => !e.Value).Select(e => GetDocumentId(e.Key.LeaderboardName, e.Key.Id));
-                var indices = results.Where(e => !e.Value).Select(e => _clientFactory.GetIndex<ScoreRecord>(INDEX_NAME, GetIndexName(e.Key.LeaderboardName))).Distinct();
-                var response = await client.MultiGetAsync(desc => desc.GetMany<ScoreRecord>(idsToUpdate).Index(string.Join(",", indices)));
+                var indices = results.Where(e => !e.Value).Select(e => GetIndex(e.Key.LeaderboardName)).Distinct();
+                var indicesParams = string.Join(",", indices);
+                var response = await client.MultiGetAsync(desc => desc.GetMany<ScoreRecord>(idsToUpdate, (mgdesc, _) => mgdesc.Index(indicesParams)).Index(indicesParams));
 
-                var records = response.GetMany<ScoreRecord>(idsToUpdate);
+                var records = response.GetMany<ScoreRecord>(idsToUpdate).ToList();
 
                 var updates = new List<(ScoreUpdate, Nest.IMultiGetHit<ScoreRecord>)>();
                 foreach (var record in records)
@@ -527,7 +541,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
                     if (updated)
                     {
-                        updates.Add((new ScoreUpdate { OldValue = record.Source, NewValue = score }, record));
+                        updates.Add((new ScoreUpdate { OldValue = record.Source, NewValue = score! }, record));
                     }
                     else//No need to update
                     {
@@ -559,7 +573,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
                         }
                         else if (score.NewValue != null && score.OldValue == null)
                         {
-                            var index = _clientFactory.GetIndex<ScoreRecord>(INDEX_NAME, GetIndexName(score.NewValue.LeaderboardName));
+                            var index = GetIndex(score.NewValue.LeaderboardName);
                             _logger.Log(LogLevel.Debug, "leaderboard", $"Adding score {score.NewValue.Id} to leaderboard {score.NewValue.LeaderboardName}", new { score = score.NewValue, index });
                             desc = desc.Create<ScoreRecord>(s => s
                                 .Id(GetDocumentId(score.NewValue.LeaderboardName, score.NewValue.Id))
@@ -605,14 +619,14 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
         public async Task RemoveLeaderboardEntry(string leaderboardName, string entryId)
         {
-            var index = GetIndexName(leaderboardName);
+            var index = GetModifiedLeaderboardName(leaderboardName);
             var client = await CreateESClient<ScoreRecord>(index);
             await client.DeleteAsync<ScoreRecord>(entryId);
         }
 
         public async Task ClearAllScores()
         {
-            await eventHandlers()?.RunEventHandler(eh => eh.ClearAllScores(), ex => _logger.Log(LogLevel.Error, "leaderboard", "An error occured while running leaderboards clear all scores event handlers", ex));
+            await eventHandlers().RunEventHandler(eh => eh.ClearAllScores(), ex => _logger.Log(LogLevel.Error, "leaderboard", "An error occured while running leaderboards clear all scores event handlers", ex));
 
             var client = await CreateESClient<ScoreRecord>("*");
 
@@ -622,9 +636,9 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
         public async Task ClearAllScores(string leaderboardName)
         {
-            await eventHandlers()?.RunEventHandler(eh => eh.ClearAllScores(leaderboardName), ex => _logger.Log(LogLevel.Error, "leaderboard", $"An error occured while running leaderboards clear all scores event handlers for leaderboard {leaderboardName}", ex));
+            await eventHandlers().RunEventHandler(eh => eh.ClearAllScores(leaderboardName), ex => _logger.Log(LogLevel.Error, "leaderboard", $"An error occured while running leaderboards clear all scores event handlers for leaderboard {leaderboardName}", ex));
 
-            var index = GetIndexName(leaderboardName);
+            var index = GetModifiedLeaderboardName(leaderboardName);
             var client = await CreateESClient<ScoreRecord>(index);
             await client.Indices.DeleteAsync(client.ConnectionSettings.DefaultIndex);
         }
@@ -652,13 +666,16 @@ namespace Stormancer.Server.Plugins.Leaderboards
         private Nest.QueryContainer CreateQuery(
             Nest.QueryContainerDescriptor<ScoreRecord> desc,
             LeaderboardQuery rq,
-            Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer> additionalContraints = null)
+            Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>? additionalContraints = null)
         {
             var fullScorePath = "scores." + rq.ScorePath;
 
             return desc.Bool(s2 =>
             {
-                var mustClauses = Enumerable.Empty<Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>>();
+                IEnumerable< Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>> mustClauses = new List<Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>> { 
+                q=>q.Term(qt=>qt.Field("leaderboardName.keyword").Value(rq.Name))
+                
+                };
 
                 if (rq.FriendsIds.Any())
                 {
@@ -691,6 +708,10 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 {
                     mustClauses = mustClauses.Concat(rq.ScoreFilters.Select<ScoreFilter, Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>>(f =>
                     {
+                        if(string.IsNullOrEmpty(f.Path))
+                        {
+                            throw new ArgumentException("Range filtering clause provided without a 'Path' parameter.");
+                        }
                         return q => q.Range(r =>
                         {
                             r = r.Field("scores." + f.Path);

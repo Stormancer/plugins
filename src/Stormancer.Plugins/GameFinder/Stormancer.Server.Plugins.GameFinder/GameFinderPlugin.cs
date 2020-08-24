@@ -28,9 +28,16 @@ using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
+    /// <summary>
+    ///  GameFinder plugin
+    /// </summary>
     public class GameFinderPlugin : IHostPlugin
     {
+        /// <summary>
+        /// Scene metadata key
+        /// </summary>
         public const string METADATA_KEY = "stormancer.plugins.gamefinder";
+
         /// <summary>
         /// Key of the protocol version metadata entry.
         /// </summary>
@@ -38,6 +45,10 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         internal static Dictionary<string, GameFinderConfig> Configs = new Dictionary<string, GameFinderConfig>();
 
+        /// <summary>
+        /// Build the plugin (register components in the IoC)
+        /// </summary>
+        /// <param name="ctx"></param>
         public void Build(HostPluginBuildContext ctx)
         {
             //ctx.HostStarting += HostStarting;
@@ -53,11 +64,9 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         private void SceneDependenciesRegistration(IDependencyBuilder builder, ISceneHost scene)
         {
-            string kind;
-            if (scene.Metadata.TryGetValue(METADATA_KEY, out kind))
+            if (scene.Metadata.TryGetValue(METADATA_KEY, out var kind))
             {
-                GameFinderConfig config;
-                if (Configs.TryGetValue(kind, out config))
+                if (Configs.TryGetValue(kind, out var config))
                 {
                     config.RegisterDependencies(builder);
                 }
@@ -66,14 +75,13 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         private void SceneCreated(ISceneHost scene)
         {
-            string kind;
-            if (scene.Metadata.TryGetValue(METADATA_KEY, out kind))
+            if (scene.Metadata.TryGetValue(METADATA_KEY, out var kind))
             {
                 scene.AddController<GameFinderController>();
                 var logger = scene.DependencyResolver.Resolve<ILogger>();
                 try
                 {
-                    var gameFinderService = scene.DependencyResolver.Resolve<IGameFinderService>();       
+                    var gameFinderService = scene.DependencyResolver.Resolve<IGameFinderService>();
 
                     //Start gameFinder
                     scene.RunTask(gameFinderService.Run);

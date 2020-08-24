@@ -27,8 +27,14 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
+    /// <summary>
+    /// Plugin startup class (internal use only)
+    /// </summary>
     public class App
     {
+        /// <summary>
+        /// Plugin startup function (internal use only)
+        /// </summary>
         public void Run(IAppBuilder builder)
         {
             builder.AddPlugin(new UsersManagementPlugin());

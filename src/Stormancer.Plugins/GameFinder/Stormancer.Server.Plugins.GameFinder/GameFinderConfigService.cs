@@ -89,7 +89,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 {
                     JObject newRegionConfig = newRegionMappings[Key];
                     JObject oldRegionConfig = _regionMappings[Key];
-                    if (!JToken.DeepEquals(newRegionConfig,oldRegionConfig))
+                    if (!JToken.DeepEquals(newRegionConfig, oldRegionConfig))
                     {
                         return true;
                     }

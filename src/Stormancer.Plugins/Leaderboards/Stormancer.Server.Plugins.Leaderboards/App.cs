@@ -22,8 +22,15 @@
 
 namespace Stormancer.Server.Plugins.Leaderboards
 {
+    /// <summary>
+    /// Leaderboard plugin startup class.
+    /// </summary>
     public class App
     {
+        /// <summary>
+        /// Leaderboard plugin startup method.
+        /// </summary>
+        /// <param name="builder"></param>
         public void Run(IAppBuilder builder)
         {
             builder.AdminPlugin("leaderboards").Name("Leaderboards");

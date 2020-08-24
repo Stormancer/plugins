@@ -19,16 +19,32 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using Newtonsoft.Json.Linq;
-using Stormancer.Server.Users;
+using Stormancer;
+using Stormancer.Plugins;
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
-namespace Stormancer.Plugins.ServiceLocator
+namespace Stormancer.Server.Plugins.DataProtection
 {
-    public interface IServiceLocator
+    public class App
     {
-        Task<string> GetSceneConnectionToken(string serviceType, string serviceName, Session session);
-		Task<string> GetSceneId(string serviceType, string serviceName, Session session = null);
+        public void Run(IAppBuilder builder)
+        {
+            builder.AddPlugin(new DataProtectionPlugin());
+        }
+    }
+
+    internal class DataProtectionPlugin : IHostPlugin
+    {
+        public void Build(HostPluginBuildContext ctx)
+        {
+            ctx.HostDependenciesRegistration +=(IDependencyBuilder builder) => {
+                builder.Register<DataProtector>().As<IDataProtector>();
+                builder.Register<AesGcmProtectionProvider>().As<IDataProtectionProvider>();
+            };
+        }
     }
 }

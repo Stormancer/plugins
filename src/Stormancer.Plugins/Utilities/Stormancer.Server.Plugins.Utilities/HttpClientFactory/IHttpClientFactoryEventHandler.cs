@@ -1,4 +1,4 @@
-// MIT License
+﻿// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -19,20 +19,22 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using Stormancer;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Stormancer.Plugins.ServiceLocator
+using Microsoft.Extensions.Http;
+
+
+namespace Stormancer.Server.Plugins.HttpClientFactory
 {
-    class App
+    /// <summary>
+    /// Provides extensibility points for http client factories.
+    /// </summary>
+    public interface IHttpClientFactoryEventHandler
     {
-        public void Run(IAppBuilder builder)
-        {
-            builder.AddPlugin(new ServiceLocatorPlugin());
-        }
+        /// <summary>
+        /// Get options for a given httpClientFactory request.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        HttpClientFactoryOptions? GetOptions(string name);
     }
 }

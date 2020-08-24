@@ -32,8 +32,15 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
+    /// <summary>
+    /// Provides functions controlling the game session hosted on the scene.
+    /// </summary>
     public interface IGameSessionService
     {
+        /// <summary>
+        /// Returns the id of the gamesession.
+        /// </summary>
+        string GameSessionId { get; }
         void SetConfiguration(dynamic metadata);
         Task<Action<Stream,ISerializer>> PostResults(Stream inputStream, IScenePeerClient remotePeer);
         Task UpdateShutdownMode(ShutdownModeParameters shutdown);

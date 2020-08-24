@@ -22,7 +22,7 @@
 
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.PartyManagement
+namespace Stormancer.Server.Plugins.Party
 {
     interface IPartyManagementService
     {

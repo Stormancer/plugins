@@ -5,9 +5,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>2.0.0</Version>
-    <AssemblyVersion>$(Version)</AssemblyVersion>
-    <FileVersion>$(Version)</FileVersion>
+    <Version>2.2.1</Version>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -15,11 +13,17 @@
     <LangVersion>latest</LangVersion>
     <Description>Provides extensibility points to add admin and public web APIs to a Stormancer App.</Description>
   </PropertyGroup>
-
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <Version>$(Version)-pre</Version>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.1.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.0" />
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.1.0.1" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.4.0-pre" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="5.0.0-rc5" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>

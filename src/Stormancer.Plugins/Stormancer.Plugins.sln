@@ -83,6 +83,30 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Models", "Models", "{32FFED
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Models", "Models\Stormancer.Server.Plugins.Models\Stormancer.Server.Plugins.Models.csproj", "{95C93690-3573-4238-BF0A-B5AC4BE21246}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Firebase", "Firebase", "{786BF13F-7662-414C-9436-052E6441EDC7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AppleId", "AppleId", "{FE45EF18-F7AE-4581-AD29-AFC0C300BE92}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GooglePlay", "GooglePlay", "{75CA2BF8-B9CA-442F-89E6-8B7CA0B71BE1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Facebook", "Facebook", "{680CF2F3-1478-4BDD-AB21-990EE4B770A0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Facebook", "Facebook\Stormancer.Server.Plugins.Facebook\Stormancer.Server.Plugins.Facebook.csproj", "{86DD130C-A52B-461F-A1F3-00A175C9BB34}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.server.Plugins.Firebase", "Firebase\Stormancer.server.Plugins.Firebase\Stormancer.server.Plugins.Firebase.csproj", "{DDC7F922-BD93-4D63-9396-323948A64738}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SpatialOS", "SpatialOS", "{33707C73-0398-48B4-BF07-392F500CC19B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.SpatialOS", "SpatialOS\Stormancer.Server.Plugins.SpatialOS\Stormancer.Server.Plugins.SpatialOS.csproj", "{673DC354-0751-4A1E-91D0-4A05E87EE738}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DataProtection", "DataProtection", "{7BCEF864-753C-4147-925B-83EE2F2D9E18}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.DataProtection", "DataProtection\Stormancer.Server.Plugins.DataProtection\Stormancer.Server.Plugins.DataProtection.csproj", "{DCB40DCC-4CB7-470D-B919-FB580F7966F9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Gog", "Gog", "{81550A48-AC59-49E8-8B35-B5BDC1526D2C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Galaxy", "Gog\Stormancer.Server.Plugins.Galaxy\Stormancer.Server.Plugins.Galaxy.csproj", "{401BE992-6208-4B9B-87AE-17CF64B8637E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -173,6 +197,26 @@ Global
 		{95C93690-3573-4238-BF0A-B5AC4BE21246}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{95C93690-3573-4238-BF0A-B5AC4BE21246}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{95C93690-3573-4238-BF0A-B5AC4BE21246}.Release|Any CPU.Build.0 = Release|Any CPU
+		{86DD130C-A52B-461F-A1F3-00A175C9BB34}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{86DD130C-A52B-461F-A1F3-00A175C9BB34}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{86DD130C-A52B-461F-A1F3-00A175C9BB34}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{86DD130C-A52B-461F-A1F3-00A175C9BB34}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DDC7F922-BD93-4D63-9396-323948A64738}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DDC7F922-BD93-4D63-9396-323948A64738}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DDC7F922-BD93-4D63-9396-323948A64738}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DDC7F922-BD93-4D63-9396-323948A64738}.Release|Any CPU.Build.0 = Release|Any CPU
+		{673DC354-0751-4A1E-91D0-4A05E87EE738}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{673DC354-0751-4A1E-91D0-4A05E87EE738}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{673DC354-0751-4A1E-91D0-4A05E87EE738}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{673DC354-0751-4A1E-91D0-4A05E87EE738}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DCB40DCC-4CB7-470D-B919-FB580F7966F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DCB40DCC-4CB7-470D-B919-FB580F7966F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DCB40DCC-4CB7-470D-B919-FB580F7966F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DCB40DCC-4CB7-470D-B919-FB580F7966F9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{401BE992-6208-4B9B-87AE-17CF64B8637E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{401BE992-6208-4B9B-87AE-17CF64B8637E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{401BE992-6208-4B9B-87AE-17CF64B8637E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{401BE992-6208-4B9B-87AE-17CF64B8637E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -198,6 +242,11 @@ Global
 		{3B5355D4-590E-42F2-AE80-8FB5433D1198} = {9EC2D3BA-63A6-44F1-B843-E900CEB409BE}
 		{3ACA378B-9698-480E-9D64-D29C90EFC0E9} = {5A055E20-253E-47B9-BBBD-B6CB22E6F461}
 		{95C93690-3573-4238-BF0A-B5AC4BE21246} = {32FFED99-42F2-4E37-93C9-B3F293588F54}
+		{86DD130C-A52B-461F-A1F3-00A175C9BB34} = {680CF2F3-1478-4BDD-AB21-990EE4B770A0}
+		{DDC7F922-BD93-4D63-9396-323948A64738} = {786BF13F-7662-414C-9436-052E6441EDC7}
+		{673DC354-0751-4A1E-91D0-4A05E87EE738} = {33707C73-0398-48B4-BF07-392F500CC19B}
+		{DCB40DCC-4CB7-470D-B919-FB580F7966F9} = {7BCEF864-753C-4147-925B-83EE2F2D9E18}
+		{401BE992-6208-4B9B-87AE-17CF64B8637E} = {81550A48-AC59-49E8-8B35-B5BDC1526D2C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}

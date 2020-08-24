@@ -67,6 +67,7 @@ namespace Stormancer.Server.Plugins.Management
         private readonly ILogger _logger;
 
         private ManagementClient _clientV3;
+
         private Lazy<ManagementClient> _clientV1;
         private ManagementClient clientV1 { get => _clientV1.Value; }
 
@@ -103,9 +104,25 @@ namespace Stormancer.Server.Plugins.Management
                 }
             }
 
-            _clientV3 = new ManagementClient(EndpointResolver, environment.GetBearerToken);
+            _clientV3 = new ManagementClient(EndpointResolver, async rq =>
+             {
+                 var creds = await environment.GetAdminApiCredentials();
+                 foreach (var header in creds.Headers)
+                 {
+                     rq.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                 }
+                 return rq;
+             });
 
-            _clientV1 = new Lazy<ManagementClient>(() => new ManagementClient(EndpointResolver, environment.GetBearerToken, "1"));
+            _clientV1 = new Lazy<ManagementClient>(() => new ManagementClient(EndpointResolver, async rq =>
+            {
+                var creds = await environment.GetAdminApiCredentials();
+                foreach (var header in creds.Headers)
+                {
+                    rq.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                }
+                return rq;
+            }, "1"));
         }
 
         /// <summary>
@@ -122,6 +139,7 @@ namespace Stormancer.Server.Plugins.Management
             return await _clientV3.Applications.CreateConnectionToken(clusterId, accountId, applicationId, sceneId, payload ?? new byte[0], contentType);
 
         }
+
 
         /// <summary>
         /// Creates a connection token for a scene in the federation, using the V1 protocol.
@@ -151,15 +169,9 @@ namespace Stormancer.Server.Plugins.Management
         {
 
             (var clusterId, var accountId, var applicationId, var sceneId) = await DecomposeSceneId(sceneUri);
-            try
-            {
-                await _clientV3.Applications.CreateScene(clusterId, accountId, applicationId, sceneId, template, isPublic, metadata, isPersistent);
-            }
-            catch (Exception ex)
-            {
-                _logger.Log(LogLevel.Error, "manage", $"Failed to create the scene {sceneUri} on {clusterId}", ex);
-                throw;
-            }
+
+            await _clientV3.Applications.CreateScene(clusterId, accountId, applicationId, sceneId, template, isPublic, metadata, isPersistent);
+
         }
 
         private async Task<(string, string, string, string)> DecomposeSceneId(string sceneUri)
@@ -185,7 +197,7 @@ namespace Stormancer.Server.Plugins.Management
 
         }
 
-        
+
         private (string?, string?, string?, string) ParseSceneUri(string uri)
         {
             string? clusterId = null, account = null, application = null;

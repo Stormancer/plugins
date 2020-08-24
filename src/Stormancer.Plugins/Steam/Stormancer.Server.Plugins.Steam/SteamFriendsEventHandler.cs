@@ -21,7 +21,6 @@
 // SOFTWARE.
 
 using Stormancer.Server.Plugins.Friends;
-using Stormancer.Server.Plugins.Steam.Models;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
@@ -30,7 +29,7 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Steam
 {
-    public class SteamFriendsEventHandler : IFriendsEventHandler
+    internal class SteamFriendsEventHandler : IFriendsEventHandler
     {
         private IUserService _userService;
         private ISteamService _steamService;
@@ -43,9 +42,9 @@ namespace Stormancer.Server.Plugins.Steam
 
         private class SteamFriendUser
         {
-            public SteamFriend SteamFriend { get; set; } = null;
-            public User User { get; set; } = null;
-            public SteamPlayerSummary SteamPlayerSummary { get; set; } = null;
+            public SteamFriend? SteamFriend { get; set; } = null;
+            public User? User { get; set; } = null;
+            public SteamPlayerSummary? SteamPlayerSummary { get; set; } = null;
         }
 
         private FriendStatus SteamPersonaStateToStormancerFriendsStatus(int steamPersonaState)
@@ -70,7 +69,7 @@ namespace Stormancer.Server.Plugins.Steam
         {
             // Get current user
             var user = await _userService.GetUser(getMetUsersCtx.UserId);
-            var steamId = user.Auth[SteamAuthenticationProvider.PROVIDER_NAME]?[SteamAuthenticationProvider.ClaimPath]?.ToObject<ulong>() ?? 0;
+            var steamId = user.Auth[SteamConstants.PROVIDER_NAME]?[SteamConstants.ClaimPath]?.ToObject<ulong>() ?? 0;
 
             if (steamId == 0)
             {
@@ -86,7 +85,7 @@ namespace Stormancer.Server.Plugins.Steam
             }
 
             // Get users from friends
-            var users = await _userService.GetUsersByClaim2(SteamAuthenticationProvider.PROVIDER_NAME, SteamAuthenticationProvider.ClaimPath, steamFriends.Select(steamFriend => steamFriend.steamid).ToArray());
+            var users = await _userService.GetUsersByClaim(SteamConstants.PROVIDER_NAME, SteamConstants.ClaimPath, steamFriends.Select(steamFriend => steamFriend.steamid).ToArray());
 
             // Remove users not found or already present in context friendList
             var datas = steamFriends
@@ -104,13 +103,13 @@ namespace Stormancer.Server.Plugins.Steam
             }
 
             // Get steam player summaries
-            var steamIds = datas.Select(data => ulong.Parse(data.SteamFriend.steamid));
+            var steamIds = datas.Select(data => data?.SteamFriend != null ? ulong.Parse(data.SteamFriend.steamid) : 0);
             var steamPlayerSummaries = await _steamService.GetPlayerSummaries(steamIds);
 
             // Populate data with steam player summaries
             foreach (var data in datas)
             {
-                data.SteamPlayerSummary = steamPlayerSummaries.FirstOrDefault(kvp => kvp.Value.steamid.ToString() == data.SteamFriend.steamid).Value;
+                data.SteamPlayerSummary = steamPlayerSummaries.FirstOrDefault(kvp => kvp.Value.steamid.ToString() == data.SteamFriend?.steamid).Value;
             }
 
             // Add steam friends to friends list
@@ -118,9 +117,9 @@ namespace Stormancer.Server.Plugins.Steam
             {
                 getMetUsersCtx.Friends.Add(new Friend
                 {
-                    UserId = data.User.Id,
-                    Status = SteamPersonaStateToStormancerFriendsStatus(data.SteamPlayerSummary.personastate),
-                    LastConnected = DateTimeOffset.FromUnixTimeSeconds(data.SteamPlayerSummary.lastlogoff),
+                    UserId = data.User?.Id ?? "",
+                    Status = SteamPersonaStateToStormancerFriendsStatus(data.SteamPlayerSummary?.personastate ?? -1),
+                    LastConnected = DateTimeOffset.FromUnixTimeSeconds(data.SteamPlayerSummary?.lastlogoff ?? -1),
                     Tags = new List<string> { "steam" },
                     Details = "steamFriend"
                 });

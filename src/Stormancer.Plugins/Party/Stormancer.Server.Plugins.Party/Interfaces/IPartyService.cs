@@ -30,8 +30,15 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Party
 {
+    /// <summary>
+    /// Provides functions to control the party hosted on the current scene.
+    /// </summary>
     public interface IPartyService
     {
+        /// <summary>
+        /// Id of the party
+        /// </summary>
+        string PartyId { get; }
         Task UpdateSettings(PartySettingsDto partySettings);
         Task UpdateGameFinderPlayerStatus(string userId, PartyMemberStatusUpdateRequest partyUserStatus);
         Task UpdatePartyUserData(string userId, byte[] data);

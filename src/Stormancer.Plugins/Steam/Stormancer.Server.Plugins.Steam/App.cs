@@ -22,8 +22,15 @@
 
 namespace Stormancer.Server.Plugins.Steam
 {
+    /// <summary>
+    /// Plugin initialization class.
+    /// </summary>
     public class App
     {
+        /// <summary>
+        /// Plugin initialization method.
+        /// </summary>
+        /// <param name="builder"></param>
         public void Run(IAppBuilder builder)
         {
             builder.AddPlugin(new SteamPlugin());

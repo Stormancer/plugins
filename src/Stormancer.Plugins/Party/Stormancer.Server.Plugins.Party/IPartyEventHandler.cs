@@ -25,6 +25,7 @@ using Stormancer.Server.PartyManagement;
 using Stormancer.Server.Plugins.Party.Dto;
 using Stormancer.Server.Plugins.Party.Model;
 using Stormancer.Server.Plugins.Users;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Party
@@ -56,6 +57,9 @@ namespace Stormancer.Server.Plugins.Party
         }
     }
 
+    /// <summary>
+    /// Context provided when firing the JoiningParty event.
+    /// </summary>
     public class JoiningPartyContext
     {
         public IPartyService Party { get; }
@@ -136,6 +140,27 @@ namespace Stormancer.Server.Plugins.Party
         }
     }
 
+    /// <summary>
+    /// This context allows altering Party Settings update messages for each member.
+    /// </summary>
+    public class PartySettingsMemberUpdateCtx
+    {
+        /// <summary>
+        /// Party Service reference. You should not await party operations in this context.
+        /// </summary>
+        public IPartyService Party { get; }
+        /// <summary>
+        /// Party settings update message to be sent to each member
+        /// </summary>
+        public Dictionary<PartyMember, PartySettingsUpdateDto> UpdatesPerMember { get; }
+
+        internal PartySettingsMemberUpdateCtx(IPartyService party, Dictionary<PartyMember, PartySettingsUpdateDto> updatesPerMember)
+        {
+            Party = party;
+            UpdatesPerMember = updatesPerMember;
+        }
+    }
+
     public interface IPartyEventHandler
     {
         /// <summary>
@@ -172,6 +197,13 @@ namespace Stormancer.Server.Plugins.Party
         /// <param name="ctx"></param>
         /// <returns></returns>
         Task OnUpdateSettings(PartySettingsUpdateCtx ctx);
+
+        /// <summary>
+        /// Fired when a settings update message is about to be sent to each party member.
+        /// </summary>
+        /// <param name="ctx">Context of the settings update message.</param>
+        /// <returns></returns>
+        Task OnSendingSettingsUpdateToMembers(PartySettingsMemberUpdateCtx ctx) { return Task.CompletedTask; }
 
         /// <summary>
         /// Fired when a new user is connecting to the party.

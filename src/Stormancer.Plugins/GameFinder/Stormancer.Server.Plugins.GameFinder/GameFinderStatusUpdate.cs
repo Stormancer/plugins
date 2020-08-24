@@ -26,7 +26,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 {
     [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
     public enum GameFinderStatusUpdate
-    {        
+    {
         SearchStart = 0,
         CandidateFound = 1,
         WaitingPlayersReady = 2,

@@ -34,7 +34,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
-                builder.Register<LeaderboardService>().As<ILeaderboardService>().SingleInstance();
+                builder.Register<LeaderboardService>().As<ILeaderboardService>().InstancePerRequest();
                 builder.Register<LeaderboardController>().InstancePerRequest();
                 builder.Register<LeaderboardsWebApiConfig>().As<IAdminWebApiConfig>();
                 builder.Register<LeaderboardsAdminController>();
@@ -52,10 +52,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 }
             };
 
-            ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
-            {
-                builder.Register<LeaderboardService>().As<ILeaderboardService>().SingleInstance();
-            };
+           
         }
     }
 }

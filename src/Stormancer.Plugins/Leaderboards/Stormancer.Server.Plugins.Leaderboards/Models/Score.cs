@@ -50,18 +50,9 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
     public class ScoreRecord : ScoreRecordBase
     {
-        public ScoreRecord()
-        {
-            Document = new JObject();
-        }
+      
 
-        public ScoreRecord(ScoreDto dto)
-            : base(dto)
-        {
-            Document = JObject.Parse(dto.Document);
-        }
-
-        public JObject Document { get; set; }
+        public JObject Document { get; set; } = new JObject();
     }
 
     public class ScoreDtoBase
@@ -87,78 +78,27 @@ namespace Stormancer.Server.Plugins.Leaderboards
         public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
     }
 
+    /// <summary>
+    /// A score Data Transfert Object.
+    /// </summary>
     public class ScoreDto : ScoreDtoBase
     {
-        public ScoreDto()
-        {
-            _document = new JObject();
-        }
+        
 
         public ScoreDto(ScoreRecord record)
-            : base(record)
-        {
-            _document = record.Document;
-        }
-
-        [MessagePackMember(3)]
-        public string Document
-        {
-            get
-            {
-                return _document.ToString();
-            }
-            set
-            {
-                _document = JObject.Parse(value);
-            }
-        }
-
-        [MessagePackIgnore]
-        private JObject _document;
-    }
-
-    public class ScoreRecord<T> : ScoreRecordBase
-    {
-        public ScoreRecord()
-        {
-        }
-
-        public ScoreRecord(ScoreRecord record)
-        {
-            Id = record.Id;
-            Scores = record.Scores;
-            CreatedOn = record.CreatedOn;
-        }
-
-        public ScoreRecord(ScoreDto<T> dto)
-            : base(dto)
-        {
-            Document = dto.Document;
-        }
-
-        public T Document { get; set; }
-    }
-
-    public class ScoreDto<T> : ScoreDtoBase
-    {
-        public ScoreDto()
-        {
-        }
-
-        public ScoreDto(ScoreDto dto)
-        {
-            Id = dto.Id;
-            Scores = dto.Scores;
-            CreatedOn = dto.CreatedOn;
-        }
-
-        public ScoreDto(ScoreRecord<T> record)
             : base(record)
         {
             Document = record.Document;
         }
 
+        /// <summary>
+        /// Data associated with the score.
+        /// </summary>
         [MessagePackMember(3)]
-        public T Document { get; set; }
+        public JObject Document { get; set; }
+      
     }
+
+ 
+
 }

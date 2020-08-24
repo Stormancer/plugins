@@ -23,70 +23,84 @@
 using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Configuration;
-using Stormancer.Server.Plugins.Steam;
+using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.Users
+namespace Stormancer.Server.Plugins.Steam
 {
-    public class SteamAuthenticationProvider : IAuthenticationProvider, IUserSessionEventHandler
+    /// <summary>
+    /// Steam authentication provider.
+    /// </summary>
+    class SteamAuthenticationProvider : IAuthenticationProvider, IUserSessionEventHandler
     {
         private ConcurrentDictionary<ulong, string> _vacSessions = new ConcurrentDictionary<ulong, string>();
-        public const string PROVIDER_NAME = "steam";
-        public const string ClaimPath = "steamid";
         private bool _vacEnabled = false;
         private ISteamUserTicketAuthenticator _authenticator;
         private ILogger _logger;
         private readonly IUserService _users;
         private readonly ISteamService _steam;
+        public string Type => SteamConstants.PROVIDER_NAME;
 
-        public string Type => PROVIDER_NAME;
-
-        public SteamAuthenticationProvider(IConfiguration config, ILogger logger, IUserService users, ISteamService steam)
+        /// <summary>
+        /// Steam authentication provider constructor.
+        /// </summary>
+        /// <param name="config"></param>
+        /// <param name="logger"></param>
+        /// <param name="users"></param>
+        /// <param name="steam"></param>
+        /// <param name="authenticator"></param>
+        public SteamAuthenticationProvider(IConfiguration configuration, ILogger logger, IUserService users, ISteamService steam, ISteamUserTicketAuthenticator authenticator)
         {
             _logger = logger;
             _users = users;
             _steam = steam;
-            //config.SettingsChanged += (sender, e) => ApplyConfig(config);
-            ApplyConfig(config);
+            _authenticator = authenticator;
+
+            ApplyConfig(configuration.Settings);
+           
         }
 
+        /// <summary>
+        /// Add metadata.
+        /// </summary>
+        /// <param name="result"></param>
         public void AddMetadata(Dictionary<string, string> result)
         {
             result["provider.steamauthentication"] = "enabled";
         }
 
-        private void ApplyConfig(IConfiguration config)
+        private void ApplyConfig(dynamic config)
         {
-            var steamConfig = config.Settings.steam;
-
-            if (steamConfig?.usemockup != null && (bool)(steamConfig.usemockup))
-            {
-                _authenticator = new SteamUserTicketAuthenticatorMockup();
-            }
-            else
-            {
-                _authenticator = new SteamUserTicketAuthenticator(_steam);
-            }
-            _vacEnabled = steamConfig?.vac != null && (bool)steamConfig.vac;
+            _vacEnabled = config?.steam?.vac ?? false;
         }
 
+        /// <summary>
+        /// On logged in.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
         public Task OnLoggedIn(LoginContext ctx)
         {
             return Task.FromResult(true);
         }
 
+        /// <summary>
+        /// On logged out.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
         public async Task OnLoggedOut(LogoutContext ctx)
         {
             var steamId = ctx.Session.User.GetSteamId();
-            if (_vacSessions.TryRemove(steamId.Value, out string vacSessionId))
+            if (steamId != null && _vacSessions.TryRemove(steamId.Value, out var vacSessionId))
             {
                 try
                 {
-                    await _steam.CloseVACSession(steamId.ToString(), vacSessionId);
+                    await _steam.CloseVACSession(steamId.ToString()!, vacSessionId);
                 }
                 catch (Exception ex)
                 {
@@ -95,10 +109,16 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
+        /// <summary>
+        /// Authenticate.
+        /// </summary>
+        /// <param name="authenticationCtx"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
         public async Task<AuthenticationResult> Authenticate(AuthenticationContext authenticationCtx, CancellationToken ct)
         {
-            var pId = new PlatformId { Platform = PROVIDER_NAME };
-            if (!authenticationCtx.Parameters.TryGetValue("ticket", out string ticket) || string.IsNullOrWhiteSpace(ticket))
+            var pId = new PlatformId { Platform = SteamConstants.PROVIDER_NAME };
+            if (!authenticationCtx.Parameters.TryGetValue("ticket", out var ticket) || string.IsNullOrWhiteSpace(ticket))
             {
                 return AuthenticationResult.CreateFailure("Steam session ticket must not be empty.", pId, authenticationCtx.Parameters);
             }
@@ -106,27 +126,25 @@ namespace Stormancer.Server.Plugins.Users
             {
                 var steamId = await _authenticator.AuthenticateUserTicket(ticket);
 
-                if (!steamId.HasValue)
+                if (steamId == null)
                 {
                     return AuthenticationResult.CreateFailure("Invalid steam session ticket.", pId, authenticationCtx.Parameters);
                 }
-                pId.OnlineId = steamId.ToString();
+                pId.OnlineId = steamId.ToString()!;
 
                 if (_vacEnabled)
                 {
-                    AuthenticationResult result = null;
-                    string vacSessionId = null;
+                    AuthenticationResult? result = null;
+                    string vacSessionId;
                     try
                     {
                         vacSessionId = await _steam.OpenVACSession(steamId.Value.ToString());
                         _vacSessions[steamId.Value] = vacSessionId;
-
-
                     }
                     catch (Exception ex)
                     {
                         _logger.Log(LogLevel.Error, "authenticator.steam", $"Failed to start VAC session for {steamId}", ex);
-                        result = AuthenticationResult.CreateFailure($"Failed to start VAC session.", pId, authenticationCtx.Parameters);
+                        return AuthenticationResult.CreateFailure($"Failed to start VAC session.", pId, authenticationCtx.Parameters);
                     }
 
                     try
@@ -144,11 +162,11 @@ namespace Stormancer.Server.Plugins.Users
 
                     if (result != null)//Failed
                     {
-                        if (_vacSessions.TryRemove(steamId.Value, out vacSessionId))
+                        if (_vacSessions.TryRemove(steamId.Value, out _))
                         {
                             try
                             {
-                                await _steam.CloseVACSession(steamId.ToString(), vacSessionId);
+                                await _steam.CloseVACSession(steamId.ToString()!, vacSessionId);
                             }
                             catch (Exception ex)
                             {
@@ -157,10 +175,10 @@ namespace Stormancer.Server.Plugins.Users
                         }
                         return result;
                     }
-
                 }
+
                 var steamIdString = steamId.GetValueOrDefault().ToString();
-                var user = await _users.GetUserByClaim(PROVIDER_NAME, ClaimPath, steamIdString);
+                var user = await _users.GetUserByClaim(SteamConstants.PROVIDER_NAME, SteamConstants.ClaimPath, steamIdString);
                 var playerSummary = await _steam.GetPlayerSummary(steamId.Value);
                 if (user == null)
                 {
@@ -168,9 +186,7 @@ namespace Stormancer.Server.Plugins.Users
 
                     user = await _users.CreateUser(uid, JObject.FromObject(new { steamid = steamIdString, pseudo = playerSummary.personaname, avatar = playerSummary.avatarfull }));
 
-
-
-                    user = await _users.AddAuthentication(user, PROVIDER_NAME, claim => claim[ClaimPath] = steamIdString, new Dictionary<string, string> { { ClaimPath, steamIdString } });
+                    user = await _users.AddAuthentication(user, SteamConstants.PROVIDER_NAME, claim => claim[SteamConstants.ClaimPath] = steamIdString, new Dictionary<string, string> { { SteamConstants.ClaimPath, steamIdString } });
                 }
                 else
                 {
@@ -181,45 +197,70 @@ namespace Stormancer.Server.Plugins.Users
 
                 return AuthenticationResult.CreateSuccess(user, pId, authenticationCtx.Parameters);
             }
-            catch (Exception ex)
+            catch (SteamException)
             {
-                _logger.Log(LogLevel.Debug, "authenticator.steam", $"Steam authentication failed. Ticket : {ticket}", ex);
-                return AuthenticationResult.CreateFailure($"Invalid steam session ticket.", pId, authenticationCtx.Parameters);
+                return AuthenticationResult.CreateFailure($"Authentication refused by steam.", pId, authenticationCtx.Parameters);
+             
             }
         }
 
-        public Task Setup(Dictionary<string, string> parameters)
+        /// <summary>
+        /// Setup.
+        /// </summary>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
+        public Task Setup(Dictionary<string, string> parameters, Session? session)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// on get status.
+        /// </summary>
+        /// <param name="status"></param>
+        /// <param name="session"></param>
+        /// <returns></returns>
         public Task OnGetStatus(Dictionary<string, string> status, Session session)
         {
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Unlink claim from user.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
         public async Task Unlink(User user)
         {
             if (user != null)
             {
-                var steamId = (string)user.Auth[PROVIDER_NAME]?[ClaimPath];
+                var steamId = (string?)user.Auth[SteamConstants.PROVIDER_NAME]?[SteamConstants.ClaimPath];
                 if (steamId == null)
                 {
-                    throw new ClientException($"authentication.unlink_failed?reason=not_linked&provider={PROVIDER_NAME}");
+                    throw new ClientException($"authentication.unlink_failed?reason=not_linked&provider={SteamConstants.PROVIDER_NAME}");
                 }
-                await _users.RemoveAuthentication(user, PROVIDER_NAME);
+                await _users.RemoveAuthentication(user, SteamConstants.PROVIDER_NAME);
             }
         }
 
+        /// <summary>
+        /// Renew credentials.
+        /// </summary>
+        /// <param name="authenticationContext"></param>
+        /// <returns></returns>
         public Task<DateTime?> RenewCredentials(AuthenticationContext authenticationContext)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// On updating user handle.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
         public Task OnUpdatingUserHandle(UpdateUserHandleCtx ctx)
         {
             return Task.CompletedTask;
         }
     }
 }
-

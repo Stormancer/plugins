@@ -229,7 +229,7 @@ namespace Stormancer.Server.Plugins.Users
                 throw new ClientException($"authentication.notSupported?type={auth.Type}");
             }
 
-            await provider.Setup(auth.Parameters);
+            await provider.Setup(auth.Parameters,null);
 
         }
 

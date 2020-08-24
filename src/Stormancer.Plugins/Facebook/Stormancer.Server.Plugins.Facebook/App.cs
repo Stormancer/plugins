@@ -1,4 +1,4 @@
-// MIT License
+﻿// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -19,36 +19,35 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using Stormancer.Core;
-using Stormancer.Server.Users;
 
-namespace Stormancer.Plugins.ServiceLocator
+using Stormancer.Plugins;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Stormancer.Server.Plugins.Facebook
 {
-    class ServiceLocatorPlugin : IHostPlugin
+    /// <summary>
+    /// Plugin's initialization class (internal use only).
+    /// </summary>
+    public class App
+    {
+
+        /// <summary>
+        /// Initializes the plugin (internal use only).
+        /// </summary>
+        /// <param name="builder"></param>
+        public void Run(IAppBuilder builder)
+        {
+            builder.AddPlugin(new FacebookPlugin());
+        }
+    }
+
+    internal class FacebookPlugin : IHostPlugin
     {
         public void Build(HostPluginBuildContext ctx)
         {
-
-            ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
-              {
-                  if (scene.Template == UsersManagementPlugin.SCENE_TEMPLATE)
-                  {
-                      builder.Register<LocatorController>().InstancePerRequest();
-
-                  }
-              };
-            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
-              {
-                  builder.Register<ServiceLocator>().As<IServiceLocator>().InstancePerRequest();
-              };
-            ctx.SceneCreated += (ISceneHost scene) =>
-            {
-                if (scene.Template == UsersManagementPlugin.SCENE_TEMPLATE)
-                {
-                    scene.AddController<LocatorController>();
-                }
-            };
+            throw new NotImplementedException();
         }
-
     }
 }

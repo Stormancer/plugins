@@ -5,7 +5,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>1.0.0.3</Version>
+    <Version>1.0.1</Version>
     <AssemblyVersion>$(Version)</AssemblyVersion>
     <FileVersion>$(Version)</FileVersion>
     <IncludeSymbols>true</IncludeSymbols>
@@ -15,10 +15,16 @@
     <LangVersion>latest</LangVersion>
     <Description>Provides analytics services to a Stormancer application.</Description>
   </PropertyGroup>
-
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <Version>$(Version)-pre</Version>
+  </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="MsgPack.Cli" Version="1.0.1" />
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.1.0.1" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.4.0-pre" />
   </ItemGroup>
 
   <ItemGroup>

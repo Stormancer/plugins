@@ -30,7 +30,7 @@ using System.Threading.Tasks;
 namespace Stormancer.Server.Plugins.GameFinder
 {
     public interface IGameFinderService
-    {        
+    {
         Task Run(CancellationToken ct);
         bool IsRunning { get; }
         Task FindGameS2S(RequestContext<IScenePeer> requestS2S);

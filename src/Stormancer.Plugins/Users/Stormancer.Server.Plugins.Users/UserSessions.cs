@@ -117,7 +117,7 @@ namespace Stormancer.Server.Plugins.Users
         private readonly RpcService rpcService;
         private readonly IHandleUserIndex _handleUserIndex;
 
-      
+
         public UserSessions(IUserService userService,
             IPeerUserIndex peerUserIndex,
             IUserPeerIndex userPeerIndex,
@@ -327,7 +327,7 @@ namespace Stormancer.Server.Plugins.Users
         }
 
 
-        public async Task<SessionRecord> GetSessionRecordById(string sessionId)
+        public async Task<SessionRecord?> GetSessionRecordById(string sessionId)
         {
             var result = await _peerUserIndex.TryGet(sessionId);
             if (result.Success)
@@ -337,12 +337,12 @@ namespace Stormancer.Server.Plugins.Users
             else
             {
 
-                logger.Log(LogLevel.Trace, "usersession", $"Get session failed for id {sessionId}, {_peerUserIndex.Count} sessions found", new { });
+                //logger.Log(LogLevel.Trace, "usersession", $"Get session failed for id {sessionId}, {_peerUserIndex.Count} sessions found", new { });
                 return null;
             }
         }
 
-        public async Task<Session> GetSessionById(string sessionId, bool forceRefresh = false)
+        public async Task<Session?> GetSessionById(string sessionId, bool forceRefresh = false)
         {
             var session = await GetSessionRecordById(sessionId);
             return session?.CreateView();
@@ -601,6 +601,45 @@ namespace Stormancer.Server.Plugins.Users
                 });
             })
             .Switch();
+        }
+
+        public async Task<Dictionary<PlatformId, Session>> GetSessions(IEnumerable<PlatformId> platformIds, bool forceRefresh = false)
+        {
+            Dictionary<PlatformId, Session> sessions = new Dictionary<PlatformId, Session>();
+
+            foreach (var id in platformIds)
+            {
+                var session = await GetSession(id, forceRefresh);
+                if (session != null)
+                {
+                    sessions.TryAdd(id, session);
+                }
+            }
+
+            return sessions;
+        }
+
+        public Task<int> GetAuthenticatedUsersCount()
+        {
+            return Task.FromResult(AuthenticatedUsersCount);
+        }
+
+        public async Task<Dictionary<string, Session?>> GetSessions(IEnumerable<string> sessionIds, bool forceRefresh = false)
+        {
+
+            var sessions = new Dictionary<string, Session?>();
+
+            foreach (var id in sessionIds)
+            {
+                var session = await GetSession(id, forceRefresh);
+                if (session != null)
+                {
+                    sessions.TryAdd(id, session);
+                }
+            }
+
+            return sessions;
+
         }
 
         public int AuthenticatedUsersCount

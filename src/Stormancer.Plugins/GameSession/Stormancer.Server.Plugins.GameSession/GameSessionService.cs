@@ -97,7 +97,7 @@ namespace Stormancer.Server.Plugins.GameSession
         }
 
         // Constant variable
-        private const string LOG_CATEOGRY = "Game session service";
+        private const string LOG_CATEOGRY = "gamesession";
         private const string P2P_TOKEN_ROUTE = "player.p2ptoken";
         private const string ALL_PLAYER_READY_ROUTE = "players.allReady";
 
@@ -492,7 +492,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     peer.Send(P2P_TOKEN_ROUTE, _p2pToken);
                 }
 
-                var playerConnectedCtx = new ClientConnectedContext { Player = new Player(peer.SessionId, userId), GameSession = this, IsHost = (_config.HostUserId == userId) };
+                var playerConnectedCtx = new ClientConnectedContext(this, new PlayerPeer(peer, new Player(peer.SessionId, userId)), _config.HostUserId == userId);
                 using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
                 {
                     await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
@@ -727,12 +727,12 @@ namespace Stormancer.Server.Plugins.GameSession
 
             if (client != null)
             {
-
                 client.Peer = null;
                 client.Status = PlayerStatus.Disconnected;
 
                 BroadcastClientUpdate(client, userId);
-                await EvaluateGameComplete();
+
+                EvaluateGameComplete();
             }
 
             if (_shutdownMode == ShutdownMode.NoPlayerLeft)
@@ -817,9 +817,17 @@ namespace Stormancer.Server.Plugins.GameSession
                 var userId = await GetUserId(remotePeer);
                 if (userId != null)
                 {
-                    _clients[userId].ResultData = inputStream;
+                    if(inputStream.Length > 1024*1024)
+                    {
+                        throw new ClientException("gameSession.resultsTooBig?maxSize=1Mb");
+                    }
+                    var memStream = new MemoryStream((int)inputStream.Length);
+                    inputStream.CopyTo(memStream);
+                    memStream.Seek(0, SeekOrigin.Begin);
+                    _clients[userId].ResultData = memStream;
 
-                    await EvaluateGameComplete();
+                    EvaluateGameComplete();
+
                     return await _clients[userId].GameCompleteTcs.Task;
                 }
                 else
@@ -858,38 +866,49 @@ namespace Stormancer.Server.Plugins.GameSession
             await _scene.KeepAlive(TimeSpan.Zero);
         }
 
-        private AsyncLock _asyncLock = new AsyncLock();
+        public string GameSessionId => _scene.Id;
 
-        private async Task EvaluateGameComplete()
+        private bool _gameCompleteExecuted = false;
+
+        private void EvaluateGameComplete()
         {
-            using (await _asyncLock.LockAsync())
+            lock (this)
             {
-                if (_clients.Values.All(c => c.ResultData != null || c.Peer == null))//All remaining clients sent their data
+                if (!_gameCompleteExecuted && _clients.Values.All(c => c.ResultData != null || c.Peer == null))//All remaining clients sent their data
                 {
+                    _gameCompleteExecuted = true;
+                 
                     var ctx = new GameSessionCompleteCtx(this, _scene, _config, _clients.Select(kvp => new GameSessionResult(kvp.Key, kvp.Value.Peer, kvp.Value.ResultData)), _clients.Keys);
 
-                    using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+                    async Task runHandlers()
                     {
-                        await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.GameSessionCompleted(ctx), ex =>
+                        using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
                         {
-                            _logger.Log(LogLevel.Error, "gameSession", "An error occured while running gameSession.GameSessionCompleted event handlers", ex);
-                            foreach (var client in _clients.Values)
+                            await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.GameSessionCompleted(ctx), ex =>
                             {
-                                client.GameCompleteTcs.TrySetException(ex);
-                            }
-                        });
+                                _logger.Log(LogLevel.Error, "gameSession", "An error occured while running gameSession.GameSessionCompleted event handlers", ex);
+                                foreach (var client in _clients.Values)
+                                {
+                                    client.GameCompleteTcs.TrySetException(ex);
+                                }
+                            });
+                        }
+
+                        foreach (var client in _clients.Values)
+                        {
+                            client.GameCompleteTcs.TrySetResult(ctx.ResultsWriter);
+                        }
+
+                        await Task.Delay(5000);
+
+                        await Task.WhenAll(_scene.RemotePeers.Select(user => user.Disconnect("gamesession.completed")));
+
+                        _gameCompleteCts.Cancel();
+
+                        await _scene.KeepAlive(TimeSpan.Zero);
                     }
 
-                    foreach (var client in _clients.Values)
-                    {
-                        client.GameCompleteTcs.TrySetResult(ctx.ResultsWriter);
-                    }
-
-                    // FIXME: Temporary workaround to issue where disconnections cause large increases in CPU/Memory usage
-                    //await Task.WhenAll(_scene.RemotePeers.Select(user => user.Disconnect("Game complete")));
-
-                    _gameCompleteCts.Cancel();
-                    await _scene.KeepAlive(TimeSpan.Zero);
+                    runHandlers();
                 }
             }
         }
@@ -938,8 +957,10 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async IAsyncEnumerable<Team> OpenToGameFinder(JObject data, string gameFinder, [EnumeratorCancellation] CancellationToken ct)
         {
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct, _gameCompleteCts.Token);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct, _gameCompleteCts.Token, _sceneCts.Token);
             ct = cts.Token;
+
+            ct.ThrowIfCancellationRequested();
 
             using var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag);
             var serviceLocator = scope.Resolve<IServiceLocator>();

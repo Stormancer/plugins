@@ -38,7 +38,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         public void RegisterDependencies(IDependencyBuilder builder)
         {
             _registerDependencies?.Invoke(builder);
-           
+
         }
     }
 }

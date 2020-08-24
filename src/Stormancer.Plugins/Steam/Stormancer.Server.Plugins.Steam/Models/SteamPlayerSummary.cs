@@ -22,36 +22,105 @@
 
 using System.Collections.Generic;
 
-namespace Stormancer.Server.Plugins.Steam.Models
+namespace Stormancer.Server.Plugins.Steam
 {
+#pragma warning disable IDE1006 // Naming Styles
+
+    /// <summary>
+    /// Steam player summary.
+    /// </summary>
     public class SteamPlayerSummary
     {
-        public string avatar { get; set; }
-        public string avatarfull { get; set; }
-        public string avatarmedium { get; set; }
+        /// <summary>
+        /// Steam avatar.
+        /// </summary>
+        public string? avatar { get; set; }
+
+        /// <summary>
+        /// Steam full avatar.
+        /// </summary>
+        public string? avatarfull { get; set; }
+
+        /// <summary>
+        /// Steam medium avatar.
+        /// </summary>
+        public string? avatarmedium { get; set; }
+
+        /// <summary>
+        /// Steam community profile visibility state.
+        /// </summary>
         public int communityvisibilitystate { get; set; }
+
+        /// <summary>
+        /// Last log off data.
+        /// </summary>
         public int lastlogoff { get; set; }
+
+        /// <summary>
+        /// Location city id.
+        /// </summary>
         public int loccityid { get; set; }
-        public string loccountrycode { get; set; }
-        public string locstatecode { get; set; }
-        public string personaname { get; set; }
+
+        /// <summary>
+        /// Location country code.
+        /// </summary>
+        public string? loccountrycode { get; set; }
+
+        /// <summary>
+        /// Location state code.
+        /// </summary>
+        public string? locstatecode { get; set; }
+
+        /// <summary>
+        /// Pseudonym.
+        /// </summary>
+        public string? personaname { get; set; }
+
+        /// <summary>
+        /// Steam connection state
+        /// </summary>
         public int personastate { get; set; }
+
+        /// <summary>
+        /// Steam primary clan Id.
+        /// </summary>
         public ulong primaryclanid { get; set; }
+
+        /// <summary>
+        /// Steam profile state.
+        /// </summary>
         public int profilestate { get; set; }
-        public string profileurl { get; set; }
-        public string realname { get; set; }
+
+        /// <summary>
+        /// Steam community profile url.
+        /// </summary>
+        public string? profileurl { get; set; }
+
+        /// <summary>
+        /// Steam real name.
+        /// </summary>
+        public string? realname { get; set; }
+
+        /// <summary>
+        /// Steam Id.
+        /// </summary>
         public ulong steamid { get; set; }
+
+        /// <summary>
+        /// Steam account creation date.
+        /// </summary>
         public int timecreate { get; set; }
     }
 
-    public class SteamPlayerSummariesResponse
+    internal class SteamPlayerSummariesResponse
     {
-        public SteamPlayerSummaries response { get; set; }
+        public SteamPlayerSummaries? response { get; set; }
     }
 
-    public class SteamPlayerSummaries
+    internal class SteamPlayerSummaries
     {
-        public List<SteamPlayerSummary> players { get; set; }
+        public List<SteamPlayerSummary>? players { get; set; }
     }
+
+#pragma warning restore IDE1006 // Naming Styles
 }
-

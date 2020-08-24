@@ -49,11 +49,14 @@ namespace Stormancer.Server.Plugins.GameSession
         public async Task PostResults(RequestContext<IScenePeerClient> ctx)
         {
             var writer = await _service.PostResults(ctx.InputStream, ctx.RemotePeer);
-            await ctx.SendValue(s =>
+            if (!ctx.CancellationToken.IsCancellationRequested)
             {
-                var oldPosition = s.Position;
-                writer(s, ctx.RemotePeer.Serializer());
-            });
+                await ctx.SendValue(s =>
+                {
+                    var oldPosition = s.Position;
+                    writer(s, ctx.RemotePeer.Serializer());
+                });
+            }
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
@@ -90,6 +93,23 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 throw new ClientException($"unauthorized");
             }
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task<string> GetGameSessionConnectionUrl()
+        {
+            var id = _service.GetGameSessionConfig().HostUserId;
+
+            if (!string.IsNullOrEmpty(id))
+            {
+                var session = await _sessions.GetSessionByUserId(id);
+                if (session != null)
+                {
+                    return "strm." + session.SessionId;
+                }
+            }
+
+            throw new ClientException("no host configured in gameSession.");
         }
     }
 }

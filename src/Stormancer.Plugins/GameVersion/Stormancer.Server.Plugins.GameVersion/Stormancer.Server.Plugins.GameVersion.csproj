@@ -5,7 +5,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>1.1.0</Version>
+    <Version>1.1.2</Version>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -13,9 +13,15 @@
     <LangVersion>latest</LangVersion>
     <Description>Game client and server version tracking tools.</Description>
   </PropertyGroup>
-
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <Version>$(Version)-pre</Version>
+  </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.1.0.1" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.4.0-pre" />
   </ItemGroup>
 
   <ItemGroup>
