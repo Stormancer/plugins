@@ -31,6 +31,28 @@ namespace Stormancer.Server.Plugins.Users
 {
 
     /// <summary>
+    /// base class for auth provider configuration builders.
+    /// </summary>
+    public abstract class AuthProviderConfigurationBuilderBase<T> where T : AuthProviderConfigurationBuilderBase<T>
+    {
+        /// <summary>
+        /// Is the provider enabled or not.
+        /// </summary>
+        public bool enabled { get; set; } = false;
+
+        /// <summary>
+        /// Sets the provider as enabled.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public T Enabled(bool value = true)
+        {
+            enabled = value;
+            return (T)this;
+        }
+    }
+
+    /// <summary>
     /// Provids data about the current authentication attempt.
     /// </summary>
     public class AuthenticationContext
@@ -57,7 +79,7 @@ namespace Stormancer.Server.Plugins.Users
         /// If the user is already authenticated, gets her session
         /// </summary>
         public Session? CurrentSession { get; }
-        
+
     }
 
     /// <summary>

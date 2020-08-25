@@ -23,6 +23,7 @@
 using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Configuration;
+using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,8 +32,58 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+
+namespace Stormancer
+{
+    /// <summary>
+    /// Extension methods for LoginPassword auth provider.
+    /// </summary>
+    public static class LoginPasswordAuthenticationConfigurationExtensions
+    {
+        /// <summary>
+        /// Configures the device identifier auth provider.
+        /// </summary>
+        /// <param name="config"></param>
+        /// <param name="builder"></param>
+        /// <remarks></remarks>
+        /// <returns></returns>
+        public static UsersConfigurationBuilder ConfigureDeviceIdentifier(this UsersConfigurationBuilder config, Func<LoginPasswordConfigurationBuilder, LoginPasswordConfigurationBuilder> builder)
+        {
+            var b = new LoginPasswordConfigurationBuilder();
+
+            b = builder(b);
+            config.Settings[LoginPasswordAuthenticationProvider.PROVIDER_NAME] = JObject.FromObject(b);
+            return config;
+        }
+
+    }
+
+}
+
 namespace Stormancer.Server.Plugins.Users
 {
+    /// <summary>
+    /// Configures the device identifier auth provider.
+    /// </summary>
+    public class LoginPasswordConfigurationBuilder : AuthProviderConfigurationBuilderBase<LoginPasswordConfigurationBuilder>
+    {
+        /// <summary>
+        /// True if emails are mandatory.
+        /// </summary>
+        public bool requiresEmail { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="require"></param>
+        /// <returns></returns>
+        public LoginPasswordConfigurationBuilder RequiresEmail(bool require = true)
+        {
+            requiresEmail = true;
+            return this;
+        }
+    }
+
     internal class LoginPasswordAuthRecord
     {
         public string? email { get; set; }
