@@ -20,17 +20,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Stormancer.Plugins;
-using Stormancer.Server.Plugins.Models;
-using System.IO;
+using Stormancer.Core;
+using Stormancer.Server.Plugins.GameFinder;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
-    public interface IGameFinderDataExtractor
+    public interface IGameFinder
     {
-        Task<bool> ExtractDataS2S(string provider, Stream requestStream, Party group);
-        Task<bool> ExtractData(string provider, RequestContext<IScenePeerClient> request, Party group);
-        void RefreshConfig(dynamic config);
+        Task<Packet<IScenePeer>> FindMatch(string sceneName, Models.Party party, CancellationToken cancelationToken);        
     }
 }

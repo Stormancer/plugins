@@ -11,7 +11,12 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
-
+- Removed support for direct game search request from client. All gamesearch request should now be done through a party.
+- Advertise party and party member settings in game finder
+- Removed IDataExtractor from pipeline
+- Renamed IGameFinder into IGameFinderAlgorithm
+- Added QuickQueue gamefinder algorithm with configuration extension methods.
+- Easier gamefinder configuration.
 Added
 *****
 

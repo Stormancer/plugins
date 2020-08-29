@@ -20,23 +20,37 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
-using System.Collections.Generic;
+using Stormancer.Core;
+using Stormancer.Plugins;
+using Stormancer.Server.Plugins.GameFinder;
+using System;
+using System.IO;
+using System.Reactive.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
-    public class GameFinderRequest
+    class GameFinderProxy : IGameFinder
     {
-        /// <summary>
-        /// Group members: [userId]=>[profileId]
-        /// </summary>
-        [MessagePackMember(0)]
-        public Dictionary<string, string> ProfileIds { get; set; } = new Dictionary<string, string>();
+        public readonly ISceneHost _scene;
+        public readonly ISerializer _serializer;
 
-        [MessagePackMember(1)]
-        public string CustomData { get; set; }
+        public GameFinderProxy(ISceneHost scene,
+            ISerializer serializer)
+        {
+            _scene = scene;
+            _serializer = serializer;
+        }
 
-        [MessagePackMember(2)]
-        public string HostUserId { get; set; }
+        public async Task<Packet<IScenePeer>> FindMatch(string sceneName, Models.Party gameFinderRequest, CancellationToken cancelationToken)
+        {
+            var rpc = _scene.DependencyResolver.Resolve<RpcService>();
+            Action<Stream> writer = s => 
+            {
+                _serializer.Serialize(gameFinderRequest,s);
+            };
+            return await rpc.Rpc(GameFinderController.FindGameS2SRoute, new MatchSceneFilter(sceneName), writer, PacketPriority.MEDIUM_PRIORITY, cancelationToken).LastOrDefaultAsync();
+        }
     }
 }

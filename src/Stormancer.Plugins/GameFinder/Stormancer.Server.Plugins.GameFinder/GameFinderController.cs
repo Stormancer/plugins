@@ -53,12 +53,13 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// Start matchmaking
         /// </summary>
+        /// <param name="party"></param>
         /// <param name="request"></param>
         /// <returns></returns>
         [Api(ApiAccess.Scene2Scene, ApiType.Rpc, Route = FindGameS2SRoute)]
-        public Task FindGame(RequestContext<IScenePeer> request)
+        public Task FindGame(Models.Party party, RequestContext<IScenePeer> request)
         {
-            return _gameFinderService.FindGameS2S(request);
+            return _gameFinderService.FindGame(party, request.CancellationToken);
         }
 
         /// <summary>
@@ -93,16 +94,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             return _gameFinderService.GetMetrics();
         }
 
-        /// <summary>
-        /// Start matchmaking for a solo player without party (obsolete)
-        /// </summary>
-        /// <param name="request"></param>
-        /// <returns></returns>
-        [Api(ApiAccess.Public, ApiType.Rpc, Route = "gamefinder.find")]
-        public Task FindGameFromClient(RequestContext<IScenePeerClient> request)
-        {
-            return _gameFinderService.FindGame(request);
-        }
+    
 
         /// <summary>
         /// Cancels matchmaking
@@ -112,19 +104,9 @@ namespace Stormancer.Server.Plugins.GameFinder
         [Api(ApiAccess.Public, ApiType.FireForget, Route = "gamefinder.cancel")]
         public Task CancelSearchFromClient(Packet<IScenePeerClient> packet)
         {
-            return _gameFinderService.CancelGame(packet);
+            return _gameFinderService.CancelGame(packet.Connection, true);
         }
 
-        /// <summary>
-        /// Sets the peer as ready in the matchmaking system.
-        /// </summary>
-        /// <param name="packet"></param>
-        /// <returns></returns>
-        [Api(ApiAccess.Public, ApiType.FireForget, Route = "gamefinder.ready.resolve")]
-        public Task SetClientReady(Packet<IScenePeerClient> packet)
-        {
-            return _gameFinderService.ResolveReadyRequest(packet);
-        }
 
         /// <summary>
         /// Cancels matchmaking when the peer disconnects.

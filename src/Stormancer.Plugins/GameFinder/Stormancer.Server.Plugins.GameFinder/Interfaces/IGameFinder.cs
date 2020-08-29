@@ -26,15 +26,35 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
-
-    public interface IGameFinder
+    /// <summary>
+    /// Classes implementing this interface provide game finder algorithms.
+    /// </summary>
+    public interface IGameFinderAlgorithm
     {
+        /// <summary>
+        /// Called every game finder pass to compute games from the waiting players list.
+        /// </summary>
+        /// <param name="gameFinderContext"></param>
+        /// <returns></returns>
         Task<GameFinderResult> FindGames(GameFinderContext gameFinderContext);
 
+        /// <summary>
+        /// Gets public gamefinder metrics for the clients.
+        /// </summary>
+        /// <returns></returns>
         Dictionary<string, int> GetMetrics();
 
+        /// <summary>
+        /// Gets private gamefinder metrics stored in the analytics system.
+        /// </summary>
+        /// <param name="gameFinderContext"></param>
+        /// <returns></returns>
         JObject ComputeDataAnalytics(GameFinderContext gameFinderContext);
 
-        void RefreshConfig(dynamic specificConfig, dynamic config);
+        /// <summary>
+        /// Called whenever the gamefinder config gets updated.
+        /// </summary>
+        /// <param name="config">the current gamefinder config section.</param>
+        void RefreshConfig(dynamic config);
     }
 }

@@ -24,7 +24,7 @@ namespace Stormancer.Server.Plugins.Models
 {
     public class Player
     {
-        public Player(string sessionId, string userId, object data = null)
+        public Player(string sessionId, string userId, byte[] data = null)
         {
             UserId = userId;
             SessionId = sessionId;
@@ -35,6 +35,6 @@ namespace Stormancer.Server.Plugins.Models
 
         public string SessionId { get; }
 
-        public object Data { get; set; }
+        public byte[] Data { get; set; }
     }
 }

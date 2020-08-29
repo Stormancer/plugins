@@ -20,22 +20,48 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Stormancer.Core;
 using System;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
     public class GameFinderConfig
     {
-        public GameFinderConfig(
-            string gameFinderKind, Action<IDependencyBuilder> registerDependencies)
+        internal GameFinderConfig(ISceneHost scene, string configId)
         {
-            this._registerDependencies = registerDependencies;
-            this.Kind = gameFinderKind;
+            this.Scene = scene;
+            ConfigId = configId;
         }
         private Action<IDependencyBuilder> _registerDependencies;
-        public string Kind { get; set; }
 
-        public void RegisterDependencies(IDependencyBuilder builder)
+        /// <summary>
+        /// Gets the id of the game finder being configured.
+        /// </summary>
+        public string GameFinderId => Scene.Id;
+
+        /// <summary>
+        /// Gets the scene running the game finder being configured.
+        /// </summary>
+        public ISceneHost Scene { get; }
+
+        /// <summary>
+        /// Id of the section storing the gamefinder config in the application configuration.
+        /// </summary>
+        public string ConfigId { get; }
+
+       
+        /// <summary>
+        /// Configures dependencies for the scene.
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <returns></returns>
+        public GameFinderConfig ConfigureDependencies(Action<IDependencyBuilder> builder)
+        {
+            _registerDependencies += builder;
+            return this;
+        }
+
+        internal void RegisterDependencies(IDependencyBuilder builder)
         {
             _registerDependencies?.Invoke(builder);
 

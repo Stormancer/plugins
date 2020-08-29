@@ -57,7 +57,7 @@ namespace Stormancer.Server.Plugins.Party
         private readonly ISceneHost _scene;
         private readonly ILogger _logger;
         private readonly IUserSessions _userSessions;
-        private readonly IPartyProxy _partyProxy;
+        private readonly IGameFinder _gameFinderClient;
         private readonly IServiceLocator _locator;
         private readonly Func<IEnumerable<IPartyEventHandler>> _handlers;
         private readonly PartyState _partyState;
@@ -76,7 +76,7 @@ namespace Stormancer.Server.Plugins.Party
             ISceneHost scene,
             ILogger logger,
             IUserSessions userSessions,
-            IPartyProxy partyProxy,
+            IGameFinder gameFinderClient,
             IServiceLocator locator,
             Func<IEnumerable<IPartyEventHandler>> handlers,
             PartyState partyState,
@@ -90,7 +90,7 @@ namespace Stormancer.Server.Plugins.Party
             _scene = scene;
             _logger = logger;
             _userSessions = userSessions;
-            _partyProxy = partyProxy;
+            _gameFinderClient = gameFinderClient;
             _locator = locator;
             _partyState = partyState;
             _rpcService = rpcService;
@@ -137,7 +137,7 @@ namespace Stormancer.Server.Plugins.Party
             return member != null;
         }
 
-        private void Log(LogLevel level, string methodName, string message, string sessionId, string userId = null)
+        private void Log(LogLevel level, string methodName, string message, string sessionId, string? userId = null)
         {
             if (string.IsNullOrEmpty(userId))
             {
@@ -152,7 +152,7 @@ namespace Stormancer.Server.Plugins.Party
             }
         }
 
-        private void Log(LogLevel level, string methodName, string message, object data = null, params string[] tags)
+        private void Log(LogLevel level, string methodName, string message, object? data = null, params string[] tags)
         {
             var totalParams = tags?.Append(_partyState.Settings.PartyId)?.ToArray() ?? new string[] { _partyState.Settings.PartyId };
 
@@ -263,7 +263,7 @@ namespace Stormancer.Server.Plugins.Party
             using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 // Resolve the service on the new scope to avoid scope errors in event handlers
-                var service = scope.Resolve<IPartyService>() as PartyService;
+                var service = (PartyService)scope.Resolve<IPartyService>();
                 var handlers = scope.ResolveAll<IPartyEventHandler>();
                 await runner(service, handlers, scope);
             }
@@ -282,8 +282,8 @@ namespace Stormancer.Server.Plugins.Party
         {
             await _partyState.TaskQueue.PushWork(async () =>
             {
-                PartyMember partyUser = null;
-                if (_partyState.PartyMembers.TryRemove(args.Peer.SessionId, out partyUser))
+
+                if (_partyState.PartyMembers.TryRemove(args.Peer.SessionId, out var partyUser))
                 {
                     Log(LogLevel.Trace, "OnDisconnected", $"Member left the party, reason: {args.Reason}", args.Peer.SessionId, partyUser.UserId);
                     await TryCancelPendingGameFinder();
@@ -310,7 +310,8 @@ namespace Stormancer.Server.Plugins.Party
         {
             if (metadata.party != null)
             {
-                _partyState.Settings = ((JObject)metadata.party).ToObject<PartyConfiguration>();
+
+                _partyState.Settings = metadata.party.ToObject<PartyConfiguration>()!;
                 _partyState.VersionNumber = 1;
             }
             else
@@ -375,15 +376,25 @@ namespace Stormancer.Server.Plugins.Party
         /// <summary>
         /// Player status 
         /// </summary>
-        /// <param name="peer"></param>
         /// <param name="partyUserStatus"></param>
+        /// <param name="userId"></param>
         /// <returns></returns>
         public async Task UpdateGameFinderPlayerStatus(string userId, PartyMemberStatusUpdateRequest partyUserStatus)
         {
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new ArgumentException("message", nameof(userId));
+            }
+
+            if (partyUserStatus is null)
+            {
+                throw new ArgumentNullException(nameof(partyUserStatus));
+            }
+
             await _partyState.TaskQueue.PushWork(async () =>
             {
-                PartyMember user = null;
-                if (!TryGetMemberByUserId(userId, out user))
+
+                if (!TryGetMemberByUserId(userId, out var user))
                 {
                     throw new ClientException(NoSuchMemberError(userId));
                 }
@@ -450,8 +461,8 @@ namespace Stormancer.Server.Plugins.Party
         {
             await _partyState.TaskQueue.PushWork(async () =>
             {
-                PartyMember partyUser = null;
-                if (!TryGetMemberByUserId(userId, out partyUser))
+
+                if (!TryGetMemberByUserId(userId, out var partyUser))
                 {
                     throw new ClientException(NoSuchMemberError(userId));
                 }
@@ -491,13 +502,17 @@ namespace Stormancer.Server.Plugins.Party
             {
                 if (TryGetMemberByUserId(playerToKick, out var partyUser))
                 {
+
+
                     if (playerToKick == _partyState.Settings.PartyLeaderId)
                     {
                         throw new ClientException(CannotKickLeaderError);
                     }
                     await TryCancelPendingGameFinder();
 
-                    _partyState.PartyMembers.TryRemove(partyUser.Peer.SessionId, out partyUser);
+                    _partyState.PartyMembers.TryRemove(partyUser.Peer.SessionId, out _);
+
+
                     Log(LogLevel.Trace, "KickPlayerByLeader", $"Kicked a player, userId: {partyUser.UserId}", partyUser.Peer.SessionId, partyUser.UserId);
 
                     await partyUser.Peer.Disconnect("party.kicked");
@@ -519,14 +534,15 @@ namespace Stormancer.Server.Plugins.Party
         private async Task FindGame_Impl()
         {
 
-            //Select provider for the gamefinder extractor
-            var provider = "PartyQueue";
-
             //Construct gameFinder request
-            GameFinderRequest gameFinderRequest = new GameFinderRequest();
+            var gameFinderRequest = new Models.Party();
+            gameFinderRequest.CustomData = _partyState.Settings.CustomData;
+            gameFinderRequest.PartyId = _partyState.Settings.PartyId;
+            gameFinderRequest.PartyLeaderId = _partyState.Settings.PartyLeaderId;
             foreach (var partyUser in _partyState.PartyMembers.Values)
             {
-                gameFinderRequest.ProfileIds.Add(partyUser.UserId, partyUser.ProfileId);
+                gameFinderRequest.Players.Add(partyUser.UserId, new Models.Player(partyUser.Peer.SessionId, partyUser.UserId, partyUser.UserData));
+
             }
 
             gameFinderRequest.CustomData = _partyState.Settings.CustomData;
@@ -535,7 +551,7 @@ namespace Stormancer.Server.Plugins.Party
             try
             {
                 var sceneUri = await _locator.GetSceneId("stormancer.plugins.gamefinder", _partyState.Settings.GameFinderName);
-                await _partyProxy.FindMatch(provider, sceneUri, gameFinderRequest, _partyState.FindGameCts.Token);
+                await _gameFinderClient.FindMatch(sceneUri, gameFinderRequest, _partyState.FindGameCts?.Token ?? CancellationToken.None);
             }
             catch (TaskCanceledException)
             {
@@ -553,7 +569,7 @@ namespace Stormancer.Server.Plugins.Party
                     await ResetMembersReadiness();
 
                     _partyState.FindGameRequest = null;
-                    _partyState.FindGameCts.Dispose();
+                    _partyState.FindGameCts?.Dispose();
                     _partyState.FindGameCts = null;
                 });
             }
@@ -732,7 +748,7 @@ namespace Stormancer.Server.Plugins.Party
                 throw new ClientException(NoSuchMemberError(senderUserId));
             }
 
-            User recipientUser = null;
+            User? recipientUser = null;
             var recipientSession = await _userSessions.GetSessionByUserId(recipientUserId);
             if (recipientSession == null)
             {
@@ -745,14 +761,14 @@ namespace Stormancer.Server.Plugins.Party
 
             var senderSession = await _userSessions.GetSession(senderMember.Peer);
 
-            IPartyPlatformSupport ChooseInvitationPlatform()
+            IPartyPlatformSupport? ChooseInvitationPlatform()
             {
                 if (forceStormancerInvite)
                 {
                     return _stormancerPartyPlatformSupport;
                 }
 
-                IPartyPlatformSupport platform = null;
+                IPartyPlatformSupport? platform = null;
                 // If the recipient is connected
                 if (recipientSession != null)
                 {
@@ -768,9 +784,9 @@ namespace Stormancer.Server.Plugins.Party
                         platformSupport.IsInvitationCompatibleWith(recipientSession.platformId.Platform) && platformSupport.IsInvitationCompatibleWith(senderSession.platformId.Platform));
                     }
                 }
-                else
+                else if(recipientUser != null)
                 {
-                    if (recipientUser.Auth.ContainsKey(senderSession.platformId.Platform))
+                    if ( recipientUser.Auth.ContainsKey(senderSession.platformId.Platform))
                     {
                         platform = _platformSupports.FirstOrDefault(platformSupport =>
                         platformSupport.PlatformName == senderSession.platformId.Platform && platformSupport.CanSendInviteToDisconnectedPlayer);
@@ -811,8 +827,7 @@ namespace Stormancer.Server.Plugins.Party
                     return;
                 }
 
-                ConcurrentDictionary<string, Invitation> recipientInvitations;
-                if (!_partyState.PendingInvitations.TryGetValue(recipientUserId, out recipientInvitations))
+                if (!_partyState.PendingInvitations.TryGetValue(recipientUserId, out var recipientInvitations))
                 {
                     recipientInvitations = new ConcurrentDictionary<string, Invitation>();
                     _partyState.PendingInvitations.Add(recipientUserId, recipientInvitations);

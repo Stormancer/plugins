@@ -31,7 +31,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <summary>
         /// Group connected to gameSession
         /// </summary>
-        public List<Team> Teams { get; set; } = new List<Team>();
+        public IEnumerable<Team> Teams { get; set; } = new List<Team>();
 
         /// <summary>
         /// Gamesession parameters like map to launch, gameType and everything can be useful to 

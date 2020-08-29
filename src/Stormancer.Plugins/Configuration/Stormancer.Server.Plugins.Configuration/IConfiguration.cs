@@ -86,7 +86,9 @@ namespace Stormancer.Server.Plugins.Configuration
 
         private void RaiseSettingsChanged(object? sender, dynamic args)
         {
-            Settings = _env.Configuration;
+            Settings = this.defaultSettings.DeepClone();
+
+            ((JObject)Settings).Merge(((JObject)_env.Configuration), new JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Union, MergeNullValueHandling = MergeNullValueHandling.Merge, PropertyNameComparison = StringComparison.InvariantCulture });
             SettingsChangedImpl?.Invoke(this, Settings);
         }
 
@@ -120,7 +122,7 @@ namespace Stormancer.Server.Plugins.Configuration
         {
             var segments = path.Split('.');
             JObject node = this.defaultSettings;
-            for (int i = 0; i < segments.Length -1; i++)
+            for (int i = 0; i < segments.Length - 1; i++)
             {
                 var next = node[segments[i]] as JObject;
                 if (next == null)
@@ -131,8 +133,9 @@ namespace Stormancer.Server.Plugins.Configuration
                 node = next;
             }
             node[segments.Last()] = JToken.FromObject(value!); //Ignore nullable error because FromObject supports null.
-            
 
+
+            RaiseSettingsChanged(this, Settings);
         }
 
         public T GetValue<T>(string path, T defaultValue = default)
@@ -148,11 +151,11 @@ namespace Stormancer.Server.Plugins.Configuration
                 }
             }
 
-            if(TryGetValue<T>(segments, Settings, out T result))
+            if (TryGetValue<T>(segments, Settings, out T result))
             {
                 return result;
             }
-            else if(TryGetValue<T>(segments,defaultSettings,out result))
+            else if (TryGetValue<T>(segments, defaultSettings, out result))
             {
                 return result;
             }
@@ -163,11 +166,11 @@ namespace Stormancer.Server.Plugins.Configuration
 
         }
 
-        private bool TryGetValue<T>(string[] segments, JObject container,[MaybeNullWhen(false)] out T value)
+        private bool TryGetValue<T>(string[] segments, JObject container, [MaybeNullWhen(false)] out T value)
         {
 
             var dic = new Dictionary<string, string>();
-           
+
             JToken? node = container;
             for (int i = 0; i < segments.Length; i++)
             {
@@ -178,7 +181,7 @@ namespace Stormancer.Server.Plugins.Configuration
                     return false;
                 }
             }
-            
+
             value = node.ToObject<T>()!;
             return true;
         }

@@ -45,11 +45,7 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// </summary>
         public string UserId { get; set; }
 
-        /// <summary>
-        /// Selected profile Id
-        /// </summary>
-        public string ProfileId { get; set; }
-
+     
         /// <summary>
         /// The client peer corresponding to this user
         /// </summary>

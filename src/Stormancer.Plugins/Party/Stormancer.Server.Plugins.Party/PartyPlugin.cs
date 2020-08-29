@@ -92,10 +92,7 @@ namespace Stormancer.Server.Plugins.Party
                 }
             };
 
-            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
-            {
-                builder.Register<PartyProxy>().As<IPartyProxy>();
-            };
+          
         }
     }
 }

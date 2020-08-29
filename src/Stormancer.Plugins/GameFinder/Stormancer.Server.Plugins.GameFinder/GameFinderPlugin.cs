@@ -58,15 +58,16 @@ namespace Stormancer.Server.Plugins.GameFinder
                 builder.Register<GameFinderController>();
                 builder.Register<GameFinderService>().As<IGameFinderService>().InstancePerScene();
                 builder.Register<GameFinderData>().AsSelf().InstancePerScene();
+                builder.Register<GameFinderProxy>().As<IGameFinder>();
             };
             ctx.SceneCreated += SceneCreated;
         }
 
         private void SceneDependenciesRegistration(IDependencyBuilder builder, ISceneHost scene)
         {
-            if (scene.Metadata.TryGetValue(METADATA_KEY, out var kind))
+            if (scene.Metadata.TryGetValue(METADATA_KEY, out var gameFinderType))
             {
-                if (Configs.TryGetValue(kind, out var config))
+                if (Configs.TryGetValue(gameFinderType, out var config))
                 {
                     config.RegisterDependencies(builder);
                 }
