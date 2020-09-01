@@ -40,7 +40,7 @@ namespace Stormancer
         /// <param name="gameFinderBuilder"></param>
         public static void AddGameFinder(this ISceneHost scene, string configId, Func<GameFinderConfig, GameFinderConfig> gameFinderBuilder)
         {
-            if(!Regex.IsMatch(configId, @"^[0-9-_]*$"))
+            if(!Regex.IsMatch(configId, @"^[0-9a-z-_]*$", RegexOptions.IgnoreCase))
             {
                 throw new ArgumentException("configId should only contain alphanumeric, dash and underscore characters.");
             }
