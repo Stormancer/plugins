@@ -76,7 +76,7 @@ namespace Stormancer.Server.Plugins.Configuration
             Settings = environment.Configuration;
         }
 
-        private JObject defaultSettings = new JObject();
+        private static JObject defaultSettings = new JObject();
 
         public dynamic Settings
         {
@@ -86,7 +86,7 @@ namespace Stormancer.Server.Plugins.Configuration
 
         private void RaiseSettingsChanged(object? sender, dynamic args)
         {
-            Settings = this.defaultSettings.DeepClone();
+            Settings = defaultSettings.DeepClone();
 
             ((JObject)Settings).Merge(((JObject)_env.Configuration), new JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Union, MergeNullValueHandling = MergeNullValueHandling.Merge, PropertyNameComparison = StringComparison.InvariantCulture });
             SettingsChangedImpl?.Invoke(this, Settings);
@@ -121,7 +121,7 @@ namespace Stormancer.Server.Plugins.Configuration
         public void SetDefaultValue<T>(string path, T value)
         {
             var segments = path.Split('.');
-            JObject node = this.defaultSettings;
+            JObject node = defaultSettings;
             for (int i = 0; i < segments.Length - 1; i++)
             {
                 var next = node[segments[i]] as JObject;
