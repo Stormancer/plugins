@@ -1,5 +1,6 @@
 ﻿
 using Newtonsoft.Json.Linq;
+using Stormancer.Server;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Users;
 using System;
@@ -28,6 +29,19 @@ namespace Stormancer
             config.SetDefaultValue("auth", configBuilder.Settings);
 
             return config;
+        }
+
+        /// <summary>
+        /// Adds default configuration for users.
+        /// </summary>
+        /// <param name="config"></param>
+        /// <param name="builder"></param>
+        /// <returns></returns>
+        /// <remarks>Configuration settings can be overrided in the App configuration json file on the grid.</remarks>
+        public static IHost ConfigureUsers(this IHost host, Func<UsersConfigurationBuilder, UsersConfigurationBuilder> builder)
+        {
+            host.DependencyResolver.Resolve<IConfiguration>().ConfigureUsers(builder);
+            return host;
         }
     }
     
