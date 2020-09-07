@@ -10,19 +10,20 @@ Please use only reStructuredText in this file, no Markdown!
 This project adheres to semantic versioning.
 
 Unreleased
-----------
-- Removed support for direct game search request from client. All gamesearch request should now be done through a party.
-- Advertise party and party member settings in game finder
-- Removed IDataExtractor from pipeline
-- Renamed IGameFinder into IGameFinderAlgorithm
-- Added QuickQueue gamefinder algorithm with configuration extension methods.
-- Easier gamefinder configuration.
+---------
 Added
 *****
-
+- Added QuickQueue gamefinder algorithm with configuration extension methods.
 - Open Game Sessions feature: Allows opening existing game sessions to new players on the GameFinder.
+- Easier gamefinder configuration.
+- Advertise party and party member settings in game finder algorithm
 
 Changed
 *******
-
+- Renamed IGameFinder into IGameFinderAlgorithm
 - Automatic increment of party passes (PastPasses)
+
+Removed
+*******
+- Removed IDataExtractor from pipeline
+- Removed support for direct game search request from client. All gamesearch request should now be done through a party.
