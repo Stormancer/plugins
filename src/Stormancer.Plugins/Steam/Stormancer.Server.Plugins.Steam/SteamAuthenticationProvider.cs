@@ -188,7 +188,7 @@ namespace Stormancer.Server.Plugins.Steam
 
                     user = await _users.AddAuthentication(user, SteamConstants.PROVIDER_NAME, claim => claim[SteamConstants.ClaimPath] = steamIdString, new Dictionary<string, string> { { SteamConstants.ClaimPath, steamIdString } });
                 }
-                else
+                else if(playerSummary != null)
                 {
                     user.UserData["pseudo"] = playerSummary.personaname;
                     user.UserData["avatar"] = playerSummary.avatarfull;
