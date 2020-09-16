@@ -52,7 +52,7 @@ namespace Stormancer
             {
                 try
                 {
-                    await host.DependencyResolver.Resolve<ManagementClientProvider>().CreateScene(sceneUri, templateId, isPersistent, isPublic, metadata);
+                    await host.DependencyResolver.Resolve<ManagementClientProvider>().CreateScene(sceneUri, templateId, isPublic, isPersistent, metadata);
                 }
                 catch(Exception ex)
                 {

@@ -54,7 +54,7 @@ namespace Stormancer.Server.PartyManagement
         public async Task<string> CreateParty(PartyRequestDto partyRequest, string leaderUserId)
         {
             var partyId = string.IsNullOrEmpty(partyRequest.PlatformSessionId) ? Guid.NewGuid().ToString() : partyRequest.PlatformSessionId;
-            var sceneUri = await _serviceLocator.GetSceneId("stormancer.plugins.party", partyId);
+            var sceneUri = await _serviceLocator.GetSceneId(PartyPlugin.PARTY_SERVICEID, partyId);
 
             if (string.IsNullOrEmpty(partyRequest.GameFinderName))
             {

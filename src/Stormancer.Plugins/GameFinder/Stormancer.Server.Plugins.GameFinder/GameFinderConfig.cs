@@ -33,7 +33,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             ConfigId = configId;
         }
         private Action<IDependencyBuilder> _registerDependencies;
-
+        private Action<ISceneHost> _onCreatingSceneCallbacks;
         /// <summary>
         /// Gets the id of the game finder being configured.
         /// </summary>
@@ -65,6 +65,22 @@ namespace Stormancer.Server.Plugins.GameFinder
         {
             _registerDependencies?.Invoke(builder);
 
+        }
+
+        /// <summary>
+        /// Configures an action being run when the scene creating event is fired on the gamefinder scene.
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <returns></returns>
+        public GameFinderConfig ConfigureOnCreatingScene(Action<ISceneHost> builder)
+        {
+            _onCreatingSceneCallbacks += builder;
+            return this;
+        }
+
+        internal void RunOnCreatingScene(ISceneHost scene)
+        {
+            _onCreatingSceneCallbacks?.Invoke(scene);
         }
     }
 }

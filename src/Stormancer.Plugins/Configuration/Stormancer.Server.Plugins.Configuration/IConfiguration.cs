@@ -73,7 +73,9 @@ namespace Stormancer.Server.Plugins.Configuration
         public DefaultConfiguration(IEnvironment environment)
         {
             _env = environment;
-            Settings = environment.Configuration;
+            Settings = defaultSettings.DeepClone();
+            ((JObject)Settings).Merge(((JObject)_env.Configuration), new JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Union, MergeNullValueHandling = MergeNullValueHandling.Merge, PropertyNameComparison = StringComparison.InvariantCulture });
+
         }
 
         private static JObject defaultSettings = new JObject();

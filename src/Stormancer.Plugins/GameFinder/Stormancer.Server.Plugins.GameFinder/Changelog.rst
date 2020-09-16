@@ -17,6 +17,7 @@ Added
 - Open Game Sessions feature: Allows opening existing game sessions to new players on the GameFinder.
 - Easier gamefinder configuration.
 - Advertise party and party member settings in game finder algorithm
+- Add AddGameFinder extension method to IHost to easily add & configure gamefinders in an application.
 
 Changed
 *******

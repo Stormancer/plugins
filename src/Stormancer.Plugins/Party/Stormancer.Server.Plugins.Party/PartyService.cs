@@ -555,7 +555,11 @@ namespace Stormancer.Server.Plugins.Party
             }
             catch (TaskCanceledException)
             {
-                Log(LogLevel.Trace, "FindGame_Impl", "The S2S FindGame request was canceled");
+                
+            }
+            catch (RpcException ex) when( ex.Message.Contains("disconnected")) //Player disconnected during matchmaking.
+            {
+
             }
             catch (Exception ex)
             {

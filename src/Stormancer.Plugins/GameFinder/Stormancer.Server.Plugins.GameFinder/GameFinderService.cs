@@ -87,8 +87,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         private readonly Func<IEnumerable<IGameFinderEventHandler>> handlers;
         private readonly IAnalyticsService analytics;
-        private readonly IGameFinderAlgorithm _gameFinder;
-        private readonly IGameFinderResolver _resolver;
+
         private readonly ILogger _logger;
         private readonly ISerializer _serializer;
         private readonly GameFinderData _data;
@@ -100,8 +99,6 @@ namespace Stormancer.Server.Plugins.GameFinder
             Func<IEnumerable<IGameFinderEventHandler>> handlers,
             IAnalyticsService analytics,
             IEnvironment env,
-            IGameFinderAlgorithm gameFinder,
-            IGameFinderResolver resolver,
             ILogger logger,
             IConfiguration config,
             ISerializer serializer,
@@ -110,8 +107,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
             this.handlers = handlers;
             this.analytics = analytics;
-            _gameFinder = gameFinder;
-            _resolver = resolver;
+
             _logger = logger;
             _serializer = serializer;
             _data = data;
@@ -141,7 +137,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 return;
             }
 
-            var gameFinderConfigs = (JObject?)config?.gamefinder?.configs;
+            gameFinderConfigs = (JObject?)config?.gamefinder?.configs;
             dynamic? specificConfig = gameFinderConfigs?.GetValue(_data.kind);
 
             _data.interval = TimeSpan.FromSeconds((double)(specificConfig?.interval ?? 1));
@@ -150,8 +146,8 @@ namespace Stormancer.Server.Plugins.GameFinder
 
 
 
-            _gameFinder.RefreshConfig(specificConfig);
-            _resolver.RefreshConfig(specificConfig);
+
+
         }
 
         public async Task FindGame(Models.Party party, CancellationToken ct)
@@ -299,78 +295,89 @@ namespace Stormancer.Server.Plugins.GameFinder
             var waitingClients = _data.waitingGroups.Where(kvp => kvp.Value.State == RequestState.Ready).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             try
             {
-
-                foreach (var value in waitingClients.Values)
+                using (var scope = _scene.CreateRequestScope())
                 {
-                    value.State = RequestState.Searching;
-                    value.Candidate = null;
-                }
-
-                GameFinderContext mmCtx = new GameFinderContext();
-                mmCtx.WaitingClient.AddRange(waitingClients.Keys);
-                mmCtx.OpenGameSessions.AddRange(_data.openGameSessions.Values.Where(ogs => ogs.IsOpen));
-
-                var games = await this._gameFinder.FindGames(mmCtx);
-
-                analytics.Push("gameFinder", "pass", JObject.FromObject(new
-                {
-                    type = _data.kind,
-                    playersWaiting = _data.waitingGroups.SelectMany(kvp => kvp.Key.Players).Count(),
-                    parties = _data.waitingGroups.Count(),
-                    customData = _gameFinder.ComputeDataAnalytics(mmCtx),
-                    openGameSessions = _data.openGameSessions.Count
-                }));
-
-                foreach ((Party party, string reason) in mmCtx.FailedClients)
-                {
-                    var client = waitingClients[party];
-                    client.State = RequestState.Rejected;
-                    // If this party is an S2S party, the exception will be forwarded to the S2S caller which is responsible for handling it
-                    client.Tcs.TrySetException(new ClientException(reason));
-                    // Remove games that contain a rejected party
-                    games.Games.RemoveAll(m => m.AllParties.Contains(party));
-                }
-
-                if (games.Games.Any() || games.GameSessionTickets.Any())
-                {
-                    //_logger.Log(LogLevel.Debug, $"{LOG_CATEGORY}.FindGamesOnce", $"Prepare resolutions {waitingClients.Count} players for {matches.Matches.Count} matches.", new { waitingCount = waitingClients.Count });
-                    await _resolver.PrepareGameResolution(games);
-                }
-
-                foreach (var game in games.Games)
-                {
-                    foreach (var party in game.Teams.SelectMany(t => t.Parties)) //Set game found to prevent players from being gameed again
+                    foreach (var value in waitingClients.Values)
                     {
-                        var state = waitingClients[party];
-                        state.State = RequestState.Found;
-                        state.Candidate = game;
+                        value.State = RequestState.Searching;
+                        value.Candidate = null;
                     }
 
-                    //_logger.Log(LogLevel.Debug, $"{LOG_CATEGORY}.FindGamesOnce", $"Resolve game for {waitingClients.Count} players", new { waitingCount = waitingClients.Count, currentGame = game });
-                    _ = ResolveGameFound(game, waitingClients); // Resolve game, but don't wait for completion.
-                    //_logger.Log(LogLevel.Debug, $"{LOG_CATEGORY}.FindGamesOnce", $"Resolve complete game for {waitingClients.Count} players", new { waitingCount = waitingClients.Count, currentGame = game });
-                }
-                foreach (var ticket in games.GameSessionTickets)
-                {
-                    foreach (var party in ticket.Teams.SelectMany(t => t.Parties))
+                    GameFinderContext mmCtx = new GameFinderContext();
+                    mmCtx.WaitingClient.AddRange(waitingClients.Keys);
+                    mmCtx.OpenGameSessions.AddRange(_data.openGameSessions.Values.Where(ogs => ogs.IsOpen));
+
+
+                    var gameFinder = scope.Resolve<IGameFinderAlgorithm>();
+                    var resolver = scope.Resolve<IGameFinderResolver>();
+
+                    dynamic? specificConfig = gameFinderConfigs?.GetValue(_data.kind);
+                    gameFinder.RefreshConfig(specificConfig);
+                    resolver.RefreshConfig(specificConfig);
+
+
+                    var games = await gameFinder.FindGames(mmCtx);
+
+                    analytics.Push("gameFinder", "pass", JObject.FromObject(new
                     {
-                        var state = waitingClients[party];
-                        state.State = RequestState.Found;
-                        state.Candidate = ticket;
+                        type = _data.kind,
+                        playersWaiting = _data.waitingGroups.SelectMany(kvp => kvp.Key.Players).Count(),
+                        parties = _data.waitingGroups.Count(),
+                        customData = gameFinder.ComputeDataAnalytics(mmCtx),
+                        openGameSessions = _data.openGameSessions.Count
+                    }));
+
+                    foreach ((Party party, string reason) in mmCtx.FailedClients)
+                    {
+                        var client = waitingClients[party];
+                        client.State = RequestState.Rejected;
+                        // If this party is an S2S party, the exception will be forwarded to the S2S caller which is responsible for handling it
+                        client.Tcs.TrySetException(new ClientException(reason));
+                        // Remove games that contain a rejected party
+                        games.Games.RemoveAll(m => m.AllParties.Contains(party));
                     }
 
-                    await ticket.GameSession.RegisterTeams(ticket.Teams);
-                    _logger.Log(LogLevel.Trace, $"{LOG_CATEGORY}.FindGamesOnce", $"Registered {ticket.Teams.Count} teams for the open game session {ticket.Id}", new { GameSessionId = ticket.Id, ticket.Teams, ticket.GameSession.Data });
-
-                    _ = ResolveGameFound(ticket, waitingClients);
-                }
-
-                foreach (var session in _data.openGameSessions.Values)
-                {
-                    session.NumGameFinderPasses++;
-                    if (!session.IsOpen)
+                    if (games.Games.Any() || games.GameSessionTickets.Any())
                     {
-                        session.Complete();
+                        //_logger.Log(LogLevel.Debug, $"{LOG_CATEGORY}.FindGamesOnce", $"Prepare resolutions {waitingClients.Count} players for {matches.Matches.Count} matches.", new { waitingCount = waitingClients.Count });
+                        await resolver.PrepareGameResolution(games);
+                    }
+
+                    foreach (var game in games.Games)
+                    {
+                        foreach (var party in game.Teams.SelectMany(t => t.Parties)) //Set game found to prevent players from being gameed again
+                        {
+                            var state = waitingClients[party];
+                            state.State = RequestState.Found;
+                            state.Candidate = game;
+                        }
+
+                        //_logger.Log(LogLevel.Debug, $"{LOG_CATEGORY}.FindGamesOnce", $"Resolve game for {waitingClients.Count} players", new { waitingCount = waitingClients.Count, currentGame = game });
+                        _ = ResolveGameFound(game, waitingClients, resolver); // Resolve game, but don't wait for completion.
+                                                                              //_logger.Log(LogLevel.Debug, $"{LOG_CATEGORY}.FindGamesOnce", $"Resolve complete game for {waitingClients.Count} players", new { waitingCount = waitingClients.Count, currentGame = game });
+                    }
+                    foreach (var ticket in games.GameSessionTickets)
+                    {
+                        foreach (var party in ticket.Teams.SelectMany(t => t.Parties))
+                        {
+                            var state = waitingClients[party];
+                            state.State = RequestState.Found;
+                            state.Candidate = ticket;
+                        }
+
+                        await ticket.GameSession.RegisterTeams(ticket.Teams);
+                        _logger.Log(LogLevel.Trace, $"{LOG_CATEGORY}.FindGamesOnce", $"Registered {ticket.Teams.Count} teams for the open game session {ticket.Id}", new { GameSessionId = ticket.Id, ticket.Teams, ticket.GameSession.Data });
+
+                        _ = ResolveGameFound(ticket, waitingClients, resolver);
+                    }
+
+                    foreach (var session in _data.openGameSessions.Values)
+                    {
+                        session.NumGameFinderPasses++;
+                        if (!session.IsOpen)
+                        {
+                            session.Complete();
+                        }
                     }
                 }
             }
@@ -384,7 +391,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
         }
 
-        private async Task ResolveGameFound(IGameCandidate gameCandidate, Dictionary<Party, GameFinderRequestState> waitingClients)
+        private async Task ResolveGameFound(IGameCandidate gameCandidate, Dictionary<Party, GameFinderRequestState> waitingClients, IGameFinderResolver resolver)
         {
             try
             {
@@ -395,7 +402,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 {
                     var game = (Game)gameCandidate;
                     var resolverCtx = new GameResolverContext(game);
-                    await _resolver.ResolveGame(resolverCtx);
+                    await resolver.ResolveGame(resolverCtx);
                     resolutionAction = resolverCtx.ResolutionAction;
                     gameSceneId = resolverCtx.GameSceneId;
 
@@ -408,7 +415,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 {
                     var ticket = (OpenGameSessionTicket)gameCandidate;
                     var ctx = new JoinOpenGameContext(ticket);
-                    await _resolver.ResolveJoinOpenGame(ctx);
+                    await resolver.ResolveJoinOpenGame(ctx);
                     resolutionAction = ctx.ResolutionAction;
                     gameSceneId = ctx.GameSessionTicket.Id;
                 }
@@ -533,6 +540,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         }
 
         private ConcurrentDictionary<string, GameReadyCheck> _pendingReadyChecks = new ConcurrentDictionary<string, GameReadyCheck>();
+        private JObject? gameFinderConfigs;
 
         private GameReadyCheck CreateReadyCheck(IGameCandidate game)
         {
@@ -686,7 +694,14 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
         }
 
-        public Dictionary<string, int> GetMetrics() => _gameFinder.GetMetrics();
+        public Dictionary<string, int> GetMetrics()
+        {
+            using (var scope = _scene.CreateRequestScope())
+            {
+                return scope.Resolve<IGameFinderAlgorithm>().GetMetrics();
+            }
+
+        }
 
 
         //private class GameFinderContext : IGameFinderContext

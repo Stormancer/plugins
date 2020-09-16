@@ -14,15 +14,19 @@ namespace Stormancer.Server.Plugins.GameFinder
         {
             gameFinderConfig.ConfigureDependencies(dep =>
             {
-                dep.Register<QuickQueueGameFinder>().As<IGameFinderAlgorithm>();
-                dep.Register<QuickQueueGameFinderResolver>().As<IGameFinderResolver>();
+                dep.Register<QuickQueueGameFinder>().As<IGameFinderAlgorithm>().InstancePerRequest();
+                dep.Register<QuickQueueGameFinderResolver>().As<IGameFinderResolver>().InstancePerRequest();
             });
 
-            var options = optionsBuilder(new QuickQueueOptions());
-            
-            var config = gameFinderConfig.Scene.DependencyResolver.Resolve<IConfiguration>();
+            gameFinderConfig.ConfigureOnCreatingScene(scene =>
+            {
+                var options = optionsBuilder(new QuickQueueOptions());
 
-            config.SetDefaultValue($"gameFinder.configs.{gameFinderConfig.ConfigId}", options);
+                var config = scene.DependencyResolver.Resolve<IConfiguration>();
+
+                config.SetDefaultValue($"gamefinder.configs.{gameFinderConfig.ConfigId}", options);
+            });
+
 
             return gameFinderConfig;
         }

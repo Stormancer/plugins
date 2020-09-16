@@ -61,7 +61,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             if (!gameFinderContext.WaitingClient.Any())
             {
                 return Task.FromResult(results);
-                
+
             }
             var gameFound = false;
 
@@ -69,34 +69,54 @@ namespace Stormancer.Server.Plugins.GameFinder
 
             do
             {
-                
+
+                gameFound = false;
+
                 var game = new Game();
-                for (int teamId  = 0; teamId < teamCount; teamId++)
+                for (int teamId = 0; teamId < teamCount; teamId++)
                 {
                     var team = new Models.Team();
 
-                    
-                    for(int pivotId = 0; pivotId < parties.Count; pivotId++)
+
+                    for (int pivotId = 0; pivotId < parties.Count; pivotId++)
                     {
-                        var list = new List<Party>();
-                        list.Add(parties[pivotId]);
+                        var pivot = parties[pivotId];
 
-                        for(int id = pivotId +1; id < parties.Count; id++)
+                        if (game.AllParties.Contains(pivot))
                         {
-                            if(list.Sum(p=>p.Players.Count)+parties[id].Players.Count <= teamSize)
+                            continue;
+                        }
+
+                        var list = new List<Party>();
+
+
+                        list.Add(pivot);
+
+                        for (int id = pivotId + 1; id < parties.Count; id++)
+                        {
+                            var candidate = parties[id];
+
+                            if (game.AllParties.Contains(candidate))
                             {
-                                list.Add(parties[id]);
+                                continue;
                             }
 
-                            if(list.Sum(p=>p.Players.Count) == teamSize)
+                            if (list.Sum(p => p.Players.Count) + candidate.Players.Count <= teamSize)
                             {
-                                foreach(var p in list)
-                                {
-                                    team.Parties.Add(p);
-                                    break;
-                                }
+                                list.Add(candidate);
                             }
 
+                          
+
+                        }
+
+                        if (list.Sum(p => p.Players.Count) == teamSize)
+                        {
+                            foreach (var p in list)
+                            {
+                                team.Parties.Add(p);
+                                break;
+                            }
                         }
 
                         if (team.AllPlayers.Count() == teamSize)
@@ -108,29 +128,29 @@ namespace Stormancer.Server.Plugins.GameFinder
                     if (team.AllPlayers.Count() == teamSize)
                     {
                         game.Teams.Add(team);
-                        
-                        gameFound = true;
-                      
-                        results.Games.Add(game);
-                        
-                    }
-                    else
-                    {
-                        gameFound = false;
-                    }
-                    
 
-                    
+
+                    }
                 }
-                
+
+                if (game.Teams.Count == teamCount && game.Teams.All(t => t.AllPlayers.Count() == teamSize))
+                {
+                    gameFound = true;
+                    results.Games.Add(game);
+
+                    foreach (var party in game.AllParties)
+                    {
+                        parties.Remove(party);
+                    }
 
 
+                }
 
             }
             while (gameFound);
 
 
-            foreach(var party in results.Games.SelectMany(g=>g.AllParties))
+            foreach (var party in results.Games.SelectMany(g => g.AllParties))
             {
                 gameFinderContext.WaitingClient.Remove(party);
             }

@@ -23,6 +23,7 @@
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.ServiceLocator;
 using System;
 using System.Collections.Generic;
 
@@ -59,15 +60,32 @@ namespace Stormancer.Server.Plugins.GameFinder
                 builder.Register<GameFinderService>().As<IGameFinderService>().InstancePerScene();
                 builder.Register<GameFinderData>().AsSelf().InstancePerScene();
                 builder.Register<GameFinderProxy>().As<IGameFinder>();
+                builder.Register<ServiceLocationProvider>().As<IServiceLocatorProvider>();
             };
             ctx.SceneCreated += SceneCreated;
+            
+
+
+            ctx.HostStarted += (IHost host) =>
+            {
+                if (host.Metadata.TryGetValue("gamefinder.ids", out var ids))
+                {
+                 
+                    foreach (var id in ids.Split(','))
+                    {
+                        host.EnsureSceneExists(id,id, false, true);
+                    }
+                }
+            };
         }
+
+       
 
         private void SceneDependenciesRegistration(IDependencyBuilder builder, ISceneHost scene)
         {
             if (scene.Metadata.TryGetValue(METADATA_KEY, out var gameFinderType))
             {
-                if (Configs.TryGetValue(gameFinderType, out var config))
+                if (Configs.TryGetValue(scene.Id, out var config))
                 {
                     config.RegisterDependencies(builder);
                 }
@@ -76,9 +94,13 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         private void SceneCreated(ISceneHost scene)
         {
-            if (scene.Metadata.TryGetValue(METADATA_KEY, out var kind))
+            if (scene.Metadata.TryGetValue(METADATA_KEY, out var gameFinderType))
             {
                 scene.AddController<GameFinderController>();
+                if (Configs.TryGetValue(gameFinderType, out var config))
+                {
+                    config.RunOnCreatingScene(scene);
+                }
                 var logger = scene.DependencyResolver.Resolve<ILogger>();
                 try
                 {
