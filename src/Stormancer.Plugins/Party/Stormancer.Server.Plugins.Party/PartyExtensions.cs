@@ -25,8 +25,15 @@ using Stormancer.Server.Plugins.Party;
 
 namespace Stormancer
 {
+    /// <summary>
+    /// Provides extension methods to add party related features to a scene.
+    /// </summary>
     public static class PartyExtensions
     {
+        /// <summary>
+        /// Adds party features to a scene.
+        /// </summary>
+        /// <param name="scene"></param>
         public static void AddParty(this ISceneHost scene)
         {
             scene.Metadata[PartyConstants.METADATA_KEY] = PartyController.PROTOCOL_VERSION;

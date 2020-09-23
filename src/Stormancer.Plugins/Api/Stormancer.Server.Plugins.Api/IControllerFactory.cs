@@ -152,6 +152,7 @@ namespace Stormancer.Server.Plugins.API
             using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
             {
                 var controller = scope.Resolve<T>();
+                controller.Peer = client;
                 await controller.OnConnected(client);
             }
         }
@@ -161,6 +162,7 @@ namespace Stormancer.Server.Plugins.API
             using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
             {
                 var controller = scope.Resolve<T>();
+                controller.Peer = args.Peer;
                 await controller.OnDisconnected(args);
             }
         }

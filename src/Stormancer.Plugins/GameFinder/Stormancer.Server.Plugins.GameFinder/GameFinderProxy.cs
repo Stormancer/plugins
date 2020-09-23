@@ -43,14 +43,19 @@ namespace Stormancer.Server.Plugins.GameFinder
             _serializer = serializer;
         }
 
-        public async Task<Packet<IScenePeer>> FindMatch(string sceneName, Models.Party gameFinderRequest, CancellationToken cancelationToken)
+        public async Task FindMatch(string sceneName, Models.Party gameFinderRequest, CancellationToken cancelationToken)
         {
             var rpc = _scene.DependencyResolver.Resolve<RpcService>();
             Action<Stream> writer = s => 
             {
                 _serializer.Serialize(gameFinderRequest,s);
             };
-            return await rpc.Rpc(GameFinderController.FindGameS2SRoute, new MatchSceneFilter(sceneName), writer, PacketPriority.MEDIUM_PRIORITY, cancelationToken).LastOrDefaultAsync();
+            var packet = await rpc.Rpc(GameFinderController.FindGameS2SRoute, new MatchSceneFilter(sceneName), writer, PacketPriority.MEDIUM_PRIORITY, cancelationToken).LastOrDefaultAsync();
+
+            using (packet.Stream)
+            {
+
+            }
         }
     }
 }

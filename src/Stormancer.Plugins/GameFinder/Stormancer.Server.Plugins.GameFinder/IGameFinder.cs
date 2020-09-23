@@ -27,8 +27,18 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
+    /// <summary>
+    /// Provides gamefinder functionalities.
+    /// </summary>
     public interface IGameFinder
     {
-        Task<Packet<IScenePeer>> FindMatch(string sceneName, Models.Party party, CancellationToken cancelationToken);        
+        /// <summary>
+        /// Find a game for the provided party.
+        /// </summary>
+        /// <param name="sceneName"></param>
+        /// <param name="party"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task FindMatch(string sceneName, Models.Party party, CancellationToken cancellationToken);        
     }
 }
