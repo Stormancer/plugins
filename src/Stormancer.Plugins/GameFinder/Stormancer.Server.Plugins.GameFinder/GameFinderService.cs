@@ -49,7 +49,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// Parties in the queue.
         /// </summary>
-        public List<Party> WaitingClient { get; set; } = new List<Party>();
+        public List<Party> WaitingParties { get; set; } = new List<Party>();
 
         /// <summary>
         /// List of parties which failed matchmaking during this pass.
@@ -191,7 +191,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                     //}
                 }
 
-                _data.waitingGroups[party] = state;
+                _data.waitingParties[party] = state;
                 foreach (var p in peersInGroup)
                 {
                     _data.peersToGroup[p.Peer.SessionId] = party;
@@ -244,7 +244,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                     }
                 }
 
-                if (_data.waitingGroups.TryRemove(party, out var group) && group.Candidate != null)
+                if (_data.waitingParties.TryRemove(party, out var group) && group.Candidate != null)
                 {
                     if (_pendingReadyChecks.TryGetValue(group.Candidate.Id, out var rc))
                     {
@@ -272,8 +272,8 @@ namespace Stormancer.Server.Plugins.GameFinder
                     await this.FindGamesOnce();
                     watch.Stop();
 
-                    var playersNum = this._data.waitingGroups.Where(kvp => kvp.Value.State == RequestState.Ready).Sum(kvp => kvp.Key.Players.Count);
-                    var groupsNum = this._data.waitingGroups.Where(kvp => kvp.Value.State == RequestState.Ready).Count();
+                    var playersNum = this._data.waitingParties.Where(kvp => kvp.Value.State == RequestState.Ready).Sum(kvp => kvp.Key.Players.Count);
+                    var groupsNum = this._data.waitingParties.Where(kvp => kvp.Value.State == RequestState.Ready).Count();
                     //_logger.Log(LogLevel.Trace, $"{LOG_CATEGORY}.Run", $"A {_data.kind} pass was run for {playersNum} players and {groupsNum} parties", new
                     //{
                     //    Time = watch.Elapsed,
@@ -292,19 +292,19 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         private async Task FindGamesOnce()
         {
-            var waitingClients = _data.waitingGroups.Where(kvp => kvp.Value.State == RequestState.Ready).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            var waitingParties = _data.waitingParties.Where(kvp => kvp.Value.State == RequestState.Ready).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             try
             {
                 using (var scope = _scene.CreateRequestScope())
                 {
-                    foreach (var value in waitingClients.Values)
+                    foreach (var value in waitingParties.Values)
                     {
                         value.State = RequestState.Searching;
                         value.Candidate = null;
                     }
 
                     GameFinderContext mmCtx = new GameFinderContext();
-                    mmCtx.WaitingClient.AddRange(waitingClients.Keys);
+                    mmCtx.WaitingParties.AddRange(waitingParties.Keys);
                     mmCtx.OpenGameSessions.AddRange(_data.openGameSessions.Values.Where(ogs => ogs.IsOpen));
 
 
@@ -321,15 +321,15 @@ namespace Stormancer.Server.Plugins.GameFinder
                     analytics.Push("gameFinder", "pass", JObject.FromObject(new
                     {
                         type = _data.kind,
-                        playersWaiting = _data.waitingGroups.SelectMany(kvp => kvp.Key.Players).Count(),
-                        parties = _data.waitingGroups.Count(),
+                        playersWaiting = _data.waitingParties.SelectMany(kvp => kvp.Key.Players).Count(),
+                        parties = _data.waitingParties.Count(),
                         customData = gameFinder.ComputeDataAnalytics(mmCtx),
                         openGameSessions = _data.openGameSessions.Count
                     }));
 
                     foreach ((Party party, string reason) in mmCtx.FailedClients)
                     {
-                        var client = waitingClients[party];
+                        var client = waitingParties[party];
                         client.State = RequestState.Rejected;
                         // If this party is an S2S party, the exception will be forwarded to the S2S caller which is responsible for handling it
                         client.Tcs.TrySetException(new ClientException(reason));
@@ -339,7 +339,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
                     if (games.Games.Any() || games.GameSessionTickets.Any())
                     {
-                        //_logger.Log(LogLevel.Debug, $"{LOG_CATEGORY}.FindGamesOnce", $"Prepare resolutions {waitingClients.Count} players for {matches.Matches.Count} matches.", new { waitingCount = waitingClients.Count });
+                        //_logger.Log(LogLevel.Debug, $"{LOG_CATEGORY}.FindGamesOnce", $"Prepare resolutions {waitingParties.Count} players for {matches.Matches.Count} matches.", new { waitingCount = waitingParties.Count });
                         await resolver.PrepareGameResolution(games);
                     }
 
@@ -347,20 +347,20 @@ namespace Stormancer.Server.Plugins.GameFinder
                     {
                         foreach (var party in game.Teams.SelectMany(t => t.Parties)) //Set game found to prevent players from being gameed again
                         {
-                            var state = waitingClients[party];
+                            var state = waitingParties[party];
                             state.State = RequestState.Found;
                             state.Candidate = game;
                         }
 
-                        //_logger.Log(LogLevel.Debug, $"{LOG_CATEGORY}.FindGamesOnce", $"Resolve game for {waitingClients.Count} players", new { waitingCount = waitingClients.Count, currentGame = game });
-                        _ = ResolveGameFound(game, waitingClients, resolver); // Resolve game, but don't wait for completion.
-                                                                              //_logger.Log(LogLevel.Debug, $"{LOG_CATEGORY}.FindGamesOnce", $"Resolve complete game for {waitingClients.Count} players", new { waitingCount = waitingClients.Count, currentGame = game });
+                        //_logger.Log(LogLevel.Debug, $"{LOG_CATEGORY}.FindGamesOnce", $"Resolve game for {waitingParties.Count} players", new { waitingCount = waitingParties.Count, currentGame = game });
+                        _ = ResolveGameFound(game, waitingParties, resolver); // Resolve game, but don't wait for completion.
+                                                                              //_logger.Log(LogLevel.Debug, $"{LOG_CATEGORY}.FindGamesOnce", $"Resolve complete game for {waitingParties.Count} players", new { waitingCount = waitingParties.Count, currentGame = game });
                     }
                     foreach (var ticket in games.GameSessionTickets)
                     {
                         foreach (var party in ticket.Teams.SelectMany(t => t.Parties))
                         {
-                            var state = waitingClients[party];
+                            var state = waitingParties[party];
                             state.State = RequestState.Found;
                             state.Candidate = ticket;
                         }
@@ -368,7 +368,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                         await ticket.GameSession.RegisterTeams(ticket.Teams);
                         _logger.Log(LogLevel.Trace, $"{LOG_CATEGORY}.FindGamesOnce", $"Registered {ticket.Teams.Count} teams for the open game session {ticket.Id}", new { GameSessionId = ticket.Id, ticket.Teams, ticket.GameSession.Data });
 
-                        _ = ResolveGameFound(ticket, waitingClients, resolver);
+                        _ = ResolveGameFound(ticket, waitingParties, resolver);
                     }
 
                     foreach (var session in _data.openGameSessions.Values)
@@ -383,7 +383,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
             finally
             {
-                foreach (var value in waitingClients.Values.Where(v => v.State == RequestState.Searching))
+                foreach (var value in waitingParties.Values.Where(v => v.State == RequestState.Searching))
                 {
                     value.State = RequestState.Ready;
                     value.Party.PastPasses++;
@@ -391,7 +391,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
         }
 
-        private async Task ResolveGameFound(IGameCandidate gameCandidate, Dictionary<Party, GameFinderRequestState> waitingClients, IGameFinderResolver resolver)
+        private async Task ResolveGameFound(IGameCandidate gameCandidate, Dictionary<Party, GameFinderRequestState> waitingParties, IGameFinderResolver resolver)
         {
             try
             {
@@ -445,7 +445,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                             foreach (var party in result.UnreadyGroups)//Cancel gameFinder for timeouted parties
                             {
 
-                                if (_data.waitingGroups.TryGetValue(party, out var mrs))
+                                if (_data.waitingParties.TryGetValue(party, out var mrs))
                                 {
                                     mrs.Tcs.TrySetCanceled();
                                 }
@@ -453,7 +453,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                             foreach (var party in result.ReadyGroups)//Put ready parties back in queue.
                             {
 
-                                if (_data.waitingGroups.TryGetValue(party, out var mrs))
+                                if (_data.waitingParties.TryGetValue(party, out var mrs))
                                 {
                                     mrs.State = RequestState.Ready;
                                     await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) =>
@@ -528,7 +528,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                         sectx.Reason = SearchEndReason.Succeeded;
                         await handlers().RunEventHandler(h => h.OnEnd(sectx), ex => { });
                     }
-                    var state = waitingClients[party];
+                    var state = waitingParties[party];
                     state.Tcs.TrySetResult(null);
                 }
             }
@@ -559,8 +559,8 @@ namespace Stormancer.Server.Plugins.GameFinder
         {
             if (_data.peersToGroup.TryGetValue(peer.SessionId, out var g))
             {
-                var gameFinderRq = _data.waitingGroups[g];
-                var gameCandidate = _data.waitingGroups[g].Candidate;
+                var gameFinderRq = _data.waitingParties[g];
+                var gameCandidate = _data.waitingParties[g].Candidate;
                 if (gameCandidate == null)
                 {
                     return null;
@@ -641,7 +641,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         public Task Cancel(Party party, bool requestedByPlayer)
         {
 
-            if (!_data.waitingGroups.TryGetValue(party, out var mmrs))
+            if (!_data.waitingParties.TryGetValue(party, out var mmrs))
             {
                 return Task.CompletedTask;
             }

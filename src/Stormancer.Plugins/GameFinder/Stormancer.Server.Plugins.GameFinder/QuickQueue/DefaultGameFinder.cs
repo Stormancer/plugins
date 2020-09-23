@@ -58,14 +58,14 @@ namespace Stormancer.Server.Plugins.GameFinder
         public Task<GameFinderResult> FindGames(GameFinderContext gameFinderContext)
         {
             var results = new GameFinderResult();
-            if (!gameFinderContext.WaitingClient.Any())
+            if (!gameFinderContext.WaitingParties.Any())
             {
                 return Task.FromResult(results);
 
             }
             var gameFound = false;
 
-            var parties = gameFinderContext.WaitingClient.OrderByDescending(p => p.Players.Count).ToList();
+            var parties = gameFinderContext.WaitingParties.OrderByDescending(p => p.Players.Count).ToList();
 
             do
             {
@@ -152,7 +152,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
             foreach (var party in results.Games.SelectMany(g => g.AllParties))
             {
-                gameFinderContext.WaitingClient.Remove(party);
+                gameFinderContext.WaitingParties.Remove(party);
             }
 
             return Task.FromResult(results);
