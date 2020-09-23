@@ -83,5 +83,12 @@ namespace Stormancer.Server.Plugins.Models
         /// user id of the party leader.
         /// </summary>
         public string PartyLeaderId { get; set; }
+
+
+        /// <summary>
+        /// Temporary data storage
+        /// </summary>
+        [MessagePackIgnore]
+        public Dictionary<string, object> CacheStorage { get; } = new Dictionary<string, object>();
     }
 }

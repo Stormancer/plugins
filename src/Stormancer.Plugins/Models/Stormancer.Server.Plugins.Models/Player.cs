@@ -20,6 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using MsgPack.Serialization;
+using System.Collections.Generic;
+
 namespace Stormancer.Server.Plugins.Models
 {
     public class Player
@@ -36,5 +39,11 @@ namespace Stormancer.Server.Plugins.Models
         public string SessionId { get; }
 
         public byte[] Data { get; set; }
+
+        /// <summary>
+        /// Temporary data storage
+        /// </summary>
+        [MessagePackIgnore]
+        public Dictionary<string, object> CacheStorage { get; } = new Dictionary<string, object>();
     }
 }
