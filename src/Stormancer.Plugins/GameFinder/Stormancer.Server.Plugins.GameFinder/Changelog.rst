@@ -22,6 +22,7 @@ Added
 Changed
 *******
 - Renamed IGameFinder into IGameFinderAlgorithm
+- Renamed GameFinderContext.WaitingClient into GameFinderContext.WaitingParties
 - Automatic increment of party passes (PastPasses)
 
 Removed
