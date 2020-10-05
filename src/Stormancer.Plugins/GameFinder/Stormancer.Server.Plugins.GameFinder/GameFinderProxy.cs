@@ -51,10 +51,12 @@ namespace Stormancer.Server.Plugins.GameFinder
                 _serializer.Serialize(gameFinderRequest,s);
             };
             var packet = await rpc.Rpc(GameFinderController.FindGameS2SRoute, new MatchSceneFilter(sceneName), writer, PacketPriority.MEDIUM_PRIORITY, cancelationToken).LastOrDefaultAsync();
-
-            using (packet.Stream)
+            if (packet != null)
             {
+                using (packet.Stream)
+                {
 
+                }
             }
         }
     }
