@@ -12,9 +12,13 @@ This project adheres to semantic versioning.
 Unreleased
 ----------
 
+
+Changed
+*******
+- Register dependencies in host (instead of scene) to prevent factory code generation each time a scene is created.
+
 Added
 *****
-
 - ``GameSessionConfigurationDto`` now has an additional ``HostUserId`` member. This member will be set in the object returned by ``GameSessionService.GetGameSessionConfig()`` if the game session has P2P enabled.
 - ``IGameSessionEventHandler``: new ``OnClientConnected()`` method.
 - New ``IGameSessionService.OpenToGameFinder()`` method. Allows adding new players to the session after it has started.
