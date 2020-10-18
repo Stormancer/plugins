@@ -17,6 +17,8 @@ variables:
     buildConfiguration: 'Debug'
 
 steps:
+- checkout: self
+  lfs: true
 - task: PowerShell@2
   displayName: 'Clear output'
   inputs:
