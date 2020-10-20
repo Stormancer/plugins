@@ -9,14 +9,15 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-3.6.0
+1.0.1
 -----
-Changed
-*******
-
 Added
 *****
-- Client Api in UserSessionController to create and validate a Bearer token containing the client User id.
+
+Changed
+*******
+- Update script build
+
 Removed
 *******
 
