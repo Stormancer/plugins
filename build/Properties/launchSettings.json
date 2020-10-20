@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "_build": {
-      "commandName": "Project",
-      "commandLineArgs": "--configuration release  --discord-token NzQyNjkxMTcwNzgxNDk1MzA2.XzJzDQ.ZuNHXU2jJSYGMgYZ6jbUtX9FT6Y -nuget-secret-key %nugetKey%"
-    }
-  }
-}
