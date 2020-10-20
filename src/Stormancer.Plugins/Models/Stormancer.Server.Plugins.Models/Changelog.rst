@@ -9,14 +9,15 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-1.3.1
+2.1.0
 -----
 Added
 *****
 
 Changed
 *******
-- Set Peer in ControllerBase when OnConnected or OnDisconnected are triggered.
+- New versioning system
+- Consolidated API between GameSession, Party & GameFinder plugins
 
 Removed
 *******

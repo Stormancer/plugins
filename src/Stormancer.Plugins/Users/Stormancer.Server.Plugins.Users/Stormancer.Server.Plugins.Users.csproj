@@ -23,7 +23,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="MsgPack.Cli" Version="1.0.1" />
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.4.0-pre" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.5.0" />
     <PackageReference Include="System.Linq.Async" Version="4.0.0" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>

@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased (3.2.2.2)
----------
+3.2.2.4
+-------
 Changed
 *******
 - Don't output an error log when a party member disconnects during matchmaking.

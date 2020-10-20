@@ -9,14 +9,15 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-1.3.1
------
+1.2.1.2
+-------
 Added
 *****
+- Support default configuration API.
 
 Changed
 *******
-- Set Peer in ControllerBase when OnConnected or OnDisconnected are triggered.
+
 
 Removed
 *******

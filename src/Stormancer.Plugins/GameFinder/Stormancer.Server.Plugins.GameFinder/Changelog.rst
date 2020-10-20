@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
----------
+3.0.0.16
+--------
 Added
 *****
 - Added QuickQueue gamefinder algorithm with configuration extension methods.
