@@ -152,11 +152,12 @@ namespace Stormancer.Server.Plugins.Leaderboards
         {
             var index = GetModifiedLeaderboardName(leaderboardName);
             var client = await CreateESClient<ScoreRecord>(index);
-            var startResult = await client.GetAsync<ScoreRecord>(GetDocumentId(leaderboardName, playerId));
+            var startResult = await client.GetAsync<ScoreRecord>(GetDocumentId(index, playerId));
             if (!startResult.Found)
             {
                 return null;
             }
+            
             return startResult.Source;
         }
 
@@ -237,6 +238,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
         public async Task<LeaderboardResult<ScoreRecord>> Query(LeaderboardQuery leaderboardQuery)
         {
+            await this.eventHandlers().RunEventHandler(eh => eh.OnQueryingLeaderboard(leaderboardQuery), ex => _logger.Log(LogLevel.Error, "leaderboard", "An error occured while running OnQueryingLeaderboard event handlers", ex));
             if (string.IsNullOrEmpty(leaderboardQuery.ScorePath))
             {
                 throw new ArgumentNullException("ScorePath");
@@ -260,7 +262,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 start = await GetScore(leaderboardQuery.StartId, leaderboardQuery.Name);
                 if (start == null)
                 {
-                    throw new ClientException("Player not found in leadeboard.");
+                    throw new ClientException($"Record {leaderboardQuery.StartId} not found in leaderboard {leaderboardQuery.Name}.");
                 }
             }
 
@@ -377,6 +379,9 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
                 foreach (var doc in documents.Take(leaderboardQuery.Count))
                 {
+                    //Remove leaderboardName from document.
+                   
+
                     if (EnableExequo)
                     {
                         int currentRank;
@@ -420,7 +425,8 @@ namespace Stormancer.Server.Plugins.Leaderboards
                     nextQuery.Skip = 0;
                     nextQuery.Count = leaderboardQuery.Count;
                     nextQuery.IsPrevious = false;
-                    nextQuery.StartId = results.Last().Document.Id;
+                    nextQuery.StartId =results.Last().Document.Id;
+                    
                     leaderboardResult.Next = SerializeContinuationQuery(nextQuery);
                 }
 
@@ -431,6 +437,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
             return leaderboardResult;
         }
+        
 
         private string SerializeContinuationQuery(LeaderboardContinuationQuery query)
         {
@@ -483,9 +490,10 @@ namespace Stormancer.Server.Plugins.Leaderboards
             {
                 var idsToUpdate = results.Where(e => !e.Value).Select(e => GetDocumentId(e.Key.LeaderboardName, e.Key.Id));
                 var indices = results.Where(e => !e.Value).Select(e => GetIndex(e.Key.LeaderboardName)).Distinct();
-                var response = await client.MultiGetAsync(desc => desc.GetMany<ScoreRecord>(idsToUpdate).Index(string.Join(",", indices)));
+                var indicesParams = string.Join(",", indices);
+                var response = await client.MultiGetAsync(desc => desc.GetMany<ScoreRecord>(idsToUpdate, (mgdesc, _) => mgdesc.Index(indicesParams)).Index(indicesParams));
 
-                var records = response.GetMany<ScoreRecord>(idsToUpdate);
+                var records = response.GetMany<ScoreRecord>(idsToUpdate).ToList();
 
                 var updates = new List<(ScoreUpdate, Nest.IMultiGetHit<ScoreRecord>)>();
                 foreach (var record in records)
@@ -664,7 +672,10 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
             return desc.Bool(s2 =>
             {
-                var mustClauses = Enumerable.Empty<Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>>();
+                IEnumerable< Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>> mustClauses = new List<Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>> { 
+                q=>q.Term(qt=>qt.Field("leaderboardName.keyword").Value(rq.Name))
+                
+                };
 
                 if (rq.FriendsIds.Any())
                 {
@@ -697,6 +708,10 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 {
                     mustClauses = mustClauses.Concat(rq.ScoreFilters.Select<ScoreFilter, Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>>(f =>
                     {
+                        if(string.IsNullOrEmpty(f.Path))
+                        {
+                            throw new ArgumentException("Range filtering clause provided without a 'Path' parameter.");
+                        }
                         return q => q.Range(r =>
                         {
                             r = r.Field("scores." + f.Path);

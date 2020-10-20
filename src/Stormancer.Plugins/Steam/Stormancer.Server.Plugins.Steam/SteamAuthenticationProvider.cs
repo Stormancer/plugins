@@ -188,7 +188,7 @@ namespace Stormancer.Server.Plugins.Steam
 
                     user = await _users.AddAuthentication(user, SteamConstants.PROVIDER_NAME, claim => claim[SteamConstants.ClaimPath] = steamIdString, new Dictionary<string, string> { { SteamConstants.ClaimPath, steamIdString } });
                 }
-                else
+                else if(playerSummary != null)
                 {
                     user.UserData["pseudo"] = playerSummary.personaname;
                     user.UserData["avatar"] = playerSummary.avatarfull;
@@ -197,10 +197,10 @@ namespace Stormancer.Server.Plugins.Steam
 
                 return AuthenticationResult.CreateSuccess(user, pId, authenticationCtx.Parameters);
             }
-            catch (Exception ex)
+            catch (SteamException)
             {
-                _logger.Log(LogLevel.Debug, "authenticator.steam", $"Steam authentication failed. Ticket : {ticket}", ex);
-                return AuthenticationResult.CreateFailure($"Invalid steam session ticket.", pId, authenticationCtx.Parameters);
+                return AuthenticationResult.CreateFailure($"Authentication refused by steam.", pId, authenticationCtx.Parameters);
+             
             }
         }
 

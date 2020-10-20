@@ -25,11 +25,20 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
+    /// <summary>
+    /// Game resolver context interface
+    /// </summary>
     public interface IGameResolverContext
     {
+        /// <summary>
+        /// Game
+        /// </summary>
         Game Game { get; }
 
-        Func<IGameFinderResolutionWriterContext,Task> ResolutionAction { get; set; }
+        /// <summary>
+        /// Resolution action
+        /// </summary>
+        Func<IGameFinderResolutionWriterContext, Task> ResolutionAction { get; set; }
 
         /// <summary>
         /// The Id of the scene created by this resolver for the <c>Game</c>, if any.

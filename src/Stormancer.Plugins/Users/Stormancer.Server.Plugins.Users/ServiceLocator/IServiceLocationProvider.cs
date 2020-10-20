@@ -38,14 +38,17 @@ namespace Stormancer.Server.Plugins.ServiceLocator
         /// <summary>
         /// Type of the service
         /// </summary>
-        public string ServiceType { get; set; }
+        public string ServiceType { get; set; } = default!;
 
         /// <summary>
         /// Name of the specific instance of the service we are trying to locate
         /// </summary>
         public string? ServiceName { get; set; }
 
-        public string SceneId { get; set; }
+        /// <summary>
+        /// The id of the scene the service is located.
+        /// </summary>
+        public string? SceneId { get; set; }
 
         /// <summary>
         /// Additionnal context for the request.

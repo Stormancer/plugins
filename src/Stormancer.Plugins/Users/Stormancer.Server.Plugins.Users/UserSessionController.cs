@@ -36,6 +36,12 @@ namespace Stormancer.Server.Plugins.Users
 {
     internal class UserSessionController : ControllerBase
     {
+        private Lazy<byte[]> _key = new Lazy<byte[]>(() =>
+        {
+            var bytes = new byte[32];
+            System.Security.Cryptography.RandomNumberGenerator.Fill(new Span<byte>(bytes));
+            return bytes;
+        });
         private readonly ISceneHost _scene;
         private readonly ISerializer _serializer;
         private readonly ILogger _logger;
@@ -79,7 +85,7 @@ namespace Stormancer.Server.Plugins.Users
             await rq.SendValue(s => _serializer.Serialize(result?.SessionId, s));
         }
 
-        
+
 
         public async Task IsAuthenticated(RequestContext<IScenePeer> rq)
         {
@@ -130,6 +136,12 @@ namespace Stormancer.Server.Plugins.Users
             await rq.SendValue(s => _serializer.Serialize(sessions, s));
         }
 
+        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
+        public Task<Dictionary<string, Session?>> GetSessionsbySessionIds(IEnumerable<string> sessionIds)
+        {
+            return _sessions.GetSessions(sessionIds);
+        }
+
         public async Task UpdateSessionData(RequestContext<IScenePeer> rq)
         {
             var sessionId = _serializer.Deserialize<string>(rq.InputStream);
@@ -173,7 +185,7 @@ namespace Stormancer.Server.Plugins.Users
         //    }
         //    return await _sessions.GetSessionById(data.SessionId);
 
-           
+
         //}
 
         //[Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
@@ -185,7 +197,7 @@ namespace Stormancer.Server.Plugins.Users
         //}
 
         [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
-        public Task<Dictionary<string,User>> GetUsers(IEnumerable<string> userIds)
+        public Task<Dictionary<string, User>> GetUsers(IEnumerable<string> userIds)
         {
             return _sessions.GetUsers(userIds.ToArray());
         }
@@ -197,7 +209,7 @@ namespace Stormancer.Server.Plugins.Users
         }
 
         [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
-        public Task UpdateUserHandle(string userId, string newHandle,bool appendHash)
+        public Task UpdateUserHandle(string userId, string newHandle, bool appendHash)
         {
             return _sessions.UpdateUserHandle(userId, newHandle, appendHash);
         }
@@ -209,6 +221,31 @@ namespace Stormancer.Server.Plugins.Users
             {
                 await ctx.SendValue(stream => stream.Write(data, 0, data.Length));
             }
+        }
+
+        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
+        public Task<int> GetAuthenticatedUsersCount()
+        {
+            return _sessions.GetAuthenticatedUsersCount();
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public Task<int> GetAuthenticatedUsersCountPublic()
+        {
+            return _sessions.GetAuthenticatedUsersCount();
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task<string> CreateUserBearerToken()
+        {
+            var session = await _sessions.GetSession(this.Request.RemotePeer);
+            return Jose.JWT.Encode(new Dictionary<string, string?> { { "userId", session?.User?.Id } }, _key.Value, Jose.JwsAlgorithm.HS256);
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public string? GetUserIdFromBearerToken(string token)
+        {
+            return Jose.JWT.Decode<Dictionary<string, string?>>(token, _key.Value)["userId"];
         }
     }
 }

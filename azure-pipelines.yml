@@ -17,52 +17,22 @@ variables:
     buildConfiguration: 'Debug'
 
 steps:
-- task: PowerShell@2
-  displayName: 'Clear output'
-  inputs:
-    targetType: 'inline'
-    script: |
-     @(gci output/packages/$(buildConfiguration) -ErrorAction SilentlyContinue) | % {  Remove-Item $_ }
+- checkout: self
+  lfs: true
+  persistCredentials: true
+
 - task: UseDotNet@2
   inputs:
     packageType: 'sdk'
     version: '3.1.x'
-- task: DotNetCoreCLI@2
-  displayName: Build
-  inputs:
-    command: 'build'
-    projects: 'src/Stormancer.Plugins/**/*.csproj'
-    arguments: '--configuration $(buildConfiguration)'
-    workingDirectory: 'src/Stormancer.Plugins'
 - task: PowerShell@2
-  displayName: 'Publish packages'
+  displayName: 'Build'
   inputs:
     targetType: 'inline'
     script: |
-      gci output/packages/$(buildConfiguration)/*.nupkg | % {  dotnet nuget push $_  -s https://api.nuget.org/v3/index.json -k $env:KEY --skip-duplicate }
+      src/Stormancer.Plugins/build.ps1 --configuration $(buildConfiguration) --discord-token $env:discordToken -nuget-secret-key $env:nugetKey   
   env:
-    KEY: $(nuget_ci_key)
-- task: PowerShell@2
-  displayName: 'get built packages'
-  inputs:
-    targetType: 'inline'
-    script: |
-      $packages = "##vso[task.setvariable variable=packages]" + ((Get-ChildItem -Path output/packages/$(buildConfiguration)/*.nupkg | select -ExpandProperty Name | ForEach-Object -Process {[System.IO.Path]::GetFileNameWithoutExtension($_)}) -join "\n")
-      echo $packages
-- task: ado-discord-webhook@1
-  displayName: 'Send Discord notification'
-  inputs:
-    channelId: '684384565711863818'
-    webhookKey: '$(discord_releases_webhook_key)'
-    name: 'Stormancer CI'
-    messageType: 'embeds'
-    embeds: |
-      [{
-      "title":"Server plugins development build complete",
-      "description":"$(packages)",
-      "author":{
-      "name":"CI"
-      }
-      }]
+    nugetKey: $(nuget_ci_key)
+    discordToken: $(discord_token)
 
     

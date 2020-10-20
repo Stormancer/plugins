@@ -62,6 +62,13 @@ namespace Stormancer.Server.Plugins.Leaderboards
         Task OnQueryResponse(QueryResponseCtx response) => Task.CompletedTask;
 
         /// <summary>
+        /// Called when the leaderboard  system receives a query.
+        /// </summary>
+        /// <param name="query"></param>
+        /// <returns></returns>
+        Task OnQueryingLeaderboard(LeaderboardQuery query) => Task.CompletedTask;
+
+        /// <summary>
         /// Called before scores of a leaderboard are cleared.
         /// </summary>
         /// <param name="leaderboardName"></param>

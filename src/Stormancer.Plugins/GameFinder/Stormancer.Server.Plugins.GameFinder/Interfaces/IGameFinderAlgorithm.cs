@@ -1,4 +1,4 @@
-// MIT License
+﻿// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -20,17 +20,41 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Stormancer.Plugins;
-using Stormancer.Server.Plugins.Models;
-using System.IO;
+using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
-    public interface IGameFinderDataExtractor 
+    /// <summary>
+    /// Classes implementing this interface provide game finder algorithms.
+    /// </summary>
+    public interface IGameFinderAlgorithm
     {
-        Task<bool> ExtractDataS2S(string provider, Stream requestStream, Party group);
-        Task<bool> ExtractData(string provider, RequestContext<IScenePeerClient> request, Party group);
+        /// <summary>
+        /// Called every game finder pass to compute games from the waiting players list.
+        /// </summary>
+        /// <param name="gameFinderContext"></param>
+        /// <returns></returns>
+        Task<GameFinderResult> FindGames(GameFinderContext gameFinderContext);
+
+        /// <summary>
+        /// Gets public gamefinder metrics for the clients.
+        /// </summary>
+        /// <returns></returns>
+        Dictionary<string, int> GetMetrics();
+
+        /// <summary>
+        /// Gets private gamefinder metrics stored in the analytics system.
+        /// </summary>
+        /// <param name="gameFinderContext"></param>
+        /// <returns></returns>
+        JObject ComputeDataAnalytics(GameFinderContext gameFinderContext);
+
+        /// <summary>
+        /// Called whenever the gamefinder config gets updated.
+        /// </summary>
+        /// <param name="config">the current gamefinder config section.</param>
         void RefreshConfig(dynamic config);
     }
 }

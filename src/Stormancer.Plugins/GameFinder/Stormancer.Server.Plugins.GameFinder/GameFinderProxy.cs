@@ -1,4 +1,4 @@
-﻿// MIT License
+// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -20,21 +20,44 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Newtonsoft.Json.Linq;
-using System.Collections.Generic;
+using Stormancer.Core;
+using Stormancer.Plugins;
+using Stormancer.Server.Plugins.GameFinder;
+using System;
+using System.IO;
+using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
-
-    public interface IGameFinder
+    class GameFinderProxy : IGameFinder
     {
-        Task<GameFinderResult> FindGames(GameFinderContext gameFinderContext);
+        public readonly ISceneHost _scene;
+        public readonly ISerializer _serializer;
 
-        Dictionary<string, int> GetMetrics();
+        public GameFinderProxy(ISceneHost scene,
+            ISerializer serializer)
+        {
+            _scene = scene;
+            _serializer = serializer;
+        }
 
-        JObject ComputeDataAnalytics(GameFinderContext gameFinderContext);
+        public async Task FindMatch(string sceneName, Models.Party gameFinderRequest, CancellationToken cancelationToken)
+        {
+            var rpc = _scene.DependencyResolver.Resolve<RpcService>();
+            Action<Stream> writer = s => 
+            {
+                _serializer.Serialize(gameFinderRequest,s);
+            };
+            var packet = await rpc.Rpc(GameFinderController.FindGameS2SRoute, new MatchSceneFilter(sceneName), writer, PacketPriority.MEDIUM_PRIORITY, cancelationToken).LastOrDefaultAsync();
+            if (packet != null)
+            {
+                using (packet.Stream)
+                {
 
-        void RefreshConfig(dynamic specificConfig, dynamic config);
+                }
+            }
+        }
     }
 }

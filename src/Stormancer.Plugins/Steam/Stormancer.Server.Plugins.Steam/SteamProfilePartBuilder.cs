@@ -49,8 +49,9 @@ namespace Stormancer.Server.Plugins.Steam
                 return;
             }
 
-            var users = (await Task.WhenAll(ctx.Users.Select(id => _users.GetUser(id))))
-                .Where(u => u.UserData.ContainsKey("steamid"))
+            var users = (await _users.GetUsers(ctx.Users.ToArray()))
+                .Where(kvp => kvp.Value.UserData.ContainsKey("steamid"))
+                .Select(kvp => kvp.Value)
                 .ToList();
 
             if (users.Count == 0)
@@ -64,35 +65,38 @@ namespace Stormancer.Server.Plugins.Steam
 
                 foreach (var user in users)
                 {
-                    ctx.UpdateProfileData(user.Id, "steam", j =>
+                    if (user != null)
                     {
-                        if (user != null)
+                        ctx.UpdateProfileData(user.Id, "steam", j =>
                         {
-                            var steamId = (ulong)(user.UserData["steamid"] ?? 0);
-                            var steamProfile = steamProfiles[steamId];
-                            if (steamProfile != null)
-                            {
-                                j["steamid"] = steamId;
-                                j["personaname"] = steamProfile.personaname;
-                                j["personastate"] = steamProfile.personastate;
-                                j["avatar"] = steamProfile.avatarfull;
-                                j["profileurl"] = steamProfile.profileurl;
-                            }
-                        }
-                        return j;
-                    });
+                                var steamId = (ulong)(user.UserData["steamid"] ?? 0);
+                                var steamProfile = steamProfiles[steamId];
+                                if (steamProfile != null)
+                                {
+                                    j["steamid"] = steamId;
+                                    j["personaname"] = steamProfile.personaname;
+                                    j["personastate"] = steamProfile.personastate;
+                                    j["avatar"] = steamProfile.avatarfull;
+                                    j["profileurl"] = steamProfile.profileurl;
+                                }
+                            return j;
+                        });
+                    }
                 }
             }
             else
             {
                 foreach (var user in users)
                 {
-                    ctx.UpdateProfileData(user.Id, "steam", j =>
+                    if (user != null)
                     {
-                        var steamId = (ulong)(user.UserData["steamid"] ?? 0);
-                        j["steamid"] = steamId;
-                        return j;
-                    });
+                        ctx.UpdateProfileData(user.Id, "steam", j =>
+                        {
+                            var steamId = (ulong)(user.UserData["steamid"] ?? 0);
+                            j["steamid"] = steamId;
+                            return j;
+                        });
+                    }
                 }
             }
         }

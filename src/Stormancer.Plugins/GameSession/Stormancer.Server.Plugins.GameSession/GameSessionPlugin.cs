@@ -37,17 +37,11 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public void Build(HostPluginBuildContext ctx)
         {
-            ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
+            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
-                if (scene.Metadata.ContainsKey(METADATA_KEY))
-                {
-                    builder.Register<GameSessionService>().As<IGameSessionService>().SingleInstance();
-                    builder.Register<GameSessionController>().InstancePerRequest();
-                }
-                if (scene.Template == Stormancer.Server.Plugins.Users.Constants.SCENE_TEMPLATE)
-                {
-                    builder.Register<DedicatedServerAuthProvider>().As<IAuthenticationProvider>();
-                }
+                builder.Register<GameSessionService>().As<IGameSessionService>().InstancePerScene();
+                builder.Register<GameSessionController>().InstancePerRequest();
+                builder.Register<DedicatedServerAuthProvider>().As<IAuthenticationProvider>();
                 builder.Register<GameSessions>().As<IGameSessions>();
             };
 

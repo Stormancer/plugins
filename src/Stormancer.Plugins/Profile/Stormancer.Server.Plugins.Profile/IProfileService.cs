@@ -26,6 +26,9 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Profile
 {
+    /// <summary>
+    /// Provides methods to access profile informations about a player.
+    /// </summary>
     public interface IProfileService
     {
         Task<Dictionary<string,Dictionary<string,JObject>>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, Session requestingUser);

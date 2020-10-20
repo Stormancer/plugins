@@ -29,11 +29,46 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Steam
 {
+    /// <summary>
+    /// Represents an error returned by the steam API.
+    /// </summary>
+    public class SteamException : Exception
+    {
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        public SteamException()
+        {
+        }
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        public SteamException(string? message) : base(message)
+        {
+        }
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        public SteamException(string? message, Exception? innerException) : base(message, innerException)
+        {
+        }
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        protected SteamException(SerializationInfo info, StreamingContext context) : base(info, context)
+        {
+        }
+    }
+
     internal class SteamService : ISteamService
     {
         private const string ApiRoot = "https://partner.steam-api.com";
@@ -96,7 +131,7 @@ namespace Stormancer.Server.Plugins.Steam
 
                     _logger.Log(LogLevel.Error, "authenticator.steam", "The Steam API failed to authenticate user ticket. No success status code.", new { AuthenticateUri, StatusCode = $"{(int)response.StatusCode} {response.ReasonPhrase}", Response = contentStr });
 
-                    throw new Exception($"The Steam API failed to authenticate user ticket. No success status code.");
+                    throw new SteamException($"The Steam API failed to authenticate user ticket. No success status code.");
                 }
                 
                 var json = await response.Content.ReadAsStringAsync();
@@ -104,17 +139,17 @@ namespace Stormancer.Server.Plugins.Steam
 
                 if (steamResponse.response == null)
                 {
-                    throw new Exception($"The Steam API failed to authenticate user ticket. The response is null.'. AppId : {_appId}");
+                    throw new SteamException($"The Steam API failed to authenticate user ticket. The response is null.'. AppId : {_appId}");
                 }
 
                 if (steamResponse.response.error != null)
                 {
-                    throw new Exception($"The Steam API failed to authenticate user ticket : {steamResponse.response.error.errorcode} : '{steamResponse.response.error.errordesc}'. AppId : {_appId}");
+                    throw new SteamException($"The Steam API failed to authenticate user ticket : {steamResponse.response.error.errorcode} : '{steamResponse.response.error.errordesc}'. AppId : {_appId}");
                 }
 
                 if (steamResponse.response.@params == null)
                 {
-                    throw new Exception($"The Steam API failed to authenticate user ticket. The response params is null.'. AppId : {_appId}");
+                    throw new SteamException($"The Steam API failed to authenticate user ticket. The response params is null.'. AppId : {_appId}");
                 }
 
                 return steamResponse.response.@params.steamid;

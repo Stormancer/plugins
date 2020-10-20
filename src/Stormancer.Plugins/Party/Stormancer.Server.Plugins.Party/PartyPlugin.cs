@@ -25,6 +25,7 @@ using Stormancer.Plugins;
 using Stormancer.Server.PartyManagement;
 using Stormancer.Server.Plugins.Party.Interfaces;
 using Stormancer.Server.Plugins.Party.Model;
+using Stormancer.Server.Plugins.ServiceLocator;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Party
@@ -48,7 +49,12 @@ namespace Stormancer.Server.Plugins.Party
         internal const string PARTYMANAGEMENT_METADATA_KEY = "stormancer.partymanagement";
         public const string PARTY_SCENE_TYPE = "party";
         public const string CLIENT_METADATA_KEY = "stormancer.party.plugin";
+        public const string PARTY_MANAGEMENT_SCENEID = "party-manager";
+        public const string PARTY_MANAGEMENT_SCENE_TYPE = "partyManager";
 
+        //Service ids for service locator.
+        public const string PARTY_MANAGEMENT_SERVICEID = "stormancer.plugins.partyManagement";
+        public const string PARTY_SERVICEID = "stormancer.plugins.party";
         public void Build(HostPluginBuildContext ctx)
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
@@ -59,11 +65,16 @@ namespace Stormancer.Server.Plugins.Party
                 builder.Register<PartyManagementController>().InstancePerRequest();
                 builder.Register<PartyState>().InstancePerScene();
                 builder.Register<StormancerPartyPlatformSupport>().As<IPartyPlatformSupport>().AsSelf().InstancePerRequest();
+                builder.Register<PartySceneLocator>().As<IServiceLocatorProvider>();
             };
 
             ctx.HostStarting += (host) => {
                 host.AddSceneTemplate(PARTY_SCENE_TYPE, (ISceneHost scene) => {
                     scene.AddParty();
+                });
+                host.AddSceneTemplate(PARTY_MANAGEMENT_SCENE_TYPE, (ISceneHost scene) => {
+
+                    scene.AddPartyManagement();
                 });
             };
 
@@ -92,10 +103,14 @@ namespace Stormancer.Server.Plugins.Party
                 }
             };
 
-            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
+            ctx.HostStarted += (IHost host) =>
             {
-                builder.Register<PartyProxy>().As<IPartyProxy>();
+               
+                //Ensure PartyManagement scene exists.
+                host.EnsureSceneExists(PARTY_MANAGEMENT_SCENEID, PARTY_MANAGEMENT_SCENE_TYPE, false, true);
             };
+
         }
+
     }
 }

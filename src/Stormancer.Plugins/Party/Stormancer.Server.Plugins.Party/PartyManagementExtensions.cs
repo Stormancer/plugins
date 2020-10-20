@@ -26,8 +26,15 @@ using Stormancer.Server.Plugins.Party;
 
 namespace Stormancer
 {
+    /// <summary>
+    /// Provides an extension method to add party management features to a scene.
+    /// </summary>
     public static class PartyManagementExtensions
     {
+        /// <summary>
+        /// Adds party management related features to a scene.
+        /// </summary>
+        /// <param name="scene"></param>
         public static void AddPartyManagement(this ISceneHost scene)
         {
             scene.Metadata[PartyPlugin.PARTYMANAGEMENT_METADATA_KEY] = PartyManagementService.PROTOCOL_VERSION;

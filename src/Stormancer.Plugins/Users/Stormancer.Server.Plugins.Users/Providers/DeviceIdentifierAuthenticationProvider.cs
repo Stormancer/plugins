@@ -29,9 +29,46 @@ using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Newtonsoft.Json.Linq;
 using System.Threading;
+using Stormancer.Server.Plugins.Users;
+
+namespace Stormancer
+{
+    /// <summary>
+    /// Extension methods for DeviceIdentifier auth provider.
+    /// </summary>
+    public static class DeviceIdentifierAuthenticationConfigurationExtensions
+    {
+        /// <summary>
+        /// Configures the device identifier auth provider.
+        /// </summary>
+        /// <param name="config"></param>
+        /// <param name="builder"></param>
+        /// <remarks></remarks>
+        /// <returns></returns>
+        public static UsersConfigurationBuilder ConfigureDeviceIdentifier(this UsersConfigurationBuilder config, Func<DeviceIdentifierConfigurationBuilder, DeviceIdentifierConfigurationBuilder> builder)
+        {
+            var b = new DeviceIdentifierConfigurationBuilder();
+
+            b = builder(b);
+            config.Settings[DeviceIdentifierAuthenticationProvider.PROVIDER_NAME] = JObject.FromObject(b);
+            return config;
+        }
+       
+    }
+
+}
 
 namespace Stormancer.Server.Plugins.Users
 {
+    /// <summary>
+    /// Configures the device identifier auth provider.
+    /// </summary>
+    public class DeviceIdentifierConfigurationBuilder : AuthProviderConfigurationBuilderBase<DeviceIdentifierConfigurationBuilder>
+    {
+        
+    }
+
+
     internal class DeviceIdentifierAuthenticationProvider : IAuthenticationProvider
     {
         public const string PROVIDER_NAME = "deviceidentifier";

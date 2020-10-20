@@ -29,22 +29,43 @@ using Newtonsoft.Json.Linq;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
+    /// <summary>
+    /// GameFinder controller
+    /// </summary>
     public class GameFinderController : ControllerBase
     {
+        /// <summary>
+        /// Find game Scene to scene route name
+        /// </summary>
         public const string FindGameS2SRoute = "gamefinder.findgame";
+
         private readonly IGameFinderService _gameFinderService;
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="gameFinderService"></param>
         public GameFinderController(IGameFinderService gameFinderService)
         {
             _gameFinderService = gameFinderService;
         }
 
+        /// <summary>
+        /// Start matchmaking
+        /// </summary>
+        /// <param name="party"></param>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [Api(ApiAccess.Scene2Scene, ApiType.Rpc, Route = FindGameS2SRoute)]
-        public Task FindGame(RequestContext<IScenePeer> request)
+        public Task FindGame(Models.Party party, RequestContext<IScenePeer> request)
         {
-            return _gameFinderService.FindGameS2S(request);
+            return _gameFinderService.FindGame(party, request.CancellationToken);
         }
 
+        /// <summary>
+        /// Gets the matchmaking metrics.
+        /// </summary>
+        /// <returns></returns>
         [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
         public Dictionary<string, int> GetMetrics()
         {
@@ -62,5 +83,36 @@ namespace Stormancer.Server.Plugins.GameFinder
         {
             await _gameFinderService.OpenGameSession(data, request);
         }
+
+        /// <summary>
+        /// Gets the matchmaking metrics from the client.
+        /// </summary>
+        /// <returns></returns>
+        [Api(ApiAccess.Public, ApiType.Rpc, Route = "gamefinder.getmetrics")]
+        public Dictionary<string, int> GetMetricsClient()
+        {
+            return _gameFinderService.GetMetrics();
+        }
+
+    
+
+        /// <summary>
+        /// Cancels matchmaking
+        /// </summary>
+        /// <param name="packet"></param>
+        /// <returns></returns>
+        [Api(ApiAccess.Public, ApiType.FireForget, Route = "gamefinder.cancel")]
+        public Task CancelSearchFromClient(Packet<IScenePeerClient> packet)
+        {
+            return _gameFinderService.CancelGame(packet.Connection, true);
+        }
+
+
+        /// <summary>
+        /// Cancels matchmaking when the peer disconnects.
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        protected override Task OnDisconnected(DisconnectedArgs args) => _gameFinderService.CancelGame(args.Peer, false);
     }
 }

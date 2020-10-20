@@ -83,11 +83,11 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// <remarks>
         /// When there is no running request, this will be null.
         /// </remarks>
-        public Task FindGameRequest { get; set; }
+        public Task? FindGameRequest { get; set; }
         /// <summary>
         /// This can be used to cancel <see cref="FindGameRequest"/>.
         /// </summary>
-        public CancellationTokenSource FindGameCts { get; set; }
+        public CancellationTokenSource? FindGameCts { get; set; }
 
         /// <summary>
         /// Data that can be set by other server components for bookkeeping.

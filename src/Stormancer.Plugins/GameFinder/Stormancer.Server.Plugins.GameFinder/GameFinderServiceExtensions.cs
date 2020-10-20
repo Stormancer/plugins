@@ -22,15 +22,31 @@
 
 using Stormancer.Core;
 using Stormancer.Server.Plugins.GameFinder;
+using System;
+using System.Text.RegularExpressions;
 
 namespace Stormancer
 {
+    /// <summary>
+    /// Provides extension methods to scenes to easily add game finder functionalities.
+    /// </summary>
     public static class GameFinderServiceExtensions
     {
-        public static void AddGameFinder(this ISceneHost scene, GameFinderConfig config)
+        /// <summary>
+        /// Adds a gamefinder to the scene.
+        /// </summary>
+        /// <param name="scene"></param>
+        /// <param name="configId">Id of the gamefinder config. Used to locate the config section for the gamefinder in the configuration.</param>
+        /// <param name="gameFinderBuilder"></param>
+        public static void AddGameFinder(this ISceneHost scene, string configId, Func<GameFinderConfig, GameFinderConfig> gameFinderBuilder)
         {
+            if(!Regex.IsMatch(configId, @"^[0-9a-z-_]*$", RegexOptions.IgnoreCase))
+            {
+                throw new ArgumentException("configId should only contain alphanumeric, dash and underscore characters.");
+            }
+            var config = gameFinderBuilder(new GameFinderConfig(scene,configId));
             GameFinderPlugin.Configs[scene.Id] = config;
-            scene.Metadata[GameFinderPlugin.METADATA_KEY] = scene.Id;
+            scene.Metadata[GameFinderPlugin.METADATA_KEY] = configId;
             scene.Metadata[GameFinderPlugin.ProtocolVersionKey] = GameFinderService.ProtocolVersion.ToString();
         }
     }

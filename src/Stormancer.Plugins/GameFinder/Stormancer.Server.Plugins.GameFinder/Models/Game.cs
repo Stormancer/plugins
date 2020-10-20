@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using MsgPack.Serialization;
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Models;
 using System;
@@ -31,55 +32,52 @@ namespace Stormancer.Server.Plugins.GameFinder
     public class Game : IGameCandidate
     {
         #region constructors
-        public Game(JObject customData = null)
-            : this(0, customData)
+        public Game()
         {
-        }
-
-        public Game(params Team[] teams) : this(teams, null)
-        {
-        }
-
-        public Game(int teamCount, JObject customData = null) 
-            : this(teamCount, () => new Team(), customData)
-        {
-        }
-
-        public Game(int teamCount, Func<Team> teamFactory, JObject customData = null)
-        {
-            CustomData = customData;
-            for(var i = 0; i< teamCount; i++)
-            {
-                Teams.Add(teamFactory());
-            }
             Id = Guid.NewGuid().ToString();
         }
 
-        public Game(IEnumerable<Team> teams, JObject customData = null)
-        {
-            CustomData = customData;
-            Teams.AddRange(teams);
-            Id = Guid.NewGuid().ToString();
-        }
 
-        public static Game Create<T>(IEnumerable<Team> teams, T customData = null) where T:class
-        {
-            return new Game(teams, customData != null ? JObject.FromObject(customData) : null);
-        }
         #endregion
 
+        /// <summary>
+        /// Id of the game.
+        /// </summary>
+        [MessagePackMember(0)]
         public string Id { get; private set; }
 
-        public JObject CustomData { get; set; }
+        /// <summary>
+        /// Public custom data associated with the game.
+        /// </summary>
+        [MessagePackMember(1)]
+        public JObject PublicCustomData { get; set; }
 
-        public object CommonCustomData { get; set; }
+      
+        /// <summary>
+        /// private custom data associated with the game.
+        /// </summary>
+        [MessagePackIgnore]
+        public JObject PrivateCustomData { get; set; }
 
+        /// <summary>
+        /// Gets or sets the teams of players in the game.
+        /// </summary>
+        [MessagePackMember(2)]
         public List<Team> Teams { get; set; } = new List<Team>();
 
+        /// <summary>
+        /// Gets a sequence of all parties in the game (whatever their team)
+        /// </summary>
+        [MessagePackIgnore]
         public IEnumerable<Party> AllParties => Teams.SelectMany(team => team.Parties);
 
+        [MessagePackIgnore]
         IEnumerable<Team> IGameCandidate.Teams { get => Teams; }
 
+        /// <summary>
+        /// Gets a sequence of all players in the game.
+        /// </summary>
+        [MessagePackIgnore]
         public IEnumerable<Player> AllPlayers => Teams.SelectMany(team => team.AllPlayers);
     }
 }

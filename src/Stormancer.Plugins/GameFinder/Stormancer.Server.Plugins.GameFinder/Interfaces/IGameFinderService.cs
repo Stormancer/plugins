@@ -23,24 +23,57 @@
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.Models;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
+
     public interface IGameFinderService
-    {        
+    {
+        /// <summary>
+        /// Starts the game finder.
+        /// </summary>
+        /// <param name="ct"></param>
+        /// <returns></returns>
         Task Run(CancellationToken ct);
+
+        /// <summary>
+        /// Is the game finder currently running.
+        /// </summary>
         bool IsRunning { get; }
-        Task FindGameS2S(RequestContext<IScenePeer> requestS2S);
-        Task FindGame(RequestContext<IScenePeerClient> request);
-        Task ResolveReadyRequest(Packet<IScenePeerClient> packet);
-        Task CancelGame(Packet<IScenePeerClient> packet);
+
+        /// <summary>
+        /// Starts the game search process for a party.
+        /// </summary>
+        /// <param name="party"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        Task FindGame(Party party, CancellationToken ct);
+
+      
+        /// <summary>
+        /// Cancels a pending game search.
+        /// </summary>
+        /// <param name="peer"></param>
+        /// <param name="playerRequest"></param>
+        /// <returns></returns>
         Task CancelGame(IScenePeerClient peer, bool playerRequest);
 
+        /// <summary>
+        /// Gets metrics about the game finder.
+        /// </summary>
+        /// <returns></returns>
         Dictionary<string, int> GetMetrics();
 
+        /// <summary>
+        /// Advertises a game session in the gamefinder.
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="request">Request the game session is linked with. The game session stays advertised as lon as the request is not cancelled by the game session.</param>
+        /// <returns></returns>
         internal Task OpenGameSession(JObject data, RequestContext<IScenePeer> request);
     }
 }

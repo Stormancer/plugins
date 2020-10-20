@@ -26,17 +26,17 @@ namespace Stormancer.Server.Plugins.GameFinder
 {
     public class GameFinderResult
     {
-        public GameFinderResult(){}
+        public GameFinderResult() { }
 
         public GameFinderResult(IEnumerable<Game> games)
         {
             Games.AddRange(games);
         }
-        
+
         public List<Game> Games { get; } = new List<Game>();
 
         /// <summary>
-        /// A list of tickets to open game sessions, filled by <see cref="IGameFinder"/>.
+        /// A list of tickets to open game sessions, filled by <see cref="IGameFinderAlgorithm"/>.
         /// </summary>
         /// <seealso cref="OpenGameSession"/>
         public List<OpenGameSessionTicket> GameSessionTickets { get; } = new List<OpenGameSessionTicket>();

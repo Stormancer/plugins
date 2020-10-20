@@ -50,7 +50,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Group connected to gameSession
         /// </summary>
         [MessagePackMember(3)]
-        public List<Team> TeamsList { get => Teams.ToList(); }
+        public IEnumerable<Team> TeamsList => Teams.ToList();
 
         /// <summary>
         /// The teams that are part of this game session.

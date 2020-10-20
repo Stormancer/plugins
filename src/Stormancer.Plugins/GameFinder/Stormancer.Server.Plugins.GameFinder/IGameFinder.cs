@@ -20,23 +20,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
-using System.Collections.Generic;
+using Stormancer.Core;
+using Stormancer.Server.Plugins.GameFinder;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
-    public class GameFinderRequest
+    /// <summary>
+    /// Provides gamefinder functionalities.
+    /// </summary>
+    public interface IGameFinder
     {
         /// <summary>
-        /// Group members: [userId]=>[profileId]
+        /// Find a game for the provided party.
         /// </summary>
-        [MessagePackMember(0)]
-        public Dictionary<string, string> ProfileIds { get; set; } = new Dictionary<string, string>();
-
-        [MessagePackMember(1)]
-        public string CustomData { get; set; }
-
-        [MessagePackMember(2)]
-        public string HostUserId { get; set; }
+        /// <param name="sceneName"></param>
+        /// <param name="party"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task FindMatch(string sceneName, Models.Party party, CancellationToken cancellationToken);        
     }
 }

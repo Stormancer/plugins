@@ -27,7 +27,7 @@ using System.Linq;
 namespace Stormancer.Server.Plugins.GameFinder
 {
     /// <summary>
-    /// A ticket for one or more players to join an open game session, created by an <see cref="IGameFinder"/> instance.
+    /// A ticket for one or more players to join an open game session, created by an <see cref="IGameFinderAlgorithm"/> instance.
     /// </summary>
     public class OpenGameSessionTicket : IGameCandidate
     {
