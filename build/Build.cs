@@ -32,7 +32,7 @@ class Build : NukeBuild
     public const string BuildType = "Plugins";
     public const string ReleaseNugetSource = "https://api.nuget.org/v3/index.json";
 
-    public static int Main () => Execute<Build>(x => x.Publish);
+    public static int Main() => Execute<Build>(x => x.Publish);
 
     [Parameter("Configuration to build - Default is 'Debug' (local) or 'Release' (server)")]
     readonly Configuration Configuration = IsLocalBuild ? Configuration.Debug : Configuration.Release;
@@ -158,8 +158,8 @@ class Build : NukeBuild
             foreach (var line in output)
             {
                 var match = Regex.Match(line.Text, "'(?<path>[A-Za-z:\\\\\\./0-9-]+\\.nupkg)'");
-                    // "Successfully created package 'E:\repo\src\server\grid\Stormancer.Server.Bootstrapper\bin\Debug\Stormancer.Server.Bootstrapper.4.1.0-pre.nupkg'."
-                    if (match.Success)
+                // "Successfully created package 'E:\repo\src\server\grid\Stormancer.Server.Bootstrapper\bin\Debug\Stormancer.Server.Bootstrapper.4.1.0-pre.nupkg'."
+                if (match.Success)
                 {
                     packagePath = match.Groups["path"].Value;
                 }
@@ -174,11 +174,14 @@ class Build : NukeBuild
 
             var versionString = packagePath.Substring(startIndex, packagePath.Length - startIndex - ".nupkg".Length);
             var currentPackageVersion = new NuGetVersion(versionString);
-            var version = new NuGetVersion(await NuGetPackageResolver.GetLatestPackageVersion(project.Name, Configuration == Configuration.Debug));
+            var versionStr = await NuGetPackageResolver.GetLatestPackageVersion(project.Name, Configuration == Configuration.Debug);
+
+
+            var version = versionStr != null ? new NuGetVersion(versionStr) : null;
 
 
 
-            if (currentPackageVersion > version)
+            if (version == null || currentPackageVersion > version)
             {
                 ChangeLogRelease? changeLogRelease = null;
                 if (Configuration == Configuration.Release)
@@ -216,14 +219,14 @@ class Build : NukeBuild
                     var sourceBranch = Environment.GetEnvironmentVariable("BUILD_SOURCEBRANCH")?.Substring("refs/heads/".Length);
                     git($"checkout {sourceBranch}");
 
-                        //try
-                        //{
-                        //    git($"tag -d {Path.GetFileNameWithoutExtension(packagePath)}");
-                        //}
-                        //catch (Exception)
-                        //{ }
+                    //try
+                    //{
+                    //    git($"tag -d {Path.GetFileNameWithoutExtension(packagePath)}");
+                    //}
+                    //catch (Exception)
+                    //{ }
 
-                        git($"tag {Path.GetFileNameWithoutExtension(packagePath)}");
+                    git($"tag {Path.GetFileNameWithoutExtension(packagePath)}");
 
                     if (sourceBranch == null)
                     {
