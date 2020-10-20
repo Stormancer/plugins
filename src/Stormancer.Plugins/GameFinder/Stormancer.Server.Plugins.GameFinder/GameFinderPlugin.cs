@@ -68,11 +68,15 @@ namespace Stormancer.Server.Plugins.GameFinder
 
             ctx.HostStarted += (IHost host) =>
             {
+                var logger = host.DependencyResolver.Resolve<ILogger>();
+                logger.Log(LogLevel.Info, "gamefinder", "Creating gamefinder scenes.", new { });
+
                 if (host.Metadata.TryGetValue("gamefinder.ids", out var ids))
                 {
                  
                     foreach (var id in ids.Split(','))
                     {
+                        logger.Log(LogLevel.Info, "gamefinder", "Ensure scene '{id}' is created.",new { });
                         host.EnsureSceneExists(id,id, false, true);
                     }
                 }
