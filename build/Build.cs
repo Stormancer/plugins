@@ -217,7 +217,7 @@ class Build : NukeBuild
                         );
 
                     var sourceBranch = Environment.GetEnvironmentVariable("BUILD_SOURCEBRANCH")?.Substring("refs/heads/".Length);
-                    git($"checkout {sourceBranch}");
+                    //git($"checkout {sourceBranch}");
 
                     //try
                     //{
@@ -230,7 +230,7 @@ class Build : NukeBuild
 
                     if (sourceBranch == null)
                     {
-                        git($"push origin");
+                        git($"push origin --tags");
                     }
                     else
                     {
