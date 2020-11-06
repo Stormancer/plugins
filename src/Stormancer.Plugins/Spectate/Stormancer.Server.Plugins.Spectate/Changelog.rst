@@ -9,7 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-## [Unreleased]
+Unreleased
+----------
 
 0.1.0
 -------
