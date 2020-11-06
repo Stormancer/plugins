@@ -11,7 +11,14 @@ This project adheres to semantic versioning.
 
 ## [Unreleased]
 
-## [0.1.0] - 2020-11-06
-
-### Added
+0.1.0
+-------
+Added
+*****
 - Plugin created
+
+Changed
+*******
+
+Removed
+*******
