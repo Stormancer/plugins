@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>netcoreapp3.1</TargetFramework>
+		<TargetFramework>net5.0</TargetFramework>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
@@ -28,7 +28,7 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="MsgPack.Cli" Version="1.0.1" />
-		<PackageReference Include="Stormancer.Abstractions.Server" Version="3.5.0" />
+		<PackageReference Include="Stormancer.Abstractions.Server" Version="4.0.0.1" />
 	</ItemGroup>
 
 	<ItemGroup>
