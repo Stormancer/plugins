@@ -36,7 +36,7 @@ class Build : NukeBuild
     public static int Main() => Execute<Build>(x => x.Publish);
 
     [Parameter("Configuration to build - Default is 'Debug' (local) or 'Release' (server)")]
-    readonly Configuration Configuration = IsLocalBuild ? Configuration.Debug : Configuration.Release;
+    readonly string Configuration = IsLocalBuild ? "Debug" : "Release";
 
     [Parameter("Nuget secret key")]
     readonly string NugetSecretKey = default!;
@@ -175,7 +175,7 @@ class Build : NukeBuild
 
             var versionString = packagePath.Substring(startIndex, packagePath.Length - startIndex - ".nupkg".Length);
             var currentPackageVersion = new NuGetVersion(versionString);
-            var versionStr = await NuGetPackageResolver.GetLatestPackageVersion(project.Name, Configuration == Configuration.Debug);
+            var versionStr = await NuGetPackageResolver.GetLatestPackageVersion(project.Name, Configuration == "Debug");
 
 
             var version = versionStr != null ? new NuGetVersion(versionStr) : null;
@@ -185,7 +185,7 @@ class Build : NukeBuild
             if (version == null || currentPackageVersion > version)
             {
                 ChangeLogRelease? changeLogRelease = null;
-                if (Configuration == Configuration.Release)
+                if (Configuration == "Release")
                 {
                     changeLogRelease = changeLog!.Versions.FirstOrDefault(v => v.Version == currentPackageVersion);
                 }
