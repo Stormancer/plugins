@@ -51,7 +51,8 @@ namespace Stormancer.Server.Plugins.Configuration
         /// <summary>
         /// Method called when the active deployment changes.
         /// </summary>
-        void OnDeploymentChanged() { }
+        /// <param name="e"></param>
+        void OnDeploymentChanged(ActiveDeploymentChangedEventArgs e) { }
     }
 
     /// <summary>

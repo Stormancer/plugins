@@ -9,6 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+2.1.0
+-----
+Changed
+*******
+- IConfigurationChangedEventHandler.OnDeploymentChanged now taks a DeploymentChangedEventArgs argument.
 2.0.0.2
 ----------
 - Update to .NET5.0

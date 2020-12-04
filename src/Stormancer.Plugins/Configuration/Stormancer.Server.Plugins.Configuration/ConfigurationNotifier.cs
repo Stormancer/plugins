@@ -24,10 +24,10 @@ namespace Stormancer.Server.Plugins.Configuration
         private void Env_ActiveDeploymentChanged(object? sender, ActiveDeploymentChangedEventArgs e)
         {
             var deps = host.DependencyResolver.ResolveAll<IConfigurationChangedEventHandler>();
-            deps.RunEventHandler(h => h.OnDeploymentChanged(), ex => logger.Log(LogLevel.Error, "configuration", $"An error occured while running {nameof(IConfigurationChangedEventHandler.OnDeploymentChanged)}", ex));
+            deps.RunEventHandler(h => h.OnDeploymentChanged(e), ex => logger.Log(LogLevel.Error, "configuration", $"An error occured while running {nameof(IConfigurationChangedEventHandler.OnDeploymentChanged)}", ex));
             foreach (var scene in host.EnumerateScenes())
             {
-                scene.DependencyResolver.ResolveAll<IConfigurationChangedEventHandler>().Where(dep => !deps.Contains(dep)).RunEventHandler(h => h.OnDeploymentChanged(), ex => logger.Log(LogLevel.Error, "configuration", $"An error occured while running {nameof(IConfigurationChangedEventHandler.OnDeploymentChanged)}", ex));
+                scene.DependencyResolver.ResolveAll<IConfigurationChangedEventHandler>().Where(dep => !deps.Contains(dep)).RunEventHandler(h => h.OnDeploymentChanged(e), ex => logger.Log(LogLevel.Error, "configuration", $"An error occured while running {nameof(IConfigurationChangedEventHandler.OnDeploymentChanged)}", ex));
 
             }
 
