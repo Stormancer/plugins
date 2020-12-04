@@ -44,7 +44,7 @@
   </ItemGroup>
   
   <Target Name="PostPack" AfterTargets="Pack">
-    <Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages/$(ConfigurationName)">
+    <Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages">
       <Output TaskParameter="CopiedFiles" ItemName="Changed" />
     </Copy>
     <Message Text="Copied @(Changed)" Importance="High" />
