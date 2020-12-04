@@ -22,6 +22,7 @@
 
 using Stormancer.Core;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.Configuration;
 using System;
 using System.Collections.Generic;
 
@@ -40,7 +41,7 @@ namespace Stormancer.Server.Plugins.Notification
                 builder.Register<InAppNotificationRepository>();
                 builder.Register<ProxyNotificationChannel>().As<INotificationChannel>().InstancePerDependency();
                 builder.Register<NotificationChannelController>();
-                builder.Register<InAppNotificationProvider>().As<INotificationProvider>().As<InAppNotificationProvider>().InstancePerScene();
+                builder.Register<InAppNotificationProvider>().As<INotificationProvider>().AsSelf().InstancePerScene();
             };
 
             ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>

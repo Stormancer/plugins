@@ -153,17 +153,15 @@ namespace Stormancer.Server.Plugins.Users
             await _sessions.UpdateSessionData(sessionId, key, data);
         }
 
-        public async Task GetSessionData(RequestContext<IScenePeer> rq)
+        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
+        public async Task<byte[]?> GetSessionData(RequestContext<IScenePeer> rq)
         {
             var sessionId = _serializer.Deserialize<string>(rq.InputStream);
             var key = _serializer.Deserialize<string>(rq.InputStream);
 
             var value = await _sessions.GetSessionData(sessionId, key);
 
-            if (value != null)
-            {
-                await rq.SendValue(s => s.Write(value, 0, value.Length));
-            }
+            return value;
         }
 
         //public async Task DecodeBearerToken(RequestContext<IScenePeer> rq)

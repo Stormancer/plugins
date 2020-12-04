@@ -91,7 +91,7 @@ namespace Stormancer.Server.Plugins.Database
 
             ctx.HostDependenciesRegistration += (IDependencyBuilder b) =>
             {
-                b.Register<ESClientFactory>().As<IESClientFactory>().SingleInstance();
+                b.Register<ESClientFactory>().As<IESClientFactory>().As<IConfigurationChangedEventHandler>().SingleInstance();
                 SmartFormat.Smart.Default.AddExtensions(new TimeIntervalFormatter());
 
 
@@ -190,12 +190,13 @@ namespace Stormancer.Server.Plugins.Database
     }
 
 
-    class ESClientFactory : IESClientFactory, IDisposable
+    class ESClientFactory : IESClientFactory, IConfigurationChangedEventHandler, IDisposable
     {
         private const string LOG_CATEGORY = "ESClientFactory";
 
         private static ConcurrentDictionary<string, Task> _mappingInitialized = new ConcurrentDictionary<string, Task>();
         private IEnvironment _environment;
+        private readonly IConfiguration configuration;
         private ConcurrentDictionary<string, Nest.ElasticClient> _clients = new ConcurrentDictionary<string, ElasticClient>();
         private Dictionary<string, ConnectionPool> _connectionPools;
 
@@ -228,14 +229,15 @@ namespace Stormancer.Server.Plugins.Database
         {
             _eventHandlers = eventHandlers;
             _environment = environment;
-
+            this.configuration = configuration;
             _logger = logger;
-            configuration.SettingsChanged += (_, settings) => ApplySettings(settings);
-            ApplySettings(configuration.Settings);
+           
+            ApplySettings();
         }
 
-        private void ApplySettings(dynamic config)
+        private void ApplySettings()
         {
+            dynamic config = configuration.Settings;
             _clients.Clear();
             _config = (ESConfig)(config?.elasticsearch?.ToObject<ESConfig>()) ?? new ESConfig();
 
@@ -413,6 +415,11 @@ namespace Stormancer.Server.Plugins.Database
             _account = app.AccountId;
             _application = app.ApplicationName;
             _deploymentId = app.DeploymentId;
+        }
+
+        public void OnConfigurationChanged()
+        {
+            ApplySettings();
         }
     }
 }

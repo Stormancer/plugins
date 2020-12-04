@@ -47,22 +47,23 @@ namespace Stormancer.Server.Plugins.Friends
             _locator = locator;
         }
 
-        private async Task<Packet<IScenePeer>> FriendsRpc(string route, Action<Stream> writer)
+        private async IAsyncEnumerable<Packet<IScenePeer>> FriendsRpc(string route, Action<Stream> writer)
         {
             var rpc = _scene.DependencyResolver.Resolve<RpcService>();
-            return await rpc.Rpc(route, new MatchSceneFilter(await _locator.GetSceneId("stormancer.plugins.friends", "")), writer, PacketPriority.MEDIUM_PRIORITY).LastOrDefaultAsync();
+            await foreach(var packet in rpc.Rpc(route, new MatchSceneFilter(await _locator.GetSceneId("stormancer.plugins.friends", "")), writer, PacketPriority.MEDIUM_PRIORITY).ToAsyncEnumerable())
+            {
+                yield return packet;
+            }
         }
 
         public async Task AddNonPersistedFriends(string userId, IEnumerable<Friend> friends)
         {
-            var response = await FriendsRpc("FriendsS2S." + nameof(AddNonPersistedFriends), s => {
+            await foreach(var packet in FriendsRpc("FriendsS2S." + nameof(AddNonPersistedFriends), s => {
                 _serializer.Serialize(userId, s);
                 _serializer.Serialize(friends, s);
-            });
-
-            using (response?.Stream)
+            }))
             {
-
+                using (packet) { }
             }
 
         }

@@ -42,10 +42,11 @@ namespace Stormancer.Server.Plugins.Notification
             _scene = scene;
             this.serializer = serializer;
             _logger = logger;
+            this.configuration = configuration;
             _repository = repository;
 
-            configuration.SettingsChanged += (_, settings) => ApplyConfig(settings);
-            ApplyConfig(configuration.Settings);
+            
+           
 
             _userSessions = userSessions;
 
@@ -70,9 +71,7 @@ namespace Stormancer.Server.Plugins.Notification
             await _repository.AcknowledgeNotification(notificationId);
         }
 
-        private void ApplyConfig(dynamic settings)
-        {
-        }
+       
 
         public Task OnConnected(IScenePeerClient client)
         {
@@ -160,6 +159,7 @@ namespace Stormancer.Server.Plugins.Notification
         private readonly ISceneHost _scene;
         private readonly ISerializer serializer;
         private readonly ILogger _logger;
+        private readonly IConfiguration configuration;
         private readonly InAppNotificationRepository _repository;
         private readonly IUserSessions _userSessions;
     }

@@ -67,7 +67,7 @@ namespace Stormancer.Server.Plugins.GameSession
         Disconnected = 4
     }
 
-    internal class GameSessionService : IGameSessionService, IDisposable
+    internal class GameSessionService : IGameSessionService, IConfigurationChangedEventHandler, IDisposable
     {
         private class Client
         {
@@ -159,8 +159,8 @@ namespace Stormancer.Server.Plugins.GameSession
             _rpc = rpc;
             _serializer = serializer;
 
-            _configuration.SettingsChanged += OnSettingsChange;
-            OnSettingsChange(_configuration, _configuration.Settings);
+            
+            ApplySettings();
 
             scene.Shuttingdown.Add(args =>
             {
@@ -175,8 +175,9 @@ namespace Stormancer.Server.Plugins.GameSession
             scene.AddRoute("player.faulted", this.ReceivedFaulted, _ => _);
         }
 
-        private void OnSettingsChange(Object sender, dynamic settings)
+        private void ApplySettings()
         {
+            dynamic settings = _configuration.Settings;
             _serverEnabled = ((bool?)settings?.gameServer?.dedicatedServer) ?? false;
             var timeout = ((string)settings?.gameServer?.dedicatedServerTimeout);
             if (timeout != null)
@@ -982,6 +983,11 @@ namespace Stormancer.Server.Plugins.GameSession
                     yield return team;
                 }
             }
+        }
+
+        public void OnConfigurationChanged()
+        {
+            ApplySettings();
         }
     }
 }

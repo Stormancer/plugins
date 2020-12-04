@@ -48,7 +48,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// <summary>
         /// Steam authentication provider constructor.
         /// </summary>
-        /// <param name="config"></param>
+        /// <param name="configuration"></param>
         /// <param name="logger"></param>
         /// <param name="users"></param>
         /// <param name="steam"></param>

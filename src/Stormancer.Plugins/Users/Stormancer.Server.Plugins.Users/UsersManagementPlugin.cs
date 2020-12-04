@@ -111,7 +111,7 @@ namespace Stormancer.Server.Plugins.Users
                 b.Register<LoginPasswordAuthenticationProvider>().As<IAuthenticationProvider>();
                 b.Register<AdminImpersonationAuthenticationProvider>().As<IAuthenticationProvider>();
                 b.Register<EphemeralAuthenticationProvider>().As<IAuthenticationProvider>();
-                b.Register<CredentialsRenewer>().AsSelf().As<IAuthenticationEventHandler>().SingleInstance();
+                b.Register<CredentialsRenewer>().AsSelf().As<IAuthenticationEventHandler>().As<IConfigurationChangedEventHandler>().SingleInstance();
             }
             else
             {

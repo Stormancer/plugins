@@ -9,6 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+
+Unreleased
+----------
+- Update to .NET5.0
+
 1.0.3.4
 -------
 Added

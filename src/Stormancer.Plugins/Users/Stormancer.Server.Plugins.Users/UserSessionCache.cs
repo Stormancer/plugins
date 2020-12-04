@@ -249,18 +249,14 @@ namespace Stormancer.Server.Plugins.Users
                 var rpc = scope.Resolve<RpcService>();
                 var locator = scope.Resolve<IServiceLocator>();
 
-                var packet = await rpc.Rpc(route, new MatchSceneFilter(await locator.GetSceneId("stormancer.authenticator" + (string.IsNullOrEmpty(type) ? "" : "-" + type), "")), s => serializer.Serialize(arg1, s), PacketPriority.MEDIUM_PRIORITY).LastOrDefaultAsync();
-                if (packet != null)
+                return await rpc.Rpc(route, new MatchSceneFilter(await locator.GetSceneId("stormancer.authenticator" + (string.IsNullOrEmpty(type) ? "" : "-" + type), "")), s => serializer.Serialize(arg1, s), PacketPriority.MEDIUM_PRIORITY).Select(p =>
                 {
-                    using (packet.Stream)
+                    using (p)
                     {
-                        return serializer.Deserialize<TOut>(packet.Stream);
+                        return serializer.Deserialize<TOut>(p.Stream);
                     }
-                }
-                else
-                {
-                    return default(TOut);
-                }
+                }).LastOrDefaultAsync();
+
             }
         }
 

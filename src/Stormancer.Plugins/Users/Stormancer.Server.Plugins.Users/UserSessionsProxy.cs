@@ -55,9 +55,26 @@ namespace Stormancer.Server.Plugins.Users
             this.env = env;
         }
 
-        private async Task<Packet<IScenePeer>> AuthenticatorRpc(string? targetSessionId, string route, Action<Stream> writer, string type = "")
+        private async Task<T> AuthenticatorRpc<T>(string? targetSessionId, string route, Action<Stream> writer, string type = "")
         {
-            return await AuthenticatorRpc(targetSessionId, route, writer, CancellationToken.None, type).LastOrDefaultAsync();
+            return await AuthenticatorRpc(targetSessionId, route, writer, CancellationToken.None, type).Select(p =>
+            {
+                using (p)
+                {
+                    return _serializer.Deserialize<T>(p.Stream);
+                }
+            }).LastOrDefaultAsync();
+        }
+
+        private async Task AuthenticatorRpc(string? targetSessionId, string route, Action<Stream> writer, string type = "")
+        {
+            await AuthenticatorRpc(targetSessionId, route, writer, CancellationToken.None, type).Select(p =>
+            {
+                using (p)
+                {
+                    return System.Reactive.Unit.Default;
+                }
+            }).LastOrDefaultAsync();
         }
 
         private IObservable<Packet<IScenePeer>> AuthenticatorRpc(string? targetSessionId, string route, Action<Stream> writer, CancellationToken cancellationToken, string type = "")
@@ -90,28 +107,18 @@ namespace Stormancer.Server.Plugins.Users
             return await AuthenticatorRpcWithSceneId(sceneId, route, writer, CancellationToken.None);
         }
 
-        private async Task<string> GetSessionIdForUser(string userId)
+        private Task<string> GetSessionIdForUser(string userId)
         {
-            var response = await AuthenticatorRpc(null, "usersession.getpeer", s => _serializer.Serialize(userId, s));
-            if (response != null)
-            {
-                using (response.Stream)
-                {
-                    return _serializer.Deserialize<string>(response.Stream);
-                }
-            }
-            else
-            {
-                return null;
-            }
+            return AuthenticatorRpc<string>(null, "usersession.getpeer", s => _serializer.Serialize(userId, s));
+
 
         }
-        public Task<IScenePeerClient> GetPeer(string userId)
+        public Task<IScenePeerClient?> GetPeer(string userId)
         {
             return cache.GetPeerByUserId(userId, "");
         }
 
-        public async Task<User> GetUser(IScenePeerClient peer)
+        public async Task<User?> GetUser(IScenePeerClient peer)
         {
             var session = await GetSessionById(peer.SessionId, false);
             return session?.User;
@@ -119,25 +126,20 @@ namespace Stormancer.Server.Plugins.Users
         }
 
 
-        public async Task<bool> IsAuthenticated(IScenePeerClient peer)
+        public Task<bool> IsAuthenticated(IScenePeerClient peer)
         {
-            var response = await AuthenticatorRpc(peer.SessionId, "usersession.isauthenticated", s => _serializer.Serialize(peer.SessionId, s));
+            return AuthenticatorRpc<bool>(peer.SessionId, "usersession.isauthenticated", s => _serializer.Serialize(peer.SessionId, s));
 
-            var result = _serializer.Deserialize<bool>(response.Stream);
-            response.Stream.Dispose();
-            return result;
+
         }
 
-        public async Task UpdateUserData<T>(IScenePeerClient peer, T data)
+        public Task UpdateUserData<T>(IScenePeerClient peer, T data)
         {
-            var response = await AuthenticatorRpc(peer.SessionId, "usersession.updateuserdata", s =>
-               {
-                   _serializer.Serialize(peer.SessionId, s);
-                   _serializer.Serialize(JObject.FromObject(data), s);
-               });
-
-            response.Stream.Dispose();
-
+            return AuthenticatorRpc(peer.SessionId, "usersession.updateuserdata", s =>
+            {
+                _serializer.Serialize(peer.SessionId, s);
+                _serializer.Serialize(JObject.FromObject(data), s);
+            });
         }
 
         public async Task<PlatformId> GetPlatformId(string userId)
@@ -154,7 +156,7 @@ namespace Stormancer.Server.Plugins.Users
 
         }
 
-        public Task<Session> GetSessionByUserId(string userId, bool forceRefresh)
+        public Task<Session?> GetSessionByUserId(string userId, bool forceRefresh)
         {
             return cache.GetSessionByUserId(userId, true, "", forceRefresh);
             //var response = await AuthenticatorRpc("usersession.getsessionbyuserid", s => _serializer.Serialize(userId, s));
@@ -164,7 +166,7 @@ namespace Stormancer.Server.Plugins.Users
             //return result;
         }
 
-        public Task<Session> GetSessionById(string sessionId, string authType, bool forceRefresh)
+        public Task<Session?> GetSessionById(string sessionId, string authType, bool forceRefresh)
         {
             return cache.GetSessionBySessionId(sessionId, true, authType, forceRefresh);
             //var response = await AuthenticatorRpc("usersession.getsessionbyid", s => _serializer.Serialize(sessionId, s),authType);
@@ -182,12 +184,12 @@ namespace Stormancer.Server.Plugins.Users
             //}
         }
 
-        public Task<Session> GetSessionById(string sessionId, bool forceRefresh)
+        public Task<Session?> GetSessionById(string sessionId, bool forceRefresh)
         {
             return GetSessionById(sessionId, "", forceRefresh);
         }
 
-        public async Task<Session> GetSession(IScenePeerClient peer, bool forceRefresh)
+        public async Task<Session?> GetSession(IScenePeerClient peer, bool forceRefresh)
         {
             return await GetSessionById(peer.SessionId, forceRefresh);
         }
@@ -198,125 +200,91 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="platformId"></param>
         /// <param name="forceRefresh"></param>
         /// <returns></returns>
-        public async Task<Session> GetSession(PlatformId platformId, bool forceRefresh)
+        public async Task<Session?> GetSession(PlatformId platformId, bool forceRefresh)
         {
             var session = await GetSessions(platformId.ToEnumerable(), forceRefresh);
             return session.Values.FirstOrDefault();
         }
 
-        public async Task UpdateSessionData(string sessionId, string key, byte[] data)
+        public Task UpdateSessionData(string sessionId, string key, byte[] data)
         {
-            var response = await AuthenticatorRpc(sessionId, "usersession.updatesessiondata", s =>
+            return AuthenticatorRpc(sessionId, "usersession.updatesessiondata", s =>
              {
                  _serializer.Serialize(sessionId, s);
                  _serializer.Serialize(key, s);
                  s.Write(data, 0, data.Length);
              });
 
-            response?.Stream.Dispose();
+
         }
 
-        public async Task<byte[]> GetSessionData(string sessionId, string key)
+        public Task<byte[]?> GetSessionData(string sessionId, string key)
         {
-            var response = await AuthenticatorRpc(sessionId, "usersession.getsessiondata", s =>
+            return AuthenticatorRpc<byte[]?>(sessionId, "UserSession.GetSessionData", s =>
              {
                  _serializer.Serialize(sessionId, s);
                  _serializer.Serialize(key, s);
              });
 
-            using (response.Stream)
-            {
-                if (response.Stream.Length > 0)
-                {
-                    var data = new byte[response.Stream.Length];
-                    response.Stream.Read(data, 0, data.Length);
-                    return data;
-                }
-                else
-                {
-                    return null;
-                }
-            }
+
         }
 
         public async Task UpdateSessionData<T>(string sessionId, string key, T data)
         {
-            var response = await AuthenticatorRpc(sessionId, "usersession.updatesessiondata", s =>
+            await AuthenticatorRpc(sessionId, "usersession.updatesessiondata", s =>
              {
                  _serializer.Serialize(sessionId, s);
                  _serializer.Serialize(key, s);
                  _serializer.Serialize(data, s);
              });
 
-            response?.Stream.Dispose();
 
             // Refresh the cache to get the new session data
             await GetSessionById(sessionId, true);
         }
 
-        public async Task<T> GetSessionData<T>(string sessionId, string key)
+        public async Task<T?> GetSessionData<T>(string sessionId, string key)
         {
-            var response = await AuthenticatorRpc(sessionId, "usersession.getsessiondata", s =>
+            var bytes = await AuthenticatorRpc<byte[]?>(sessionId, "UserSession.GetSessionData", s =>
              {
                  _serializer.Serialize(sessionId, s);
                  _serializer.Serialize(key, s);
              });
-
-            using (response.Stream)
+            if (bytes != null)
             {
-                if (response.Stream.Length > 0)
+                using (var memStream = new MemoryStream(bytes))
                 {
-                    return _serializer.Deserialize<T>(response.Stream);
-                }
-                else
-                {
-                    return default(T);
+                    return _serializer.Deserialize<T>(memStream);
                 }
             }
+            else
+            {
+                return default;
+            }
+
         }
 
 
 
-        public async Task<Dictionary<string, User>> GetUsers(params string[] userIds)
+        public Task<Dictionary<string, User?>> GetUsers(params string[] userIds)
         {
-            var response = await AuthenticatorRpc(null, $"UserSession.{nameof(GetUsers)}", s =>
-             {
-                 _serializer.Serialize(userIds, s);
-             });
-
-            using (response.Stream)
+            return AuthenticatorRpc<Dictionary<string, User?>>(null, $"UserSession.{nameof(GetUsers)}", s =>
             {
-                if (response.Stream.Length > 0)
-                {
-                    return _serializer.Deserialize<Dictionary<string, User>>(response.Stream);
-                }
-                else
-                {
-                    throw new InvalidOperationException("An unknown error occured while trying to decode a bearer token");
-                }
-            }
+                _serializer.Serialize(userIds, s);
+            });
+
+
         }
 
-        public async Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string, string>> query, int take, int skip)
+        public Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string, string>> query, int take, int skip)
         {
-            var response = await AuthenticatorRpc(null, $"UserSession.{nameof(Query)}", s =>
+            return AuthenticatorRpc<IEnumerable<User>>(null, $"UserSession.{nameof(Query)}", s =>
              {
                  _serializer.Serialize(query, s);
                  _serializer.Serialize(take, s);
                  _serializer.Serialize(skip, s);
              });
-
-            using (response.Stream)
-            {
-                if (response.Stream.Length > 0)
-                {
-                    return _serializer.Deserialize<IEnumerable<User>>(response.Stream);
-                }
-                else
-                {
-                    throw new InvalidOperationException("An unknown error occured while trying to decode a bearer token");
-                }
-            }
+          
         }
 
         public async Task UpdateUserHandle(string userId, string newHandle, bool appendHash)
@@ -346,18 +314,15 @@ namespace Stormancer.Server.Plugins.Users
             });
         }
 
-        public Task<Dictionary<PlatformId, Session>> GetSessions(IEnumerable<PlatformId> platformIds, bool forceRefresh = false)
+        public Task<Dictionary<PlatformId, Session?>> GetSessions(IEnumerable<PlatformId> platformIds, bool forceRefresh = false)
         {
             return cache.GetSessionsByPlatformIds(platformIds, true, "", forceRefresh);
         }
 
-        public async Task<int> GetAuthenticatedUsersCount()
+        public Task<int> GetAuthenticatedUsersCount()
         {
-            var p = await AuthenticatorRpc(null, $"UserSession.{nameof(GetAuthenticatedUsersCount)}", s => { });
-            using (p.Stream)
-            {
-                return _serializer.Deserialize<int>(p.Stream);
-            }
+           return AuthenticatorRpc<int>(null, $"UserSession.{nameof(GetAuthenticatedUsersCount)}", s => { });
+          
         }
 
         public Task<Dictionary<string, Session?>> GetSessions(IEnumerable<string> sessionIds, bool forceRefresh = false)

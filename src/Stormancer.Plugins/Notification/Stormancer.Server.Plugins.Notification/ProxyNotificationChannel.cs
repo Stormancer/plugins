@@ -76,21 +76,18 @@ namespace Stormancer.Server.Plugins.Notification
                 var locator = scope.Resolve<IServiceLocator>();
 
                 var rpc = _scene.DependencyResolver.Resolve<RpcService>();
-                var packet = await rpc.Rpc("NotificationChannel.SendNotification", new MatchSceneFilter(await locator.GetSceneId("stormancer.plugins.notifications", "")), s =>
+                return await rpc.Rpc("NotificationChannel.SendNotification", new MatchSceneFilter(await locator.GetSceneId("stormancer.plugins.notifications", "")), s =>
                 {
                     _serializer.Serialize(type, s);
                     _serializer.Serialize(notif, s);
-                }, PacketPriority.MEDIUM_PRIORITY).LastOrDefaultAsync();
-
-                if (packet == null)
+                }, PacketPriority.MEDIUM_PRIORITY).Select(p=>
                 {
-                    throw new InvalidOperationException("Failed to send notification. (no response)");
-                }
-
-                using (packet.Stream)
-                {
-                    return _serializer.Deserialize<bool>(packet.Stream);
-                }
+                    using (p)
+                    {
+                        return _serializer.Deserialize<bool>(p.Stream);
+                    }
+                }).LastOrDefaultAsync();
+   
             }
         }
     }

@@ -26,6 +26,7 @@ using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using System;
 using System.Threading.Tasks;
+using Stormancer.Server.Plugins.Configuration;
 
 namespace Stormancer.Server.Plugins.Analytics
 {
@@ -39,7 +40,7 @@ namespace Stormancer.Server.Plugins.Analytics
               {
                   builder.Register<AnalyticsController>().InstancePerRequest();
                   builder.Register<AnalyticsService>().As<IAnalyticsService>().SingleInstance();
-                  //builder.Register<AnalyticsEventHandler>().As<IGameFinderEventHandler>().As<IUserSessionEventHandler>().As<IApiHandler>().SingleInstance();
+                  builder.Register<ApiAnalyticsEventHandler>().As<IApiHandler>().As<IConfigurationChangedEventHandler>().SingleInstance();
                   builder.Register<ElasticsearchOutput>().As<IAnalyticsOutput>();
               };
 

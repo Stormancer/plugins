@@ -97,7 +97,6 @@ namespace Stormancer.Server.Plugins.Steam
             _userSessions = userSessions;
 
             ApplyConfig(configuration.Settings);
-            configuration.SettingsChanged += (sender, settings) => ApplyConfig(settings);
         }
 
         private void ApplyConfig(dynamic config)

@@ -29,18 +29,19 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameVersion
 {
-    internal class GameVersionService
+    internal class GameVersionService: IConfigurationChangedEventHandler
     {
         public string CurrentGameVersion { get; private set; } = "NA";
 
         public bool CheckClientVersion { get; private set; } = false;
 
         private readonly string prefix;
-
+        private readonly IConfiguration configuration;
         private readonly ISceneHost scene;
 
         public GameVersionService(IConfiguration configuration, IEnvironment environment, ISceneHost scene)
         {
+            this.configuration = configuration;
             this.scene = scene;
             prefix = scene.Metadata[GameVersionPlugin.METADATA_KEY];
 
@@ -52,8 +53,8 @@ namespace Stormancer.Server.Plugins.GameVersion
                 }
             };
 
-            configuration.SettingsChanged += (sender, v) => UpdateSettings(v);
-            UpdateSettings(configuration.Settings);
+            
+            UpdateSettings();
 
             scene.Connected.Add(p =>
             {
@@ -62,16 +63,17 @@ namespace Stormancer.Server.Plugins.GameVersion
             });
         }
 
-        private void UpdateSettings(dynamic configuration)
+        private void UpdateSettings()
         {
+            dynamic config = configuration.Settings;
             dynamic? configEntry;
             if (prefix == "default")
             {
-                configEntry = configuration?.clientVersion;
+                configEntry = config?.clientVersion;
             }
             else
             {
-                configEntry = configuration?.clientVersion?[prefix];
+                configEntry = config?.clientVersion?[prefix];
             }
 
             var (newGameVersion, checkClientVersion) = GetVersion((JObject?)configEntry);
@@ -112,6 +114,11 @@ namespace Stormancer.Server.Plugins.GameVersion
                 gameVersion = "NA";
             }
             return (gameVersion, checkClientVersion);
+        }
+
+        public void OnConfigurationChanged()
+        {
+            UpdateSettings();
         }
     }
 }
