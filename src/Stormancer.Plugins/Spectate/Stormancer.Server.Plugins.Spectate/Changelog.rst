@@ -9,8 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
+0.2.0
 ----------
+Changed
+*******
+- use dotnet5.0 & support stormancer 6.x
 
 0.1.0
 -------

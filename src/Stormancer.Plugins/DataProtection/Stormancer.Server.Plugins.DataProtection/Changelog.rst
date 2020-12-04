@@ -10,7 +10,7 @@ Please use only reStructuredText in this file, no Markdown!
 This project adheres to semantic versioning.
 
 
-Unreleased
+1.0.0.1
 ----------
 - Update to .NET5.0
 

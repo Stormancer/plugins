@@ -9,9 +9,15 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
+2.0.0.3
 ----------
+Changed
+*******
 - Update to .NET5.0
+Added
+*****
+- Set "instrumentation.EnableApiInstrumentation" to true in config to enable saving analytics about API usage & performance. (disabled by default)
+
 1.0.1
 -----
 Added
