@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord.WebSocket;
@@ -206,7 +207,7 @@ class Build : NukeBuild
                     DotNetPack(s => s
                     .SetProject(project)
                     .SetConfiguration(Configuration)
-                    .SetProperty("PackageReleaseNotes", changeLogRelease.Description)
+                    .SetProperty("PackageReleaseNotes", MsBuildEscape(changeLogRelease.Description))
                     .EnableNoBuild()
                     );
                     DotNetNuGetPush(s => s
@@ -217,7 +218,7 @@ class Build : NukeBuild
                         );
 
                     var sourceBranch = Environment.GetEnvironmentVariable("BUILD_SOURCEBRANCH")?.Substring("refs/heads/".Length);
-                    git($"checkout {sourceBranch}");
+                    //git($"checkout {sourceBranch}");
 
                     //try
                     //{
@@ -230,7 +231,7 @@ class Build : NukeBuild
 
                     if (sourceBranch == null)
                     {
-                        git($"push origin");
+                        git($"push origin --tags");
                     }
                     else
                     {
@@ -245,4 +246,17 @@ class Build : NukeBuild
 
 
     });
+
+    private string MsBuildEscape(string value)
+    {
+        return value
+            .Replace("%", "%25")
+            .Replace("$", "%24")
+            .Replace("@", "%40")
+            .Replace("'", "%27")
+            .Replace(";", "%3B")
+            .Replace("?", "%3F")
+            .Replace("*", "%2A")
+            .Replace(",", "%2c");
+    }
 }

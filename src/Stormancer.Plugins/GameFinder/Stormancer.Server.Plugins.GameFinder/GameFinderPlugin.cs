@@ -23,6 +23,7 @@
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.ServiceLocator;
 using System;
 using System.Collections.Generic;
@@ -57,7 +58,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
                 builder.Register<GameFinderController>();
-                builder.Register<GameFinderService>().As<IGameFinderService>().InstancePerScene();
+                builder.Register<GameFinderService>().As<IGameFinderService>().As<IConfigurationChangedEventHandler>().InstancePerScene();
                 builder.Register<GameFinderData>().AsSelf().InstancePerScene();
                 builder.Register<GameFinderProxy>().As<IGameFinder>();
                 builder.Register<ServiceLocationProvider>().As<IServiceLocatorProvider>();

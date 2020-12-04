@@ -114,7 +114,7 @@ namespace Stormancer.Server.Plugins.Steam
             _serviceLocator = locator;
 
             ApplyConfig(configuration.Settings);
-            configuration.SettingsChanged += (s, c) => ApplyConfig(c);
+          
         }
 
         private void ApplyConfig(dynamic config)

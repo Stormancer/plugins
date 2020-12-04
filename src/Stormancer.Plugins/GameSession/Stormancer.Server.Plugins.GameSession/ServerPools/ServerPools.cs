@@ -35,28 +35,26 @@ namespace Stormancer.Server.Plugins.GameSession
         IServerPool GetPool(string id);
     }
 
-    public class ServerPools : IServerPools, IDisposable
+    internal class ServerPools : IServerPools, IConfigurationChangedEventHandler
     {
         private readonly ILogger logger;
-        private readonly IConfiguration config;
+        private readonly IConfiguration configuration;
         private readonly IEnumerable<IServerPoolProvider> providers;
         private readonly ConcurrentDictionary<string, IServerPool> _pools = new ConcurrentDictionary<string, IServerPool>();
 
         public ServerPools(ILogger logger, IConfiguration config, IEnumerable<IServerPoolProvider> providers)
         {
             this.logger = logger;
-            this.config = config;
+            this.configuration = config;
             this.providers = providers;
-            config.SettingsChanged += OnSettingsChanged;
+           
         }
 
-        public void Dispose()
-        {
-            this.config.SettingsChanged -= OnSettingsChanged;
-        }
+      
 
-        private void OnSettingsChanged(object sender, dynamic config)
+        private void ApplySettings()
         {
+            var config = configuration.Settings;
             var configs = (Dictionary<string, JObject>)(config.serverPools);
             var destroyedPools = new List<string>();
             foreach (var pool in _pools)
@@ -108,9 +106,9 @@ namespace Stormancer.Server.Plugins.GameSession
             }
         }
 
-        private JObject GetConfiguration(string id)
+        private JObject? GetConfiguration(string id)
         {
-            if (((Dictionary<string, JObject>)config.Settings.serverPools).TryGetValue(id, out var c))
+            if (((Dictionary<string, JObject>)configuration.Settings.serverPools).TryGetValue(id, out var c))
             {
                 return c;
             }
@@ -140,6 +138,11 @@ namespace Stormancer.Server.Plugins.GameSession
                  }
                  throw new InvalidOperationException($"Failed to create pool {id}. No provider could create the pool.");
              });
+        }
+
+        public void OnConfigurationChanged()
+        {
+            ApplySettings();
         }
     }
 }

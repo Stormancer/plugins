@@ -22,6 +22,7 @@
 
 using Stormancer.Core;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Users;
 
 namespace Stormancer.Server.Plugins.GameVersion
@@ -36,7 +37,7 @@ namespace Stormancer.Server.Plugins.GameVersion
             {
                 if (scene.Metadata.ContainsKey(METADATA_KEY))
                 {
-                    builder.Register<GameVersionService>().InstancePerScene();
+                    builder.Register<GameVersionService>().AsSelf().As<IConfigurationChangedEventHandler>().InstancePerScene();
                     builder.Register<AuthenticationEventHandler>().As<IAuthenticationEventHandler>().InstancePerRequest();
                 }
             };

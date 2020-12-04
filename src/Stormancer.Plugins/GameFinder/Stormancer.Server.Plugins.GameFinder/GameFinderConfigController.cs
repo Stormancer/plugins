@@ -27,6 +27,7 @@ using Stormancer.Plugins;
 using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.ServiceLocator;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 
@@ -67,15 +68,18 @@ namespace Stormancer.Server.Plugins.GameFinder
             foreach (var id in gameFinderIds)
             {
                 var sceneUri = await locator.GetSceneId("stormancer.plugins.gamefinder", id);
-                var response = await rpc.Rpc("GameFinder.GetMetrics", new MatchSceneFilter(sceneUri), s => { }, PacketPriority.MEDIUM_PRIORITY).LastOrDefaultAsync();
-
-                if (response != null)
+                await foreach (var item in rpc.Rpc("GameFinder.GetMetrics", new MatchSceneFilter(sceneUri), s => { }, PacketPriority.MEDIUM_PRIORITY).Select(p =>
                 {
-                    using (response.Stream)
+                    using (p)
                     {
-                        list.Add(new Metrics { Values = serializer.Deserialize<Dictionary<string, int>>(response.Stream), GameFinderId = id });
+                        return serializer.Deserialize<Dictionary<string, int>>(p.Stream);
                     }
+                }).ToAsyncEnumerable())
+                {
+                    list.Add(new Metrics { Values = item, GameFinderId = id });
                 }
+
+
             }
             return list;
         }

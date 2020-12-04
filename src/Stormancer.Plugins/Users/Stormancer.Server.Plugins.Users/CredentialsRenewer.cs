@@ -33,8 +33,9 @@ using Newtonsoft.Json.Linq;
 
 namespace Stormancer.Server.Plugins.Users
 {
-    internal class CredentialsRenewer : IDisposable, IAuthenticationEventHandler
+    internal class CredentialsRenewer : IDisposable, IAuthenticationEventHandler, IConfigurationChangedEventHandler
     {
+        private readonly IConfiguration configuration;
         private readonly ILogger _logger;
         private readonly ISceneHost _scene;
 
@@ -88,15 +89,16 @@ namespace Stormancer.Server.Plugins.Users
 
         public CredentialsRenewer(IConfiguration configuration, ILogger logger, ISceneHost scene)
         {
+            this.configuration = configuration;
             _logger = logger;
             _scene = scene;
 
-            configuration.SettingsChanged += (_, settings) => UpdateSettings(settings);
-            UpdateSettings(configuration.Settings);
+            UpdateSettings();
         }
 
-        private void UpdateSettings(dynamic settings)
+        private void UpdateSettings()
         {
+            var settings = configuration.Settings;
             TimeSpan checkPeriodTemp = DefaultCheckPeriod;
             JToken checkPeriodEntry = (JToken)settings?.users?.credentialsRenewal?.checkPeriod;
             if (checkPeriodEntry != null)
@@ -223,6 +225,11 @@ namespace Stormancer.Server.Plugins.Users
             return Task.CompletedTask;
         }
 
+        public void OnConfigurationChanged()
+        {
+            UpdateSettings();
+        }
+
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
 
@@ -245,6 +252,8 @@ namespace Stormancer.Server.Plugins.Users
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(true);
         }
+
+      
         #endregion
     }
 }

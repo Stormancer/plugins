@@ -40,14 +40,14 @@ namespace Stormancer.Server.Plugins.Users
         /// </summary>
         /// <param name="peer"></param>
         /// <returns>An user instance, or null if the peer isn't authenticated.</returns>
-        Task<User> GetUser(IScenePeerClient peer);
+        Task<User?> GetUser(IScenePeerClient peer);
 
         /// <summary>
         /// Gets the peer that has been authenticated with the provided user id.
         /// </summary>
         /// <param name="userId"></param>
         /// <returns>A peer instance of null if no peer is currently authenticated with this identity.</returns>
-        Task<IScenePeerClient> GetPeer(string userId);
+        Task<IScenePeerClient?> GetPeer(string userId);
 
         /// <summary>
         /// Updates data associated with the user.
@@ -77,9 +77,9 @@ namespace Stormancer.Server.Plugins.Users
         /// </summary>
         /// <param name="userId"></param>
         /// <returns></returns>
-        Task<Session> GetSessionByUserId(string userId, bool forceRefresh = false);
+        Task<Session?> GetSessionByUserId(string userId, bool forceRefresh = false);
 
-        Task<Session> GetSession(IScenePeerClient peer, bool forceRefresh = false);
+        Task<Session?> GetSession(IScenePeerClient peer, bool forceRefresh = false);
 
         /// <summary>
         /// Gets a session by the session id of the peer (returns null if the user isn't currently connected to the scene)
@@ -96,7 +96,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="platformId">Platform-specific Id of the user</param>
         /// <param name="forceRefresh"><c>true</c> to bypass the scene-local session cache</param>
         /// <returns>The session for <paramref name="platformId"/>. <c>null</c> if the session could not be found.</returns>
-        Task<Session> GetSession(PlatformId platformId, bool forceRefresh = false);
+        Task<Session?> GetSession(PlatformId platformId, bool forceRefresh = false);
 
         /// <summary>
         /// Get sessions of connected users from their platform-specific Ids.
@@ -104,7 +104,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="platformIds">Platform-specific Ids of users to retrieve the sessions of</param>
         /// <param name="forceRefresh"><c>true</c> to bypass the scene-local session cache</param>
         /// <returns>List of PlatformId => Session pairs. If one or more sessions could not be found, the corresponding pairs will not be present in the dictionary.</returns>
-        Task<Dictionary<PlatformId, Session>> GetSessions(IEnumerable<PlatformId> platformIds, bool forceRefresh = false);
+        Task<Dictionary<PlatformId, Session?>> GetSessions(IEnumerable<PlatformId> platformIds, bool forceRefresh = false);
 
         /// <summary>
         /// Gets sessions from session ids.
@@ -130,7 +130,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="sessionId">Id of the session</param>
         /// <param name="key">Key of the data to be retrieved</param>
         /// <returns>The raw data for <paramref name="key"/>, or <c>null</c> if <paramref name="key"/> does not exist.</returns>
-        Task<byte[]> GetSessionData(string sessionId, string key);
+        Task<byte[]?> GetSessionData(string sessionId, string key);
         /// <summary>
         /// Update a user's session data entry with an object.
         /// </summary>
@@ -157,7 +157,7 @@ namespace Stormancer.Server.Plugins.Users
 
         //Task<Session> GetSessionByBearerToken(string token, bool forceRefresh = false);
 
-        Task<Dictionary<string, User>> GetUsers(params string[] userIds);
+        Task<Dictionary<string, User?>> GetUsers(params string[] userIds);
 
         Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string,string>> query, int take, int skip);
 

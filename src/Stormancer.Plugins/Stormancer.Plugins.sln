@@ -109,14 +109,16 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.G
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "_build", "..\..\build\_build.csproj", "{8B769655-FFFD-49AF-A472-E48645FC3386}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Spectate", "Spectate", "{DD0DDB1E-6062-411F-9CA8-2CA0B6A9FD6C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Spectate", "Spectate\Stormancer.Server.Plugins.Spectate\Stormancer.Server.Plugins.Spectate.csproj", "{A8EDE6F2-EFB1-4E22-A59D-C4DB8E0515DC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{8B769655-FFFD-49AF-A472-E48645FC3386}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8B769655-FFFD-49AF-A472-E48645FC3386}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{07DEF021-11C9-4334-954B-8A7B7EEDE43C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{07DEF021-11C9-4334-954B-8A7B7EEDE43C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{07DEF021-11C9-4334-954B-8A7B7EEDE43C}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -221,6 +223,12 @@ Global
 		{401BE992-6208-4B9B-87AE-17CF64B8637E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{401BE992-6208-4B9B-87AE-17CF64B8637E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{401BE992-6208-4B9B-87AE-17CF64B8637E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B769655-FFFD-49AF-A472-E48645FC3386}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B769655-FFFD-49AF-A472-E48645FC3386}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8EDE6F2-EFB1-4E22-A59D-C4DB8E0515DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8EDE6F2-EFB1-4E22-A59D-C4DB8E0515DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A8EDE6F2-EFB1-4E22-A59D-C4DB8E0515DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8EDE6F2-EFB1-4E22-A59D-C4DB8E0515DC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -251,6 +259,7 @@ Global
 		{673DC354-0751-4A1E-91D0-4A05E87EE738} = {33707C73-0398-48B4-BF07-392F500CC19B}
 		{DCB40DCC-4CB7-470D-B919-FB580F7966F9} = {7BCEF864-753C-4147-925B-83EE2F2D9E18}
 		{401BE992-6208-4B9B-87AE-17CF64B8637E} = {81550A48-AC59-49E8-8B35-B5BDC1526D2C}
+		{A8EDE6F2-EFB1-4E22-A59D-C4DB8E0515DC} = {DD0DDB1E-6062-411F-9CA8-2CA0B6A9FD6C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}

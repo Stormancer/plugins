@@ -9,6 +9,10 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+- Update to .NET5.0
+
 1.2.1.2
 -------
 Added
@@ -17,8 +21,10 @@ Added
 
 Changed
 *******
-
+- BREAKING: Implement IConfigurationChangedEventHandler to listen to ConfigurationChanged and DeploymentChanged events. 
+The previous way of doing this (subscribing to events) could lead to memory leaks and performance degradation.
 
 Removed
 *******
+- IConfiguration.SettingsChanged was removed because of the difficulty to use it correctly and the performance issues bad usage could lead to.
 

@@ -33,6 +33,28 @@ using System.Threading.Tasks;
 namespace Stormancer.Server.Plugins.Configuration
 {
     /// <summary>
+    /// Object registered in the dependency container implementing this interface are notified of configuration changes.
+    /// </summary>
+    /// <remarks>
+    /// The object must be registered as an "host" or "scene" dependency. "Reques"t and "per dependency" scoped dependencies are not notified.
+    /// </remarks>
+    public interface IConfigurationChangedEventHandler
+    {
+        /// <summary>
+        /// Method called when the configuration is updated.
+        /// </summary>
+        /// <remarks>
+        /// Use <see cref="IConfiguration"/> to get the updated configuration.
+        /// </remarks>
+        void OnConfigurationChanged();
+
+        /// <summary>
+        /// Method called when the active deployment changes.
+        /// </summary>
+        void OnDeploymentChanged() { }
+    }
+
+    /// <summary>
     /// Application configuration.
     /// </summary>
     public interface IConfiguration
@@ -41,11 +63,6 @@ namespace Stormancer.Server.Plugins.Configuration
         /// App config tree.
         /// </summary>
         dynamic Settings { get; }
-
-        /// <summary>
-        /// Event fired whenever the configuration changes.
-        /// </summary>
-        event EventHandler<dynamic> SettingsChanged;
 
         /// <summary>
         /// Gets a configuration object from the provided path.
@@ -64,62 +81,29 @@ namespace Stormancer.Server.Plugins.Configuration
         /// <param name="value"></param>
         void SetDefaultValue<T>(string key, T value);
     }
-    internal class DefaultConfiguration : IConfiguration, IDisposable
+    internal class DefaultConfiguration : IConfiguration
     {
-        private event EventHandler<dynamic> SettingsChangedImpl;
-
+       
         protected readonly IEnvironment _env;
-        private bool _subscribed = false;
-        public DefaultConfiguration(IEnvironment environment)
+        private readonly ConfigurationNotifier notifier;
+
+        public DefaultConfiguration(IEnvironment environment, ConfigurationNotifier notifier)
         {
             _env = environment;
-            Settings = defaultSettings.DeepClone();
-            ((JObject)Settings).Merge(((JObject)_env.Configuration), new JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Union, MergeNullValueHandling = MergeNullValueHandling.Merge, PropertyNameComparison = StringComparison.InvariantCulture });
-
+            this.notifier = notifier;
         }
 
         private static JObject defaultSettings = new JObject();
 
         public dynamic Settings
         {
-            get;
-            protected set;
-        }
-
-        private void RaiseSettingsChanged(object? sender, dynamic args)
-        {
-            Settings = defaultSettings.DeepClone();
-
-            ((JObject)Settings).Merge(((JObject)_env.Configuration), new JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Union, MergeNullValueHandling = MergeNullValueHandling.Merge, PropertyNameComparison = StringComparison.InvariantCulture });
-            SettingsChangedImpl?.Invoke(this, Settings);
-        }
-
-        public event EventHandler<dynamic> SettingsChanged
-        {
-            add
+            get
             {
-                if (!_subscribed)
-                {
-                    _subscribed = true;
-                    _env.ConfigurationChanged += RaiseSettingsChanged;
-                }
-                SettingsChangedImpl += value;
-            }
-            remove
-            {
-                SettingsChangedImpl -= value;
+                var settings = defaultSettings.DeepClone();
+                ((JObject)settings).Merge(((JObject)_env.Configuration), new JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Union, MergeNullValueHandling = MergeNullValueHandling.Merge, PropertyNameComparison = StringComparison.InvariantCulture });
+                return settings;
             }
         }
-
-        public virtual void Dispose()
-        {
-            if (_subscribed)
-            {
-                _subscribed = false;
-                _env.ConfigurationChanged -= RaiseSettingsChanged;
-            }
-        }
-
         public void SetDefaultValue<T>(string path, T value)
         {
             var segments = path.Split('.');
@@ -137,10 +121,12 @@ namespace Stormancer.Server.Plugins.Configuration
             node[segments.Last()] = JToken.FromObject(value!); //Ignore nullable error because FromObject supports null.
 
 
-            RaiseSettingsChanged(this, Settings);
+            notifier.NotifyConfigChanged();
+
+           
         }
 
-        public T GetValue<T>(string path, T defaultValue = default)
+        public T? GetValue<T>(string path, T defaultValue = default)
         {
             var segments = path.Split('.');
             var node = this.Settings;

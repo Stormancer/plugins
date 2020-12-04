@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>1.0.1</Version>
+    <Version>1.0.1.1</Version>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -14,9 +14,16 @@
     <Description>Provides integration with Google firebase for Stormancer server applications.</Description>
   </PropertyGroup>
 
+    <PropertyGroup>
+    <PackageIcon>icon.png</PackageIcon>
+  </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="FirebaseAdmin" Version="1.9.2" />
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="3.5.0" />
+    <None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
+  </ItemGroup>
+    
+  <ItemGroup>
+    <PackageReference Include="FirebaseAdmin" Version="2.0.0" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="4.0.0.1" />
   </ItemGroup>
 
   <ItemGroup>

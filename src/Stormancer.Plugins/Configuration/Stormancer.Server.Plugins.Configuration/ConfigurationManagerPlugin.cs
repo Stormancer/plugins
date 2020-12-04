@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 using Stormancer.Plugins;
+using Stormancer.Server.Components;
 
 namespace Stormancer.Server.Plugins.Configuration
 {
@@ -27,7 +28,18 @@ namespace Stormancer.Server.Plugins.Configuration
     {
         public void Build(HostPluginBuildContext ctx)
         {
-            ctx.HostDependenciesRegistration += builder => builder.Register<DefaultConfiguration>().As<IConfiguration>();
+            ctx.HostDependenciesRegistration += builder =>
+            {
+                builder.Register<DefaultConfiguration>().As<IConfiguration>().SingleInstance();
+                builder.Register<ConfigurationNotifier>().SingleInstance();
+            };
+
+            ctx.HostStarting += (IHost host) =>
+            {
+                //create ConfigurationNotifier single instance to start listening to config & deployment changes.
+                host.DependencyResolver.Resolve<ConfigurationNotifier>();
+            };
+            
         }
     }
 }

@@ -23,6 +23,7 @@
 using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.Components;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
@@ -39,10 +40,11 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
-                builder.Register<GameSessionService>().As<IGameSessionService>().InstancePerScene();
+                builder.Register<GameSessionService>().As<IGameSessionService>().As<IConfigurationChangedEventHandler>().InstancePerScene();
                 builder.Register<GameSessionController>().InstancePerRequest();
                 builder.Register<DedicatedServerAuthProvider>().As<IAuthenticationProvider>();
                 builder.Register<GameSessions>().As<IGameSessions>();
+                builder.Register<ServerPools>().As<IServerPools>().As<IConfigurationChangedEventHandler>().SingleInstance();
             };
 
             ctx.HostStarted += (IHost host) =>

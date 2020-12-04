@@ -73,7 +73,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         public List<OpenGameSession> OpenGameSessions { get; } = new List<OpenGameSession>();
     }
 
-    internal class GameFinderService : IGameFinderService
+    internal class GameFinderService : IGameFinderService, IConfigurationChangedEventHandler
     {
         private const string UPDATE_NOTIFICATION_ROUTE = "gamefinder.update";
         private const string UPDATE_READYCHECK_ROUTE = "gamefinder.ready.update";
@@ -89,6 +89,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         private readonly IAnalyticsService analytics;
 
         private readonly ILogger _logger;
+        private readonly IConfiguration configuration;
         private readonly ISerializer _serializer;
         private readonly GameFinderData _data;
 
@@ -100,7 +101,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             IAnalyticsService analytics,
             IEnvironment env,
             ILogger logger,
-            IConfiguration config,
+            IConfiguration configuration,
             ISerializer serializer,
             GameFinderData data)
         {
@@ -109,13 +110,14 @@ namespace Stormancer.Server.Plugins.GameFinder
             this.analytics = analytics;
 
             _logger = logger;
+            this.configuration = configuration;
             _serializer = serializer;
             _data = data;
             _scene = scene;
             _data.kind = _scene.Metadata[GameFinderPlugin.METADATA_KEY];
             env.ActiveDeploymentChanged += Env_ActiveDeploymentChanged;
-            config.SettingsChanged += (s, c) => ApplyConfig(c);
-            ApplyConfig(config.Settings);
+          
+            ApplyConfig();
 
 
         }
@@ -129,8 +131,9 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
         }
 
-        private void ApplyConfig(dynamic config)
+        private void ApplyConfig()
         {
+            dynamic config = configuration.Settings;
             if (_data.kind == null || config == null)
             {
                 _logger.Log(LogLevel.Error, LOG_CATEGORY, "GameFinder service can't find gameFinder kind or server application config", new { gameFinderKind = _data.kind });
@@ -870,6 +873,11 @@ namespace Stormancer.Server.Plugins.GameFinder
                 _data.openGameSessions.TryRemove(session.SceneId, out _);
                 _logger.Log(LogLevel.Trace, $"{LOG_CATEGORY}.OpenGameSession", "Closed a game session", new { session.SceneId, session.Data });
             }
+        }
+
+        public void OnConfigurationChanged()
+        {
+            ApplyConfig();
         }
     }
 }

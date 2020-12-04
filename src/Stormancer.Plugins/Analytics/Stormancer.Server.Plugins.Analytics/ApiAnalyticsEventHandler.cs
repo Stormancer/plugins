@@ -37,18 +37,20 @@ namespace Stormancer.Server.Plugins.Analytics
     {
         public bool EnableApiInstrumentation { get; set; } = false;
     }
-    internal class ApiAnalyticsEventHandler :  IApiHandler
+    internal class ApiAnalyticsEventHandler :  IApiHandler, IConfigurationChangedEventHandler
     {
         private readonly IAnalyticsService _analytics;
         private readonly ILogger _logger;
+        private readonly IConfiguration configuration;
         private readonly Stopwatch _watch = new Stopwatch();
 
         // The field is always set in ApplySettings. 
         private InstrumentationConfig _config = default!;
 
 
-        private void ApplySettings(dynamic config)
+        private void ApplySettings()
         {
+            var config = configuration.Settings;
             _config = (InstrumentationConfig?)(config?.instrumentation?.ToObject<InstrumentationConfig>()) ?? new InstrumentationConfig();
         }
 
@@ -56,9 +58,11 @@ namespace Stormancer.Server.Plugins.Analytics
         {
             _analytics = analytics;
             _watch.Start();
-            configuration.SettingsChanged += (_, settings) => ApplySettings(settings);
-            ApplySettings(configuration.Settings);
+           
+          
             _logger = logger;
+            this.configuration = configuration;
+            ApplySettings();
         }
 
        
@@ -188,6 +192,11 @@ namespace Stormancer.Server.Plugins.Analytics
         public Task OnDisconnected(IScenePeerClient client)
         {
             return Task.CompletedTask;
+        }
+
+        public void OnConfigurationChanged()
+        {
+            ApplySettings();
         }
     }
 }
