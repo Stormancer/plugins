@@ -241,6 +241,10 @@ namespace Stormancer.Server.Plugins.API
                 {
                     throw;
                 }
+                catch (OperationCanceledException)
+                {
+                    throw new ClientException("canceled");
+                }
                 catch (AggregateException ex)
                 {
                     var clientEx = ex.InnerExceptions.FirstOrDefault(ex => ex is ClientException);
@@ -295,6 +299,10 @@ namespace Stormancer.Server.Plugins.API
                 catch (ClientException)
                 {
                     throw;
+                }
+                catch(OperationCanceledException)
+                {
+                    throw new ClientException("canceled");
                 }
                 catch (Exception ex)
                 {

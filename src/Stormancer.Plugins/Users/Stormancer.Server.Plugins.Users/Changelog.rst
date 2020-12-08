@@ -9,6 +9,15 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+*****
+- New extensibility point: `IAuthenticationEventHandler.OnAuthenticationComplete(AuthenticationResult ctx)`. It is called after authentication and before session creation and provides a way for plugin to override authentication results.
+Changed
+*******
+- IAuthenticationEventHandler now provides default no-op implementations so that implementers are able to only provide the methods they need.
+
 4.0.0.3
 ----------
 Changed

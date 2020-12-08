@@ -54,7 +54,21 @@ namespace Stormancer.Server.Plugins.Users
             var s = sessions as UserSessions;
             if (s != null)
             {
-                await s.LogOut(args.Peer);
+                DisconnectionReason reason;
+                switch(args.Reason)
+                {
+                    case "CONNECTION_LOST":
+                        reason = DisconnectionReason.ConnectionLoss;
+                        break;
+                    case "CLIENT_REQUEST":
+                        reason = DisconnectionReason.ClientDisconnected;
+                        break;
+                    default:
+                        reason = DisconnectionReason.ServerRequest;
+                        break;
+                }
+             
+                await s.LogOut(args.Peer,reason);
             }
 
         }

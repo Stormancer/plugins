@@ -38,6 +38,31 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
+    /// <summary>
+    /// Possible disconnection reasons.
+    /// </summary>
+    public enum DisconnectionReason
+    {
+        /// <summary>
+        /// The client disconnected.
+        /// </summary>
+        ClientDisconnected,
+
+        /// <summary>
+        /// The session with the client was lost.
+        /// </summary>
+        ConnectionLoss,
+
+        /// <summary>
+        /// The session was replaced with a new connection for the same user.
+        /// </summary>
+        NewConnection,
+
+        /// <summary>
+        /// The session was closed by the server.
+        /// </summary>
+        ServerRequest
+    }
     public interface IUserPeerIndex : IIndex<string> { }
     internal class UserPeerIndex : InMemoryIndex<string>, IUserPeerIndex { }
 
@@ -50,8 +75,8 @@ namespace Stormancer.Server.Plugins.Users
     public class SessionRecord
     {
         public PlatformId platformId { get; set; }
-        public User User { get; set; }
-        public string SessionId { get; set; }
+        public User? User { get; set; }
+        public string SessionId { get; set; } = default!;
         public ConcurrentDictionary<string, string> Authentications { get; set; } = new ConcurrentDictionary<string, string>();
         public Dictionary<string, DateTime> AuthenticationExpirationDates { get; } = new Dictionary<string, DateTime>();
         public ConcurrentDictionary<string, byte[]> SessionData { get; internal set; } = new ConcurrentDictionary<string, byte[]>();
@@ -86,7 +111,7 @@ namespace Stormancer.Server.Plugins.Users
     public class Session
     {
         public PlatformId platformId { get; set; }
-        public User User { get; set; }
+        public User? User { get; set; }
         public string SessionId { get; set; }
         public IReadOnlyDictionary<string, string> Authentications { get; set; }
         public IReadOnlyDictionary<string, byte[]> SessionData { get; internal set; }
@@ -155,20 +180,21 @@ namespace Stormancer.Server.Plugins.Users
             return (await GetUser(peer)) != null;
         }
 
-        public async Task<bool> LogOut(IScenePeerClient peer)
+        public async Task<bool> LogOut(IScenePeerClient peer, DisconnectionReason reason)
         {
             var sessionId = peer.SessionId;
             var id = peer.SessionId;
-            var session = await GetSessionById(sessionId);
+
             var result = await _peerUserIndex.TryRemove(sessionId);
             if (result.Success)
             {
+                var session = result.Value.CreateView();
                 if (result.Value.User != null)
                 {
                     await _userPeerIndex.TryRemove(result.Value.User.Id);
                 }
                 await _userPeerIndex.TryRemove(result.Value.platformId.ToString());
-                var logoutContext = new LogoutContext { Session = session, ConnectedOn = session.ConnectedOn };
+                var logoutContext = new LogoutContext { Session = session, ConnectedOn = session.ConnectedOn, Reason = reason };
                 await _eventHandlers().RunEventHandler(h => h.OnLoggedOut(logoutContext), ex => logger.Log(LogLevel.Error, "usersessions", "An error occured while running LoggedOut event handlers", ex));
                 if (result.Value.User != null)
                 {
@@ -180,20 +206,9 @@ namespace Stormancer.Server.Plugins.Users
             return result.Success;
         }
 
-        private Task<bool> LogOut(string sessionId)
-        {
-            var peer = _scene.RemotePeers.FirstOrDefault(p => p.SessionId == sessionId);
-            if (peer == null)
-            {
-                return Task.FromResult(false);
-            }
-            else
-            {
-                return LogOut(peer);
-            }
-        }
+       
 
-        public async Task Login(IScenePeerClient peer, User user, PlatformId onlineId, Dictionary<string, byte[]> sessionData)
+        public async Task Login(IScenePeerClient peer, User? user, PlatformId onlineId, Dictionary<string, byte[]> sessionData)
         {
             if (peer == null)
             {
@@ -208,7 +223,7 @@ namespace Stormancer.Server.Plugins.Users
                 var r = await _userPeerIndex.GetOrAdd(user.Id, peer.SessionId);
                 if (r.Value != peer.SessionId)
                 {
-                    if (!await LogOut(peer))
+                    if (!await LogOut(peer, DisconnectionReason.NewConnection))
                     {
                         logger.Warn("usersessions", $"user {user.Id} was found in _userPeerIndex but could not be logged out properly.", new { userId = user.Id, oldSessionId = r.Value, newSessionId = peer.SessionId });
 

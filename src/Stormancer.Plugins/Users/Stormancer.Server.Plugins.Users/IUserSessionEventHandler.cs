@@ -35,6 +35,7 @@ namespace Stormancer.Server.Plugins.Users
     {
         public Session Session { get; set; }
         public DateTime ConnectedOn { get; set; }
+        public DisconnectionReason Reason { get; internal set; }
     }
 
     public class UpdateUserHandleCtx
@@ -53,9 +54,9 @@ namespace Stormancer.Server.Plugins.Users
 
     public interface IUserSessionEventHandler
     {
-        Task OnLoggedIn(LoginContext ctx);
+        Task OnLoggedIn(LoginContext ctx)=>Task.CompletedTask;
 
-        Task OnLoggedOut(LogoutContext ctx);
+        Task OnLoggedOut(LogoutContext ctx) => Task.CompletedTask;
 
         Task OnUpdatingUserHandle(UpdateUserHandleCtx ctx)
         {

@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Throwing `OperationCanceledException` in an API resulted in an unknown error on the client as well as an error log on the server. However, throwing OperationCanceledException is the normal result of cancellation. The client now receives a `canceled` error and no log is written.
+
 2.0.0.1
 ----------
 - Update to .NET5.0
