@@ -902,7 +902,9 @@ namespace Stormancer.Server.Plugins.GameSession
 
                         await Task.Delay(5000);
 
-                        await Task.WhenAll(_scene.RemotePeers.Select(user => user.Disconnect("gamesession.completed")));
+                        // Update : Do not disconnect players to allow them to restart a game.
+                        // By uncommenting the next line, you can encounter RPC failures if EvaluateGameComplete was called from an RPC called by the client (for example postResults).
+                        //await Task.WhenAll(_scene.RemotePeers.Select(user => user.Disconnect("gamesession.completed")));
 
                         _gameCompleteCts.Cancel();
 
