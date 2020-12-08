@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-4.0.0.2
--------
+4.0.1
+-----
 Changed
 *******
 - Changed Behavior: do not disconnect users from the game session to allow them to restart a game.
