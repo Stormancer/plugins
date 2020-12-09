@@ -9,6 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+4.2.0
+-----
+Added
+*****
+- Key used to encode and decode bearer token is fetched from SA configuration.
 4.1.0.1
 -------
 Added
