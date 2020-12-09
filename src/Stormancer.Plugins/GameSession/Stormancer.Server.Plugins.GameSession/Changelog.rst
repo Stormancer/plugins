@@ -9,10 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-3.3.3.2
---------
+3.3.4
+-----
 Changed
 *******
+- Fix To allow postResults to be processed after a reset
 - Changed Behavior: do not disconnect users from the game session to allow them to restart a game.
 - Register dependencies in host (instead of scene) to prevent factory code generation each time a scene is created.
 

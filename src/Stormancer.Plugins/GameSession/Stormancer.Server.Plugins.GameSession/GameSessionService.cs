@@ -803,6 +803,9 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 client.Reset();
             }
+
+            _gameCompleteExecuted = false;
+
             return Task.FromResult(0);
         }
 
