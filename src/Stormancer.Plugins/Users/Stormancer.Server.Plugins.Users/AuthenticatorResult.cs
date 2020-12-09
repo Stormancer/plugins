@@ -28,25 +28,48 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
+    /// <summary>
+    /// Authentication result.
+    /// </summary>
     public class AuthenticationResult
     {
         private AuthenticationResult()
         {
         }
 
+        /// <summary>
+        /// Creates a successful <see cref="AuthenticationResult"/>.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="platformId"></param>
+        /// <param name="context"></param>
+        /// <returns></returns>
         public static AuthenticationResult CreateSuccess(User user, PlatformId platformId, Dictionary<string, string> context)
         {
             return new AuthenticationResult { Success = true, AuthenticatedUser = user, PlatformId = platformId, AuthenticationContext = context };
         }
 
+        /// <summary>
+        /// Creates a failed <see cref="AuthenticationResult"/>.
+        /// </summary>
+        /// <param name="reason"></param>
+        /// <param name="platformId"></param>
+        /// <param name="context"></param>
+        /// <returns></returns>
         public static AuthenticationResult CreateFailure(string reason, PlatformId platformId, Dictionary<string, string> context)
         {
             return new AuthenticationResult { Success = false, ReasonMsg = reason, PlatformId = platformId, AuthenticationContext = context };
         }
 
-        public bool Success { get; private set; }
+        /// <summary>
+        /// Was authentication successful?
+        /// </summary>
+        public bool Success { get; set; }
 
-        public string AuthenticatedId
+        /// <summary>
+        /// Gets the id of the User authentication associated with the session.
+        /// </summary>
+        public string? AuthenticatedId
         {
             get
             {
@@ -54,34 +77,55 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
-        public User AuthenticatedUser { get; private set; }
+        /// <summary>
+        /// Gets or sets the user object authentication associated with the session.
+        /// </summary>
+        public User? AuthenticatedUser { get; set; }
 
-        public string ReasonMsg { get; private set; }
+        /// <summary>
+        /// Gets or sets a custom error message.
+        /// </summary>
+        public string? ReasonMsg { get; set; }
 
-        public PlatformId PlatformId { get; private set; }
+        /// <summary>
+        /// Gets or sets the user platform Id as returned by the authentication attempt.
+        /// </summary>
+        public PlatformId PlatformId { get; set; }
 
+        /// <summary>
+        /// Gets the user pseudo.
+        /// </summary>
         public string Username
         {
             get
             {
-                dynamic userData = AuthenticatedUser?.UserData;
-                return (string)userData?.pseudo??"";
+                dynamic? userData = AuthenticatedUser?.UserData;
+                return (string?)userData?.pseudo ?? string.Empty;
             }
         }
 
-        public Dictionary<string, string> AuthenticationContext { get; private set; }
+        /// <summary>
+        /// Authentication context used to create the result.
+        /// </summary>
+        public Dictionary<string, string> AuthenticationContext { get; private set; } = default!;
 
+        /// <summary>
+        /// Data to initialize the session with.
+        /// </summary>
         public Dictionary<string, byte[]> initialSessionData { get; } = new Dictionary<string, byte[]>();
 
         /// <summary>
         /// The date at which this authentication should be renewed.
         /// </summary>
         /// <remarks>
-        /// Leave it to null if this authentication doesn't need renewing.
+        /// Leave it to null if this authentication does not need renewing.
         /// </remarks>
         public DateTime? ExpirationDate { get; set; } = null;
 
-        public Action<SessionRecord> OnSessionUpdated;
+        /// <summary>
+        /// Callback called when the user session is created.
+        /// </summary>
+        public Action<SessionRecord>? OnSessionUpdated { get; set; }
     }
 }
 

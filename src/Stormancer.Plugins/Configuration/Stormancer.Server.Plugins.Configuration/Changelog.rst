@@ -9,6 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+2.1.1
+-----
+Changed
+*******
+- Make sure that IConfigurationChangedEventHandler cannot be called twice. However, take note that 'Single instance per scene' dependencies implementing IConfigurationChangedEventHandler declared in the host container will be instantiated in ALL running scenes. Dependencies expected to be created in some scenes only should therefore be declared in the scene containers.
 2.1.0
 -----
 Changed

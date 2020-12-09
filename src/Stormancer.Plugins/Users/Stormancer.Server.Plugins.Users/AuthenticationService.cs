@@ -26,6 +26,7 @@ using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -108,9 +109,15 @@ namespace Stormancer.Server.Plugins.Users
 
                 var authResult = await provider.Authenticate(authenticationCtx, ct);
 
+                var authCompleteCtx = new AuthenticationCompleteContext(authResult, peer, session);
+                await _handlers().RunEventHandler(h => h.OnAuthenticationComplete(authCompleteCtx, ct), ex => _logger.Log(LogLevel.Error, "user.login", $"An error occured while running {nameof(IAuthenticationEventHandler.OnAuthenticationComplete)} event handler", ex));
+
                 if (authResult.Success)
                 {
                     _logger.Log(LogLevel.Trace, "user.login", "Authentication successful.", authResult);
+
+
+
                     if (authResult.AuthenticatedUser != null)
                     {
                         var oldPeer = await _sessions.GetPeer(authResult.AuthenticatedUser.Id);
@@ -118,7 +125,7 @@ namespace Stormancer.Server.Plugins.Users
                         {
                             try
                             {
-                                await sessions.LogOut(oldPeer);
+                                await sessions.LogOut(oldPeer, DisconnectionReason.NewConnection);
                                 await oldPeer.DisconnectFromServer("auth.login.new_connection");
                             }
                             catch (Exception)
@@ -133,6 +140,7 @@ namespace Stormancer.Server.Plugins.Users
                             await sessions.Login(peer, authResult.AuthenticatedUser, authResult.PlatformId, authResult.initialSessionData);
                         }
                     }
+
 
                     await sessions.Login(peer, authResult.AuthenticatedUser, authResult.PlatformId, authResult.initialSessionData);
 
@@ -151,6 +159,9 @@ namespace Stormancer.Server.Plugins.Users
                     result.UserId = authResult?.AuthenticatedUser?.Id;
                     result.Username = authResult?.Username;
                     session = await sessions.GetSessionRecordById(peer.SessionId);
+
+                    Debug.Assert(session != null);//We just created the session.
+
                     result.Authentications = session.Authentications.ToDictionary(entry => entry.Key, entry => entry.Value);
                     var ctx = new LoggedInCtx { Result = result, Session = session, AuthCtx = authenticationCtx };
                     await _handlers().RunEventHandler(h => h.OnLoggedIn(ctx), ex => _logger.Log(LogLevel.Error, "user.login", "An error occured while running OnLoggedIn event handler", ex));
@@ -229,7 +240,7 @@ namespace Stormancer.Server.Plugins.Users
                 throw new ClientException($"authentication.notSupported?type={auth.Type}");
             }
 
-            await provider.Setup(auth.Parameters,null);
+            await provider.Setup(auth.Parameters, null);
 
         }
 

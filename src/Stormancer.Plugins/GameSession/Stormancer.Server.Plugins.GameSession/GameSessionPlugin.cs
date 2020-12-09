@@ -21,8 +21,10 @@
 // SOFTWARE.
 
 using Stormancer.Core;
+using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Components;
+using Stormancer.Server.Plugins.Analytics;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Users;
 using System;
@@ -40,7 +42,6 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
-                builder.Register<GameSessionService>().As<IGameSessionService>().As<IConfigurationChangedEventHandler>().InstancePerScene();
                 builder.Register<GameSessionController>().InstancePerRequest();
                 builder.Register<DedicatedServerAuthProvider>().As<IAuthenticationProvider>();
                 builder.Register<GameSessions>().As<IGameSessions>();
@@ -65,6 +66,28 @@ namespace Stormancer.Server.Plugins.GameSession
                         return Task.FromResult(true);
 
                     });
+                }
+            };
+            ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
+            {
+                if (scene.Metadata.ContainsKey(METADATA_KEY))
+                {
+                    builder.Register(d =>
+                        new GameSessionService(
+                            scene,
+                            d.Resolve<IConfiguration>(),
+                            d.Resolve<IEnvironment>(),
+                            d.Resolve<IDelegatedTransports>(),
+                            d.Resolve<Management.ManagementClientProvider>(),
+                            d.Resolve<ILogger>(),
+                            d.Resolve<IAnalyticsService>(),
+                            d.Resolve<RpcService>(),
+                            d.Resolve<ISerializer>())
+                    )
+                    .As<IGameSessionService>()
+                    .As<IConfigurationChangedEventHandler>()
+                    .InstancePerScene();
+
                 }
             };
         }

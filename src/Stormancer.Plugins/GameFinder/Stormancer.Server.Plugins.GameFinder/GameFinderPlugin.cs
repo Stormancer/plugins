@@ -58,13 +58,12 @@ namespace Stormancer.Server.Plugins.GameFinder
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
                 builder.Register<GameFinderController>();
-                builder.Register<GameFinderService>().As<IGameFinderService>().As<IConfigurationChangedEventHandler>().InstancePerScene();
                 builder.Register<GameFinderData>().AsSelf().InstancePerScene();
                 builder.Register<GameFinderProxy>().As<IGameFinder>();
                 builder.Register<ServiceLocationProvider>().As<IServiceLocatorProvider>();
             };
             ctx.SceneCreated += SceneCreated;
-            
+
 
 
             ctx.HostStarted += (IHost host) =>
@@ -74,17 +73,17 @@ namespace Stormancer.Server.Plugins.GameFinder
 
                 if (host.Metadata.TryGetValue("gamefinder.ids", out var ids))
                 {
-                 
+
                     foreach (var id in ids.Split(','))
                     {
-                        logger.Log(LogLevel.Info, "gamefinder", "Ensure scene '{id}' is created.",new { });
-                        host.EnsureSceneExists(id,id, false, true);
+                        logger.Log(LogLevel.Info, "gamefinder", "Ensure scene '{id}' is created.", new { });
+                        host.EnsureSceneExists(id, id, false, true);
                     }
                 }
             };
         }
 
-       
+
 
         private void SceneDependenciesRegistration(IDependencyBuilder builder, ISceneHost scene)
         {
@@ -92,6 +91,8 @@ namespace Stormancer.Server.Plugins.GameFinder
             {
                 if (Configs.TryGetValue(scene.Id, out var config))
                 {
+                    builder.Register<GameFinderService>().As<IGameFinderService>().As<IConfigurationChangedEventHandler>().InstancePerScene();
+
                     config.RegisterDependencies(builder);
                 }
             }
