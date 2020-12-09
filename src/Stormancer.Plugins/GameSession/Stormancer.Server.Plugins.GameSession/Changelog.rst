@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+4.0.1.1
+-------
+Changed
+*******
+- Declare GameSessionService at scene level.
+
 4.0.1
 -----
 Changed
