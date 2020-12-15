@@ -114,7 +114,7 @@ namespace Stormancer.Server.Plugins.Users
 
                 if (authResult.Success)
                 {
-                    _logger.Log(LogLevel.Trace, "user.login", "Authentication successful.", authResult);
+                    _logger.Log(LogLevel.Trace, "user.login", "Authentication successful.",new { });
 
 
 

@@ -103,12 +103,12 @@ namespace Stormancer.Server.Plugins.Limits
                     _connectedUsers++;
                     return true;
                 }
-                else if (_reservedSlots.Count + _connectedUsers + _waitQueue.Count < Config.connectionLimitsConfiguration.max)
+                else if (_reservedSlots.Count + _connectedUsers + _waitQueue.Count < Config.connections.max)
                 {
                     _connectedUsers++;
                     return true;
                 }
-                else if (_reservedSlots.Count + _connectedUsers + _waitQueue.Count < Config.connectionLimitsConfiguration.max + Config.connectionLimitsConfiguration.queue)
+                else if (_reservedSlots.Count + _connectedUsers + _waitQueue.Count < Config.connections.max + Config.connections.queue)
                 {
                     task = WaitInQueueAsync(peer, cancellationToken);
                 }
@@ -150,7 +150,7 @@ namespace Stormancer.Server.Plugins.Limits
                     _reservedSlots.Remove(slotId);
                 }
 
-                while (_waitQueue.Count > 0 && _reservedSlots.Count + _connectedUsers < Config.connectionLimitsConfiguration.max)
+                while (_waitQueue.Count > 0 && _reservedSlots.Count + _connectedUsers < Config.connections.max)
                 {
                     var first = _waitQueue.First;
                     Debug.Assert(first != null);
@@ -234,9 +234,9 @@ namespace Stormancer.Server.Plugins.Limits
             switch (disconnectionReason)
             {
                 case DisconnectionReason.ClientDisconnected:
-                    return Config.connectionLimitsConfiguration.slots.disconnected;
+                    return Config.connections.slots.disconnected;
                 case DisconnectionReason.ConnectionLoss:
-                    return Config.connectionLimitsConfiguration.slots.connectionLost;
+                    return Config.connections.slots.connectionLost;
                 default:
                     return 0;
             }
@@ -253,8 +253,8 @@ namespace Stormancer.Server.Plugins.Limits
                     CurrentConcurrentUsers = _connectedUsers,
                     CurrentUsersInQueue = _waitQueue.Count,
                     ReservedSlots = _reservedSlots.Count,
-                    MaxConcurrentPlayers = Config.connectionLimitsConfiguration.max,
-                    MaxQueueLength = Config.connectionLimitsConfiguration.queue,
+                    MaxConcurrentPlayers = Config.connections.max,
+                    MaxQueueLength = Config.connections.queue,
                     AvgEntryInterval = ComputeQueueSpeed()
                 };
 

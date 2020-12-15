@@ -42,7 +42,7 @@ namespace Stormancer.Server.Plugins.Limits
                 }
 
                 var config = limits.Config;
-                if (config.connectionLimitsConfiguration.max < 0)
+                if (config.connections.max < 0)
                 {
                     return;
                 }
