@@ -31,51 +31,49 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Stormancer.Server.Plugins.Configuration;
+using System.Diagnostics;
 
 namespace Stormancer.Server.Plugins.Users
 {
     internal class UserSessionController : ControllerBase
     {
-        private Lazy<byte[]> _key = new Lazy<byte[]>(() =>
-        {
-            var bytes = new byte[32];
-            System.Security.Cryptography.RandomNumberGenerator.Fill(new Span<byte>(bytes));
-            return bytes;
-        });
+        private static Lazy<byte[]>? _key;
         private readonly ISceneHost _scene;
         private readonly ISerializer _serializer;
         private readonly ILogger _logger;
+        private readonly IConfiguration configuration;
         private readonly IEnvironment _environment;
         private readonly IUserSessions _sessions;
 
-        //public Task<IScenePeerClient> GetPeer(string userId)
-        //{
-        //    throw new NotImplementedException();
-        //}
-
-        //public Task<User> GetUser(IScenePeerClient peer)
-        //{
-        //    throw new NotImplementedException();
-        //}
-
-        //public Task<bool> IsAuthenticated(IScenePeerClient peer)
-        //{
-        //    throw new NotImplementedException();
-        //}
-
-        //public Task UpdateUserData<T>(IScenePeerClient peer, T data)
-        //{
-        //    throw new NotImplementedException();
-        //}
 
 
-        public UserSessionController(IUserSessions sessions, ISerializer serializer, ISceneHost scene, IEnvironment env, ILogger logger)
+        public UserSessionController(IUserSessions sessions, ISerializer serializer, ISceneHost scene, IEnvironment env, ILogger logger, IConfiguration configuration)
         {
+
             _logger = logger;
+            this.configuration = configuration;
             _environment = env;
             _sessions = sessions;
             _serializer = serializer;
             _scene = scene;
+            if (_key == null)
+            {
+                _key = new Lazy<byte[]>(() =>
+                  {
+                      var key = configuration.GetValue<string?>("security.tokenKey", null);
+                      if (key == null)
+                      {
+                          var bytes = new byte[32];
+                          System.Security.Cryptography.RandomNumberGenerator.Fill(new Span<byte>(bytes));
+                          return bytes;
+                      }
+                      else
+                      {
+                          return System.Convert.FromBase64String(key);
+                      }
+                  });
+            }
         }
         public async Task GetPeer(RequestContext<IScenePeer> rq)
         {
@@ -236,6 +234,7 @@ namespace Stormancer.Server.Plugins.Users
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task<string> CreateUserBearerToken()
         {
+            Debug.Assert(_key != null);
             var session = await _sessions.GetSession(this.Request.RemotePeer);
             return Jose.JWT.Encode(new Dictionary<string, string?> { { "userId", session?.User?.Id } }, _key.Value, Jose.JwsAlgorithm.HS256);
         }
@@ -243,6 +242,7 @@ namespace Stormancer.Server.Plugins.Users
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public string? GetUserIdFromBearerToken(string token)
         {
+            Debug.Assert(_key != null);
             return Jose.JWT.Decode<Dictionary<string, string?>>(token, _key.Value)["userId"];
         }
     }

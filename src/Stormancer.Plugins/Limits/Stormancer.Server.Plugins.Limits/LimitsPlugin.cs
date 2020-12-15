@@ -1,6 +1,7 @@
 ﻿using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.AdminApi;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
@@ -31,7 +32,7 @@ namespace Stormancer.Server.Plugins.Limits
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
              {
                  builder.Register<LimitsAdminWebApiConfig>().As<IAdminWebApiConfig>();
-                 builder.Register<Limits>().As<ILimits>().AsSelf().InstancePerScene();
+                 builder.Register<Limits>().As<ILimits>().As<IConfigurationChangedEventHandler>().AsSelf().InstancePerScene();
                  builder.Register<LimitsAuthenticationEventHandler>().As<IAuthenticationEventHandler>().As<IUserSessionEventHandler>().InstancePerRequest();
              };
 

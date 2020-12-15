@@ -9,6 +9,17 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Don't include authResult in login.success log.
+
+4.2.0
+-----
+Added
+*****
+- Key used to encode and decode bearer token is fetched from SA configuration.
 4.1.0.1
 -------
 Added

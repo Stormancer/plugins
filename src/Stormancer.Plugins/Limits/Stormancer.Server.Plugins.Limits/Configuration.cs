@@ -14,7 +14,7 @@ namespace Stormancer.Server.Plugins.Limits
         /// <summary>
         /// Configuration related to CCU limits.
         /// </summary>
-        public ConnectionLimitsConfiguration connectionLimitsConfiguration { get; set; } = new ConnectionLimitsConfiguration();
+        public ConnectionLimitsConfiguration connections { get; set; } = new ConnectionLimitsConfiguration();
     }
 
     /// <summary>
