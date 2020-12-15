@@ -9,16 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-4.0.1.1
--------
-Changed
-*******
-- Declare GameSessionService at scene level.
-
-4.0.1
+4.0.2
 -----
 Changed
 *******
+- Declare GameSessionService at scene level.
+- Fix To allow postResults to be processed after a reset
 - Changed Behavior: do not disconnect users from the game session to allow them to restart a game.
 - Update to .NET5.0
 
