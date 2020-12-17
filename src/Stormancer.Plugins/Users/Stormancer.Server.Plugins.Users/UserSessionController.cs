@@ -33,6 +33,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Stormancer.Server.Plugins.Configuration;
 using System.Diagnostics;
+using System.IO;
 
 namespace Stormancer.Server.Plugins.Users
 {
@@ -144,11 +145,11 @@ namespace Stormancer.Server.Plugins.Users
         {
             var sessionId = _serializer.Deserialize<string>(rq.InputStream);
             var key = _serializer.Deserialize<string>(rq.InputStream);
-            var length = rq.InputStream.Length - rq.InputStream.Position;
-            var data = new byte[length];
-            rq.InputStream.Read(data, 0, (int)length);
+            using var memoryStream = new MemoryStream();
+            rq.InputStream.CopyTo(memoryStream);
 
-            await _sessions.UpdateSessionData(sessionId, key, data);
+
+            await _sessions.UpdateSessionData(sessionId, key, memoryStream.ToArray());
         }
 
         [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]

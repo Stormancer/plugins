@@ -53,7 +53,7 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 await ctx.SendValue(s =>
                 {
-                    var oldPosition = s.Position;
+                    
                     writer(s, ctx.RemotePeer.Serializer());
                 });
             }
