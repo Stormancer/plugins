@@ -32,16 +32,30 @@ namespace Stormancer.Server.Plugins.Limits
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
              {
                  builder.Register<LimitsAdminWebApiConfig>().As<IAdminWebApiConfig>();
-                 builder.Register<Limits>().As<ILimits>().As<IConfigurationChangedEventHandler>().AsSelf().InstancePerScene();
+                 builder.Register<LimitsClient>().InstancePerRequest();
                  builder.Register<LimitsAuthenticationEventHandler>().As<IAuthenticationEventHandler>().As<IUserSessionEventHandler>().InstancePerRequest();
              };
-
+            ctx.SceneCreated += (ISceneHost scene) =>
+            {
+                if (scene.Template == Users.Constants.SCENE_TEMPLATE)
+                {
+                    scene.AddController<LimitsController>();
+                }
+            };
             ctx.SceneStarted += (ISceneHost scene) =>
             {
                 if (scene.Template == Users.Constants.SCENE_TEMPLATE)
                 {
                     var limits = scene.DependencyResolver.Resolve<Limits>();
                     _ = scene.RunTask(limits.RunQueueAsync);
+                }
+            };
+            ctx.SceneDependenciesRegistration += (builder, scene) =>
+            {
+                if (scene.Template == Users.Constants.SCENE_TEMPLATE)
+                {
+                    builder.Register<Limits>().As<ILimits>().As<IConfigurationChangedEventHandler>().AsSelf().InstancePerScene();
+                    builder.Register<LimitsController>();
                 }
             };
         }

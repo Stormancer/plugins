@@ -187,6 +187,13 @@ namespace Stormancer.Server.Plugins.Users
         /// </summary>
         /// <returns></returns>
         Task<int> GetAuthenticatedUsersCount();
+
+        /// <summary>
+        /// Kicks an user from the server.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+        Task KickUser(string userId, string reason);
     }
 
     public class BearerTokenData

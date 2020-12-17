@@ -22,6 +22,7 @@
 
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
+using Stormancer.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,11 +38,15 @@ namespace Stormancer.Server.Plugins.Users
     {
         private readonly IUserService _users;
         private readonly IAuthenticationService auth;
+        private readonly ISceneHost scene;
 
-        public UsersAdminController(IUserService users, IAuthenticationService auth)
+
+        public UsersAdminController(IUserService users, IAuthenticationService auth, ISceneHost scene)
         {
             _users = users;
             this.auth = auth;
+            this.scene = scene;
+
         }
 
         [HttpGet]
@@ -53,19 +58,31 @@ namespace Stormancer.Server.Plugins.Users
 
         [HttpGet]
         [Route("search")]
-        public async Task<IEnumerable<UserViewModel>> Search( int take = 20, int skip = 0)
+        public async Task<IEnumerable<UserViewModel>> Search(int take = 20, int skip = 0)
         {
-            var query = Request.Query.ToDictionary(s=>s.Key, s=>s.Value.FirstOrDefault());
+            var query = Request.Query.ToDictionary(s => s.Key, s => s.Value.FirstOrDefault());
             var users = await _users.Query(query, take, skip);
 
             return users.Select(user => new UserViewModel { id = user.Id });
         }
+
+        /// <summary>
+        /// Gets an user.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("{id}")]
         public Task<User> Get(string id)
         {
             return _users.GetUser(id);
         }
+
+        /// <summary>
+        /// Deletes an user.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpDelete]
         [Route("{id}")]
         public Task Delete(string id)
@@ -73,15 +90,49 @@ namespace Stormancer.Server.Plugins.Users
             return _users.Delete(id);
         }
 
+        /// <summary>
+        /// Unlink an authentication provider from an user.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="provider"></param>
+        /// <returns></returns>
         [HttpDelete]
         [Route("{userId}/_auth/{provider}")]
         public async Task Unlink(string userId, string provider)
         {
             var user = await _users.GetUser(userId);
-            await auth.Unlink(user,provider);
+            await auth.Unlink(user, provider);
         }
 
-   
+        /// <summary>
+        /// kicks a player from the server.
+        /// </summary>
+        /// <param name="id">Id of the user to kick.</param>
+        /// <param name="args">Kick options.</param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("{userId}/_kick")]
+        public Task Kick(string id, [FromBody] KickArguments args)
+        {
+            using var scope = scene.CreateRequestScope();
+            return scope.Resolve<IUserSessions>().KickUser(id, args.reason ?? "adminRequest");
+        }
+
+
+    }
+
+    /// <summary>
+    /// Arguments passed to the kick API.
+    /// </summary>
+    public class KickArguments
+    {
+        /// <summary>
+        /// Reason the player was kick out of the server.
+        /// </summary>
+        /// <remarks>
+        /// *the reason is sent to the client.
+        /// </remarks>
+        public string? reason { get; set; }
     }
 
 

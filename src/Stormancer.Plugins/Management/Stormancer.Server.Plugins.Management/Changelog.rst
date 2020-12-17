@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Use Stormancer.Management 4.0.0
+- Use HttpClientFactory
 3.0.0.1
 -------
 Changed

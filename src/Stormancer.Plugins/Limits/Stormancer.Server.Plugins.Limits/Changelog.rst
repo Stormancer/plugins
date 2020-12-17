@@ -16,3 +16,4 @@ Added
 - Enforce concurrent sessions limit from the configuration.
 - Queue users over the sessions limit.
 - Report concurrent sessions limits status with ILimits and an admin web API, including queue length and average time between user entry. 
+

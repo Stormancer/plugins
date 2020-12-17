@@ -194,7 +194,7 @@ namespace Stormancer.Server.Plugins.Users
         //}
 
         [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
-        public Task<Dictionary<string, User>> GetUsers(IEnumerable<string> userIds)
+        public Task<Dictionary<string, User?>> GetUsers(IEnumerable<string> userIds)
         {
             return _sessions.GetUsers(userIds.ToArray());
         }
@@ -209,6 +209,12 @@ namespace Stormancer.Server.Plugins.Users
         public Task UpdateUserHandle(string userId, string newHandle, bool appendHash)
         {
             return _sessions.UpdateUserHandle(userId, newHandle, appendHash);
+        }
+
+        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
+        public Task KickUser(string userId, string reason)
+        {
+            return _sessions.KickUser(userId, reason);
         }
 
         [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
