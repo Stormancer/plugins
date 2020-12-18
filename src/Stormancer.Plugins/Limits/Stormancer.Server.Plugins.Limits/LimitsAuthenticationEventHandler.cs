@@ -42,10 +42,8 @@ namespace Stormancer.Server.Plugins.Limits
                 }
 
                 var config = limits.Config;
-                if (config.connections.max < 0)
-                {
-                    return;
-                }
+              
+
                 var applyUserLimitCtx = new OnApplyingUserLimitContext(ctx);
                 await handlers().RunEventHandler(h => h.OnApplyingUserLimit(applyUserLimitCtx), ex => logger.Log(LogLevel.Error, "limits", $"An error occured while running {nameof(ILimitsEventHandler.OnApplyingUserLimit)}.", ex));
 

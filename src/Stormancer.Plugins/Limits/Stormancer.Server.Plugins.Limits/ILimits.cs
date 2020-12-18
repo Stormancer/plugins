@@ -98,7 +98,12 @@ namespace Stormancer.Server.Plugins.Limits
             Task task;
             lock (syncRoot)
             {
-                if (userId != null && _reservedSlots.Remove(userId))
+                if (Config.connections.max < 0)
+                {
+                    _connectedUsers++;
+                    return true;
+                }
+                else if (userId != null && _reservedSlots.Remove(userId))
                 {
                     _connectedUsers++;
                     return true;

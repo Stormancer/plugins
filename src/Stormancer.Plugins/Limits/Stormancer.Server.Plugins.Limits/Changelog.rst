@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+0.1.2
+-----
+Changed
+*******
+- Properly report connection count even when limits are disabled.
+
 0.1.1.1
 -------
 Added
