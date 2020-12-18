@@ -38,6 +38,7 @@ namespace Stormancer.Server.Plugins.Limits
                 //A session already exist: The user is already connected.
                 if (ctx.CurrentSession != null)
                 {
+                    
                     return;
                 }
 
@@ -51,7 +52,7 @@ namespace Stormancer.Server.Plugins.Limits
                 {
                     using var stream = new MemoryStream();
                     serializer.Serialize(true, stream);
-                    ctx.Result.OnSessionUpdated += (SessionRecord s) => { s.SessionData["skipQueue"] = stream.ToArray(); };
+                    ctx.Result.OnSessionUpdated += (SessionRecord s) => { s.SessionData["limits.skipQueue"] = stream.ToArray(); };
                     return;
                 }
                 var success = await limits.WaitForEntryAsync(ctx.Peer, ctx.Result.AuthenticatedId, cancellationToken);
@@ -72,9 +73,10 @@ namespace Stormancer.Server.Plugins.Limits
 
         Task IUserSessionEventHandler.OnLoggedOut(LogoutContext ctx)
         {
-            if (ctx.Session != null)
+            if (ctx.Session != null && ctx.Session.User != null)
             {
-                if (!ctx.Session.GetSessionValue<bool>("limits.skipQueue", serializer))
+                var skipQueue = ctx.Session.GetSessionValue<bool>("limits.skipQueue", serializer);
+                if (!skipQueue)
                 {
                     limits.Logout(ctx.Session.SessionId, ctx.Session.User?.Id, ctx.Reason);
                 }
