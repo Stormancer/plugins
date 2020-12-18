@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+0.1.3
+-----
+Changed
+*******
+- Fixed issue that could decrement user count even if user skipped queue.
+
 0.1.2
 -----
 Changed
