@@ -5,7 +5,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>0.1.0.3</Version>
+    <Version>0.1.1.1</Version>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
+    <Pdbs Include="$(TargetDir)*.pdb" />
   </ItemGroup>
 
   <ItemGroup>
@@ -38,5 +39,6 @@
   </ItemGroup>
   <Target Name="PostPack" AfterTargets="Pack">
     <Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
+    <Copy SourceFiles="@(Pdbs)" DestinationFolder="$(ProjectDir)../../../../output/symbols/$(ConfigurationName)" />
   </Target>
 </Project>

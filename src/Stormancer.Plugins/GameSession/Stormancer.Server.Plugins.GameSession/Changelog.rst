@@ -9,16 +9,19 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-4.0.1.1
+4.0.3.2
 -------
 Changed
 *******
 - Declare GameSessionService at scene level.
+- Don't read size from postResult input because it's not supported anymore. TODO: We should check the size of the input.
+- Add Licence expression to nuget package.
 
-4.0.1
+4.0.2
 -----
 Changed
 *******
+- Fix To allow postResults to be processed after a reset
 - Changed Behavior: do not disconnect users from the game session to allow them to restart a game.
 - Update to .NET5.0
 

@@ -285,7 +285,7 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
-        public async Task<IScenePeerClient> GetPeer(string userId)
+        public async Task<IScenePeerClient?> GetPeer(string userId)
         {
             var result = await _userPeerIndex.TryGet(userId);
 
@@ -655,6 +655,15 @@ namespace Stormancer.Server.Plugins.Users
 
             return sessions;
 
+        }
+
+        public async Task KickUser(string userId,string reason)
+        {
+            var peer = await GetPeer(userId);
+            if(peer!=null)
+            {
+                await peer.Disconnect(reason);
+            }
         }
 
         public int AuthenticatedUsersCount
