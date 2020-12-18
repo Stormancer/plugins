@@ -9,11 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
+4.4.1.2
 ----------
 Changed
 *******
 - Don't include authResult in login.success log.
+- Add Licence expression to nuget package.
 
 4.2.0
 -----

@@ -78,10 +78,11 @@ namespace Stormancer.Server.Plugins.Utilities
 
             lock (_lock)
             {
-                _timer.Dispose();
+                
+                _timer?.Dispose();
                 _timer = null;
 
-                _callback(this);
+                _callback?.Invoke(this);
             }
         }
     }

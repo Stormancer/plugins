@@ -37,14 +37,14 @@ namespace Stormancer.Server.Plugins.Users
     public class UsersAdminController : ControllerBase
     {
         private readonly IUserService _users;
-        private readonly IAuthenticationService auth;
+
         private readonly ISceneHost scene;
 
 
-        public UsersAdminController(IUserService users, IAuthenticationService auth, ISceneHost scene)
+        public UsersAdminController(IUserService users, ISceneHost scene)
         {
             _users = users;
-            this.auth = auth;
+
             this.scene = scene;
 
         }
@@ -57,13 +57,13 @@ namespace Stormancer.Server.Plugins.Users
         }
 
         [HttpGet]
-        [Route("search")]
+        [Route("")]
         public async Task<IEnumerable<UserViewModel>> Search(int take = 20, int skip = 0)
         {
-            var query = Request.Query.ToDictionary(s => s.Key, s => s.Value.FirstOrDefault());
+            var query = Request.Query.Where(s => s.Key != "take" && s.Key != "skip").ToDictionary(s => s.Key, s => s.Value.FirstOrDefault());
             var users = await _users.Query(query, take, skip);
 
-            return users.Select(user => new UserViewModel { id = user.Id });
+            return users.Select(user => new UserViewModel { id = user.Id, user = user });
         }
 
         /// <summary>
@@ -101,6 +101,8 @@ namespace Stormancer.Server.Plugins.Users
         public async Task Unlink(string userId, string provider)
         {
             var user = await _users.GetUser(userId);
+            using var scope = scene.CreateRequestScope();
+            var auth = scope.Resolve<IAuthenticationService>();
             await auth.Unlink(user, provider);
         }
 
@@ -136,9 +138,19 @@ namespace Stormancer.Server.Plugins.Users
     }
 
 
+    /// <summary>
+    /// An user in the DB
+    /// </summary>
     public class UserViewModel
     {
+        /// <summary>
+        /// Gets the id of the user.
+        /// </summary>
         public string id { get; set; }
 
+        /// <summary>
+        /// Gets the user.
+        /// </summary>
+        public User user { get; internal set; }
     }
 }

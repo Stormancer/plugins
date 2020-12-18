@@ -9,9 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
+2.1.1.1
 ----------
-
+Added
+*****
+- Added Licence expression to nuget package.
 
 2.1.1
 -----

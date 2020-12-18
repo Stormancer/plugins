@@ -9,12 +9,14 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+3.0.1
+-----
 Changed
 *******
 - Use Stormancer.Management 4.0.0
 - Use HttpClientFactory
+- Add Licence expression to nuget package.
+
 3.0.0.1
 -------
 Changed

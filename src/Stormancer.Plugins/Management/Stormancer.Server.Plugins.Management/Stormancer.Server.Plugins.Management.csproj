@@ -12,7 +12,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <Description>Exposes the Stormancer Management client to the server application using the application's identity.</Description>
-    <license>MIT</license>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <PropertyGroup>

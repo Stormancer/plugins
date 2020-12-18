@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+2.0.2
+-----
 Changed
 *******
 - Set Apache 2.0 License because this package contains some modified code under Apache2.0 (Modified HttpClientFactory implementation.)

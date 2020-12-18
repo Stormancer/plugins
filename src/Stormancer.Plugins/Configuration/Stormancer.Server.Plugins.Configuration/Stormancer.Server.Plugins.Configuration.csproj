@@ -12,6 +12,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <Description>Integrates the configuration SA into the dependency resolver system.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <PropertyGroup>
