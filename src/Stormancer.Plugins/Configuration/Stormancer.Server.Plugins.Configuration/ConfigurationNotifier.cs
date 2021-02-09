@@ -23,32 +23,25 @@ namespace Stormancer.Server.Plugins.Configuration
 
         private void Env_ActiveDeploymentChanged(object? sender, ActiveDeploymentChangedEventArgs e)
         {
-            var deps = host.DependencyResolver.ResolveAll<IConfigurationChangedEventHandler>();
-            deps.RunEventHandler(h => h.OnDeploymentChanged(e), ex => logger.Log(LogLevel.Error, "configuration", $"An error occured while running {nameof(IConfigurationChangedEventHandler.OnDeploymentChanged)}", ex));
-            foreach (var scene in host.EnumerateScenes())
-            {
-                scene.DependencyResolver.ResolveAll<IConfigurationChangedEventHandler>().Where(dep => !deps.Contains(dep)).RunEventHandler(h => h.OnDeploymentChanged(e), ex => logger.Log(LogLevel.Error, "configuration", $"An error occured while running {nameof(IConfigurationChangedEventHandler.OnDeploymentChanged)}", ex));
-
-            }
-
+            host.EnumerateScenes()
+                .SelectMany(s => s.DependencyResolver.ResolveAll<IConfigurationChangedEventHandler>())
+                .Distinct()
+                .RunEventHandler(h => h.OnDeploymentChanged(e), ex => logger.Log(LogLevel.Error, "configuration", $"An error occured while running {nameof(IConfigurationChangedEventHandler.OnDeploymentChanged)}", ex));
         }
 
         private void Env_ConfigurationChanged(object? sender, EventArgs e)
         {
-
             NotifyConfigChanged();
         }
 
         internal void NotifyConfigChanged()
         {
-            var deps = host.DependencyResolver.ResolveAll<IConfigurationChangedEventHandler>();
-            deps.RunEventHandler(h => h.OnConfigurationChanged(), ex => logger.Log(LogLevel.Error, "configuration", $"An error occured while running {nameof(IConfigurationChangedEventHandler.OnConfigurationChanged)}", ex));
-
-            foreach(var scene in host.EnumerateScenes())
-            {
-                scene.DependencyResolver.ResolveAll<IConfigurationChangedEventHandler>().Where(dep=>!deps.Contains(dep)).RunEventHandler(h => h.OnConfigurationChanged(), ex => logger.Log(LogLevel.Error, "configuration", $"An error occured while running {nameof(IConfigurationChangedEventHandler.OnConfigurationChanged)}", ex));
-
-            }
+           
+            host.EnumerateScenes()
+                .SelectMany(s => s.DependencyResolver.ResolveAll<IConfigurationChangedEventHandler>())
+                .Distinct()
+                .RunEventHandler(h => h.OnConfigurationChanged(), ex => logger.Log(LogLevel.Error, "configuration", $"An error occured while running {nameof(IConfigurationChangedEventHandler.OnConfigurationChanged)}", ex));
+           
         }
     }
 }

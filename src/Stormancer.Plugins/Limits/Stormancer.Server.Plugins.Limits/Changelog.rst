@@ -9,10 +9,24 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+0.1.3
+-----
+Changed
+*******
+- Fixed issue that could decrement user count even if user skipped queue.
+
+0.1.2
+-----
+Changed
+*******
+- Properly report connection count even when limits are disabled.
+
+0.1.1.1
+-------
 Added
 *****
 - Enforce concurrent sessions limit from the configuration.
 - Queue users over the sessions limit.
-- Report concurrent sessions limits status with ILimits and an admin web API, including queue length and average time between user entry. 
+- Report concurrent sessions limits status with ILimits and an admin web API, including queue length and average time between user entry.
+- Added Licence expression to nuget package.
+

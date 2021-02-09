@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Stormancer.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,23 +15,31 @@ namespace Stormancer.Server.Plugins.Limits
     [Route("_limits")]
     public class LimitsAdminController :ControllerBase
     {
-        private readonly ILimits limits;
+     
+        private readonly ISceneHost scene;
 
         /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="limits"></param>
-        public LimitsAdminController(ILimits limits)
+        public LimitsAdminController(ISceneHost scene)
         {
-            this.limits = limits;
+          
+            this.scene = scene;
         }
 
+        /// <summary>
+        /// Gets informations about user connection limits.
+        /// </summary>
+        /// <returns></returns>
         [HttpGet]
         [Route("users")]
         [Produces(typeof(UserConnectionLimitStatus))]
-        public IActionResult GetUserLimitsStatus()
+        public async Task<IActionResult> GetUserLimitsStatus()
         {
-            return Ok(limits.GetUserLimitsStatus());
+            using var scope = scene.CreateRequestScope();
+            var limits = scope.Resolve<LimitsClient>();
+            return Ok(await limits.GetConnectionLimitStatus());
         }
     }
 

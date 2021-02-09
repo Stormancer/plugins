@@ -29,6 +29,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Management
@@ -65,16 +66,17 @@ namespace Stormancer.Server.Plugins.Management
     {
         private readonly IEnvironment _environment;
         private readonly ILogger _logger;
-
+        private readonly IHttpClientFactory clientFactory;
         private ManagementClient _clientV3;
 
         private Lazy<ManagementClient> _clientV1;
         private ManagementClient clientV1 { get => _clientV1.Value; }
 
-        public ManagementClientProvider(IEnvironment environment, ILogger logger)
+        public ManagementClientProvider(IEnvironment environment, ILogger logger, IHttpClientFactory clientFactory)
         {
             _environment = environment;
             _logger = logger;
+            this.clientFactory = clientFactory;
 
             async Task<Uri> EndpointResolver(string? clusterId)
             {
@@ -104,25 +106,12 @@ namespace Stormancer.Server.Plugins.Management
                 }
             }
 
-            _clientV3 = new ManagementClient(EndpointResolver, async rq =>
+            _clientV3 = new ManagementClient(EndpointResolver, () =>
              {
-                 var creds = await environment.GetAdminApiCredentials();
-                 foreach (var header in creds.Headers)
-                 {
-                     rq.Headers.TryAddWithoutValidation(header.Key, header.Value);
-                 }
-                 return rq;
+                 return clientFactory.CreateClient("stormancer.management");
              });
 
-            _clientV1 = new Lazy<ManagementClient>(() => new ManagementClient(EndpointResolver, async rq =>
-            {
-                var creds = await environment.GetAdminApiCredentials();
-                foreach (var header in creds.Headers)
-                {
-                    rq.Headers.TryAddWithoutValidation(header.Key, header.Value);
-                }
-                return rq;
-            }, "1"));
+            _clientV1 = new Lazy<ManagementClient>(() => new ManagementClient(EndpointResolver, () => clientFactory.CreateClient("stormancer.management"), "1"));
         }
 
         /// <summary>

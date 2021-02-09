@@ -297,6 +297,15 @@ namespace Stormancer.Server.Plugins.Users
              });
         }
 
+        public async Task KickUser(string userId, string reason)
+        {
+            await AuthenticatorRpc(null, $"UserSession.{nameof(KickUser)}", s =>
+            {
+                _serializer.Serialize(userId, s);
+                _serializer.Serialize(reason, s);
+            });
+        }
+
         public IObservable<byte[]> SendRequest(string operationName, string senderUserId, string recipientUserId, Action<Stream> writer, CancellationToken cancellationToken)
         {
             return AuthenticatorRpc(null, $"UserSession.{nameof(SendRequest)}", s =>

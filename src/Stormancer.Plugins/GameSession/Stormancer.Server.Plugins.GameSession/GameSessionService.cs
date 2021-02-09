@@ -821,11 +821,8 @@ namespace Stormancer.Server.Plugins.GameSession
                 var userId = await GetUserId(remotePeer);
                 if (userId != null)
                 {
-                    if(inputStream.Length > 1024*1024)
-                    {
-                        throw new ClientException("gameSession.resultsTooBig?maxSize=1Mb");
-                    }
-                    var memStream = new MemoryStream((int)inputStream.Length);
+                  
+                    var memStream = new MemoryStream();
                     inputStream.CopyTo(memStream);
                     memStream.Seek(0, SeekOrigin.Begin);
                     _clients[userId].ResultData = memStream;

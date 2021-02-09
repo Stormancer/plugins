@@ -9,8 +9,20 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
+4.4.1.2
 ----------
+Changed
+*******
+- Don't include authResult in login.success log.
+- Add Licence expression to nuget package.
+
+4.2.0
+-----
+Added
+*****
+- Key used to encode and decode bearer token is fetched from SA configuration.
+4.1.0.1
+-------
 Added
 *****
 - New extensibility point: `IAuthenticationEventHandler.OnAuthenticationComplete(AuthenticationResult ctx)`. It is called after authentication and before session creation and provides a way for plugin to override authentication results.
