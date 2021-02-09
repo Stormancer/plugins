@@ -14,5 +14,10 @@
         /// Steam Id claim path.
         /// </summary>
         public const string ClaimPath = "steamid";
+
+        /// <summary>
+        /// Steam Id.
+        /// </summary>
+        public const string STEAM_ID = "steamid";
     }
 }
