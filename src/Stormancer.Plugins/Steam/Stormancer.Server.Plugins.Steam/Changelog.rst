@@ -13,6 +13,8 @@ This project adheres to semantic versioning.
 ----------
 Changed
 *******
+- Improve auth update user data only if necessary (check multiple fields)
+- Improve steam player profiles
 - Update to .NET5.0
 
 3.0.5.4
