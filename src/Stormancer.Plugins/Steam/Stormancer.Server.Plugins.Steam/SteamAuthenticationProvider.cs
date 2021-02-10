@@ -212,8 +212,8 @@ namespace Stormancer.Server.Plugins.Steam
                             user.UserData["avatar"] = playerSummary.avatar;
                             updateUserData = true;
                         }
-                        var userDataAvatarProfileUrl = user.UserData["steamProfileUrl"];
-                        if (userDataAvatarProfileUrl != null && userDataAvatarProfileUrl.ToString() != playerSummary.profileurl)
+                        var userDataProfileUrl = user.UserData["steamProfileUrl"];
+                        if (userDataProfileUrl != null && userDataProfileUrl.ToString() != playerSummary.profileurl)
                         {
                             user.UserData["steamProfileUrl"] = playerSummary.profileurl;
                             updateUserData = true;
