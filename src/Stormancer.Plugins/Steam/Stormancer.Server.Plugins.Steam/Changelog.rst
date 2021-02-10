@@ -9,7 +9,7 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-4.0.1
+Unreleased
 ----------
 Changed
 *******
@@ -17,7 +17,7 @@ Changed
 - Improve steam player profiles
 
 4.0.0.1
-----------
+-------
 Changed
 *******
 - Update to .NET5.0
