@@ -15,6 +15,7 @@ Changed
 *******
 - Improve auth update user data only if necessary (check multiple fields)
 - Improve steam player profiles
+- Profile part fixes
 
 4.0.0.1
 -------
