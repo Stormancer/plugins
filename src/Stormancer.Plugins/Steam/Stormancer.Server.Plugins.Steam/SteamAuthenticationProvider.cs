@@ -195,25 +195,25 @@ namespace Stormancer.Server.Plugins.Steam
                     if (playerSummary != null)
                     {
                         var userDataSteamId = user.UserData[SteamConstants.STEAM_ID];
-                        if (userDataSteamId != null && userDataSteamId.ToObject<ulong>() != playerSummary.steamid)
+                        if (userDataSteamId == null || userDataSteamId.ToObject<ulong>() != playerSummary.steamid)
                         {
                             user.UserData[SteamConstants.STEAM_ID] = playerSummary.steamid;
                             updateUserData = true;
                         }
                         var userDataPseudo = user.UserData["pseudo"];
-                        if (userDataPseudo != null && userDataPseudo.ToString() != playerSummary.personaname)
+                        if (userDataPseudo == null || userDataPseudo.ToString() != playerSummary.personaname)
                         {
                             user.UserData["pseudo"] = playerSummary.personaname;
                             updateUserData = true;
                         }
                         var userDataAvatar = user.UserData["avatar"];
-                        if (userDataAvatar != null && userDataAvatar.ToString() != playerSummary.avatar)
+                        if (userDataAvatar == null || userDataAvatar.ToString() != playerSummary.avatar)
                         {
                             user.UserData["avatar"] = playerSummary.avatar;
                             updateUserData = true;
                         }
                         var userDataProfileUrl = user.UserData["steamProfileUrl"];
-                        if (userDataProfileUrl != null && userDataProfileUrl.ToString() != playerSummary.profileurl)
+                        if (userDataProfileUrl == null || userDataProfileUrl.ToString() != playerSummary.profileurl)
                         {
                             user.UserData["steamProfileUrl"] = playerSummary.profileurl;
                             updateUserData = true;

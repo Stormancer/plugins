@@ -94,7 +94,7 @@ namespace Stormancer.Server.Plugins.Steam
                         {
                             j["steamid"] = (ulong?)user.UserData[SteamConstants.STEAM_ID] ?? 0UL;
                             j["avatar"] = (string?)user.UserData["avatar"] ?? "";
-                            j["steamProfileUrl"] = (string?)user.UserData["steamProfileUrl"] ?? "";
+                            j["profileurl"] = (string?)user.UserData["steamProfileUrl"] ?? "";
                             return j;
                         });
                     }
