@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-0.1.0
--------
+Unreleased
+----------
 Added
 *****
 - Initial plugin implementation: All peers are authorities and have views on the whole replication index.
