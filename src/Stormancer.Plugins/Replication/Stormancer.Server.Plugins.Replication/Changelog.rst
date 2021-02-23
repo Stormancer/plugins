@@ -13,7 +13,5 @@ This project adheres to semantic versioning.
 -------
 Added
 *****
-
-Changed
-*******
+- Initial plugin implementation: All peers are authorities and have views on the whole replication index.
 
