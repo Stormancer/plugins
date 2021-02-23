@@ -14,4 +14,5 @@ Unreleased
 Added
 *****
 - Initial plugin implementation: All peers are authorities and have views on the whole replication index.
+- Added entrypoint
 

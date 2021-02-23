@@ -12,6 +12,17 @@ namespace Stormancer.Server.Plugins.Replication
         public const string PROTOCOL_VERSION = "2020_09_18_1";
     }
 
+    public class App
+    {
+        /// <summary>
+        /// Entrypoint for the Replication plugin. For internal use, do not call this.
+        /// </summary>
+        /// <param name="builder"></param>
+        public void Run(IAppBuilder builder)
+        {
+            builder.AddPlugin(new ReplicationPlugin());
+        }
+    }
     class ReplicationPlugin : IHostPlugin
     {
         public void Build(HostPluginBuildContext ctx)
