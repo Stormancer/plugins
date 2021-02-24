@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+*****
+- Add configuration builder and config extension methods for ephemeral auth.
+
 4.4.1.2
 ----------
 Changed
