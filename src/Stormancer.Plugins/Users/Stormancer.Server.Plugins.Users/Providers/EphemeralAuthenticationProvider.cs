@@ -12,7 +12,7 @@ namespace Stormancer
     /// <summary>
     /// Extension methods for DeviceIdentifier auth provider.
     /// </summary>
-    public static class DeviceIdentifierAuthenticationConfigurationExtensions
+    public static class EphemeralAuthenticationConfigurationExtensions
     {
         /// <summary>
         /// Configures the ephemeral auth provider.
