@@ -21,7 +21,7 @@ namespace Stormancer
         /// <param name="builder"></param>
         /// <remarks></remarks>
         /// <returns></returns>
-        public static UsersConfigurationBuilder ConfigureDeviceIdentifier(this UsersConfigurationBuilder config, Func<EphemeralAuthConfigurationBuilder, EphemeralAuthConfigurationBuilder> builder)
+        public static UsersConfigurationBuilder ConfigureEphemeral(this UsersConfigurationBuilder config, Func<EphemeralAuthConfigurationBuilder, EphemeralAuthConfigurationBuilder> builder)
         {
             var b = new EphemeralAuthConfigurationBuilder();
 
