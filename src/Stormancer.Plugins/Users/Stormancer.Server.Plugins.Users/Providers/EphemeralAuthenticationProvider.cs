@@ -39,7 +39,7 @@ namespace Stormancer.Server.Plugins.Users
     /// <summary>
     /// Configures the ephemeral auth (anonymous) auth provider.
     /// </summary>
-    public class EphemeralAuthConfigurationBuilder : AuthProviderConfigurationBuilderBase<DeviceIdentifierConfigurationBuilder>
+    public class EphemeralAuthConfigurationBuilder : AuthProviderConfigurationBuilderBase<EphemeralAuthConfigurationBuilder>
     {
 
     }
