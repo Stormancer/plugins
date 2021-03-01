@@ -610,9 +610,13 @@ namespace Stormancer.Server.Plugins.Users
                 }, cancellationToken)
                 .Select(packet =>
                 {
-                    using var stream = new MemoryStream();
-                    packet.Stream.CopyTo(stream);
-                    return stream.ToArray();
+                    using (packet)
+                    {
+
+                        using var stream = new MemoryStream();
+                        packet.Stream.CopyTo(stream);
+                        return stream.ToArray();
+                    }
                 });
             })
             .Switch();
