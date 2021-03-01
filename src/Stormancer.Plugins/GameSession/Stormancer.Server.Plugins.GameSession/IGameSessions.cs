@@ -74,7 +74,7 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 var session = await sessions.GetSessionById(userSessionId);
                 serializer.Serialize(session, stream);
-                return await TaskHelper.Retry(async () => version switch
+                return await TaskHelper.Retry(async (_,_) => version switch
                 {
                     TokenVersion.V3 => await management.CreateConnectionToken(id, stream.ToArray(), "stormancer/userSession"),
                     TokenVersion.V1 => await management.CreateConnectionTokenV1(id, stream.ToArray(), "stormancer/userSession"),
