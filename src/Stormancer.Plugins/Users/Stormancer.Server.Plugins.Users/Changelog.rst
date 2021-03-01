@@ -9,11 +9,14 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
+4.4.3.1
 ----------
 Added
 *****
 - Add configuration builder and config extension methods for ephemeral auth.
+Changed
+*******
+- Use Stormancer.Abstraction.Server 6.1.0
 
 4.4.1.2
 ----------

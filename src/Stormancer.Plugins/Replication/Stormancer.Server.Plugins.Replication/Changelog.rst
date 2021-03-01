@@ -9,10 +9,10 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+0.1.2
+------
 Added
 *****
 - Initial plugin implementation: All peers are authorities and have views on the whole replication index.
 - Added entrypoint
-
+- Use Stormancer.Abstraction.Server 6.1.0
