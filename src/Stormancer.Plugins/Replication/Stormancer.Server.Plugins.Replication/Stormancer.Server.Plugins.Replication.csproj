@@ -5,25 +5,17 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>2.0.1</Version>
+    <Version>0.1.2</Version>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <Description>Provides analytics services to a Stormancer application.</Description>
+    <Description>Provides server services required for object replication.</Description>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
     <Version>$(Version)-pre</Version>
   </PropertyGroup>
-
-  <PropertyGroup>
-    <PackageIcon>icon.png</PackageIcon>
-  </PropertyGroup>
-  <ItemGroup>
-    <None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
-  </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
       <PrivateAssets>all</PrivateAssets>
@@ -33,15 +25,22 @@
     <PackageReference Include="Stormancer.Abstractions.Server" Version="4.1.0" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <PackageIcon>icon.png</PackageIcon>
+  </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj" />
-    <ProjectReference Include="..\..\Configuration\Stormancer.Server.Plugins.Configuration\Stormancer.Server.Plugins.Configuration.csproj" />
-    <ProjectReference Include="..\..\Database\Stormancer.Server.Plugins.Database.Elasticsearch\Stormancer.Server.Plugins.Database.Elasticsearch.csproj" />
+    <None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
   </ItemGroup>
 
   <ItemGroup>
     <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj" />
+  </ItemGroup>
+
+
   <Target Name="PostPack" AfterTargets="Pack">
     <Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
   </Target>

@@ -44,13 +44,13 @@ namespace Stormancer.Server.Plugins.Steam
 
         public async Task GetProfiles(ProfileCtx ctx)
         {
-            if (!ctx.DisplayOptions.ContainsKey("steam"))
+            if (!ctx.DisplayOptions.ContainsKey(SteamConstants.PROVIDER_NAME))
             {
                 return;
             }
 
             var users = (await _users.GetUsers(ctx.Users.ToArray()))
-                .Where(kvp => kvp.Value.UserData.ContainsKey("steamid"))
+                .Where(kvp => kvp.Value.UserData.ContainsKey(SteamConstants.STEAM_ID))
                 .Select(kvp => kvp.Value)
                 .ToList();
 
@@ -59,17 +59,17 @@ namespace Stormancer.Server.Plugins.Steam
                 return;
             }
 
-            if (ctx.DisplayOptions["steam"] == "details")
+            if (ctx.DisplayOptions[SteamConstants.PROVIDER_NAME] == "details")
             {
-                var steamProfiles = await _steam.GetPlayerSummaries(users.Select(u => (ulong)(u.UserData["steamid"] ?? 0)));
+                var steamProfiles = await _steam.GetPlayerSummaries(users.Select(u => (ulong)(u.UserData[SteamConstants.STEAM_ID] ?? 0)));
 
                 foreach (var user in users)
                 {
                     if (user != null)
                     {
-                        ctx.UpdateProfileData(user.Id, "steam", j =>
+                        ctx.UpdateProfileData(user.Id, SteamConstants.PROVIDER_NAME, j =>
                         {
-                                var steamId = (ulong)(user.UserData["steamid"] ?? 0);
+                                var steamId = (ulong?)user.UserData[SteamConstants.STEAM_ID] ?? 0UL;
                                 var steamProfile = steamProfiles[steamId];
                                 if (steamProfile != null)
                                 {
@@ -90,10 +90,11 @@ namespace Stormancer.Server.Plugins.Steam
                 {
                     if (user != null)
                     {
-                        ctx.UpdateProfileData(user.Id, "steam", j =>
+                        ctx.UpdateProfileData(user.Id, SteamConstants.PROVIDER_NAME, j =>
                         {
-                            var steamId = (ulong)(user.UserData["steamid"] ?? 0);
-                            j["steamid"] = steamId;
+                            j["steamid"] = (ulong?)user.UserData[SteamConstants.STEAM_ID] ?? 0UL;
+                            j["avatar"] = (string?)user.UserData["avatar"] ?? "";
+                            j["profileurl"] = (string?)user.UserData["steamProfileUrl"] ?? "";
                             return j;
                         });
                     }

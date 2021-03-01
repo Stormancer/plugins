@@ -30,6 +30,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Net.Http;
+using System.Net;
 
 namespace Stormancer.Server.Plugins.ServiceLocator
 {
@@ -57,10 +59,25 @@ namespace Stormancer.Server.Plugins.ServiceLocator
                 logger.Log(LogLevel.Error, "locator", "An user tried to locate a service without being authenticated.", new { session });
                 throw new ClientException("locator.notAuthenticated");
             }
-           
-            var token = await _locator.GetSceneConnectionToken(serviceType, serviceName, session);
-          
-            return token;
+
+            try
+            {
+                var token = await _locator.GetSceneConnectionToken(serviceType, serviceName, session);
+
+                return token;
+            }
+            catch(InvalidOperationException ex) when (ex.InnerException is HttpRequestException hre)
+            {
+                if(hre.StatusCode == HttpStatusCode.NotFound)
+                {
+                   
+                    throw new ClientException("sceneNotFound");
+                }
+                else
+                {
+                    throw;
+                }
+            }
 
         }
 

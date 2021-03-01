@@ -5,7 +5,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>1.0.1.1</Version>
+    <Version>1.0.2</Version>
     <AssemblyVersion>$(Version)</AssemblyVersion>
     <FileVersion>$(Version)</FileVersion>
     <IncludeSymbols>true</IncludeSymbols>
@@ -33,7 +33,7 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="4.0.0.1" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="4.1.0" />
   </ItemGroup>
 
   <ItemGroup>

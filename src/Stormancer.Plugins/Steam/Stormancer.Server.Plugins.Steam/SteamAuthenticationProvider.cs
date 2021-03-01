@@ -61,7 +61,7 @@ namespace Stormancer.Server.Plugins.Steam
             _authenticator = authenticator;
 
             ApplyConfig(configuration.Settings);
-           
+
         }
 
         /// <summary>
@@ -122,6 +122,7 @@ namespace Stormancer.Server.Plugins.Steam
             {
                 return AuthenticationResult.CreateFailure("Steam session ticket must not be empty.", pId, authenticationCtx.Parameters);
             }
+
             try
             {
                 var steamId = await _authenticator.AuthenticateUserTicket(ticket);
@@ -160,7 +161,7 @@ namespace Stormancer.Server.Plugins.Steam
                         result = AuthenticationResult.CreateFailure($"Failed to check VAC status for user.", pId, authenticationCtx.Parameters);
                     }
 
-                    if (result != null)//Failed
+                    if (result != null) // Failed
                     {
                         if (_vacSessions.TryRemove(steamId.Value, out _))
                         {
@@ -184,15 +185,44 @@ namespace Stormancer.Server.Plugins.Steam
                 {
                     var uid = Guid.NewGuid().ToString("N");
 
-                    user = await _users.CreateUser(uid, JObject.FromObject(new { steamid = steamIdString, pseudo = playerSummary.personaname, avatar = playerSummary.avatarfull }));
+                    user = await _users.CreateUser(uid, JObject.FromObject(new Dictionary<string, string> { { SteamConstants.ClaimPath, steamIdString }, { "pseudo", playerSummary?.personaname ?? "" }, { "avatar", playerSummary?.avatar ?? "" }, { "steamProfileUrl", playerSummary?.profileurl ?? "" } }));
 
                     user = await _users.AddAuthentication(user, SteamConstants.PROVIDER_NAME, claim => claim[SteamConstants.ClaimPath] = steamIdString, new Dictionary<string, string> { { SteamConstants.ClaimPath, steamIdString } });
                 }
-                else if(playerSummary != null)
+                else
                 {
-                    user.UserData["pseudo"] = playerSummary.personaname;
-                    user.UserData["avatar"] = playerSummary.avatarfull;
-                    await _users.UpdateUserData(user.Id, user.UserData);
+                    bool updateUserData = false;
+                    if (playerSummary != null)
+                    {
+                        var userDataSteamId = user.UserData[SteamConstants.STEAM_ID];
+                        if (userDataSteamId == null || userDataSteamId.ToObject<ulong>() != playerSummary.steamid)
+                        {
+                            user.UserData[SteamConstants.STEAM_ID] = playerSummary.steamid;
+                            updateUserData = true;
+                        }
+                        var userDataPseudo = user.UserData["pseudo"];
+                        if (userDataPseudo == null || userDataPseudo.ToString() != playerSummary.personaname)
+                        {
+                            user.UserData["pseudo"] = playerSummary.personaname;
+                            updateUserData = true;
+                        }
+                        var userDataAvatar = user.UserData["avatar"];
+                        if (userDataAvatar == null || userDataAvatar.ToString() != playerSummary.avatar)
+                        {
+                            user.UserData["avatar"] = playerSummary.avatar;
+                            updateUserData = true;
+                        }
+                        var userDataProfileUrl = user.UserData["steamProfileUrl"];
+                        if (userDataProfileUrl == null || userDataProfileUrl.ToString() != playerSummary.profileurl)
+                        {
+                            user.UserData["steamProfileUrl"] = playerSummary.profileurl;
+                            updateUserData = true;
+                        }
+                    }
+                    if (updateUserData)
+                    {
+                        await _users.UpdateUserData(user.Id, user.UserData);
+                    }
                 }
 
                 return AuthenticationResult.CreateSuccess(user, pId, authenticationCtx.Parameters);
@@ -200,7 +230,7 @@ namespace Stormancer.Server.Plugins.Steam
             catch (SteamException)
             {
                 return AuthenticationResult.CreateFailure($"Authentication refused by steam.", pId, authenticationCtx.Parameters);
-             
+
             }
         }
 

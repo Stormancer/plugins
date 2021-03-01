@@ -11,27 +11,8 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
-Changed
-*******
-- Improve auth update user data only if necessary (check multiple fields)
-- Improve steam player profiles
-- Profile part fixes
-
-4.0.0.1
--------
-Changed
-*******
-- Update to .NET5.0
-
-3.0.5.4
--------
 Added
 *****
+- Initial plugin implementation: All peers are authorities and have views on the whole replication index.
+- Added entrypoint
 
-Changed
-*******
-- New versioning system
-- Remove error logs when client provides invalid token.
-
-Removed
-*******
