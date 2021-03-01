@@ -5,7 +5,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>2.0.0.1</Version>
+    <Version>2.0.1</Version>
     <AssemblyVersion>$(Version)</AssemblyVersion>
     <FileVersion>$(Version)</FileVersion>
     <IncludeSymbols>true</IncludeSymbols>
@@ -34,7 +34,7 @@
     </PackageReference>
     <PackageReference Include="NEST" Version="7.10.0" />
     <PackageReference Include="SmartFormat.NET" Version="2.5.3" />
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="4.0.0.1" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="4.1.0-pre" />
   </ItemGroup>
 
   <ItemGroup>

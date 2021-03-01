@@ -31,6 +31,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Net;
+using System.Net.Http;
 
 namespace Stormancer.Server.Plugins.ServiceLocator
 {
@@ -86,24 +88,36 @@ namespace Stormancer.Server.Plugins.ServiceLocator
 
         public async Task<string> GetSceneConnectionToken(string serviceType, string serviceName, Session? session)
         {
-
-
             var sceneUri = await GetSceneId(serviceType, serviceName, session);
 
             if (sceneUri == null)
             {
-                throw new ClientException("notFound");
+                throw new ClientException("serviceNotFound");
             }
-            using (var stream = new MemoryStream())
+            try
             {
-                if (session == null)
-                {
-                    _logger.Log(LogLevel.Warn, "locator", "session is null", new { });
-                }
-                serializer.Serialize(session, stream);
-                var token = await _managementClientAccessor.CreateConnectionToken(sceneUri, stream.ToArray(), "stormancer/userSession");
 
-                return token;
+                using (var stream = new MemoryStream())
+                {
+                    if (session == null)
+                    {
+                        _logger.Log(LogLevel.Warn, "locator", "session is null", new { });
+                    }
+                    serializer.Serialize(session, stream);
+                    var token = await _managementClientAccessor.CreateConnectionToken(sceneUri, stream.ToArray(), "stormancer/userSession");
+
+                    return token;
+                }
+            }
+            catch (InvalidOperationException ex) when (ex.InnerException is HttpRequestException hre)
+            {
+                if (hre.StatusCode == HttpStatusCode.NotFound)
+                {
+                    _logger.Log(LogLevel.Warn, "serviceLocator", $"Scene {sceneUri} not found.", new { service = serviceType, name = serviceName });
+                }
+
+                throw;
+
             }
         }
 
@@ -113,7 +127,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
             var ctx = new ServiceLocationCtx { ServiceName = serviceName, ServiceType = serviceType, Session = session };
             await handlers.RunEventHandler(slp => slp.LocateService(ctx), ex => _logger.Log(LogLevel.Error, "serviceLocator", "An error occured while executing the LocateService extensibility point", ex));
 
-            if (_config !=null && string.IsNullOrEmpty(ctx.SceneId) && _config.DefaultMapping.TryGetValue(ctx.ServiceType, out var template))
+            if (_config != null && string.IsNullOrEmpty(ctx.SceneId) && _config.DefaultMapping.TryGetValue(ctx.ServiceType, out var template))
             {
                 ctx.SceneId = Smart.Format(template, ctx);
             }

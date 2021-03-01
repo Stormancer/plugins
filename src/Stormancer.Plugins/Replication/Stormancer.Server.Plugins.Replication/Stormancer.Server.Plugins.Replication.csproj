@@ -5,22 +5,14 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>2.0.2</Version>
+    <Version>0.1.2</Version>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <Description>Declare server routes using the controller/action pattern.</Description>
+    <Description>Provides server services required for object replication.</Description>
   </PropertyGroup>
-
-  <PropertyGroup>
-    <PackageIcon>icon.png</PackageIcon>
-  </PropertyGroup>
-  <ItemGroup>
-    <None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
-  </ItemGroup>
-  
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
     <Version>$(Version)-pre</Version>
   </PropertyGroup>
@@ -29,11 +21,26 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="MsgPack.Cli" Version="1.0.1" />
     <PackageReference Include="Stormancer.Abstractions.Server" Version="4.1.0-pre" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <PackageIcon>icon.png</PackageIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
+  </ItemGroup>
+
   <ItemGroup>
     <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj" />
+  </ItemGroup>
+
+
   <Target Name="PostPack" AfterTargets="Pack">
     <Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
   </Target>

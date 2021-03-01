@@ -147,7 +147,7 @@ namespace Stormancer.Server.Plugins.Users
             }
             try
             {
-                await TaskHelper.Retry(async () =>
+                await TaskHelper.Retry(async (_,_) =>
                 {
 
                     var response = await c.IndexAsync(user, s => s.Index(GetIndex<User>()).Refresh(Elasticsearch.Net.Refresh.WaitFor));
