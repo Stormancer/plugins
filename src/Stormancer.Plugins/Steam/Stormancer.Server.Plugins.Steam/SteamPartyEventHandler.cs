@@ -85,7 +85,7 @@ namespace Stormancer.Server.Plugins.Steam
         private readonly ISerializer _serializer;
         private readonly IServiceLocator _serviceLocator;
 
-        private string _lobbyMetadataBearerTokenKey;
+        private string? _lobbyMetadataBearerTokenKey;
 
         /// <summary>
         /// Steam Party Event Handler contructor.
@@ -96,6 +96,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// <param name="rpc"></param>
         /// <param name="serializer"></param>
         /// <param name="locator"></param>
+        /// <param name="configuration"></param>
         public SteamPartyEventHandler(
             IUserSessions sessions,
             ISteamService steam,
