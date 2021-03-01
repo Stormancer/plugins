@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-4.0.1
-----------
+4.0.2
+-----
 Changed
 *******
 - Improve auth update user data only if necessary (check multiple fields)
