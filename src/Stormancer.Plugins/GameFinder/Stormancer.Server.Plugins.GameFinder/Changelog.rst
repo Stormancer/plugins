@@ -9,6 +9,10 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+4.0.2
+-----
+- Use Stormancer.Abstraction.Server 6.1.0
+
 4.0.1.1
 -------
 - Create GameFinderService dependency at the scene level to prevent it from being instantiated in all scenes by IConfigurationChangedEventHandler notifications.

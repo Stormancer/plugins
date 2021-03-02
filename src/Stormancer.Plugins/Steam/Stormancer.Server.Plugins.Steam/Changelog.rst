@@ -9,13 +9,14 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+4.0.2
+-----
 Changed
 *******
 - Improve auth update user data only if necessary (check multiple fields)
 - Improve steam player profiles
 - Profile part fixes
+- Use Stormancer.Abstraction.Server 6.1.0
 
 4.0.0.1
 -------

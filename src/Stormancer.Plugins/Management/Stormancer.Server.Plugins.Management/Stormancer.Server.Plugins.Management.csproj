@@ -30,7 +30,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="4.1.0-pre" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="4.1.0" />
     <PackageReference Include="Stormancer.Management" Version="4.0.0" />
   </ItemGroup>
   <ItemGroup>

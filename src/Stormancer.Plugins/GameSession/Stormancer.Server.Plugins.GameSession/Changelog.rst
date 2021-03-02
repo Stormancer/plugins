@@ -9,6 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+
+4.0.4
+-----
+- Use Stormancer.Abstraction.Server 6.1.0
+
 4.0.3.2
 -------
 Changed

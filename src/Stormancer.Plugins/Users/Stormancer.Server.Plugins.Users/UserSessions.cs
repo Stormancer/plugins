@@ -612,7 +612,6 @@ namespace Stormancer.Server.Plugins.Users
                 {
                     using (packet)
                     {
-
                         using var stream = new MemoryStream();
                         packet.Stream.CopyTo(stream);
                         return stream.ToArray();
