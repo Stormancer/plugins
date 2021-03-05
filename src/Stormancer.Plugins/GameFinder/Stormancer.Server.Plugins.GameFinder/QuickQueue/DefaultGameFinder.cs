@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using Nest;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Models;
 using System;
@@ -37,9 +38,10 @@ namespace Stormancer.Server.Plugins.GameFinder
     /// </summary>
     public class QuickQueueGameFinder : IGameFinderAlgorithm
     {
-        private int teamSize;
-        private int teamCount;
-
+        private Func<dynamic?, uint> teamSize = default!;
+        private Func<dynamic?, uint> teamCount = default!;
+        private Func<dynamic?, dynamic?, bool> canMatch = default!;
+        private Func<Party, Task<dynamic?>> getSettings = default!;
         /// <summary>
         /// 
         /// </summary>
@@ -55,107 +57,146 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="gameFinderContext"></param>
         /// <returns></returns>
-        public Task<GameFinderResult> FindGames(GameFinderContext gameFinderContext)
+        public async Task<GameFinderResult> FindGames(GameFinderContext gameFinderContext)
         {
             var results = new GameFinderResult();
             if (!gameFinderContext.WaitingParties.Any())
             {
-                return Task.FromResult(results);
+                return results;
 
             }
-            var gameFound = false;
-
-            var parties = gameFinderContext.WaitingParties.OrderByDescending(p => p.Players.Count).ToList();
-
-            do
+            var changeOccured = false;
+            await Task.WhenAll(gameFinderContext.WaitingParties.Select(async p => new { party = p, settings = await GetOrCreateSettings(p) }));
+            var partyGroups = gameFinderContext.WaitingParties.OrderByDescending(p => p.Players.Count).GroupBy(p =>
             {
+                dynamic? settings = GetOrCreateSettings(p).Result;
 
-                gameFound = false;
+                return new ParametersGroup { TeamCount = teamCount(settings), TeamSize = teamSize(settings) };
 
-                var game = new Game();
-                for (int teamId = 0; teamId < teamCount; teamId++)
+            });
+
+            foreach (var group in partyGroups)
+            {
+                var teamCount = group.Key.TeamCount;
+                var teamSize = group.Key.TeamSize;
+                var parties = group.ToList();
+                do
                 {
-                    var team = new Models.Team();
 
+                    changeOccured = false;
 
-                    for (int pivotId = 0; pivotId < parties.Count; pivotId++)
+                    var game = new Game();
+                    for (int teamId = 0; teamId < teamCount; teamId++)
                     {
-                        var pivot = parties[pivotId];
+                        var team = new Models.Team();
 
-                        if (game.AllParties.Contains(pivot))
+
+                        for (int pivotId = 0; pivotId < parties.Count; pivotId++)
                         {
-                            continue;
-                        }
+                            var pivot = parties[pivotId];
 
-                        var list = new List<Party>();
-
-
-                        list.Add(pivot);
-
-                        for (int id = pivotId + 1; id < parties.Count; id++)
-                        {
-                            var candidate = parties[id];
-
-                            if (game.AllParties.Contains(candidate))
+                            if (game.AllParties.Contains(pivot))
                             {
                                 continue;
                             }
 
-                            if (list.Sum(p => p.Players.Count) + candidate.Players.Count <= teamSize)
+                            var list = new List<Party>();
+
+
+                            list.Add(pivot);
+
+                            for (int id = pivotId + 1; id < parties.Count; id++)
                             {
-                                list.Add(candidate);
+                                var candidate = parties[id];
+
+                                if (game.AllParties.Contains(candidate))
+                                {
+                                    continue;
+                                }
+
+                                foreach(var p in game.AllParties)
+                                {
+                                    if(!await CanPlayTogether(p, pivot))
+                                    {
+                                        continue;
+                                    }
+                                }
+
+                                if (list.Sum(p => p.Players.Count) + candidate.Players.Count <= teamSize)
+                                {
+                                    list.Add(candidate);
+                                }
+
+
+
                             }
 
-                          
-
-                        }
-
-                        if (list.Sum(p => p.Players.Count) == teamSize)
-                        {
-                            foreach (var p in list)
+                            if (list.Sum(p => p.Players.Count) == teamSize)
                             {
-                                team.Parties.Add(p);
+                                foreach (var p in list)
+                                {
+                                    team.Parties.Add(p);
+                                    break;
+                                }
+                            }
+
+                            if (team.AllPlayers.Count() == teamSize)
+                            {
                                 break;
                             }
                         }
 
                         if (team.AllPlayers.Count() == teamSize)
                         {
-                            break;
+                            game.Teams.Add(team);
+
+
                         }
                     }
 
-                    if (team.AllPlayers.Count() == teamSize)
+                    if (game.Teams.Count == teamCount && game.Teams.All(t => t.AllPlayers.Count() == teamSize))
                     {
-                        game.Teams.Add(team);
+
+                        results.Games.Add(game);
+
+
 
 
                     }
-                }
-
-                if (game.Teams.Count == teamCount && game.Teams.All(t => t.AllPlayers.Count() == teamSize))
-                {
-                    gameFound = true;
-                    results.Games.Add(game);
-
                     foreach (var party in game.AllParties)
                     {
+                        changeOccured = true;
                         parties.Remove(party);
                     }
 
-
                 }
-
+                while (changeOccured);
             }
-            while (gameFound);
-
 
             foreach (var party in results.Games.SelectMany(g => g.AllParties))
             {
                 gameFinderContext.WaitingParties.Remove(party);
             }
 
-            return Task.FromResult(results);
+            return results;
+        }
+
+        private async Task<bool> CanPlayTogether(Party p, Party pivot)
+        {
+
+            return canMatch(await GetOrCreateSettings(p),await GetOrCreateSettings(pivot));
+        }
+
+        private async Task<dynamic?> GetOrCreateSettings(Party p)
+        {
+            dynamic? settings;
+            if(!p.CacheStorage.TryGetValue("matchmaking.settings",out settings ))
+            {
+
+                settings = await getSettings(p);
+                p.CacheStorage.Add("matchmaking.settings", settings);
+            }
+            return settings;
         }
 
         /// <summary>
@@ -170,12 +211,219 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="id"></param>
         /// <param name="config"></param>
-        public void RefreshConfig(dynamic config)
+        public void RefreshConfig(string id, dynamic config)
         {
-            QuickQueueOptions options = config.ToObject<QuickQueueOptions>();
+            var options = (QuickQueueOptions)QuickQueueExtensions.OptionsStore[id];
+
             teamSize = options.teamSize;
             teamCount = options.teamCount;
+            canMatch = options.CanPlayTogether;
+            getSettings = options.getSettings;
+        }
+    }
+
+    internal struct ParametersGroup : IEquatable<ParametersGroup>
+    {
+        public uint TeamSize { get; set; }
+        public uint TeamCount { get; set; }
+
+        public bool Equals(ParametersGroup other)
+        {
+            return TeamSize == other.TeamSize && TeamCount == other.TeamCount;
+        }
+    }
+
+    /// <summary>
+    /// Quick matchmaking queue
+    /// </summary>
+    public class QuickQueueGameFinder<TPartySettings> : IGameFinderAlgorithm
+    {
+        private Func<TPartySettings?, uint> teamSize = default!;
+        private Func<TPartySettings?, uint> teamCount = default!;
+        private Func<TPartySettings?, TPartySettings?, bool> canPlayTogether = default!;
+        Func<Party, Task<TPartySettings?>> getSettings = default!;
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="gameFinderContext"></param>
+        /// <returns></returns>
+        public JObject ComputeDataAnalytics(GameFinderContext gameFinderContext)
+        {
+            return new JObject();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="gameFinderContext"></param>
+        /// <returns></returns>
+        public async Task<GameFinderResult> FindGames(GameFinderContext gameFinderContext)
+        {
+            var results = new GameFinderResult();
+            if (!gameFinderContext.WaitingParties.Any())
+            {
+                return results;
+
+            }
+           
+            var changeOccured = false;
+            await Task.WhenAll(gameFinderContext.WaitingParties.Select(async p => new { party = p, settings = await GetOrCreateSettings(p) }));
+            var partyGroups = gameFinderContext.WaitingParties.OrderByDescending(p => p.Players.Count).GroupBy(p =>
+            {
+                TPartySettings? settings = GetOrCreateSettings(p).Result;
+
+                return new ParametersGroup { TeamCount = teamCount(settings), TeamSize = teamSize(settings) };
+
+            });
+
+            foreach (var group in partyGroups)
+            {
+                var teamCount = group.Key.TeamCount;
+                var teamSize = group.Key.TeamSize;
+                var parties = group.ToList();
+                do
+                {
+
+                  
+                    changeOccured = false;
+
+                    var game = new Game();
+                    for (int teamId = 0; teamId < teamCount; teamId++)
+                    {
+                        var team = new Models.Team();
+
+
+                        for (int pivotId = 0; pivotId < parties.Count; pivotId++)
+                        {
+                            var pivot = parties[pivotId];
+
+                            if (game.AllParties.Contains(pivot))
+                            {
+                                continue;
+                            }
+                            foreach(var p in game.AllParties)
+                            {
+                                if(!await CanPlayTogether(p,pivot))
+                                {
+                                    continue;
+                                }
+                            }
+
+                            var list = new List<Party>();
+
+
+                            list.Add(pivot);
+
+                            for (int id = pivotId + 1; id < parties.Count; id++)
+                            {
+                                var candidate = parties[id];
+
+                                if (game.AllParties.Contains(candidate))
+                                {
+                                    continue;
+                                }
+
+                                if (list.Sum(p => p.Players.Count) + candidate.Players.Count <= teamSize)
+                                {
+                                    list.Add(candidate);
+                                }
+
+
+
+                            }
+
+                            if (list.Sum(p => p.Players.Count) == teamSize)
+                            {
+                                foreach (var p in list)
+                                {
+                                    team.Parties.Add(p);
+                                    break;
+                                }
+                            }
+
+                            if (team.AllPlayers.Count() == teamSize)
+                            {
+                                break;
+                            }
+                        }
+
+                        if (team.AllPlayers.Count() == teamSize)
+                        {
+                            game.Teams.Add(team);
+                        }
+                    }
+
+                    if (game.Teams.Count == teamCount && game.Teams.All(t => t.AllPlayers.Count() == teamSize))
+                    {
+                   
+                        results.Games.Add(game);
+
+                    }
+
+                    foreach (var party in game.AllParties)
+                    {
+                        parties.Remove(party);
+                        changeOccured = true;
+                    }
+                }
+                while (changeOccured);
+            }
+
+
+            foreach (var party in results.Games.SelectMany(g => g.AllParties))
+            {
+                gameFinderContext.WaitingParties.Remove(party);
+            }
+
+            return results;
+        }
+
+        private async Task<TPartySettings?> GetOrCreateSettings(Party p)
+        {
+            TPartySettings? settings = default;
+            if (!p.CacheStorage.TryGetValue("matchmaking.settings", out var obj))
+            {
+
+                settings = await getSettings(p);
+                p.CacheStorage.Add("matchmaking.settings", settings!);
+            }
+            else
+            {
+                settings = (TPartySettings)obj;
+            }
+
+            return settings;
+        }
+
+        private async Task<bool> CanPlayTogether(Party p, Party pivot)
+        {
+            return canPlayTogether(await GetOrCreateSettings(p), await GetOrCreateSettings(pivot));
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public Dictionary<string, int> GetMetrics()
+        {
+            return new Dictionary<string, int>();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="config"></param>
+        public void RefreshConfig(string id, dynamic config)
+        {
+            var options = (QuickQueueOptions<TPartySettings>)QuickQueueExtensions.OptionsStore[id];
+
+            teamSize = options.teamSize;
+            teamCount = options.teamCount;
+            canPlayTogether = options.canPlayTogether;
+            getSettings = options.GetSettings;
         }
     }
 }
