@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-5.0.0
------
+Unreleased
+----------
 - Add parametrized quick queue implementations (static & dynamic party parameters)
 - Add support for canPlayTogether filters in the quick queue implementation.
 - Add support for setting a custom gamefinder party parameters factory function for the quick queue implementation. 
