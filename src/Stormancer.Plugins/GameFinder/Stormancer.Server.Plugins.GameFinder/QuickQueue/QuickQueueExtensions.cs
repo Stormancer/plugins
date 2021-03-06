@@ -71,11 +71,17 @@ namespace Stormancer.Server.Plugins.GameFinder
 
     }
 
-
+    public class QuickQueueOptionsBase
+    {
+        /// <summary>
+        /// Id of the template the game finder should use to create game session scenes.
+        /// </summary>
+        public string gameSessionTemplate { get; set; } = "gameSession";
+    }
     /// <summary>
     /// Options for the quick queue game finder implementation.
     /// </summary>
-    public class QuickQueueOptions<TPartySettings>
+    public class QuickQueueOptions<TPartySettings> : QuickQueueOptions
     {
         /// <summary>
         /// Size of the teams.
@@ -111,10 +117,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         };
 
 
-        /// <summary>
-        /// Id of the template the game finder should use to create game session scenes.
-        /// </summary>
-        public string gameSessionTemplate { get; set; } = "gameSession";
+        
 
 
         /// <summary>
@@ -165,7 +168,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="canPlay"></param>
         /// <returns></returns>
-        public QuickQueueOptions<TPartySettings> TeamCount(Func<TPartySettings?, TPartySettings?, bool> canPlay)
+        public QuickQueueOptions<TPartySettings> CanPlay(Func<TPartySettings?, TPartySettings?, bool> canPlay)
         {
             canPlayTogether = canPlay;
             return this;
@@ -198,7 +201,7 @@ namespace Stormancer.Server.Plugins.GameFinder
     /// <summary>
     /// Options for the quick queue game finder implementation.
     /// </summary>
-    public class QuickQueueOptions
+    public class QuickQueueOptions : QuickQueueOptionsBase
     {
         /// <summary>
         /// Size of the teams.
@@ -210,10 +213,6 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         public Func<dynamic?, uint> teamCount { get; set; } = _ => 2;
 
-        /// <summary>
-        /// Id of the template the game finder should use to create game session scenes.
-        /// </summary>
-        public string gameSessionTemplate { get; set; } = "gameSession";
 
         /// <summary>
         /// Can parties play together method.
@@ -286,7 +285,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="canPlay"></param>
         /// <returns></returns>
-        public QuickQueueOptions TeamCount(Func<dynamic?, dynamic?, bool> canPlay)
+        public QuickQueueOptions CanPlay(Func<dynamic?, dynamic?, bool> canPlay)
         {
             CanPlayTogether = canPlay;
             return this;

@@ -316,7 +316,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
                     dynamic? specificConfig = gameFinderConfigs?.GetValue(_data.kind);
                     gameFinder.RefreshConfig(_data.kind,specificConfig);
-                    resolver.RefreshConfig(specificConfig);
+                    resolver.RefreshConfig(_data.kind,specificConfig);
 
 
                     var games = await gameFinder.FindGames(mmCtx);
