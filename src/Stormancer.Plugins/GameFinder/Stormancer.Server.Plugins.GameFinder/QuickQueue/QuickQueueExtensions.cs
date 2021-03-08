@@ -28,16 +28,10 @@ namespace Stormancer.Server.Plugins.GameFinder
                 dep.Register<QuickQueueGameFinderResolver>().As<IGameFinderResolver>().InstancePerRequest();
             });
 
-            gameFinderConfig.ConfigureOnCreatingScene(scene =>
-            {
-                var options = optionsBuilder(new QuickQueueOptions<TPartySettings>());
+            var options = optionsBuilder(new QuickQueueOptions<TPartySettings>());
 
-                OptionsStore.Add(gameFinderConfig.ConfigId, options);
-                //var config = scene.DependencyResolver.Resolve<IConfiguration>();
-                //config.SetDefaultValue($"gamefinder.configs.{gameFinderConfig.ConfigId}", options);
-            });
-
-
+            OptionsStore.Add(gameFinderConfig.ConfigId, options);
+           
             return gameFinderConfig;
         }
 
@@ -71,6 +65,9 @@ namespace Stormancer.Server.Plugins.GameFinder
 
     }
 
+    /// <summary>
+    /// Base class for Quickqueue option objects, contains common options.
+    /// </summary>
     public class QuickQueueOptionsBase
     {
         /// <summary>
@@ -81,7 +78,7 @@ namespace Stormancer.Server.Plugins.GameFinder
     /// <summary>
     /// Options for the quick queue game finder implementation.
     /// </summary>
-    public class QuickQueueOptions<TPartySettings> : QuickQueueOptions
+    public class QuickQueueOptions<TPartySettings> : QuickQueueOptionsBase
     {
         /// <summary>
         /// Size of the teams.
@@ -294,7 +291,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// Sets a function creating settings from a party.
         /// </summary>
-        /// <param name="canPlay"></param>
+        /// <param name="value"></param>>
         /// <returns></returns>
         public QuickQueueOptions SettingsGetter(Func<Party, Task<dynamic?>> value)
         {
