@@ -168,7 +168,7 @@ namespace Stormancer.Server.Plugins.Users
             this.rpcService = rpcService;
         }
 
-        public async Task<User> GetUser(IScenePeerClient peer)
+        public async Task<User?> GetUser(IScenePeerClient peer)
         {
             var session = await GetSession(peer);
 

@@ -24,6 +24,9 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
+    /// <summary>
+    /// Interface of a gamefinder game resolver.
+    /// </summary>
     public interface IGameFinderResolver
     {
         Task PrepareGameResolution(GameFinderResult gameFinderResult);
@@ -43,6 +46,6 @@ namespace Stormancer.Server.Plugins.GameFinder
             return Task.CompletedTask;
         }
 
-        void RefreshConfig(dynamic config);
+        void RefreshConfig(string id,dynamic config);
     }
 }

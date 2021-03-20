@@ -13,13 +13,13 @@ namespace Stormancer
     public static class HostExtensions
     {
         /// <summary>
-        /// Adds a gamefinder to the application.
+        /// Adds a gamefinder configuration to the application.
         /// </summary>
         /// <param name="host"></param>
         /// <param name="id"></param>
         /// <param name="builder"></param>
         /// <returns></returns>
-        public static IHost AddGameFinder(this IHost host, string id, Func<GameFinderConfig, GameFinderConfig> builder)
+        public static IHost ConfigureGamefinderTemplate(this IHost host, string id, Func<GameFinderConfig, GameFinderConfig> builder)
         {
             if(string.IsNullOrEmpty(id))
             {
@@ -51,6 +51,19 @@ namespace Stormancer
 
             host.Metadata["gameFinder.ids"] = string.Join(',', scenes);
 
+            return host;
+        }
+
+        /// <summary>
+        /// Adds a gamefinder to the application.
+        /// </summary>
+        /// <param name="host"></param>
+        /// <param name="sceneUri"></param>
+        /// <param name="gameFinderConfigId"></param>
+        /// <returns></returns>
+        public static IHost AddGamefinder(this IHost host, string sceneUri, string gameFinderConfigId)
+        {
+            host.EnsureSceneExists(sceneUri, gameFinderConfigId, false, true);
             return host;
         }
     }

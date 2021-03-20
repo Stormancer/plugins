@@ -55,6 +55,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// Called whenever the gamefinder config gets updated.
         /// </summary>
         /// <param name="config">the current gamefinder config section.</param>
-        void RefreshConfig(dynamic config);
+        /// <param name="id">Id of the gamefinder config.</param>
+        void RefreshConfig(string id,dynamic config);
     }
 }

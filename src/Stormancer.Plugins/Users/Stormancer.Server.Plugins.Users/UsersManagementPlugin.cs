@@ -138,9 +138,6 @@ namespace Stormancer.Server.Plugins.Users
         {
             //Indices
 
-            //b.Register<UserToGroupIndex>().SingleInstance();
-            //b.Register<GroupsIndex>().SingleInstance();
-            //b.Register<SingleNodeActionStore>().As<IActionStore>().SingleInstance();
             b.Register<SceneAuthorizationController>();
             b.Register<UserSessionController>();
             b.Register<AuthenticationController>().InstancePerRequest();

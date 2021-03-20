@@ -61,9 +61,10 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// 
         /// </summary>
         /// <param name="config"></param>
-        public void RefreshConfig(dynamic config)
+        public void RefreshConfig(string id,dynamic config)
         {
-            QuickQueueOptions options = config.ToObject<QuickQueueOptions>();
+            var options = (QuickQueueOptionsBase)QuickQueueExtensions.OptionsStore[id];
+            
             template = options.gameSessionTemplate;
         }
 
