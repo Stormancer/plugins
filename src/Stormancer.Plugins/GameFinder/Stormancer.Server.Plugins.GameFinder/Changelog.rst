@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+5.0.0.6
+-------
 Added
 *****
 - Added AddGameFinder extension method to create a gamefinder scene from a gamefinder configuration
@@ -21,6 +21,7 @@ Added
 Changed
 *******
 - Change AddGameFinder extension method to ConfigureGameFinder because it doesn't actually creates the gamefinder scene, just the template.
+- Correctly dispose packet in S2S RPC
 
 4.0.2
 -----
