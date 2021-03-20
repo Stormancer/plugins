@@ -21,6 +21,8 @@
 // SOFTWARE.
 using Stormancer.Core;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.ServiceLocator;
+using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Profile
 {
@@ -35,6 +37,7 @@ namespace Stormancer.Server.Plugins.Profile
                 builder.Register<ProfileController>().InstancePerRequest();
                 builder.Register<ProfileService>().As<IProfileService>().InstancePerRequest();
                 builder.Register<PseudoProfilePart>().As<IProfilePartBuilder>();
+                builder.Register<ProfileServiceLocator>().As<IServiceLocatorProvider>();
             };
 
             ctx.SceneCreated += (ISceneHost scene) =>
@@ -44,8 +47,28 @@ namespace Stormancer.Server.Plugins.Profile
                     scene.AddController<ProfileController>();
                 }
             };
+            ctx.HostStarting += (IHost host) =>
+            {
+                host.AddSceneTemplate("profiles", s => s.AddProfiles());
+            };
+            ctx.HostStarted += (IHost host) =>
+            {
+                host.EnsureSceneExists("profiles", "profiles", false, true);
+            };
         }
 
+    }
+
+    internal class ProfileServiceLocator : IServiceLocatorProvider
+    {
+        public Task LocateService(ServiceLocationCtx ctx)
+        {
+            if (ctx.ServiceType == "stormancer.profiles")
+            {
+                ctx.SceneId = "profiles";
+            }
+            return Task.CompletedTask;
+        }
     }
 }
 
