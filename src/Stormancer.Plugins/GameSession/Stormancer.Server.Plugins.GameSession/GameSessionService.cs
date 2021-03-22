@@ -159,7 +159,7 @@ namespace Stormancer.Server.Plugins.GameSession
             _rpc = rpc;
             _serializer = serializer;
 
-            
+
             ApplySettings();
 
             scene.Shuttingdown.Add(args =>
@@ -821,7 +821,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 var userId = await GetUserId(remotePeer);
                 if (userId != null)
                 {
-                  
+
                     var memStream = new MemoryStream();
                     inputStream.CopyTo(memStream);
                     memStream.Seek(0, SeekOrigin.Begin);
@@ -878,7 +878,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 if (!_gameCompleteExecuted && _clients.Values.All(c => c.ResultData != null || c.Peer == null))//All remaining clients sent their data
                 {
                     _gameCompleteExecuted = true;
-                 
+
                     var ctx = new GameSessionCompleteCtx(this, _scene, _config, _clients.Select(kvp => new GameSessionResult(kvp.Key, kvp.Value.Peer, kvp.Value.ResultData)), _clients.Keys);
 
                     async Task runHandlers()
@@ -977,13 +977,17 @@ namespace Stormancer.Server.Plugins.GameSession
 
             await foreach (var packet in observable.ToAsyncEnumerable())
             {
-                var teams = _serializer.Deserialize<IEnumerable<Team>>(packet.Stream);
-
+                IEnumerable<Team> teams;
+                using (packet)
+                {
+                    teams = _serializer.Deserialize<IEnumerable<Team>>(packet.Stream);
+                }
                 foreach (var team in teams)
                 {
                     _config.Teams.Add(team);
                     yield return team;
                 }
+
             }
         }
 

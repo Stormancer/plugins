@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+4.0.5
+-----
+Changed
+*******
+- Fixed timeout issue with gamesession registrations to gamefinder when the gamefinder sent team updates.
+
 4.0.4.1
 -------
 Changed
