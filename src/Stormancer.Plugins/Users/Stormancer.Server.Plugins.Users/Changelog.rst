@@ -13,6 +13,7 @@ Unreleased
 ----------
 Changed
 *******
+- Fixes to interfaces
 - Updating user handles returns the new user handle.
 - Add documentation for deviceIdentifier provider to tell which key to use in authParameters
 - Authorize - . and _ in user handles.

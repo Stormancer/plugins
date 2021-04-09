@@ -46,18 +46,16 @@ namespace Stormancer.Server.Plugins.GameFinder
         public async Task FindMatch(string sceneName, Models.Party gameFinderRequest, CancellationToken cancelationToken)
         {
             var rpc = _scene.DependencyResolver.Resolve<RpcService>();
-            Action<Stream> writer = s => 
+            Action<Stream> writer = s =>
             {
-                _serializer.Serialize(gameFinderRequest,s);
+                _serializer.Serialize(gameFinderRequest, s);
             };
-            var packet = await rpc.Rpc(GameFinderController.FindGameS2SRoute, new MatchSceneFilter(sceneName), writer, PacketPriority.MEDIUM_PRIORITY, cancelationToken).LastOrDefaultAsync();
-            if (packet != null)
+            var packet = await rpc.Rpc(GameFinderController.FindGameS2SRoute, new MatchSceneFilter(sceneName), writer, PacketPriority.MEDIUM_PRIORITY, cancelationToken).Select(p =>
             {
-                using (packet.Stream)
-                {
+                using (p) { }
+                return System.Reactive.Unit.Default;
+            }).LastOrDefaultAsync();
 
-                }
-            }
         }
     }
 }

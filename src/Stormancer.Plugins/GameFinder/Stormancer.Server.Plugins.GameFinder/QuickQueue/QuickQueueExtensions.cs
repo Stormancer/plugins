@@ -30,7 +30,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
             var options = optionsBuilder(new QuickQueueOptions<TPartySettings>());
 
-            OptionsStore.Add(gameFinderConfig.ConfigId, options);
+            OptionsStore[gameFinderConfig.ConfigId] = options;
            
             return gameFinderConfig;
         }

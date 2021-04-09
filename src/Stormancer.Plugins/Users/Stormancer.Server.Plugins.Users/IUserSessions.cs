@@ -32,7 +32,12 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
-
+    /// <summary>
+    /// Provides APIs to incteract with client sessions.
+    /// </summary>
+    /// <remarks>
+    /// 
+    /// </remarks>
     public interface IUserSessions
     {
         /// <summary>
@@ -76,18 +81,33 @@ namespace Stormancer.Server.Plugins.Users
         /// Gets a session by the user id (returns null if user isn't currently connected to the scene)
         /// </summary>
         /// <param name="userId"></param>
+        /// <param name="forceRefresh"></param>
         /// <returns></returns>
         Task<Session?> GetSessionByUserId(string userId, bool forceRefresh = false);
 
+        /// <summary>
+        /// Gets the session associated with a peer.
+        /// </summary>
+        /// <param name="peer"></param>
+        /// <param name="forceRefresh"></param>
+        /// <returns></returns>
         Task<Session?> GetSession(IScenePeerClient peer, bool forceRefresh = false);
 
         /// <summary>
-        /// Gets a session by the session id of the peer (returns null if the user isn't currently connected to the scene)
+        /// Gets a session by the session id of a peer.
         /// </summary>
         /// <param name="sessionId"></param>
+        /// <param name="forceRefresh"></param>
         /// <returns></returns>
         Task<Session?> GetSessionById(string sessionId, bool forceRefresh = false);
 
+        /// <summary>
+        /// Gets a session by the session id of a peer.
+        /// </summary>
+        /// <param name="sessionId"></param>
+        /// <param name="authType"></param>
+        /// <param name="forceRefresh"></param>
+        /// <returns></returns>
         Task<Session?> GetSessionById(string sessionId, string authType, bool forceRefresh = false);
 
         /// <summary>
@@ -150,15 +170,21 @@ namespace Stormancer.Server.Plugins.Users
         /// <returns>The deserialized object at <paramref name="key"/>, or the default value for <typeparamref name="T"/> of <paramref name="key"/> doesn't exist.</returns>
         Task<T> GetSessionData<T>(string sessionId, string key);
 
-        //Task<string> GetBearerToken(string sessionId);
-        //Task<string> GetBearerToken(Session sessionId);
 
-        //Task<BearerTokenData> DecodeBearerToken(string token);
-
-        //Task<Session> GetSessionByBearerToken(string token, bool forceRefresh = false);
-
+        /// <summary>
+        /// Queries users by user ids.
+        /// </summary>
+        /// <param name="userIds"></param>
+        /// <returns></returns>
         Task<Dictionary<string, User?>> GetUsers(params string[] userIds);
 
+        /// <summary>
+        /// Queries users by fields.
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="take"></param>
+        /// <param name="skip"></param>
+        /// <returns></returns>
         Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string,string>> query, int take, int skip);
 
         /// <summary>
@@ -192,20 +218,12 @@ namespace Stormancer.Server.Plugins.Users
         /// Kicks an user from the server.
         /// </summary>
         /// <param name="userId"></param>
+        /// <param name="reason"></param>
         /// <returns></returns>
         Task KickUser(string userId, string reason);
     }
 
-    public class BearerTokenData
-    {
-        public string version { get; set; } = "2";
-        public string SessionId { get; set; }
-        public PlatformId pid { get; set; }
-        public string userId { get; set; }
-        public DateTime IssuedOn { get; set; }
-        public DateTime ValidUntil { get; set; }
-        public string AuthenticatorUrl { get; set; }
-    }
+   
 
     /// <summary>
     /// Represents the Id of an user in a platform.

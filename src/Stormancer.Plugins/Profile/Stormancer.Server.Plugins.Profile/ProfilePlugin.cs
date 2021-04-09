@@ -62,6 +62,18 @@ namespace Stormancer.Server.Plugins.Profile
         }
 
     }
+
+    internal class ProfileServiceLocator : IServiceLocatorProvider
+    {
+        public Task LocateService(ServiceLocationCtx ctx)
+        {
+            if (ctx.ServiceType == "stormancer.profiles")
+            {
+                ctx.SceneId = "profiles";
+            }
+            return Task.CompletedTask;
+        }
+    }
 }
 
 namespace Stormancer
