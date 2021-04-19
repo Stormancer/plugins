@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+4.5.0.3
+-------
 Changed
 *******
 - Fixes to interfaces
