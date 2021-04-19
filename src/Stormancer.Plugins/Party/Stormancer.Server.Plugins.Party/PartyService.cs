@@ -176,6 +176,7 @@ namespace Stormancer.Server.Plugins.Party
                 //  3. Si il l'est alors on selon la config on change du SA on bloque ou on déconnect depuis l'autre scene et on la co à la nouvelle.
                 if (!_partyState.Settings.IsJoinable)
                 {
+                    Log(LogLevel.Trace, "OnConnecting", "Party join denied because the party is not joinable.", peer.SessionId);
                     throw new ClientException(JoinDeniedError);
                 }
 

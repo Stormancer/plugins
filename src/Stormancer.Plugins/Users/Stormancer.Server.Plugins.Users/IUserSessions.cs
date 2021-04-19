@@ -193,8 +193,8 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="userId"></param>
         /// <param name="newHandle"></param>
         /// <param name="appendHash"></param>
-        /// <returns></returns>
-        Task UpdateUserHandle(string userId, string newHandle, bool appendHash);
+        /// <returns>The new user handle.</returns>
+        Task<string> UpdateUserHandle(string userId, string newHandle, bool appendHash);
 
         /// <summary>
         /// Sends a request to an user.

@@ -45,9 +45,9 @@ namespace Stormancer.Server.Plugins.Profile
             _users = users;
         }
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<Dictionary<string,ProfileDto>> GetProfiles(IEnumerable<string> userIds, Dictionary<string,string> displayOptions)
+        public async Task<Dictionary<string, ProfileDto>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions)
         {
-           
+
             var session = await _sessions.GetSession(Request.RemotePeer);
             var profiles = await _profiles.GetProfiles(userIds, displayOptions, session);
             return profiles.ToDictionary(kvp => kvp.Key, kvp => new ProfileDto { Data = kvp.Value.ToDictionary(kvp2 => kvp2.Key, kvp2 => kvp2.Value.ToString()) });
@@ -62,13 +62,21 @@ namespace Stormancer.Server.Plugins.Profile
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task UpdateUserHandle(string handle)
+        public async Task<string> UpdateUserHandle(string handle)
         {
             var session = await _sessions.GetSession(Request.RemotePeer);
-
+            if (session == null)
+            {
+                throw new ClientException("notAuthenticated");
+            }
+            var user = session.User;
+            if (user == null)
+            {
+                throw new ClientException("anonymousUser");
+            }
             try
             {
-                await _profiles.UpdateUserHandle(session, handle);
+                return await _profiles.UpdateUserHandle(user.Id, handle);
             }
             catch (RpcException ex)
             {
@@ -87,6 +95,53 @@ namespace Stormancer.Server.Plugins.Profile
             var users = await _users.QueryUserHandlePrefix(pseudoPrefix, take, skip);
             var profiles = await _profiles.GetProfiles(users.Select(u => u.Id), new Dictionary<string, string> { { "displayType", "summary" } }, await _sessions.GetSession(this.Request.RemotePeer));
             return profiles.ToDictionary(kvp => kvp.Key, kvp => new ProfileDto { Data = kvp.Value.ToDictionary(kvp2 => kvp2.Key, kvp2 => kvp2.Value.ToString()) });
+        }
+
+        /// <summary>
+        /// Updates a profile part
+        /// </summary>
+        /// <param name="partId"></param>
+        /// <param name="partFormatVersion">Version of the part format.</param>
+        /// <returns></returns>
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task UpdateCustomProfilePart(string partId, string partFormatVersion)
+        {
+            var session = await _sessions.GetSession(Request.RemotePeer);
+
+            if (session == null)
+            {
+                throw new ClientException("notAuthenticated");
+            }
+            var user = session.User;
+            if (user == null)
+            {
+                throw new ClientException("anonymousUser");
+            }
+
+            await _profiles.UpdateCustomProfilePart(user.Id, partId, partFormatVersion, true,Request.InputStream);
+        }
+
+        /// <summary>
+        /// Deletes a profile part.
+        /// </summary>
+        /// <param name="partId"></param>
+        /// <returns></returns>
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task DeleteCustomProfilePart(string partId)
+        {
+            var session = await _sessions.GetSession(Request.RemotePeer);
+
+            if (session == null)
+            {
+                throw new ClientException("notAuthenticated");
+            }
+            var user = session.User;
+            if (user == null)
+            {
+                throw new ClientException("anonymousUser");
+            }
+
+            await _profiles.DeleteCustomProfilePart(user.Id, partId,true);
         }
     }
 

@@ -1,4 +1,4 @@
-// MIT License
+﻿// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -19,55 +19,43 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using Newtonsoft.Json.Linq;
-using Stormancer.Server.Plugins.Users;
-using System.Collections.Generic;
+
 using System.IO;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Profile
 {
     /// <summary>
-    /// Provides methods to access profile informations about a player.
+    /// Represents a custom profile part that the client can modify.
     /// </summary>
-    public interface IProfileService
+    public interface ICustomProfilePart
     {
         /// <summary>
-        /// Gets user profiles.
+        /// Updates a part.
         /// </summary>
-        /// <param name="userIds"></param>
-        /// <param name="displayOptions"></param>
-        /// <param name="requestingUser"></param>
-        /// <returns></returns>
-        Task<Dictionary<string,Dictionary<string,JObject>>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, Session requestingUser);
-
-        /// <summary>
-        /// Updates the user handle and returns the new handle.
-        /// </summary>
-        /// <param name="userId"></param>
-        /// <param name="newHandle"></param>
-        /// <returns></returns>
-        Task<string> UpdateUserHandle(string userId, string newHandle);
-
-        /// <summary>
-        /// Updates a custom profile part associated with an user.
-        /// </summary>
-        /// <remarks>Custom profile parts can be updated by the client.</remarks>
         /// <param name="userId"></param>
         /// <param name="partId"></param>
-        /// <param name="version"></param>
+        /// <param name="formatVersion"></param>
         /// <param name="fromClient"></param>
-        /// <param name="inputStream"></param>
+        /// <param name="data"></param>
         /// <returns></returns>
-        Task UpdateCustomProfilePart(string userId,string partId, string version, bool fromClient, Stream inputStream);
+        Task UpdateAsync(string userId, string partId, string formatVersion,bool fromClient, Stream data);
 
         /// <summary>
-        /// Deletes a custom profile part.
+        /// Gets data about a part.
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task GetAsync(ProfileCtx ctx);
+
+        /// <summary>
+        /// Deletes a part.
+        /// </summary>
+        /// <param name="userId"></param>
         /// <param name="partId"></param>
         /// <param name="fromClient"></param>
         /// <returns></returns>
-        Task DeleteCustomProfilePart(string id, string partId, bool fromClient);
+        Task DeleteAsync(string userId, string partId, bool fromClient);
+
     }
 }

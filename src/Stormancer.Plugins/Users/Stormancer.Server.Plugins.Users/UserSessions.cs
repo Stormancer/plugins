@@ -470,8 +470,7 @@ namespace Stormancer.Server.Plugins.Users
         private static bool _handleUserMappingCreated = false;
         private static AsyncLock _mappingLock = new AsyncLock();
 
-        private const string UserHandleKey = "handle";
-
+      
         private int _handleSuffixUpperBound = 10000;
         private int _handleMaxNumCharacters = 32;
 
@@ -496,10 +495,10 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
-        public async Task UpdateUserHandle(string userId, string newHandle, bool appendHash)
+        public async Task<string> UpdateUserHandle(string userId, string newHandle, bool appendHash)
         {
             // Check handle validity
-            if (!Regex.IsMatch(newHandle, @"^[\p{Ll}\p{Lu}\p{Lt}\p{Lo}0-9]*$"))
+            if (!Regex.IsMatch(newHandle, @"^[\p{Ll}\p{Lu}\p{Lt}\p{Lo}0-9-_.]*$"))
             {
                 throw new ClientException("badHandle?badCharacters");
             }
@@ -544,11 +543,11 @@ namespace Stormancer.Server.Plugins.Users
                         foundUnusedHandle = response.IsValid;
 
                     } while (!foundUnusedHandle);
-                    newUserData[UserHandleKey] = newHandleWithSuffix;
+                    newUserData[UsersConstants.UserHandleKey] = newHandleWithSuffix;
                 }
                 else
                 {
-                    newUserData[UserHandleKey] = newHandle;
+                    newUserData[UsersConstants.UserHandleKey] = newHandle;
                 }
                 if (session != null)
                 {
@@ -562,7 +561,7 @@ namespace Stormancer.Server.Plugins.Users
                 var userData = session.User.UserData;
                 if (!appendHash)
                 {
-                    userData[UserHandleKey] = newHandle;
+                    userData[UsersConstants.UserHandleKey] = newHandle;
                 }
                 else
                 {
@@ -576,7 +575,7 @@ namespace Stormancer.Server.Plugins.Users
                         added = await _handleUserIndex.TryAdd(newHandleWithSuffix, userId);
                     } while (!added);
 
-                    userData[UserHandleKey] = newHandleWithSuffix;
+                    userData[UsersConstants.UserHandleKey] = newHandleWithSuffix;
                 }
                 session.User.UserData = userData;
             }
@@ -590,6 +589,8 @@ namespace Stormancer.Server.Plugins.Users
             {
                 await UpdateHandleDatabase();
             }
+
+            return newHandle;
         }
 
         public IObservable<byte[]> SendRequest(string operationName, string senderUserId, string recipientUserId, Action<Stream> writer, CancellationToken cancellationToken)

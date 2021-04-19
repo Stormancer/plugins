@@ -22,7 +22,6 @@
 using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.ServiceLocator;
-using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Profile
 {
@@ -37,6 +36,8 @@ namespace Stormancer.Server.Plugins.Profile
                 builder.Register<ProfileController>().InstancePerRequest();
                 builder.Register<ProfileService>().As<IProfileService>().InstancePerRequest();
                 builder.Register<PseudoProfilePart>().As<IProfilePartBuilder>();
+                builder.Register<CustomPartBuilder>().As<IProfilePartBuilder>();
+                builder.Register<AttributeBasedCustomPart>().As<ICustomProfilePart>().SingleInstance();
                 builder.Register<ProfileServiceLocator>().As<IServiceLocatorProvider>();
             };
 
@@ -47,35 +48,36 @@ namespace Stormancer.Server.Plugins.Profile
                     scene.AddController<ProfileController>();
                 }
             };
+
             ctx.HostStarting += (IHost host) =>
             {
-                host.AddSceneTemplate("profiles", s => s.AddProfiles());
+                host.AddSceneTemplate(ProfilePluginConstants.SCENE_TEMPLATE, s => s.AddProfiles());
             };
+
             ctx.HostStarted += (IHost host) =>
             {
-                host.EnsureSceneExists("profiles", "profiles", false, true);
+                host.EnsureSceneExists(ProfilePluginConstants.SCENE_ID, ProfilePluginConstants.SCENE_TEMPLATE, false, true);
             };
+
         }
 
     }
 
-    internal class ProfileServiceLocator : IServiceLocatorProvider
-    {
-        public Task LocateService(ServiceLocationCtx ctx)
-        {
-            if (ctx.ServiceType == "stormancer.profiles")
-            {
-                ctx.SceneId = "profiles";
-            }
-            return Task.CompletedTask;
-        }
-    }
+  
 }
 
 namespace Stormancer
 {
+    /// <summary>
+    /// Extension methods for scenes.
+    /// </summary>
     public static class ProfileExtensions
     {
+        /// <summary>
+        /// Adds the profiles API to the scene.
+        /// </summary>
+        /// <param name="scene"></param>
+        /// <returns></returns>
         public static ISceneHost AddProfiles(this ISceneHost scene)
         {
             scene.Metadata[Stormancer.Server.Plugins.Profile.ProfilePlugin.METADATA_KEY] = "enabled";
