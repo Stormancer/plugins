@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+4.0.2
+-----
 Changed
 *******
 - Trace Log added (server.PartyService.OnConnecting) when a player tries to connect to a non joinable party.

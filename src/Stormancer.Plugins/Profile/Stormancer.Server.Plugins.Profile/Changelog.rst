@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+2.1.0.6
+-------
 Added
 *****
 - Add ICustomProfilePart interface to easily provides update/delete API for profiles using the ProfileController Update/Delete APIs.
