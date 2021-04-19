@@ -9,7 +9,7 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-4.0.4.1
+4.0.5
 -------
 Changed
 *******
