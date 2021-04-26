@@ -9,6 +9,16 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Fixes to interfaces
+- Updating user handles returns the new user handle.
+- Add documentation for deviceIdentifier provider to tell which key to use in authParameters
+- Authorize - . and _ in user handles.
+- Return current pseudo by default on login.
+
 4.4.3.1
 ----------
 Added

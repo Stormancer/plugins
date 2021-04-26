@@ -114,7 +114,7 @@ namespace Stormancer.Server.Plugins.Users
 
                 if (authResult.Success)
                 {
-                    _logger.Log(LogLevel.Trace, "user.login", "Authentication successful.",new { });
+                    _logger.Log(LogLevel.Trace, "user.login", "Authentication successful.", new { });
 
 
 
@@ -157,7 +157,7 @@ namespace Stormancer.Server.Plugins.Users
                     });
                     result.Success = true;
                     result.UserId = authResult?.AuthenticatedUser?.Id;
-                    result.Username = authResult?.Username;
+                    result.Username = authResult?.AuthenticatedUser?.UserData[UsersConstants.UserHandleKey]?.ToObject<string>()??string.Empty;
                     session = await sessions.GetSessionRecordById(peer.SessionId);
 
                     Debug.Assert(session != null);//We just created the session.

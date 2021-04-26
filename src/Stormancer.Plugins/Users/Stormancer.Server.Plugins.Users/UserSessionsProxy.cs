@@ -287,9 +287,9 @@ namespace Stormancer.Server.Plugins.Users
           
         }
 
-        public async Task UpdateUserHandle(string userId, string newHandle, bool appendHash)
+        public Task<string> UpdateUserHandle(string userId, string newHandle, bool appendHash)
         {
-            await AuthenticatorRpc(null, $"UserSession.{nameof(UpdateUserHandle)}", s =>
+            return AuthenticatorRpc<string>(null, $"UserSession.{nameof(UpdateUserHandle)}", s =>
              {
                  _serializer.Serialize(userId, s);
                  _serializer.Serialize(newHandle, s);

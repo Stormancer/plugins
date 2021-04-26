@@ -43,7 +43,11 @@ namespace Stormancer
         /// </summary>
         /// <param name="config"></param>
         /// <param name="builder"></param>
-        /// <remarks></remarks>
+        /// <remarks>Usage on the client :
+        /// authParams auth;
+        /// auth.type = "deviceidentifier";
+        /// auth.parameters["deviceidentifier"] = xxxx;
+        /// </remarks>
         /// <returns></returns>
         public static UsersConfigurationBuilder ConfigureDeviceIdentifier(this UsersConfigurationBuilder config, Func<DeviceIdentifierConfigurationBuilder, DeviceIdentifierConfigurationBuilder> builder)
         {

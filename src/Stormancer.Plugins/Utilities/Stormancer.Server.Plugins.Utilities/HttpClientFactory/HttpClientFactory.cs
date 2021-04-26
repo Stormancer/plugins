@@ -337,7 +337,7 @@ namespace Stormancer.Server.Plugins.Utilities
             try
             {
                 var initialCount = _expiredHandlers.Count;
-                _logger.Log(LogLevel.Trace, "httpClientFactory", "Cleanup cycle start.", new { });
+               
 
 
 
@@ -369,7 +369,7 @@ namespace Stormancer.Server.Plugins.Utilities
                         _expiredHandlers.Enqueue(entry);
                     }
                 }
-                _logger.Log(LogLevel.Trace, "httpClientFactory", "Cleanup cycle complete.", new { });
+             
             }
             finally
             {
