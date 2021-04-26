@@ -39,6 +39,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj" />
     <ProjectReference Include="..\..\Friends\Stormancer.Server.Plugins.Friends\Stormancer.Server.Plugins.Friends.csproj" />
     <ProjectReference Include="..\..\Party\Stormancer.Server.Plugins.Party\Stormancer.Server.Plugins.Party.csproj" />
     <ProjectReference Include="..\..\Profile\Stormancer.Server.Plugins.Profile\Stormancer.Server.Plugins.Profile.csproj" />
