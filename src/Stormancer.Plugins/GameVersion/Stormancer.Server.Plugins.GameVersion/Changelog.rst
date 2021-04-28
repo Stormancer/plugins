@@ -9,6 +9,9 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+2.0.2
+-----
+- Add a log when a user tries to connect with a bad game version
 
 2.0.1
 -----

@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Users;
 using System.Threading.Tasks;
 
@@ -29,11 +30,13 @@ namespace Stormancer.Server.Plugins.GameVersion
     {
         private readonly GameVersionService gameVersionService;
         private readonly IUserSessions _userSessions;
+        private readonly ILogger _logger;
 
-        public AuthenticationEventHandler(GameVersionService gameVersionService, IUserSessions userSessions)
+        public AuthenticationEventHandler(GameVersionService gameVersionService, IUserSessions userSessions, ILogger logger)
         {
             this.gameVersionService = gameVersionService;
             _userSessions = userSessions;
+            _logger = logger;
         }
 
         public async Task OnLoggedIn(LoggedInCtx ctx)
@@ -56,18 +59,22 @@ namespace Stormancer.Server.Plugins.GameVersion
                 return Task.CompletedTask;
             }
 
-            if (authenticationCtx.AuthCtx.Parameters.TryGetValue("gameVersion.clientVersion", out var version))
+            var serverVersion = gameVersionService.CurrentGameVersion;
+
+            if (authenticationCtx.AuthCtx.Parameters.TryGetValue("gameVersion.clientVersion", out var clientVersion))
             {
-                if (version != gameVersionService.CurrentGameVersion)
+                if (clientVersion != serverVersion)
                 {
                     authenticationCtx.HasError = true;
-                    authenticationCtx.Reason = $"badGameVersion?mismatch&serverVersion={gameVersionService.CurrentGameVersion}";
+                    authenticationCtx.Reason = $"badGameVersion?mismatch&serverVersion={serverVersion}&clientVersion={clientVersion}";
+                    _logger.Log(LogLevel.Trace, "GameVersion", "Client tried to connect with an outdated game version.", new { clientVersion, serverVersion });
                 }
             }
             else
             {
                 authenticationCtx.HasError = true;
-                authenticationCtx.Reason = $"badGameVersion?absent&serverVersion={gameVersionService.CurrentGameVersion}";
+                authenticationCtx.Reason = $"badGameVersion?absent&serverVersion={serverVersion}";
+                _logger.Log(LogLevel.Trace, "GameVersion", "Client tried to connect without game version.", new { serverVersion });
             }
 
             return Task.CompletedTask;
