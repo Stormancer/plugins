@@ -33,8 +33,21 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Analytics
 {
+    /// <summary>
+    /// Configuration of the API analytics system.
+    /// </summary>
+    /// <remarks>
+    /// The API analytics system stores event related to all network API calls, C2S &amp; S2S.
+    /// Config Path: "instrumentation": { "EnableApiInstrumentation":true|false}
+    /// </remarks>
     public class InstrumentationConfig
     {
+        /// <summary>
+        /// Enables API instrumentation.
+        /// </summary>
+        /// <remarks>
+        /// Disabled by default.
+        /// </remarks>
         public bool EnableApiInstrumentation { get; set; } = false;
     }
     internal class ApiAnalyticsEventHandler :  IApiHandler, IConfigurationChangedEventHandler
@@ -197,6 +210,29 @@ namespace Stormancer.Server.Plugins.Analytics
         public void OnConfigurationChanged()
         {
             ApplySettings();
+        }
+
+        public async Task RunS2S(ApiCallContext<IS2SRequestContext> ctx, Func<ApiCallContext<IS2SRequestContext>, Task> next)
+        {
+            if (_config.EnableApiInstrumentation)
+            {
+                var start = _watch.ElapsedMilliseconds;
+                await next(ctx);
+                _analytics.Push("api", "ff.cs", JObject.FromObject(new
+                {
+                    type = "Request",
+                    scope = "S2S",
+                    inputSize = -1,
+                    route = ctx.Route,
+                    duration = _watch.ElapsedMilliseconds - start,
+                    SessionId = ctx.Context.Origin
+                }));
+
+            }
+            else
+            {
+                await next(ctx);
+            }
         }
     }
 }

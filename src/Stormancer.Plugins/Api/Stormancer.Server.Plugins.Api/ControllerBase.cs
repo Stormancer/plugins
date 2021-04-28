@@ -31,11 +31,32 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.API
 {
+    /// <summary>
+    /// Base class for Stormancer API controllers.
+    /// </summary>
     public abstract class ControllerBase
     {
-        public RequestContext<IScenePeerClient> Request { get; internal set; }
-        public CancellationToken CancellationToken { get; internal set; }
-        public IScenePeer Peer { get; internal set; }
+        /// <summary>
+        /// Gets the current Client to server request.
+        /// </summary>
+        public RequestContext<IScenePeerClient>? Request { get; internal set; }
+
+        /// <summary>
+        /// Gets the <see cref="CancellationToken"/> of the current request.
+        /// </summary>
+        [Obsolete("Use the cancellation token in the request object.")]
+        public CancellationToken? CancellationToken { get; internal set; }
+
+        /// <summary>
+        /// Gets the peer for a S2S request.
+        /// </summary>
+        [Obsolete]
+        public IScenePeer? Peer { get; internal set; }
+
+        /// <summary>
+        /// Gets a value indicating if the current request is an S2S request.
+        /// </summary>
+        [Obsolete]
         public bool IsS2S
         {
             get
@@ -53,24 +74,44 @@ namespace Stormancer.Server.Plugins.API
             return Task.FromResult(false);
         }
 
+        /// <summary>
+        /// An user started a connection attempt.
+        /// </summary>
+        /// <param name="client"></param>
+        /// <returns></returns>
         protected internal virtual Task OnConnecting(IScenePeerClient client)
         {
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// An user's connection was rejected.
+        /// </summary>
+        /// <param name="client"></param>
+        /// <returns></returns>
         protected internal virtual Task OnConnectionRejected(IScenePeerClient client)
         {
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// An user successfully connected to the scene.
+        /// </summary>
+        /// <param name="peer"></param>
+        /// <returns></returns>
         protected internal virtual Task OnConnected(IScenePeerClient peer)
         {
             return Task.FromResult(true);
         }
 
+        /// <summary>
+        /// An user disconnected from the scene.
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns></returns>
         protected internal virtual Task OnDisconnected(DisconnectedArgs args)
         {
             return Task.FromResult(true);
-        }
+        } 
     }
 }

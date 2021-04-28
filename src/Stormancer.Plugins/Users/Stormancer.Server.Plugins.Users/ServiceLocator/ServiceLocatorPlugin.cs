@@ -19,9 +19,12 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
 using Stormancer.Core;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Users;
+using System.Threading;
 
 namespace Stormancer.Server.Plugins.ServiceLocator
 {
@@ -29,26 +32,46 @@ namespace Stormancer.Server.Plugins.ServiceLocator
     {
         public void Build(HostPluginBuildContext ctx)
         {
+            ctx.HostStarting += (IHost host) =>
+            {
+                host.RegisterAppFunction("ServiceLocator.Query", async (IAppFunctionContext ctx) => {
 
+                    var host = ctx.Resolver.Resolve<ServiceLocatorHostDatabase>();
+                    var serializer = ctx.Resolver.Resolve<ISerializer>();
+                    var serviceType = await serializer.DeserializeAsync<string>(ctx.Input, CancellationToken.None);
+                    var instanceId = await serializer.DeserializeAsync<string>(ctx.Input, CancellationToken.None);
+                    host.TryGetScene(serviceType, instanceId, out var scene);
+                    await serializer.SerializeAsync(scene?.Id, ctx.Output, CancellationToken.None);
+                    
+                });
+            };
             ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
               {
-                  if (scene.Template == Constants.SCENE_TEMPLATE)
+                  if (scene.Template == Users.Constants.SCENE_TEMPLATE)
                   {
                       builder.Register<LocatorController>().InstancePerRequest();
+
 
                   }
               };
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
               {
                   builder.Register<ServiceLocator>().As<IServiceLocator>().InstancePerRequest();
+                  builder.Register<ServiceLocatorDbApiHandler>().As<IApiHandler>();
+                  builder.Register<ServiceLocatorHostDatabase>().SingleInstance();
               };
             ctx.SceneCreated += (ISceneHost scene) =>
             {
-                if (scene.Template == Constants.SCENE_TEMPLATE)
+                if (scene.Template == Users.Constants.SCENE_TEMPLATE)
                 {
                     scene.AddController<LocatorController>();
                 }
             };
+            ctx.SceneShuttingDown += (ISceneHost scene) =>
+             {
+                 var db = scene.DependencyResolver.Resolve<ServiceLocatorHostDatabase>();
+                 db.RemoveScene(scene);
+             };
         }
 
     }

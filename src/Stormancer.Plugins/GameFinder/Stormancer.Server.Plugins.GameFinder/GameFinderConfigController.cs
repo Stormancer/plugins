@@ -84,12 +84,23 @@ namespace Stormancer.Server.Plugins.GameFinder
             return list;
         }
     }
+
+    /// <summary>
+    /// Gamefinder Metrics.
+    /// </summary>
     public class Metrics
     {
+        /// <summary>
+        /// Id of the gamefinder sending the metrics.
+        /// </summary>
         [MessagePackMember(0)]
-        public string GameFinderId { get; set; }
+        public string GameFinderId { get; set; } = default!;
+
+        /// <summary>
+        /// Gets Metrics values.
+        /// </summary>
         [MessagePackMember(1)]
-        public Dictionary<string, int> Values { get; set; }
+        public Dictionary<string, int> Values { get; set; } = default!;
     }
 }
 

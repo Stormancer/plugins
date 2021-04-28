@@ -9,6 +9,18 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+4.6.0
+------
+Changed
+*******
+- Use Stormancer.Abstractions 4.2
+Added
+*****
+- Automatically register scenes with controllers with [Service] attribute in the service locator.
+Removed
+*******
+- Removed deprecated, unused UserManagementConfig class.
+
 4.5.0.3
 -------
 Changed
