@@ -419,7 +419,7 @@ namespace Stormancer.Server.Plugins.API
             _scene.Disconnected.Add(args => ExecuteDisconnected(args));
             _scene.Shuttingdown.Add(args => ExecuteShuttingDown(args));
             _scene.Starting.Add(_ => ExecuteSceneStarting());
-           
+
             foreach (var method in type.GetMethods())
             {
                 if (TryAddRoute(type, method))
@@ -810,7 +810,7 @@ namespace Stormancer.Server.Plugins.API
             {
                 var (rq, args, resolver) = tuple;
                 var serializer = resolver.Resolve<ISerializer>();
-                args.Add(await serializer.DeserializeAsync<T>(rq.Reader, rq.CancellationToken));
+                args.Add(await serializer.DeserializeAsync<TData>(rq.Reader, rq.CancellationToken));
                 return tuple;
             }
             public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadObjectCtx(ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver> tuple)
@@ -822,7 +822,7 @@ namespace Stormancer.Server.Plugins.API
 
             public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> CreateArgsReadSeedS2S(IS2SRequestContext ctx, IDependencyResolver resolver) => Task.FromResult((ctx, new List<object?>(), resolver));
 
-            public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadNextS2SArgument<TData>(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> task) => task.ContinueWith(t => ReadObject<T>(task.Result)).Unwrap();
+            public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadNextS2SArgument<TData>(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> task) => task.ContinueWith(t => ReadObject<TData>(task.Result)).Unwrap();
 
             public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadNextS2SArgumentCtx(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> task) => task.ContinueWith(t => ReadObjectCtx(task.Result)).Unwrap();
 
@@ -855,7 +855,7 @@ namespace Stormancer.Server.Plugins.API
 
                 expressions.Add(expr);
 
-                return Expression.Lambda<Func<IS2SRequestContext, IDependencyResolver, Task<List<object?>>>>(Expression.Block(new[] { ctx, resolver }, expressions), ctx, resolver).Compile();
+                return Expression.Lambda<Func<IS2SRequestContext, IDependencyResolver, Task<List<object?>>>>(Expression.Block(expressions), ctx, resolver).Compile();
             }
 
             public static Task WriteResult<TData>(IS2SRequestContext ctx, TData value, IDependencyResolver resolver)
@@ -955,7 +955,7 @@ namespace Stormancer.Server.Plugins.API
                 await sendResultAction(ctx, result, resolver);
             }
 
-            public static Func<T, List<object?>,IDependencyResolver, Task> CreateExecuteActionFunctionVoidS2S(MethodInfo method)
+            public static Func<T, List<object?>, IDependencyResolver, Task> CreateExecuteActionFunctionVoidS2S(MethodInfo method)
             {
                 var controller = Expression.Parameter(typeof(T), "controller");
                 var args = Expression.Parameter(typeof(List<object?>), "args");
@@ -972,7 +972,7 @@ namespace Stormancer.Server.Plugins.API
                     expressions.Add(Expression.Constant(Task.CompletedTask));
                 }
 
-                return Expression.Lambda<Func<T, List<object?>,IDependencyResolver, Task>>(Expression.Block(parameters, expressions), controller, args,resolver).Compile();
+                return Expression.Lambda<Func<T, List<object?>, IDependencyResolver, Task>>(Expression.Block(parameters, expressions), controller, args, resolver).Compile();
 
             }
 
@@ -1106,7 +1106,7 @@ namespace Stormancer.Server.Plugins.API
 
                     variables[i] = variable;
 
-                    block.Add(Expression.Assign(variables[i], Expression.Convert(Expression.MakeIndex(args, typeof(List<object?>).GetProperty("Item"), new[] { Expression.Constant(i) }),variables[i].Type)));
+                    block.Add(Expression.Assign(variables[i], Expression.Convert(Expression.MakeIndex(args, typeof(List<object?>).GetProperty("Item"), new[] { Expression.Constant(i) }), variables[i].Type)));
 
                 }
                 return variables;

@@ -114,12 +114,12 @@ namespace Stormancer.Server.Plugins.Steam
 
     internal class SteamPlayerSummariesResponse
     {
-        public SteamPlayerSummaries? response { get; set; }
+        public SteamPlayerSummaries response { get; set; } = default!;
     }
 
     internal class SteamPlayerSummaries
     {
-        public List<SteamPlayerSummary>? players { get; set; }
+        public List<SteamPlayerSummary> players { get; set; } = default!;
     }
 
 #pragma warning restore IDE1006 // Naming Styles

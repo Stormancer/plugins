@@ -9,6 +9,13 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+4.7.0
+-------
+Changed
+*******
+- Support new S2S protocol
+- Service locator queries all nodes to find scenes when no handler could find them.
+
 4.6.0
 ------
 Changed

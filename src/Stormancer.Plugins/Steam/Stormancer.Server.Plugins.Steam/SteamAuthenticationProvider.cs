@@ -238,10 +238,11 @@ namespace Stormancer.Server.Plugins.Steam
         /// Setup.
         /// </summary>
         /// <param name="parameters"></param>
+        /// <param name="session"></param>
         /// <returns></returns>
         public Task Setup(Dictionary<string, string> parameters, Session? session)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         /// <summary>

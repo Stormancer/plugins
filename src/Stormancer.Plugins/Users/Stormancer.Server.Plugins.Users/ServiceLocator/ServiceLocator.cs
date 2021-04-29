@@ -152,7 +152,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
 
         private async Task<string?> QueryClusterForSceneIdAsync(string serviceType, string serviceInstanceId,CancellationToken cancellationToken)
         {
-            var rq = await host.CallAppFunction("ServiceLocator.Query", cancellationToken);
+            using var rq = await host.StartAppFunctionRequest("ServiceLocator.Query", cancellationToken);
             await serializer.SerializeAsync(serviceType, rq.Input, cancellationToken);
             await serializer.SerializeAsync(serviceInstanceId, rq.Input, cancellationToken);
 

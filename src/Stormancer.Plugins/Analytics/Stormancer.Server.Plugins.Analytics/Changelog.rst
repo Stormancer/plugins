@@ -9,6 +9,15 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+2.0.3
+-----
+Changed
+*******
+- Updated Api dependency;
+Added
+*****
+- API metrics for new S2S protocol.
+
 2.0.2
 -----
 Changed
