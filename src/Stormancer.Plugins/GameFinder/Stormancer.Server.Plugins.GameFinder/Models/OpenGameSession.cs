@@ -38,7 +38,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// The scene Id of the game session.
         /// </summary>
-        public string SceneId { get => requestContext.RemotePeer.SceneId; }
+        public string SceneId { get; }
 
         /// <summary>
         /// Game-specific data for the game session.
@@ -68,10 +68,8 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         public DateTime CreationTimeUtc { get; internal set; } = DateTime.UtcNow;
 
-        internal TaskCompletionSource<object?> Tcs { get; } = new TaskCompletionSource<object?>();
 
-        private RequestContext<IScenePeer> requestContext;
-
+        private IObserver<IEnumerable<Team>> observer;
         /// <summary>
         /// Notify the game session about new incoming teams.
         /// </summary>
@@ -83,18 +81,20 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <returns></returns>
         internal async Task RegisterTeams(IEnumerable<Team> teams)
         {
-            await requestContext.SendValue(stream => requestContext.RemotePeer.Serializer().Serialize(teams, stream));
+            observer.OnNext(teams);
+            //await requestContext.SendValue(stream => requestContext.RemotePeer.Serializer().Serialize(teams, stream));
         }
 
         internal void Complete()
         {
-            Tcs.SetResult(null);
+            observer.OnCompleted();
         }
 
-        internal OpenGameSession(JObject data, RequestContext<IScenePeer> requestContext)
+        internal OpenGameSession(string origin, JObject data, IObserver<IEnumerable<Team>> observer)
         {
+            SceneId = origin;
             Data = data;
-            this.requestContext = requestContext;
+            this.observer = observer;
         }
     }
 }

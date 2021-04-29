@@ -33,9 +33,9 @@ namespace Stormancer.Server.Plugins.Steam
     /// </summary>
     public class SteamPartyController : ControllerBase
     {
-        private IPartyService _partyService { get; set; }
-        private IUserService _userService { get; set; }
-        private ISteamService _steamService { get; set; }
+        private readonly IPartyService _partyService;
+        private readonly IUserService _userService;
+        private readonly ISteamService _steamService;
 
         /// <summary>
         /// Steam party controller constructor

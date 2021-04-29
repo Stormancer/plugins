@@ -146,7 +146,7 @@ namespace Stormancer.Server.Plugins.Users
 
                     await sessions.UpdateSession(peer.SessionId, s =>
                     {
-                        s.Authentications[provider.Type] = authResult.PlatformId.ToString();
+                        s.Identities[provider.Type] = authResult.PlatformId.ToString();
                         if (authResult.ExpirationDate.HasValue)
                         {
                             s.AuthenticationExpirationDates[provider.Type] = authResult.ExpirationDate.Value;
@@ -162,7 +162,7 @@ namespace Stormancer.Server.Plugins.Users
 
                     Debug.Assert(session != null);//We just created the session.
 
-                    result.Authentications = session.Authentications.ToDictionary(entry => entry.Key, entry => entry.Value);
+                    result.Authentications = session.Identities.ToDictionary(entry => entry.Key, entry => entry.Value);
                     var ctx = new LoggedInCtx { Result = result, Session = session, AuthCtx = authenticationCtx };
                     await _handlers().RunEventHandler(h => h.OnLoggedIn(ctx), ex => _logger.Log(LogLevel.Error, "user.login", "An error occured while running OnLoggedIn event handler", ex));
                 }
@@ -247,7 +247,7 @@ namespace Stormancer.Server.Plugins.Users
         public async Task<Dictionary<string, string>> GetStatus(IScenePeerClient peer)
         {
             var session = await _sessions.GetSession(peer);
-            var result = new Dictionary<string, string>(session.Authentications.ToDictionary(entry => entry.Key, entry => entry.Value));
+            var result = new Dictionary<string, string>(session.Identities.ToDictionary(entry => entry.Key, entry => entry.Value));
             var tasks = new List<Task>();
             foreach (var provider in _authProviders)
             {

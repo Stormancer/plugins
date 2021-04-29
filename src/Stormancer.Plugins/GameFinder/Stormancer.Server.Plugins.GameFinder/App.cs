@@ -22,8 +22,15 @@
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
+    /// <summary>
+    /// Entry point class for the GameFinder plugin.
+    /// </summary>
     public class App
     {
+        /// <summary>
+        /// Entry point method for the gamefinder plugin.
+        /// </summary>
+        /// <param name="builder"></param>
         public void Run(IAppBuilder builder)
         {
             builder.AddPlugin(new GameFinderPlugin());

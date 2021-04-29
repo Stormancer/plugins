@@ -26,13 +26,16 @@ using Stormancer.Server.Plugins.API;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using Stormancer.Server.Plugins.Models;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
+
     /// <summary>
     /// GameFinder controller
     /// </summary>
-    public class GameFinderController : ControllerBase
+    [Service(Named =true, ServiceType = "stormancer.plugins.gamefinder")]
+    public class GameFinderController : ControllerBase, IServiceMetadataProvider
     {
         /// <summary>
         /// Find game Scene to scene route name
@@ -56,8 +59,8 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <param name="party"></param>
         /// <param name="request"></param>
         /// <returns></returns>
-        [Api(ApiAccess.Scene2Scene, ApiType.Rpc, Route = FindGameS2SRoute)]
-        public Task FindGame(Models.Party party, RequestContext<IScenePeer> request)
+        [S2SApi( Route= FindGameS2SRoute)]
+        public Task FindGame(Models.Party party, IS2SRequestContext request)
         {
             return _gameFinderService.FindGame(party, request.CancellationToken);
         }
@@ -66,7 +69,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// Gets the matchmaking metrics.
         /// </summary>
         /// <returns></returns>
-        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
+        [S2SApi]
         public Dictionary<string, int> GetMetrics()
         {
             return _gameFinderService.GetMetrics();
@@ -78,11 +81,12 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <param name="data">Custom data that game code will have access to in <see cref="GameFinderContext"/>.</param>
         /// <param name="request">S2S request context.</param>
         /// <returns></returns>
-        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
-        public async Task OpenGameSession(JObject data, RequestContext<IScenePeer> request)
+        [S2SApi]
+        public IAsyncEnumerable<IEnumerable<Team>> OpenGameSession(JObject data,[S2SContextUsage(S2SRequestContextUsage.Read)] IS2SRequestContext request)
         {
-            await _gameFinderService.OpenGameSession(data, request);
+            return _gameFinderService.OpenGameSession(data, request);
         }
+
 
         /// <summary>
         /// Gets the matchmaking metrics from the client.
@@ -93,7 +97,6 @@ namespace Stormancer.Server.Plugins.GameFinder
         {
             return _gameFinderService.GetMetrics();
         }
-
     
 
         /// <summary>
@@ -114,5 +117,11 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <param name="args"></param>
         /// <returns></returns>
         protected override Task OnDisconnected(DisconnectedArgs args) => _gameFinderService.CancelGame(args.Peer, false);
+
+     
+        string IServiceMetadataProvider.GetServiceInstanceId(ISceneHost scene)
+        {
+            return scene.Id;
+        }
     }
 }
