@@ -9,9 +9,34 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-4.4.3.2
+4.7.0
 -------
+Changed
+*******
+- Support new S2S protocol
+- Service locator queries all nodes to find scenes when no handler could find them.
+
+4.6.0
+------
+Changed
+*******
+- Use Stormancer.Abstractions 4.2
+Added
+*****
+- Automatically register scenes with controllers with [Service] attribute in the service locator.
+Removed
+*******
+- Removed deprecated, unused UserManagementConfig class.
+
+4.5.0.3
+-------
+Changed
+*******
 - Fixes to interfaces
+- Updating user handles returns the new user handle.
+- Add documentation for deviceIdentifier provider to tell which key to use in authParameters
+- Authorize - . and _ in user handles.
+- Return current pseudo by default on login.
 
 4.4.3.1
 ----------

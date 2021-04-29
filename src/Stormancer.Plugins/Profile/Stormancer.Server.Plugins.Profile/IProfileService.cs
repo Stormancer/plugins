@@ -22,6 +22,7 @@
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Users;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Profile
@@ -31,8 +32,42 @@ namespace Stormancer.Server.Plugins.Profile
     /// </summary>
     public interface IProfileService
     {
+        /// <summary>
+        /// Gets user profiles.
+        /// </summary>
+        /// <param name="userIds"></param>
+        /// <param name="displayOptions"></param>
+        /// <param name="requestingUser"></param>
+        /// <returns></returns>
         Task<Dictionary<string,Dictionary<string,JObject>>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, Session requestingUser);
 
-        Task UpdateUserHandle(Session requestingUser, string newHandle);
+        /// <summary>
+        /// Updates the user handle and returns the new handle.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="newHandle"></param>
+        /// <returns></returns>
+        Task<string> UpdateUserHandle(string userId, string newHandle);
+
+        /// <summary>
+        /// Updates a custom profile part associated with an user.
+        /// </summary>
+        /// <remarks>Custom profile parts can be updated by the client.</remarks>
+        /// <param name="userId"></param>
+        /// <param name="partId"></param>
+        /// <param name="version"></param>
+        /// <param name="fromClient"></param>
+        /// <param name="inputStream"></param>
+        /// <returns></returns>
+        Task UpdateCustomProfilePart(string userId,string partId, string version, bool fromClient, Stream inputStream);
+
+        /// <summary>
+        /// Deletes a custom profile part.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="partId"></param>
+        /// <param name="fromClient"></param>
+        /// <returns></returns>
+        Task DeleteCustomProfilePart(string id, string partId, bool fromClient);
     }
 }

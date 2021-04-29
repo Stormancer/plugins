@@ -57,7 +57,7 @@ namespace Stormancer.Server.Plugins.Party
         private readonly ISceneHost _scene;
         private readonly ILogger _logger;
         private readonly IUserSessions _userSessions;
-        private readonly IGameFinder _gameFinderClient;
+        private readonly GameFinderProxy _gameFinderClient;
         private readonly IServiceLocator _locator;
         private readonly Func<IEnumerable<IPartyEventHandler>> _handlers;
         private readonly PartyState _partyState;
@@ -76,7 +76,7 @@ namespace Stormancer.Server.Plugins.Party
             ISceneHost scene,
             ILogger logger,
             IUserSessions userSessions,
-            IGameFinder gameFinderClient,
+            GameFinderProxy gameFinderClient,
             IServiceLocator locator,
             Func<IEnumerable<IPartyEventHandler>> handlers,
             PartyState partyState,
@@ -176,6 +176,7 @@ namespace Stormancer.Server.Plugins.Party
                 //  3. Si il l'est alors on selon la config on change du SA on bloque ou on déconnect depuis l'autre scene et on la co à la nouvelle.
                 if (!_partyState.Settings.IsJoinable)
                 {
+                    Log(LogLevel.Trace, "OnConnecting", "Party join denied because the party is not joinable.", peer.SessionId);
                     throw new ClientException(JoinDeniedError);
                 }
 
@@ -551,7 +552,7 @@ namespace Stormancer.Server.Plugins.Party
             try
             {
                 var sceneUri = await _locator.GetSceneId("stormancer.plugins.gamefinder", _partyState.Settings.GameFinderName);
-                await _gameFinderClient.FindMatch(sceneUri, gameFinderRequest, _partyState.FindGameCts?.Token ?? CancellationToken.None);
+                await _gameFinderClient.FindGame(sceneUri, gameFinderRequest, _partyState.FindGameCts?.Token ?? CancellationToken.None);
             }
             catch (TaskCanceledException)
             {

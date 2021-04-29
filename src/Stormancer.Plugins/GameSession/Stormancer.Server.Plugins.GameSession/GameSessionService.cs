@@ -159,7 +159,7 @@ namespace Stormancer.Server.Plugins.GameSession
             _rpc = rpc;
             _serializer = serializer;
 
-            
+
             ApplySettings();
 
             scene.Shuttingdown.Add(args =>
@@ -379,21 +379,32 @@ namespace Stormancer.Server.Plugins.GameSession
             }
 
             var client = new Client(peer);
-
-            if (!_clients.TryAdd(user, client))
+            lock (_clients)
             {
-                if (_clients.TryGetValue(user, out Client alreadyConnectedClient) && alreadyConnectedClient.Status != PlayerStatus.Disconnected && !_clients.TryUpdate(user, client, alreadyConnectedClient))
+                if (!_clients.TryAdd(user, client))
                 {
-                    throw new ClientException("Failed to add player to the game session.");
+                    if (_clients.TryGetValue(user, out var alreadyConnectedClient))
+                    {
+                        if (alreadyConnectedClient.Status != PlayerStatus.Disconnected)
+                        {
+                            throw new ClientException("User already connected to gamesession.");
+                        }
+                        else if (!_clients.TryUpdate(user, client, alreadyConnectedClient))
+                        {
+                            throw new ClientException("Failed to update peer associated with user.");
+                        }
+                    }
                 }
             }
         }
 
         private async Task PeerConnectionRejected(IScenePeerClient peer)
         {
-            var client = _clients.FirstOrDefault(kvp => kvp.Value.Peer == peer);
-            _clients.TryRemove(client.Key, out _);
-
+            lock (_clients)
+            {
+                var client = _clients.FirstOrDefault(kvp => kvp.Value.Peer == peer);
+                _clients.TryRemove(client.Key, out _);
+            }
             await Task.CompletedTask;
         }
 
@@ -708,24 +719,25 @@ namespace Stormancer.Server.Plugins.GameSession
             _analytics.Push("gamesession", "playerLeft", JObject.FromObject(new { sessionId = peer.SessionId, gameSessionId = this._scene.Id }));
             Client client = null;
             string userId = null;
-
-            // the peer disconnected from the app and is not in the sessions anymore.
-            foreach (var kvp in _clients)
+            lock (_clients)
             {
-                if (kvp.Value.Peer == peer)
+                // the peer disconnected from the app and is not in the sessions anymore.
+                foreach (var kvp in _clients)
                 {
-                    userId = kvp.Key;
-                    client = kvp.Value;
-
-                    if (_config.Public)
+                    if (kvp.Value.Peer == peer)
                     {
-                        _clients.TryRemove(userId, out client);
+                        userId = kvp.Key;
+                        client = kvp.Value;
+
+                        if (_config.Public)
+                        {
+                            _clients.TryRemove(userId, out client);
+                        }
+                        // no need to continue searching for the client, we already found it
+                        break;
                     }
-                    // no need to continue searching for the client, we already found it
-                    break;
                 }
             }
-
             if (client != null)
             {
                 client.Peer = null;
@@ -821,7 +833,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 var userId = await GetUserId(remotePeer);
                 if (userId != null)
                 {
-                  
+
                     var memStream = new MemoryStream();
                     inputStream.CopyTo(memStream);
                     memStream.Seek(0, SeekOrigin.Begin);
@@ -878,7 +890,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 if (!_gameCompleteExecuted && _clients.Values.All(c => c.ResultData != null || c.Peer == null))//All remaining clients sent their data
                 {
                     _gameCompleteExecuted = true;
-                 
+
                     var ctx = new GameSessionCompleteCtx(this, _scene, _config, _clients.Select(kvp => new GameSessionResult(kvp.Key, kvp.Value.Peer, kvp.Value.ResultData)), _clients.Keys);
 
                     async Task runHandlers()
@@ -977,13 +989,17 @@ namespace Stormancer.Server.Plugins.GameSession
 
             await foreach (var packet in observable.ToAsyncEnumerable())
             {
-                var teams = _serializer.Deserialize<IEnumerable<Team>>(packet.Stream);
-
+                IEnumerable<Team> teams;
+                using (packet)
+                {
+                    teams = _serializer.Deserialize<IEnumerable<Team>>(packet.Stream);
+                }
                 foreach (var team in teams)
                 {
                     _config.Teams.Add(team);
                     yield return team;
                 }
+
             }
         }
 

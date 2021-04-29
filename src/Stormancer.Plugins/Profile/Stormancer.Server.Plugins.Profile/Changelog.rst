@@ -9,11 +9,18 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+2.1.1
+-----
 Changed
 *******
-- Automatically create scene and registration in service locator.
+- Use Stormancer.Abstraction.Server 4.2.0.2-pre
+2.1.0.6
+-------
+Added
+*****
+- Add ICustomProfilePart interface to easily provides update/delete API for profiles using the ProfileController Update/Delete APIs.
+- Add CustomPartAttribute to declare class as profile parts.
+- Automatically create the profile scene on startup and adds service locator configuration.
 
 2.0.1
 -----

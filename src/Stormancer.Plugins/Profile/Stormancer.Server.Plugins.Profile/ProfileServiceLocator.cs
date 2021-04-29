@@ -1,4 +1,4 @@
-// MIT License
+﻿// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -20,42 +20,24 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Stormancer.Core;
-using Stormancer.Plugins;
-using Stormancer.Server.Plugins.GameFinder;
+using Stormancer.Server.Plugins.ServiceLocator;
 using System;
-using System.IO;
-using System.Reactive.Linq;
-using System.Threading;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.GameFinder
+namespace Stormancer.Server.Plugins.Profile
 {
-    class GameFinderProxy : IGameFinder
+    class ProfileServiceLocator : IServiceLocatorProvider
     {
-        public readonly ISceneHost _scene;
-        public readonly ISerializer _serializer;
-
-        public GameFinderProxy(ISceneHost scene,
-            ISerializer serializer)
+        public Task LocateService(ServiceLocationCtx ctx)
         {
-            _scene = scene;
-            _serializer = serializer;
-        }
-
-        public async Task FindMatch(string sceneName, Models.Party gameFinderRequest, CancellationToken cancelationToken)
-        {
-            var rpc = _scene.DependencyResolver.Resolve<RpcService>();
-            Action<Stream> writer = s =>
+            if(ctx.ServiceType == ProfilePluginConstants.SERVICE_ID)
             {
-                _serializer.Serialize(gameFinderRequest, s);
-            };
-            var packet = await rpc.Rpc(GameFinderController.FindGameS2SRoute, new MatchSceneFilter(sceneName), writer, PacketPriority.MEDIUM_PRIORITY, cancelationToken).Select(p =>
-            {
-                using (p) { }
-                return System.Reactive.Unit.Default;
-            }).LastOrDefaultAsync();
-
+                ctx.SceneId = ProfilePluginConstants.SCENE_ID;
+            }
+            return Task.CompletedTask;
         }
     }
 }

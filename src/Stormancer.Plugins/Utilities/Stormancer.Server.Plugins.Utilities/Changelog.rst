@@ -9,6 +9,18 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+2.0.4.1
+-------
+Added
+*****
+- Add S2SOperation classes.
+
+2.0.3.1
+-------
+Changed
+*******
+- Removed cleanup cycle trace logs.
+
 2.0.3
 -----
 Changed

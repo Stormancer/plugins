@@ -1,4 +1,4 @@
-// MIT License
+﻿// MIT License
 //
 // Copyright (c) 2019 Stormancer
 //
@@ -20,25 +20,42 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Stormancer.Core;
-using Stormancer.Server.Plugins.GameFinder;
-using System.Threading;
+using System.IO;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.GameFinder
+namespace Stormancer.Server.Plugins.Profile
 {
     /// <summary>
-    /// Provides gamefinder functionalities.
+    /// Represents a custom profile part that the client can modify.
     /// </summary>
-    public interface IGameFinder
+    public interface ICustomProfilePart
     {
         /// <summary>
-        /// Find a game for the provided party.
+        /// Updates a part.
         /// </summary>
-        /// <param name="sceneName"></param>
-        /// <param name="party"></param>
-        /// <param name="cancellationToken"></param>
+        /// <param name="userId"></param>
+        /// <param name="partId"></param>
+        /// <param name="formatVersion"></param>
+        /// <param name="fromClient"></param>
+        /// <param name="data"></param>
         /// <returns></returns>
-        Task FindMatch(string sceneName, Models.Party party, CancellationToken cancellationToken);        
+        Task UpdateAsync(string userId, string partId, string formatVersion,bool fromClient, Stream data);
+
+        /// <summary>
+        /// Gets data about a part.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task GetAsync(ProfileCtx ctx);
+
+        /// <summary>
+        /// Deletes a part.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="partId"></param>
+        /// <param name="fromClient"></param>
+        /// <returns></returns>
+        Task DeleteAsync(string userId, string partId, bool fromClient);
+
     }
 }

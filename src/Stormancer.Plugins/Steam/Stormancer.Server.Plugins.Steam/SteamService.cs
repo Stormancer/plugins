@@ -167,7 +167,7 @@ namespace Stormancer.Server.Plugins.Steam
             {
                 client.BaseAddress = new Uri(ApiRoot);
 
-                using (var response = await client.PostAsync(uri, new FormUrlEncodedContent(p)))
+                using (var response = await client.PostAsync(uri, new FormUrlEncodedContent(p!)))
                 {
                     response.EnsureSuccessStatusCode();
                     var json = await response.Content.ReadAsStringAsync();
@@ -193,7 +193,7 @@ namespace Stormancer.Server.Plugins.Steam
             {
                 client.BaseAddress = new Uri(ApiRoot);
 
-                using (var response = await client.PostAsync(uri, new FormUrlEncodedContent(p)))
+                using (var response = await client.PostAsync(uri, new FormUrlEncodedContent(p!)))
                 {
                     response.EnsureSuccessStatusCode();
                     var json = await response.Content.ReadAsStringAsync();
@@ -217,7 +217,7 @@ namespace Stormancer.Server.Plugins.Steam
             {
                 client.BaseAddress = new Uri(ApiRoot);
 
-                using (var response = await client.PostAsync(uri, new FormUrlEncodedContent(p)))
+                using (var response = await client.PostAsync(uri, new FormUrlEncodedContent(p!)))
                 {
                     response.EnsureSuccessStatusCode();
                     var json = await response.Content.ReadAsStringAsync();
@@ -434,7 +434,7 @@ namespace Stormancer.Server.Plugins.Steam
 
         private async Task<HttpResponseMessage> TryPostForServiceAsync(string requestUrl, Dictionary<string, string> body)
         {
-            var formUrlEncodedContent = new FormUrlEncodedContent(body);
+            var formUrlEncodedContent = new FormUrlEncodedContent(body!);
             try
             {
                 return await client.PostAsync(new Uri(new Uri(ApiRoot), requestUrl), formUrlEncodedContent);

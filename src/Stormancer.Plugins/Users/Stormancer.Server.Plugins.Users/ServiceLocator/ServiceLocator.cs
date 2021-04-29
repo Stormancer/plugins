@@ -33,6 +33,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Http;
+using Stormancer.Core;
+using System.Threading;
 
 namespace Stormancer.Server.Plugins.ServiceLocator
 {
@@ -57,6 +59,9 @@ namespace Stormancer.Server.Plugins.ServiceLocator
     {
         private readonly IEnvironment _env;
         private readonly ISerializer serializer;
+        private readonly ISceneHost scene;
+        private readonly IHost host;
+        private readonly ServiceLocatorHostDatabase db;
         private readonly ManagementClientProvider _managementClientAccessor;
         private readonly Func<IEnumerable<IServiceLocatorProvider>> _handlers;
         private readonly ILogger _logger;
@@ -69,10 +74,16 @@ namespace Stormancer.Server.Plugins.ServiceLocator
             IEnvironment env,
             IConfiguration config,
             ISerializer serializer,
+            ISceneHost scene,
+            IHost host,
+            ServiceLocatorHostDatabase db,
             ILogger logger)
         {
             _env = env;
             this.serializer = serializer;
+            this.scene = scene;
+            this.host = host;
+            this.db = db;
             _managementClientAccessor = managementClientAccessor;
             _handlers = handlers;
             _logger = logger;
@@ -121,7 +132,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
             }
         }
 
-        public async Task<string> GetSceneId(string serviceType, string serviceName, Session? session)
+        public async Task<string?> GetSceneId(string serviceType, string serviceName, Session? session)
         {
             var handlers = _handlers();
             var ctx = new ServiceLocationCtx { ServiceName = serviceName, ServiceType = serviceType, Session = session };
@@ -132,7 +143,42 @@ namespace Stormancer.Server.Plugins.ServiceLocator
                 ctx.SceneId = Smart.Format(template, ctx);
             }
 
+            if(ctx.SceneId == null)
+            {
+                
+            }
             return ctx.SceneId;
+        }
+
+        private async Task<string?> QueryClusterForSceneIdAsync(string serviceType, string serviceInstanceId,CancellationToken cancellationToken)
+        {
+            using var rq = await host.StartAppFunctionRequest("ServiceLocator.Query", cancellationToken);
+            await serializer.SerializeAsync(serviceType, rq.Input, cancellationToken);
+            await serializer.SerializeAsync(serviceInstanceId, rq.Input, cancellationToken);
+
+            await foreach(var response in rq.Results)
+            {
+                if(response.IsSuccess)
+                {
+                    var sceneId = await serializer.DeserializeAsync<string?>(response.Output, cancellationToken);
+                    if(sceneId != null)
+                    {
+                        return sceneId;
+                    }
+                }
+            }
+            return null;
+        }
+
+        public async Task<IS2SRequest> StartS2SRequestAsync(string serviceType, string serviceInstance, string route, CancellationToken cancellationToken)
+        {
+            var sceneId = await GetSceneId(serviceType, serviceInstance, null);
+            if(sceneId == null)
+            {
+                throw new InvalidOperationException($"Failed to locate {serviceType}/{serviceInstance}.");
+            }
+
+            return await scene.SendS2SRequestAsync(new MatchSceneFilter(sceneId), route, cancellationToken);
         }
     }
 }

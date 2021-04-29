@@ -63,35 +63,72 @@ namespace Stormancer.Server.Plugins.Users
         /// </summary>
         ServerRequest
     }
-    public interface IUserPeerIndex : IIndex<string> { }
+    internal interface IUserPeerIndex : IIndex<string> { }
     internal class UserPeerIndex : InMemoryIndex<string>, IUserPeerIndex { }
 
-    public interface IPeerUserIndex : IIndex<SessionRecord> { }
+    internal interface IPeerUserIndex : IIndex<SessionRecord> { }
     internal class PeerUserIndex : InMemoryIndex<SessionRecord>, IPeerUserIndex { }
 
-    public interface IHandleUserIndex : IIndex<string> { }
+    internal interface IHandleUserIndex : IIndex<string> { }
     internal class HandleUserIndex : InMemoryIndex<string>, IHandleUserIndex { }
 
+    /// <summary>
+    /// Stored object representing a session. 
+    /// </summary>
     public class SessionRecord
     {
+        /// <summary>
+        /// Gets the platformId associated with the session.
+        /// </summary>
         public PlatformId platformId { get; set; }
+
+        /// <summary>
+        /// Gets the user associated with the session.
+        /// </summary>
+        /// <remarks>
+        /// Can be null if the session is anonymous.
+        /// </remarks>
         public User? User { get; set; }
+
+        /// <summary>
+        /// Gets the id of the session.
+        /// </summary>
         public string SessionId { get; set; } = default!;
-        public ConcurrentDictionary<string, string> Authentications { get; set; } = new ConcurrentDictionary<string, string>();
+
+        /// <summary>
+        /// Gets the identities associated with the session.
+        /// </summary>
+        public ConcurrentDictionary<string, string> Identities { get; set; } = new ConcurrentDictionary<string, string>();
+
+        /// <summary>
+        /// Gets the authentication expiration dates per identity.
+        /// </summary>
         public Dictionary<string, DateTime> AuthenticationExpirationDates { get; } = new Dictionary<string, DateTime>();
+
+        /// <summary>
+        /// Gets the session data.
+        /// </summary>
         public ConcurrentDictionary<string, byte[]> SessionData { get; internal set; } = new ConcurrentDictionary<string, byte[]>();
+
+        /// <summary>
+        /// Gets or sets the date the session was created.
+        /// </summary>
         public DateTime ConnectedOn { get; internal set; }
 
         /// <summary>
         /// absolute scene Url to the authenticator scene
         /// </summary>
-        public string AuthenticatorUrl { get; set; }
+        public string AuthenticatorUrl { get; set; } = default!;
 
         /// <summary>
         /// If the session is cached, the date at which it should expire
         /// </summary>
         public DateTimeOffset? MaxAge { get => AuthenticationExpirationDates.Count > 0 ? AuthenticationExpirationDates.Min().Value : (DateTimeOffset?)null; }
 
+        /// <summary>
+        /// Creates a view of the session.
+        /// </summary>
+        /// <returns></returns>
         public Session CreateView()
         {
             return new Session
@@ -100,27 +137,53 @@ namespace Stormancer.Server.Plugins.Users
                 User = User,
                 SessionId = SessionId,
                 SessionData = new Dictionary<string, byte[]>(SessionData),
-                Authentications = new Dictionary<string, string>(Authentications),
+                Identities = new Dictionary<string, string>(Identities),
                 ConnectedOn = ConnectedOn,
                 AuthenticatorUrl = AuthenticatorUrl,
                 MaxAge = MaxAge
             };
         }
     }
-
+    
+    /// <summary>
+    /// Represents a session.
+    /// </summary>
     public class Session
     {
+        /// <summary>
+        /// Gets the main platform id associated with the session.
+        /// </summary>
         public PlatformId platformId { get; set; }
+
+        /// <summary>
+        /// Gets the user associated with the session if it exists.
+        /// </summary>
         public User? User { get; set; }
-        public string SessionId { get; set; }
-        public IReadOnlyDictionary<string, string> Authentications { get; set; }
-        public IReadOnlyDictionary<string, byte[]> SessionData { get; internal set; }
+
+        /// <summary>
+        /// Gets the session id.
+        /// </summary>
+        public string SessionId { get; set; } = default!;
+
+        /// <summary>
+        /// List of identities of the session.
+        /// </summary>
+        public IReadOnlyDictionary<string, string> Identities { get; set; } = default!;
+
+        /// <summary>
+        /// Gets session data associated with the session.
+        /// </summary>
+        public IReadOnlyDictionary<string, byte[]> SessionData { get; internal set; } = default!;
+
+        /// <summary>
+        /// Gets the <see cref="DateTime"/> object representing when the session was created.
+        /// </summary>
         public DateTime ConnectedOn { get; internal set; }
 
         /// <summary>
         /// absolute scene Url to the authenticator scene
         /// </summary>
-        public string AuthenticatorUrl { get; set; }
+        public string AuthenticatorUrl { get; set; } = default!;
 
         /// <summary>
         /// If the session is cached, the date at which it should expire
@@ -280,7 +343,7 @@ namespace Stormancer.Server.Plugins.Users
             }
             else
             {
-                user.UserData = Newtonsoft.Json.Linq.JObject.FromObject(data);
+                user.UserData = Newtonsoft.Json.Linq.JObject.FromObject(data!);
                 await _userService.UpdateUserData(user.Id, data);
             }
         }
@@ -305,7 +368,7 @@ namespace Stormancer.Server.Plugins.Users
                 return null;
             }
         }
-        public async Task<Session> GetSession(string userId, bool forceRefresh = false)
+        public async Task<Session?> GetSession(string userId, bool forceRefresh = false)
         {
             var result = await _userPeerIndex.TryGet(userId);
 
@@ -331,12 +394,12 @@ namespace Stormancer.Server.Plugins.Users
             return PlatformId.Unknown;
         }
 
-        public Task<Session> GetSession(PlatformId id, bool forceRefresh = false)
+        public Task<Session?> GetSession(PlatformId id, bool forceRefresh = false)
         {
             return GetSession(id.ToString());
         }
 
-        public async Task<Session> GetSession(IScenePeerClient peer, bool forceRefresh = false)
+        public async Task<Session?> GetSession(IScenePeerClient peer, bool forceRefresh = false)
         {
             return peer != null ? await GetSessionById(peer.SessionId) : null;
         }
@@ -363,12 +426,12 @@ namespace Stormancer.Server.Plugins.Users
             return session?.CreateView();
         }
 
-        public Task<Session> GetSessionByUserId(string userId, bool forceRefresh = false)
+        public Task<Session?> GetSessionByUserId(string userId, bool forceRefresh = false)
         {
             return GetSession(userId);
         }
 
-        public Task<Session> GetSessionById(string sessionId, string authType, bool forceRefresh = false)
+        public Task<Session?> GetSessionById(string sessionId, string authType, bool forceRefresh = false)
         {
             return GetSessionById(sessionId);
         }
@@ -390,7 +453,7 @@ namespace Stormancer.Server.Plugins.Users
             return UpdateSessionData(sessionId, key, stream.ToArray());
         }
 
-        public async Task<byte[]> GetSessionData(string sessionId, string key)
+        public async Task<byte[]?> GetSessionData(string sessionId, string key)
         {
             var session = await GetSessionById(sessionId);
             if (session == null)
@@ -407,7 +470,7 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
-        public async Task<T> GetSessionData<T>(string sessionId, string key)
+        public async Task<T?> GetSessionData<T>(string sessionId, string key)
         {
             var data = await GetSessionData(sessionId, key);
             if (data != null)
@@ -448,7 +511,7 @@ namespace Stormancer.Server.Plugins.Users
         //    return await GetSessionById(data.SessionId);
         //}
 
-        public Task<Dictionary<string, User>> GetUsers(params string[] userIds)
+        public Task<Dictionary<string, User?>> GetUsers(params string[] userIds)
         {
             return _userService.GetUsers(userIds);
         }
@@ -470,8 +533,7 @@ namespace Stormancer.Server.Plugins.Users
         private static bool _handleUserMappingCreated = false;
         private static AsyncLock _mappingLock = new AsyncLock();
 
-        private const string UserHandleKey = "handle";
-
+      
         private int _handleSuffixUpperBound = 10000;
         private int _handleMaxNumCharacters = 32;
 
@@ -496,10 +558,10 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
-        public async Task UpdateUserHandle(string userId, string newHandle, bool appendHash)
+        public async Task<string> UpdateUserHandle(string userId, string newHandle, bool appendHash)
         {
             // Check handle validity
-            if (!Regex.IsMatch(newHandle, @"^[\p{Ll}\p{Lu}\p{Lt}\p{Lo}0-9]*$"))
+            if (!Regex.IsMatch(newHandle, @"^[\p{Ll}\p{Lu}\p{Lt}\p{Lo}0-9-_.]*$"))
             {
                 throw new ClientException("badHandle?badCharacters");
             }
@@ -544,11 +606,11 @@ namespace Stormancer.Server.Plugins.Users
                         foundUnusedHandle = response.IsValid;
 
                     } while (!foundUnusedHandle);
-                    newUserData[UserHandleKey] = newHandleWithSuffix;
+                    newUserData[UsersConstants.UserHandleKey] = newHandleWithSuffix;
                 }
                 else
                 {
-                    newUserData[UserHandleKey] = newHandle;
+                    newUserData[UsersConstants.UserHandleKey] = newHandle;
                 }
                 if (session != null)
                 {
@@ -562,7 +624,7 @@ namespace Stormancer.Server.Plugins.Users
                 var userData = session.User.UserData;
                 if (!appendHash)
                 {
-                    userData[UserHandleKey] = newHandle;
+                    userData[UsersConstants.UserHandleKey] = newHandle;
                 }
                 else
                 {
@@ -576,7 +638,7 @@ namespace Stormancer.Server.Plugins.Users
                         added = await _handleUserIndex.TryAdd(newHandleWithSuffix, userId);
                     } while (!added);
 
-                    userData[UserHandleKey] = newHandleWithSuffix;
+                    userData[UsersConstants.UserHandleKey] = newHandleWithSuffix;
                 }
                 session.User.UserData = userData;
             }
@@ -590,6 +652,8 @@ namespace Stormancer.Server.Plugins.Users
             {
                 await UpdateHandleDatabase();
             }
+
+            return newHandle;
         }
 
         public IObservable<byte[]> SendRequest(string operationName, string senderUserId, string recipientUserId, Action<Stream> writer, CancellationToken cancellationToken)
@@ -621,9 +685,9 @@ namespace Stormancer.Server.Plugins.Users
             .Switch();
         }
 
-        public async Task<Dictionary<PlatformId, Session>> GetSessions(IEnumerable<PlatformId> platformIds, bool forceRefresh = false)
+        public async Task<Dictionary<PlatformId, Session?>> GetSessions(IEnumerable<PlatformId> platformIds, bool forceRefresh = false)
         {
-            Dictionary<PlatformId, Session> sessions = new Dictionary<PlatformId, Session>();
+            Dictionary<PlatformId, Session?> sessions = new Dictionary<PlatformId, Session?>();
 
             foreach (var id in platformIds)
             {
@@ -678,17 +742,29 @@ namespace Stormancer.Server.Plugins.Users
         }
     }
 
+    /// <summary>
+    /// Record object representing an association between handle &amp; user.
+    /// </summary>
     public class HandleUserRelation
     {
         /// <summary>
         /// Indexed by user's handle
         /// </summary>       
-        public string Id { get; set; }
+        public string Id { get; set; } = default!;
 
-        public string HandleWithoutNum { get; set; }
+        /// <summary>
+        /// Gets or sets the user handle without numbered suffix.
+        /// </summary>
+        public string HandleWithoutNum { get; set; } = default!;
 
+        /// <summary>
+        /// Gets or sets the numbered suffix.
+        /// </summary>
         public int HandleNum { get; set; }
 
-        public string UserId { get; set; }
+        /// <summary>
+        /// Gets or sets the user Id.
+        /// </summary>
+        public string UserId { get; set; } = default!;
     }
 }

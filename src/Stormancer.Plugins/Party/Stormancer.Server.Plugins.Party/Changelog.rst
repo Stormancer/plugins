@@ -9,10 +9,22 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+4.0.3
+-----
+Changed
+*******
+- Use Stormancer.Abstraction.Server 4.2.0.2-pre.
+4.0.2
+-----
+Changed
+*******
+- Trace Log added (server.PartyService.OnConnecting) when a player tries to connect to a non joinable party.
 
 4.0.1
 -----
-- Use Stormancer.Abstraction.Server 6.1.0
+Changed
+*******
+- Use Stormancer.Abstraction.Server 4.1.0
 
 4.0.0.2
 -------

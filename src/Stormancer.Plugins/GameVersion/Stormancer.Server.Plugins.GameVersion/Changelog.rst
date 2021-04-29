@@ -9,10 +9,18 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+2.0.2
+-----
+Changed
+*******
+- Use Stormancer.Abstraction.Server 4.2.0.2-pre.
+- Add a log when a user tries to connect with a bad game version
 
 2.0.1
 -----
-- Use Stormancer.Abstraction.Server 6.1.0
+Changed
+*******
+- Use Stormancer.Abstraction.Server 4.1.0.
 
 2.0.0.1
 -------
