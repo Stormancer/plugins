@@ -60,6 +60,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="id"></param>
         /// <param name="config"></param>
         public void RefreshConfig(string id,dynamic config)
         {

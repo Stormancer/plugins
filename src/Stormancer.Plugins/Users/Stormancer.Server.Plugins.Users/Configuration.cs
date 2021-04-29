@@ -34,7 +34,7 @@ namespace Stormancer
         /// <summary>
         /// Adds default configuration for users.
         /// </summary>
-        /// <param name="config"></param>
+        /// <param name="host"></param>
         /// <param name="builder"></param>
         /// <returns></returns>
         /// <remarks>Configuration settings can be overrided in the App configuration json file on the grid.</remarks>

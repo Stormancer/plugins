@@ -24,6 +24,9 @@ using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
+    /// <summary>
+    /// Player readiness when game found.
+    /// </summary>
     public enum Readiness
     {
         Unknown = 0,

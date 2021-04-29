@@ -58,8 +58,8 @@ namespace Stormancer.Server.Plugins.GameFinder
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
                 builder.Register<GameFinderController>();
+               
                 builder.Register<GameFinderData>().AsSelf().InstancePerScene();
-                builder.Register<GameFinderProxy>().As<IGameFinder>();
                 builder.Register<ServiceLocationProvider>().As<IServiceLocatorProvider>();
             };
             ctx.SceneCreated += SceneCreated;

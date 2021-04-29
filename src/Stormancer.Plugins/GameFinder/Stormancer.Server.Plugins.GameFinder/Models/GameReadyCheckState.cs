@@ -160,7 +160,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             _closeReadyCheck();
         }
 
-        internal Action<ReadyVerificationRequest> StateChanged { get; set; }
+        internal Action<ReadyVerificationRequest>? StateChanged { get; set; }
 
         internal void Cancel(string id)
         {

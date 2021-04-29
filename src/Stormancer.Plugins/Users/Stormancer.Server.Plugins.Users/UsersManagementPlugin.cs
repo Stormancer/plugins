@@ -35,23 +35,27 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
+    /// <summary>
+    /// User plugin constants.
+    /// </summary>
     public class Constants
     {
+        /// <summary>
+        /// Authenticator scene template id.
+        /// </summary>
         public const string SCENE_TEMPLATE = "authenticator";
+
+        /// <summary>
+        /// Gets the authenticator scene id.
+        /// </summary>
+        /// <returns></returns>
         public static string GetSceneId()
         {
             return SCENE_TEMPLATE;
         }
     }
 
-    public class UserManagementConfig
-    {
-        public void AddAuthenticationProvider<TProvider>() where TProvider : IAuthenticationProvider
-        {
-            EnabledAuthenticationProviders.Add(typeof(TProvider));
-        }
-        public List<Type> EnabledAuthenticationProviders { get; } = new List<Type>();
-    }
+  
 
     class UsersManagementPlugin : Stormancer.Plugins.IHostPlugin
     {
@@ -145,7 +149,7 @@ namespace Stormancer.Server.Plugins.Users
             b.Register<LocatorProvider>().As<IServiceLocatorProvider>();
             b.Register<UserService>().As<IUserService>();
 
-            b.Register<UserManagementConfig>().SingleInstance();
+           
             b.Register<UsersAdminController>();
             b.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
 

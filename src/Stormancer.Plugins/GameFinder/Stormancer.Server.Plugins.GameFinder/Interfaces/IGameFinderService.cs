@@ -74,6 +74,6 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <param name="data"></param>
         /// <param name="request">Request the game session is linked with. The game session stays advertised as lon as the request is not cancelled by the game session.</param>
         /// <returns></returns>
-        internal Task OpenGameSession(JObject data, RequestContext<IScenePeer> request);
+        internal IAsyncEnumerable<IEnumerable<Team>> OpenGameSession(JObject data,IS2SRequestContext request);
     }
 }

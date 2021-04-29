@@ -24,8 +24,16 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
+    /// <summary>
+    /// Provides services to interact with steam tickets.
+    /// </summary>
     public interface ISteamUserTicketAuthenticator
     {
+        /// <summary>
+        /// Authenticates a steam ticket and returns the steam id.
+        /// </summary>
+        /// <param name="ticket"></param>
+        /// <returns></returns>
         Task<ulong?> AuthenticateUserTicket(string ticket);
     }
 }

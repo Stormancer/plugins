@@ -11,20 +11,33 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Analytics
 {
-    class AnalyticsController : ControllerBase
+    /// <summary>
+    /// Provides network services for the analytics system.
+    /// </summary>
+    public class AnalyticsController : ControllerBase
     {
         private readonly IAnalyticsService _analytics;
         private readonly ILogger _logger;
         private const string TypeRegex = "^[A-Za-z0-9_-]+$";
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="analytics"></param>
+        /// <param name="logger"></param>
         public AnalyticsController(IAnalyticsService analytics, ILogger logger)
         {
             _logger = logger;
             _analytics = analytics;
         }
 
+        /// <summary>
+        /// Sends a list of analytics events in the analytics system.
+        /// </summary>
+        /// <param name="docs"></param>
+        /// <returns></returns>
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public Task Push(IEnumerable<DocumentDto> docs)
+        public Task Push(IEnumerable<EventDto> docs)
         {
 
 
