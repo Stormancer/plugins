@@ -20,8 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 using Newtonsoft.Json.Linq;
+using Stormancer.Core;
 using Stormancer.Server.Plugins.Users;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.ServiceLocator
@@ -47,6 +49,16 @@ namespace Stormancer.Server.Plugins.ServiceLocator
         /// <param name="serviceName"></param>
         /// <param name="session"></param>
         /// <returns></returns>
-		Task<string> GetSceneId(string serviceType, string serviceName, Session? session = null);
+		Task<string?> GetSceneId(string serviceType, string serviceName, Session? session = null);
+
+        /// <summary>
+        /// Sends a scene to scene request to a service instance.
+        /// </summary>
+        /// <param name="serviceType">Type of the service.</param>
+        /// <param name="serviceInstance">Id of the service instance if there are several instances of the instance type.</param>
+        /// <param name="route">Route the request is sent to.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns></returns>
+        Task<IS2SRequest> StartS2SRequestAsync(string serviceType, string serviceInstance, string route, CancellationToken cancellationToken);
     }
 }

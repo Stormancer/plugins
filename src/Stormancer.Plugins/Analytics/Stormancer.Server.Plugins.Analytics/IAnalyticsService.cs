@@ -29,18 +29,43 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Analytics
 {
+    /// <summary>
+    /// Provides a way of pushing analytics in the system.
+    /// </summary>
     public interface IAnalyticsService
     {
+        /// <summary>
+        /// Pushes a document in the analytics system.
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="category"></param>
+        /// <param name="document"></param>
         void Push(string type,string category, JObject document);
 
+        /// <summary>
+        /// Pushes a document in the analytics system.
+        /// </summary>
+        /// <param name="document"></param>
         void Push(AnalyticsDocument document);
 
+        /// <summary>
+        /// Flushes the documents currently waiting for save.
+        /// </summary>
+        /// <returns></returns>
         Task Flush();
     }
 
+    /// <summary>
+    /// Represents an analytics storage output.
+    /// </summary>
     public interface IAnalyticsOutput
     {
-       
+       /// <summary>
+       /// Saves the documents in the storage output.
+       /// </summary>
+       /// <param name="store"></param>
+       /// <param name="docs"></param>
+       /// <returns></returns>
         Task Flush(string store, IEnumerable<AnalyticsDocument> docs);
     }
 }

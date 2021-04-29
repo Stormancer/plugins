@@ -54,6 +54,6 @@ namespace Stormancer.Server.Plugins.Users
         Task Delete(string id);
 
         Task UpdateLastLoginDate(string userId);
-        Task<Dictionary<string, User>> GetUsers(params string[] userIds);
+        Task<Dictionary<string, User?>> GetUsers(params string[] userIds);
     }
 }

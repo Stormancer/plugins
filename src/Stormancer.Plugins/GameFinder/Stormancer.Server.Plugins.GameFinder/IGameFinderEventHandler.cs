@@ -26,39 +26,109 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
+    /// <summary>
+    /// Reason why a gamefinder search ended.
+    /// </summary>
     public enum SearchEndReason
     {
+        /// <summary>
+        /// The search was cancelled by an user.
+        /// </summary>
         Canceled = 0,
+
+        /// <summary>
+        /// An user disconnected from the gamefinder.
+        /// </summary>
         Disconnected = 1,
+
+        /// <summary>
+        /// The search succeeded.
+        /// </summary>
         Succeeded = 2
     }
 
+    /// <summary>
+    /// Context associated with a Gamefinder SearchStart event.
+    /// </summary>
     public class SearchStartContext
     {
-        public string GameFinderId { get; set; }
-        public IEnumerable<Party> Groups { get; set; }
+        /// <summary>
+        /// Id of the gamefinder.
+        /// </summary>
+        public string GameFinderId { get; set; } = default!;
+
+        /// <summary>
+        /// Groups starting searching for a game.
+        /// </summary>
+        public IEnumerable<Party> Groups { get; set; } = default!;
     }
 
+    /// <summary>
+    /// Context associated with gamefinder search end events.
+    /// </summary>
     public class SearchEndContext
     {
-        public string GameFinderId { get; set; }
-        public Party Party { get; set; }
+        /// <summary>
+        /// Id of the gamefinder the event is related to.
+        /// </summary>
+        public string GameFinderId { get; set; } = default!;
+
+        /// <summary>
+        /// The party that ended the search.
+        /// </summary>
+        public Party Party { get; set; } = default!;
+
+        /// <summary>
+        /// The reason why the search ended.
+        /// </summary>
         public SearchEndReason Reason { get; set; }
+
+        /// <summary>
+        /// The number of gamefinder loops that occured before the search ended.
+        /// </summary>
         public int PassesCount { get; set; }
     }
 
+    /// <summary>
+    /// Context associated with gamefinder game started events.
+    /// </summary>
     public class GameStartedContext
     {
-        public string GameFinderId { get; set; }
-        public Game Game { get; set; }
+        /// <summary>
+        /// Id of the gamefinder starting the game.
+        /// </summary>
+        public string GameFinderId { get; set; } = default!;
+
+        /// <summary>
+        /// Description of the game starting.
+        /// </summary>
+        public Game Game { get; set; } = default!;
     }
 
+    /// <summary>
+    /// Provides implementer way to handle events in the gamefinder pipeline.
+    /// </summary>
     public interface IGameFinderEventHandler
     {
+        /// <summary>
+        /// Fired when parties start searching for game.
+        /// </summary>
+        /// <param name="searchStartCtx"></param>
+        /// <returns></returns>
         Task OnStart(SearchStartContext searchStartCtx);
 
+        /// <summary>
+        /// Fired when a party completes a game search (successfully or not)
+        /// </summary>
+        /// <param name="searchEndCtx"></param>
+        /// <returns></returns>
         Task OnEnd(SearchEndContext searchEndCtx);
 
+        /// <summary>
+        /// Fired when the gamefinder starts a new game.
+        /// </summary>
+        /// <param name="searchGameStartedCtx"></param>
+        /// <returns></returns>
         Task OnGameStarted(GameStartedContext searchGameStartedCtx);
     }
 }

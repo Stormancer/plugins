@@ -25,12 +25,36 @@ using System.IO;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
+    /// <summary>
+    /// Context passed to Resolution actions. It provides a way for custom matchmaking implementations to write data back to clients on resolution. 
+    /// </summary>
+    /// <remarks>
+    /// Resolution actions can be used to send custom data, including gamesession connection tickets.
+    /// </remarks>
     public interface IGameFinderResolutionWriterContext
     {
+        /// <summary>
+        /// Serializer used by the peer.
+        /// </summary>
         ISerializer Serializer { get; }
+
+        /// <summary>
+        /// Writes binary data to the response stream.
+        /// </summary>
+        /// <param name="writer"></param>
         void WriteToStream(Action<Stream> writer);
+
+        /// <summary>
+        /// Writes an object to the response stream using the peer's serializer.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="data"></param>
         void WriteObjectToStream<T>(T data);
 
+
+        /// <summary>
+        /// The remote peer.
+        /// </summary>
         IScenePeerClient Peer { get; }
     }
 }

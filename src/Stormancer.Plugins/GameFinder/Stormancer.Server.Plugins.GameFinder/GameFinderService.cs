@@ -36,6 +36,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -69,7 +70,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// Game Sessions that are open to new players.
         /// </summary>
-        /// <seealso cref="GameFinderController.OpenGameSession(JObject, RequestContext{IScenePeer})"/>
+        /// <seealso cref="GameFinderController.OpenGameSession(JObject, IS2SRequestContext)"/>
         public List<OpenGameSession> OpenGameSessions { get; } = new List<OpenGameSession>();
     }
 
@@ -116,7 +117,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             _scene = scene;
             _data.kind = _scene.Metadata[GameFinderPlugin.METADATA_KEY];
             env.ActiveDeploymentChanged += Env_ActiveDeploymentChanged;
-          
+
             ApplyConfig();
 
 
@@ -175,7 +176,16 @@ namespace Stormancer.Server.Plugins.GameFinder
             using (var scope = _scene.DependencyResolver.CreateChild(Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 var sessions = scope.Resolve<IUserSessions>();
-                peersInGroup = await Task.WhenAll(party.Players.Select(async p => new PlayerPeer { Peer = await sessions.GetPeer(p.Value.UserId), Player = p.Value }));
+                peersInGroup = await Task.WhenAll(party.Players.Select(async p =>
+                {
+                    var peer = await sessions.GetPeer(p.Value.UserId);
+
+                    if (peer == null)
+                    {
+                        throw new ClientException($"'{p.Value.UserId} has disconnected.");
+                    }
+                    return new PlayerPeer { Peer = peer, Player = p.Value };
+                }));
             }
             var state = new GameFinderRequestState(party);
 
@@ -315,8 +325,8 @@ namespace Stormancer.Server.Plugins.GameFinder
                     var resolver = scope.Resolve<IGameFinderResolver>();
 
                     dynamic? specificConfig = gameFinderConfigs?.GetValue(_data.kind);
-                    gameFinder.RefreshConfig(_data.kind,specificConfig);
-                    resolver.RefreshConfig(_data.kind,specificConfig);
+                    gameFinder.RefreshConfig(_data.kind, specificConfig);
+                    resolver.RefreshConfig(_data.kind, specificConfig);
 
 
                     var games = await gameFinder.FindGames(mmCtx);
@@ -659,7 +669,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             return handlers().RunEventHandler(h => h.OnEnd(sectx), ex => { });
         }
 
-        private Task<IScenePeerClient> GetPlayer(Player member)
+        private Task<IScenePeerClient?> GetPlayer(Player member)
         {
             using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
@@ -670,12 +680,15 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         private async Task<IEnumerable<IScenePeerClient>> GetPlayers(Party party)
         {
-            return await Task.WhenAll(party.Players.Values.Select(GetPlayer));
+            var peers = await Task.WhenAll(party.Players.Values.Select(GetPlayer));
+            return peers.Where(p => p != null)!;
         }
 
         private async Task<IEnumerable<IScenePeerClient>> GetPlayers(params Party[] parties)
         {
-            return await Task.WhenAll(parties.SelectMany(g => g.Players.Values).Select(GetPlayer));
+            var peers = await Task.WhenAll(parties.SelectMany(g => g.Players.Values).Select(GetPlayer));
+
+            return peers.Where(p => p != null)!;
         }
 
         private Task BroadcastToPlayers(IGameCandidate game, string route, Action<System.IO.Stream, ISerializer> writer)
@@ -843,9 +856,10 @@ namespace Stormancer.Server.Plugins.GameFinder
             return false;
         }
 
-        async Task IGameFinderService.OpenGameSession(JObject data, RequestContext<IScenePeer> request)
+        IAsyncEnumerable<IEnumerable<Team>> IGameFinderService.OpenGameSession(JObject data, IS2SRequestContext request)
         {
-            var session = new OpenGameSession(data, request);
+            var subject = new Subject<IEnumerable<Team>>();
+            var session = new OpenGameSession(request.Origin, data, subject);
 
             bool added = _data.openGameSessions.TryAdd(session.SceneId, session);
             if (!added)
@@ -866,7 +880,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                     }
                 });
 
-                await session.Tcs.Task;
+                return subject.ToAsyncEnumerable();
             }
             finally
             {

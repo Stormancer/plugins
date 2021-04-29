@@ -30,31 +30,70 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.API
 {
+    /// <summary>
+    /// Context for exception handling in controllers.
+    /// </summary>
     public class ApiExceptionContext
     {
-        public ApiExceptionContext(string route, Exception exception, RequestContext<IScenePeerClient> request) : this(route, exception)
+        internal ApiExceptionContext(string route, Exception exception, RequestContext<IScenePeerClient> request) : this(route, exception)
         {
             Request = request;
         }
 
-        public  ApiExceptionContext(string route, Exception exception, Packet<IScenePeerClient> packet) : this(route, exception)
+        internal ApiExceptionContext(string route, Exception exception, Packet<IScenePeerClient> packet) : this(route, exception)
         {
             Packet = packet;
         }
 
+        internal ApiExceptionContext(string route, Exception exception, IS2SRequestContext ctx) : this(route, exception)
+        {
+
+        }
         private ApiExceptionContext(string route, Exception exception)
         {
             this.Route = route;
             this.Exception = exception;
         }
 
+        /// <summary>
+        /// Gets the thrown <see cref="Exception"/>.
+        /// </summary>
         public Exception Exception { get; }
-        public string Route { get; }
-        public RequestContext<IScenePeerClient> Request { get; }
-        public Packet<IScenePeerClient> Packet { get; }
 
+        /// <summary>
+        /// Gets the route the exception was thrown on.
+        /// </summary>
+        public string Route { get; }
+
+        /// <summary>
+        /// Gets the request that threw the exception (for client to server requests).
+        /// </summary>
+        public RequestContext<IScenePeerClient>? Request { get; }
+
+        /// <summary>
+        /// Gets the packet that threw th exception (for client to server messages).
+        /// </summary>
+        public Packet<IScenePeerClient>? Packet { get; }
+
+        /// <summary>
+        /// Gets the S2S request context associated with the call if it's an S2S call.
+        /// </summary>
+        public IS2SRequestContext? S2SRequest { get; }
+
+        /// <summary>
+        /// Is the call an RPC.
+        /// </summary>
         public bool IsRpc => Request != null;
+
+        /// <summary>
+        /// Is the call a fire &amp; forget packet
+        /// </summary>
         public bool IsRoute => Packet != null;
+
+        /// <summary>
+        /// Is the Call an S2S request.
+        /// </summary>
+        public bool IsS2SRequest => Packet != null;
     }
-    
+
 }

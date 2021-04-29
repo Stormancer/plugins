@@ -29,6 +29,9 @@ using System.Threading.Tasks;
 
 namespace Stormancer
 {
+    /// <summary>
+    /// Extension methods related to the Api plugin.
+    /// </summary>
     public static class ApiPluginExtensions
     {
        
@@ -46,6 +49,11 @@ namespace Stormancer
             factory.RegisterControllers();
         }
 
+        /// <summary>
+        /// Declares a dependency as being scoped to requests.
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <returns></returns>
         public static IRegistrationBuilder InstancePerRequest(this IRegistrationBuilder builder)
         {
             return builder.InstancePerNamedLifetimeScope(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag);

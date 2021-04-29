@@ -84,7 +84,7 @@ namespace Stormancer.Server.Plugins.Analytics
                 var dataType = kvp.Key;
                 var queue = kvp.Value;
                 List<AnalyticsDocument> documents = new List<AnalyticsDocument>();
-                while (queue.TryDequeue(out AnalyticsDocument doc))
+                while (queue.TryDequeue(out var doc))
                 {
                     var appInfos = await _applicationInfosTask;
                     var fed = await _federation;
@@ -120,7 +120,7 @@ namespace Stormancer.Server.Plugins.Analytics
         /// </summary>
         /// <param name="group">Index type where the data will be store</param>
         /// <param name="category">category of analytics document, for search purpose</param>
-        /// <param name="document">Json object to store</param>
+        /// <param name="content">Json object to store</param>
         public void Push(string group,string category, JObject content)
         {
             AnalyticsDocument document = new AnalyticsDocument { Content = content, Type = group, Category = category };
