@@ -175,7 +175,7 @@ using Stormancer.Server.Plugins.ServiceLocator;
 ");
                 }
 
-                buffer.Append("    public class ");
+                buffer.Append("    public partial class ");
 
                 var name = GetControllerName(type);
                 var className = name + "Proxy";
@@ -274,7 +274,7 @@ using Stormancer.Server.Plugins.ServiceLocator;
                         switch (resultType)
                         {
                             case ReturnType.AsyncEnumerable:
-                                buffer.Append(@"            await foreach(var value from result.GetResultsAsync(cancellationToken))
+                                buffer.Append(@"            await foreach(var value in result.GetResultsAsync(cancellationToken))
             {
                 yield return value;
             }");

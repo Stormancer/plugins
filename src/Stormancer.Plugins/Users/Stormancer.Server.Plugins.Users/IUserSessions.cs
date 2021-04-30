@@ -22,6 +22,7 @@
 
 using Newtonsoft.Json.Linq;
 using Stormancer;
+using Stormancer.Core;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -205,7 +206,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="writer"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        IObservable<byte[]> SendRequest(string operationName, string senderUserId, string recipientUserId, Action<Stream> writer, CancellationToken cancellationToken);
+        IS2SRequest SendRequest(string operationName, string senderUserId, string recipientUserId, CancellationToken cancellationToken);
 
 
         /// <summary>

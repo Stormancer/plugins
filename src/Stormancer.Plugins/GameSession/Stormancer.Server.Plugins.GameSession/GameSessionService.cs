@@ -875,13 +875,22 @@ namespace Stormancer.Server.Plugins.GameSession
             // FIXME: Temporary workaround to issue where disconnections cause large increases in CPU/Memory usage
             //await Task.WhenAll(_scene.RemotePeers.Select(user => user.Disconnect("Game complete")));
 
-            _gameCompleteCts.Cancel();
+            RaiseGameCompleted();
             await _scene.KeepAlive(TimeSpan.Zero);
         }
+
+        private void RaiseGameCompleted()
+        {
+            _gameCompleteCts.Cancel();
+            OnGameSessionCompleted?.Invoke();
+        }
+
 
         public string GameSessionId => _scene.Id;
 
         private bool _gameCompleteExecuted = false;
+
+        public event Action OnGameSessionCompleted;
 
         private void EvaluateGameComplete()
         {
@@ -918,17 +927,17 @@ namespace Stormancer.Server.Plugins.GameSession
                         // By uncommenting the next line, you can encounter RPC failures if EvaluateGameComplete was called from an RPC called by the client (for example postResults).
                         //await Task.WhenAll(_scene.RemotePeers.Select(user => user.Disconnect("gamesession.completed")));
 
-                        _gameCompleteCts.Cancel();
+                        RaiseGameCompleted();
 
                         await _scene.KeepAlive(TimeSpan.Zero);
                     }
 
-                    runHandlers();
+                    _ = runHandlers();
                 }
             }
         }
 
-        public async Task<string> CreateP2PToken(string sessionId)
+        public async Task<string?> CreateP2PToken(string sessionId)
         {
             var hostPeer = await GetServerTcs().Task;
             if (sessionId == hostPeer.SessionId)
@@ -970,42 +979,21 @@ namespace Stormancer.Server.Plugins.GameSession
             return new GameSessionConfigurationDto { Teams = _config.TeamsList, Parameters = _config.Parameters, UserIds = _config.UserIds, HostUserId = _config.HostUserId };
         }
 
-        public async IAsyncEnumerable<Team> OpenToGameFinder(JObject data, string gameFinder, [EnumeratorCancellation] CancellationToken ct)
-        {
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct, _gameCompleteCts.Token, _sceneCts.Token);
-            ct = cts.Token;
 
-            ct.ThrowIfCancellationRequested();
-
-            using var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag);
-            var serviceLocator = scope.Resolve<IServiceLocator>();
-
-            var gameFinderScene = await serviceLocator.GetSceneId("stormancer.plugins.gamefinder", gameFinder);
-
-            var observable = _rpc.Rpc("GameFinder.OpenGameSession", new MatchSceneFilter(gameFinderScene), stream =>
-            {
-                _serializer.Serialize(data, stream);
-            }, PacketPriority.MEDIUM_PRIORITY, ct);
-
-            await foreach (var packet in observable.ToAsyncEnumerable())
-            {
-                IEnumerable<Team> teams;
-                using (packet)
-                {
-                    teams = _serializer.Deserialize<IEnumerable<Team>>(packet.Stream);
-                }
-                foreach (var team in teams)
-                {
-                    _config.Teams.Add(team);
-                    yield return team;
-                }
-
-            }
-        }
 
         public void OnConfigurationChanged()
         {
             ApplySettings();
+        }
+
+        public void UpdateGameSessionConfig(Action<GameSessionConfiguration> gameSessionConfigUpdater)
+        {
+            if (gameSessionConfigUpdater is null)
+            {
+                throw new ArgumentNullException(nameof(gameSessionConfigUpdater));
+            }
+
+            gameSessionConfigUpdater(_config);
         }
     }
 }

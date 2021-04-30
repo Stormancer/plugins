@@ -36,7 +36,7 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
-    internal class UserSessionsProxy : IUserSessions
+    internal class UserSessionProxy : IUserSessions
     {
         private readonly ISceneHost _scene;
         private readonly ISerializer _serializer;
@@ -45,7 +45,7 @@ namespace Stormancer.Server.Plugins.Users
         private readonly IEnvironment env;
 
 
-        public UserSessionsProxy(ISceneHost scene, ISerializer serializer, IEnvironment env, IServiceLocator locator, UserSessionCache cache)
+        public UserSessionProxy(ISceneHost scene, ISerializer serializer, IEnvironment env, IServiceLocator locator, UserSessionCache cache)
         {
 
             _scene = scene;

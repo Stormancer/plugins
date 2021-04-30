@@ -30,6 +30,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Pipelines;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Text.RegularExpressions;
@@ -656,33 +657,73 @@ namespace Stormancer.Server.Plugins.Users
             return newHandle;
         }
 
-        public IObservable<byte[]> SendRequest(string operationName, string senderUserId, string recipientUserId, Action<Stream> writer, CancellationToken cancellationToken)
+        private class PeerRequest : IS2SRequest
         {
-            return Observable.FromAsync(() => GetPeer(recipientUserId))
-            .Select(peer =>
-            {
-                if (peer == null)
-                {
-                    throw new TaskCanceledException("Peer disconnected");
-                }
+            
+            public Pipe InputPipe = new Pipe();
+            public Pipe OutputPipe = new Pipe();
 
-                return peer.Rpc("sendRequest", stream =>
+            public PipeReader Reader =>  OutputPipe.Reader;
+
+            public PipeWriter Writer => InputPipe.Writer;
+
+            public void Dispose()
+            {
+                
+            }
+        }
+        public IS2SRequest SendRequest(string operationName, string senderUserId, string recipientUserId, CancellationToken cancellationToken)
+        {
+            var rq = new PeerRequest();
+
+            async Task SendRequestImpl()
+            {
+                try
                 {
-                    peer.Serializer().Serialize(senderUserId, stream);
-                    peer.Serializer().Serialize(operationName, stream);
-                    writer?.Invoke(stream);
-                }, cancellationToken)
-                .Select(packet =>
-                {
-                    using (packet)
+                    using var outputStream = rq.OutputPipe.Writer.AsStream();
+                    var peer = await GetPeer(recipientUserId);
+                    if (peer == null)
                     {
-                        using var stream = new MemoryStream();
-                        packet.Stream.CopyTo(stream);
-                        return stream.ToArray();
+                        throw new ClientException("NotConnected");
+
                     }
-                });
-            })
-            .Switch();
+
+                   
+                    var rpc = peer.Rpc("sendRequest", s =>
+                    {
+                        try
+                        {
+                            peer.Serializer().Serialize(senderUserId, s);
+                            peer.Serializer().Serialize(operationName, s);
+                            var stream = rq.InputPipe.Reader.AsStream();
+                            stream.CopyTo(s);
+
+                        }
+                        finally
+                        {
+                            rq.InputPipe.Reader.Complete();
+                        }
+
+                    }).ToAsyncEnumerable().WithCancellation(cancellationToken);
+                    
+                    await foreach (var packet in rpc)
+                    {
+                        using (packet)
+                        {
+                            packet.Stream.CopyTo(outputStream);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    rq.InputPipe.Reader.Complete(ex);
+                    rq.OutputPipe.Writer.Complete(ex);
+                }
+            }
+            _ = SendRequestImpl();
+
+
+            return rq;
         }
 
         public async Task<Dictionary<PlatformId, Session?>> GetSessions(IEnumerable<PlatformId> platformIds, bool forceRefresh = false)

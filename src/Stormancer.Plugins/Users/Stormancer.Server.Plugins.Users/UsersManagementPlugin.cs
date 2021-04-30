@@ -53,6 +53,10 @@ namespace Stormancer.Server.Plugins.Users
         {
             return SCENE_TEMPLATE;
         }
+        /// <summary>
+        /// Type <see cref="string"/> for the 'users' service.
+        /// </summary>
+        public const string SERVICE_TYPE = "stormancer.authenticator";
     }
 
   
@@ -181,7 +185,7 @@ namespace Stormancer.Server.Plugins.Users
         }
         public Task LocateService(ServiceLocationCtx ctx)
         {
-            if (ctx.ServiceType == "stormancer.authenticator")
+            if (ctx.ServiceType == Constants.SERVICE_TYPE)
             {
                 string authenticatorSceneId = config.Settings?.auth?.sceneId ?? Constants.GetSceneId();
                 ctx.SceneId = authenticatorSceneId;
