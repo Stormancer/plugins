@@ -31,11 +31,25 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server
 {
+    /// <summary>
+    /// A remote operation
+    /// </summary>
+    public interface IRemotePipe : IAsyncDisposable
+    {
+        /// <summary>
+        /// Gets the writer used to send data.
+        /// </summary>
+        PipeWriter Writer { get; }
+        /// <summary>
+        /// Gets the reader used to get returned data.
+        /// </summary>
+        PipeReader Reader { get; }
+    }
 
     /// <summary>
     /// The result of a scene to scene request.
     /// </summary>
-    public class S2SOperation : IAsyncDisposable
+    public class S2SOperation : IRemotePipe
     {
         private readonly Task<IS2SRequest> requestTask;
 

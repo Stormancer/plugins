@@ -28,8 +28,15 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Notification
 {
+    /// <summary>
+    /// Entry point class for the notifications plugin.
+    /// </summary>
     public class App
     {
+        /// <summary>
+        /// Entrypoint method fo the notification plugin.
+        /// </summary>
+        /// <param name="builder"></param>
         public void Run(IAppBuilder builder)
         {
             builder.AdminPlugin("inappnotifications").Name("InAppNotifications");

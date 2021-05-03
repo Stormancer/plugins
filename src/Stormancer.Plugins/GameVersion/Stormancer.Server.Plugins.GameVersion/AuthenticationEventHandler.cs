@@ -45,7 +45,7 @@ namespace Stormancer.Server.Plugins.GameVersion
             {
                 if (version != null)
                 {
-                    await _userSessions.UpdateSessionData(ctx.Session.SessionId, "gameVersion.clientVersion", version);
+                    await _userSessions.UpdateSessionData(ctx.Session.SessionId, "gameVersion.clientVersion", version,ctx.CancellationToken);
                 }
             }
 

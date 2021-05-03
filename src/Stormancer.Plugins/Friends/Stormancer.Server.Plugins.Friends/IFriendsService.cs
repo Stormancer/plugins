@@ -21,26 +21,27 @@
 // SOFTWARE.
 using Stormancer.Server.Plugins.Users;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Friends
 {
     public interface IFriendsService
     {
-        Task Invite(User user, User friendId);
+        Task Invite(User user, User friendId, CancellationToken cancellationToken);
 
         Task<bool> IsInFriendList(string userId, string friendId);
 
-        Task ManageInvitation(User user, string senderId, bool accept);
+        Task ManageInvitation(User user, string senderId, bool accept, CancellationToken cancellationToken);
 
-        Task RemoveFriend(User user, string friendId);
+        Task RemoveFriend(User user, string friendId, CancellationToken cancellationToken);
 
-        Task Subscribe(IScenePeerClient peer);
+        Task Subscribe(IScenePeerClient peer, CancellationToken cancellationToken);
 
-        Task Unsubscribe(IScenePeerClient peer);
+        Task Unsubscribe(IScenePeerClient peer, CancellationToken cancellationToken);
 
-        Task SetStatus(User user, FriendListStatusConfig status, string customData);
+        Task SetStatus(User user, FriendListStatusConfig status, string customData, CancellationToken cancellationToken);
 
-        Task AddNonPersistedFriends(string userId, IEnumerable<Friend> friends);
+        Task AddNonPersistedFriends(string userId, IEnumerable<Friend> friends, CancellationToken cancellationToken);
     }
 }

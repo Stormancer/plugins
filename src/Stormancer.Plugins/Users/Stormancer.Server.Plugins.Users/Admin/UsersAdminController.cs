@@ -25,13 +25,18 @@ using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
+    /// <summary>
+    /// Provides administrative actions on users.
+    /// </summary>
     [ApiController]
     [Route("_users")]
     public class UsersAdminController : ControllerBase
@@ -40,7 +45,11 @@ namespace Stormancer.Server.Plugins.Users
 
         private readonly ISceneHost scene;
 
-
+        /// <summary>
+        /// Controller constructor.
+        /// </summary>
+        /// <param name="users"></param>
+        /// <param name="scene"></param>
         public UsersAdminController(IUserService users, ISceneHost scene)
         {
             _users = users;
@@ -49,19 +58,35 @@ namespace Stormancer.Server.Plugins.Users
 
         }
 
+
+        /// <summary>
+        /// Gets an user using a claim.
+        /// </summary>
+        /// <param name="provider"></param>
+        /// <param name="claimPath"></param>
+        /// <param name="claimValue"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("getByClaim")]
-        public async Task<User> GetByClaim(string provider, string claimPath, string claimValue)
+        public async Task<User?> GetByClaim(string provider, string claimPath, string claimValue, CancellationToken cancellationToken)
         {
             return await _users.GetUserByClaim(provider, claimPath, claimValue);
         }
 
+        /// <summary>
+        /// Search for users using the query parameters.
+        /// </summary>
+        /// <param name="take"></param>
+        /// <param name="skip"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("")]
-        public async Task<IEnumerable<UserViewModel>> Search(int take = 20, int skip = 0)
+        public async Task<IEnumerable<UserViewModel>> Search(int take = 20, int skip = 0, CancellationToken cancellationToken = default)
         {
-            var query = Request.Query.Where(s => s.Key != "take" && s.Key != "skip").ToDictionary(s => s.Key, s => s.Value.FirstOrDefault());
-            var users = await _users.Query(query, take, skip);
+            var query = Request.Query.Where(s => s.Key != "take" && s.Key != "skip").Where(s => s.Value.Any()).ToDictionary(s => s.Key, s => s.Value.First());
+            var users = await _users.Query(query, take, skip, cancellationToken);
 
             return users.Select(user => new UserViewModel { id = user.Id, user = user });
         }
@@ -73,7 +98,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <returns></returns>
         [HttpGet]
         [Route("{id}")]
-        public Task<User> Get(string id)
+        public Task<User?> Get(string id)
         {
             return _users.GetUser(id);
         }
@@ -101,6 +126,11 @@ namespace Stormancer.Server.Plugins.Users
         public async Task Unlink(string userId, string provider)
         {
             var user = await _users.GetUser(userId);
+            if (user == null)
+            {
+                throw new ClientException("NotFound");
+            }
+
             using var scope = scene.CreateRequestScope();
             var auth = scope.Resolve<IAuthenticationService>();
             await auth.Unlink(user, provider);
@@ -111,13 +141,14 @@ namespace Stormancer.Server.Plugins.Users
         /// </summary>
         /// <param name="id">Id of the user to kick.</param>
         /// <param name="args">Kick options.</param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpPost]
         [Route("{userId}/_kick")]
-        public Task Kick(string id, [FromBody] KickArguments args)
+        public Task Kick(string id, [FromBody] KickArguments args, CancellationToken cancellationToken)
         {
             using var scope = scene.CreateRequestScope();
-            return scope.Resolve<IUserSessions>().KickUser(id, args.reason ?? "adminRequest");
+            return scope.Resolve<IUserSessions>().KickUser(id, args.reason ?? "adminRequest", cancellationToken);
         }
 
 
@@ -146,11 +177,11 @@ namespace Stormancer.Server.Plugins.Users
         /// <summary>
         /// Gets the id of the user.
         /// </summary>
-        public string id { get; set; }
+        public string id { get; set; } = default!;
 
         /// <summary>
         /// Gets the user.
         /// </summary>
-        public User user { get; internal set; }
+        public User user { get; internal set; } = default!;
     }
 }

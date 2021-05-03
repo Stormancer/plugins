@@ -14,6 +14,10 @@ Unreleased
 Added
 *****
 - Added GameFinderProxy.OpenGameSession method to tell a gamefinder that a gamesession needs more players.
+Changed
+*******
+- Update Users dependency to 5.x.
+
 6.0.0.3
 -------
 Changed

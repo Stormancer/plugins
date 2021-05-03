@@ -168,7 +168,7 @@ namespace Stormancer.Server.Plugins.GameSession
     /// </summary>
     public class GameSessionResult
     {
-        internal GameSessionResult(string userId, IScenePeerClient client, Stream data)
+        internal GameSessionResult(string userId, IScenePeerClient? client, Stream data)
         {
             Peer = client;
             Data = data;
@@ -178,7 +178,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <summary>
         /// Client peer.
         /// </summary>
-        public IScenePeerClient Peer { get; }
+        public IScenePeerClient? Peer { get; }
 
         /// <summary>
         /// User id of the client.

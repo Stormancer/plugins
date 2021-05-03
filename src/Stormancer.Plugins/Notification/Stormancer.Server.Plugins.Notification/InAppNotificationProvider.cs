@@ -32,6 +32,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using Nest;
 using Stormancer.Server.Plugins.Users;
+using System.Threading;
 
 namespace Stormancer.Server.Plugins.Notification
 {
@@ -45,8 +46,8 @@ namespace Stormancer.Server.Plugins.Notification
             this.configuration = configuration;
             _repository = repository;
 
-            
-           
+
+
 
             _userSessions = userSessions;
 
@@ -71,7 +72,7 @@ namespace Stormancer.Server.Plugins.Notification
             await _repository.AcknowledgeNotification(notificationId);
         }
 
-       
+
 
         public Task OnConnected(IScenePeerClient client)
         {
@@ -102,7 +103,7 @@ namespace Stormancer.Server.Plugins.Notification
             return Task.CompletedTask;
         }
 
-        public async Task<bool> SendNotification(string type, dynamic data)
+        public async Task<bool> SendNotification(string type, dynamic data, CancellationToken cancellationToken)
         {
             var notif = data as InAppNotification;
 
@@ -130,7 +131,7 @@ namespace Stormancer.Server.Plugins.Notification
                 var list = new List<string>();
                 foreach (var userId in notif.UserId.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
                 {
-                    var session = await _userSessions.GetSessionByUserId(userId);
+                    var session = await _userSessions.GetSessionByUserId(userId, cancellationToken);
                     if (session != null)
                     {
                         list.Add(session.SessionId);

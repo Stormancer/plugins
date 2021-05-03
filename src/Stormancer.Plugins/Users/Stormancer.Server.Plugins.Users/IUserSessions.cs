@@ -45,15 +45,17 @@ namespace Stormancer.Server.Plugins.Users
         /// Gets the identity of a connected peer.
         /// </summary>
         /// <param name="peer"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns>An user instance, or null if the peer isn't authenticated.</returns>
-        Task<User?> GetUser(IScenePeerClient peer);
+        Task<User?> GetUser(IScenePeerClient peer, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the peer that has been authenticated with the provided user id.
         /// </summary>
         /// <param name="userId"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns>A peer instance of null if no peer is currently authenticated with this identity.</returns>
-        Task<IScenePeerClient?> GetPeer(string userId);
+        Task<IScenePeerClient?> GetPeer(string userId, CancellationToken cancellationToken);
 
         /// <summary>
         /// Updates data associated with the user.
@@ -61,79 +63,73 @@ namespace Stormancer.Server.Plugins.Users
         /// <typeparam name="T"></typeparam>
         /// <param name="peer"></param>
         /// <param name="data"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task UpdateUserData<T>(IScenePeerClient peer, T data);
+        Task UpdateUserData<T>(IScenePeerClient peer, T data, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets a boolean indicating whether a peer is authenticated.
         /// </summary>
         /// <param name="peer"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<bool> IsAuthenticated(IScenePeerClient peer);
+        Task<bool> IsAuthenticated(IScenePeerClient peer, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the main platform id the user id is associated with.
         /// </summary>
         /// <param name="userId"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<PlatformId> GetPlatformId(string userId);
+        Task<PlatformId> GetPlatformId(string userId, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets a session by the user id (returns null if user isn't currently connected to the scene)
         /// </summary>
         /// <param name="userId"></param>
-        /// <param name="forceRefresh"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<Session?> GetSessionByUserId(string userId, bool forceRefresh = false);
+        Task<Session?> GetSessionByUserId(string userId, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the session associated with a peer.
         /// </summary>
         /// <param name="peer"></param>
-        /// <param name="forceRefresh"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<Session?> GetSession(IScenePeerClient peer, bool forceRefresh = false);
+        Task<Session?> GetSession(IScenePeerClient peer, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets a session by the session id of a peer.
         /// </summary>
         /// <param name="sessionId"></param>
-        /// <param name="forceRefresh"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<Session?> GetSessionById(string sessionId, bool forceRefresh = false);
-
-        /// <summary>
-        /// Gets a session by the session id of a peer.
-        /// </summary>
-        /// <param name="sessionId"></param>
-        /// <param name="authType"></param>
-        /// <param name="forceRefresh"></param>
-        /// <returns></returns>
-        Task<Session?> GetSessionById(string sessionId, string authType, bool forceRefresh = false);
+        Task<Session?> GetSessionById(string sessionId, CancellationToken cancellationToken);
 
         /// <summary>
         /// Get the session of a connected user through their platform-specific Id.
         /// </summary>
         /// <param name="platformId">Platform-specific Id of the user</param>
-        /// <param name="forceRefresh"><c>true</c> to bypass the scene-local session cache</param>
+        /// <param name="cancellationToken"><c>true</c> to bypass the scene-local session cache</param>
         /// <returns>The session for <paramref name="platformId"/>. <c>null</c> if the session could not be found.</returns>
-        Task<Session?> GetSession(PlatformId platformId, bool forceRefresh = false);
+        Task<Session?> GetSession(PlatformId platformId, CancellationToken cancellationToken);
 
         /// <summary>
         /// Get sessions of connected users from their platform-specific Ids.
         /// </summary>
         /// <param name="platformIds">Platform-specific Ids of users to retrieve the sessions of</param>
-        /// <param name="forceRefresh"><c>true</c> to bypass the scene-local session cache</param>
+        /// <param name="cancellationToken"></param>
         /// <returns>List of PlatformId => Session pairs. If one or more sessions could not be found, the corresponding pairs will not be present in the dictionary.</returns>
-        Task<Dictionary<PlatformId, Session?>> GetSessions(IEnumerable<PlatformId> platformIds, bool forceRefresh = false);
+        Task<Dictionary<PlatformId, Session?>> GetSessions(IEnumerable<PlatformId> platformIds, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets sessions from session ids.
         /// </summary>
         /// <param name="sessionIds"></param>
-        /// <param name="forceRefresh"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<Dictionary<string, Session?>> GetSessions(IEnumerable<string> sessionIds, bool forceRefresh = false);
+        Task<Dictionary<string, Session?>> GetSessions(IEnumerable<string> sessionIds, CancellationToken cancellationToken);
 
 
         /// <summary>
@@ -143,15 +139,17 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="sessionId">Id of the session</param>
         /// <param name="key">Session data key</param>
         /// <param name="data">Raw data to be set for <paramref name="key"/></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task UpdateSessionData(string sessionId, string key, byte[] data);
+        Task UpdateSessionData(string sessionId, string key, byte[] data, CancellationToken cancellationToken);
         /// <summary>
         /// Retrieve a user's raw session data entry.
         /// </summary>
         /// <param name="sessionId">Id of the session</param>
         /// <param name="key">Key of the data to be retrieved</param>
+        /// <param name="cancellationToken"></param>
         /// <returns>The raw data for <paramref name="key"/>, or <c>null</c> if <paramref name="key"/> does not exist.</returns>
-        Task<byte[]?> GetSessionData(string sessionId, string key);
+        Task<byte[]?> GetSessionData(string sessionId, string key, CancellationToken cancellationToken);
         /// <summary>
         /// Update a user's session data entry with an object.
         /// </summary>
@@ -160,24 +158,27 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="sessionId">Id of the session</param>
         /// <param name="key">Session data key</param>
         /// <param name="data">Object to store as session data for <paramref name="key"/></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task UpdateSessionData<T>(string sessionId, string key, T data);
+        Task UpdateSessionData<T>(string sessionId, string key, T data, CancellationToken cancellationToken);
         /// <summary>
         /// Retrieve a user's session data entry, deserialized into a specific type.
         /// </summary>
         /// <typeparam name="T">Type of the data to be retrieved</typeparam>
         /// <param name="sessionId">Id of the session</param>
         /// <param name="key">Key of the data to be retrieved</param>
+        /// <param name="cancellationToken"></param>
         /// <returns>The deserialized object at <paramref name="key"/>, or the default value for <typeparamref name="T"/> of <paramref name="key"/> doesn't exist.</returns>
-        Task<T> GetSessionData<T>(string sessionId, string key);
+        Task<T?> GetSessionData<T>(string sessionId, string key, CancellationToken cancellationToken);
 
 
         /// <summary>
         /// Queries users by user ids.
         /// </summary>
         /// <param name="userIds"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<Dictionary<string, User?>> GetUsers(params string[] userIds);
+        Task<Dictionary<string, User?>> GetUsers(IEnumerable<string> userIds, CancellationToken cancellationToken);
 
         /// <summary>
         /// Queries users by fields.
@@ -185,8 +186,9 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="query"></param>
         /// <param name="take"></param>
         /// <param name="skip"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string,string>> query, int take, int skip);
+        Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string, string>> query, int take, int skip, CancellationToken cancellationToken);
 
         /// <summary>
         /// Updates the user handle, and optionally adds an hash number (ie name#2424) to make ids unique.
@@ -194,8 +196,9 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="userId"></param>
         /// <param name="newHandle"></param>
         /// <param name="appendHash"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns>The new user handle.</returns>
-        Task<string> UpdateUserHandle(string userId, string newHandle, bool appendHash);
+        Task<string> UpdateUserHandle(string userId, string newHandle, bool appendHash, CancellationToken cancellationToken);
 
         /// <summary>
         /// Sends a request to an user.
@@ -203,28 +206,69 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="operationName"></param>
         /// <param name="senderUserId"></param>
         /// <param name="recipientUserId"></param>
-        /// <param name="writer"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        IS2SRequest SendRequest(string operationName, string senderUserId, string recipientUserId, CancellationToken cancellationToken);
+        IRemotePipe SendRequest(string operationName, string senderUserId, string recipientUserId, CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Sends a request to an user.
+        /// </summary>
+        /// <typeparam name="TReturn"></typeparam>
+        /// <typeparam name="TArg"></typeparam>
+        /// <param name="operationName"></param>
+        /// <param name="senderUserId"></param>
+        /// <param name="recipientUserId"></param>
+        /// <param name="arg"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<TReturn> SendRequest<TReturn, TArg>(string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Sends a request to an user.
+        /// </summary>
+        /// <typeparam name="TReturn"></typeparam>
+        /// <typeparam name="TArg1"></typeparam>
+        /// <typeparam name="TArg2"></typeparam>
+        /// <param name="operationName"></param>
+        /// <param name="senderUserId"></param>
+        /// <param name="recipientUserId"></param>
+        /// <param name="arg1"></param>
+        /// <param name="arg2"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<TReturn> SendRequest<TReturn, TArg1, TArg2>(string operationName, string senderUserId, string recipientUserId, TArg1 arg1, TArg2 arg2, CancellationToken cancellationToken);
+
+
+        /// <summary>
+        /// Sends a request to an user.
+        /// </summary>
+        /// <typeparam name="TArg"></typeparam>
+        /// <param name="operationName"></param>
+        /// <param name="senderUserId"></param>
+        /// <param name="recipientUserId"></param>
+        /// <param name="arg"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task SendRequest<TArg>(string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the number of authenticated users.
         /// </summary>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<int> GetAuthenticatedUsersCount();
+        Task<int> GetAuthenticatedUsersCount(CancellationToken cancellationToken);
 
         /// <summary>
         /// Kicks an user from the server.
         /// </summary>
         /// <param name="userId"></param>
         /// <param name="reason"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task KickUser(string userId, string reason);
+        Task KickUser(string userId, string reason, CancellationToken cancellationToken);
     }
 
-   
+
 
     /// <summary>
     /// Represents the Id of an user in a platform.

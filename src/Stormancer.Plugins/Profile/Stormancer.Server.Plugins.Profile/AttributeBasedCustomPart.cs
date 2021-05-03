@@ -70,7 +70,7 @@ namespace Stormancer.Server.Plugins.Profile
                         .SelectMany(a => a.GetExportedTypes())
                         .Select(t => new { type = t, attr = t.GetCustomAttribute<CustomProfilePartAttribute>() })
                         .Where(t => t.attr != null)
-                        .ToDictionary(t => t.attr.PartId, t => t.type) ?? new Dictionary<string, Type>();
+                        .ToDictionary(t => t.attr!.PartId, t => t.type) ?? new Dictionary<string, Type>();
 
                 }
 

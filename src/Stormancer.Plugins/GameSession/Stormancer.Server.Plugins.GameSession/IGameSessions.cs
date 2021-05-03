@@ -30,23 +30,52 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
+    /// <summary>
+    /// Connection token formats supported by <see cref="IGameSessions"/>.
+    /// </summary>
     public enum TokenVersion
     {
+        /// <summary>
+        /// A V1 connection token (deprecated)
+        /// </summary>
         V1,
+
+        /// <summary>
+        /// A V3 connection token.
+        /// </summary>
         V3
     }
 
+    /// <summary>
+    /// Provides functions to create game sessions and connections tokens to gamesessions.
+    /// </summary>
     public interface IGameSessions
     {
+        /// <summary>
+        /// Creates a gamesession.
+        /// </summary>
+        /// <param name="template"></param>
+        /// <param name="id"></param>
+        /// <param name="config"></param>
+        /// <returns></returns>
         Task Create(string template, string id, GameSessionConfiguration config);
+
         /// <summary>
         /// Create a connection token for a given user and game session scene.
         /// </summary>
         /// <param name="id">Id of the game session's scene</param>
         /// <param name="userSessionId">Session Id of the target user</param>
         /// <param name="version">Version of the resulting token payload</param>
+        /// <param name="cancellationToken"></param>
         /// <returns>The new connection token</returns>
-        Task<string> CreateConnectionToken(string id, string userSessionId, TokenVersion version = TokenVersion.V3);
+        Task<string> CreateConnectionToken(string id, string userSessionId, TokenVersion version = TokenVersion.V3, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Crates a connection token for servers.
+        /// </summary>
+        /// <param name="gameSessionId"></param>
+        /// <param name="serverId"></param>
+        /// <returns></returns>
         Task<string> CreateServerConnectionToken(string gameSessionId, Guid serverId);
     }
 
@@ -68,11 +97,11 @@ namespace Stormancer.Server.Plugins.GameSession
             return management.CreateScene(id, template, false, false, JObject.FromObject(new { gameSession = config }));
         }
 
-        public async Task<string> CreateConnectionToken(string id, string userSessionId, TokenVersion version)
+        public async Task<string> CreateConnectionToken(string id, string userSessionId, TokenVersion version,CancellationToken cancellationToken)
         {
             using (var stream = new MemoryStream())
             {
-                var session = await sessions.GetSessionById(userSessionId);
+                var session = await sessions.GetSessionById(userSessionId,cancellationToken);
                 serializer.Serialize(session, stream);
                 return await TaskHelper.Retry(async (_,_) => version switch
                 {

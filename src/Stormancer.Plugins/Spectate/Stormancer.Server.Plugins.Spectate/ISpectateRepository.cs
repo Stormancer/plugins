@@ -25,7 +25,7 @@ using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.Spectate
 {
-    public interface ISpectateRepository
+    internal interface ISpectateRepository
     {
         void AddFrames(IEnumerable<Frame> frames);
 

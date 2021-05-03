@@ -36,307 +36,162 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
-    internal class UserSessionProxy : IUserSessions
+    internal class UserSessionImpl :IUserSessions
     {
-        private readonly ISceneHost _scene;
-        private readonly ISerializer _serializer;
-        private readonly IServiceLocator _locator;
-        private readonly UserSessionCache cache;
-        private readonly IEnvironment env;
+        private readonly UserSessionProxy proxy;
+        private readonly ISerializer serializer;
+        private readonly ISceneHost scene;
 
-
-        public UserSessionProxy(ISceneHost scene, ISerializer serializer, IEnvironment env, IServiceLocator locator, UserSessionCache cache)
+        public UserSessionImpl(UserSessionProxy proxy, ISerializer serializer, ISceneHost scene)
         {
-
-            _scene = scene;
-            _serializer = serializer;
-            _locator = locator;
-            this.cache = cache;
-            this.env = env;
+            this.proxy = proxy;
+            this.serializer = serializer;
+            this.scene = scene;
         }
 
-        private async Task<T> AuthenticatorRpc<T>(string? targetSessionId, string route, Action<Stream> writer, string type = "")
+        public Task<int> GetAuthenticatedUsersCount(CancellationToken cancellationToken)
         {
-            return await AuthenticatorRpc(targetSessionId, route, writer, CancellationToken.None, type).Select(p =>
+            return proxy.GetAuthenticatedUsersCount(cancellationToken);
+        }
+
+        public Task<PlatformId> GetPlatformId(string userId, CancellationToken cancellationToken)
+        {
+            return proxy.GetPlatformId(userId, cancellationToken);
+        }
+
+        public Task<Session?> GetSession(IScenePeerClient peer, CancellationToken cancellationToken)
+        {
+            return GetSessionById(peer.SessionId, cancellationToken);
+        }
+
+        public async Task<Session?> GetSession(PlatformId platformId, CancellationToken cancellationToken)
+        {
+            var r = await GetSessions(Enumerable.Repeat(platformId, 1), cancellationToken);
+            return r.FirstOrDefault().Value;
+        }
+
+        public Task<Session?> GetSessionById(string sessionId, CancellationToken cancellationToken)
+        {
+            return proxy.GetSessionById(sessionId, cancellationToken);
+        }
+
+        public async Task<T?> GetSessionData<T>(string sessionId, string key, CancellationToken cancellationToken)
+        {
+            var buffer = await proxy.GetSessionData(sessionId, key, cancellationToken);
+            if(buffer == null)
             {
-                using (p)
-                {
-                    return _serializer.Deserialize<T>(p.Stream);
-                }
-            }).LastOrDefaultAsync();
+                return default;
+            }
+            using var stream = new MemoryStream(buffer);
+            return serializer.Deserialize<T>(stream);
         }
 
-        private async Task AuthenticatorRpc(string? targetSessionId, string route, Action<Stream> writer, string type = "")
+        public Task<byte[]?> GetSessionData(string sessionId, string key, CancellationToken cancellationToken)
         {
-            await AuthenticatorRpc(targetSessionId, route, writer, CancellationToken.None, type).Select(p =>
-            {
-                using (p)
-                {
-                    return System.Reactive.Unit.Default;
-                }
-            }).LastOrDefaultAsync();
+            return proxy.GetSessionData(sessionId, key, cancellationToken);
         }
 
-        private IObservable<Packet<IScenePeer>> AuthenticatorRpc(string? targetSessionId, string route, Action<Stream> writer, CancellationToken cancellationToken, string type = "")
+        public Task<Dictionary<PlatformId, Session?>> GetSessions(IEnumerable<PlatformId> platformIds, CancellationToken cancellationToken)
         {
-            return Observable.FromAsync(async () =>
-            {
-                var session = targetSessionId != null ? await this.cache.GetSessionBySessionId(targetSessionId, false, string.Empty, false) : null;
-                if (session != null)
-                {
-                    return session.AuthenticatorUrl;
-                }
-                else
-                {
-                    return await _locator.GetSceneId("stormancer.authenticator" + (string.IsNullOrEmpty(type) ? "" : "-" + type), "");
-                }
-            })
-            .Select(sceneId => AuthenticatorRpcWithSceneId(sceneId, route, writer, cancellationToken))
-            .Switch();
+            return proxy.GetSessionsByPlatformIds(platformIds, cancellationToken);
         }
 
-        private IObservable<Packet<IScenePeer>> AuthenticatorRpcWithSceneId(string sceneId, string route, Action<Stream> writer, CancellationToken cancellationToken)
+        public Task<Dictionary<string, Session?>> GetSessions(IEnumerable<string> sessionIds, CancellationToken cancellationToken)
         {
-            var rpc = _scene.DependencyResolver.Resolve<RpcService>();
-
-            return rpc.Rpc(route, new MatchSceneFilter(sceneId), writer, PacketPriority.MEDIUM_PRIORITY, cancellationToken);
+            return proxy.GetSessionsbySessionIds(sessionIds, cancellationToken);
         }
 
-        private async Task<Packet<IScenePeer>> AuthenticatorRpcWithSceneId(string sceneId, string route, Action<Stream> writer)
+        public async Task<User?> GetUser(IScenePeerClient peer, CancellationToken cancellationToken)
         {
-            return await AuthenticatorRpcWithSceneId(sceneId, route, writer, CancellationToken.None);
-        }
-
-        private Task<string> GetSessionIdForUser(string userId)
-        {
-            return AuthenticatorRpc<string>(null, "usersession.getpeer", s => _serializer.Serialize(userId, s));
-
-
-        }
-        public Task<IScenePeerClient?> GetPeer(string userId)
-        {
-            return cache.GetPeerByUserId(userId, "");
-        }
-
-        public async Task<User?> GetUser(IScenePeerClient peer)
-        {
-            var session = await GetSessionById(peer.SessionId, false);
+            var session = await proxy.GetSessionById(peer.SessionId, cancellationToken);
             return session?.User;
-
         }
 
-
-        public Task<bool> IsAuthenticated(IScenePeerClient peer)
+        public Task<Dictionary<string, User?>> GetUsers(IEnumerable<string> userIds, CancellationToken cancellationToken)
         {
-            return AuthenticatorRpc<bool>(peer.SessionId, "usersession.isauthenticated", s => _serializer.Serialize(peer.SessionId, s));
-
-
+            return proxy.GetUsers(userIds, cancellationToken);
         }
 
-        public Task UpdateUserData<T>(IScenePeerClient peer, T data)
+        public Task<bool> IsAuthenticated(IScenePeerClient peer, CancellationToken cancellationToken)
         {
-            return AuthenticatorRpc(peer.SessionId, "usersession.updateuserdata", s =>
-            {
-                _serializer.Serialize(peer.SessionId, s);
-                _serializer.Serialize(JObject.FromObject(data), s);
-            });
+            return proxy.IsAuthenticated(peer.SessionId, cancellationToken);
         }
 
-        public async Task<PlatformId> GetPlatformId(string userId)
+        public Task KickUser(string userId, string reason, CancellationToken cancellationToken)
         {
-            var session = await cache.GetSessionByUserId(userId, true, "", false);
-            if (session != null)
-            {
-                return session.platformId;
-            }
-            else
-            {
-                throw new InvalidOperationException("player not connected to the scene.");
-            }
-
+            return proxy.KickUser(userId, reason, cancellationToken);
         }
 
-        public Task<Session?> GetSessionByUserId(string userId, bool forceRefresh)
+        public Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string, string>> query, int take, int skip, CancellationToken cancellationToken)
         {
-            return cache.GetSessionByUserId(userId, true, "", forceRefresh);
-            //var response = await AuthenticatorRpc("usersession.getsessionbyuserid", s => _serializer.Serialize(userId, s));
-
-            //var result = _serializer.Deserialize<Session>(response.Stream);
-            //response.Stream.Dispose();
-            //return result;
+            return proxy.Query(query, take, skip, cancellationToken);
         }
 
-        public Task<Session?> GetSessionById(string sessionId, string authType, bool forceRefresh)
+        public async Task UpdateSessionData(string sessionId, string key, byte[] data, CancellationToken cancellationToken)
         {
-            return cache.GetSessionBySessionId(sessionId, true, authType, forceRefresh);
-            //var response = await AuthenticatorRpc("usersession.getsessionbyid", s => _serializer.Serialize(sessionId, s),authType);
-            //if (response != null)
-            //{
-            //    using (response.Stream)
-            //    {
-            //        var result = _serializer.Deserialize<Session>(response.Stream);
-            //        return result;
-            //    }
-            //}
-            //else
-            //{
-            //    return null;
-            //}
+            await using var rq =  proxy.UpdateSessionData(sessionId, key,cancellationToken);
+
+            await rq.Writer.WriteAsync(data, cancellationToken);
+            rq.Writer.Complete();
+            rq.Reader.Complete();
         }
 
-        public Task<Session?> GetSessionById(string sessionId, bool forceRefresh)
+        public async Task UpdateSessionData<T>(string sessionId, string key, T data, CancellationToken cancellationToken)
         {
-            return GetSessionById(sessionId, "", forceRefresh);
+            await using var rq = proxy.UpdateSessionData(sessionId, key, cancellationToken);
+
+            await rq.Writer.WriteObject(data, serializer, cancellationToken);
+            rq.Writer.Complete();
+            rq.Reader.Complete();
         }
 
-        public async Task<Session?> GetSession(IScenePeerClient peer, bool forceRefresh)
+        public Task UpdateUserData<T>(IScenePeerClient peer, T data, CancellationToken cancellationToken)
         {
-            return await GetSessionById(peer.SessionId, forceRefresh);
+            return proxy.UpdateUserData(peer.SessionId, JObject.FromObject(data!), cancellationToken);
+
+           
         }
 
-        /// <summary>
-        /// Get the player session from the active authenticator scene (returns null for players authenticated on an older deployment.
-        /// </summary>
-        /// <param name="platformId"></param>
-        /// <param name="forceRefresh"></param>
-        /// <returns></returns>
-        public async Task<Session?> GetSession(PlatformId platformId, bool forceRefresh)
+        public async Task<IScenePeerClient?> GetPeer(string userId, CancellationToken cancellationToken)
         {
-            var session = await GetSessions(platformId.ToEnumerable(), forceRefresh);
-            return session.Values.FirstOrDefault();
-        }
-
-        public Task UpdateSessionData(string sessionId, string key, byte[] data)
-        {
-            return AuthenticatorRpc(sessionId, "usersession.updatesessiondata", s =>
-             {
-                 _serializer.Serialize(sessionId, s);
-                 _serializer.Serialize(key, s);
-                 s.Write(data, 0, data.Length);
-             });
-
-
-        }
-
-        public Task<byte[]?> GetSessionData(string sessionId, string key)
-        {
-            return AuthenticatorRpc<byte[]?>(sessionId, "UserSession.GetSessionData", s =>
-             {
-                 _serializer.Serialize(sessionId, s);
-                 _serializer.Serialize(key, s);
-             });
-
-
-        }
-
-        public async Task UpdateSessionData<T>(string sessionId, string key, T data)
-        {
-            await AuthenticatorRpc(sessionId, "usersession.updatesessiondata", s =>
-             {
-                 _serializer.Serialize(sessionId, s);
-                 _serializer.Serialize(key, s);
-                 _serializer.Serialize(data, s);
-             });
-
-
-            // Refresh the cache to get the new session data
-            await GetSessionById(sessionId, true);
-        }
-
-        public async Task<T?> GetSessionData<T>(string sessionId, string key)
-        {
-            var bytes = await AuthenticatorRpc<byte[]?>(sessionId, "UserSession.GetSessionData", s =>
-             {
-                 _serializer.Serialize(sessionId, s);
-                 _serializer.Serialize(key, s);
-             });
-            if (bytes != null)
-            {
-                using (var memStream = new MemoryStream(bytes))
-                {
-                    return _serializer.Deserialize<T>(memStream);
-                }
-            }
-            else
+            var session = await GetSessionByUserId(userId, cancellationToken);
+            if(session == null)
             {
                 return default;
             }
 
-        }
-
-
-
-        public Task<Dictionary<string, User?>> GetUsers(params string[] userIds)
-        {
-            return AuthenticatorRpc<Dictionary<string, User?>>(null, $"UserSession.{nameof(GetUsers)}", s =>
-            {
-                _serializer.Serialize(userIds, s);
-            });
-
+            return scene.RemotePeers.FirstOrDefault(p=>p.SessionId == session.SessionId);
 
         }
 
-        public Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string, string>> query, int take, int skip)
+        public Task<Session?> GetSessionByUserId(string userId, CancellationToken cancellationToken)
         {
-            return AuthenticatorRpc<IEnumerable<User>>(null, $"UserSession.{nameof(Query)}", s =>
-             {
-                 _serializer.Serialize(query, s);
-                 _serializer.Serialize(take, s);
-                 _serializer.Serialize(skip, s);
-             });
+            return proxy.GetSessionByUserId(userId, cancellationToken);
+        }
+
+        
+        public IRemotePipe SendRequest(string operationName, string senderUserId, string recipientUserId, CancellationToken cancellationToken)
+        {
           
+            return proxy.SendRequest(operationName, senderUserId, recipientUserId, cancellationToken);
         }
 
-        public Task<string> UpdateUserHandle(string userId, string newHandle, bool appendHash)
-        {
-            return AuthenticatorRpc<string>(null, $"UserSession.{nameof(UpdateUserHandle)}", s =>
-             {
-                 _serializer.Serialize(userId, s);
-                 _serializer.Serialize(newHandle, s);
-                 _serializer.Serialize(appendHash, s);
-             });
-        }
+        public Task<TReturn> SendRequest<TReturn, TArg>(string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
+             => UserSessions.SendRequestImpl<TReturn, TArg>(this, serializer, operationName, senderUserId, recipientUserId, arg, cancellationToken);
 
-        public async Task KickUser(string userId, string reason)
-        {
-            await AuthenticatorRpc(null, $"UserSession.{nameof(KickUser)}", s =>
-            {
-                _serializer.Serialize(userId, s);
-                _serializer.Serialize(reason, s);
-            });
-        }
 
-        public IObservable<byte[]> SendRequest(string operationName, string senderUserId, string recipientUserId, Action<Stream> writer, CancellationToken cancellationToken)
-        {
-            return AuthenticatorRpc(null, $"UserSession.{nameof(SendRequest)}", s =>
-            {
-                _serializer.Serialize(operationName, s);
-                _serializer.Serialize(senderUserId, s);
-                _serializer.Serialize(recipientUserId, s);
-                writer?.Invoke(s);
-            }, cancellationToken)
-            .Select(packet =>
-            {
-                using var stream = new MemoryStream();
-                packet.Stream.CopyTo(stream);
-                return stream.ToArray();
-            });
-        }
+        public Task<TReturn> SendRequest<TReturn, TArg1, TArg2>(string operationName, string senderUserId, string recipientUserId, TArg1 arg1, TArg2 arg2, CancellationToken cancellationToken)
+            => UserSessions.SendRequestImpl<TReturn, TArg1, TArg2>(this, serializer, operationName, senderUserId, recipientUserId, arg1, arg2, cancellationToken);
 
-        public Task<Dictionary<PlatformId, Session?>> GetSessions(IEnumerable<PlatformId> platformIds, bool forceRefresh = false)
-        {
-            return cache.GetSessionsByPlatformIds(platformIds, true, "", forceRefresh);
-        }
+        public Task SendRequest<TArg>(string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
+            => UserSessions.SendRequestImpl<TArg>(this, serializer, operationName, senderUserId, recipientUserId, arg, cancellationToken);
 
-        public Task<int> GetAuthenticatedUsersCount()
-        {
-           return AuthenticatorRpc<int>(null, $"UserSession.{nameof(GetAuthenticatedUsersCount)}", s => { });
-          
-        }
 
-        public Task<Dictionary<string, Session?>> GetSessions(IEnumerable<string> sessionIds, bool forceRefresh = false)
+        public Task<string> UpdateUserHandle(string userId, string newHandle, bool appendHash, CancellationToken cancellationToken)
         {
-            return cache.GetSessionsByIds(sessionIds, true, "", forceRefresh);
+            return proxy.UpdateUserHandle(userId, newHandle, appendHash, cancellationToken);
         }
     }
+
+   
 }

@@ -25,6 +25,7 @@ using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Stormancer.Core;
 using Stormancer.Plugins;
@@ -35,72 +36,54 @@ namespace Stormancer.Server.Plugins.Friends
 {
     class FriendsProxy : IFriendsService
     {
-        private readonly ISceneHost _scene;
-        private readonly ISerializer _serializer;
-        private readonly IServiceLocator _locator;
 
-        public FriendsProxy(ISceneHost scene, ISerializer serializer, IServiceLocator locator)
+        private readonly FriendsS2SProxy proxy;
+
+        public FriendsProxy(FriendsS2SProxy proxy)
         {
 
-            _scene = scene;
-            _serializer = serializer;
-            _locator = locator;
+
+            this.proxy = proxy;
         }
 
-        private async IAsyncEnumerable<Packet<IScenePeer>> FriendsRpc(string route, Action<Stream> writer)
+        public Task AddNonPersistedFriends(string userId, IEnumerable<Friend> friends,CancellationToken cancellationToken)
         {
-            var rpc = _scene.DependencyResolver.Resolve<RpcService>();
-            await foreach(var packet in rpc.Rpc(route, new MatchSceneFilter(await _locator.GetSceneId("stormancer.plugins.friends", "")), writer, PacketPriority.MEDIUM_PRIORITY).ToAsyncEnumerable())
-            {
-                yield return packet;
-            }
+            return proxy.AddNonPersistedFriends(userId, friends, cancellationToken);
         }
 
-        public async Task AddNonPersistedFriends(string userId, IEnumerable<Friend> friends)
+        public Task Invite(User user, User friendId, CancellationToken cancellationToken)
         {
-            await foreach(var packet in FriendsRpc("FriendsS2S." + nameof(AddNonPersistedFriends), s => {
-                _serializer.Serialize(userId, s);
-                _serializer.Serialize(friends, s);
-            }))
-            {
-                using (packet) { }
-            }
-
-        }
-
-        public Task Invite(User user, User friendId)
-        {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         public Task<bool> IsInFriendList(string userId, string friendId)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
-        public Task ManageInvitation(User user, string senderId, bool accept)
+        public Task ManageInvitation(User user, string senderId, bool accept, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
-        public Task RemoveFriend(User user, string friendId)
+        public Task RemoveFriend(User user, string friendId, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
-        public Task SetStatus(User user, FriendListStatusConfig status, string customData)
+        public Task SetStatus(User user, FriendListStatusConfig status, string customData, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
-        public Task Subscribe(IScenePeerClient peer)
+        public Task Subscribe(IScenePeerClient peer, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
-        public Task Unsubscribe(IScenePeerClient peer)
+        public Task Unsubscribe(IScenePeerClient peer, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
     }
 }

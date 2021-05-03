@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+******
+- Added IRemotePipe interface implemented by S2SOperation.
+
 2.0.4.1
 -------
 Added

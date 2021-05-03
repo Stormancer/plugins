@@ -102,8 +102,24 @@ namespace Stormancer.Server.Plugins.Users
     /// </summary>
     public class LoggedInCtx
     {
-        public AuthenticationContext AuthCtx { get; set; }
-        public LoginResult Result { get; set; }
-        public SessionRecord Session { get; set; }
+        /// <summary>
+        /// Gets the authentication context that was used for authentication.
+        /// </summary>
+        public AuthenticationContext AuthCtx { get; internal set; } = default!;
+
+        /// <summary>
+        /// Gets the result of the auth operation.
+        /// </summary>
+        public LoginResult Result { get; internal set; } = default!;
+
+        /// <summary>
+        /// Gets the user session.
+        /// </summary>
+        public SessionRecord Session { get; internal set; } = default!;
+
+        /// <summary>
+        /// Gets the cancellation token of the auth request.
+        /// </summary>
+        public CancellationToken CancellationToken { get; internal set; }
     }
 }

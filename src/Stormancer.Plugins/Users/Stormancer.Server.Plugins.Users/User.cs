@@ -29,8 +29,15 @@ using Newtonsoft.Json.Linq;
 
 namespace Stormancer.Server.Plugins.Users
 {
+
+    /// <summary>
+    /// An user
+    /// </summary>
     public class User
     {
+        /// <summary>
+        /// Constructor
+        /// </summary>
         public User()
         {
             Auth = new JObject();
@@ -40,26 +47,57 @@ namespace Stormancer.Server.Plugins.Users
             Channels = new JObject();
         }
 
-        public string Id { get; set; }
+        /// <summary>
+        /// Gets or sets the id of the user.
+        /// </summary>
+        public string Id { get; set; } = default!;
 
-    
+
+        /// <summary>
+        /// Gets or sets the auth informations of the user.
+        /// </summary>
         public JObject Auth { get; set; }
+
+        /// <summary>
+        /// Gets or sets custom data about the user.
+        /// </summary>
         public JObject UserData { get; set; } 
 
+        /// <summary>
+        /// Gets or sets the date the user was created.
+        /// </summary>
         public DateTime CreatedOn { get; set; }
 
+        /// <summary>
+        /// Gets or sets the date the user last logged in.
+        /// </summary>
         public DateTime LastLogin { get; set; }
 
+        /// <summary>
+        /// Gets or sets informations about the channels the user can be contacted through.
+        /// </summary>
         public JObject Channels { get; set; }
     }
 
+    /// <summary>
+    /// An user identity.
+    /// </summary>
     public class AuthenticationClaim
     {
-        public string Id { get; set; }
+        /// <summary>
+        /// Id of the user for the provider.
+        /// </summary>
+        public string Id { get; set; } = default!;
 
-        public string UserId { get; set; }
+        /// <summary>
+        /// Id of the user in stormancer.
+        /// </summary>
+        public string UserId { get; set; } = default!;
 
-        public string Provider { get; set; }
+        /// <summary>
+        /// Provider.
+        /// </summary>
+        public string Provider { get; set; } = default!;
     }
 }
 

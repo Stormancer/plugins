@@ -9,6 +9,10 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+- Make plugin compatible with users 5.x
+
 0.2.2
 -----
 - Use Stormancer.Abstraction.Server 4.2.0.2-pre.

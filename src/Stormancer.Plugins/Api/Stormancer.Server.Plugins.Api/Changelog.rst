@@ -9,6 +9,15 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Remove 3 allocations in action call expression generation.
+Added
+*****
+- Action call generation now maps CancellationToken action parameters to IS2SRequestContext.CancellationToken.
+
 2.1.0
 -----
 Added

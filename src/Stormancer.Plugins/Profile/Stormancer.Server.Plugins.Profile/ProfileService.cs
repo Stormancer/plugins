@@ -51,30 +51,30 @@ namespace Stormancer.Server.Plugins.Profile
             _sessions = sessions;
         }
 
-      
-        public async Task<Dictionary<string, Dictionary<string, JObject>>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, Session requestingUser)
+
+        public async Task<Dictionary<string, Dictionary<string, JObject>>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, Session? requestingUser, CancellationToken cancellationToken)
         {
             var dic = new ConcurrentDictionary<string, ConcurrentDictionary<string, JObject>>();
             var ctx = new ProfileCtx(userIds, dic, displayOptions, requestingUser);
 
-            await _handlers.RunEventHandler(h => h.GetProfiles(ctx), ex => _logger.Log(LogLevel.Error, "profiles", "An error occured while getting profiles.", ex));
+            await _handlers.RunEventHandler(h => h.GetProfiles(ctx, cancellationToken), ex => _logger.Log(LogLevel.Error, "profiles", "An error occured while getting profiles.", ex));
 
             return dic.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToDictionary(d => d.Key, d => d.Value));
         }
 
         public Task DeleteCustomProfilePart(string userId, string partId, bool fromClient)
         {
-            return customProfileParts.RunEventHandler(p => p.DeleteAsync(userId, partId, fromClient),ex=> _logger.Log(LogLevel.Error, "profiles", "An error occured while deleting a custom part.", ex));
+            return customProfileParts.RunEventHandler(p => p.DeleteAsync(userId, partId, fromClient), ex => _logger.Log(LogLevel.Error, "profiles", "An error occured while deleting a custom part.", ex));
         }
 
         public Task UpdateCustomProfilePart(string userId, string partId, string version, bool fromClient, Stream inputStream)
         {
-            return customProfileParts.RunEventHandler(p => p.UpdateAsync(userId, partId,version, fromClient,inputStream), ex => _logger.Log(LogLevel.Error, "profiles", "An error occured while updating a custom profile part.", ex));
+            return customProfileParts.RunEventHandler(p => p.UpdateAsync(userId, partId, version, fromClient, inputStream), ex => _logger.Log(LogLevel.Error, "profiles", "An error occured while updating a custom profile part.", ex));
         }
 
-        public Task<string> UpdateUserHandle(string userId, string newHandle)
+        public Task<string> UpdateUserHandle(string userId, string newHandle, CancellationToken cancellationToken)
         {
-            return _sessions.UpdateUserHandle(userId, newHandle, true);
+            return _sessions.UpdateUserHandle(userId, newHandle, true, cancellationToken);
         }
     }
 }

@@ -76,5 +76,23 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         }
 
+      
+
+    }
+
+    /// <summary>
+    /// Metrics sent by a gamefinder.
+    /// </summary>
+    public record GameFinderMetrics
+    {
+        /// <summary>
+        /// Gets the name of the gamefinder. 
+        /// </summary>
+        public string GameFinderName { get; init; } = default!;
+
+        /// <summary>
+        /// Gets the gamefinder metrics.
+        /// </summary>
+        public Dictionary<string, int> Metrics { get; init; } = default!;
     }
 }

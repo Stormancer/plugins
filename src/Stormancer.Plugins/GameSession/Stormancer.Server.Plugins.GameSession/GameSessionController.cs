@@ -60,9 +60,9 @@ namespace Stormancer.Server.Plugins.GameSession
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<string> GetP2PToken()
+        public async Task<string?> GetP2PToken(RequestContext<IScenePeerClient> ctx)
         {
-            return await _service.CreateP2PToken(this.Request.RemotePeer.SessionId);
+            return await _service.CreateP2PToken(ctx.RemotePeer.SessionId);
         }
 
         public Task Reset(RequestContext<IScenePeerClient> ctx)
@@ -85,7 +85,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async Task GetGameSessionSettings(RequestContext<IScenePeerClient> ctx)
         {
-            var user = await _sessions.GetUser(ctx.RemotePeer);
+            var user = await _sessions.GetUser(ctx.RemotePeer,ctx.CancellationToken);
 
             var config = _service.GetGameSessionConfig();
             if (string.IsNullOrEmpty(config.UserIds.FirstOrDefault(id => id == user?.Id)))
@@ -96,13 +96,13 @@ namespace Stormancer.Server.Plugins.GameSession
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<string> GetGameSessionConnectionUrl()
+        public async Task<string> GetGameSessionConnectionUrl(RequestContext<IScenePeerClient> ctx)
         {
             var id = _service.GetGameSessionConfig().HostUserId;
 
             if (!string.IsNullOrEmpty(id))
             {
-                var session = await _sessions.GetSessionByUserId(id);
+                var session = await _sessions.GetSessionByUserId(id,ctx.CancellationToken);
                 if (session != null)
                 {
                     return "strm." + session.SessionId;

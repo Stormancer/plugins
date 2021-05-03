@@ -25,6 +25,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Profile
@@ -41,7 +42,7 @@ namespace Stormancer.Server.Plugins.Profile
             this.logger = logger;
         }
 
-        public Task GetProfiles(ProfileCtx ctx)
+        public Task GetProfiles(ProfileCtx ctx, CancellationToken cancellationToken)
         {
             return parts.RunEventHandler(p => p.GetAsync(ctx), ex => logger.Log(LogLevel.Error, "profiles.customParts", "An error occured while processing custom part builders.", ex));
         }

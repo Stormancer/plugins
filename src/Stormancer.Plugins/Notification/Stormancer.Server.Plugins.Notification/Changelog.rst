@@ -9,6 +9,13 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Add CancellationToken to INotificationProvider.Send() 
+- Support Users 5.x API.
+
 2.0.2
 -----
 Changed

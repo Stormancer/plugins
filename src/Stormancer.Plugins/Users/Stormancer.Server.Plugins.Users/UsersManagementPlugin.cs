@@ -123,13 +123,7 @@ namespace Stormancer.Server.Plugins.Users
             }
             else
             {
-                b.Register<UserSessionsProxy>(dr => new UserSessionsProxy(
-                      dr.Resolve<ISceneHost>(),
-                      dr.Resolve<ISerializer>(),
-                      dr.Resolve<IEnvironment>(),
-                      dr.Resolve<IServiceLocator>(),
-                      dr.Resolve<UserSessionCache>()
-                )).As<IUserSessions>().InstancePerRequest();
+                b.Register<UserSessionImpl>(dr=>new UserSessionImpl(dr.Resolve<UserSessionProxy>(), dr.Resolve<ISerializer>(), dr.Resolve<ISceneHost>())).As<IUserSessions>().InstancePerRequest();
             }
         }
 

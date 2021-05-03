@@ -145,7 +145,7 @@ namespace Stormancer.Server.Plugins.Users
             };
         }
     }
-    
+
     /// <summary>
     /// Represents a session.
     /// </summary>
@@ -232,16 +232,16 @@ namespace Stormancer.Server.Plugins.Users
             this.rpcService = rpcService;
         }
 
-        public async Task<User?> GetUser(IScenePeerClient peer)
+        public async Task<User?> GetUser(IScenePeerClient peer, CancellationToken cancellationToken)
         {
-            var session = await GetSession(peer);
+            var session = await GetSession(peer, cancellationToken);
 
             return session?.User;
         }
 
-        public async Task<bool> IsAuthenticated(IScenePeerClient peer)
+        public async Task<bool> IsAuthenticated(IScenePeerClient peer, CancellationToken cancellationToken)
         {
-            return (await GetUser(peer)) != null;
+            return (await GetUser(peer, cancellationToken)) != null;
         }
 
         public async Task<bool> LogOut(IScenePeerClient peer, DisconnectionReason reason)
@@ -270,7 +270,7 @@ namespace Stormancer.Server.Plugins.Users
             return result.Success;
         }
 
-       
+
 
         public async Task Login(IScenePeerClient peer, User? user, PlatformId onlineId, Dictionary<string, byte[]> sessionData)
         {
@@ -335,9 +335,9 @@ namespace Stormancer.Server.Plugins.Users
             return _peerUserIndex.UpdateWithRetries(id, mutator);
         }
 
-        public async Task UpdateUserData<T>(IScenePeerClient peer, T data)
+        public async Task UpdateUserData<T>(IScenePeerClient peer, T data, CancellationToken cancellationToken)
         {
-            var user = await GetUser(peer);
+            var user = await GetUser(peer, cancellationToken);
             if (user == null)
             {
                 throw new InvalidOperationException("User not found.");
@@ -349,7 +349,7 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
-        public async Task<IScenePeerClient?> GetPeer(string userId)
+        public async Task<IScenePeerClient?> GetPeer(string userId, CancellationToken cancellationToken)
         {
             var result = await _userPeerIndex.TryGet(userId);
 
@@ -369,13 +369,13 @@ namespace Stormancer.Server.Plugins.Users
                 return null;
             }
         }
-        public async Task<Session?> GetSession(string userId, bool forceRefresh = false)
+        public async Task<Session?> GetSession(string userId, CancellationToken cancellationToken)
         {
             var result = await _userPeerIndex.TryGet(userId);
 
             if (result.Success)
             {
-                return await GetSessionById(result.Value);
+                return await GetSessionById(result.Value, cancellationToken);
             }
             else
             {
@@ -383,9 +383,9 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
-        public async Task<PlatformId> GetPlatformId(string userId)
+        public async Task<PlatformId> GetPlatformId(string userId, CancellationToken cancellationToken)
         {
-            var session = await GetSession(userId);
+            var session = await GetSession(userId, cancellationToken);
 
             if (session != null)
             {
@@ -395,14 +395,14 @@ namespace Stormancer.Server.Plugins.Users
             return PlatformId.Unknown;
         }
 
-        public Task<Session?> GetSession(PlatformId id, bool forceRefresh = false)
+        public Task<Session?> GetSession(PlatformId id, CancellationToken cancellationToken)
         {
-            return GetSession(id.ToString());
+            return GetSession(id.ToString(), cancellationToken);
         }
 
-        public async Task<Session?> GetSession(IScenePeerClient peer, bool forceRefresh = false)
+        public async Task<Session?> GetSession(IScenePeerClient peer, CancellationToken cancellationToken)
         {
-            return peer != null ? await GetSessionById(peer.SessionId) : null;
+            return peer != null ? await GetSessionById(peer.SessionId, cancellationToken) : null;
         }
 
 
@@ -421,23 +421,23 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
-        public async Task<Session?> GetSessionById(string sessionId, bool forceRefresh = false)
+        public async Task<Session?> GetSessionById(string sessionId, CancellationToken cancellationToken)
         {
             var session = await GetSessionRecordById(sessionId);
             return session?.CreateView();
         }
 
-        public Task<Session?> GetSessionByUserId(string userId, bool forceRefresh = false)
+        public Task<Session?> GetSessionByUserId(string userId, CancellationToken cancellationToken)
         {
-            return GetSession(userId);
+            return GetSession(userId, cancellationToken);
         }
 
-        public Task<Session?> GetSessionById(string sessionId, string authType, bool forceRefresh = false)
+        public Task<Session?> GetSessionById(string sessionId, string authType, CancellationToken cancellationToken)
         {
-            return GetSessionById(sessionId);
+            return GetSessionById(sessionId, cancellationToken);
         }
 
-        public async Task UpdateSessionData(string sessionId, string key, byte[] data)
+        public async Task UpdateSessionData(string sessionId, string key, byte[] data, CancellationToken cancellationToken)
         {
             var session = await GetSessionRecordById(sessionId);
             if (session == null)
@@ -447,16 +447,16 @@ namespace Stormancer.Server.Plugins.Users
             session.SessionData[key] = data;
         }
 
-        public Task UpdateSessionData<T>(string sessionId, string key, T data)
+        public Task UpdateSessionData<T>(string sessionId, string key, T data, CancellationToken cancellationToken)
         {
             var stream = new MemoryStream();
             serializer.Serialize(data, stream);
-            return UpdateSessionData(sessionId, key, stream.ToArray());
+            return UpdateSessionData(sessionId, key, stream.ToArray(), cancellationToken);
         }
 
-        public async Task<byte[]?> GetSessionData(string sessionId, string key)
+        public async Task<byte[]?> GetSessionData(string sessionId, string key, CancellationToken cancellationToken)
         {
-            var session = await GetSessionById(sessionId);
+            var session = await GetSessionById(sessionId, cancellationToken);
             if (session == null)
             {
                 throw new ClientException("NotFound");
@@ -471,9 +471,9 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
-        public async Task<T?> GetSessionData<T>(string sessionId, string key)
+        public async Task<T?> GetSessionData<T>(string sessionId, string key, CancellationToken cancellationToken)
         {
-            var data = await GetSessionData(sessionId, key);
+            var data = await GetSessionData(sessionId, key, cancellationToken);
             if (data != null)
             {
                 using (var stream = new MemoryStream(data))
@@ -487,39 +487,16 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
-        //public async Task<string> GetBearerToken(string sessionId)
-        //{
 
-        //    var session = await GetSessionById(sessionId);
-        //    return await GetBearerToken(session);
-        //}
 
-        //public async Task<string> GetBearerToken(Session session)
-        //{
-        //    var app = await env.GetApplicationInfos();
-        //    return TokenGenerator.CreateToken(new BearerTokenData { SessionId = session.SessionId, pid = session.platformId, userId = session.User.Id, IssuedOn = DateTime.UtcNow, ValidUntil = DateTime.UtcNow + TimeSpan.FromHours(1) }, app.PrimaryKey);
-        //}
-
-        //public async Task<BearerTokenData> DecodeBearerToken(string token)
-        //{
-        //    var app = await env.GetApplicationInfos();
-        //    return TokenGenerator.DecodeToken<BearerTokenData>(token, app.PrimaryKey);
-        //}
-
-        //public async Task<Session> GetSessionByBearerToken(string token, bool forceRefresh = false)
-        //{
-        //    var data = await DecodeBearerToken(token);
-        //    return await GetSessionById(data.SessionId);
-        //}
-
-        public Task<Dictionary<string, User?>> GetUsers(params string[] userIds)
+        public Task<Dictionary<string, User?>> GetUsers(IEnumerable<string> userIds, CancellationToken cancellationToken)
         {
-            return _userService.GetUsers(userIds);
+            return _userService.GetUsers(userIds, cancellationToken);
         }
 
-        public Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string, string>> query, int take, int skip)
+        public Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string, string>> query, int take, int skip, CancellationToken cancellationToken)
         {
-            return _userService.Query(query, take, skip);
+            return _userService.Query(query, take, skip, cancellationToken);
         }
 
         private static int _randomTracker = 0;
@@ -534,7 +511,7 @@ namespace Stormancer.Server.Plugins.Users
         private static bool _handleUserMappingCreated = false;
         private static AsyncLock _mappingLock = new AsyncLock();
 
-      
+
         private int _handleSuffixUpperBound = 10000;
         private int _handleMaxNumCharacters = 32;
 
@@ -559,7 +536,7 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
-        public async Task<string> UpdateUserHandle(string userId, string newHandle, bool appendHash)
+        public async Task<string> UpdateUserHandle(string userId, string newHandle, bool appendHash, CancellationToken cancellationToken)
         {
             // Check handle validity
             if (!Regex.IsMatch(newHandle, @"^[\p{Ll}\p{Lu}\p{Lt}\p{Lo}0-9-_.]*$"))
@@ -579,7 +556,7 @@ namespace Stormancer.Server.Plugins.Users
                 throw new ClientException(ctx.ErrorMessage);
             }
 
-            var session = await GetSessionByUserId(userId);
+            var session = await GetSessionByUserId(userId, cancellationToken);
 
             async Task UpdateHandleDatabase()
             {
@@ -657,22 +634,20 @@ namespace Stormancer.Server.Plugins.Users
             return newHandle;
         }
 
-        private class PeerRequest : IS2SRequest
+        private class PeerRequest : IRemotePipe
         {
-            
+
             public Pipe InputPipe = new Pipe();
             public Pipe OutputPipe = new Pipe();
 
-            public PipeReader Reader =>  OutputPipe.Reader;
+            public PipeReader Reader => OutputPipe.Reader;
 
             public PipeWriter Writer => InputPipe.Writer;
 
-            public void Dispose()
-            {
-                
-            }
+            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
         }
-        public IS2SRequest SendRequest(string operationName, string senderUserId, string recipientUserId, CancellationToken cancellationToken)
+        public IRemotePipe SendRequest(string operationName, string senderUserId, string recipientUserId, CancellationToken cancellationToken)
         {
             var rq = new PeerRequest();
 
@@ -681,14 +656,14 @@ namespace Stormancer.Server.Plugins.Users
                 try
                 {
                     using var outputStream = rq.OutputPipe.Writer.AsStream();
-                    var peer = await GetPeer(recipientUserId);
+                    var peer = await GetPeer(recipientUserId, cancellationToken);
                     if (peer == null)
                     {
                         throw new ClientException("NotConnected");
 
                     }
 
-                   
+
                     var rpc = peer.Rpc("sendRequest", s =>
                     {
                         try
@@ -705,7 +680,7 @@ namespace Stormancer.Server.Plugins.Users
                         }
 
                     }).ToAsyncEnumerable().WithCancellation(cancellationToken);
-                    
+
                     await foreach (var packet in rpc)
                     {
                         using (packet)
@@ -726,13 +701,57 @@ namespace Stormancer.Server.Plugins.Users
             return rq;
         }
 
-        public async Task<Dictionary<PlatformId, Session?>> GetSessions(IEnumerable<PlatformId> platformIds, bool forceRefresh = false)
+        public Task<TReturn> SendRequest<TReturn, TArg>(string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
+             => SendRequestImpl<TReturn, TArg>(this, serializer, operationName, senderUserId, recipientUserId, arg, cancellationToken);
+
+
+        public Task<TReturn> SendRequest<TReturn, TArg1, TArg2>(string operationName, string senderUserId, string recipientUserId, TArg1 arg1, TArg2 arg2, CancellationToken cancellationToken)
+            => SendRequestImpl<TReturn, TArg1, TArg2>(this, serializer, operationName, senderUserId, recipientUserId, arg1, arg2, cancellationToken);
+
+        public Task SendRequest<TArg>(string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
+            => SendRequestImpl<TArg>(this, serializer, operationName, senderUserId, recipientUserId, arg, cancellationToken);
+
+
+        internal static async Task<TReturn> SendRequestImpl<TReturn, TArg>(IUserSessions sessions, ISerializer serializer, string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
+        {
+            await using var rq = sessions.SendRequest(operationName, senderUserId, recipientUserId, cancellationToken);
+            await rq.Writer.WriteObject(arg, serializer, cancellationToken);
+            rq.Writer.Complete();
+
+            var result = await rq.Reader.ReadObject<TReturn>(serializer, cancellationToken);
+            rq.Reader.Complete();
+            return result;
+        }
+
+        internal static async Task<TReturn> SendRequestImpl<TReturn, TArg1, TArg2>(IUserSessions sessions, ISerializer serializer, string operationName, string senderUserId, string recipientUserId, TArg1 arg1, TArg2 arg2, CancellationToken cancellationToken)
+        {
+            await using var rq = sessions.SendRequest(operationName, senderUserId, recipientUserId, cancellationToken);
+            await rq.Writer.WriteObject(arg1, serializer, cancellationToken);
+            await rq.Writer.WriteObject(arg2, serializer, cancellationToken);
+            rq.Writer.Complete();
+
+            var result = await rq.Reader.ReadObject<TReturn>(serializer, cancellationToken);
+            rq.Reader.Complete();
+            return result;
+
+        }
+
+        internal static async Task SendRequestImpl<TArg>(IUserSessions sessions, ISerializer serializer, string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
+        {
+            await using var rq = sessions.SendRequest(operationName, senderUserId, recipientUserId, cancellationToken);
+            await rq.Writer.WriteObject(arg, serializer, cancellationToken);
+            rq.Writer.Complete();
+            rq.Reader.Complete();
+
+        }
+
+        public async Task<Dictionary<PlatformId, Session?>> GetSessions(IEnumerable<PlatformId> platformIds, CancellationToken cancellationToken)
         {
             Dictionary<PlatformId, Session?> sessions = new Dictionary<PlatformId, Session?>();
 
             foreach (var id in platformIds)
             {
-                var session = await GetSession(id, forceRefresh);
+                var session = await GetSession(id, cancellationToken);
                 if (session != null)
                 {
                     sessions.TryAdd(id, session);
@@ -742,19 +761,19 @@ namespace Stormancer.Server.Plugins.Users
             return sessions;
         }
 
-        public Task<int> GetAuthenticatedUsersCount()
+        public Task<int> GetAuthenticatedUsersCount(CancellationToken cancellationToken)
         {
             return Task.FromResult(AuthenticatedUsersCount);
         }
 
-        public async Task<Dictionary<string, Session?>> GetSessions(IEnumerable<string> sessionIds, bool forceRefresh = false)
+        public async Task<Dictionary<string, Session?>> GetSessions(IEnumerable<string> sessionIds, CancellationToken cancellationToken)
         {
 
             var sessions = new Dictionary<string, Session?>();
 
             foreach (var id in sessionIds)
             {
-                var session = await GetSession(id, forceRefresh);
+                var session = await GetSession(id, cancellationToken);
                 if (session != null)
                 {
                     sessions.TryAdd(id, session);
@@ -765,14 +784,16 @@ namespace Stormancer.Server.Plugins.Users
 
         }
 
-        public async Task KickUser(string userId,string reason)
+        public async Task KickUser(string userId, string reason, CancellationToken cancellationToken)
         {
-            var peer = await GetPeer(userId);
-            if(peer!=null)
+            var peer = await GetPeer(userId, cancellationToken);
+            if (peer != null)
             {
                 await peer.Disconnect(reason);
             }
         }
+
+
 
         public int AuthenticatedUsersCount
         {
