@@ -30,6 +30,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 
 namespace Stormancer.Server.Plugins.Api.S2SProxyGenerator
 {
@@ -71,6 +72,7 @@ namespace Stormancer.Server.Plugins.Api.S2SProxyGenerator
         /// <param name="context"></param>
         public void Execute(GeneratorExecutionContext context)
         {
+            //Debugger.Launch();
 
             var s2sApiAttribute = GetSymbol<S2SApiAttribute>(context);
             var serviceAttributeSymbol = GetSymbol<ServiceAttribute>(context);
@@ -79,6 +81,7 @@ namespace Stormancer.Server.Plugins.Api.S2SProxyGenerator
             var genericTaskSymbol = GetSymbol(context, "System.Runtime", "System.Threading.Tasks.Task`1")?.ConstructUnboundGenericType();
             var taskSymbol = GetSymbol(context, "System.Runtime", "System.Threading.Tasks.Task");
             var s2sRequestContextSymbol = GetSymbol(context, "Stormancer.Abstractions.Server", "Stormancer.Core.IS2SRequestContext");
+            var cancellationTokenSymbol = GetSymbol(context, "System.Runtime", "System.Threading.CancellationToken");
 
             Debug.Assert(taskSymbol != null);
 
@@ -111,8 +114,14 @@ namespace Stormancer.Server.Plugins.Api.S2SProxyGenerator
 
 namespace Stormancer.Server.Codegen
 {
+    /// <summary>
+    /// Entry point class for code generated S2S proxy classes.
+    /// </summary>
     public class S2SProxyApp
     {
+        /// <summary>
+        /// Entry point method for code generated S2S proxy classes.
+        /// </summary>
         public void Run(IAppBuilder builder)
         {
             builder.AddPlugin(new S2SProxyPlugin());
@@ -174,8 +183,12 @@ using Stormancer.Server.Plugins.ServiceLocator;
 {
 ");
                 }
-
-                buffer.Append("    public class ");
+                buffer.Append($@"
+    ///<summary>
+    ///Proxy class for <see cref=""{type}""/>.
+    ///</summary>
+");
+                buffer.Append("    public partial class ");
 
                 var name = GetControllerName(type);
                 var className = name + "Proxy";
@@ -241,8 +254,8 @@ using Stormancer.Server.Plugins.ServiceLocator;
                         }
                         foreach (var parameter in method.Parameters)
                         {
-
-                            if (!SymbolEqualityComparer.Default.Equals(parameter.Type, s2sRequestContextSymbol))
+                            
+                            if (!SymbolEqualityComparer.Default.Equals(parameter.Type, s2sRequestContextSymbol) && !SymbolEqualityComparer.Default.Equals(parameter.Type,cancellationTokenSymbol))
                             {
                                 buffer.Append($"{parameter.Type} {parameter.Name}, ");
                             }
@@ -274,7 +287,7 @@ using Stormancer.Server.Plugins.ServiceLocator;
                         switch (resultType)
                         {
                             case ReturnType.AsyncEnumerable:
-                                buffer.Append(@"            await foreach(var value from result.GetResultsAsync(cancellationToken))
+                                buffer.Append(@"            await foreach(var value in result.GetResultsAsync(cancellationToken))
             {
                 yield return value;
             }");

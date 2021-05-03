@@ -26,20 +26,30 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Profile
 {
+    /// <summary>
+    /// Context passed to <see cref="IProfilePartBuilder.GetProfiles(ProfileCtx, CancellationToken)"/>.
+    /// </summary>
     public class ProfileCtx
     {
         private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, JObject>> _data;
 
-
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="userIds"></param>
+        /// <param name="data"></param>
+        /// <param name="displayOptions"></param>
+        /// <param name="origin"></param>
         public ProfileCtx(
             IEnumerable<string> userIds,
             ConcurrentDictionary<string, ConcurrentDictionary<string, JObject>> data,
             Dictionary<string, string> displayOptions,
-            Session origin)
+            Session? origin)
         {
             Users = userIds;
             _data = data;
@@ -58,9 +68,9 @@ namespace Stormancer.Server.Plugins.Profile
         public Dictionary<string, string> DisplayOptions { get; }
 
         /// <summary>
-        /// Origin of the request.
+        /// Session requesting the profile. Can be null if the profile was requested by the system and not an user.
         /// </summary>
-        public Session Origin { get; }
+        public Session? Origin { get; }
 
         /// <summary>
         /// Update profile data in the result.
@@ -90,7 +100,12 @@ namespace Stormancer.Server.Plugins.Profile
     /// </summary>
     public interface IProfilePartBuilder
     {
-
-        Task GetProfiles(ProfileCtx ctx);
+        /// <summary>
+        /// Called by the profile system to contribute in building player profiles.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task GetProfiles(ProfileCtx ctx, CancellationToken cancellationToken);
     }
 }

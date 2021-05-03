@@ -9,6 +9,18 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Ensure nuget package is an analyzer package.
+
+1.0.1
+-----
+Changed
+*******
+- Don't generate parameters in S2S proxies for CancellationToken.
+
 1.0.0
 -----
 Added

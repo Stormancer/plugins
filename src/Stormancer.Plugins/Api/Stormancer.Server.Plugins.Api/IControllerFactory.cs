@@ -31,6 +31,7 @@ using System.Linq.Expressions;
 using Stormancer.Diagnostics;
 using System.IO;
 using System.Diagnostics;
+using System.Threading;
 
 namespace Stormancer.Server.Plugins.API
 {
@@ -806,25 +807,34 @@ namespace Stormancer.Server.Plugins.API
             public static void ReadObject<TData>(Packet<IScenePeerClient> ctx, out TData output, IDependencyResolver resolver) => output = ctx.ReadObject<TData>();
             public static void ReadObject<TData>(RequestContext<IScenePeerClient> ctx, out TData output, IDependencyResolver resolver) => output = ctx.ReadObject<TData>();
 
-            public static async Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadObject<TData>(ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver> tuple)
+            public static async Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadObject<TData>(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> t)
             {
+                var tuple = t.Result;
                 var (rq, args, resolver) = tuple;
                 var serializer = resolver.Resolve<ISerializer>();
                 args.Add(await serializer.DeserializeAsync<TData>(rq.Reader, rq.CancellationToken));
                 return tuple;
             }
-            public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadObjectCtx(ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver> tuple)
+            public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadObjectCtx(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> t)
             {
-                var (rq, args, _) = tuple;
+                var (rq, args, _) = t.Result;
                 args.Add(rq);
-                return Task.FromResult(tuple);
+                return t;
+            }
+
+            public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadObjectCt(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> t)
+            {
+                var (rq, args, _) = t.Result;
+                args.Add(rq.CancellationToken);
+                return t;
             }
 
             public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> CreateArgsReadSeedS2S(IS2SRequestContext ctx, IDependencyResolver resolver) => Task.FromResult((ctx, new List<object?>(), resolver));
 
-            public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadNextS2SArgument<TData>(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> task) => task.ContinueWith(t => ReadObject<TData>(task.Result)).Unwrap();
+            public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadNextS2SArgument<TData>(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> task) => task.ContinueWith(ReadObject<TData>).Unwrap();
 
-            public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadNextS2SArgumentCtx(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> task) => task.ContinueWith(t => ReadObjectCtx(task.Result)).Unwrap();
+            public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadNextS2SArgumentCtx(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> task) => task.ContinueWith(ReadObjectCtx).Unwrap();
+            public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadNextS2SArgumentCt(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> task) => task.ContinueWith(ReadObjectCt).Unwrap();
 
             public static Task<List<object?>> CompleteReadS2SArgs(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> task) => task.ContinueWith(t => t.Result.Item2);
 
@@ -844,6 +854,10 @@ namespace Stormancer.Server.Plugins.API
                     if (parameter.ParameterType == typeof(IS2SRequestContext))
                     {
                         expr = Expression.Call(typeof(ApiHelpers).GetRuntimeMethodExt(nameof(ReadNextS2SArgumentCtx), _ => true), expr);
+                    }
+                    if (parameter.ParameterType == typeof(CancellationToken))
+                    {
+                        expr = Expression.Call(typeof(ApiHelpers).GetRuntimeMethodExt(nameof(ReadNextS2SArgumentCt), _ => true), expr);
                     }
                     else
                     {

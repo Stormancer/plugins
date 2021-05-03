@@ -180,7 +180,7 @@ namespace Stormancer.Server.Plugins.Party
                     throw new ClientException(JoinDeniedError);
                 }
 
-                var session = await _userSessions.GetSession(peer);
+                var session = await _userSessions.GetSession(peer, CancellationToken.None);
                 if (session == null)
                 {
                     throw new ClientException("notAuthenticated");
@@ -190,11 +190,11 @@ namespace Stormancer.Server.Plugins.Party
                 await _handlers().RunEventHandler(h => h.OnJoining(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnJoining", ex));
                 if (!ctx.Accept)
                 {
-                    Log(LogLevel.Trace, "OnConnecting", "Join denied by event handler", peer.SessionId, session.User.Id);
+                    Log(LogLevel.Trace, "OnConnecting", "Join denied by event handler", peer.SessionId, session.User?.Id);
                     throw new ClientException(JoinDeniedError);
                 }
 
-                Log(LogLevel.Trace, "OnConnecting", "Join accepted", peer.SessionId, session.User.Id);
+                Log(LogLevel.Trace, "OnConnecting", "Join accepted", peer.SessionId, session.User?.Id);
                 _partyState.PendingAcceptedPeers.Add(peer);
             });
         }
@@ -207,11 +207,15 @@ namespace Stormancer.Server.Plugins.Party
                 _partyState.PendingAcceptedPeers.Remove(peer);
                 _ = RunOperationCompletedEventHandler(async (service, handlers, scope) =>
                 {
-                    var deniedCtx = new JoinDeniedContext(service, await service._userSessions.GetSession(peer));
-                    await handlers.RunEventHandler(handler => handler.OnJoinDenied(deniedCtx), exception =>
+                    var session = await service._userSessions.GetSession(peer, CancellationToken.None);
+                    if (session != null)
                     {
-                        service.Log(LogLevel.Error, "OnConnectionRejected", "An exception was thrown by an OnJoinDenied event handler", new { exception }, peer.SessionId);
-                    });
+                        var deniedCtx = new JoinDeniedContext(service, session);
+                        await handlers.RunEventHandler(handler => handler.OnJoinDenied(deniedCtx), exception =>
+                        {
+                            service.Log(LogLevel.Error, "OnConnectionRejected", "An exception was thrown by an OnJoinDenied event handler", new { exception }, peer.SessionId);
+                        });
+                    }
                 });
                 return Task.CompletedTask;
             });
@@ -222,12 +226,15 @@ namespace Stormancer.Server.Plugins.Party
             await _partyState.TaskQueue.PushWork(async () =>
             {
                 _partyState.PendingAcceptedPeers.Remove(peer);
-                var user = await _userSessions.GetUser(peer);
-                if (user == null)
+                var session = await _userSessions.GetSession(peer, CancellationToken.None);
+               
+                if (session == null)
                 {
                     await peer.Disconnect(GenericJoinError);
                     return;
                 }
+                var user = session.User;
+
                 var partyUser = new PartyMember { UserId = user.Id, StatusInParty = PartyMemberStatus.NotReady, Peer = peer };
                 _partyState.PartyMembers.TryAdd(peer.SessionId, partyUser);
                 // Complete existing invtations for the new user. These invitations should all have been completed by now, but this is hard to guarantee.
@@ -240,7 +247,9 @@ namespace Stormancer.Server.Plugins.Party
                     _partyState.PendingInvitations.Remove(user.Id);
                 }
 
-                var session = await _userSessions.GetSession(peer);
+
+
+
                 var ctx = new JoinedPartyContext(this, session);
 
                 var ClientPluginVersion = peer.Metadata[PartyPlugin.CLIENT_METADATA_KEY];
@@ -556,9 +565,9 @@ namespace Stormancer.Server.Plugins.Party
             }
             catch (TaskCanceledException)
             {
-                
+
             }
-            catch (RpcException ex) when( ex.Message.Contains("disconnected")) //Player disconnected during matchmaking.
+            catch (RpcException ex) when (ex.Message.Contains("disconnected")) //Player disconnected during matchmaking.
             {
 
             }
@@ -754,7 +763,7 @@ namespace Stormancer.Server.Plugins.Party
             }
 
             User? recipientUser = null;
-            var recipientSession = await _userSessions.GetSessionByUserId(recipientUserId);
+            var recipientSession = await _userSessions.GetSessionByUserId(recipientUserId, cancellationToken);
             if (recipientSession == null)
             {
                 recipientUser = await _users.GetUser(recipientUserId);
@@ -764,7 +773,7 @@ namespace Stormancer.Server.Plugins.Party
                 }
             }
 
-            var senderSession = await _userSessions.GetSession(senderMember.Peer);
+            var senderSession = await _userSessions.GetSession(senderMember.Peer, cancellationToken);
 
             IPartyPlatformSupport? ChooseInvitationPlatform()
             {
@@ -789,9 +798,9 @@ namespace Stormancer.Server.Plugins.Party
                         platformSupport.IsInvitationCompatibleWith(recipientSession.platformId.Platform) && platformSupport.IsInvitationCompatibleWith(senderSession.platformId.Platform));
                     }
                 }
-                else if(recipientUser != null)
+                else if (recipientUser != null)
                 {
-                    if ( recipientUser.Auth.ContainsKey(senderSession.platformId.Platform))
+                    if (recipientUser.Auth.ContainsKey(senderSession.platformId.Platform))
                     {
                         platform = _platformSupports.FirstOrDefault(platformSupport =>
                         platformSupport.PlatformName == senderSession.platformId.Platform && platformSupport.CanSendInviteToDisconnectedPlayer);

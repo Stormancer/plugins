@@ -9,6 +9,18 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+---------
+Changed
+*******
+- Make plugin compatible with Users 5.x
+
+5.0.0
+-----
+Removed
+*******
+- Removed deprecated OpenToGameFinder API. Use GameFinderProxy.OpenGameSession instead.
+
 4.0.7
 Changed
 *******

@@ -100,33 +100,33 @@ namespace Stormancer.Server.Plugins.Users
         {
             var settings = configuration.Settings;
             TimeSpan checkPeriodTemp = DefaultCheckPeriod;
-            JToken checkPeriodEntry = (JToken)settings?.users?.credentialsRenewal?.checkPeriod;
+            var checkPeriodEntry = (JToken?)settings?.users?.credentialsRenewal?.checkPeriod;
             if (checkPeriodEntry != null)
             {
-                if (checkPeriodEntry.Type != JTokenType.String || !TimeSpan.TryParse((string)checkPeriodEntry, out checkPeriodTemp))
+                if (checkPeriodEntry.Type != JTokenType.String || !TimeSpan.TryParse((string?)checkPeriodEntry, out checkPeriodTemp))
                 {
-                    _logger.Log(LogLevel.Warn, "CredentialsRenewer.UpdateSettings", "Failed to parse value users.credentialsRenewal.checkPeriod into a TimeSpan. See https://docs.microsoft.com/fr-fr/dotnet/api/system.timespan.parse for formatting examples.", new { value = (string)checkPeriodEntry });
+                    _logger.Log(LogLevel.Warn, "CredentialsRenewer.UpdateSettings", "Failed to parse value users.credentialsRenewal.checkPeriod into a TimeSpan. See https://docs.microsoft.com/fr-fr/dotnet/api/system.timespan.parse for formatting examples.", new { value = (string?)checkPeriodEntry });
                     checkPeriodTemp = DefaultCheckPeriod;
                 }
                 else if (checkPeriodTemp < TimeSpan.Zero)
                 {
-                    _logger.Log(LogLevel.Warn, "CredentialsRenewer.UpdateSettings", "Value users.credentialsRenewal.checkPeriod cannot be negative.", new { value = (string)checkPeriodEntry });
+                    _logger.Log(LogLevel.Warn, "CredentialsRenewer.UpdateSettings", "Value users.credentialsRenewal.checkPeriod cannot be negative.", new { value = (string?)checkPeriodEntry });
                     checkPeriodTemp = DefaultCheckPeriod;
                 }
             }
 
             TimeSpan thresholdTemp = DefaultRenewalThreshold;
-            JToken renewalThresholdEntry = (JToken)settings?.users?.credentialsRenewal?.threshold;
+            var renewalThresholdEntry = (JToken?)settings?.users?.credentialsRenewal?.threshold;
             if (renewalThresholdEntry != null)
             {
-                if (renewalThresholdEntry.Type != JTokenType.String || !TimeSpan.TryParse((string)renewalThresholdEntry, out thresholdTemp))
+                if (renewalThresholdEntry.Type != JTokenType.String || !TimeSpan.TryParse((string?)renewalThresholdEntry, out thresholdTemp))
                 {
-                    _logger.Log(LogLevel.Warn, "CredentialsRenewer.UpdateSettings", "Failed to parse value users.credentialsRenewal.threshold into a TimeSpan. See https://docs.microsoft.com/fr-fr/dotnet/api/system.timespan.parse for formatting examples.", new { value = (string)renewalThresholdEntry });
+                    _logger.Log(LogLevel.Warn, "CredentialsRenewer.UpdateSettings", "Failed to parse value users.credentialsRenewal.threshold into a TimeSpan. See https://docs.microsoft.com/fr-fr/dotnet/api/system.timespan.parse for formatting examples.", new { value = (string?)renewalThresholdEntry });
                     thresholdTemp = DefaultRenewalThreshold;
                 }
                 else if (thresholdTemp < TimeSpan.Zero)
                 {
-                    _logger.Log(LogLevel.Warn, "CredentialsRenewer.UpdateSettings", "Value users.credentialsRenewal.threshold cannot be negative.", new { value = (string)renewalThresholdEntry });
+                    _logger.Log(LogLevel.Warn, "CredentialsRenewer.UpdateSettings", "Value users.credentialsRenewal.threshold cannot be negative.", new { value = (string?)renewalThresholdEntry });
                     thresholdTemp = DefaultRenewalThreshold;
                 }
             }

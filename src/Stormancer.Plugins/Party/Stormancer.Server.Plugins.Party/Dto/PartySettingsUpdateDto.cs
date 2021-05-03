@@ -22,7 +22,9 @@
 
 using MsgPack.Serialization;
 using Stormancer.Server.Plugins.Party.Model;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Stormancer.Server.Plugins.Party.Dto
@@ -30,59 +32,88 @@ namespace Stormancer.Server.Plugins.Party.Dto
     /// <summary>
     /// Sent by the leader client to the server through UpdatePartySettings
     /// </summary>
-    public class PartySettingsDto
+    public class PartySettingsDto : IEquatable<PartySettingsDto>
     {
+        /// <summary>
+        /// Gets or sets the name of the selected GameFinder.
+        /// </summary>
         [MessagePackMember(0)]
-        public string GameFinderName { get; set; }
+        public string GameFinderName { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Gets or sets customData
+        /// </summary>
         [MessagePackMember(1)]
-        public string CustomData { get; set; }
+        public string CustomData { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Gets or sets a <see cref="bool"/> indicating if only the leader can invite players in the group.
+        /// </summary>
         [MessagePackMember(2)]
         public bool OnlyLeaderCanInvite { get; set; } = true;
 
+        /// <summary>
+        /// Gets or sets a <see cref="bool"/> indicating if players can join the party.
+        /// </summary>
         [MessagePackMember(3)]
         public bool IsJoinable { get; set; } = true;
 
-        // This property is ignored because the client can't update it.
+        /// <summary>
+        /// Gets or sets public server data.
+        /// </summary>
+        /// <remarks>
+        /// This property is ignored for msgpack serialization because the client can't update it.
+        /// </remarks>
         [MessagePackIgnore]
-        public Dictionary<string, string> PublicServerData { get; set; } = null;
+        public Dictionary<string, string>? PublicServerData { get; set; } = null;
 
+        /// <summary>
+        /// Creates a <see cref="PartySettingsDto"/> object.
+        /// </summary>
         public PartySettingsDto()
         {
         }
 
+        /// <summary>
+        /// Creates a <see cref="PartySettingsDto"/> object.
+        /// </summary>
+        /// <param name="config"></param>
         public PartySettingsDto(PartyConfiguration config)
         {
-            GameFinderName = string.Copy(config.GameFinderName);
-            CustomData = string.Copy(config.CustomData);
+            GameFinderName = config.GameFinderName;
+            CustomData = config.CustomData;
             OnlyLeaderCanInvite = config.OnlyLeaderCanInvite;
             IsJoinable = config.IsJoinable;
             PublicServerData = config.PublicServerData?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         }
 
+        /// <summary>
+        /// Clones the object.
+        /// </summary>
+        /// <returns></returns>
         public PartySettingsDto Clone()
         {
             return new PartySettingsDto
             {
-                GameFinderName = string.Copy(this.GameFinderName),
-                CustomData = string.Copy(this.CustomData),
+                GameFinderName = GameFinderName,
+                CustomData = CustomData,
                 OnlyLeaderCanInvite = this.OnlyLeaderCanInvite,
                 IsJoinable = this.IsJoinable,
                 PublicServerData = this.PublicServerData?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
             };
         }
 
-        public override bool Equals(object obj) => obj switch
+
+        /// <summary>
+        /// Tests for equality.
+        /// </summary>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        public bool Equals(PartySettingsDto? other) => other switch
         {
             PartySettingsDto dto => dto.GameFinderName == GameFinderName && dto.CustomData == CustomData && dto.OnlyLeaderCanInvite == OnlyLeaderCanInvite && dto.IsJoinable == IsJoinable,
             _ => false
         };
-
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
-        }
     }
 
     /// <summary>
@@ -90,24 +121,45 @@ namespace Stormancer.Server.Plugins.Party.Dto
     /// </summary>
     public class PartySettingsUpdateDto
     {
-        public const string Route = "party.settingsUpdated";
+        internal const string Route = "party.settingsUpdated";
 
+        /// <summary>
+        /// Gets or sets the name of the gamefinder currently selected.
+        /// </summary>
         [MessagePackMember(0)]
         public string GameFinderName { get; set; }
 
+        /// <summary>
+        /// Gets or sets custom data associated with the party.
+        /// </summary>
         [MessagePackMember(1)]
         public string CustomData { get; set; }
 
+        /// <summary>
+        /// Gets the settings version.
+        /// </summary>
+        /// <remarks>
+        /// The settings version is incremented each time they are changed. The client can use that to determine if it is up to date.
+        /// </remarks>
         [MessagePackMember(2)]
         public int SettingsVersion { get; set; }
 
-        // The member ordering is different from PartySettingsDto to maintain compatibility with older clients
+        /// <summary>
+        /// Gets or sets a <see cref="bool"/> indicating if invitation is restricted to the leader (true by default)
+        /// </summary>
         [MessagePackMember(3)]
         public bool OnlyLeaderCanInvite { get; set; } = true;
 
+        /// <summary>
+        /// Gets or sets a <see cref="bool"/> indicating if the party can be joined.
+        /// </summary>
         [MessagePackMember(4)]
         public bool IsJoinable { get; set; } = true;
 
+
+        /// <summary>
+        /// 
+        /// </summary>
         [MessagePackMember(5)]
         public Dictionary<string, string> PublicServerData { get; set; } = new Dictionary<string, string>();
 

@@ -9,6 +9,16 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Added support for cancellation
+- Support latest Users API.
+Added
+*****
+- Added ProfileProxy class to access profile features in S2S.
+
 2.1.1
 -----
 Changed

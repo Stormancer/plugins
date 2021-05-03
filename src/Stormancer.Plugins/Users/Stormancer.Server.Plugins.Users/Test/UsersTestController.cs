@@ -30,7 +30,7 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users.Test
 {
-    public class UsersTestController : ControllerBase
+    internal class UsersTestController : ControllerBase
     {
         private readonly IUserSessions userSessions;
 
@@ -40,9 +40,9 @@ namespace Stormancer.Server.Plugins.Users.Test
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc, Route = "users.test.GetSessionData")]
-        public async Task<string> GetSessionData(string key)
+        public async Task<string> GetSessionData(string key, RequestContext<IScenePeerClient> context)
         {
-            var value = await userSessions.GetSessionData<string>(Request.RemotePeer.SessionId, key);
+            var value = await userSessions.GetSessionData<string>(context.RemotePeer.SessionId, key, context.CancellationToken);
             return value;
         }
     }

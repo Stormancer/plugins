@@ -53,6 +53,10 @@ namespace Stormancer.Server.Plugins.Users
         {
             return SCENE_TEMPLATE;
         }
+        /// <summary>
+        /// Type <see cref="string"/> for the 'users' service.
+        /// </summary>
+        public const string SERVICE_TYPE = "stormancer.authenticator";
     }
 
   
@@ -119,13 +123,7 @@ namespace Stormancer.Server.Plugins.Users
             }
             else
             {
-                b.Register<UserSessionsProxy>(dr => new UserSessionsProxy(
-                      dr.Resolve<ISceneHost>(),
-                      dr.Resolve<ISerializer>(),
-                      dr.Resolve<IEnvironment>(),
-                      dr.Resolve<IServiceLocator>(),
-                      dr.Resolve<UserSessionCache>()
-                )).As<IUserSessions>().InstancePerRequest();
+                b.Register<UserSessionImpl>(dr=>new UserSessionImpl(dr.Resolve<UserSessionProxy>(), dr.Resolve<ISerializer>(), dr.Resolve<ISceneHost>())).As<IUserSessions>().InstancePerRequest();
             }
         }
 
@@ -181,7 +179,7 @@ namespace Stormancer.Server.Plugins.Users
         }
         public Task LocateService(ServiceLocationCtx ctx)
         {
-            if (ctx.ServiceType == "stormancer.authenticator")
+            if (ctx.ServiceType == Constants.SERVICE_TYPE)
             {
                 string authenticatorSceneId = config.Settings?.auth?.sceneId ?? Constants.GetSceneId();
                 ctx.SceneId = authenticatorSceneId;

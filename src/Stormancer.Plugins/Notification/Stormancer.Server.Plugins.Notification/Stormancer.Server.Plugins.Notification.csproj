@@ -5,9 +5,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>2.0.2</Version>
-    <AssemblyVersion>$(Version)</AssemblyVersion>
-    <FileVersion>$(Version)</FileVersion>
+    <Version>3.0.0</Version>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -37,6 +35,7 @@
     <PackageReference Include="Stormancer.Abstractions.Server" Version="4.2.0.4-pre" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api.S2SProxyGenerator\Stormancer.Server.Plugins.Api.S2SProxyGenerator.csproj"  OutputItemType="Analyzer" ReferenceOutputAssembly="false"  />
     <ProjectReference Include="..\..\Configuration\Stormancer.Server.Plugins.Configuration\Stormancer.Server.Plugins.Configuration.csproj" />
     <ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />
   </ItemGroup>

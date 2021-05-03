@@ -22,21 +22,34 @@
 
 using MsgPack.Serialization;
 using Stormancer.Core;
+using Stormancer.Plugins;
 using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Users;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
+    /// <summary>
+    /// Startup data passed to a game server.
+    /// </summary>
     public class GameServerStartupParameters
     {
+        /// <summary>
+        /// Gets the connection to the game session.
+        /// </summary>
         [MessagePackMember(0)]
-        public string GameSessionConnectionToken { get; set; }
+        public string GameSessionConnectionToken { get; set; } = default!;
 
+        /// <summary>
+        /// Gets or sets the gamesession config.
+        /// </summary>
         [MessagePackMember(1)]
-        public GameSessionConfiguration Config { get; set; }
+        public GameSessionConfiguration Config { get; set; } = default!;
 
-        public string GameSessionId { get; internal set; }
+        /// <summary>
+        /// Gets or sets the game session Id.
+        /// </summary>
+        public string GameSessionId { get; internal set; } = default!;
     }
 
     class ServerPoolController : ControllerBase
@@ -57,9 +70,9 @@ namespace Stormancer.Server.Plugins.GameSession
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<GameServerStartupParameters> SetReady()
+        public async Task<GameServerStartupParameters> SetReady(RequestContext<IScenePeerClient> ctx)
         {
-            var session = await sessions.GetSession(this.Request.RemotePeer);
+            var session = await sessions.GetSession(ctx.RemotePeer,ctx.CancellationToken);
             if(session == null)
             {
                 throw new ClientException("session.notFound");
@@ -69,7 +82,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 throw new ClientException("serverPool.notAuthenticatedAsDedicatedServer");
             }
 
-            return await pools.SetReady(session.platformId.OnlineId,this.Request.RemotePeer);
+            return await pools.SetReady(session.platformId.OnlineId,ctx.RemotePeer);
         }
     }
 }

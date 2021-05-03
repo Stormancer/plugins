@@ -22,8 +22,15 @@
 
 namespace Stormancer.Server.Plugins.Friends.RecentlyMet
 {
+    /// <summary>
+    /// Entrypoint class
+    /// </summary>
     public class App
     {
+        /// <summary>
+        /// Entrypoint method for the plugin.
+        /// </summary>
+        /// <param name="builder"></param>
         public void Run(IAppBuilder builder)
         {
             builder.AddPlugin(new RecentlyMetFriendsPlugin());

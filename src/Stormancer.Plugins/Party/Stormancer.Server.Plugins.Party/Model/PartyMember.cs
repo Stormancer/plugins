@@ -43,7 +43,7 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// <summary>
         /// Current User ID
         /// </summary>
-        public string UserId { get; set; }
+        public string UserId { get; set; } = default!;
 
      
         /// <summary>

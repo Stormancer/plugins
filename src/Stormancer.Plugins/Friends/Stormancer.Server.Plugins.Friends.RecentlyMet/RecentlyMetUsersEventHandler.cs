@@ -27,15 +27,16 @@ using Stormancer.Server.Plugins.GameSession;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Friends.RecentlyMet
 {
     class RecentTeam
     {
-        public string Id { get; set; }
+        public string Id { get; set; } = default!;
         public DateTimeOffset Date { get; set; }
-        public List<string> UserIds { get; set; }
+        public List<string> UserIds { get; set; } = default!;
     }
 
     class RecentlyMetUsersEventHandler : IFriendsEventHandler, IGameSessionEventHandler
@@ -66,7 +67,7 @@ namespace Stormancer.Server.Plugins.Friends.RecentlyMet
                 foreach (var userId in recentTeam.UserIds)
                 {
                     var friends = recentTeam.UserIds.Where(id => id != userId).Select(id => new Friend { UserId = id, LastConnected = date, Status = FriendStatus.Disconnected, Tags = new List<string> { "recentlyMet" } });
-                    tasks.Add(_friends.AddNonPersistedFriends(userId, friends));
+                    tasks.Add(_friends.AddNonPersistedFriends(userId, friends, CancellationToken.None));
                 }
             }
 
@@ -89,20 +90,7 @@ namespace Stormancer.Server.Plugins.Friends.RecentlyMet
             }
         }
 
-        public Task GameSessionCompleted(GameSessionCompleteCtx ctx)
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task GameSessionStarting(GameSessionContext ctx)
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task OnClientReady(ClientReadyContext ctx)
-        {
-            return Task.CompletedTask;
-        }
+      
     }
 
     internal static class EnumerableExtensions

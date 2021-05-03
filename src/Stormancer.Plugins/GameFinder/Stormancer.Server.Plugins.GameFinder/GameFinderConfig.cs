@@ -25,6 +25,9 @@ using System;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
+    /// <summary>
+    /// Config for gamefinders.
+    /// </summary>
     public class GameFinderConfig
     {
         internal GameFinderConfig(ISceneHost scene, string configId)
@@ -32,8 +35,8 @@ namespace Stormancer.Server.Plugins.GameFinder
             this.Scene = scene;
             ConfigId = configId;
         }
-        private Action<IDependencyBuilder> _registerDependencies;
-        private Action<ISceneHost> _onCreatingSceneCallbacks;
+        private Action<IDependencyBuilder>? _registerDependencies;
+        private Action<ISceneHost>? _onCreatingSceneCallbacks;
         /// <summary>
         /// Gets the id of the game finder being configured.
         /// </summary>

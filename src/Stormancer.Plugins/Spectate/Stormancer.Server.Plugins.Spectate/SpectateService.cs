@@ -29,7 +29,7 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Spectate
 {
-    public class SpectateService : ISpectateService
+    internal class SpectateService : ISpectateService
     {
         private readonly ISpectateRepository _spectateRepository;
         public readonly IUserSessions _userSessions;

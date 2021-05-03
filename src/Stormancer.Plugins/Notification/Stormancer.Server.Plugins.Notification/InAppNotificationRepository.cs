@@ -30,7 +30,7 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Notification
 {
-    public class InAppNotificationRepository
+    internal class InAppNotificationRepository
     {
         private readonly ILogger _logger;
         private const string INDEX_NAME = "inappnotification";

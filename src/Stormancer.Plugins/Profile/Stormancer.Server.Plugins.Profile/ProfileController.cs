@@ -27,9 +27,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Stormancer.Plugins;
+using System.Threading;
 
 namespace Stormancer.Server.Plugins.Profile
 {
+    [Service]
     class ProfileController : ControllerBase
     {
         private readonly IUserSessions _sessions;
@@ -45,26 +47,30 @@ namespace Stormancer.Server.Plugins.Profile
             _users = users;
         }
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<Dictionary<string, ProfileDto>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions)
+        public async Task<Dictionary<string, ProfileDto>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, RequestContext<IScenePeerClient> ctx)
         {
 
-            var session = await _sessions.GetSession(Request.RemotePeer);
-            var profiles = await _profiles.GetProfiles(userIds, displayOptions, session);
+            var session = await _sessions.GetSession(ctx.RemotePeer, ctx.CancellationToken);
+            if (session == null)
+            {
+                throw new ClientException("notAuthenticated");
+            }
+
+            var profiles = await _profiles.GetProfiles(userIds, displayOptions, session, ctx.CancellationToken);
             return profiles.ToDictionary(kvp => kvp.Key, kvp => new ProfileDto { Data = kvp.Value.ToDictionary(kvp2 => kvp2.Key, kvp2 => kvp2.Value.ToString()) });
         }
 
-        public async Task GetProfileInternal(RequestContext<IScenePeer> ctx)
+        [S2SApi]
+        public async Task<Dictionary<string, ProfileDto>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, CancellationToken cancellationToken)
         {
-            var userIds = _serializer.Deserialize<IEnumerable<string>>(ctx.InputStream);
-            var displayOptions = _serializer.Deserialize<Dictionary<string, string>>(ctx.InputStream);
-            var profiles = await _profiles.GetProfiles(userIds, displayOptions, null);
-            await ctx.SendValue(s => _serializer.Serialize(profiles, s));
+            var profiles = await _profiles.GetProfiles(userIds, displayOptions, null, cancellationToken);
+            return profiles.ToDictionary(kvp => kvp.Key, kvp => new ProfileDto { Data = kvp.Value.ToDictionary(kvp2 => kvp2.Key, kvp2 => kvp2.Value.ToString()) });
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<string> UpdateUserHandle(string handle)
+        public async Task<string> UpdateUserHandle(string handle, RequestContext<IScenePeerClient> ctx)
         {
-            var session = await _sessions.GetSession(Request.RemotePeer);
+            var session = await _sessions.GetSession(ctx.RemotePeer, ctx.CancellationToken);
             if (session == null)
             {
                 throw new ClientException("notAuthenticated");
@@ -76,7 +82,7 @@ namespace Stormancer.Server.Plugins.Profile
             }
             try
             {
-                return await _profiles.UpdateUserHandle(user.Id, handle);
+                return await _profiles.UpdateUserHandle(user.Id, handle, ctx.CancellationToken);
             }
             catch (RpcException ex)
             {
@@ -86,14 +92,14 @@ namespace Stormancer.Server.Plugins.Profile
 
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<Dictionary<string, ProfileDto>> QueryProfiles(string pseudoPrefix, int skip, int take)
+        public async Task<Dictionary<string, ProfileDto>> QueryProfiles(string pseudoPrefix, int skip, int take, RequestContext<IScenePeerClient> ctx)
         {
             if (pseudoPrefix.Length < 3)
             {
                 throw new ClientException("profiles.query.notEnoughCharacters?minLength=3");
             }
             var users = await _users.QueryUserHandlePrefix(pseudoPrefix, take, skip);
-            var profiles = await _profiles.GetProfiles(users.Select(u => u.Id), new Dictionary<string, string> { { "displayType", "summary" } }, await _sessions.GetSession(this.Request.RemotePeer));
+            var profiles = await _profiles.GetProfiles(users.Select(u => u.Id), new Dictionary<string, string> { { "displayType", "summary" } }, await _sessions.GetSession(ctx.RemotePeer, ctx.CancellationToken), ctx.CancellationToken);
             return profiles.ToDictionary(kvp => kvp.Key, kvp => new ProfileDto { Data = kvp.Value.ToDictionary(kvp2 => kvp2.Key, kvp2 => kvp2.Value.ToString()) });
         }
 
@@ -102,11 +108,12 @@ namespace Stormancer.Server.Plugins.Profile
         /// </summary>
         /// <param name="partId"></param>
         /// <param name="partFormatVersion">Version of the part format.</param>
+        /// <param name="ctx"></param>
         /// <returns></returns>
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task UpdateCustomProfilePart(string partId, string partFormatVersion)
+        public async Task UpdateCustomProfilePart(string partId, string partFormatVersion, RequestContext<IScenePeerClient> ctx)
         {
-            var session = await _sessions.GetSession(Request.RemotePeer);
+            var session = await _sessions.GetSession(ctx.RemotePeer, ctx.CancellationToken);
 
             if (session == null)
             {
@@ -118,18 +125,19 @@ namespace Stormancer.Server.Plugins.Profile
                 throw new ClientException("anonymousUser");
             }
 
-            await _profiles.UpdateCustomProfilePart(user.Id, partId, partFormatVersion, true,Request.InputStream);
+            await _profiles.UpdateCustomProfilePart(user.Id, partId, partFormatVersion, true, ctx.InputStream);
         }
 
         /// <summary>
         /// Deletes a profile part.
         /// </summary>
         /// <param name="partId"></param>
+        /// <param name="ctx"></param>
         /// <returns></returns>
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task DeleteCustomProfilePart(string partId)
+        public async Task DeleteCustomProfilePart(string partId, RequestContext<IScenePeerClient> ctx)
         {
-            var session = await _sessions.GetSession(Request.RemotePeer);
+            var session = await _sessions.GetSession(ctx.RemotePeer, ctx.CancellationToken);
 
             if (session == null)
             {
@@ -141,14 +149,19 @@ namespace Stormancer.Server.Plugins.Profile
                 throw new ClientException("anonymousUser");
             }
 
-            await _profiles.DeleteCustomProfilePart(user.Id, partId,true);
+            await _profiles.DeleteCustomProfilePart(user.Id, partId, true);
         }
     }
 
-
+    /// <summary>
+    /// An user profile object sent to clients.
+    /// </summary>
     public class ProfileDto
     {
+        /// <summary>
+        /// Gets the dictionary of parts in the profile, represented as json.
+        /// </summary>
         [MessagePackMember(0)]
-        public Dictionary<string, string> Data { get; set; }
+        public Dictionary<string, string> Data { get; set; } = default!;
     }
 }

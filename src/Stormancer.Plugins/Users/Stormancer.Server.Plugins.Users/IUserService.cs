@@ -23,15 +23,16 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
     public interface IUserService
     {
-        Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string,string>> query, int take, int skip);
+        Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string,string>> query, int take, int skip, CancellationToken cancellationToken);
 
-        Task<User> GetUser(string uid);
+        Task<User?> GetUser(string uid);
         Task<User> AddAuthentication(User user, string provider, Action<dynamic> authDataModifier, Dictionary<string,string> cacheEntries);
         Task<User> RemoveAuthentication(User user, string provider);
         Task<User?> GetUserByClaim(string provider, string claimPath, string login);
@@ -54,6 +55,6 @@ namespace Stormancer.Server.Plugins.Users
         Task Delete(string id);
 
         Task UpdateLastLoginDate(string userId);
-        Task<Dictionary<string, User?>> GetUsers(params string[] userIds);
+        Task<Dictionary<string, User?>> GetUsers(IEnumerable<string> userIds, CancellationToken cancellationToken);
     }
 }
