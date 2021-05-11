@@ -14,6 +14,7 @@ namespace Stormancer.Server.Plugins.Limits
     /// <summary>
     /// Provides S2S API for limits
     /// </summary>
+    [Service(Named =false, ServiceType = "stormancer.plugins.limits")]
     public class LimitsController : ControllerBase
     {
         private readonly ILimits limits;
@@ -31,7 +32,7 @@ namespace Stormancer.Server.Plugins.Limits
         /// Gets data about connection limits.
         /// </summary>
         /// <returns></returns>
-        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
+        [S2SApi]
         public UserConnectionLimitStatus GetConnectionLimitStatus()
         {
             return limits.GetUserLimitsStatus();

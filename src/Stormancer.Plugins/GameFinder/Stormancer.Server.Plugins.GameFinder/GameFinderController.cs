@@ -70,9 +70,9 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <returns></returns>
         [S2SApi]
-        public Dictionary<string, int> GetMetrics()
+        public async Task<Dictionary<string, int>> GetMetrics()
         {
-            return _gameFinderService.GetMetrics();
+            return await _gameFinderService.GetMetrics();
         }
 
         /// <summary>
@@ -101,9 +101,9 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <returns></returns>
         [Api(ApiAccess.Public, ApiType.Rpc, Route = "gamefinder.getmetrics")]
-        public Dictionary<string, int> GetMetricsClient()
+        public async Task<Dictionary<string, int>> GetMetricsClient()
         {
-            return _gameFinderService.GetMetrics();
+            return await _gameFinderService.GetMetrics();
         }
     
 

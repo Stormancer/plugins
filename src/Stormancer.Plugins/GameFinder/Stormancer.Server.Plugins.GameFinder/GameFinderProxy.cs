@@ -49,7 +49,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 ct.ThrowIfCancellationRequested();
 
 
-                await foreach (var teams in this.OpenGameSession(gameFinder, data, ct))
+                await foreach (var teams in OpenGameSession(gameFinder, data, ct))
                 {
                     foreach (var team in teams)
                     {

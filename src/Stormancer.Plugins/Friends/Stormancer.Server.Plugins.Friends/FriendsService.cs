@@ -297,7 +297,7 @@ namespace Stormancer.Server.Plugins.Friends
 
         public async Task Subscribe(IScenePeerClient peer, CancellationToken cancellationToken)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 var sessions = scope.Resolve<IUserSessions>();
                 var session = await sessions.GetSessionById(peer.SessionId, cancellationToken);
@@ -435,7 +435,7 @@ namespace Stormancer.Server.Plugins.Friends
         public Task Notify(FriendListUpdateDto data, string userId, CancellationToken cancellationToken) => Notify(data, Enumerable.Repeat(userId, 1), cancellationToken);
         public async Task Notify(FriendListUpdateDto data, IEnumerable<string> userIds, CancellationToken cancellationToken)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 var sessions = scope.Resolve<IUserSessions>();
                 var peers = (await Task.WhenAll(userIds.Select(key => sessions.GetPeer(key, cancellationToken)))).Where(p => p != null);

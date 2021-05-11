@@ -25,11 +25,21 @@ using System.IO;
 
 namespace Stormancer
 {
+    /// <summary>
+    /// Extension methods for<see cref="User"/> and <see cref="Session"/>.
+    /// </summary>
     public static class UserExtensions
     {
 
-
-        public static T GetSessionValue<T>(this Session session, string key, ISerializer serializer)
+        /// <summary>
+        /// Gets a value in the session data.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="session"></param>
+        /// <param name="key"></param>
+        /// <param name="serializer"></param>
+        /// <returns></returns>
+        public static T? GetSessionValue<T>(this Session session, string key, ISerializer serializer)
         {
             if (session.SessionData.TryGetValue(key, out var data))
             {
@@ -40,7 +50,7 @@ namespace Stormancer
             }
             else
             {
-                return default(T);
+                return default;
             }
         }
 

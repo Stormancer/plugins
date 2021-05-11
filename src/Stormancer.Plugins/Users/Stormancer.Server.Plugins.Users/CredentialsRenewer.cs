@@ -159,7 +159,7 @@ namespace Stormancer.Server.Plugins.Users
 
                     _logger.Log(LogLevel.Trace, "CredentialsRenewer.PeriodicRenewal", "Checking connected users for credentials expiration...", new { });
                     DateTime? closestExpirationDate;
-                    using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+                    await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
                     {
                         closestExpirationDate = await scope.Resolve<IAuthenticationService>().RenewCredentials(RenewalThreshold);
                     }

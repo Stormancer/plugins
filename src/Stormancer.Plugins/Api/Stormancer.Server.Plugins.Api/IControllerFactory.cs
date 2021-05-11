@@ -142,7 +142,7 @@ namespace Stormancer.Server.Plugins.API
 
         private async Task ExecuteConnectionRejected(IScenePeerClient client)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
             {
                 var controller = scope.Resolve<T>();
                 await controller.OnConnectionRejected(client);
@@ -151,7 +151,7 @@ namespace Stormancer.Server.Plugins.API
 
         private async Task ExecuteConnecting(IScenePeerClient client)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
             {
                 var controller = scope.Resolve<T>();
                 await controller.OnConnecting(client);
@@ -161,45 +161,45 @@ namespace Stormancer.Server.Plugins.API
 
         private async Task ExecuteConnected(IScenePeerClient client)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
             {
                 var controller = scope.Resolve<T>();
-                controller.Peer = client;
+                
                 await controller.OnConnected(client);
             }
         }
 
         private async Task ExecuteDisconnected(DisconnectedArgs args)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
             {
                 var controller = scope.Resolve<T>();
-                controller.Peer = args.Peer;
+               
                 await controller.OnDisconnected(args);
             }
         }
 
-        private Task ExecuteSceneStarting()
+        private async Task ExecuteSceneStarting()
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
             {
                 var controller = scope.Resolve<T>();
                 var handlers = _scene.DependencyResolver.Resolve<IEnumerable<IApiHandler>>();
                 var logger = _scene.DependencyResolver.Resolve<ILogger>();
-                return handlers.RunEventHandler(h => h.SceneStarting(_scene, controller), ex => logger.Log(LogLevel.Error, "api", $"An error occured on an handler while executing {nameof(IApiHandler.SceneStarting)}", ex));
+                await handlers.RunEventHandler(h => h.SceneStarting(_scene, controller), ex => logger.Log(LogLevel.Error, "api", $"An error occured on an handler while executing {nameof(IApiHandler.SceneStarting)}", ex));
 
 
             }
         }
 
-        private Task ExecuteShuttingDown(ShutdownArgs args)
+        private async Task ExecuteShuttingDown(ShutdownArgs args)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
             {
                 var controller = scope.Resolve<T>();
                 var handlers = _scene.DependencyResolver.Resolve<IEnumerable<IApiHandler>>();
                 var logger = _scene.DependencyResolver.Resolve<ILogger>();
-                return handlers.RunEventHandler(h => h.SceneShuttingDown(_scene, controller), ex => logger.Log(LogLevel.Error, "api", $"An error occured on an handler while executing {nameof(IApiHandler.SceneShuttingDown)}", ex));
+                await handlers.RunEventHandler(h => h.SceneShuttingDown(_scene, controller), ex => logger.Log(LogLevel.Error, "api", $"An error occured on an handler while executing {nameof(IApiHandler.SceneShuttingDown)}", ex));
 
 
             }
@@ -208,10 +208,10 @@ namespace Stormancer.Server.Plugins.API
 
         private async Task ExecuteRouteAction(ApiCallContext<Packet<IScenePeerClient>> ctx, Func<T, Packet<IScenePeerClient>, IDependencyResolver, Task> action)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
             {
                 var controller = scope.Resolve<T>();
-                controller.Peer = ctx.Context.Connection;
+               
 
                 try
                 {
@@ -234,11 +234,11 @@ namespace Stormancer.Server.Plugins.API
 
         private async Task ExecuteRouteAction(ApiCallContext<Packet<IScenePeer>> ctx, Func<T, Packet<IScenePeer>, IDependencyResolver, Task> action)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
             {
                 var controller = scope.Resolve<T>();
-                //controller.Request = ctx;
-                controller.Peer = ctx.Context.Connection;
+
+             
                 try
                 {
                     if (controller == null)
@@ -261,7 +261,7 @@ namespace Stormancer.Server.Plugins.API
 
         private async Task ExecuteS2SRequest(ApiCallContext<IS2SRequestContext> ctx, Func<T, IS2SRequestContext, IDependencyResolver, Task> action)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
             {
                 var controller = scope.Resolve<T>();
                 try
@@ -271,8 +271,7 @@ namespace Stormancer.Server.Plugins.API
                         throw new InvalidOperationException("The controller could not be found. Make sure it has been properly registered in the dependency manager.");
                     }
 
-                    controller.CancellationToken = ctx.Context.CancellationToken;
-
+                 
                     await action(controller, ctx.Context, scope);
                 }
                 catch (ClientException)
@@ -318,7 +317,7 @@ namespace Stormancer.Server.Plugins.API
         }
         private async Task ExecuteRpcAction(ApiCallContext<RequestContext<IScenePeerClient>> ctx, Func<T, RequestContext<IScenePeerClient>, IDependencyResolver, Task> action)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
             {
                 var controller = scope.Resolve<T>();
                 try
@@ -328,8 +327,7 @@ namespace Stormancer.Server.Plugins.API
                         throw new InvalidOperationException("The controller could not be found. Make sure it has been properly registered in the dependency manager.");
                     }
                     controller.Request = ctx.Context;
-                    controller.CancellationToken = ctx.Context.CancellationToken;
-                    controller.Peer = ctx.Context.RemotePeer;
+                   
 
                     await action(controller, ctx.Context, scope);
                 }
@@ -377,7 +375,7 @@ namespace Stormancer.Server.Plugins.API
 
         private async Task ExecuteRpcAction(ApiCallContext<RequestContext<IScenePeer>> ctx, Func<T, RequestContext<IScenePeer>, IDependencyResolver, Task> action)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
             {
                 var controller = scope.Resolve<T>();
                 try
@@ -387,8 +385,7 @@ namespace Stormancer.Server.Plugins.API
                         throw new InvalidOperationException("The controller could not be found. Make sure it has been properly registered in the dependency manager.");
                     }
                     //controller.Request = ctx;
-                    controller.CancellationToken = ctx.Context.CancellationToken;
-                    controller.Peer = ctx.Context.RemotePeer;
+                   
 
                     await action(controller, ctx.Context, scope);
                 }
@@ -855,7 +852,7 @@ namespace Stormancer.Server.Plugins.API
                     {
                         expr = Expression.Call(typeof(ApiHelpers).GetRuntimeMethodExt(nameof(ReadNextS2SArgumentCtx), _ => true), expr);
                     }
-                    if (parameter.ParameterType == typeof(CancellationToken))
+                    else if (parameter.ParameterType == typeof(CancellationToken))
                     {
                         expr = Expression.Call(typeof(ApiHelpers).GetRuntimeMethodExt(nameof(ReadNextS2SArgumentCt), _ => true), expr);
                     }
@@ -872,10 +869,11 @@ namespace Stormancer.Server.Plugins.API
                 return Expression.Lambda<Func<IS2SRequestContext, IDependencyResolver, Task<List<object?>>>>(Expression.Block(expressions), ctx, resolver).Compile();
             }
 
-            public static Task WriteResult<TData>(IS2SRequestContext ctx, TData value, IDependencyResolver resolver)
+            public static async Task WriteResult<TData>(IS2SRequestContext ctx, TData value, IDependencyResolver resolver)
             {
                 var serializer = resolver.Resolve<ISerializer>();
-                return serializer.SerializeAsync(value, ctx.Writer, ctx.CancellationToken);
+                await serializer.SerializeAsync(value, ctx.Writer, ctx.CancellationToken);
+                await ctx.Writer.CompleteAsync();
             }
 
             public static Task WriteResult<TData>(RequestContext<IScenePeerClient> ctx, TData value, IDependencyResolver resolver)
@@ -926,6 +924,7 @@ namespace Stormancer.Server.Plugins.API
                 {
                     await serializer.SerializeAsync(result, ctx.Writer, ctx.CancellationToken);
                 }
+                await ctx.Writer.CompleteAsync();
             }
 
 

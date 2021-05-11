@@ -234,6 +234,7 @@ namespace Stormancer.Server.Plugins.Party
                     return;
                 }
                 var user = session.User;
+                
 
                 var partyUser = new PartyMember { UserId = user.Id, StatusInParty = PartyMemberStatus.NotReady, Peer = peer };
                 _partyState.PartyMembers.TryAdd(peer.SessionId, partyUser);
@@ -270,7 +271,7 @@ namespace Stormancer.Server.Plugins.Party
 
         private async Task RunOperationCompletedEventHandler(Func<PartyService, IEnumerable<IPartyEventHandler>, IDependencyResolver, Task> runner)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 // Resolve the service on the new scope to avoid scope errors in event handlers
                 var service = (PartyService)scope.Resolve<IPartyService>();

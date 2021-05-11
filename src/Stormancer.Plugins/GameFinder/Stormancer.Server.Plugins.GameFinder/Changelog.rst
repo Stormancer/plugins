@@ -17,6 +17,7 @@ Added
 Changed
 *******
 - Update Users dependency to 5.x.
+- Correctly broadcast cancellation to all players in party.
 
 6.0.0.3
 -------

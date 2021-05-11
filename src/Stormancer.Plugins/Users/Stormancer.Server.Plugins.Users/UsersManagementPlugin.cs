@@ -101,9 +101,9 @@ namespace Stormancer.Server.Plugins.Users
         {
             if (scene.Template != Constants.SCENE_TEMPLATE)
             {
-                var index = scene.DependencyResolver.Resolve<UserSessionCache>();
-                scene.Connected.Add(index.OnConnected, 1000);
-                scene.Disconnected.Add(args => index.OnDisconnected(args.Peer));
+                //var index = scene.DependencyResolver.Resolve<UserSessionCache>();
+                //scene.Connected.Add(index.OnConnected, 1000);
+                //scene.Disconnected.Add(args => index.OnDisconnected(args.Peer));
             }
         }
 
@@ -151,7 +151,7 @@ namespace Stormancer.Server.Plugins.Users
             b.Register<UsersAdminController>();
             b.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
 
-            b.Register<UserSessionCache>(dr => new UserSessionCache(dr.Resolve<ISceneHost>(), dr.Resolve<ISerializer>(), dr.Resolve<ILogger>())).AsSelf().InstancePerScene();
+            //b.Register<UserSessionCache>(dr => new UserSessionCache(dr.Resolve<ISceneHost>(), dr.Resolve<ISerializer>(), dr.Resolve<ILogger>())).AsSelf().InstancePerScene();
             b.Register<PlatformSpecificServices>().As<IPlatformSpecificServices>();
         }
 

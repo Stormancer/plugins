@@ -85,15 +85,15 @@ namespace Stormancer.Server.Plugins.Party
                     scene.AddController<PartyController>();
 
 
-                    scene.Starting.Add(metadata =>
+                    scene.Starting.Add(async metadata =>
                     {
-                        using (var scope = scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+                        await using (var scope = scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
                         {
                             var service = scope.Resolve<IPartyService>();
                             service.SetConfiguration(metadata);
                         }
 
-                        return Task.FromResult(true);
+                        
                     });
                 }
 

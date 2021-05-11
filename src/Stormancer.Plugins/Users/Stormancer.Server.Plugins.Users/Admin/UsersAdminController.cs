@@ -131,7 +131,7 @@ namespace Stormancer.Server.Plugins.Users
                 throw new ClientException("NotFound");
             }
 
-            using var scope = scene.CreateRequestScope();
+            await using var scope = scene.CreateRequestScope();
             var auth = scope.Resolve<IAuthenticationService>();
             await auth.Unlink(user, provider);
         }
@@ -145,10 +145,10 @@ namespace Stormancer.Server.Plugins.Users
         /// <returns></returns>
         [HttpPost]
         [Route("{userId}/_kick")]
-        public Task Kick(string id, [FromBody] KickArguments args, CancellationToken cancellationToken)
+        public async Task Kick(string id, [FromBody] KickArguments args, CancellationToken cancellationToken)
         {
-            using var scope = scene.CreateRequestScope();
-            return scope.Resolve<IUserSessions>().KickUser(id, args.reason ?? "adminRequest", cancellationToken);
+            await using var scope = scene.CreateRequestScope();
+            await scope.Resolve<IUserSessions>().KickUser(id, args.reason ?? "adminRequest", cancellationToken);
         }
 
 

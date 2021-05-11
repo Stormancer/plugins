@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Supports Abstractions.Server 5.0.0
+
 0.1.5
 -----
 - Use Stormancer.Abstraction.Server 4.2.0

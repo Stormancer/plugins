@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Automatically assigns a Guid to TeamId.
+
 3.0.1
 -----
 - Use Stormancer.Abstraction.Server 6.1.0

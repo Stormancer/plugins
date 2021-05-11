@@ -38,12 +38,12 @@ foreach($analyzersPath in $analyzersPaths)
     $languageAnalyzersPath = join-path $analyzersPath $languageFolder
     if (Test-Path $languageAnalyzersPath)
     {
-        foreach ($analyzerFilePath in Get-ChildItem $languageAnalyzersPath -Filter *.dll)
-        {
-            if($project.Object.AnalyzerReferences)
-            {
-                $project.Object.AnalyzerReferences.Add($analyzerFilePath.FullName)
-            }
-        }
+         $analyzerPath = join-path $languageAnalyzersPath "Stormancer.Server.Plugins.Api.S2SProxyGenerator.dll"
+        
+         if($project.Object.AnalyzerReferences)
+         {
+            $project.Object.AnalyzerReferences.Add($analyzerPath)
+         }
+        
     }
 }

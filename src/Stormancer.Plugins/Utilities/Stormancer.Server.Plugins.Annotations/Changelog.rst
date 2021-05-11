@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+*****
+- Added GeneratePrivateImpl to S2SApiAttribute to force the code generator to generate the action proxy method as a private method of the proxy.
+
 1.0.0
 ------
 Added

@@ -94,9 +94,11 @@ namespace Stormancer.Server
         public async ValueTask DisposeAsync()
         {
             var rq = await requestTask;
+           
+            await inputPipe.Writer.CompleteAsync();
+            await outputPipe.Reader.CompleteAsync();
+
             rq.Dispose();
-            inputPipe.Reader.Complete(new ObjectDisposedException(nameof(S2SOperation)));
-            outputPipe.Writer.Complete(new ObjectDisposedException(nameof(S2SOperation)));
 
         }
 
@@ -172,7 +174,14 @@ namespace Stormancer.Server
             {
                 if (_result == null)
                 {
-                    _result = Reader.ReadObject<T>(serializer, ct);
+                    async Task<T> ReadObject(CancellationToken ct)
+                    {
+                        var r = await Reader.ReadObject<T>(serializer, ct);
+                        Reader.Complete();
+                        return r;
+                    }
+                    _result = ReadObject(ct);
+                    
                 }
                 return _result;
             }

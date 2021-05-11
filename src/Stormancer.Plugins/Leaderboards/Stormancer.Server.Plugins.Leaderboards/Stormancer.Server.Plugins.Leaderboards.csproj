@@ -33,7 +33,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="4.2.0.4-pre" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="5.0.0-pre" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Admin\Stormancer.Server.Plugins.AdminApi\Stormancer.Server.Plugins.WebApi.csproj" />

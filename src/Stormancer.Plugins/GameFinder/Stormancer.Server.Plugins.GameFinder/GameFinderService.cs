@@ -168,12 +168,12 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
             catch (Exception)
             {
-                await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Failed),ct);
+                await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Failed), ct);
                 throw;
             }
 
             PlayerPeer[]? peersInGroup = null;
-            using (var scope = _scene.DependencyResolver.CreateChild(Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 var sessions = scope.Resolve<IUserSessions>();
                 peersInGroup = await Task.WhenAll(party.Players.Select(async p =>
@@ -227,13 +227,13 @@ namespace Stormancer.Server.Plugins.GameFinder
                 {
                     s.WriteByte((byte)GameFinderStatusUpdate.SearchStart);
 
-                },ct);
+                }, ct);
                 state.State = RequestState.Ready;
             }
             catch (Exception ex)
             {
                 state.Tcs.SetException(ex);
-                await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Failed),ct);
+                await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Failed), ct);
 
             }
 
@@ -243,7 +243,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
             catch (TaskCanceledException)
             {
-                await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Cancelled), ct);
+                await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Cancelled), CancellationToken.None);
             }
             finally //Always remove party from list.
             {
@@ -308,7 +308,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             var waitingParties = _data.waitingParties.Where(kvp => kvp.Value.State == RequestState.Ready).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             try
             {
-                using (var scope = _scene.CreateRequestScope())
+                await using (var scope = _scene.CreateRequestScope())
                 {
                     foreach (var value in waitingParties.Values)
                     {
@@ -367,7 +367,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
                         //_logger.Log(LogLevel.Debug, $"{LOG_CATEGORY}.FindGamesOnce", $"Resolve game for {waitingParties.Count} players", new { waitingCount = waitingParties.Count, currentGame = game });
                         _ = ResolveGameFound(game, waitingParties, resolver, cancellationToken); // Resolve game, but don't wait for completion.
-                                                                              //_logger.Log(LogLevel.Debug, $"{LOG_CATEGORY}.FindGamesOnce", $"Resolve complete game for {waitingParties.Count} players", new { waitingCount = waitingParties.Count, currentGame = game });
+                                                                                                 //_logger.Log(LogLevel.Debug, $"{LOG_CATEGORY}.FindGamesOnce", $"Resolve complete game for {waitingParties.Count} players", new { waitingCount = waitingParties.Count, currentGame = game });
                     }
                     foreach (var ticket in games.GameSessionTickets)
                     {
@@ -404,7 +404,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
         }
 
-        private async Task ResolveGameFound(IGameCandidate gameCandidate, Dictionary<Party, GameFinderRequestState> waitingParties, IGameFinderResolver resolver,CancellationToken cancellationToken)
+        private async Task ResolveGameFound(IGameCandidate gameCandidate, Dictionary<Party, GameFinderRequestState> waitingParties, IGameFinderResolver resolver, CancellationToken cancellationToken)
         {
             try
             {
@@ -491,7 +491,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                             // Write the connection token first, if a scene was created by the resolver, or if joining an existing session
                             if (!string.IsNullOrEmpty(gameSceneId))
                             {
-                                using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
+                                await using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
                                 {
                                     var gameSessions = scope.Resolve<IGameSessions>();
                                     var token = ClientSupportsV3Token(player) switch
@@ -547,7 +547,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
             catch (Exception)
             {
-                await BroadcastToPlayers(gameCandidate, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Failed),cancellationToken);
+                await BroadcastToPlayers(gameCandidate, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Failed), cancellationToken);
                 throw;
             }
         }
@@ -599,7 +599,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         public async Task ResolveReadyRequest(Packet<IScenePeerClient> packet)
         {
             User? user = null;
-            using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 var sessions = scope.Resolve<IUserSessions>();
                 user = await sessions.GetUser(packet.Connection, CancellationToken.None);
@@ -669,17 +669,18 @@ namespace Stormancer.Server.Plugins.GameFinder
             return handlers().RunEventHandler(h => h.OnEnd(sectx), ex => { });
         }
 
-        private Task<IScenePeerClient?> GetPlayer(Player member, CancellationToken cancellationToken)
+        private async Task<IScenePeerClient?> GetPlayer(Player member, CancellationToken cancellationToken)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 var sessions = scope.Resolve<IUserSessions>();
-                return sessions.GetPeer(member.UserId, cancellationToken);
+                return await sessions.GetPeer(member.UserId, cancellationToken);
             }
         }
 
         private async Task<IEnumerable<IScenePeerClient>> GetPlayers(Party party, CancellationToken cancellationToken)
         {
+
             var peers = await Task.WhenAll(party.Players.Values.Select(p => GetPlayer(p, cancellationToken)));
             return peers.Where(p => p != null)!;
         }
@@ -710,9 +711,9 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
         }
 
-        public Dictionary<string, int> GetMetrics()
+        public async ValueTask<Dictionary<string, int>> GetMetrics()
         {
-            using (var scope = _scene.CreateRequestScope())
+            await using (var scope = _scene.CreateRequestScope())
             {
                 return scope.Resolve<IGameFinderAlgorithm>().GetMetrics();
             }
@@ -856,10 +857,18 @@ namespace Stormancer.Server.Plugins.GameFinder
             return false;
         }
 
-        IAsyncEnumerable<IEnumerable<Team>> IGameFinderService.OpenGameSession(JObject data, IS2SRequestContext request)
+        async IAsyncEnumerable<IEnumerable<Team>> IGameFinderService.OpenGameSession(JObject data, IS2SRequestContext request)
         {
             var subject = new Subject<IEnumerable<Team>>();
-            var session = new OpenGameSession(request.Origin, data, subject);
+            var indexOfSharp = request.Origin.IndexOf('#');
+
+            var origin = indexOfSharp < 0 ? request.Origin : request.Origin.Substring(0, indexOfSharp);
+            if (indexOfSharp >= 0)
+            {
+
+            }
+
+            var session = new OpenGameSession(origin, data, subject);
 
             bool added = _data.openGameSessions.TryAdd(session.SceneId, session);
             if (!added)
@@ -880,7 +889,10 @@ namespace Stormancer.Server.Plugins.GameFinder
                     }
                 });
 
-                return subject.ToAsyncEnumerable();
+                await foreach (var item in subject.ToAsyncEnumerable().WithCancellation(request.CancellationToken))
+                {
+                    yield return item;
+                }
             }
             finally
             {

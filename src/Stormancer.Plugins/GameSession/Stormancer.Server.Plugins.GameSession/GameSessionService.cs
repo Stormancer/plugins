@@ -242,7 +242,7 @@ namespace Stormancer.Server.Plugins.GameSession
             }
             else
             {
-                using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+                await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
                 {
                     var sessions = scope.Resolve<IUserSessions>();
                     return (await sessions.GetUser(peer, CancellationToken.None))?.Id;
@@ -302,7 +302,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     currentClient.Status = PlayerStatus.Ready;
                     var ctx = new ClientReadyContext(peer);
 
-                    using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+                    await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
                     {
                         await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.OnClientReady(ctx), ex =>
                         {
@@ -557,7 +557,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 }
 
                 var playerConnectedCtx = new ClientConnectedContext(this, new PlayerPeer(peer, new Player(peer.SessionId, userId)), _config.HostUserId == userId);
-                using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
+                await using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
                 {
                     await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
                         h => h.OnClientConnected(playerConnectedCtx),
@@ -584,7 +584,7 @@ namespace Stormancer.Server.Plugins.GameSession
             Debug.Assert(_config != null);
 
             var ctx = new GameSessionContext(this._scene, _config, this);
-            using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(h => h.GameSessionStarting(ctx), ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing GameSessionStarting event", ex));
             }
@@ -726,7 +726,7 @@ namespace Stormancer.Server.Plugins.GameSession
             Debug.Assert(_config != null);
 
             var ctx = new GameSessionCompleteCtx(this, _scene, _config, new[] { new GameSessionResult("", null, inputStream) }, _clients.Keys);
-            using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.GameSessionCompleted(ctx), ex =>
                 {
@@ -767,7 +767,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
                     async Task runHandlers()
                     {
-                        using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+                        await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
                         {
                             await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.GameSessionCompleted(ctx), ex =>
                             {

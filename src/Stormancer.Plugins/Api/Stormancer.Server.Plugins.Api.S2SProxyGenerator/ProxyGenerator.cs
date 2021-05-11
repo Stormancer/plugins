@@ -273,7 +273,7 @@ using Stormancer.Server.Plugins.ServiceLocator;
 ");
                         foreach (var parameter in method.Parameters)
                         {
-                            if (!SymbolEqualityComparer.Default.Equals(parameter.Type, s2sRequestContextSymbol))
+                            if (!SymbolEqualityComparer.Default.Equals(parameter.Type, s2sRequestContextSymbol) && !SymbolEqualityComparer.Default.Equals(parameter.Type, cancellationTokenSymbol))
                             {
                                 buffer.Append($@"                await writer.WriteObject({parameter.Name}, serializer, cancellationToken);
 ");
@@ -283,7 +283,7 @@ using Stormancer.Server.Plugins.ServiceLocator;
                         buffer.Append(@"
             }, cancellationToken);
 ");
-
+                      
                         switch (resultType)
                         {
                             case ReturnType.AsyncEnumerable:
@@ -296,7 +296,8 @@ using Stormancer.Server.Plugins.ServiceLocator;
                                 buffer.Append(@"            return await result.GetResultAsync(cancellationToken);");
                                 break;
                             case ReturnType.TaskVoid:
-
+                                buffer.Append(@"            await result.Reader.ReadAsync(cancellationToken);
+");
                                 break;
                             case ReturnType.Operation:
                                 buffer.Append("            return result;");

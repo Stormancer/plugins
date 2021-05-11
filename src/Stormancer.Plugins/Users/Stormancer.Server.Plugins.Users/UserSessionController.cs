@@ -206,18 +206,29 @@ namespace Stormancer.Server.Plugins.Users
             await Task.WhenAll(ctx.Reader.CopyToAsync(rq.Writer, ctx.CancellationToken), rq.Reader.CopyToAsync(ctx.Writer));
 
         }
+
         [S2SApi]
         public Task<int> GetAuthenticatedUsersCount(CancellationToken cancellationToken)
         {
             return _sessions.GetAuthenticatedUsersCount(cancellationToken);
         }
 
+        /// <summary>
+        /// Gets the number of users currently authenticated.
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         [S2SApi]
         public Task<int> GetAuthenticatedUsersCountPublic(CancellationToken cancellationToken)
         {
             return _sessions.GetAuthenticatedUsersCount(cancellationToken);
         }
 
+        /// <summary>
+        /// Creates a bearer token that contains the user's session id.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task<string> CreateUserBearerToken(RequestContext<IScenePeerClient> ctx)
         {
@@ -226,6 +237,11 @@ namespace Stormancer.Server.Plugins.Users
             return Jose.JWT.Encode(new Dictionary<string, string?> { { "userId", session?.User?.Id } }, _key.Value, Jose.JwsAlgorithm.HS256);
         }
 
+        /// <summary>
+        /// Check the signature of a bearer token and get the user id it was created for.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns></returns>
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public string? GetUserIdFromBearerToken(string token)
         {
