@@ -9,12 +9,13 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+3.0.0.4
+-------
 Changed
 *******
 - Add CancellationToken to INotificationProvider.Send() 
 - Support Users 5.x API.
+- Use Stormancer.Abstraction.Server 5.0.0
 
 2.0.2
 -----

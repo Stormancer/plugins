@@ -9,11 +9,14 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+2.1.0.5
+-------
 Added
 ******
 - Added IRemotePipe interface implemented by S2SOperation.
+Changed
+*******
+- Use Stormancer.Abstraction.Server 5.0.0
 
 2.0.4.1
 -------

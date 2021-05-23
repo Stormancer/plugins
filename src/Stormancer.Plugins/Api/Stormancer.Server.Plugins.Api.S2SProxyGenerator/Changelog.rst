@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+1.0.2.4
+-------
 Changed
 *******
 - Ensure nuget package is an analyzer package.

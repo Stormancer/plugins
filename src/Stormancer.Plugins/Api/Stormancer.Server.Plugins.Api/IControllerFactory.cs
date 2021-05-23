@@ -804,6 +804,9 @@ namespace Stormancer.Server.Plugins.API
             public static void ReadObject<TData>(Packet<IScenePeerClient> ctx, out TData output, IDependencyResolver resolver) => output = ctx.ReadObject<TData>();
             public static void ReadObject<TData>(RequestContext<IScenePeerClient> ctx, out TData output, IDependencyResolver resolver) => output = ctx.ReadObject<TData>();
 
+            public static void ReadCt(RequestContext<IScenePeer> ctx, out CancellationToken output, IDependencyResolver resolver) => output = ctx.CancellationToken;
+            public static void ReadCt(RequestContext<IScenePeerClient> ctx, out CancellationToken output, IDependencyResolver resolver) => output = ctx.CancellationToken;
+
             public static async Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadObject<TData>(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> t)
             {
                 var tuple = t.Result;
@@ -1094,6 +1097,15 @@ namespace Stormancer.Server.Plugins.API
                     if (parameterInfo.ParameterType == ctxType)
                     {
                         block.Add(Expression.Assign(variables[i], ctx)); //output[i] = ctx;
+                    }
+                    else if(parameterInfo.ParameterType == typeof(CancellationToken))
+                    {
+                        var readObjectMethod = typeof(ApiHelpers).GetRuntimeMethodExt("ReadCt", p => p[0].ParameterType == typeof(TRq));//Select good ReadCt overload
+                        if(readObjectMethod == null)
+                        {
+                            throw new NotSupportedException("Only RPC support cancellation.");
+                        }
+                        block.Add(Expression.Call(readObjectMethod, ctx, variables[i], resolver));
                     }
                     else
                     {

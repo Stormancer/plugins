@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+2.0.3.1
+-------
+Changed
+*******
+- Target Final Stormancer.Abstraction 5.0.0
+
 2.0.3
 -----
 Changed

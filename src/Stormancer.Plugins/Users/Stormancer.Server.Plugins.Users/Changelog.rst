@@ -9,11 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+5.0.0.10
+--------
 Changed
 *******
 - Use the new S2S API system and proxy generator.
+- Use Stormancer.Abstraction.Server 5.0.0
 
 4.7.0
 -------

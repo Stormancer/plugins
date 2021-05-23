@@ -9,7 +9,7 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
+6.1.0.12
 ----------
 Added
 *****
@@ -18,6 +18,7 @@ Changed
 *******
 - Update Users dependency to 5.x.
 - Correctly broadcast cancellation to all players in party.
+- Use Stormancer.Abstractions.Server 5.0.0
 
 6.0.0.3
 -------

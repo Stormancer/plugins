@@ -35,7 +35,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="MsgPack.Cli" Version="1.0.1" />
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="5.0.0-pre" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>

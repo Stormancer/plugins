@@ -9,13 +9,14 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+3.0.0.2
+-------
 Changed
 *******
 - Updated Users dependency to 5.x
 - Added a CancellationToken parameter to most async APIs.
 - Use new S2S protocols internally and use code generator to create S2S proxy.
+- Use Stormancer.Abstraction.Server 5.0.0
 
 2.0.2
 -----

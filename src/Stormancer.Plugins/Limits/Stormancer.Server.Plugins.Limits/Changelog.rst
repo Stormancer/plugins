@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+0.1.6
+-----
 Changed
 *******
 - Supports Abstractions.Server 5.0.0
