@@ -23,6 +23,7 @@ Removed
 - Removed deprecated OpenToGameFinder API. Use GameFinderProxy.OpenGameSession instead.
 
 4.0.7
+-----
 Changed
 *******
 - Use Stormancer.Abstraction.Server 4.2.0.
