@@ -41,29 +41,7 @@ namespace Stormancer.Server.Plugins.API
         /// </summary>
         public RequestContext<IScenePeerClient>? Request { get; internal set; }
 
-        /// <summary>
-        /// Gets the <see cref="CancellationToken"/> of the current request.
-        /// </summary>
-        [Obsolete("Use the cancellation token in the request object.")]
-        public CancellationToken? CancellationToken { get; internal set; }
-
-        /// <summary>
-        /// Gets the peer for a S2S request.
-        /// </summary>
-        [Obsolete]
-        public IScenePeer? Peer { get; internal set; }
-
-        /// <summary>
-        /// Gets a value indicating if the current request is an S2S request.
-        /// </summary>
-        [Obsolete]
-        public bool IsS2S
-        {
-            get
-            {
-                return !(Peer is IScenePeerClient);
-            }
-        }
+        
         /// <summary>
         /// Handles exceptions uncatched by the route itself.
         /// </summary>

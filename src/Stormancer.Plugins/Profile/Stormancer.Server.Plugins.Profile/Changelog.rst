@@ -9,6 +9,18 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+2.2.0.2
+-------
+Changed
+*******
+- Added support for cancellation
+- Support latest Users API.
+- Use Stormancer.Abstraction.Server 5.0.0
+
+Added
+*****
+- Added ProfileProxy class to access profile features in S2S.
+
 2.1.1
 -----
 Changed

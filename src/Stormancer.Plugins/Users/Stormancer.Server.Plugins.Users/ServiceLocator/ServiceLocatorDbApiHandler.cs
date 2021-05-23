@@ -28,10 +28,18 @@ namespace Stormancer.Server.Plugins.ServiceLocator
         public Task SceneStarting(ISceneHost scene, ControllerBase controller)
         {
             var serviceAttribute = controller.GetType().GetCustomAttribute<ServiceAttribute>();
-            if (serviceAttribute != null && controller is IServiceMetadataProvider metadataProvider)
+            if (serviceAttribute != null)
             {
-                db.AddScene(serviceAttribute.ServiceType?? GetDefaultServiceType(controller.GetType()), metadataProvider.GetServiceInstanceId(scene), scene);
+                if (controller is IServiceMetadataProvider metadataProvider)
+                {
+                    db.AddScene(serviceAttribute.ServiceType ?? GetDefaultServiceType(controller.GetType()), metadataProvider.GetServiceInstanceId(scene), scene);
+                }
+                else
+                {
+                    db.AddScene(serviceAttribute.ServiceType ?? GetDefaultServiceType(controller.GetType()), string.Empty, scene);
+                }
             }
+            
             return Task.CompletedTask;
         }
         private string GetDefaultServiceType(Type controllerType)

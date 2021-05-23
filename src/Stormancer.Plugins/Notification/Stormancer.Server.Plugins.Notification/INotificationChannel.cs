@@ -21,13 +21,24 @@
 // SOFTWARE.
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Notification
 {
+    /// <summary>
+    /// A way to send notification to players.
+    /// </summary>
     public interface INotificationChannel
     {
-        Task<bool> SendNotification(string type, dynamic data);
+        /// <summary>
+        /// Tries to send a notification.
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="data"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<bool> SendNotification(string type, dynamic data, CancellationToken cancellationToken);
     }
 
     internal class NotificationChannel : INotificationChannel
@@ -39,11 +50,11 @@ namespace Stormancer.Server.Plugins.Notification
             _providers = providers;
         }
 
-        public async Task<bool> SendNotification(string type, dynamic data)
+        public async Task<bool> SendNotification(string type, dynamic data, CancellationToken cancellationToken)
         {
             foreach (var provider in _providers())
             {
-                if (await provider.SendNotification(type, data))
+                if (await provider.SendNotification(type, data,cancellationToken))
                 {
                     return true;
                 }

@@ -33,7 +33,7 @@ using System.Reactive.Linq;
 
 namespace Stormancer.Server.Plugins.Users
 {
-    public sealed class AuthenticationController : ControllerBase
+    internal sealed class AuthenticationController : ControllerBase
     {
 
         private readonly IAuthenticationService _auth;
@@ -55,7 +55,7 @@ namespace Stormancer.Server.Plugins.Users
             if (s != null)
             {
                 DisconnectionReason reason;
-                switch(args.Reason)
+                switch (args.Reason)
                 {
                     case "CONNECTION_LOST":
                         reason = DisconnectionReason.ConnectionLoss;
@@ -67,8 +67,8 @@ namespace Stormancer.Server.Plugins.Users
                         reason = DisconnectionReason.ServerRequest;
                         break;
                 }
-             
-                await s.LogOut(args.Peer,reason);
+
+                await s.LogOut(args.Peer, reason);
             }
 
         }
@@ -86,33 +86,35 @@ namespace Stormancer.Server.Plugins.Users
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<LoginResult> Login(AuthParameters parameters)
+        public async Task<LoginResult> Login(AuthParameters parameters, RequestContext<IScenePeerClient> ctx)
         {
-            return await _auth.Login(parameters, this.Request.RemotePeer, this.Request.CancellationToken);
+            return await _auth.Login(parameters, ctx.RemotePeer, ctx.CancellationToken);
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task RememberDeviceForTwoFactor(RememberDeviceParameters parameters)
+        public async Task RememberDeviceForTwoFactor(RememberDeviceParameters parameters, RequestContext<IScenePeerClient> ctx)
         {
-            await _auth.RememberDeviceFor2fa(parameters, this.Request.RemotePeer, this.Request.CancellationToken);
+            await _auth.RememberDeviceFor2fa(parameters, ctx.RemotePeer, ctx.CancellationToken);
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public Task<Dictionary<string, string>> GetStatus() => _auth.GetStatus((IScenePeerClient)this.Peer);
+        public Task<Dictionary<string, string>> GetStatus(RequestContext<IScenePeerClient> ctx) => _auth.GetStatus(ctx.RemotePeer, ctx.CancellationToken);
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task Unlink(string type)
+        public async Task Unlink(string type, RequestContext<IScenePeerClient> ctx)
         {
-            var user = await sessions.GetUser((IScenePeerClient)Peer);
+            var user = await sessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
+            if (user == null)
+            {
+                throw new ClientException("NotFound");
+            }
             await _auth.Unlink(user, type);
         }
-        [Api(ApiAccess.Public, ApiType.Rpc, Route="sendRequest")]
+        [Api(ApiAccess.Public, ApiType.Rpc, Route = "sendRequest")]
         public async Task SendRequest(string userId, RequestContext<IScenePeerClient> ctx)
         {
-            
-          
-            var peer = await sessions.GetPeer(userId);
-            var sender = await sessions.GetUser(ctx.RemotePeer);
+            var peer = await sessions.GetPeer(userId, ctx.CancellationToken);
+            var sender = await sessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
 
             if (peer == null)
             {
@@ -120,7 +122,7 @@ namespace Stormancer.Server.Plugins.Users
             }
             var tcs = new TaskCompletionSource<bool>();
 
-            
+
             var disposable = rpc.Rpc("sendRequest", peer, s =>
             {
                 peer.Serializer().Serialize(sender.Id, s);
@@ -141,7 +143,7 @@ namespace Stormancer.Server.Plugins.Users
             try
             {
                 await tcs.Task;
-                
+
             }
             catch (TaskCanceledException ex)
             {

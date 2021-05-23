@@ -23,6 +23,7 @@ using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Users;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Profile
@@ -38,16 +39,18 @@ namespace Stormancer.Server.Plugins.Profile
         /// <param name="userIds"></param>
         /// <param name="displayOptions"></param>
         /// <param name="requestingUser"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<Dictionary<string,Dictionary<string,JObject>>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, Session requestingUser);
+        Task<Dictionary<string,Dictionary<string,JObject>>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, Session? requestingUser, CancellationToken cancellationToken);
 
         /// <summary>
         /// Updates the user handle and returns the new handle.
         /// </summary>
         /// <param name="userId"></param>
         /// <param name="newHandle"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<string> UpdateUserHandle(string userId, string newHandle);
+        Task<string> UpdateUserHandle(string userId, string newHandle, CancellationToken cancellationToken);
 
         /// <summary>
         /// Updates a custom profile part associated with an user.

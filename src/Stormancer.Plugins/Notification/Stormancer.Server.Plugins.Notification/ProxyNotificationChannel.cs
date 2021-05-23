@@ -32,9 +32,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using System.Threading;
 
 namespace Stormancer.Server.Plugins.Notification
 {
+    [Service(ServiceType = "stormancer.plugins.notifications")]
     class NotificationChannelController : ControllerBase
     {
         private readonly INotificationChannel channel;
@@ -44,51 +46,34 @@ namespace Stormancer.Server.Plugins.Notification
             this.channel = channel;
         }
 
-        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
-        public Task<bool> SendNotification(string type, InAppNotification data)
-        {            
-            return channel.SendNotification(type, data);
+        [S2SApi]
+        public Task<bool> SendNotification(string type, InAppNotification data, CancellationToken cancellationToken)
+        {
+            return channel.SendNotification(type, data, cancellationToken);
         }
     }
 
     class ProxyNotificationChannel : INotificationChannel
     {
-        private readonly ISceneHost _scene;
-        private readonly ISerializer _serializer;
+        private readonly NotificationChannelProxy proxy;
 
-        public ProxyNotificationChannel(ISceneHost scene, ISerializer serializer)
+        public ProxyNotificationChannel(NotificationChannelProxy proxy)
         {
-            _serializer = serializer;
-            _scene = scene;
+            this.proxy = proxy;
         }
 
-        public async Task<bool> SendNotification(string type, dynamic data)
+        public Task<bool> SendNotification(string type, dynamic data, CancellationToken cancellationToken)
         {
             var notif = data as InAppNotification;
 
             if (notif == null)
             {
-                return false;
+                return Task.FromResult(false);
             }
 
-            using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
-            {
-                var locator = scope.Resolve<IServiceLocator>();
+            return proxy.SendNotification(type, notif, cancellationToken);
 
-                var rpc = _scene.DependencyResolver.Resolve<RpcService>();
-                return await rpc.Rpc("NotificationChannel.SendNotification", new MatchSceneFilter(await locator.GetSceneId("stormancer.plugins.notifications", "")), s =>
-                {
-                    _serializer.Serialize(type, s);
-                    _serializer.Serialize(notif, s);
-                }, PacketPriority.MEDIUM_PRIORITY).Select(p=>
-                {
-                    using (p)
-                    {
-                        return _serializer.Deserialize<bool>(p.Stream);
-                    }
-                }).LastOrDefaultAsync();
-   
-            }
+            
         }
     }
 }

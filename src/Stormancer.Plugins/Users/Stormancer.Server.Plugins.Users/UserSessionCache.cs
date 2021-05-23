@@ -244,7 +244,7 @@ namespace Stormancer.Server.Plugins.Users
 
         private async Task<TOut> AuthenticatorRpc<TOut, TArg1>(string route, string type, TArg1 arg1)
         {
-            using (var scope = scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+            await using (var scope = scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 var rpc = scope.Resolve<RpcService>();
                 var locator = scope.Resolve<IServiceLocator>();

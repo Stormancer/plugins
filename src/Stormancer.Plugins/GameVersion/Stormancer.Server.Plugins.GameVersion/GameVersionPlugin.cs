@@ -44,7 +44,10 @@ namespace Stormancer.Server.Plugins.GameVersion
 
             ctx.SceneCreated += (ISceneHost scene) =>
             {
-                scene.DependencyResolver.Resolve<GameVersionService>();
+                if (scene.Metadata.ContainsKey(METADATA_KEY))
+                {
+                    scene.DependencyResolver.Resolve<GameVersionService>();
+                }
             };
 
             ctx.HostStarting += (IHost host) =>

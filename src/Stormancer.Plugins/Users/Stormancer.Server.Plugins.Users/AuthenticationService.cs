@@ -120,7 +120,7 @@ namespace Stormancer.Server.Plugins.Users
 
                     if (authResult.AuthenticatedUser != null)
                     {
-                        var oldPeer = await _sessions.GetPeer(authResult.AuthenticatedUser.Id);
+                        var oldPeer = await _sessions.GetPeer(authResult.AuthenticatedUser.Id, ct);
                         if (oldPeer != null && oldPeer.SessionId != peer.SessionId)
                         {
                             try
@@ -157,13 +157,13 @@ namespace Stormancer.Server.Plugins.Users
                     });
                     result.Success = true;
                     result.UserId = authResult?.AuthenticatedUser?.Id;
-                    result.Username = authResult?.AuthenticatedUser?.UserData[UsersConstants.UserHandleKey]?.ToObject<string>()??string.Empty;
+                    result.Username = authResult?.AuthenticatedUser?.UserData[UsersConstants.UserHandleKey]?.ToObject<string>() ?? string.Empty;
                     session = await sessions.GetSessionRecordById(peer.SessionId);
 
                     Debug.Assert(session != null);//We just created the session.
 
                     result.Authentications = session.Identities.ToDictionary(entry => entry.Key, entry => entry.Value);
-                    var ctx = new LoggedInCtx { Result = result, Session = session, AuthCtx = authenticationCtx };
+                    var ctx = new LoggedInCtx { Result = result, Session = session, AuthCtx = authenticationCtx, CancellationToken = ct };
                     await _handlers().RunEventHandler(h => h.OnLoggedIn(ctx), ex => _logger.Log(LogLevel.Error, "user.login", "An error occured while running OnLoggedIn event handler", ex));
                 }
                 else
@@ -244,9 +244,14 @@ namespace Stormancer.Server.Plugins.Users
 
         }
 
-        public async Task<Dictionary<string, string>> GetStatus(IScenePeerClient peer)
+        public async Task<Dictionary<string, string>> GetStatus(IScenePeerClient peer, CancellationToken cancellationToken)
         {
-            var session = await _sessions.GetSession(peer);
+            var session = await _sessions.GetSession(peer, cancellationToken);
+            if (session == null)
+            {
+                return new Dictionary<string, string>();
+            }
+
             var result = new Dictionary<string, string>(session.Identities.ToDictionary(entry => entry.Key, entry => entry.Value));
             var tasks = new List<Task>();
             foreach (var provider in _authProviders)

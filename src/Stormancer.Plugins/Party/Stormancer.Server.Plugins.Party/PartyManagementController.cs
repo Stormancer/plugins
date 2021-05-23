@@ -52,12 +52,16 @@ namespace Stormancer.Server.PartyManagement
         public async Task CreateSession(RequestContext<IScenePeerClient> ctx)
         {
             var partyArgs = ctx.ReadObject<PartyRequestDto>();
-            if(string.IsNullOrEmpty(partyArgs.GameFinderName))
+            if (string.IsNullOrEmpty(partyArgs.GameFinderName))
             {
                 throw new ClientException("party.creationFailed?reason=gameFinderNotSet");
             }
-            var user = await _userSessionsProxy.GetUser(ctx.RemotePeer);
+            var user = await _userSessionsProxy.GetUser(ctx.RemotePeer, ctx.CancellationToken);
 
+            if(user == null)
+            {
+                throw new ClientException("notAuthenticated");
+            }
             var eventCtx = new PartyCreationContext(partyArgs);
             await _handlers.RunEventHandler(handler => handler.OnCreatingParty(eventCtx), ex =>
             {

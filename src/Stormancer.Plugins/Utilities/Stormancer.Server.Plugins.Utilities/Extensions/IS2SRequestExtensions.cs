@@ -36,6 +36,7 @@ namespace Stormancer
                 }
                 else
                 {
+                    await reader.CompleteAsync();
                     yield break;
                 }
 

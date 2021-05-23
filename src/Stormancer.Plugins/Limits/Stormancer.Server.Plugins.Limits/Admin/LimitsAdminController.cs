@@ -37,7 +37,7 @@ namespace Stormancer.Server.Plugins.Limits
         [Produces(typeof(UserConnectionLimitStatus))]
         public async Task<IActionResult> GetUserLimitsStatus()
         {
-            using var scope = scene.CreateRequestScope();
+            await using var scope = scene.CreateRequestScope();
             var limits = scope.Resolve<LimitsClient>();
             return Ok(await limits.GetConnectionLimitStatus());
         }

@@ -24,6 +24,7 @@ using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Users;
 using System.Threading.Tasks;
+using Stormancer.Core;
 
 namespace Stormancer.Server.Plugins.Friends
 {
@@ -45,7 +46,12 @@ namespace Stormancer.Server.Plugins.Friends
             _friends = friends;
             _users = users;
         }
-        
+        protected override Task OnConnected(IScenePeerClient peer)=> _friends.Subscribe(peer, System.Threading.CancellationToken.None);
+
+
+        protected override Task OnDisconnected(DisconnectedArgs args) => _friends.Unsubscribe(args.Peer, System.Threading.CancellationToken.None);
+       
+
         public async Task InviteFriend(RequestContext<IScenePeerClient> ctx)
         {
             var friendId = ctx.ReadObject<string>();
@@ -60,11 +66,11 @@ namespace Stormancer.Server.Plugins.Friends
             {
                 throw new ClientException($"User '{friendId}' does not exist.");
             }
-            var user = await _userSessions.GetUser(ctx.RemotePeer);
+            var user = await _userSessions.GetUser(ctx.RemotePeer,ctx.CancellationToken);
 
             if (user == null)
             {
-                throw new ClientException("You must be connected to perform this operation.");
+                throw new ClientException("NotAuthenticated");
             }
             
             if(friend.Id == user.Id)
@@ -72,49 +78,49 @@ namespace Stormancer.Server.Plugins.Friends
                 throw new ClientException("You cannot invite yourself as a friend.");
             }
                         
-            await _friends.Invite(user, friend);
+            await _friends.Invite(user, friend,ctx.CancellationToken);
         }
 
         public async Task AcceptFriendInvitation(RequestContext<IScenePeerClient> ctx)
         {
-            var user = await _userSessions.GetUser(ctx.RemotePeer);
+            var user = await _userSessions.GetUser(ctx.RemotePeer,ctx.CancellationToken);
             if (user == null)
             {
-                throw new ClientException("You must be connected to perform this operation.");
+                throw new ClientException("NotAuthenticated");
             }
             var senderId = ctx.ReadObject<string>();
             var accepts = ctx.ReadObject<bool>();
 
-            await _friends.ManageInvitation(user, senderId, accepts);
+            await _friends.ManageInvitation(user, senderId, accepts, ctx.CancellationToken);
         }
         
         public async Task RemoveFriend(RequestContext<IScenePeerClient> ctx)
         {
-            var user = await _userSessions.GetUser(ctx.RemotePeer);
+            var user = await _userSessions.GetUser(ctx.RemotePeer,ctx.CancellationToken);
             if (user == null)
             {
-                throw new ClientException("You must be connected to perform this operation.");
+                throw new ClientException("NotAuthenticated");
             }
 
             var friendId = ctx.ReadObject<string>();
             
-            await _friends.RemoveFriend(user, friendId);
+            await _friends.RemoveFriend(user, friendId, ctx.CancellationToken);
         }
 
         public async Task SetStatus(RequestContext<IScenePeerClient> ctx)
         {
-            var user = await _userSessions.GetUser(ctx.RemotePeer);
+            var user = await _userSessions.GetUser(ctx.RemotePeer,ctx.CancellationToken);
 
             if (user == null)
             {
-                throw new ClientException("You must be connected to perform this operation.");
+                throw new ClientException("NotAuthenticated");
             }
 
             var status = ctx.ReadObject<FriendListStatusConfig>();
 
             var details = ctx.ReadObject<string>();
 
-            await _friends.SetStatus(user, status, details);
+            await _friends.SetStatus(user, status, details, ctx.CancellationToken);
         }
     }
 }

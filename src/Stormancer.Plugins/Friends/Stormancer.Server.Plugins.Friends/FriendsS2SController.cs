@@ -24,10 +24,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Friends
 {
+    [Service(Named =false, ServiceType = "stormancer.plugins.friends")]
     public class FriendsS2SController: ControllerBase
     {
         private readonly IFriendsService _friends;
@@ -36,10 +38,10 @@ namespace Stormancer.Server.Plugins.Friends
         {
             _friends = friends;
         }
-        [Api( ApiAccess.Scene2Scene, ApiType.Rpc)]
-        public Task AddNonPersistedFriends(string userId, IEnumerable<Friend> friends)
+        [S2SApi]
+        public Task AddNonPersistedFriends(string userId, IEnumerable<Friend> friends, CancellationToken cancellationToken)
         {
-            return _friends.AddNonPersistedFriends(userId, friends);
+            return _friends.AddNonPersistedFriends(userId, friends,cancellationToken);
 
         }
     }

@@ -8,6 +8,18 @@ The format is based on `Keep a Changelog <https://keepachangelog.com/en/1.0.0/>`
 Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
+
+6.1.0.12
+----------
+Added
+*****
+- Added GameFinderProxy.OpenGameSession method to tell a gamefinder that a gamesession needs more players.
+Changed
+*******
+- Update Users dependency to 5.x.
+- Correctly broadcast cancellation to all players in party.
+- Use Stormancer.Abstractions.Server 5.0.0
+
 6.0.0.3
 -------
 Changed

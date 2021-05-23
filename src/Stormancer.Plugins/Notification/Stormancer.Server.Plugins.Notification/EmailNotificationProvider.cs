@@ -26,16 +26,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Stormancer.Server.Plugins.Notification
 {
     class EmailNotificationProvider : INotificationProvider
     {
-        private string _emailServer;
+        private string? _emailServer;
         private int? _port;
-        private string _login;
-        private string _password;
-        private string _from;
+        private string? _login;
+        private string? _password;
+        private string? _from;
         private readonly ILogger _logger;
 
         public EmailNotificationProvider(IConfiguration configuration, ILogger logger)
@@ -53,14 +54,14 @@ namespace Stormancer.Server.Plugins.Notification
 
         private void ApplyConfiguration(dynamic config)
         {
-            _emailServer = (string)config.notifications?.smtp?.server;
+            _emailServer = (string?)config.notifications?.smtp?.server;
             _port = (int?)config.notifications?.smtp?.port;
-            _from = (string)config.notifications?.smtp?.from;
-            _login = (string)config.notification?.smtp?.login;
-            _password = (string)config.notification?.smtp?.password;
+            _from = (string?)config.notifications?.smtp?.from;
+            _login = (string?)config.notification?.smtp?.login;
+            _password = (string?)config.notification?.smtp?.password;
         }
 
-        public async Task<bool> SendNotification(string type, dynamic data)
+        public async Task<bool> SendNotification(string type, dynamic data, CancellationToken cancellationToken)
         {
             if(_port == null)
             {
