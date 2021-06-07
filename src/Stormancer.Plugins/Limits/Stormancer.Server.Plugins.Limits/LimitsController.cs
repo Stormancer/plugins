@@ -38,9 +38,19 @@ namespace Stormancer.Server.Plugins.Limits
             return limits.GetUserLimitsStatus();
         }
 
-       
+
     }
 
+    /// <summary>
+    /// Cache for <see cref="UserConnectionLimitStatus"/> instances retrieved from S2S.
+    /// </summary>
+    public class LimitsClientCache
+    {
+        /// <summary>
+        /// Cache
+        /// </summary>
+        public MemoryCache<UserConnectionLimitStatus> Value { get; } = new MemoryCache<UserConnectionLimitStatus>();
+    }
     /// <summary>
     /// Client to get limits informations.
     /// </summary>
@@ -49,6 +59,7 @@ namespace Stormancer.Server.Plugins.Limits
         private readonly RpcService rpc;
         private readonly IServiceLocator locator;
         private readonly ISerializer serializer;
+        private readonly LimitsClientCache cache;
 
         /// <summary>
         /// Create a new instance of the class.
@@ -56,27 +67,35 @@ namespace Stormancer.Server.Plugins.Limits
         /// <param name="rpc"></param>
         /// <param name="locator"></param>
         /// <param name="serializer"></param>
-        public LimitsClient(RpcService rpc, IServiceLocator locator, ISerializer serializer)
+        /// <param name="cache"></param>
+        public LimitsClient(RpcService rpc, IServiceLocator locator, ISerializer serializer, LimitsClientCache cache)
         {
             this.rpc = rpc;
             this.locator = locator;
             this.serializer = serializer;
+            this.cache = cache;
         }
 
         /// <summary>
         /// Gets connection limits state.
         /// </summary>
         /// <returns></returns>
-        public async Task<UserConnectionLimitStatus> GetConnectionLimitStatus()
+        public Task<UserConnectionLimitStatus> GetConnectionLimitStatus()
         {
-            var sceneId = await locator.GetSceneId("stormancer.authenticator", string.Empty);
-            return await rpc.Rpc("Limits.GetConnectionLimitStatus", new MatchSceneFilter(sceneId), s => { }, PacketPriority.MEDIUM_PRIORITY).Select(p =>
+            return cache.Value.Get("limits", _ =>
             {
-                using (p)
-                {
-                    return serializer.Deserialize<UserConnectionLimitStatus>(p.Stream);
-                }
-            }).SingleOrDefaultAsync();
+                return Retries.Retry<UserConnectionLimitStatus>(async (_) =>
+               {
+                   var sceneId = await locator.GetSceneId("stormancer.authenticator", string.Empty);
+                   return await rpc.Rpc("Limits.GetConnectionLimitStatus", new MatchSceneFilter(sceneId), s => { }, PacketPriority.MEDIUM_PRIORITY).Select(p =>
+                   {
+                       using (p)
+                       {
+                           return serializer.Deserialize<UserConnectionLimitStatus>(p.Stream);
+                       }
+                   }).SingleOrDefaultAsync();
+               }, RetryPolicies.ConstantDelay(4, TimeSpan.FromMilliseconds(500)), default, ex => true);
+            }, TimeSpan.FromSeconds(1));
 
         }
     }
