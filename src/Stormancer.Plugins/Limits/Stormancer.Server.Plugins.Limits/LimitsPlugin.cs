@@ -31,6 +31,7 @@ namespace Stormancer.Server.Plugins.Limits
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
              {
+                 builder.Register<LimitsClientCache>().SingleInstance();
                  builder.Register<LimitsAdminWebApiConfig>().As<IAdminWebApiConfig>();
                  builder.Register<LimitsClient>().InstancePerRequest();
                  builder.Register<LimitsAuthenticationEventHandler>().As<IAuthenticationEventHandler>().As<IUserSessionEventHandler>().InstancePerRequest();
