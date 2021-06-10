@@ -35,6 +35,7 @@ using Stormancer.Server.Plugins.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
+using System.IO.Pipelines;
 
 namespace Stormancer.Server.Plugins.Users
 {
@@ -203,7 +204,13 @@ namespace Stormancer.Server.Plugins.Users
         {
             await using var rq = _sessions.SendRequest(operationName, senderUserId, recipientUserId, ctx.CancellationToken);
 
-            await Task.WhenAll(ctx.Reader.CopyToAsync(rq.Writer, ctx.CancellationToken), rq.Reader.CopyToAsync(ctx.Writer));
+            static async Task CopyToAsync(PipeReader reader, PipeWriter writer, CancellationToken cancellationToken)
+            {
+                await reader.CopyToAsync(writer,cancellationToken);
+                reader.Complete();
+                writer.Complete();
+            }
+            await Task.WhenAll(CopyToAsync(ctx.Reader,rq.Writer, ctx.CancellationToken), CopyToAsync(rq.Reader,ctx.Writer,ctx.CancellationToken));
 
         }
 

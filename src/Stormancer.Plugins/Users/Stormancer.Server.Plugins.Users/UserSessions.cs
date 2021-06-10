@@ -695,7 +695,7 @@ namespace Stormancer.Server.Plugins.Users
                     rq.OutputPipe.Writer.Complete(ex);
                 }
             }
-            _ = SendRequestImpl();
+            _ = Task.Run(SendRequestImpl);
 
 
             return rq;
