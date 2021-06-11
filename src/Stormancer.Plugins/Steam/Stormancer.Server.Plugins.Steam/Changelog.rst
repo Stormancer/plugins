@@ -9,6 +9,10 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+unreleased
+----------
+- Party event handler : test another sendRequest overload
+
 4.0.4
 -----
 Changed
