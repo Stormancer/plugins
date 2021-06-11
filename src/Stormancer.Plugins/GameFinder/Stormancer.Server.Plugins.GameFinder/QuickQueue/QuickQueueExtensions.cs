@@ -28,15 +28,29 @@ namespace Stormancer.Server.Plugins.GameFinder
                 dep.Register<QuickQueueGameFinderResolver>().As<IGameFinderResolver>().InstancePerRequest();
             });
 
+            
             var options = optionsBuilder(new QuickQueueOptions<TPartySettings>());
 
             OptionsStore[gameFinderConfig.ConfigId] = options;
-           
+
             return gameFinderConfig;
         }
 
-        internal static Dictionary<string, object> OptionsStore = new Dictionary<string, object>();
+        private static Dictionary<string, object> OptionsStore = new Dictionary<string, object>();
 
+        /// <summary>
+        /// Gets options from the quick queue OptionsStore.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        internal static T GetOptions<T>(string id)
+        {
+            lock (OptionsStore)
+            {
+                return (T)OptionsStore[id];
+            }
+        }
         /// <summary>
         /// Configures a simple quick queue matchmaker.
         /// </summary>
@@ -53,8 +67,14 @@ namespace Stormancer.Server.Plugins.GameFinder
 
             gameFinderConfig.ConfigureOnCreatingScene(scene =>
             {
-                var options = optionsBuilder(new QuickQueueOptions());
-                OptionsStore.Add(gameFinderConfig.ConfigId, options);
+                lock (OptionsStore)
+                {
+                    if (!OptionsStore.ContainsKey(gameFinderConfig.ConfigId))
+                    {
+                        var options = optionsBuilder(new QuickQueueOptions());
+                        OptionsStore.Add(gameFinderConfig.ConfigId, options);
+                    }
+                }
                 //var config = scene.DependencyResolver.Resolve<IConfiguration>();
                 //config.SetDefaultValue($"gamefinder.configs.{gameFinderConfig.ConfigId}", options);
             });
@@ -114,7 +134,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         };
 
 
-        
+
 
 
         /// <summary>

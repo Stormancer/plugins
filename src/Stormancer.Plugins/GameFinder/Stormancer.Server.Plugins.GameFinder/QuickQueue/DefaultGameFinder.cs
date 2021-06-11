@@ -114,9 +114,9 @@ namespace Stormancer.Server.Plugins.GameFinder
                                     continue;
                                 }
 
-                                foreach(var p in game.AllParties)
+                                foreach (var p in game.AllParties)
                                 {
-                                    if(!await CanPlayTogether(p, pivot))
+                                    if (!await CanPlayTogether(p, pivot))
                                     {
                                         continue;
                                     }
@@ -184,13 +184,13 @@ namespace Stormancer.Server.Plugins.GameFinder
         private async Task<bool> CanPlayTogether(Party p, Party pivot)
         {
 
-            return canMatch(await GetOrCreateSettings(p),await GetOrCreateSettings(pivot));
+            return canMatch(await GetOrCreateSettings(p), await GetOrCreateSettings(pivot));
         }
 
         private async Task<dynamic?> GetOrCreateSettings(Party p)
         {
             dynamic? settings;
-            if(!p.CacheStorage.TryGetValue("matchmaking.settings",out settings ))
+            if (!p.CacheStorage.TryGetValue("matchmaking.settings", out settings))
             {
 
                 settings = await getSettings(p);
@@ -215,7 +215,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <param name="config"></param>
         public void RefreshConfig(string id, dynamic config)
         {
-            var options = (QuickQueueOptions)QuickQueueExtensions.OptionsStore[id];
+            var options = QuickQueueExtensions.GetOptions<QuickQueueOptions>(id);
 
             teamSize = options.teamSize;
             teamCount = options.teamCount;
@@ -267,7 +267,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 return results;
 
             }
-           
+
             var changeOccured = false;
             await Task.WhenAll(gameFinderContext.WaitingParties.Select(async p => new { party = p, settings = await GetOrCreateSettings(p) }));
             var partyGroups = gameFinderContext.WaitingParties.OrderByDescending(p => p.Players.Count).GroupBy(p =>
@@ -286,7 +286,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 do
                 {
 
-                  
+
                     changeOccured = false;
 
                     var game = new Game();
@@ -303,9 +303,9 @@ namespace Stormancer.Server.Plugins.GameFinder
                             {
                                 continue;
                             }
-                            foreach(var p in game.AllParties)
+                            foreach (var p in game.AllParties)
                             {
-                                if(!await CanPlayTogether(p,pivot))
+                                if (!await CanPlayTogether(p, pivot))
                                 {
                                     continue;
                                 }
@@ -357,7 +357,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
                     if (game.Teams.Count == teamCount && game.Teams.All(t => t.AllPlayers.Count() == teamSize))
                     {
-                   
+
                         results.Games.Add(game);
 
                     }
@@ -418,7 +418,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <param name="config"></param>
         public void RefreshConfig(string id, dynamic config)
         {
-            var options = (QuickQueueOptions<TPartySettings>)QuickQueueExtensions.OptionsStore[id];
+            var options = QuickQueueExtensions.GetOptions<QuickQueueOptions<TPartySettings>>(id);
 
             teamSize = options.teamSize;
             teamCount = options.teamCount;

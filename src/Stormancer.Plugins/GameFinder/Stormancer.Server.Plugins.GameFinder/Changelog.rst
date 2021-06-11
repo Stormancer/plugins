@@ -9,8 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-6.1.0.12
+6.1.0.13
 ----------
+Fixed
+*****
+- Fix a crash on matchmaking when restarting a QuickQueue matchmaker after shutdown for inactivity.
 Added
 *****
 - Added GameFinderProxy.OpenGameSession method to tell a gamefinder that a gamesession needs more players.
