@@ -655,7 +655,7 @@ namespace Stormancer.Server.Plugins.Users
             {
                 try
                 {
-                    using var outputStream = rq.OutputPipe.Writer.AsStream();
+                
                     var peer = await GetPeer(recipientUserId, cancellationToken);
                     if (peer == null)
                     {
@@ -670,8 +670,7 @@ namespace Stormancer.Server.Plugins.Users
                         {
                             peer.Serializer().Serialize(senderUserId, s);
                             peer.Serializer().Serialize(operationName, s);
-                            var stream = rq.InputPipe.Reader.AsStream();
-                            stream.CopyTo(s);
+                            rq.InputPipe.Reader.TryCopyToAsync(PipeWriter.Create(s), true, cancellationToken).AsTask().Wait();
 
                         }
                         finally
@@ -681,12 +680,24 @@ namespace Stormancer.Server.Plugins.Users
 
                     }).ToAsyncEnumerable().WithCancellation(cancellationToken);
 
+                    bool headerSent = false;
                     await foreach (var packet in rpc)
                     {
+                        if(!headerSent)
+                        {
+                            headerSent = true;
+                            await rq.OutputPipe.Writer.WriteObject(true, serializer, cancellationToken);
+                        }
                         using (packet)
                         {
-                            packet.Stream.CopyTo(outputStream);
+                            await packet.Stream.CopyToAsync(rq.OutputPipe.Writer);
                         }
+                    }
+
+                    if (!headerSent)
+                    {
+                        headerSent = true;
+                        await rq.OutputPipe.Writer.WriteObject(true, serializer, cancellationToken);
                     }
                 }
                 catch (Exception ex)
@@ -718,6 +729,7 @@ namespace Stormancer.Server.Plugins.Users
             await rq.Writer.WriteObject(arg, serializer, cancellationToken);
             rq.Writer.Complete();
 
+            await rq.Reader.ReadObject<bool>(serializer, cancellationToken);
             var result = await rq.Reader.ReadObject<TReturn>(serializer, cancellationToken);
             rq.Reader.Complete();
             return result;
@@ -730,6 +742,7 @@ namespace Stormancer.Server.Plugins.Users
             await rq.Writer.WriteObject(arg2, serializer, cancellationToken);
             rq.Writer.Complete();
 
+            await rq.Reader.ReadObject<bool>(serializer, cancellationToken);
             var result = await rq.Reader.ReadObject<TReturn>(serializer, cancellationToken);
             rq.Reader.Complete();
             return result;
@@ -741,6 +754,8 @@ namespace Stormancer.Server.Plugins.Users
             await using var rq = sessions.SendRequest(operationName, senderUserId, recipientUserId, cancellationToken);
             await rq.Writer.WriteObject(arg, serializer, cancellationToken);
             rq.Writer.Complete();
+
+            await rq.Reader.ReadObject<bool>(serializer, cancellationToken);
             rq.Reader.Complete();
 
         }

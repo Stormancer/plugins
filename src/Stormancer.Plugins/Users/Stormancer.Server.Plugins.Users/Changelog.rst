@@ -9,11 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-5.0.1.1
+5.0.1.4
 -------
 Fixed
 *****
-- Fixed deadlock in UserSessions.SendRequest.
+- Fixed deadlocks in UserSessions.SendRequest.
 
 5.0.0.13
 --------
