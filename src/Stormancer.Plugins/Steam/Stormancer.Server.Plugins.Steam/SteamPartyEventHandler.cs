@@ -209,8 +209,7 @@ namespace Stormancer.Server.Plugins.Steam
                                     Joinable = true,
                                     Metadata = new Dictionary<string, string> { { "partyDataToken", partyDataBearerToken } }
                                 };
-                                var steamIDLobby = await _userSessions.SendRequest<ulong,CreateLobbyDto>("Steam.CreateLobby", "", ctx.Session.User.Id,createLobbyParameters, CancellationToken.None);
-
+                                var steamIDLobby = await _userSessions.SendRequest<ulong, CreateLobbyDto>("Steam.CreateLobby", "", ctx.Session.User.Id,createLobbyParameters, CancellationToken.None);
 
                                 if (steamIDLobby != 0)
                                 {
@@ -242,7 +241,7 @@ namespace Stormancer.Server.Plugins.Steam
                             else
                             {
                                 var joinLobbyParameter = new JoinLobbyDto { SteamIDLobby = data.SteamIDLobby };
-                                await _userSessions.SendRequest("Steam.JoinLobby", "", ctx.Session.User.Id, joinLobbyParameter, CancellationToken.None);
+                                var ok = await _userSessions.SendRequest<bool, JoinLobbyDto>("Steam.JoinLobby", "", ctx.Session.User.Id, joinLobbyParameter, CancellationToken.None);
 
                                 data.UserData[ctx.Session.SessionId] = new SteamUserData { SessionId = ctx.Session.SessionId, SteamId = steamId };
 

@@ -9,6 +9,10 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+unreleased
+----------
+- test sendRequest
+
 5.0.0.10
 --------
 Changed
