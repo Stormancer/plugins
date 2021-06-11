@@ -8,8 +8,12 @@ The format is based on `Keep a Changelog <https://keepachangelog.com/en/1.0.0/>`
 Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
-6.0.0.3
+6.0.0.4
 -------
+Fixed
+*****
+- Fix a crash on matchmaking when restarting a QuickQueue matchmaker after shutdown for inactivity.
+
 Changed
 *******
 - Use new S2S request protocol
