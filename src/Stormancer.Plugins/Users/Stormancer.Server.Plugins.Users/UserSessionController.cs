@@ -34,9 +34,12 @@ using System.Threading.Tasks;
 using Stormancer.Server.Plugins.Configuration;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
+using System.IO.Pipelines;
 
 namespace Stormancer.Server.Plugins.Users
 {
+    [Service(Named = false, ServiceType = Constants.SERVICE_TYPE)]
     internal class UserSessionController : ControllerBase
     {
         private static Lazy<byte[]>? _key;
@@ -76,176 +79,176 @@ namespace Stormancer.Server.Plugins.Users
                   });
             }
         }
-        public async Task GetPeer(RequestContext<IScenePeer> rq)
-        {
-            var userId = _serializer.Deserialize<string>(rq.InputStream);
-            var result = await _sessions.GetPeer(userId);
 
-            await rq.SendValue(s => _serializer.Serialize(result?.SessionId, s));
+        /// <summary>
+        /// Gets the currently connected peer authenticated as an userId.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        [S2SApi(GeneratePrivateImpl = true)]
+        public async Task<string?> GetPeer(string userId, CancellationToken cancellationToken)
+        {
+
+            var result = await _sessions.GetPeer(userId, cancellationToken);
+
+            return result?.SessionId;
         }
 
 
-
-        public async Task IsAuthenticated(RequestContext<IScenePeer> rq)
+        [S2SApi(GeneratePrivateImpl = true)]
+        public async Task<bool> IsAuthenticated(string sessionId, CancellationToken cancellationToken)
         {
-            var sessionId = _serializer.Deserialize<string>(rq.InputStream);
+
             var peer = _scene.RemotePeers.FirstOrDefault(p => p.SessionId == sessionId);
-            var isAuthenticated = await _sessions.IsAuthenticated(peer);
-            await rq.SendValue(s => _serializer.Serialize(isAuthenticated, s));
-        }
-
-        public async Task UpdateUserData(RequestContext<IScenePeer> rq)
-        {
-            var sessionId = _serializer.Deserialize<string>(rq.InputStream);
-            var peer = _scene.RemotePeers.FirstOrDefault(p => p.SessionId == sessionId);
-            var data = _serializer.Deserialize<JObject>(rq.InputStream);
-
-            await _sessions.UpdateUserData(peer, data);
-        }
-
-        public async Task GetPlatformId(RequestContext<IScenePeer> rq)
-        {
-            var userId = _serializer.Deserialize<string>(rq.InputStream);
-            var platformId = await _sessions.GetPlatformId(userId);
-
-            await rq.SendValue(s => _serializer.Serialize(platformId, s));
-        }
-
-        public async Task GetSessionByUserId(RequestContext<IScenePeer> rq)
-        {
-            var userId = _serializer.Deserialize<string>(rq.InputStream);
-            var session = await _sessions.GetSessionByUserId(userId);
-
-            await rq.SendValue(s => _serializer.Serialize(session, s));
-        }
-
-        public async Task GetSessionById(RequestContext<IScenePeer> rq)
-        {
-            var peerId = _serializer.Deserialize<string>(rq.InputStream);
-            var session = await _sessions.GetSessionById(peerId);
-
-            await rq.SendValue(s => _serializer.Serialize(session, s));
-        }
-
-        public async Task GetSessionsByPlatformIds(RequestContext<IScenePeer> rq)
-        {
-            var platformIds = _serializer.Deserialize<IEnumerable<PlatformId>>(rq.InputStream);
-            var sessions = await _sessions.GetSessions(platformIds);
-
-            await rq.SendValue(s => _serializer.Serialize(sessions, s));
-        }
-
-        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
-        public Task<Dictionary<string, Session?>> GetSessionsbySessionIds(IEnumerable<string> sessionIds)
-        {
-            return _sessions.GetSessions(sessionIds);
-        }
-
-        public async Task UpdateSessionData(RequestContext<IScenePeer> rq)
-        {
-            var sessionId = _serializer.Deserialize<string>(rq.InputStream);
-            var key = _serializer.Deserialize<string>(rq.InputStream);
-            using var memoryStream = new MemoryStream();
-            rq.InputStream.CopyTo(memoryStream);
-
-
-            await _sessions.UpdateSessionData(sessionId, key, memoryStream.ToArray());
-        }
-
-        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
-        public async Task<byte[]?> GetSessionData(RequestContext<IScenePeer> rq)
-        {
-            var sessionId = _serializer.Deserialize<string>(rq.InputStream);
-            var key = _serializer.Deserialize<string>(rq.InputStream);
-
-            var value = await _sessions.GetSessionData(sessionId, key);
-
-            return value;
-        }
-
-        //public async Task DecodeBearerToken(RequestContext<IScenePeer> rq)
-        //{
-        //    var token = _serializer.Deserialize<string>(rq.InputStream);
-        //    var app = await _environment.GetApplicationInfos();
-        //    var data = TokenGenerator.DecodeToken<BearerTokenData>(token, app.PrimaryKey);
-        //    await rq.SendValue(s=> _serializer.Serialize(data,s));
-        //}
-
-        //[Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
-        //public async Task<Session> GetSessionByBearerToken(string bearerToken)
-        //{
-        //    var app = await _environment.GetApplicationInfos();
-        //    var data = TokenGenerator.DecodeToken<BearerTokenData>(bearerToken, app.PrimaryKey);
-        //    if (data == null)
-        //    {
-        //        throw new ClientException("bearerToken.invalidToken");
-        //    }
-        //    return await _sessions.GetSessionById(data.SessionId);
-
-
-        //}
-
-        //[Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
-        //public async Task<string> GetBearerToken(string sessionId)
-        //{
-        //    var app = await _environment.GetApplicationInfos();
-        //    var session = await _sessions.GetSessionById(sessionId);
-        //    return TokenGenerator.CreateToken(new BearerTokenData { SessionId = sessionId, pid = session.platformId, userId = session.User.Id, IssuedOn = DateTime.UtcNow, ValidUntil = DateTime.UtcNow + TimeSpan.FromHours(1) }, app.PrimaryKey);
-        //}
-
-        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
-        public Task<Dictionary<string, User?>> GetUsers(IEnumerable<string> userIds)
-        {
-            return _sessions.GetUsers(userIds.ToArray());
-        }
-
-        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
-        public Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string, string>> query, int take, int skip)
-        {
-            return _sessions.Query(query, take, skip);
-        }
-
-        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
-        public Task UpdateUserHandle(string userId, string newHandle, bool appendHash)
-        {
-            return _sessions.UpdateUserHandle(userId, newHandle, appendHash);
-        }
-
-        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
-        public Task KickUser(string userId, string reason)
-        {
-            return _sessions.KickUser(userId, reason);
-        }
-
-        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
-        public async Task SendRequest(string operationName, string senderUserId, string recipientUserId, RequestContext<IScenePeer> ctx)
-        {
-            await foreach (var data in _sessions.SendRequest(operationName, senderUserId, recipientUserId, s => ctx.InputStream.CopyTo(s), ctx.CancellationToken).ToAsyncEnumerable())
+            if (peer == null)
             {
-                await ctx.SendValue(stream => stream.Write(data, 0, data.Length));
+                return false;
             }
+
+            return await _sessions.IsAuthenticated(peer, cancellationToken);
+
         }
 
-        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
-        public Task<int> GetAuthenticatedUsersCount()
+        [S2SApi]
+        public Task UpdateUserData(string sessionId, JObject data, CancellationToken cancellationToken)
         {
-            return _sessions.GetAuthenticatedUsersCount();
+
+            var peer = _scene.RemotePeers.FirstOrDefault(p => p.SessionId == sessionId);
+
+            if (peer == null)
+            {
+                throw new ClientException("NotFound");
+            }
+
+            return _sessions.UpdateUserData(peer, data, cancellationToken);
         }
 
-        [Api(ApiAccess.Public, ApiType.Rpc)]
-        public Task<int> GetAuthenticatedUsersCountPublic()
+        [S2SApi]
+        public Task<PlatformId> GetPlatformId(string userId, CancellationToken cancellationToken)
         {
-            return _sessions.GetAuthenticatedUsersCount();
+            return _sessions.GetPlatformId(userId, cancellationToken);
         }
 
+        [S2SApi]
+        public Task<Session?> GetSessionByUserId(string userId, CancellationToken cancellationToken)
+        {
+            return _sessions.GetSessionByUserId(userId, cancellationToken);
+        }
+
+        [S2SApi]
+        public Task<Session?> GetSessionById(string sessionId, CancellationToken cancellationToken)
+        {
+            return _sessions.GetSessionById(sessionId, cancellationToken);
+        }
+
+        [S2SApi]
+        public Task<Dictionary<PlatformId, Session?>> GetSessionsByPlatformIds(IEnumerable<PlatformId> platformIds, CancellationToken cancellationToken)
+        {
+
+            return _sessions.GetSessions(platformIds, cancellationToken);
+
+
+        }
+
+        [S2SApi]
+        public Task<Dictionary<string, Session?>> GetSessionsbySessionIds(IEnumerable<string> sessionIds, CancellationToken cancellationToken)
+        {
+            return _sessions.GetSessions(sessionIds, cancellationToken);
+        }
+
+        [S2SApi(GeneratePrivateImpl = true)]
+        public Task UpdateSessionData(string sessionId, string key, [S2SContextUsage(S2SRequestContextUsage.Read)] IS2SRequestContext ctx)
+        {
+
+            using var memoryStream = new MemoryStream();
+            ctx.Reader.AsStream().CopyTo(memoryStream);
+
+            return _sessions.UpdateSessionData(sessionId, key, memoryStream.ToArray(), ctx.CancellationToken);
+        }
+
+        [S2SApi]
+        public Task<byte[]?> GetSessionData(string sessionId, string key, CancellationToken cancellationToken)
+        {
+            return _sessions.GetSessionData(sessionId, key, cancellationToken);
+
+        }
+
+
+        [S2SApi]
+        public Task<Dictionary<string, User?>> GetUsers(IEnumerable<string> userIds, CancellationToken cancellationToken)
+        {
+            return _sessions.GetUsers(userIds.ToArray(), cancellationToken);
+        }
+
+        [S2SApi]
+        public Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string, string>> query, int take, int skip, CancellationToken cancellationToken)
+        {
+            return _sessions.Query(query, take, skip, cancellationToken);
+        }
+
+        [S2SApi]
+        public Task<string> UpdateUserHandle(string userId, string newHandle, bool appendHash, CancellationToken cancellationToken)
+        {
+            return _sessions.UpdateUserHandle(userId, newHandle, appendHash, cancellationToken);
+        }
+
+        [S2SApi]
+        public Task KickUser(string userId, string reason, CancellationToken cancellationToken)
+        {
+            return _sessions.KickUser(userId, reason, cancellationToken);
+        }
+
+        [S2SApi]
+        public async Task SendRequest(string operationName, string senderUserId, string recipientUserId, [S2SContextUsage(S2SRequestContextUsage.Read | S2SRequestContextUsage.Write)] IS2SRequestContext ctx)
+        {
+            await using var rq = _sessions.SendRequest(operationName, senderUserId, recipientUserId, ctx.CancellationToken);
+
+            static async Task CopyToAsync(PipeReader reader, PipeWriter writer, CancellationToken cancellationToken)
+            {
+                await reader.CopyToAsync(writer,cancellationToken);
+                reader.Complete();
+                writer.Complete();
+            }
+            await Task.WhenAll(CopyToAsync(ctx.Reader,rq.Writer, ctx.CancellationToken), CopyToAsync(rq.Reader,ctx.Writer,ctx.CancellationToken));
+
+        }
+
+        [S2SApi]
+        public Task<int> GetAuthenticatedUsersCount(CancellationToken cancellationToken)
+        {
+            return _sessions.GetAuthenticatedUsersCount(cancellationToken);
+        }
+
+        /// <summary>
+        /// Gets the number of users currently authenticated.
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        [S2SApi]
+        public Task<int> GetAuthenticatedUsersCountPublic(CancellationToken cancellationToken)
+        {
+            return _sessions.GetAuthenticatedUsersCount(cancellationToken);
+        }
+
+        /// <summary>
+        /// Creates a bearer token that contains the user's session id.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<string> CreateUserBearerToken()
+        public async Task<string> CreateUserBearerToken(RequestContext<IScenePeerClient> ctx)
         {
             Debug.Assert(_key != null);
-            var session = await _sessions.GetSession(this.Request.RemotePeer);
+            var session = await _sessions.GetSession(ctx.RemotePeer,ctx.CancellationToken);
             return Jose.JWT.Encode(new Dictionary<string, string?> { { "userId", session?.User?.Id } }, _key.Value, Jose.JwsAlgorithm.HS256);
         }
 
+        /// <summary>
+        /// Check the signature of a bearer token and get the user id it was created for.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns></returns>
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public string? GetUserIdFromBearerToken(string token)
         {

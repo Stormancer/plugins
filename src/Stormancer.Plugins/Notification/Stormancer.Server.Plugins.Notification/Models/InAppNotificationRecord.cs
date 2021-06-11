@@ -24,32 +24,54 @@ using System;
 
 namespace Stormancer.Server.Plugins.Notification
 {
+    /// <summary>
+    /// Types of notification acknowlegment.
+    /// </summary>
     [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
     public enum InAppNotificationAcknowledgment : byte
     {
+        /// <summary>
+        /// No acknowledgment. The notification is not stored in the database if it couldn't be sent.
+        /// </summary>
         None = 0,
+
+        /// <summary>
+        /// The notification is considered as acknowledged when it is sent to a client logged as the target user.
+        /// </summary>
         OnSend = 1,
+
+        /// <summary>
+        /// The notification is acknowledged  when the game code handled it.
+        /// </summary>
+        /// <remarks>
+        /// If no handler was configured for the notification system in the game client, the notification will be considered as not acknowledged.
+        /// This enables running different game clients with only some of them supporting notifications.
+        /// </remarks>
         OnReceive = 2,
+
+        /// <summary>
+        /// The notification is acknowledged when the `acknowledge` function is called on the client.
+        /// </summary>
         ByUser = 3
     }
 
-    [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
-    public enum InAppNotificationType : byte
-    {
-        Message = 0,
-        ExitClient = 1,
-        // should be at bottom (low level type)
-        RegionConfig = 2,
-        UpdateEmbers = 3
-    }
 
-
+    /// <summary>
+    /// A notification stored in the database.
+    /// </summary>
     public class InAppNotificationRecord
     {
+        /// <summary>
+        /// Creates an <see cref="InAppNotificationRecord"/> object.
+        /// </summary>
         public InAppNotificationRecord()
         {
         }
 
+        /// <summary>
+        /// Creates an <see cref="InAppNotificationRecord"/> object.
+        /// </summary>
+        /// <param name="data"></param>
         public InAppNotificationRecord(InAppNotification data)
         {
             Id = data.Id;
@@ -61,28 +83,73 @@ namespace Stormancer.Server.Plugins.Notification
             ShouldExpire = data.ShouldExpire;
             ExpirationDate = data.ExpirationDate;
             Acknowledgment = data.Acknowledgment;
-            NotificationType = data.NotificationType;
+          
         }
 
-        public string Id { get; set; }
-        public string Type { get; set; }
-        public string UserId { get; set; }
-        public string Message { get; set; }
-        public string Data { get; set; }
+        /// <summary>
+        /// Gets or sets the id of the notification.
+        /// </summary>
+        public string Id { get; set; } = default!;
+
+        /// <summary>
+        /// Gets or sets the type of the notification.
+        /// </summary>
+        public string Type { get; set; } = default!;
+
+        /// <summary>
+        /// Gets or sets the id of the user the notification is addressed to.
+        /// </summary>
+        public string UserId { get; set; } = default!;
+
+        /// <summary>
+        /// Gets or sets the  message of the notification.
+        /// </summary>
+        public string Message { get; set; } = default!;
+
+        /// <summary>
+        /// Gets or sets custom data associated with the notification.
+        /// </summary>
+        public string Data { get; set; } = default!;
+
+        /// <summary>
+        /// Gets or sets the date the notification was created.
+        /// </summary>
         public DateTime CreatedOn { get; set; }
+
+        /// <summary>
+        /// Gets or sets a <see cref="bool"/> indicating if the notification expires.
+        /// </summary>
         public bool ShouldExpire { get; set; }
+
+        /// <summary>
+        /// Gets or sets the expiration date of the notification.
+        /// </summary>
         public DateTime ExpirationDate { get; set; }
+
+        /// <summary>
+        /// Gets or sets the type of acknowledgment this notification expects to be considered as sent.
+        /// </summary>
         public InAppNotificationAcknowledgment Acknowledgment { get; set; } = InAppNotificationAcknowledgment.None;
-        public InAppNotificationType NotificationType { get; set; } = InAppNotificationType.Message;
+        
 
     }
 
+    /// <summary>
+    /// A notification sent to the game client.
+    /// </summary>
     public class InAppNotification
     {
+        /// <summary>
+        /// Creates an <see cref="InAppNotification"/> object.
+        /// </summary>
         public InAppNotification()
         {
         }
 
+        /// <summary>
+        /// Creates an <see cref="InAppNotification"/> object;
+        /// </summary>
+        /// <param name="record"></param>
         public InAppNotification(InAppNotificationRecord record)
         {
             Id = record.Id;
@@ -94,37 +161,63 @@ namespace Stormancer.Server.Plugins.Notification
             ShouldExpire = record.ShouldExpire;
             ExpirationDate = record.ExpirationDate;
             Acknowledgment = record.Acknowledgment;
-            NotificationType = record.NotificationType;
+           
         }
 
+        /// <summary>
+        /// Gets or sets the id of the notification.
+        /// </summary>
         [MessagePackMember(0)]
-        public string Id { get; set; }
+        public string Id { get; set; } = default!;
 
+        /// <summary>
+        /// Gets or sets the type of the notification.
+        /// </summary>
         [MessagePackMember(1)]
-        public string Type { get; set; }
+        public string Type { get; set; } = default!;
 
+        /// <summary>
+        /// Gets or sets the id of the user the notification is addressed to.
+        /// </summary>
         [MessagePackMember(2)]
-        public string UserId { get; set; }
+        public string UserId { get; set; } = default!;
 
+        /// <summary>
+        /// Gets or sets the  message of the notification.
+        /// </summary>
         [MessagePackMember(3)]
-        public string Message { get; set; }
+        public string Message { get; set; } = default!;
 
+        /// <summary>
+        /// Gets or sets custom data associated with the notification.
+        /// </summary>
         [MessagePackMember(4)]
-        public string Data { get; set; }
+        public string Data { get; set; } = default!;
 
-        [MessagePackMember(5), MessagePackDateTimeMember(DateTimeConversionMethod = DateTimeMemberConversionMethod.UnixEpoc)]
+        /// <summary>
+        /// Gets or sets the date the notification was created.
+        /// </summary>
+        [MessagePackMember(5)]
         public DateTime CreatedOn { get; set; }
 
+        /// <summary>
+        /// Gets or sets a <see cref="bool"/> indicating if the notification expires.
+        /// </summary>
         [MessagePackMember(6)]
         public bool ShouldExpire { get; set; }
 
+        /// <summary>
+        /// Gets or sets the expiration date of the notification.
+        /// </summary>
         [MessagePackMember(7)]
         public DateTime ExpirationDate { get; set; }
   
+        /// <summary>
+        /// Gets or sets the type of acknowledgment this notification expects to be considered as sent.
+        /// </summary>
         [MessagePackMember(8)]
         public InAppNotificationAcknowledgment Acknowledgment { get; set; }
 
-        [MessagePackMember(9)]
-        public InAppNotificationType NotificationType { get; set; }
+      
     }
 }

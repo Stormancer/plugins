@@ -22,15 +22,29 @@
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Users;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Profile
 {
+    /// <summary>
+    /// Extension methods for <see cref="IProfileService"/>.
+    /// </summary>
     public static class ProfilesExtensions
     {
-        public static async Task<Dictionary<string, JObject>> GetProfile(this IProfileService service,  string userId, Dictionary<string, string> displayOptions, Session requestingUser)
+        /// <summary>
+        /// Gets the profile of the user <paramref name="userId"/>.
+        /// </summary>
+        /// <param name="service"></param>
+        /// <param name="userId"></param>
+        /// <param name="displayOptions"></param>
+        /// <param name="requestingUser"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public static async Task<Dictionary<string, JObject>> GetProfile(this IProfileService service, string userId, Dictionary<string, string> displayOptions, Session requestingUser, CancellationToken cancellationToken)
         {
-            var result = await service.GetProfiles(new[] { userId }, displayOptions, requestingUser);
+            var result = await service.GetProfiles(Enumerable.Repeat(userId, 1), displayOptions, requestingUser, cancellationToken);
             return result[userId];
         }
     }

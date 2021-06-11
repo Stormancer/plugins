@@ -9,6 +9,19 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+2.3.0
+-----
+Changed
+*******
+- Remove 3 allocations in action call expression generation.
+Added
+*****
+- Support for CancellationToken as parameter for RPC controller actions.
+
+Added
+*****
+- Action call generation now maps CancellationToken action parameters to IS2SRequestContext.CancellationToken.
+
 2.1.0
 -----
 Added

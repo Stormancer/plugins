@@ -28,14 +28,20 @@ using System.Threading.Tasks;
 
 namespace Server.Plugins.Users
 {
+    /// <summary>
+    /// Represents the relation of an user and a pseudo.
+    /// </summary>
     public class PseudoUserRelation
     {
         /// <summary>
-        /// Indexed by user's pseudo
+        /// The user pseudo as id of the document.
         /// </summary>
-        public string Id { get; set; }
-        
-        public string UserId { get; set; } 
+        public string Id { get; set; } = default!;
+
+        /// <summary>
+        /// Gets or sets the id of the user.
+        /// </summary>
+        public string UserId { get; set; } = default!;
     }
 }
 

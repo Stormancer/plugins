@@ -14,7 +14,7 @@ namespace Stormancer.Server.Plugins.SpatialOS.Models
         /// <summary>
         /// The user to create credentials for
         /// </summary>
-        public User User => Session.User;
+        public User? User => Session.User;
 
         /// <summary>
         /// The current session of the user to create credentials for
@@ -63,7 +63,7 @@ namespace Stormancer.Server.Plugins.SpatialOS.Models
         {            
             Session = session;
             CustomData = customData;
-            UserId = User.Id;
+            UserId = User?.Id;
             DeploymentName = defaultDeploymentName;
             ProviderName = $"stormancer/{session.platformId.Platform}";
         }

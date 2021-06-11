@@ -27,8 +27,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Analytics", "Analytics", "{
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Leaderboards", "Leaderboards", "{FD4F5652-8F9E-458F-A054-5A576948B74E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.TestApp", "Stormancer.Server.TestApp\Stormancer.Server.TestApp.csproj", "{8240A689-D421-4D4C-9A23-EF0E38D85D74}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Api", "Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj", "{59EBAC2A-6170-487B-9660-F13D8F0A255A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Users", "Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj", "{83965663-8871-4C88-BED0-A9F84653F6F9}"
@@ -121,9 +119,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Replication", "Replication"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Replication", "Replication\Stormancer.Server.Plugins.Replication\Stormancer.Server.Plugins.Replication.csproj", "{77DC1E3C-A228-4784-A502-2F868DCBAF81}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Api.S2SProxyGenerator", "Api\Stormancer.Server.Plugins.Api.S2SProxyGenerator\Stormancer.Server.Plugins.Api.S2SProxyGenerator.csproj", "{07199811-963F-4F8E-AD41-F7746AF991D8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Api.S2SProxyGenerator", "Api\Stormancer.Server.Plugins.Api.S2SProxyGenerator\Stormancer.Server.Plugins.Api.S2SProxyGenerator.csproj", "{07199811-963F-4F8E-AD41-F7746AF991D8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Annotations", "Utilities\Stormancer.Server.Plugins.Annotations\Stormancer.Server.Plugins.Annotations.csproj", "{EEB6C693-26BA-42F1-B826-9B9841B5E124}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Annotations", "Utilities\Stormancer.Server.Plugins.Annotations\Stormancer.Server.Plugins.Annotations.csproj", "{EEB6C693-26BA-42F1-B826-9B9841B5E124}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -143,10 +141,6 @@ Global
 		{AE100FDD-53EB-40AB-A244-2F3352EBBBA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AE100FDD-53EB-40AB-A244-2F3352EBBBA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AE100FDD-53EB-40AB-A244-2F3352EBBBA6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8240A689-D421-4D4C-9A23-EF0E38D85D74}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8240A689-D421-4D4C-9A23-EF0E38D85D74}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8240A689-D421-4D4C-9A23-EF0E38D85D74}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8240A689-D421-4D4C-9A23-EF0E38D85D74}.Release|Any CPU.Build.0 = Release|Any CPU
 		{59EBAC2A-6170-487B-9660-F13D8F0A255A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{59EBAC2A-6170-487B-9660-F13D8F0A255A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{59EBAC2A-6170-487B-9660-F13D8F0A255A}.Release|Any CPU.ActiveCfg = Release|Any CPU

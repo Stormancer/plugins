@@ -31,6 +31,9 @@ using System.Threading.Tasks;
 namespace Stormancer.Server.Plugins.GameFinder
 {
 
+    /// <summary>
+    /// Provides Gamefinder services in a scene.
+    /// </summary>
     public interface IGameFinderService
     {
         /// <summary>
@@ -66,7 +69,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// Gets metrics about the game finder.
         /// </summary>
         /// <returns></returns>
-        Dictionary<string, int> GetMetrics();
+        ValueTask<Dictionary<string, int>> GetMetrics();
 
         /// <summary>
         /// Advertises a game session in the gamefinder.

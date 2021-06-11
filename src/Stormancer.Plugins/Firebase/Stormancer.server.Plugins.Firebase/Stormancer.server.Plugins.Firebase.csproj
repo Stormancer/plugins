@@ -23,7 +23,7 @@
     
   <ItemGroup>
     <PackageReference Include="FirebaseAdmin" Version="2.0.0" />
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="4.2.0.4-pre" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -111,7 +111,7 @@ namespace Stormancer.Server.Plugins.Friends
         /// <summary>
         /// Additional persisted custom data (status text, etc...)
         /// </summary>
-        public string CustomData { get; set; }
+        public string? CustomData { get; set; }
 
         public DateTime LastConnected { get; set; }
     }

@@ -84,7 +84,7 @@ namespace Stormancer.Server.Plugins.Users
             Func<IEnumerable<IUserEventHandler>> eventHandlers
         )
         {
-            _indexName = (string)(environment.Configuration.users?.index) ?? "gameData";
+            _indexName = (string?)(environment.Configuration.users?.index) ?? "gameData";
             _handlers = eventHandlers;
             _logger = logger;
             //_logger.Log(LogLevel.Trace, "users", $"Using index {_indexName}", new { index = _indexName });
@@ -147,7 +147,7 @@ namespace Stormancer.Server.Plugins.Users
             }
             try
             {
-                await TaskHelper.Retry(async (_,_) =>
+                await TaskHelper.Retry(async (_, _) =>
                 {
 
                     var response = await c.IndexAsync(user, s => s.Index(GetIndex<User>()).Refresh(Elasticsearch.Net.Refresh.WaitFor));
@@ -327,7 +327,7 @@ namespace Stormancer.Server.Plugins.Users
                     return null;
                 }
             }
-            else if(claim.IsValid ||  claim.ServerError == null || claim.ServerError.Status == 404)
+            else if (claim.IsValid || claim.ServerError == null || claim.ServerError.Status == 404)
             {
                 var r = await c.SearchAsync<User>(sd => sd.Query(qd => qd.Term($"auth.{provider}.{claimPath}", login)).AllowNoIndices());
 
@@ -393,7 +393,7 @@ namespace Stormancer.Server.Plugins.Users
             return mainUser;
         }
 
-        public async Task<User> GetUser(string uid)
+        public async Task<User?> GetUser(string uid)
         {
             var c = await Client<User>();
             var r = await c.GetAsync<User>(uid);
@@ -403,7 +403,7 @@ namespace Stormancer.Server.Plugins.Users
             }
             else
             {
-                return null;
+                return default;
             }
         }
 
@@ -416,7 +416,7 @@ namespace Stormancer.Server.Plugins.Users
             }
             else
             {
-                user.UserData = JObject.FromObject(data);
+                user.UserData = JObject.FromObject(data!);
                 await (await Client<User>()).IndexAsync(user, s => s);
             }
         }
@@ -431,7 +431,7 @@ namespace Stormancer.Server.Plugins.Users
 
             return result.Documents;
         }
-        public async Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string, string>> query, int take, int skip)
+        public async Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string, string>> query, int take, int skip, CancellationToken cancellationToken)
         {
             var c = await Client<User>();
 
@@ -454,7 +454,7 @@ namespace Stormancer.Server.Plugins.Users
                     return s;
                 }
 
-            });
+            }, cancellationToken);
 
             return result.Documents;
         }
@@ -493,12 +493,12 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
-        public async Task<Dictionary<string, User>> GetUsers(params string[] userIds)
+        public async Task<Dictionary<string, User?>> GetUsers(IEnumerable<string> userIds, CancellationToken cancellationToken)
         {
             var c = await Client<User>();
-            var r = await c.MultiGetAsync(s => s.GetMany<User>(userIds.Distinct()));
-            var sources = r.SourceMany<User>(userIds);
-            return sources.ToDictionary(s => s.Id);
+            var r = await c.MultiGetAsync(s => s.GetMany<User>(userIds.Distinct()), cancellationToken);
+            var sources = r.GetMany<User>(userIds);
+            return sources.ToDictionary(s => s.Id, s => s.Found ? s.Source : default);
         }
 
 

@@ -29,8 +29,15 @@ using System.Threading.Tasks;
 
 namespace Stormancer
 {
+    /// <summary>
+    /// Notifications plugin extension methods.
+    /// </summary>
    public static class NotificationExtensions
     {
+        /// <summary>
+        /// Adds in app notification capabilities to a scene.
+        /// </summary>
+        /// <param name="scene"></param>
         public static void AddInAppNotifications(this ISceneHost scene)
         {
             scene.Metadata[NotificationPlugin.METADATA_KEY] = "enabled";

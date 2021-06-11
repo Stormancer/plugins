@@ -46,7 +46,7 @@ namespace Stormancer.Server.Plugins.Users.Test
 
         public void AddMetadata(Dictionary<string, string> result)
         {
-            
+
         }
 
         public Task<AuthenticationResult> Authenticate(AuthenticationContext authenticationCtx, CancellationToken ct)
@@ -84,7 +84,7 @@ namespace Stormancer.Server.Plugins.Users.Test
         {
             if (authenticationContext.Parameters.TryGetValue("testData", out var data))
             {
-                await _sessions.UpdateSessionData(authenticationContext.CurrentSession.SessionId, "testData", data);
+                await _sessions.UpdateSessionData(authenticationContext.CurrentSession.SessionId, "testData", data, CancellationToken.None);
             }
             else
             {

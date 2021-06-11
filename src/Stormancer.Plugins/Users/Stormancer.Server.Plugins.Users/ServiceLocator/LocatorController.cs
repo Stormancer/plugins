@@ -32,6 +32,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Net.Http;
 using System.Net;
+using System.Threading;
+using Stormancer.Plugins;
 
 namespace Stormancer.Server.Plugins.ServiceLocator
 {
@@ -50,11 +52,11 @@ namespace Stormancer.Server.Plugins.ServiceLocator
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<string> GetSceneConnectionToken(string serviceType, string serviceName)
+        public async Task<string> GetSceneConnectionToken(string serviceType, string serviceName, RequestContext<IScenePeerClient> ctx)
         {
-           
-            var session = await _sessions.GetSession(this.Request.RemotePeer);
-           if(session == null || session.User == null)
+
+            var session = await _sessions.GetSession(ctx.RemotePeer,ctx.CancellationToken);
+            if (session == null || session.User == null)
             {
                 logger.Log(LogLevel.Error, "locator", "An user tried to locate a service without being authenticated.", new { session });
                 throw new ClientException("locator.notAuthenticated");
@@ -66,11 +68,11 @@ namespace Stormancer.Server.Plugins.ServiceLocator
 
                 return token;
             }
-            catch(InvalidOperationException ex) when (ex.InnerException is HttpRequestException hre)
+            catch (InvalidOperationException ex) when (ex.InnerException is HttpRequestException hre)
             {
-                if(hre.StatusCode == HttpStatusCode.NotFound)
+                if (hre.StatusCode == HttpStatusCode.NotFound)
                 {
-                   
+
                     throw new ClientException("sceneNotFound");
                 }
                 else

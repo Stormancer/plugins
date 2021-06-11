@@ -9,6 +9,18 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Use new S2S infrastructure to get limit status.
+
+0.1.6
+-----
+Changed
+*******
+- Supports Abstractions.Server 5.0.0
+
 0.1.5
 -----
 - Use Stormancer.Abstraction.Server 4.2.0
