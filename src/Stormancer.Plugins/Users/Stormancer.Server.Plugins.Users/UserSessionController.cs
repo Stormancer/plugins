@@ -218,7 +218,7 @@ namespace Stormancer.Server.Plugins.Users
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [S2SApi]
+        [Api(ApiAccess.Public, ApiType.Rpc)]
         public Task<int> GetAuthenticatedUsersCountPublic(CancellationToken cancellationToken)
         {
             return _sessions.GetAuthenticatedUsersCount(cancellationToken);
