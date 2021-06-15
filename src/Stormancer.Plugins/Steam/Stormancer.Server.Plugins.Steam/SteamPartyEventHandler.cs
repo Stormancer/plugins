@@ -241,7 +241,7 @@ namespace Stormancer.Server.Plugins.Steam
                             else
                             {
                                 var joinLobbyParameter = new JoinLobbyDto { SteamIDLobby = data.SteamIDLobby };
-                                var ok = await _userSessions.SendRequest<bool, JoinLobbyDto>("Steam.JoinLobby", "", ctx.Session.User.Id, joinLobbyParameter, CancellationToken.None);
+                                await _userSessions.SendRequest("Steam.JoinLobby", "", ctx.Session.User.Id, joinLobbyParameter, CancellationToken.None);
 
                                 data.UserData[ctx.Session.SessionId] = new SteamUserData { SessionId = ctx.Session.SessionId, SteamId = steamId };
 

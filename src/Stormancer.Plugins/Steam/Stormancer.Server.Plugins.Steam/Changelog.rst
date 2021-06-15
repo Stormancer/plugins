@@ -11,7 +11,7 @@ This project adheres to semantic versioning.
 
 unreleased
 ----------
-- Party event handler : test another sendRequest overload
+- revert plugin to normal state
 
 4.0.4
 -----
