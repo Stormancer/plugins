@@ -9,13 +9,25 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-5.0.0.11
+5.0.1.5
+-------
+Fixed
+*****
+- Fixed deadlocks in UserSessions.SendRequest.
+- Fix public GetAuthenticatedUsersCount
+
+5.0.0.13
 --------
 Changed
 *******
 - Use the new S2S API system and proxy generator.
 - Use Stormancer.Abstraction.Server 5.0.0
-- Fix public GetAuthenticatedUsersCount
+Removed
+*******
+- UserSessionCache was removed because the new S2S system makes it unnecessary.
+Added
+*****
+- Service locator fallbacks to querying ServiceLocatorHostDatabase if it wasn't able to find a scene for a service query through IServiceLocatorProvider .
 
 4.7.0
 -------

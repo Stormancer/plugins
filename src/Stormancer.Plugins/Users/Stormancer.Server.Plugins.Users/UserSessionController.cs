@@ -35,6 +35,7 @@ using Stormancer.Server.Plugins.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
+using System.IO.Pipelines;
 
 namespace Stormancer.Server.Plugins.Users
 {
@@ -203,7 +204,16 @@ namespace Stormancer.Server.Plugins.Users
         {
             await using var rq = _sessions.SendRequest(operationName, senderUserId, recipientUserId, ctx.CancellationToken);
 
-            await Task.WhenAll(ctx.Reader.CopyToAsync(rq.Writer, ctx.CancellationToken), rq.Reader.CopyToAsync(ctx.Writer));
+            static async Task CopyToAsync(PipeReader reader, PipeWriter writer, CancellationToken cancellationToken)
+            {
+                await reader.TryCopyToAsync(writer, true, cancellationToken);
+
+            }
+            var t1 = ctx.Reader.TryCopyToAsync(rq.Writer, true, ctx.CancellationToken);
+            var t2 = rq.Reader.TryCopyToAsync(ctx.Writer, true, ctx.CancellationToken);
+
+            await t2;
+            await t1;
 
         }
 
@@ -233,7 +243,7 @@ namespace Stormancer.Server.Plugins.Users
         public async Task<string> CreateUserBearerToken(RequestContext<IScenePeerClient> ctx)
         {
             Debug.Assert(_key != null);
-            var session = await _sessions.GetSession(ctx.RemotePeer,ctx.CancellationToken);
+            var session = await _sessions.GetSession(ctx.RemotePeer, ctx.CancellationToken);
             return Jose.JWT.Encode(new Dictionary<string, string?> { { "userId", session?.User?.Id } }, _key.Value, Jose.JwsAlgorithm.HS256);
         }
 
