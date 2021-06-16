@@ -37,7 +37,7 @@ namespace Stormancer.Server.Plugins.Limits
         public int queue { get; set; } = 0;
 
         /// <summary>
-        /// Reserver slots configuration.
+        /// Reserved slots configuration.
         /// </summary>
         /// <remarks>
         /// Slots on the server are reserved when an user disconnects. An user with an active slot bypasses limits when reconnecting.
