@@ -209,8 +209,7 @@ namespace Stormancer.Server.Plugins.Steam
                                     Joinable = true,
                                     Metadata = new Dictionary<string, string> { { "partyDataToken", partyDataBearerToken } }
                                 };
-                                var steamIDLobby = await _userSessions.SendRequest<ulong,CreateLobbyDto>("Steam.CreateLobby", "", ctx.Session.User.Id,createLobbyParameters, CancellationToken.None);
-
+                                var steamIDLobby = await _userSessions.SendRequest<ulong, CreateLobbyDto>("Steam.CreateLobby", "", ctx.Session.User.Id,createLobbyParameters, CancellationToken.None);
 
                                 if (steamIDLobby != 0)
                                 {

@@ -62,11 +62,13 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="id"></param>
         /// <param name="config"></param>
-        public void RefreshConfig(string id,dynamic config)
+        public void RefreshConfig(string id, dynamic config)
         {
-            var options = (QuickQueueOptionsBase)QuickQueueExtensions.OptionsStore[id];
-            
+
+            var options = QuickQueueExtensions.GetOptions<QuickQueueOptionsBase>(id);
+
             template = options.gameSessionTemplate;
+
         }
 
         /// <summary>
@@ -87,9 +89,9 @@ namespace Stormancer.Server.Plugins.GameFinder
                 }
 
                 config.Parameters = gameCtx.Game.PrivateCustomData;
-                
+
                 await gameSessions.Create(template, gameCtx.GameSceneId, config);
-                
+
                 gameCtx.ResolutionAction = (writerCtx =>
                 {
 

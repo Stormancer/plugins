@@ -145,7 +145,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
 
             if(ctx.SceneId == null)
             {
-                
+                ctx.SceneId = await QueryClusterForSceneIdAsync(serviceType, serviceName, default);
             }
             return ctx.SceneId;
         }
@@ -155,7 +155,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
             using var rq = await host.StartAppFunctionRequest("ServiceLocator.Query", cancellationToken);
             await serializer.SerializeAsync(serviceType, rq.Input, cancellationToken);
             await serializer.SerializeAsync(serviceInstanceId, rq.Input, cancellationToken);
-
+            rq.Input.Complete();
             await foreach(var response in rq.Results)
             {
                 if(response.IsSuccess)

@@ -9,6 +9,10 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+unreleased
+----------
+- revert plugin to normal state
+
 4.0.4
 -----
 Changed
