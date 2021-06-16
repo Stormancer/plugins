@@ -1,4 +1,5 @@
-﻿using Stormancer.Server.Plugins.Configuration;
+﻿using Stormancer.Core;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Concurrent;
@@ -21,6 +22,7 @@ namespace Stormancer.Server.Plugins.Limits
         /// </summary>
         /// <returns></returns>
         UserConnectionLimitStatus GetUserLimitsStatus();
+
     }
 
     /// <summary>
@@ -66,6 +68,7 @@ namespace Stormancer.Server.Plugins.Limits
             public DateTime EntryTime { get; set; } = DateTime.UtcNow;
             public TaskCompletionSource TaskCompletionSource { get; set; } = new TaskCompletionSource();
             public IScenePeerClient Peer { get; set; } = default!;
+            public bool IsDirty { get; set; }
         }
 
         Dictionary<string, DateTime> _reservedSlots = new Dictionary<string, DateTime>();
@@ -77,12 +80,14 @@ namespace Stormancer.Server.Plugins.Limits
         private object syncRoot = new object();
 
         private readonly IConfiguration configService;
+        private readonly ISerializer serializer;
 
         public LimitsConfiguration Config { get; private set; }
 
-        public Limits(IConfiguration config)
+        public Limits(IConfiguration config, ISerializer serializer)
         {
             this.configService = config;
+            this.serializer = serializer;
             OnConfigurationChanged();
 
             Debug.Assert(Config != null);
@@ -130,15 +135,17 @@ namespace Stormancer.Server.Plugins.Limits
 
         }
 
-        public Task RunQueueAsync(CancellationToken cancellationToken)
+        public async Task RunQueueAsync(CancellationToken cancellationToken)
         {
             using var timer = new Timer(TimerCallback, null, 1000, 1000);
 
-            return cancellationToken.WaitHandle.WaitOneAsync();
+            await cancellationToken.WaitHandle.WaitOneAsync();
         }
+
 
         private void TimerCallback(object? state)
         {
+            List<Task> sendTasks;
             lock (syncRoot)
             {
                 var slotsToDelete = new List<string>();
@@ -154,13 +161,16 @@ namespace Stormancer.Server.Plugins.Limits
                 {
                     _reservedSlots.Remove(slotId);
                 }
-
+                bool connectedPeers = false;
                 while (_waitQueue.Count > 0 && _reservedSlots.Count + _connectedUsers < Config.connections.max)
                 {
                     var first = _waitQueue.First;
                     Debug.Assert(first != null);
                     _waitQueue.RemoveFirst();
+                    _connectedUsers++;
+                    connectedPeers = true;
                     first.Value.TaskCompletionSource.SetResult();
+
                     _lastEntryTimes[_nextEntryTimeOffset] = DateTime.UtcNow;
                     _lastEntryTimeOffset = _nextEntryTimeOffset;
                     _nextEntryTimeOffset = (_nextEntryTimeOffset + 1) % _lastEntryTimes.Length;
@@ -169,8 +179,31 @@ namespace Stormancer.Server.Plugins.Limits
                         _firstEntryTimesOffset = (_firstEntryTimesOffset + 1) % _lastEntryTimes.Length;
                     }
                 }
+                if (connectedPeers)
+                {
+                    foreach (var record in _waitQueue)
+                    {
+                        record.IsDirty = true;
+                    }
+                }
+                var rank = 1;
+                sendTasks = _waitQueue
+                    .Select(r => (rank++, r))
+                    .Where(r => r.Item2.IsDirty)
+                    .Select(async t =>
+                    {
+                        t.r.IsDirty = false;
+                        await t.r.Peer.Send("Queue.UpdateRank", s => serializer.Serialize(rank, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_SEQUENCED);
+                    })
+                    .ToList();
+
+
             }
+
+            
+
         }
+
         internal void Logout(string sessionId, string? userId, DisconnectionReason disconnectionReason)
         {
             lock (syncRoot)
@@ -191,22 +224,29 @@ namespace Stormancer.Server.Plugins.Limits
         private int _nextEntryTimeOffset = 0;
         private int _firstEntryTimesOffset = 0;
 
-        private void RemoveFromQueue(string sessionId)
+        public void RemoveFromQueue(string sessionId)
         {
-
-            LinkedListNode<WaitingQueueRecord>? current = _waitQueue.First;
-
-            while (current != null)
+            lock (syncRoot)
             {
-                if (current.Value.Peer.SessionId == sessionId)
+                LinkedListNode<WaitingQueueRecord>? current = _waitQueue.First;
+                bool found = false;
+                while (current != null)
                 {
-                    _waitQueue.Remove(current);
-                    current.Value.TaskCompletionSource.SetCanceled();
-                    return;
-                }
-                else
-                {
+                    if (current.Value.Peer.SessionId == sessionId)
+                    {
+                        _waitQueue.Remove(current);
+
+                        current.Value.TaskCompletionSource.SetCanceled();
+                        found = true;
+                    }
+                   
+                        
                     current = current.Next;
+                    if(found && current!=null)
+                    {
+                        current.Value.IsDirty = true;
+                    }
+                    
                 }
             }
 
@@ -216,7 +256,7 @@ namespace Stormancer.Server.Plugins.Limits
         {
 
             using var registration = cancellationToken.Register(() => RemoveFromQueue(peer.SessionId));
-            var record = new WaitingQueueRecord { Peer = peer };
+            var record = new WaitingQueueRecord { Peer = peer, IsDirty = true };
 
             _waitQueue.AddLast(record);
 

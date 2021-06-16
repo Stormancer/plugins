@@ -40,6 +40,7 @@ namespace Stormancer.Server.Plugins.Limits
             {
                 if (scene.Template == Users.Constants.SCENE_TEMPLATE)
                 {
+                    scene.Metadata["stormancer.server.plugins.limits.queue"] = "true";
                     scene.AddController<LimitsController>();
                 }
             };
