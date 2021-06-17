@@ -22,6 +22,7 @@
 
 using Stormancer.Core;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.AdminApi;
 using Stormancer.Server.Plugins.Configuration;
 using System;
 using System.Collections.Generic;
@@ -36,8 +37,8 @@ namespace Stormancer.Server.Plugins.Notification
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
-                //builder.Register<InAppNotificationsWebApiConfig>().As<IAdminWebApiConfig>();
-                //builder.Register<InAppNotificationsAdminController>();
+                builder.Register<InAppNotificationAdminController>();
+                builder.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
                 builder.Register<InAppNotificationRepository>();
                 builder.Register<ProxyNotificationChannel>().As<INotificationChannel>().InstancePerDependency();
                 builder.Register<NotificationChannelController>();
