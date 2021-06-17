@@ -659,10 +659,17 @@ namespace Stormancer.Server.Plugins.Users
 
         public async Task KickUser(string userId,string reason)
         {
-            var peer = await GetPeer(userId);
-            if(peer!=null)
+            if (userId == "*")
             {
-                await peer.Disconnect(reason);
+                await Task.WhenAll(_scene.RemotePeers.Select(p => p.Disconnect(reason)));
+            }
+            else
+            {
+                var peer = await GetPeer(userId);
+                if (peer != null)
+                {
+                    await peer.Disconnect(reason);
+                }
             }
         }
 
