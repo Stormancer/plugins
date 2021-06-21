@@ -186,9 +186,13 @@ namespace Stormancer.Server.Plugins.Limits
                         record.IsDirty = true;
                     }
                 }
-                var rank = 1;
+                var rank = 0;
                 sendTasks = _waitQueue
-                    .Select(r => (rank++, r))
+                    .Select(r => {
+                        var result = (rank, r);
+                        rank++;
+                        return result;
+                        })
                     .Where(r => r.Item2.IsDirty)
                     .Select(async t =>
                     {
