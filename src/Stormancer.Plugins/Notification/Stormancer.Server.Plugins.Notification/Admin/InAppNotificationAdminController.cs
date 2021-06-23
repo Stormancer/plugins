@@ -28,6 +28,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Notification
@@ -36,33 +37,33 @@ namespace Stormancer.Server.Plugins.Notification
     [Route("_notifications")]
     public class InAppNotificationAdminController : ControllerBase
     {
-        private readonly INotificationChannel notifications;
-       
+        
+        private readonly ISceneHost scene;
 
-
-        public InAppNotificationAdminController(INotificationChannel notifications)
+        public InAppNotificationAdminController(ISceneHost scene)
         {
  
-            this.notifications = notifications;
-            
-
+          
+            this.scene = scene;
         }
 
         [HttpPost]
         [Route("send")]
-        public Task SendNotifications(InAppNotification notification)
+        public async Task SendNotifications(NotificationArgs notification, CancellationToken cancellationToken)
         {
+            await using var scope = scene.CreateRequestScope();
+            var notifications = scope.Resolve<INotificationChannel>();
             var record = new InAppNotification { 
              Acknowledgment = InAppNotificationAcknowledgment.None,
               Message = notification.Message,
                Data = notification.Data,
-               UserId = notification.UserId,
+               UserId = notification.UserIds,
                ShouldExpire = false,
                Type = notification.Type,
-               NotificationType = InAppNotificationType.Message,
+              
              
             };
-            return notifications.SendNotification("", record);
+            await notifications.SendNotification("", record,cancellationToken);
         }
     }
 
