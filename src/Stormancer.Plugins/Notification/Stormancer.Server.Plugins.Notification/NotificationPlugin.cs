@@ -24,8 +24,10 @@ using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.AdminApi;
 using Stormancer.Server.Plugins.Configuration;
+using Stormancer.Server.Plugins.ServiceLocator;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Notification
 {
@@ -35,6 +37,13 @@ namespace Stormancer.Server.Plugins.Notification
 
         public void Build(HostPluginBuildContext ctx)
         {
+            ctx.SceneCreating += (ISceneHost scene) =>
+              {
+                  if(scene.Template == Users.Constants.SCENE_TEMPLATE)
+                  {
+                      scene.Metadata[METADATA_KEY] = "true";
+                  }
+              };
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
                 builder.Register<InAppNotificationAdminController>();
@@ -43,6 +52,7 @@ namespace Stormancer.Server.Plugins.Notification
                 builder.Register<ProxyNotificationChannel>().As<INotificationChannel>().InstancePerDependency();
                 builder.Register<NotificationChannelController>();
                 builder.Register<InAppNotificationProvider>().As<INotificationProvider>().AsSelf().InstancePerScene();
+                builder.Register<NotificationLocator>().As<IServiceLocatorProvider>();
             };
 
             ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
@@ -62,6 +72,23 @@ namespace Stormancer.Server.Plugins.Notification
                     scene.DependencyResolver.Resolve<InAppNotificationProvider>();
                 }
             };
+        }
+    }
+
+
+    class NotificationLocator : IServiceLocatorProvider
+    {
+        public Task LocateService(ServiceLocationCtx ctx)
+        {
+            switch (ctx.ServiceType)
+            {
+                case "stormancer.plugins.notifications":
+                    ctx.SceneId = Users.Constants.GetSceneId();
+                    break;
+                default:
+                    break;
+            }
+            return Task.CompletedTask;
         }
     }
 }
