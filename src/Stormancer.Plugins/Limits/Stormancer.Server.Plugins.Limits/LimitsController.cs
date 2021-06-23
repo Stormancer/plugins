@@ -39,6 +39,17 @@ namespace Stormancer.Server.Plugins.Limits
             return limits.GetUserLimitsStatus();
         }
 
+        /// <summary>
+        /// Called whenever a player disconnects from the scene.
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        protected override Task OnDisconnected(DisconnectedArgs args)
+        {
+            ((Limits)limits).RemoveFromQueue(args.Peer.SessionId);
+            return Task.CompletedTask;
+        }
+
 
     }
 
