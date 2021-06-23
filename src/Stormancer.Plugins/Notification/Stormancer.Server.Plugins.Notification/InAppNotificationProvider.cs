@@ -122,9 +122,8 @@ namespace Stormancer.Server.Plugins.Notification
             }
             if (notif.UserId == "*")
             {
-                filter = new MatchArrayFilter(_scene.RemotePeers);
-                // TODO fix matchAll
-                //filter = new MatchAllFilter();
+                filter = new MatchAllFilter();
+               
             }
             else
             {

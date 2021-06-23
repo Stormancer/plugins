@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+3.1.0.4
+------
+Added
+*****
+- Added admin web API.
+
 3.0.0.4
 -------
 Changed
