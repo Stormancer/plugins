@@ -51,7 +51,7 @@ namespace Stormancer.Server.Plugins.Notification
         [Route("send")]
         public async Task SendNotifications(NotificationArgs notification, CancellationToken cancellationToken)
         {
-            await using var scope = scene.CreateRequestScope();
+            using var scope = scene.CreateRequestScope();
             var notifications = scope.Resolve<INotificationChannel>();
             var record = new InAppNotification { 
              Acknowledgment = InAppNotificationAcknowledgment.None,
@@ -63,7 +63,7 @@ namespace Stormancer.Server.Plugins.Notification
               
              
             };
-            await notifications.SendNotification("", record,cancellationToken);
+            await notifications.SendNotification("", record);
         }
     }
 
