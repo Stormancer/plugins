@@ -668,7 +668,7 @@ namespace Stormancer.Server.Plugins.Users
 
                     if (ctx.Kick)
                     {
-                        await p.Disconnect(reason);
+                        await p.DisconnectFromServer(reason);
                     }
                 }));
             }
@@ -677,7 +677,7 @@ namespace Stormancer.Server.Plugins.Users
                 var peer = await GetPeer(userId);
                 if (peer != null)
                 {
-                    await peer.Disconnect(reason);
+                    await peer.DisconnectFromServer(reason);
                 }
             }
         }
