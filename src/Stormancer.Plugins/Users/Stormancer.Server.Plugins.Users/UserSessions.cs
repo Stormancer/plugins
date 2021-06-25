@@ -804,7 +804,7 @@ namespace Stormancer.Server.Plugins.Users
             var peer = await GetPeer(userId, cancellationToken);
             if (peer != null)
             {
-                await peer.Disconnect(reason);
+                await peer.DisconnectFromServer(reason);
             }
         }
 
