@@ -206,7 +206,7 @@ namespace Stormancer.Server.Plugins.Users
             return result.Success;
         }
 
-       
+
 
         public async Task Login(IScenePeerClient peer, User? user, PlatformId onlineId, Dictionary<string, byte[]> sessionData)
         {
@@ -657,11 +657,20 @@ namespace Stormancer.Server.Plugins.Users
 
         }
 
-        public async Task KickUser(string userId,string reason)
+        public async Task KickUser(string userId, string reason)
         {
-            if (userId == "*")
+            if (userId.StartsWith("*"))
             {
-                await Task.WhenAll(_scene.RemotePeers.Select(p => p.Disconnect(reason)));
+                await Task.WhenAll(_scene.RemotePeers.Select(async p =>
+                {
+                    var ctx = new KickContext(p, userId);
+                    await _eventHandlers().RunEventHandler(h => h.OnKicking(ctx),ex=>logger.Log(LogLevel.Error,"userSessions","An error occured while running onKick event.",new { }));
+
+                    if (ctx.Kick)
+                    {
+                        await p.Disconnect(reason);
+                    }
+                }));
             }
             else
             {
