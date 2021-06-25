@@ -9,12 +9,13 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-5.0.1.5
+5.0.1.6
 -------
 Fixed
 *****
 - Fixed deadlocks in UserSessions.SendRequest.
 - Fix public GetAuthenticatedUsersCount
+- When kicking players, we need to use DisconnectFromServer (which as expected disconnects from the server ) and not Disconnect, which just disconnects from scene. (Should probably be renamed DisconnectFromScene...)
 
 5.0.0.13
 --------
