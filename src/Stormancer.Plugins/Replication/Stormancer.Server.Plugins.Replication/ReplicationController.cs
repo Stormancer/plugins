@@ -1,4 +1,5 @@
 ﻿using Stormancer.Core;
+using Stormancer.Plugins;
 using Stormancer.Server.Plugins.API;
 using System;
 using System.Collections.Generic;
@@ -11,10 +12,12 @@ namespace Stormancer.Server.Plugins.Replication
     class ReplicationController : ControllerBase
     {
         private readonly ISceneHost scene;
+        private readonly RpcService rpc;
 
-        public ReplicationController(ISceneHost scene)
+        public ReplicationController(ISceneHost scene, RpcService rpc)
         {
             this.scene = scene;
+            this.rpc = rpc;
         }
 
         protected override async Task OnConnected(IScenePeerClient peer)
@@ -90,7 +93,7 @@ namespace Stormancer.Server.Plugins.Replication
                 UpdateType = UpdateType.Remove,
                 Owner = SessionId.From(args.Peer.SessionId),
                 ViewId = "authority",
-                 ViewPolicyId = "authority",
+                ViewPolicyId = "authority",
                 FilterType = "all",
             });
 
@@ -98,7 +101,7 @@ namespace Stormancer.Server.Plugins.Replication
         }
 
 
-
+        [Api(ApiAccess.Public, ApiType.FireForget)]
         public Task EntityUpdate(Packet<IScenePeerClient> packet)
         {
             var recipients = packet.ReadObject<IEnumerable<SessionId>>();
@@ -110,7 +113,46 @@ namespace Stormancer.Server.Plugins.Replication
             }, PacketPriority.MEDIUM_PRIORITY, reliability);
         }
 
-        public async Task BroadcastMessage(IEnumerable<SessionId> recipients, )
+        [Api(ApiAccess.Public, ApiType.FireForget)]
+        public Task BroadcastMessage(IEnumerable<SessionId> recipients, PacketReliability packetReliability, Packet<IScenePeerClient> packet)
+        {
+            return scene.Send(
+                new MatchArrayFilter(recipients.Select(s => s.ToString()))
+                , "Replication.BroadcastMessage"
+                , s =>
+                {
+                    var serializer = packet.Connection.Serializer();
+                    serializer.Serialize(packet.Connection.SessionId, s);
+                    packet.Stream.CopyTo(s);
+                }
+                , PacketPriority.MEDIUM_PRIORITY
+                , packetReliability);
+        }
+
+        [Api(ApiAccess.Public, ApiType.FireForget)]
+        public Task SendMessageToAuthority(SessionId target, PacketReliability packetReliability, Packet<IScenePeerClient> packet)
+        {
+            return scene.Send(
+                new MatchPeerFilter(target.ToString())
+                , "Replication.BroadcastMessage"
+                , s =>
+                {
+                    var serializer = packet.Connection.Serializer();
+                    serializer.Serialize(packet.Connection.SessionId, s);
+                    packet.Stream.CopyTo(s);
+                }
+                , PacketPriority.MEDIUM_PRIORITY
+                , packetReliability);
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public Task CallAuthority(SessionId target, RequestContext<IScenePeerClient> ctx)
+        {
+            
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public Task RequestAll(IEnumerable<SessionId> recipients, RequestContext<IScenePeerClient> ctx)
         {
 
         }
