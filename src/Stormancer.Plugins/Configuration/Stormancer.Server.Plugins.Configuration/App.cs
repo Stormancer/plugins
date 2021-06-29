@@ -22,8 +22,15 @@
 
 namespace Stormancer.Server.Plugins.Configuration
 {
+    /// <summary>
+    /// Configuration plugin entrypoint class
+    /// </summary>
     public class App
     {
+        /// <summary>
+        /// Configuration plugin entrypoint method
+        /// </summary>
+        /// <param name="builder"></param>
         public void Run(IAppBuilder builder)
         {
             builder.AddPlugin(new ConfigurationManagerPlugin());
