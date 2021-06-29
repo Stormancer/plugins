@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using MsgPack.Serialization;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -41,10 +42,11 @@ namespace Stormancer.Server.Plugins.Models
         {
             CustomData = customData;
             Parties.AddRange(parties);
+            TeamId = Guid.NewGuid().ToString();
         }
 
         [MessagePackMember(0)]
-        public string TeamId { get; set; }
+        public string TeamId { get; set; } 
 
         [MessagePackMember(1)]
         public List<Party> Parties { get; set; } = new List<Party>();

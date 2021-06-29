@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Limits
@@ -35,11 +36,11 @@ namespace Stormancer.Server.Plugins.Limits
         [HttpGet]
         [Route("users")]
         [Produces(typeof(UserConnectionLimitStatus))]
-        public async Task<IActionResult> GetUserLimitsStatus()
+        public async Task<IActionResult> GetUserLimitsStatus(CancellationToken cancellationToken)
         {
-            using var scope = scene.CreateRequestScope();
+            await using var scope = scene.CreateRequestScope();
             var limits = scope.Resolve<LimitsClient>();
-            return Ok(await limits.GetConnectionLimitStatus());
+            return Ok(await limits.GetConnectionLimitStatus(cancellationToken));
         }
     }
 

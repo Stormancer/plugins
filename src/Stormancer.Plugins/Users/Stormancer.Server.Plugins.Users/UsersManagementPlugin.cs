@@ -53,6 +53,10 @@ namespace Stormancer.Server.Plugins.Users
         {
             return SCENE_TEMPLATE;
         }
+        /// <summary>
+        /// Type <see cref="string"/> for the 'users' service.
+        /// </summary>
+        public const string SERVICE_TYPE = "stormancer.authenticator";
     }
 
   
@@ -97,9 +101,9 @@ namespace Stormancer.Server.Plugins.Users
         {
             if (scene.Template != Constants.SCENE_TEMPLATE)
             {
-                var index = scene.DependencyResolver.Resolve<UserSessionCache>();
-                scene.Connected.Add(index.OnConnected, 1000);
-                scene.Disconnected.Add(args => index.OnDisconnected(args.Peer));
+                //var index = scene.DependencyResolver.Resolve<UserSessionCache>();
+                //scene.Connected.Add(index.OnConnected, 1000);
+                //scene.Disconnected.Add(args => index.OnDisconnected(args.Peer));
             }
         }
 
@@ -119,13 +123,7 @@ namespace Stormancer.Server.Plugins.Users
             }
             else
             {
-                b.Register<UserSessionsProxy>(dr => new UserSessionsProxy(
-                      dr.Resolve<ISceneHost>(),
-                      dr.Resolve<ISerializer>(),
-                      dr.Resolve<IEnvironment>(),
-                      dr.Resolve<IServiceLocator>(),
-                      dr.Resolve<UserSessionCache>()
-                )).As<IUserSessions>().InstancePerRequest();
+                b.Register<UserSessionImpl>(dr=>new UserSessionImpl(dr.Resolve<UserSessionProxy>(), dr.Resolve<ISerializer>(), dr.Resolve<ISceneHost>())).As<IUserSessions>().InstancePerRequest();
             }
         }
 
@@ -153,7 +151,7 @@ namespace Stormancer.Server.Plugins.Users
             b.Register<UsersAdminController>();
             b.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
 
-            b.Register<UserSessionCache>(dr => new UserSessionCache(dr.Resolve<ISceneHost>(), dr.Resolve<ISerializer>(), dr.Resolve<ILogger>())).AsSelf().InstancePerScene();
+            //b.Register<UserSessionCache>(dr => new UserSessionCache(dr.Resolve<ISceneHost>(), dr.Resolve<ISerializer>(), dr.Resolve<ILogger>())).AsSelf().InstancePerScene();
             b.Register<PlatformSpecificServices>().As<IPlatformSpecificServices>();
         }
 
@@ -181,7 +179,7 @@ namespace Stormancer.Server.Plugins.Users
         }
         public Task LocateService(ServiceLocationCtx ctx)
         {
-            if (ctx.ServiceType == "stormancer.authenticator")
+            if (ctx.ServiceType == Constants.SERVICE_TYPE)
             {
                 string authenticatorSceneId = config.Settings?.auth?.sceneId ?? Constants.GetSceneId();
                 ctx.SceneId = authenticatorSceneId;

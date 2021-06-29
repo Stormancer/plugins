@@ -26,6 +26,7 @@ using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -176,7 +177,7 @@ namespace Stormancer.Server.Plugins.Users
             return Task.CompletedTask;
         }
 
-        public async Task Setup(Dictionary<string, string> parameters, Session? session)
+        public async Task Setup(Dictionary<string, string> parameters, Session? session, CancellationToken cancellationToken)
         {
             var pId = new PlatformId { Platform = PROVIDER_NAME };
             if (!parameters.TryGetValue("username", out var login))
@@ -223,10 +224,12 @@ namespace Stormancer.Server.Plugins.Users
                      
                 if (parameters.TryGetValue("pseudo", out var pseudo))
                 {
-                    await sessions.UpdateUserHandle(uid, pseudo, true);
+                    await sessions.UpdateUserHandle(uid, pseudo, true,cancellationToken);
                     user = await users.GetUser(uid);
                 }
                 var hash = DeriveKey(password, out var iterations, out var salt, out var algorithm);
+
+                Debug.Assert(user != null);
 
                 user = await users.AddAuthentication(user, PROVIDER_NAME, claim =>
                 {
@@ -242,7 +245,7 @@ namespace Stormancer.Server.Plugins.Users
                 }, new Dictionary<string, string> { { ClaimPath, login } });
                
             }
-            await Task.Delay(1000);
+         
         }
 
         private static byte[] DeriveKey(string password, out int iterations, out byte[] salt,

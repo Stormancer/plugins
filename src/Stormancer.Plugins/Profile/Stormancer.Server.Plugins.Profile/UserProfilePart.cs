@@ -24,6 +24,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Profile
@@ -39,13 +40,13 @@ namespace Stormancer.Server.Plugins.Profile
             _sessions = sessions;
         }
 
-        public async Task GetProfiles(ProfileCtx ctx)
+        public async Task GetProfiles(ProfileCtx ctx, CancellationToken cancellationToken)
         {
             //TODO: Optimize.
             foreach (var id in ctx.Users)
             {
                 // Prefer to retrieve the user directly from the session. If the user is offline, use the database.
-                var session = await _sessions.GetSessionByUserId(id);
+                var session = await _sessions.GetSessionByUserId(id, cancellationToken);
                 var user = session?.User ?? await _users.GetUser(id);
                 ctx.UpdateProfileData(id, "user", j =>
                   {

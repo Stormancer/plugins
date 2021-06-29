@@ -9,6 +9,18 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Add an optional parameter to the AddToHistory method for waiting for the records to be indexed
+
+2.0.2.1
+-------
+Changed
+*******
+- Use Stormancer.Abstraction.Server 5.0.0
+
 2.0.2
 -----
 Changed

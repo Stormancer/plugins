@@ -5,7 +5,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>4.7.0</Version>
+    <Version>5.0.2</Version>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -26,13 +26,13 @@
 
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="jose-jwt" Version="2.6.1" />
+    <PackageReference Include="jose-jwt" Version="3.1.1" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="MsgPack.Cli" Version="1.0.1" />
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="4.2.0.4-pre" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="5.0.0" />
     <PackageReference Include="System.Interactive.Async" Version="5.0.0" />
     <PackageReference Include="System.Linq.Async" Version="5.0.0" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
@@ -41,6 +41,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Admin\Stormancer.Server.Plugins.AdminApi\Stormancer.Server.Plugins.WebApi.csproj" />
     <ProjectReference Include="..\..\Analytics\Stormancer.Server.Plugins.Analytics\Stormancer.Server.Plugins.Analytics.csproj" />
+    <ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api.S2SProxyGenerator\Stormancer.Server.Plugins.Api.S2SProxyGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj" />
     <ProjectReference Include="..\..\Configuration\Stormancer.Server.Plugins.Configuration\Stormancer.Server.Plugins.Configuration.csproj" />
     <ProjectReference Include="..\..\Database\Stormancer.Server.Plugins.Database.Elasticsearch\Stormancer.Server.Plugins.Database.Elasticsearch.csproj" />
@@ -52,6 +53,10 @@
   <ItemGroup>
     <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
     <Pdbs Include="$(TargetDir)*.pdb" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Folder Include="Extensions\" />
   </ItemGroup>
   
   <Target Name="PostPack" AfterTargets="Pack">

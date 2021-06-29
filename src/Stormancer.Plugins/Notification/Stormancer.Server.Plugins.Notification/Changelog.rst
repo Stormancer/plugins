@@ -9,6 +9,20 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+3.1.0.4
+------
+Added
+*****
+- Added admin web API.
+
+3.0.0.4
+-------
+Changed
+*******
+- Add CancellationToken to INotificationProvider.Send() 
+- Support Users 5.x API.
+- Use Stormancer.Abstraction.Server 5.0.0
+
 2.0.2
 -----
 Changed

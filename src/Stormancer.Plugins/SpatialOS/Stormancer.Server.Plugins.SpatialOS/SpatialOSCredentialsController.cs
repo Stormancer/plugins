@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Stormancer.Server.Plugins.Users;
 using Microsoft.Extensions.Logging;
+using Stormancer.Plugins;
 
 namespace Stormancer.Server.Plugins.SpatialOS
 {
@@ -53,15 +54,19 @@ namespace Stormancer.Server.Plugins.SpatialOS
         /// A route that allows a connected client to get SpatialOS credentials
         /// </summary>
         /// <param name="arguments">Custom arguments consumed by the event handlers.</param>
+        /// <param name="ctx"></param>
         /// <returns>The SpatialOS player credentials</returns>
         /// <remarks>
         /// The behaviour of this route can be modified by implementing <see cref="ISpatialOsCredentialsEventHandler"/>.
         /// </remarks>
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<SpatialOsPlayerCredentials> GetCredentials(JObject arguments)
+        public async Task<SpatialOsPlayerCredentials> GetCredentials(JObject arguments, RequestContext<IScenePeerClient> ctx)
         {
-            var session = await _sessions.GetSession(Request.RemotePeer);
-
+            var session = await _sessions.GetSession(ctx.RemotePeer, ctx.CancellationToken);
+            if(session == null)
+            {
+                throw new ClientException("notAuthenticated");
+            }
 
             var context = new SpatialOsPlayerCredentialsCtx(session, arguments, _configuration.DefaultDeploymentName);
             await _handlers.RunEventHandler(handler => handler.OnCreatingSpatialOsCredentials(context), ex =>
@@ -70,11 +75,11 @@ namespace Stormancer.Server.Plugins.SpatialOS
                 throw new InvalidOperationException("An error occurred when running event handlers before creating SpatialOS credentials, see inner exception for details.", ex);
             });
 
-            if(context.UserId == null)
+            if (context.UserId == null)
             {
                 throw new InvalidOperationException("Connot determine user id for creating SpatialOS credentials.");
             }
-            if(context.ProviderName == null)
+            if (context.ProviderName == null)
             {
                 throw new InvalidOperationException("Connot determine provider name for creating SpatialOS credentials.");
             }
@@ -85,7 +90,7 @@ namespace Stormancer.Server.Plugins.SpatialOS
 
             var result = await _spatialOSCredentialsService.CreateSpatialOSToken(context.UserId, context.ProviderName, context.DeploymentName, context.WorkerType);
 
-            if(result == null)
+            if (result == null)
             {
                 throw new ClientException($"Deployment {context.DeploymentName} was not found in SpatialOS.");
             }

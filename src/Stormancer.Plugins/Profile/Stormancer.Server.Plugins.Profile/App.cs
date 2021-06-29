@@ -28,8 +28,15 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Profile
 {
+    /// <summary>
+    /// Entry point class for the Profile plugin.
+    /// </summary>
     public class App
     {
+        /// <summary>
+        /// Entrypoint method for the profile plugin.
+        /// </summary>
+        /// <param name="builder"></param>
         public void Run(IAppBuilder builder)
         {
             builder.AddPlugin(new ProfilePlugin());

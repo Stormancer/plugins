@@ -31,6 +31,7 @@ using System.Linq.Expressions;
 using Stormancer.Diagnostics;
 using System.IO;
 using System.Diagnostics;
+using System.Threading;
 
 namespace Stormancer.Server.Plugins.API
 {
@@ -141,7 +142,7 @@ namespace Stormancer.Server.Plugins.API
 
         private async Task ExecuteConnectionRejected(IScenePeerClient client)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
             {
                 var controller = scope.Resolve<T>();
                 await controller.OnConnectionRejected(client);
@@ -150,7 +151,7 @@ namespace Stormancer.Server.Plugins.API
 
         private async Task ExecuteConnecting(IScenePeerClient client)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
             {
                 var controller = scope.Resolve<T>();
                 await controller.OnConnecting(client);
@@ -160,45 +161,45 @@ namespace Stormancer.Server.Plugins.API
 
         private async Task ExecuteConnected(IScenePeerClient client)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
             {
                 var controller = scope.Resolve<T>();
-                controller.Peer = client;
+                
                 await controller.OnConnected(client);
             }
         }
 
         private async Task ExecuteDisconnected(DisconnectedArgs args)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
             {
                 var controller = scope.Resolve<T>();
-                controller.Peer = args.Peer;
+               
                 await controller.OnDisconnected(args);
             }
         }
 
-        private Task ExecuteSceneStarting()
+        private async Task ExecuteSceneStarting()
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
             {
                 var controller = scope.Resolve<T>();
                 var handlers = _scene.DependencyResolver.Resolve<IEnumerable<IApiHandler>>();
                 var logger = _scene.DependencyResolver.Resolve<ILogger>();
-                return handlers.RunEventHandler(h => h.SceneStarting(_scene, controller), ex => logger.Log(LogLevel.Error, "api", $"An error occured on an handler while executing {nameof(IApiHandler.SceneStarting)}", ex));
+                await handlers.RunEventHandler(h => h.SceneStarting(_scene, controller), ex => logger.Log(LogLevel.Error, "api", $"An error occured on an handler while executing {nameof(IApiHandler.SceneStarting)}", ex));
 
 
             }
         }
 
-        private Task ExecuteShuttingDown(ShutdownArgs args)
+        private async Task ExecuteShuttingDown(ShutdownArgs args)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
             {
                 var controller = scope.Resolve<T>();
                 var handlers = _scene.DependencyResolver.Resolve<IEnumerable<IApiHandler>>();
                 var logger = _scene.DependencyResolver.Resolve<ILogger>();
-                return handlers.RunEventHandler(h => h.SceneShuttingDown(_scene, controller), ex => logger.Log(LogLevel.Error, "api", $"An error occured on an handler while executing {nameof(IApiHandler.SceneShuttingDown)}", ex));
+                await handlers.RunEventHandler(h => h.SceneShuttingDown(_scene, controller), ex => logger.Log(LogLevel.Error, "api", $"An error occured on an handler while executing {nameof(IApiHandler.SceneShuttingDown)}", ex));
 
 
             }
@@ -207,10 +208,10 @@ namespace Stormancer.Server.Plugins.API
 
         private async Task ExecuteRouteAction(ApiCallContext<Packet<IScenePeerClient>> ctx, Func<T, Packet<IScenePeerClient>, IDependencyResolver, Task> action)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
             {
                 var controller = scope.Resolve<T>();
-                controller.Peer = ctx.Context.Connection;
+               
 
                 try
                 {
@@ -233,11 +234,11 @@ namespace Stormancer.Server.Plugins.API
 
         private async Task ExecuteRouteAction(ApiCallContext<Packet<IScenePeer>> ctx, Func<T, Packet<IScenePeer>, IDependencyResolver, Task> action)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
             {
                 var controller = scope.Resolve<T>();
-                //controller.Request = ctx;
-                controller.Peer = ctx.Context.Connection;
+
+             
                 try
                 {
                     if (controller == null)
@@ -260,7 +261,7 @@ namespace Stormancer.Server.Plugins.API
 
         private async Task ExecuteS2SRequest(ApiCallContext<IS2SRequestContext> ctx, Func<T, IS2SRequestContext, IDependencyResolver, Task> action)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
             {
                 var controller = scope.Resolve<T>();
                 try
@@ -270,8 +271,7 @@ namespace Stormancer.Server.Plugins.API
                         throw new InvalidOperationException("The controller could not be found. Make sure it has been properly registered in the dependency manager.");
                     }
 
-                    controller.CancellationToken = ctx.Context.CancellationToken;
-
+                 
                     await action(controller, ctx.Context, scope);
                 }
                 catch (ClientException)
@@ -317,7 +317,7 @@ namespace Stormancer.Server.Plugins.API
         }
         private async Task ExecuteRpcAction(ApiCallContext<RequestContext<IScenePeerClient>> ctx, Func<T, RequestContext<IScenePeerClient>, IDependencyResolver, Task> action)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
             {
                 var controller = scope.Resolve<T>();
                 try
@@ -327,8 +327,7 @@ namespace Stormancer.Server.Plugins.API
                         throw new InvalidOperationException("The controller could not be found. Make sure it has been properly registered in the dependency manager.");
                     }
                     controller.Request = ctx.Context;
-                    controller.CancellationToken = ctx.Context.CancellationToken;
-                    controller.Peer = ctx.Context.RemotePeer;
+                   
 
                     await action(controller, ctx.Context, scope);
                 }
@@ -376,7 +375,7 @@ namespace Stormancer.Server.Plugins.API
 
         private async Task ExecuteRpcAction(ApiCallContext<RequestContext<IScenePeer>> ctx, Func<T, RequestContext<IScenePeer>, IDependencyResolver, Task> action)
         {
-            using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
+            await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
             {
                 var controller = scope.Resolve<T>();
                 try
@@ -386,8 +385,7 @@ namespace Stormancer.Server.Plugins.API
                         throw new InvalidOperationException("The controller could not be found. Make sure it has been properly registered in the dependency manager.");
                     }
                     //controller.Request = ctx;
-                    controller.CancellationToken = ctx.Context.CancellationToken;
-                    controller.Peer = ctx.Context.RemotePeer;
+                   
 
                     await action(controller, ctx.Context, scope);
                 }
@@ -806,25 +804,37 @@ namespace Stormancer.Server.Plugins.API
             public static void ReadObject<TData>(Packet<IScenePeerClient> ctx, out TData output, IDependencyResolver resolver) => output = ctx.ReadObject<TData>();
             public static void ReadObject<TData>(RequestContext<IScenePeerClient> ctx, out TData output, IDependencyResolver resolver) => output = ctx.ReadObject<TData>();
 
-            public static async Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadObject<TData>(ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver> tuple)
+            public static void ReadCt(RequestContext<IScenePeer> ctx, out CancellationToken output, IDependencyResolver resolver) => output = ctx.CancellationToken;
+            public static void ReadCt(RequestContext<IScenePeerClient> ctx, out CancellationToken output, IDependencyResolver resolver) => output = ctx.CancellationToken;
+
+            public static async Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadObject<TData>(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> t)
             {
+                var tuple = t.Result;
                 var (rq, args, resolver) = tuple;
                 var serializer = resolver.Resolve<ISerializer>();
                 args.Add(await serializer.DeserializeAsync<TData>(rq.Reader, rq.CancellationToken));
                 return tuple;
             }
-            public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadObjectCtx(ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver> tuple)
+            public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadObjectCtx(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> t)
             {
-                var (rq, args, _) = tuple;
+                var (rq, args, _) = t.Result;
                 args.Add(rq);
-                return Task.FromResult(tuple);
+                return t;
+            }
+
+            public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadObjectCt(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> t)
+            {
+                var (rq, args, _) = t.Result;
+                args.Add(rq.CancellationToken);
+                return t;
             }
 
             public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> CreateArgsReadSeedS2S(IS2SRequestContext ctx, IDependencyResolver resolver) => Task.FromResult((ctx, new List<object?>(), resolver));
 
-            public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadNextS2SArgument<TData>(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> task) => task.ContinueWith(t => ReadObject<TData>(task.Result)).Unwrap();
+            public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadNextS2SArgument<TData>(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> task) => task.ContinueWith(ReadObject<TData>).Unwrap();
 
-            public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadNextS2SArgumentCtx(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> task) => task.ContinueWith(t => ReadObjectCtx(task.Result)).Unwrap();
+            public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadNextS2SArgumentCtx(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> task) => task.ContinueWith(ReadObjectCtx).Unwrap();
+            public static Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadNextS2SArgumentCt(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> task) => task.ContinueWith(ReadObjectCt).Unwrap();
 
             public static Task<List<object?>> CompleteReadS2SArgs(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> task) => task.ContinueWith(t => t.Result.Item2);
 
@@ -845,6 +855,10 @@ namespace Stormancer.Server.Plugins.API
                     {
                         expr = Expression.Call(typeof(ApiHelpers).GetRuntimeMethodExt(nameof(ReadNextS2SArgumentCtx), _ => true), expr);
                     }
+                    else if (parameter.ParameterType == typeof(CancellationToken))
+                    {
+                        expr = Expression.Call(typeof(ApiHelpers).GetRuntimeMethodExt(nameof(ReadNextS2SArgumentCt), _ => true), expr);
+                    }
                     else
                     {
                         expr = Expression.Call(typeof(ApiHelpers).GetRuntimeMethodExt(nameof(ReadNextS2SArgument), _ => true).MakeGenericMethod(parameter.ParameterType), expr);
@@ -858,10 +872,11 @@ namespace Stormancer.Server.Plugins.API
                 return Expression.Lambda<Func<IS2SRequestContext, IDependencyResolver, Task<List<object?>>>>(Expression.Block(expressions), ctx, resolver).Compile();
             }
 
-            public static Task WriteResult<TData>(IS2SRequestContext ctx, TData value, IDependencyResolver resolver)
+            public static async Task WriteResult<TData>(IS2SRequestContext ctx, TData value, IDependencyResolver resolver)
             {
                 var serializer = resolver.Resolve<ISerializer>();
-                return serializer.SerializeAsync(value, ctx.Writer, ctx.CancellationToken);
+                await serializer.SerializeAsync(value, ctx.Writer, ctx.CancellationToken);
+                await ctx.Writer.CompleteAsync();
             }
 
             public static Task WriteResult<TData>(RequestContext<IScenePeerClient> ctx, TData value, IDependencyResolver resolver)
@@ -912,6 +927,7 @@ namespace Stormancer.Server.Plugins.API
                 {
                     await serializer.SerializeAsync(result, ctx.Writer, ctx.CancellationToken);
                 }
+                await ctx.Writer.CompleteAsync();
             }
 
 
@@ -986,7 +1002,7 @@ namespace Stormancer.Server.Plugins.API
                 var parameters = AddReadParametersExpressions(expressions, args, method.GetParameters());
 
                 var callExpression = Expression.Call(controller, method, parameters);
-                expressions.Add(callExpression);
+                //expressions.Add(callExpression);
                 if (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>))
                 {
                     expressions.Add(callExpression);
@@ -1081,6 +1097,15 @@ namespace Stormancer.Server.Plugins.API
                     if (parameterInfo.ParameterType == ctxType)
                     {
                         block.Add(Expression.Assign(variables[i], ctx)); //output[i] = ctx;
+                    }
+                    else if(parameterInfo.ParameterType == typeof(CancellationToken))
+                    {
+                        var readObjectMethod = typeof(ApiHelpers).GetRuntimeMethodExt("ReadCt", p => p[0].ParameterType == typeof(TRq));//Select good ReadCt overload
+                        if(readObjectMethod == null)
+                        {
+                            throw new NotSupportedException("Only RPC support cancellation.");
+                        }
+                        block.Add(Expression.Call(readObjectMethod, ctx, variables[i], resolver));
                     }
                     else
                     {

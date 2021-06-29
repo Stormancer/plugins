@@ -34,7 +34,7 @@ namespace Stormancer.Server.Plugins.Users
     internal class SceneAuthorizationController : ControllerBase
     {
         private readonly ManagementClientProvider _accessor;
-       
+
         private readonly IUserSessions _sessions;
         private readonly ILogger _logger;
         private readonly IEnvironment _environment;
@@ -43,22 +43,22 @@ namespace Stormancer.Server.Plugins.Users
         {
             _logger = logger;
             _accessor = accessor;
-          
+
             _sessions = sessions;
             _environment = environment;
         }
         public async Task GetToken(RequestContext<IScenePeerClient> ctx)
         {
-            
 
-         
-            var user = await _sessions.GetUser(ctx.RemotePeer);
+
+
+            var user = await _sessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
             if (user == null)
             {
                 throw new ClientException("userDisconnected");
             }
             var sceneId = ctx.ReadObject<string>();
-           
+
             var token = await _accessor.CreateConnectionToken(sceneId, new byte[0], "application/octet-stream");
 
             await ctx.SendValue(token);
@@ -72,7 +72,7 @@ namespace Stormancer.Server.Plugins.Users
         //    var token = TokenGenerator.CreateToken(new BearerTokenData { SessionId = sessionId, pid = session.platformId, userId = session.User.Id, IssuedOn = DateTime.UtcNow, ValidUntil = DateTime.UtcNow + TimeSpan.FromHours(1) }, app.PrimaryKey);
         //    await ctx.SendValue(token);
         //}
-       
+
         //public async Task GetUserFromBearerToken(RequestContext<IScenePeerClient> ctx)
         //{
         //    var app = await _environment.GetApplicationInfos();

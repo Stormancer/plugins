@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Limits
@@ -14,6 +15,7 @@ namespace Stormancer.Server.Plugins.Limits
     /// <summary>
     /// Provides S2S API for limits
     /// </summary>
+    [Service(Named = false, ServiceType = "stormancer.plugins.limits")]
     public class LimitsController : ControllerBase
     {
         private readonly ILimits limits;
@@ -31,15 +33,36 @@ namespace Stormancer.Server.Plugins.Limits
         /// Gets data about connection limits.
         /// </summary>
         /// <returns></returns>
-        [Api(ApiAccess.Scene2Scene, ApiType.Rpc)]
+        [S2SApi]
         public UserConnectionLimitStatus GetConnectionLimitStatus()
         {
             return limits.GetUserLimitsStatus();
         }
 
-       
+        /// <summary>
+        /// Called whenever a player disconnects from the scene.
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        protected override Task OnDisconnected(DisconnectedArgs args)
+        {
+            ((Limits)limits).RemoveFromQueue(args.Peer.SessionId);
+            return Task.CompletedTask;
+        }
+
+
     }
 
+    /// <summary>
+    /// Cache for <see cref="UserConnectionLimitStatus"/> instances retrieved from S2S.
+    /// </summary>
+    public class LimitsClientCache
+    {
+        /// <summary>
+        /// Cache
+        /// </summary>
+        public MemoryCache<UserConnectionLimitStatus> Value { get; } = new MemoryCache<UserConnectionLimitStatus>();
+    }
     /// <summary>
     /// Client to get limits informations.
     /// </summary>
@@ -48,6 +71,8 @@ namespace Stormancer.Server.Plugins.Limits
         private readonly RpcService rpc;
         private readonly IServiceLocator locator;
         private readonly ISerializer serializer;
+        private readonly LimitsClientCache cache;
+        private readonly LimitsProxy limitsProxy;
 
         /// <summary>
         /// Create a new instance of the class.
@@ -55,27 +80,29 @@ namespace Stormancer.Server.Plugins.Limits
         /// <param name="rpc"></param>
         /// <param name="locator"></param>
         /// <param name="serializer"></param>
-        public LimitsClient(RpcService rpc, IServiceLocator locator, ISerializer serializer)
+        /// <param name="cache"></param>
+        /// <param name="limitsProxy"></param>
+        public LimitsClient(RpcService rpc, IServiceLocator locator, ISerializer serializer, LimitsClientCache cache, LimitsProxy limitsProxy)
         {
             this.rpc = rpc;
             this.locator = locator;
             this.serializer = serializer;
+            this.cache = cache;
+            this.limitsProxy = limitsProxy;
         }
 
         /// <summary>
         /// Gets connection limits state.
         /// </summary>
         /// <returns></returns>
-        public async Task<UserConnectionLimitStatus> GetConnectionLimitStatus()
+        public Task<UserConnectionLimitStatus> GetConnectionLimitStatus(CancellationToken cancellationToken)
         {
-            var sceneId = await locator.GetSceneId("stormancer.authenticator", string.Empty);
-            return await rpc.Rpc("Limits.GetConnectionLimitStatus", new MatchSceneFilter(sceneId), s => { }, PacketPriority.MEDIUM_PRIORITY).Select(p =>
-            {
-                using (p)
-                {
-                    return serializer.Deserialize<UserConnectionLimitStatus>(p.Stream);
-                }
-            }).SingleOrDefaultAsync();
+            return cache.Value.Get("limits", _ =>  Retries.Retry<UserConnectionLimitStatus>(
+                    (_) => limitsProxy.GetConnectionLimitStatus(cancellationToken), 
+                    RetryPolicies.ConstantDelay(4, TimeSpan.FromMilliseconds(500)), 
+                    cancellationToken, 
+                    ex => true)
+            , TimeSpan.FromSeconds(1));
 
         }
     }

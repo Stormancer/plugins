@@ -52,7 +52,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// Query stormancer user ids from steam ids.
         /// </summary>
         /// <param name="steamIds"></param>
-        /// <returns>Map<steamId, userId></returns>
+        /// <returns></returns>
         /// <remarks>Obsolete: This api has some security issues</remarks>
         [Obsolete]
         [Api(ApiAccess.Public, ApiType.Rpc)]

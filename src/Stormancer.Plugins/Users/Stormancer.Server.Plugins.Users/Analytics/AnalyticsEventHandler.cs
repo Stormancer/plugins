@@ -17,13 +17,13 @@ namespace Stormancer.Server.Plugins.Users.Analytics
         }
         public Task OnLoggedIn(LoginContext loginCtx)
         {
-            analytics.Push("user", "login", JObject.FromObject(new { UserId = loginCtx.Session.User.Id, PlatformId = loginCtx.Session.platformId }));
+            analytics.Push("user", "login", JObject.FromObject(new { UserId = loginCtx.Session.User?.Id, PlatformId = loginCtx.Session.platformId }));
             return Task.CompletedTask;
         }
 
         public Task OnLoggedOut(LogoutContext logoutCtx)
         {
-            analytics.Push("user", "logout", JObject.FromObject(new { UserId = logoutCtx.Session.User.Id, logoutCtx.ConnectedOn, duration = (DateTime.UtcNow - logoutCtx.ConnectedOn).TotalSeconds }));
+            analytics.Push("user", "logout", JObject.FromObject(new { UserId = logoutCtx.Session.User?.Id, logoutCtx.ConnectedOn, duration = (DateTime.UtcNow - logoutCtx.ConnectedOn).TotalSeconds }));
             return Task.CompletedTask;
         }
     }

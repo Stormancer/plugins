@@ -58,8 +58,11 @@ namespace Stormancer.Server.Plugins.Users
         Task<LoginResult> Login(AuthParameters auth, IScenePeerClient peer, CancellationToken ct);
         Task RememberDeviceFor2fa(RememberDeviceParameters auth, IScenePeerClient peer, CancellationToken ct);
         Dictionary<string, string> GetMetadata();
-        Task<Dictionary<string, string>> GetStatus(IScenePeerClient peer);
+        
+        Task<Dictionary<string, string>> GetStatus(IScenePeerClient peer,CancellationToken cancellationToken);
+
         Task Unlink(User user, string type);
+
         /// <summary>
         /// Renew the credentials of authenticated users, if needed.
         /// </summary>

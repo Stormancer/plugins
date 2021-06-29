@@ -24,6 +24,7 @@ using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Profile;
 using Stormancer.Server.Plugins.Users;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Steam
@@ -42,16 +43,16 @@ namespace Stormancer.Server.Plugins.Steam
             _logger = logger;
         }
 
-        public async Task GetProfiles(ProfileCtx ctx)
+        public async Task GetProfiles(ProfileCtx ctx, CancellationToken cancellationToken)
         {
             if (!ctx.DisplayOptions.ContainsKey(SteamConstants.PROVIDER_NAME))
             {
                 return;
             }
 
-            var users = (await _users.GetUsers(ctx.Users.ToArray()))
-                .Where(kvp => kvp.Value.UserData.ContainsKey(SteamConstants.STEAM_ID))
-                .Select(kvp => kvp.Value)
+            var users = (await _users.GetUsers(ctx.Users, cancellationToken))
+                .Where(kvp => kvp.Value?.UserData.ContainsKey(SteamConstants.STEAM_ID)??false)
+                .Select(kvp => kvp.Value!)
                 .ToList();
 
             if (users.Count == 0)

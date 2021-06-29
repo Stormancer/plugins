@@ -31,11 +31,25 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server
 {
+    /// <summary>
+    /// A remote operation
+    /// </summary>
+    public interface IRemotePipe : IAsyncDisposable
+    {
+        /// <summary>
+        /// Gets the writer used to send data.
+        /// </summary>
+        PipeWriter Writer { get; }
+        /// <summary>
+        /// Gets the reader used to get returned data.
+        /// </summary>
+        PipeReader Reader { get; }
+    }
 
     /// <summary>
     /// The result of a scene to scene request.
     /// </summary>
-    public class S2SOperation : IAsyncDisposable
+    public class S2SOperation : IRemotePipe
     {
         private readonly Task<IS2SRequest> requestTask;
 
@@ -80,9 +94,11 @@ namespace Stormancer.Server
         public async ValueTask DisposeAsync()
         {
             var rq = await requestTask;
+           
+            await inputPipe.Writer.CompleteAsync();
+            await outputPipe.Reader.CompleteAsync();
+
             rq.Dispose();
-            inputPipe.Reader.Complete(new ObjectDisposedException(nameof(S2SOperation)));
-            outputPipe.Writer.Complete(new ObjectDisposedException(nameof(S2SOperation)));
 
         }
 
@@ -158,7 +174,14 @@ namespace Stormancer.Server
             {
                 if (_result == null)
                 {
-                    _result = Reader.ReadObject<T>(serializer, ct);
+                    async Task<T> ReadObject(CancellationToken ct)
+                    {
+                        var r = await Reader.ReadObject<T>(serializer, ct);
+                        Reader.Complete();
+                        return r;
+                    }
+                    _result = ReadObject(ct);
+                    
                 }
                 return _result;
             }

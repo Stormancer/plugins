@@ -9,6 +9,17 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+2.1.0.6
+-------
+Added
+******
+- Added IRemotePipe interface implemented by S2SOperation.
+- Added Extension methods for copying pipes.
+
+Changed
+*******
+- Use Stormancer.Abstraction.Server 5.0.0
+
 2.0.4.1
 -------
 Added
