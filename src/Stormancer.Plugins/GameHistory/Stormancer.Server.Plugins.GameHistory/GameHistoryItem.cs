@@ -26,30 +26,76 @@ using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.GameHistory
 {
+    /// <summary>
+    /// History DB record
+    /// </summary>
     public class HistoryRecord
     {
-        public string Id { get; set; }
-       
-        public JObject Data { get; set; }
+        /// <summary>
+        /// Id of the record in DB
+        /// </summary>
+        public string Id { get; set; } = "";
 
-        public DateTime GameStartedOn { get; set; }
+        /// <summary>
+        /// Data of the game history
+        /// </summary>
+        public JObject Data { get; set; } = new();
 
-        public DateTime GameEndedOn { get; set; }
+        /// <summary>
+        /// Date of the start of the record
+        /// </summary>
+        public DateTime GameStartedOn { get; set; } = DateTime.MinValue;
+
+        /// <summary>
+        /// Date of the end of the record
+        /// </summary>
+        public DateTime GameEndedOn { get; set; } = DateTime.MinValue;
     }
 
+    /// <summary>
+    /// Game history DB record
+    /// </summary>
     public class GameHistoryRecord : HistoryRecord
     {
-        public List<PlayerHistoryRecord> players { get; set; }
+        /// <summary>
+        /// Players of the game
+        /// </summary>
+        public List<PlayerHistoryRecord> Players { get; set; } = new();
 
-        public string WinningTeam { get; set; }
+        /// <summary>
+        /// Players of the game
+        /// </summary>
+        [Obsolete("Bad naming, use 'Players' instead.", false)]
+        public List<PlayerHistoryRecord> players
+        {
+            get { return Players; }
+            set { Players = value; }
+        }
+
+        /// <summary>
+        /// Team which won the game
+        /// </summary>
+        public string WinningTeam { get; set; } = "";
     }
 
+    /// <summary>
+    /// Player history DB record
+    /// </summary>
     public class PlayerHistoryRecord : HistoryRecord
     {
-        public string GameId { get; set; }
+        /// <summary>
+        /// Game Id
+        /// </summary>
+        public string GameId { get; set; } = "";
 
-        public string PlayerId { get; set; }
+        /// <summary>
+        /// Player Id
+        /// </summary>
+        public string PlayerId { get; set; } = "";
 
-        public string TeamId { get; set; }
+        /// <summary>
+        /// Team Id
+        /// </summary>
+        public string TeamId { get; set; } = "";
     }
 }
