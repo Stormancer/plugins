@@ -109,5 +109,10 @@ namespace Stormancer.Server.Plugins.Replication
                 packet.Stream.CopyTo(s);
             }, PacketPriority.MEDIUM_PRIORITY, reliability);
         }
+
+        public async Task BroadcastMessage(IEnumerable<SessionId> recipients, )
+        {
+
+        }
     }
 }
