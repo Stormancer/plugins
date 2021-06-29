@@ -1002,7 +1002,7 @@ namespace Stormancer.Server.Plugins.API
                 var parameters = AddReadParametersExpressions(expressions, args, method.GetParameters());
 
                 var callExpression = Expression.Call(controller, method, parameters);
-                expressions.Add(callExpression);
+                //expressions.Add(callExpression);
                 if (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>))
                 {
                     expressions.Add(callExpression);
