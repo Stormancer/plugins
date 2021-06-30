@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Broadcast message action sends the SessionId as a SessionId object instead of a string.
+
 0.1.3.1
 -------
 Changed

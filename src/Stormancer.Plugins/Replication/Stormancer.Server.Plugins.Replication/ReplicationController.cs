@@ -1,10 +1,14 @@
-﻿using Stormancer.Core;
+﻿using MsgPack.Serialization;
+using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.API;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Replication
@@ -116,13 +120,15 @@ namespace Stormancer.Server.Plugins.Replication
         [Api(ApiAccess.Public, ApiType.FireForget)]
         public Task BroadcastMessage(IEnumerable<SessionId> recipients, PacketReliability packetReliability, Packet<IScenePeerClient> packet)
         {
+            var position = packet.Stream.Position;
             return scene.Send(
                 new MatchArrayFilter(recipients.Select(s => s.ToString()))
                 , "Replication.BroadcastMessage"
                 , s =>
                 {
+                    packet.Stream.Seek(position, SeekOrigin.Begin);
                     var serializer = packet.Connection.Serializer();
-                    serializer.Serialize(packet.Connection.SessionId, s);
+                    serializer.Serialize(SessionId.From(packet.Connection.SessionId), s);
                     packet.Stream.CopyTo(s);
                 }
                 , PacketPriority.MEDIUM_PRIORITY
@@ -138,7 +144,7 @@ namespace Stormancer.Server.Plugins.Replication
                 , s =>
                 {
                     var serializer = packet.Connection.Serializer();
-                    serializer.Serialize(packet.Connection.SessionId, s);
+                    serializer.Serialize(SessionId.From(packet.Connection.SessionId), s);
                     packet.Stream.CopyTo(s);
                 }
                 , PacketPriority.MEDIUM_PRIORITY
@@ -146,15 +152,118 @@ namespace Stormancer.Server.Plugins.Replication
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public Task CallAuthority(SessionId target, RequestContext<IScenePeerClient> ctx)
+        public async Task CallAuthority(SessionId target, RequestContext<IScenePeerClient> ctx)
         {
-            
+            var peer = scene.RemotePeers.FirstOrDefault(p => p.SessionId == target.ToString());
+            if (peer == null)
+            {
+                throw new ClientException("targetDisconnected");
+            }
+
+            await foreach (var packet in rpc.Rpc("Replication.CallAuthority", peer
+                , s =>
+                {
+                    var serializer = ctx.RemotePeer.Serializer();
+                    serializer.Serialize(SessionId.From(ctx.RemotePeer.SessionId), s);
+                    ctx.InputStream.CopyTo(s);
+                }
+                , PacketPriority.MEDIUM_PRIORITY).ToAsyncEnumerable())
+            {
+                using (packet)
+                {
+                    await ctx.SendValue(s => packet.Stream.CopyTo(s));
+                }
+            }
+
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public Task RequestAll(IEnumerable<SessionId> recipients, RequestContext<IScenePeerClient> ctx)
+        public async Task RequestAll(IEnumerable<SessionId> recipients, RequestContext<IScenePeerClient> ctx)
         {
+            var channel = Channel.CreateUnbounded<(Packet<IScenePeerClient>?,(SessionId,Exception)?)>();
+
+
+
+            static async Task ConsumeChannel(ChannelReader<(Packet<IScenePeerClient>?, (SessionId, Exception)?)> reader, RequestContext<IScenePeerClient> ctx)
+            {
+                await foreach (var (packet,error) in reader.ReadAllAsync(ctx.CancellationToken))
+                {
+                    if (packet != null)
+                    {
+                        using (packet)
+                        {
+                            await ctx.SendValue(s =>
+                            {
+                                var serializer = ctx.RemotePeer.Serializer();
+                                serializer.Serialize(SessionId.From(packet.Connection.SessionId), s);
+                                serializer.Serialize(true, s);
+                                packet.Stream.CopyTo(s);
+                            });
+                        }
+                    }
+                    else if(error!=null)
+                    {
+                        var sId = error.Value.Item1;
+                        var ex = error.Value.Item2;
+                        await ctx.SendValue(s =>
+                        {
+                            var serializer = ctx.RemotePeer.Serializer();
+                            serializer.Serialize(sId, s);
+                            serializer.Serialize(false, s);
+                            serializer.Serialize(ex.Message, s);
+                        });
+                    }
+                }
+
+            }
+
+            static async Task ProcessRequest(RpcService rpc, ISerializer serializer, ChannelWriter<(Packet<IScenePeerClient>?, (SessionId, Exception)?)> writer, SessionId origin, IScenePeerClient peer, byte[] input, CancellationToken cancellationToken)
+            {
+                try
+                {
+                    await foreach (var packet in rpc.Rpc("Replication.RequestAll", peer, s =>
+                     {
+                         serializer.Serialize(origin, s);
+                         s.Write(input);
+                     }, PacketPriority.MEDIUM_PRIORITY).ToAsyncEnumerable().WithCancellation(cancellationToken))
+                    {
+                        await writer.WriteAsync((packet,default));
+                    }
+                }
+                catch(Exception ex)
+                {
+                    await writer.WriteAsync((default, (SessionId.From(peer.SessionId), ex)));
+                }
+            }
+
+            var memStream = new MemoryStream();
+            ctx.InputStream.CopyTo(memStream);
+
+            var ops = recipients.Select(s =>
+          {
+              var sId = s.ToString();
+              var peer = scene.RemotePeers.FirstOrDefault(s => s.SessionId == sId);
+              if (peer == null)
+              {
+                  return Task.CompletedTask;
+              }
+              else
+              {
+                  return ProcessRequest(rpc, ctx.RemotePeer.Serializer(), channel.Writer, SessionId.From(ctx.RemotePeer.SessionId), peer, memStream.ToArray(), ctx.CancellationToken);
+              }
+
+          });
+
+
+            var t1 = ConsumeChannel(channel.Reader, ctx);
+            await Task.WhenAll(ops);
+            await t1;
 
         }
     }
+
+
+
+
+
 }
