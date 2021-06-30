@@ -9,7 +9,7 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-4.0.5
+unreleased
 ----------
 - revert plugin to normal state
 - Fix queryUserIds (no error if a steamId is not found in the system)
