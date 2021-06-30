@@ -11,7 +11,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <Description>Integrates the configuration SA into the dependency resolver system.</Description>
+    <Description>Integrates the server app configuration API with the dependency resolver system.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
