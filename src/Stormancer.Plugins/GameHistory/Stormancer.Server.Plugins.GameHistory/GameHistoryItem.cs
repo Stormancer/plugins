@@ -63,16 +63,6 @@ namespace Stormancer.Server.Plugins.GameHistory
         public List<PlayerHistoryRecord> Players { get; set; } = new();
 
         /// <summary>
-        /// Players of the game
-        /// </summary>
-        [Obsolete("Bad naming, use 'Players' instead.", false)]
-        public List<PlayerHistoryRecord> players
-        {
-            get { return Players; }
-            set { Players = value; }
-        }
-
-        /// <summary>
         /// Team which won the game
         /// </summary>
         public string WinningTeam { get; set; } = "";
