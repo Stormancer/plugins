@@ -117,6 +117,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AccessLimits", "AccessLimit
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Limits", "Limits\Stormancer.Server.Plugins.Limits\Stormancer.Server.Plugins.Limits.csproj", "{EEA73710-A05B-4DFA-826B-CBDD2F5BBCD2}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.PeerConfiguration", "Configuration\Stormancer.Server.Plugins.PeerConfiguration\Stormancer.Server.Plugins.PeerConfiguration.csproj", "{DF44C941-63AC-41D5-8F89-603263446C03}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -237,6 +239,10 @@ Global
 		{EEA73710-A05B-4DFA-826B-CBDD2F5BBCD2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EEA73710-A05B-4DFA-826B-CBDD2F5BBCD2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EEA73710-A05B-4DFA-826B-CBDD2F5BBCD2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF44C941-63AC-41D5-8F89-603263446C03}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF44C941-63AC-41D5-8F89-603263446C03}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF44C941-63AC-41D5-8F89-603263446C03}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF44C941-63AC-41D5-8F89-603263446C03}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -269,6 +275,7 @@ Global
 		{401BE992-6208-4B9B-87AE-17CF64B8637E} = {81550A48-AC59-49E8-8B35-B5BDC1526D2C}
 		{A8EDE6F2-EFB1-4E22-A59D-C4DB8E0515DC} = {DD0DDB1E-6062-411F-9CA8-2CA0B6A9FD6C}
 		{EEA73710-A05B-4DFA-826B-CBDD2F5BBCD2} = {1279C477-CFC3-4D49-9A6C-649F7C652FD6}
+		{DF44C941-63AC-41D5-8F89-603263446C03} = {B74452AA-C538-4B1D-A910-0D2404089D49}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}

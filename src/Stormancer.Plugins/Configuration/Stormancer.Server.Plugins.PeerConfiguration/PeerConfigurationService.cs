@@ -80,7 +80,7 @@ namespace Stormancer.Server.Plugins.PeerConfiguration
 
         private async ValueTask BroadcastConfiguration()
         {
-            await using var scope = scene.CreateRequestScope();
+            using var scope = scene.CreateRequestScope();
 
             var handlers = GetEventHandlers(scope);
 
@@ -143,7 +143,7 @@ namespace Stormancer.Server.Plugins.PeerConfiguration
 
         public async ValueTask SendConfiguration(IScenePeerClient client)
         {
-            await using var scope = scene.CreateRequestScope();
+            using var scope = scene.CreateRequestScope();
 
             var handlers = GetEventHandlers(scope);
 
