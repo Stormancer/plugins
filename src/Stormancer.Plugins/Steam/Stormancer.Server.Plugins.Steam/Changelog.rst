@@ -12,6 +12,7 @@ This project adheres to semantic versioning.
 unreleased
 ----------
 - revert plugin to normal state
+- Fix queryUserIds (no error if a steamId is not found in the system)
 
 4.0.4
 -----
