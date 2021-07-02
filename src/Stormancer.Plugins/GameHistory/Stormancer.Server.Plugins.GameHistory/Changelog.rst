@@ -14,6 +14,7 @@ Unreleased
 Changed
 *******
 - Add an optional parameter to the AddToHistory method for waiting for the records to be indexed
+- Rename GameHistoryRecord.players to GameHistoryRecord.Players
 
 2.0.2.1
 -------
