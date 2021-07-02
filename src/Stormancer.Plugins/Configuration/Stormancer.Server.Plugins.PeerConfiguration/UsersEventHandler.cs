@@ -19,21 +19,27 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+using Stormancer.Server.Plugins.Users;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.Configuration
+namespace Stormancer.Server.Plugins.PeerConfiguration
 {
-    /// <summary>
-    /// Configuration plugin entrypoint class
-    /// </summary>
-    public class App
+    class UsersEventHandler : IUserSessionEventHandler
     {
-        /// <summary>
-        /// Configuration plugin entrypoint method
-        /// </summary>
-        /// <param name="builder"></param>
-        public void Run(IAppBuilder builder)
+        private readonly PeerConfigurationService service;
+
+        public UsersEventHandler(PeerConfigurationService service)
         {
-            builder.AddPlugin(new ConfigurationManagerPlugin());
+            this.service = service;
+        }
+
+        async Task IUserSessionEventHandler.OnLoggedIn(LoginContext ctx)
+        {
+            await service.SendConfiguration(ctx.Client);
         }
     }
 }

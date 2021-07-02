@@ -22,8 +22,15 @@
 
 namespace Stormancer.Server.Plugins.GameHistory
 {
+    /// <summary>
+    /// Plugin entrypoint class
+    /// </summary>
     public class App
     {
+        /// <summary>
+        /// Plugin entrypoint function
+        /// </summary>
+        /// <param name="builder"></param>
         public void Run(IAppBuilder builder)
         {
             builder.AddPlugin(new GameHistoryPlugin());

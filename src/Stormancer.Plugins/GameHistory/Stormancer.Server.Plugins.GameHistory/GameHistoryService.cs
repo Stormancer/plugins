@@ -42,10 +42,26 @@ namespace Stormancer.Server.Plugins.GameHistory
             _clientFactory = clientFactory;
         }
 
-        private static readonly ConcurrentDictionary<string, bool> _initializedIndices = new ConcurrentDictionary<string, bool>();
+        private static readonly ConcurrentDictionary<string, bool> _initializedIndices = new();
 
-        private async Task<Nest.IElasticClient> CreateClient<T>(string historyType = "")
+        private async Task<IElasticClient> CreateClient<T>(string historyType = "")
         {
+            static Task CreateGameHistoryMapping(IElasticClient client)
+            {
+                return client.MapAsync<GameHistoryRecord>(m =>
+                    m.DynamicTemplates(templates => templates
+                        .DynamicTemplate("dates", t => t
+                             .Match("CreatedOn")
+                             .Mapping(ma => ma.Date(s => s))
+                            )
+                         .DynamicTemplate("score", t =>
+                            t.MatchMappingType("string")
+                             .Mapping(ma => ma.Keyword(s => s.Index()))
+                             )
+                        )
+                );
+            }
+
             var result = await _clientFactory.CreateClient<T>(_databaseName, historyType);
 
             if (_initializedIndices.TryAdd("", true))
@@ -55,34 +71,17 @@ namespace Stormancer.Server.Plugins.GameHistory
             return result;
         }
 
-        private Task CreateGameHistoryMapping(Nest.IElasticClient client)
-        {
-            return client.MapAsync<GameHistoryRecord>(m =>
-                m.DynamicTemplates(templates => templates
-                    .DynamicTemplate("dates", t => t
-                         .Match("CreatedOn")
-                         .Mapping(ma => ma.Date(s => s))
-                        )
-                     .DynamicTemplate("score", t =>
-                        t.MatchMappingType("string")
-                         .Mapping(ma => ma.Keyword(s => s.Index()))
-                         )
-                    )
-            );
-        }
-
-        public async Task AddToHistory<T>(IEnumerable<T> items) where T : HistoryRecord
+        public async Task AddToHistory<T>(IEnumerable<T> items, bool waitForRecordIndexed) where T : HistoryRecord
         {
             var client = await CreateClient<T>();
-
-            await client.BulkAsync(d => d.IndexMany(items, (bd, item) => bd.Id(item.Id)));
+            var refreshOption = waitForRecordIndexed ? Elasticsearch.Net.Refresh.WaitFor : Elasticsearch.Net.Refresh.False;
+            await client.BulkAsync(d => d.IndexMany(items, (bd, item) => bd.Id(item.Id)).Refresh(refreshOption));
         }
 
         public async Task<GameHistoryRecord> GetGameHistory(string gameId)
         {
             var client = await CreateClient<GameHistoryRecord>();
             var result = await client.GetAsync<GameHistoryRecord>(gameId);
-
             return result.Source;
         }
 
@@ -98,7 +97,7 @@ namespace Stormancer.Server.Plugins.GameHistory
             return new GameHistorySearchResult<PlayerHistoryRecord>
             {
                 Documents = result.Documents.Take(count),
-                Next = result.Documents.Count() == count + 1 ? GetNextCursor(result.Documents, count) : "",
+                Next = result.Documents.Count == count + 1 ? GetNextCursor(result.Documents, count) : "",
                 Previous = ""
             };
         }
@@ -145,8 +144,8 @@ namespace Stormancer.Server.Plugins.GameHistory
             return new GameHistorySearchResult<PlayerHistoryRecord>
             {
                 Documents = documents.Take(cData.Count),
-                Next = result.Documents.Count() == cData.Count + 1 ? GetNextCursor(result.Documents, cData.Count) : "",
-                Previous = result.Documents.Count() == cData.Count + 1 ? GetPreviousCursor(result.Documents, cData.Count) : ""
+                Next = result.Documents.Count == cData.Count + 1 ? GetNextCursor(result.Documents, cData.Count) : "",
+                Previous = result.Documents.Count == cData.Count + 1 ? GetPreviousCursor(result.Documents, cData.Count) : ""
             };
         }
 
@@ -162,7 +161,7 @@ namespace Stormancer.Server.Plugins.GameHistory
             return new GameHistorySearchResult<GameHistoryRecord>
             {
                 Documents = result.Documents.Take(count),
-                Next = result.Documents.Count() == count + 1 ? GetNextCursor(result.Documents, count) : "",
+                Next = result.Documents.Count == count + 1 ? GetNextCursor(result.Documents, count) : "",
                 Previous = "",
                 Total = result.Total
             };
@@ -210,8 +209,8 @@ namespace Stormancer.Server.Plugins.GameHistory
             return new GameHistorySearchResult<GameHistoryRecord>
             {
                 Documents = documents.Take(cData.Count),
-                Next = result.Documents.Count() == cData.Count + 1 ? GetNextCursor(result.Documents, cData.Count) : "",
-                Previous = result.Documents.Count() == cData.Count + 1 ? GetPreviousCursor(result.Documents, cData.Count) : "",
+                Next = result.Documents.Count == cData.Count + 1 ? GetNextCursor(result.Documents, cData.Count) : "",
+                Previous = result.Documents.Count == cData.Count + 1 ? GetPreviousCursor(result.Documents, cData.Count) : "",
                 Total = result.Total
             };
         }
@@ -226,21 +225,20 @@ namespace Stormancer.Server.Plugins.GameHistory
         {
             public CursorType Type { get; set; }
 
-            public string Id { get; set; }
+            public string Id { get; set; } = "";
 
             public DateTime PivotDate { get; set; }
 
             public int Count { get; set; }
-
-            public Type RecordType { get; internal set; }
         }
 
         /// <summary>
         /// Create previous cursor
         /// </summary>
         /// <param name="historySet"> set of results to build the cursor from, ordered by CreationDate descending</param>
+        /// <param name="count"></param>
         /// <returns></returns>
-        private string GetPreviousCursor<T>(IEnumerable<T> historySet, int count) where T : HistoryRecord
+        private static string GetPreviousCursor<T>(IEnumerable<T> historySet, int count) where T : HistoryRecord
         {
             var first = historySet.FirstOrDefault();
             if (first == null)
@@ -248,7 +246,7 @@ namespace Stormancer.Server.Plugins.GameHistory
                 return "";
             }
 
-            var cursor = new Cursor { Count = count, PivotDate = first.GameStartedOn, Id = first.Id, Type = CursorType.Previous, RecordType = typeof(T) };
+            var cursor = new Cursor { Count = count, PivotDate = first.GameStartedOn, Id = first.Id, Type = CursorType.Previous };
 
             var json = JsonConvert.SerializeObject(cursor);
 
@@ -259,8 +257,9 @@ namespace Stormancer.Server.Plugins.GameHistory
         /// Create next cursor
         /// </summary>
         /// <param name="historySet"> set of results to build the cursor from, ordered by CreationDate descending</param>
+        /// <param name="count"></param>
         /// <returns></returns>
-        private string GetNextCursor<T>(IEnumerable<T> historySet, int count) where T : HistoryRecord
+        private static string GetNextCursor<T>(IEnumerable<T> historySet, int count) where T : HistoryRecord
         {
             var first = historySet.LastOrDefault();
             if (first == null)
@@ -268,14 +267,14 @@ namespace Stormancer.Server.Plugins.GameHistory
                 return "";
             }
 
-            var cursor = new Cursor { Count = count, PivotDate = first.GameStartedOn, Id = first.Id, Type = CursorType.Next, RecordType = typeof(T) };
+            var cursor = new Cursor { Count = count, PivotDate = first.GameStartedOn, Id = first.Id, Type = CursorType.Next };
 
             var json = JsonConvert.SerializeObject(cursor);
 
             return Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(json));
         }
 
-        private Cursor ReadCursor(string cursorString)
+        private static Cursor ReadCursor(string cursorString)
         {
             var json = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(cursorString));
             return JsonConvert.DeserializeObject<Cursor>(json);

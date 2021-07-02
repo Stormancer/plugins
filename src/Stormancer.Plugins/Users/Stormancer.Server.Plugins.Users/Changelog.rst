@@ -9,6 +9,13 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+
+Unreleased
+----------
+Fixed
+*****
+- When kicking players, we need to use DisconnectFromServer (which as expected disconnects from the server ) and not Disconnect, which just disconnects from scene. (Should probably be renamed DisconnectFromScene...)
+
 5.0.1.5
 -------
 Fixed
