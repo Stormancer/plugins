@@ -44,5 +44,11 @@ namespace Stormancer.Server.Plugins.Friends
             return _friends.AddNonPersistedFriends(userId, friends,cancellationToken);
 
         }
+
+        [S2SApi]
+        public Task<IEnumerable<Friend>> GetFriends(string userId, CancellationToken cancellationToken)
+        {
+            return _friends.GetFriends(userId,cancellationToken);
+        }
     }
 }

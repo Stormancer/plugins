@@ -24,14 +24,43 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Friends
 {
+    /// <summary>
+    /// Context object passed to <see cref="IFriendsEventHandler.OnGetFriends(GetFriendsCtx)"/>.
+    /// </summary>
     public class GetFriendsCtx
     {
-        public string UserId { get; set; }
-        public List<Friend> Friends {get;set;}
+        internal GetFriendsCtx(string userId, List<Friend> friends, bool fromServer)
+        {
+            UserId = userId;
+            Friends = friends;
+            FromServer = fromServer;
+        }
+        /// <summary>
+        /// Gets the user id friends are requested for.
+        /// </summary>
+        public string UserId { get; }
+
+        /// <summary>
+        /// Gets the current friends list.
+        /// </summary>
+        public List<Friend> Friends { get; }
+
+        /// <summary>
+        /// The friends request is from the server.
+        /// </summary>
+        public bool FromServer { get; }
     }
 
+    /// <summary>
+    /// Friends extensibility points.
+    /// </summary>
     public interface IFriendsEventHandler
     {
-        Task OnGetFriends(GetFriendsCtx getMetUsersCtx);
+        /// <summary>
+        /// Modifies the friend list.
+        /// </summary>
+        /// <param name="getMetUsersCtx"></param>
+        /// <returns></returns>
+        Task OnGetFriends(GetFriendsCtx getMetUsersCtx) => Task.CompletedTask;
     }
 }

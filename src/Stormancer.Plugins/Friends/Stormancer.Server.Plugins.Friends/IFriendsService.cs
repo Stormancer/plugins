@@ -26,6 +26,10 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Friends
 {
+
+    /// <summary>
+    /// Provides API to get and manage friends.
+    /// </summary>
     public interface IFriendsService
     {
         Task Invite(User user, User friendId, CancellationToken cancellationToken);
@@ -43,5 +47,13 @@ namespace Stormancer.Server.Plugins.Friends
         Task SetStatus(User user, FriendListStatusConfig status, string customData, CancellationToken cancellationToken);
 
         Task AddNonPersistedFriends(string userId, IEnumerable<Friend> friends, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Gets the friend list of an user.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<IEnumerable<Friend>> GetFriends(string userId, CancellationToken cancellationToken);
     }
 }
