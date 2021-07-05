@@ -32,6 +32,6 @@ namespace Stormancer.Server.Plugins.Friends
 
     public interface IFriendsEventHandler
     {
-        Task OnGetFriends(GetFriendsCtx getMetUsersCtx);
+        Task OnGetFriends(GetFriendsCtx getFriendsCtx);
     }
 }

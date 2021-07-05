@@ -121,17 +121,17 @@ namespace Stormancer.Server.Plugins.Friends
         [MessagePackMember(0)]
         public string UserId { get; set; }
 
-        [MessagePackMember(1)]
-        public string Details { get; set; }
-
-        [MessagePackMember(2), MessagePackDateTimeMember(DateTimeConversionMethod = DateTimeMemberConversionMethod.UnixEpoc)]
+        [MessagePackMember(1), MessagePackDateTimeMember(DateTimeConversionMethod = DateTimeMemberConversionMethod.UnixEpoc)]
         public DateTimeOffset LastConnected { get; set; } = DateTimeOffset.UnixEpoch;
 
-        [MessagePackMember(3)]
+        [MessagePackMember(2)]
         public FriendStatus Status { get; set; }
 
-        [MessagePackMember(4)]
+        [MessagePackMember(3)]
         public List<string> Tags { get; set; } = new List<string>();
+
+        [MessagePackMember(4)]
+        public Dictionary<string, string> CustomData = new();
     }
 
     [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]

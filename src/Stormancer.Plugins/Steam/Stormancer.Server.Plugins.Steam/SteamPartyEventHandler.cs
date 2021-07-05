@@ -173,17 +173,19 @@ namespace Stormancer.Server.Plugins.Steam
 
                     await data.TaskQueue.PushWork(async () =>
                     {
+                        if (ctx.Session.User == null)
+                        {
+                            return;
+                        }
+
                         try
                         {
                             // Get steamId
-                            ulong steamId;
-                            try
+                            var steamId = ctx.Session.User.GetSteamId();
+
+                            if (steamId == null)
                             {
-                                steamId = (ulong)ctx.Session.User.GetSteamId()!;
-                            }
-                            catch (Exception ex)
-                            {
-                                throw new AggregateException("SteamId is invalid", ex);
+                                throw new AggregateException("SteamId is invalid");
                             }
 
                             // If the Steam lobby does not exist, we create it
@@ -201,7 +203,7 @@ namespace Stormancer.Server.Plugins.Steam
                                     ctx.Session.SessionId
                                 });
 
-                                var partyDataBearerToken = await _steamService.CreatePartyDataBearerToken(ctx.Party.Settings.PartyId, ctx.Session.User.Id, steamId);
+                                var partyDataBearerToken = await _steamService.CreatePartyDataBearerToken(ctx.Party.Settings.PartyId, ctx.Session.User.Id, (ulong)steamId);
                                 var createLobbyParameters = new CreateLobbyDto
                                 {
                                     LobbyType = lobbyType,
@@ -222,6 +224,10 @@ namespace Stormancer.Server.Plugins.Steam
                                     });
 
                                     var partySettingsDto = new PartySettingsDto(ctx.Party.Settings);
+                                    if (partySettingsDto.PublicServerData == null)
+                                    {
+                                        partySettingsDto.PublicServerData = new();
+                                    }
                                     partySettingsDto.PublicServerData["SteamIDLobby"] = steamIDLobby.ToString();
                                     _ = ctx.Party.UpdateSettings(partySettingsDto);
                                     data.SteamIDLobby = steamIDLobby;
@@ -243,7 +249,7 @@ namespace Stormancer.Server.Plugins.Steam
                                 var joinLobbyParameter = new JoinLobbyDto { SteamIDLobby = data.SteamIDLobby };
                                 await _userSessions.SendRequest("Steam.JoinLobby", "", ctx.Session.User.Id, joinLobbyParameter, CancellationToken.None);
 
-                                data.UserData[ctx.Session.SessionId] = new SteamUserData { SessionId = ctx.Session.SessionId, SteamId = steamId };
+                                data.UserData[ctx.Session.SessionId] = new SteamUserData { SessionId = ctx.Session.SessionId, SteamId = (ulong)steamId };
 
                                 data.IncrementNumMembers();
                             }

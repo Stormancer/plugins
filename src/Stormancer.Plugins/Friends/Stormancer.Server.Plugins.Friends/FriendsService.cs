@@ -153,8 +153,9 @@ namespace Stormancer.Server.Plugins.Friends
                 }
             }
 
-            friend.Details = config.CustomData;
+            friend.CustomData["Details"] = config.CustomData ?? "";
             friend.LastConnected = config.LastConnected == DateTime.MinValue ? DateTimeOffset.UnixEpoch : config.LastConnected;
+
             return friend;
         }
 
@@ -194,7 +195,7 @@ namespace Stormancer.Server.Plugins.Friends
 
         private Friend CreateFriendDtoDetailed(FriendListConfigRecord config, User user, bool online = true)
         {
-            return new Friend { UserId = user.Id, LastConnected = user.LastLogin, Details = config.CustomData, Status = ComputeStatus(config, online) };
+            return new Friend { UserId = user.Id, LastConnected = user.LastLogin, CustomData = { { "Details", config.CustomData ?? "" } }, Status = ComputeStatus(config, online) };
         }
 
         public async Task<bool> IsInFriendList(string userId, string friendId)

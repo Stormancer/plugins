@@ -31,6 +31,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Runtime.Serialization;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Steam
@@ -132,7 +133,7 @@ namespace Stormancer.Server.Plugins.Steam
 
                     throw new SteamException($"The Steam API failed to authenticate user ticket. No success status code.");
                 }
-                
+
                 var json = await response.Content.ReadAsStringAsync();
                 var steamResponse = JsonConvert.DeserializeObject<SteamAuthenticationResponse>(json);
 
@@ -268,7 +269,7 @@ namespace Stormancer.Server.Plugins.Steam
             return (await GetPlayerSummaries(new[] { steamId }))?[steamId];
         }
 
-        public async Task<IEnumerable<SteamFriend>> GetFriendList(ulong steamId)
+        public async Task<IEnumerable<SteamFriend>> GetFriendListFromWebApi(ulong steamId)
         {
             var requestUrl = "ISteamUser/GetFriendList/v1/";
             var querystring = $"?key={_apiKey}&steamid={steamId}&relationship=friend";
@@ -290,6 +291,11 @@ namespace Stormancer.Server.Plugins.Steam
 
                 return steamResponse.friendslist.friends;
             }
+        }
+
+        public async Task<IEnumerable<SteamFriend>> GetFriendListFromClient(string userId)
+        {
+            return await _userSessions.SendRequest<IEnumerable<SteamFriend>, bool>("Steam.GetFriends", "", userId, true, CancellationToken.None);
         }
 
         /// <summary>
