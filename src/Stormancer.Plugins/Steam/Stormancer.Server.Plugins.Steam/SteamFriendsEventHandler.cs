@@ -67,10 +67,38 @@ namespace Stormancer.Server.Plugins.Steam
 
         public async Task OnGetFriends(GetFriendsCtx getFriendsCtx)
         {
-            // Get steam friends
-            var steamFriends = (await _steamService.GetFriendListFromClient(getFriendsCtx.UserId)).ToArray();
+            if (getFriendsCtx.FromServer == false)
+            {
+                return;
+            }
 
-            if (steamFriends.Length == 0)
+            IEnumerable<SteamFriend> steamFriends;
+            if (!string.IsNullOrWhiteSpace(getFriendsCtx.UserId))
+            {
+                // Get steam friends from client
+                steamFriends = (await _steamService.GetFriendListFromClient(getFriendsCtx.UserId)).ToArray();
+            }
+            else
+            {
+                // Get steam friends from steam web api
+                var user = await _userService.GetUser(getFriendsCtx.UserId);
+
+                if (user == null)
+                {
+                    return;
+                }
+
+                var steamId = user.Auth[SteamConstants.PROVIDER_NAME]?[SteamConstants.ClaimPath]?.ToObject<ulong>() ?? 0;
+
+                if (steamId == 0)
+                {
+                    return;
+                }
+
+                steamFriends = (await _steamService.GetFriendListFromWebApi(steamId)).ToArray();
+            }
+
+            if (steamFriends.Count() == 0)
             {
                 return;
             }
