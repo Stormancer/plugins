@@ -22,8 +22,14 @@
 
 namespace Stormancer.Server.Plugins.Leaderboards
 {
+    /// <summary>
+    /// Represents a continuation query, used to navigate in a leaderboard result set.
+    /// </summary>
     public class LeaderboardContinuationQuery : LeaderboardQuery
     {
+        /// <summary>
+        /// Creates a new <see cref="LeaderboardContinuationQuery"/> object with default values.
+        /// </summary>
         public LeaderboardContinuationQuery()
         {
         }
@@ -34,12 +40,20 @@ namespace Stormancer.Server.Plugins.Leaderboards
             ScoreFilters = parent.ScoreFilters;
             FieldFilters = parent.FieldFilters;
             FriendsIds = parent.FriendsIds;
-            Count = parent.Count;
+            Size = parent.Size;
             Skip = parent.Skip;
             Name = parent.Name;
             ScorePath = parent.ScorePath;
+            FriendsOnly = parent.FriendsOnly;
+            UserId = parent.UserId;
         }
 
+        /// <summary>
+        /// Is the continuation for the previous page. 
+        /// </summary>
+        /// <remarks>
+        /// The coninuation leads to the next page if false.
+        /// </remarks>
         public bool IsPrevious { get; set; }
     }
 }

@@ -40,11 +40,11 @@ namespace Stormancer.Server.Plugins.Leaderboards
         public async Task Query(RequestContext<IScenePeerClient> ctx)
         {
             var query = ctx.ReadObject<LeaderboardQuery>();
-            if (query.Count <= 0)
+            if (query.Size <= 0)
             {
-                query.Count = 10;
+                query.Size = 10;
             }
-            var result = await _leaderboard.Query(query);
+            var result = await _leaderboard.Query(query,ctx.CancellationToken);
             var rankings = result.Results.Select(v => new LeaderboardRanking<ScoreDto>() { Ranking = v.Ranking, Document = new ScoreDto(v.Document) }).ToList();
             var dto = new LeaderboardResult<ScoreDto>() { LeaderboardName = result.LeaderboardName, Next = result.Next, Previous = result.Previous, Results = rankings, Total = result.Total };
             await ctx.SendValue(dto);
@@ -53,7 +53,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
         public async Task Cursor(RequestContext<IScenePeerClient> ctx)
         {
             var cursor = ctx.ReadObject<string>();
-            var result = await _leaderboard.QueryCursor(cursor);
+            var result = await _leaderboard.QueryCursor(cursor,ctx.CancellationToken);
             var rankings = result.Results.Select(v => new LeaderboardRanking<ScoreDto>() { Ranking = v.Ranking, Document = new ScoreDto(v.Document) }).ToList();
             var dto = new LeaderboardResult<ScoreDto>() { LeaderboardName = result.LeaderboardName, Next = result.Next, Previous = result.Previous, Results = rankings, Total = result.Total };
             await ctx.SendValue(dto);
@@ -62,11 +62,11 @@ namespace Stormancer.Server.Plugins.Leaderboards
         public async Task GetRanking(RequestContext<IScenePeerClient> ctx)
         {
             var query = ctx.ReadObject<LeaderboardQuery>();
-            query.Count = 1;
+            query.Size = 1;
             LeaderboardResult<ScoreRecord> result;
             try
             {
-                result = await _leaderboard.Query(query);
+                result = await _leaderboard.Query(query,ctx.CancellationToken);
             }
             catch (Exception)
             {

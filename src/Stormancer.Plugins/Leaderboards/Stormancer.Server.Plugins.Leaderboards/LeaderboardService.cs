@@ -20,13 +20,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Jose;
 using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Database;
+using Stormancer.Server.Plugins.Friends;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Leaderboards
@@ -48,6 +53,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
         private readonly IUserService _userService;
         private Func<IEnumerable<ILeaderboardEventHandler>> eventHandlers;
         private Func<IEnumerable<ILeaderboardIndexMapping>> leaderboardIndexMapping;
+        private readonly IFriendsService friendsService;
 
         /// <summary>
         /// True if the leaderboards treats exequo as same rank. False if they are ordered by ascending creation date.
@@ -59,6 +65,8 @@ namespace Stormancer.Server.Plugins.Leaderboards
             IESClientFactory clientFactory,
             Func<IEnumerable<ILeaderboardEventHandler>> eventHandlers,
             Func<IEnumerable<ILeaderboardIndexMapping>> leaderboardIndexMapping,
+            IFriendsService friendsService,
+            IConfiguration configuration,
             IUserService userService)
         {
             _logger = logger;
@@ -66,6 +74,26 @@ namespace Stormancer.Server.Plugins.Leaderboards
             _userService = userService;
             this.eventHandlers = eventHandlers;
             this.leaderboardIndexMapping = leaderboardIndexMapping;
+            this.friendsService = friendsService;
+
+            if (_key == null)
+            {
+                _key = new Lazy<byte[]>(() =>
+                {
+                    var key = configuration.GetValue<string?>("security.tokenKey", null);
+                    if (key == null)
+                    {
+                        var bytes = new byte[32];
+                        System.Security.Cryptography.RandomNumberGenerator.Fill(new Span<byte>(bytes));
+                        return bytes;
+                    }
+                    else
+                    {
+                        return System.Convert.FromBase64String(key);
+                    }
+                });
+            }
+
         }
 
         private string GetModifiedLeaderboardName(string leaderboardName)
@@ -97,7 +125,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
         private double GetValue(ScoreRecord record, string scorePath)
         {
-            if(string.IsNullOrEmpty(scorePath))
+            if (string.IsNullOrEmpty(scorePath))
             {
                 throw new ArgumentException($"scorePath must be non null nor empty", nameof(scorePath));
             }
@@ -157,7 +185,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
             {
                 return null;
             }
-            
+
             return startResult.Source;
         }
 
@@ -170,8 +198,10 @@ namespace Stormancer.Server.Plugins.Leaderboards
             return results.ToDictionary(h => h.Id, h => h.Found ? h.Source : null);
         }
 
-        public async Task<long> GetRanking(ScoreRecord score, LeaderboardQuery filters, string leaderboardName)
+        public async Task<long> GetRanking(ScoreRecord score, LeaderboardQuery filters, string leaderboardName, CancellationToken cancellationToken)
         {
+            await AdjustQuery(filters, cancellationToken);
+
             var scoreValue = GetValue(score, filters.ScorePath);
             var fullScorePath = "scores." + filters.ScorePath;
             var index = GetModifiedLeaderboardName(leaderboardName);
@@ -211,7 +241,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
                         }
                     )
                 )
-            );
+            , cancellationToken);
 
             if (!rankResult.IsValid)
             {
@@ -220,15 +250,17 @@ namespace Stormancer.Server.Plugins.Leaderboards
             return rankResult.Count + 1;
         }
 
-        public async Task<long> GetTotal(LeaderboardQuery filters, string leaderboardName)
+        public async Task<long> GetTotal(LeaderboardQuery filters, string leaderboardName, CancellationToken cancellationToken)
         {
+            await AdjustQuery(filters, cancellationToken);
+
             var index = GetModifiedLeaderboardName(leaderboardName);
             var client = await CreateESClient<ScoreRecord>(index);
 
             var rankResult = await client.CountAsync<ScoreRecord>(desc => desc
                     .Query(query =>
                         CreateQuery(query, filters))
-                    .IgnoreUnavailable());
+                    .IgnoreUnavailable(), cancellationToken);
             if (!rankResult.IsValid)
             {
                 throw new InvalidOperationException($"Failed to compute total scores in filter. {rankResult.ServerError.Error.Reason}");
@@ -236,16 +268,16 @@ namespace Stormancer.Server.Plugins.Leaderboards
             return rankResult.Count;
         }
 
-        public async Task<LeaderboardResult<ScoreRecord>> Query(LeaderboardQuery leaderboardQuery)
+        public async Task<LeaderboardResult<ScoreRecord>> Query(LeaderboardQuery leaderboardQuery, CancellationToken cancellationToken)
         {
-            await this.eventHandlers().RunEventHandler(eh => eh.OnQueryingLeaderboard(leaderboardQuery), ex => _logger.Log(LogLevel.Error, "leaderboard", "An error occured while running OnQueryingLeaderboard event handlers", ex));
+            await AdjustQuery(leaderboardQuery, cancellationToken);
             if (string.IsNullOrEmpty(leaderboardQuery.ScorePath))
             {
                 throw new ArgumentNullException("ScorePath");
             }
-            if (leaderboardQuery.Count <= 0)
+            if (leaderboardQuery.Size <= 0)
             {
-                leaderboardQuery.Count = 10;
+                leaderboardQuery.Size = 10;
             }
 
             var fullScorePath = "scores." + leaderboardQuery.ScorePath;
@@ -314,15 +346,15 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 }
                 if ((isContinuation && !isPreviousContinuation) || start == null)
                 {
-                    s = s.Size(leaderboardQuery.Count + 1).From(leaderboardQuery.Skip); // We get one more document  than necessary to be able to determine if we can build a "next" continuation
+                    s = s.Size(leaderboardQuery.Size + 1).From(leaderboardQuery.Skip); // We get one more document  than necessary to be able to determine if we can build a "next" continuation
                 }
                 else // The pivot is not included in the result set, if we are not running a continuation query, we must prefix the results with the pivot.
                 {
-                    s = s.Size(leaderboardQuery.Count).From(leaderboardQuery.Skip);
+                    s = s.Size(leaderboardQuery.Size).From(leaderboardQuery.Skip);
                 }
 
                 return s;
-            });
+            }, cancellationToken);
 
             if (!result.IsValid)
             {
@@ -357,7 +389,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
             }
 
             var leaderboardResult = new LeaderboardResult<ScoreRecord> { LeaderboardName = leaderboardQuery.Name };
-            leaderboardResult.Total = await GetTotal(leaderboardQuery, leaderboardQuery.Name);
+            leaderboardResult.Total = await GetTotal(leaderboardQuery, leaderboardQuery.Name, cancellationToken);
 
             // Compute rankings
             if (documents.Any())
@@ -365,7 +397,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 int firstRank = 0;
                 try
                 {
-                    firstRank = (int)await GetRanking(documents.First(), leaderboardQuery, leaderboardQuery.Name);
+                    firstRank = (int)await GetRanking(documents.First(), leaderboardQuery, leaderboardQuery.Name, cancellationToken);
                 }
                 catch (InvalidOperationException ex)
                 {
@@ -377,10 +409,10 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 var lastRank = firstRank;
                 var results = new List<LeaderboardRanking<ScoreRecord>>();
 
-                foreach (var doc in documents.Take(leaderboardQuery.Count))
+                foreach (var doc in documents.Take(leaderboardQuery.Size))
                 {
                     //Remove leaderboardName from document.
-                   
+
 
                     if (EnableExequo)
                     {
@@ -413,20 +445,20 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 {
                     var previousQuery = new LeaderboardContinuationQuery(leaderboardQuery);
                     previousQuery.Skip = 0;
-                    previousQuery.Count = leaderboardQuery.Count;
+                    previousQuery.Size = leaderboardQuery.Size;
                     previousQuery.IsPrevious = true;
                     previousQuery.StartId = results.First().Document.Id;
                     leaderboardResult.Previous = SerializeContinuationQuery(previousQuery);
                 }
 
-                if (documents.Count > leaderboardQuery.Count || (leaderboardQuery as LeaderboardContinuationQuery)?.IsPrevious == true) // There are scores after the last in the list.
+                if (documents.Count > leaderboardQuery.Size || (leaderboardQuery as LeaderboardContinuationQuery)?.IsPrevious == true) // There are scores after the last in the list.
                 {
                     var nextQuery = new LeaderboardContinuationQuery(leaderboardQuery);
                     nextQuery.Skip = 0;
-                    nextQuery.Count = leaderboardQuery.Count;
+                    nextQuery.Size = leaderboardQuery.Size;
                     nextQuery.IsPrevious = false;
-                    nextQuery.StartId =results.Last().Document.Id;
-                    
+                    nextQuery.StartId = results.Last().Document.Id;
+
                     leaderboardResult.Next = SerializeContinuationQuery(nextQuery);
                 }
 
@@ -437,21 +469,57 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
             return leaderboardResult;
         }
-        
+        private ValueTask AdjustQuery(LeaderboardQuery leaderboardQuery, CancellationToken cancellationToken)
+        {
+            if (leaderboardQuery.Adjusted)
+            {
+                return ValueTask.CompletedTask;
+            }
+            else
+            {
+                return AdjustQueryImpl(leaderboardQuery, cancellationToken);
+            }
+            async ValueTask AdjustQueryImpl(LeaderboardQuery leaderboardQuery, CancellationToken cancellationToken)
+            {
+
+                await this.eventHandlers().RunEventHandler(eh => eh.OnQueryingLeaderboard(leaderboardQuery), ex => _logger.Log(LogLevel.Error, "leaderboard", "An error occured while running OnQueryingLeaderboard event handlers", ex));
+
+                if (leaderboardQuery.FriendsOnly)
+                {
+                    if (string.IsNullOrEmpty(leaderboardQuery.UserId))
+                    {
+                        throw new InvalidOperationException("LeaderboardQuery.UserId must be set if LeaderboardQuery.FriendsOnly is set.");
+                    }
+                    var friends = await friendsService.GetFriends(leaderboardQuery.UserId, cancellationToken);
+                    var friendIds = friends.Select(f => f.UserId);
+                    if (leaderboardQuery.FriendsIds != null && leaderboardQuery.FriendsIds.Any())
+                    {
+                        leaderboardQuery.FilteredUserIds = leaderboardQuery.FriendsIds.Intersect(friendIds);
+                    }
+                    else
+                    {
+                        leaderboardQuery.FilteredUserIds = friendIds;
+                    }
+                }
+            }
+
+        }
+
+        private static Lazy<byte[]>? _key;
 
         private string SerializeContinuationQuery(LeaderboardContinuationQuery query)
         {
-            var json = Newtonsoft.Json.JsonConvert.SerializeObject(query);
-            return System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(json));
+            Debug.Assert(_key != null);
+            return JWT.Encode(query, _key.Value, JwsAlgorithm.HS256);
         }
 
         private LeaderboardContinuationQuery DeserializeContinuationQuery(string continuation)
         {
-            var json = System.Text.Encoding.UTF8.GetString(System.Convert.FromBase64String(continuation));
-            return Newtonsoft.Json.JsonConvert.DeserializeObject<LeaderboardContinuationQuery>(json);
+            Debug.Assert(_key != null);
+            return JWT.Decode<LeaderboardContinuationQuery>(continuation, _key.Value);
         }
 
-        public Task<LeaderboardResult<ScoreRecord>> QueryCursor(string cursor)
+        public Task<LeaderboardResult<ScoreRecord>> QueryCursor(string cursor,CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(cursor))
             {
@@ -459,7 +527,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
             }
             var query = DeserializeContinuationQuery(cursor);
 
-            return Query(query);
+            return Query(query,cancellationToken);
         }
 
         public Task UpdateScore(string id, string leaderboardName, Func<ScoreRecord?, Task<ScoreRecord>> updater)
@@ -672,12 +740,12 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
             return desc.Bool(s2 =>
             {
-                IEnumerable< Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>> mustClauses = new List<Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>> { 
+                IEnumerable<Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>> mustClauses = new List<Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>> {
                 q=>q.Term(qt=>qt.Field("leaderboardName.keyword").Value(rq.Name))
-                
+
                 };
 
-                if (rq.FriendsIds.Any())
+                if (rq.FriendsIds != null && rq.FriendsIds.Any())
                 {
                     mustClauses = mustClauses.Concat(new Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>[] {
                         q => q.Ids(s=>s.Values(rq.FriendsIds.Select(i=>GetDocumentId(rq.Name,i.ToString()))))
@@ -708,7 +776,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 {
                     mustClauses = mustClauses.Concat(rq.ScoreFilters.Select<ScoreFilter, Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>>(f =>
                     {
-                        if(string.IsNullOrEmpty(f.Path))
+                        if (string.IsNullOrEmpty(f.Path))
                         {
                             throw new ArgumentException("Range filtering clause provided without a 'Path' parameter.");
                         }

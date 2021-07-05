@@ -9,6 +9,16 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+-----
+Added
+*****
+- CancellationToken added to query APIs
+- Support for friendsOnly option to automatically filter a leaderbard by the friend list managed by Stormancer.Server.Plugins.Friends.
+Changed
+*******
+- Use signed JWT for continuation cursor to prevent tampering.
+
 3.0.2.1
 -------
 Changed

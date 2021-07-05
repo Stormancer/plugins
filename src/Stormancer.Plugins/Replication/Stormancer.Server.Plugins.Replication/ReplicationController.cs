@@ -120,13 +120,13 @@ namespace Stormancer.Server.Plugins.Replication
         [Api(ApiAccess.Public, ApiType.FireForget)]
         public Task BroadcastMessage(IEnumerable<SessionId> recipients, PacketReliability packetReliability, Packet<IScenePeerClient> packet)
         {
-            var position = packet.Stream.Position;
+           
             return scene.Send(
                 new MatchArrayFilter(recipients.Select(s => s.ToString()))
                 , "Replication.BroadcastMessage"
                 , s =>
                 {
-                    packet.Stream.Seek(position, SeekOrigin.Begin);
+                    
                     var serializer = packet.Connection.Serializer();
                     serializer.Serialize(SessionId.From(packet.Connection.SessionId), s);
                     packet.Stream.CopyTo(s);
