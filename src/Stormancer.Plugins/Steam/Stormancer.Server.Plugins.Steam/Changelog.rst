@@ -14,6 +14,7 @@ unreleased
 - revert plugin to normal state
 - Fix queryUserIds (no error if a steamId is not found in the system)
 - Improve steam friends
+- Add SteamFriendsEventHandler to IOC
 
 4.0.4
 -----

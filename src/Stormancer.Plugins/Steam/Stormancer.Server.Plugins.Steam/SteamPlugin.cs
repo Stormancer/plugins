@@ -22,6 +22,7 @@
 
 using Stormancer.Core;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.Friends;
 using Stormancer.Server.Plugins.Party;
 using Stormancer.Server.Plugins.Profile;
 using Stormancer.Server.Plugins.Steam;
@@ -41,7 +42,7 @@ namespace Stormancer.Server.Plugins.Steam
                 builder.Register<SteamPartyController>().InstancePerRequest();
                 builder.Register<SteamProfilePartBuilder>().As<IProfilePartBuilder>();
                 builder.Register<SteamService>().As<ISteamService>();
-                //builder.Register<SteamFriendsEventHandler>().As<IFriendsEventHandler>();
+                builder.Register<SteamFriendsEventHandler>().As<IFriendsEventHandler>();
                 builder.Register<SteamPartyEventHandler>().As<IPartyEventHandler>().InstancePerRequest();
                 builder.Register<SteamUserTicketAuthenticator>().As<ISteamUserTicketAuthenticator>();
             };
