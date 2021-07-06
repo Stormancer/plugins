@@ -500,6 +500,12 @@ namespace Stormancer.Server.Plugins.Leaderboards
                     {
                         leaderboardQuery.FilteredUserIds = friendIds;
                     }
+                    if (!leaderboardQuery.FilteredUserIds.Contains(leaderboardQuery.UserId))
+                    {
+                        var list = leaderboardQuery.FilteredUserIds.ToList();
+                        list.Add(leaderboardQuery.UserId);
+                        leaderboardQuery.FilteredUserIds = list; 
+                    }
                 }
             }
 
