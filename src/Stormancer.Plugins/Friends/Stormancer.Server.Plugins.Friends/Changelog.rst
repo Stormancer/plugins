@@ -14,6 +14,9 @@ Unreleased
 Added
 *****
 - Added GetFriends API for the server to get the friends of an user.
+Changed
+*******
+- Fix Friends notification api
 
 3.0.0.2
 -------
