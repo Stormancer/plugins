@@ -16,6 +16,7 @@ Added
 - CancellationToken added to query APIs
 - Support for friendsOnly option to automatically filter a leaderbard by the friend list managed by Stormancer.Server.Plugins.Friends.
 - Add mySelf in the friends only query.
+- Fix UserId in LeaderboardQuery.
 Changed
 *******
 - Use signed JWT for continuation cursor to prevent tampering.

@@ -22,6 +22,7 @@
 
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.API;
+using Stormancer.Server.Plugins.Users;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -31,15 +32,25 @@ namespace Stormancer.Server.Plugins.Leaderboards
     class LeaderboardController : ControllerBase
     {
         private readonly ILeaderboardService _leaderboard;
+        private readonly IUserSessions userSessions;
 
-        public LeaderboardController(ILeaderboardService leaderboard)
+        public LeaderboardController(ILeaderboardService leaderboard, IUserSessions userSessions)
         {
             _leaderboard = leaderboard;
+            this.userSessions = userSessions;
         }
 
         public async Task Query(RequestContext<IScenePeerClient> ctx)
         {
+            var session =await userSessions.GetSession(ctx.RemotePeer, ctx.CancellationToken);
+
+            if(session == null)
+            {
+                throw new ClientException("notAuthenticated");
+            }
+
             var query = ctx.ReadObject<LeaderboardQuery>();
+            query.UserId = session?.User?.Id;
             if (query.Size <= 0)
             {
                 query.Size = 10;
