@@ -15,6 +15,8 @@ unreleased
 - Fix queryUserIds (no error if a steamId is not found in the system)
 - Improve steam friends
 - Add SteamFriendsEventHandler to IOC
+- Fix SteamFriend dto (add missing MessagePackMember)
+- Fix OnGetFriends event handler
 
 4.0.4
 -----
