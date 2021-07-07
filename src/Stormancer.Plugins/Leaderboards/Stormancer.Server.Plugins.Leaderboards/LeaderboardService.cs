@@ -481,7 +481,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
             }
             async ValueTask AdjustQueryImpl(LeaderboardQuery leaderboardQuery, CancellationToken cancellationToken)
             {
-
+                leaderboardQuery.Adjusted = true;
                 await this.eventHandlers().RunEventHandler(eh => eh.OnQueryingLeaderboard(leaderboardQuery), ex => _logger.Log(LogLevel.Error, "leaderboard", "An error occured while running OnQueryingLeaderboard event handlers", ex));
 
                 if (leaderboardQuery.FriendsOnly)
@@ -504,11 +504,10 @@ namespace Stormancer.Server.Plugins.Leaderboards
                     {
                         var list = leaderboardQuery.FilteredUserIds.ToList();
                         list.Add(leaderboardQuery.UserId);
-                        leaderboardQuery.FilteredUserIds = list; 
+                        leaderboardQuery.FilteredUserIds = list;
                     }
                 }
             }
-
         }
 
         private static Lazy<byte[]>? _key;
@@ -525,7 +524,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
             return JWT.Decode<LeaderboardContinuationQuery>(continuation, _key.Value);
         }
 
-        public Task<LeaderboardResult<ScoreRecord>> QueryCursor(string cursor,CancellationToken cancellationToken)
+        public Task<LeaderboardResult<ScoreRecord>> QueryCursor(string cursor, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(cursor))
             {
@@ -533,7 +532,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
             }
             var query = DeserializeContinuationQuery(cursor);
 
-            return Query(query,cancellationToken);
+            return Query(query, cancellationToken);
         }
 
         public Task UpdateScore(string id, string leaderboardName, Func<ScoreRecord?, Task<ScoreRecord>> updater)
@@ -747,16 +746,16 @@ namespace Stormancer.Server.Plugins.Leaderboards
             return desc.Bool(s2 =>
             {
                 IEnumerable<Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>> mustClauses = new List<Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>> {
-                q=>q.Term(qt=>qt.Field("leaderboardName.keyword").Value(rq.Name))
-
+                    q=>q.Term(qt=>qt.Field("leaderboardName.keyword").Value(rq.Name))
                 };
 
-                if (rq.FriendsIds != null && rq.FriendsIds.Any())
+                if (rq.FilteredUserIds != null && rq.FilteredUserIds.Any())
                 {
                     mustClauses = mustClauses.Concat(new Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>[] {
-                        q => q.Ids(s=>s.Values(rq.FriendsIds.Select(i=>GetDocumentId(rq.Name,i.ToString()))))
+                        q => q.Ids(s=>s.Values(rq.FilteredUserIds.Select(i=>GetDocumentId(rq.Name,i.ToString()))))
                     });
                 }
+
                 if (rq.FieldFilters != null && rq.FieldFilters.Any())
                 {
                     mustClauses = mustClauses.Concat(rq.FieldFilters.Select<FieldFilter, Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>>(f =>
@@ -776,8 +775,8 @@ namespace Stormancer.Server.Plugins.Leaderboards
                         }
                         return q => q.Terms(s => s.Field("document." + f.Field).Terms(f.Value.ToObject<object>()));
                     }));
-
                 }
+
                 if (rq.ScoreFilters != null && rq.ScoreFilters.Any())
                 {
                     mustClauses = mustClauses.Concat(rq.ScoreFilters.Select<ScoreFilter, Func<Nest.QueryContainerDescriptor<ScoreRecord>, Nest.QueryContainer>>(f =>
