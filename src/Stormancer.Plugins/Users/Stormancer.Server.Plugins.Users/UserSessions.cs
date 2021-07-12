@@ -799,12 +799,28 @@ namespace Stormancer.Server.Plugins.Users
 
         }
 
-        public async Task KickUser(string userId, string reason, CancellationToken cancellationToken)
+        public async Task KickUser(string userId, string reason)
         {
-            var peer = await GetPeer(userId, cancellationToken);
-            if (peer != null)
+            if (userId.StartsWith("*"))
             {
-                await peer.DisconnectFromServer(reason);
+                await Task.WhenAll(_scene.RemotePeers.Select(async p =>
+                {
+                    var ctx = new KickContext(p, userId);
+                    await _eventHandlers().RunEventHandler(h => h.OnKicking(ctx),ex=>logger.Log(LogLevel.Error,"userSessions","An error occured while running onKick event.",new { }));
+
+                    if (ctx.Kick)
+                    {
+                        await p.DisconnectFromServer(reason);
+                    }
+                }));
+            }
+            else
+            {
+                var peer = await GetPeer(userId);
+                if (peer != null)
+                {
+                    await peer.DisconnectFromServer(reason);
+                }
             }
         }
 

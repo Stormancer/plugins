@@ -28,6 +28,13 @@ Changed
 -----
 - Use Stormancer.Abstraction.Server 4.1.0
 
+
+0.1.3.1
+-------
+Changed
+*******
+- cache results of calls to GetUserLimitsStatus
+
 0.1.3
 -----
 Changed
