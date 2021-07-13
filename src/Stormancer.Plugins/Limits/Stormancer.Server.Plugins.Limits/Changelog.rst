@@ -14,6 +14,9 @@ Unreleased
 Changed
 *******
 - Use new S2S infrastructure to get limit status.
+Fixed
+*****
+- Add a IServiceLocationProvider to always locate the limits S2S Api on the authenticator scene.
 
 0.1.6
 -----
