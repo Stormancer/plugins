@@ -20,7 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Jose;
+//using Jose;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Configuration;
@@ -515,13 +516,15 @@ namespace Stormancer.Server.Plugins.Leaderboards
         private string SerializeContinuationQuery(LeaderboardContinuationQuery query)
         {
             Debug.Assert(_key != null);
-            return JWT.Encode(query, _key.Value, JwsAlgorithm.HS256);
+            return System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(query)));
+            //return JWT.Encode(query, _key.Value, JwsAlgorithm.HS256);
         }
 
         private LeaderboardContinuationQuery DeserializeContinuationQuery(string continuation)
         {
             Debug.Assert(_key != null);
-            return JWT.Decode<LeaderboardContinuationQuery>(continuation, _key.Value);
+            return JsonConvert.DeserializeObject<LeaderboardContinuationQuery>(System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(continuation)));
+            //return JWT.Decode<LeaderboardContinuationQuery>(continuation, _key.Value);
         }
 
         public Task<LeaderboardResult<ScoreRecord>> QueryCursor(string cursor, CancellationToken cancellationToken)

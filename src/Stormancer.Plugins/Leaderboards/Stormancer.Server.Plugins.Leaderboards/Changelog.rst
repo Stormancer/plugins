@@ -18,7 +18,6 @@ Added
 - Add mySelf in the friends only query.
 Changed
 *******
-- Use signed JWT for continuation cursor to prevent tampering.
 - Fix UserId in LeaderboardQuery.
 - Fix AdjustQuery
 - Fix Use FilteredUserIds instead of FriendIds in LeaderboardQuery
