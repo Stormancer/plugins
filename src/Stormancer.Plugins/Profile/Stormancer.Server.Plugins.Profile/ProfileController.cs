@@ -46,6 +46,28 @@ namespace Stormancer.Server.Plugins.Profile
             _serializer = serializer;
             _users = users;
         }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task<Dictionary<string, ProfileDto?>> GetProfilesBySessionIds(IEnumerable<string> sessionIds, Dictionary<string, string> displayOptions, RequestContext<IScenePeerClient> ctx)
+        {
+            var sessions = await _sessions.GetSessions(sessionIds, ctx.CancellationToken);
+
+            var profiles = await GetProfiles(sessions.Values.Select(s => s?.User?.Id).Where(id => id != null)!, displayOptions, ctx.CancellationToken);
+
+
+            var results = new Dictionary<string, ProfileDto?>();
+
+            foreach (var session in sessions)
+            {
+                var userId = session.Value?.User?.Id;
+                if (userId != null && profiles.TryGetValue(userId, out var profile))
+                {
+                    results.Add(session.Key, profile);
+                }
+            }
+            return results;
+        }
+
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task<Dictionary<string, ProfileDto>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, RequestContext<IScenePeerClient> ctx)
         {

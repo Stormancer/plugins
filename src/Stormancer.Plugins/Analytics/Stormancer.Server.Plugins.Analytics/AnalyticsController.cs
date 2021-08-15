@@ -36,7 +36,7 @@ namespace Stormancer.Server.Plugins.Analytics
         /// </summary>
         /// <param name="docs"></param>
         /// <returns></returns>
-        [Api(ApiAccess.Public, ApiType.Rpc)]
+        [Api(ApiAccess.Public, ApiType.FireForget)]
         public Task Push(IEnumerable<EventDto> docs)
         {
 
