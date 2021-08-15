@@ -38,9 +38,9 @@ namespace Stormancer.Server.Plugins
     {
         private class CacheEntry
         {
-            public CacheEntry(Task<T> content, DateTime expiresOn, Action onInvalidated)
+            public CacheEntry(Task<T?> content, DateTime expiresOn, Action onInvalidated)
             {
-                async Task<T> GetContent(Task<T> c, Action invalidate)
+                async Task<T?> GetContent(Task<T?> c, Action invalidate)
                 {
                     try
                     {
@@ -66,7 +66,37 @@ namespace Stormancer.Server.Plugins
                 ExpiresOn = null;
                 OnInvalidated = onInvalidated;
             }
-            public Task<T> Content { get; }
+
+            public CacheEntry(Task<(T?, TimeSpan)> content, Action onInvalidated)
+            {
+                async Task<T?> GetContent(Task<(T?, TimeSpan)> c, Action invalidate)
+                {
+                    try
+                    {
+                        var (r, invalidationDelay) = await c;
+                        if (r == null)
+                        {
+                            invalidate();
+                        }
+                        else
+                        {
+                            ExpiresOn = DateTime.UtcNow + invalidationDelay;
+                        }
+                        return r;
+                    }
+                    catch (Exception)
+                    {
+                        invalidate();
+                        throw;
+                    }
+                }
+                Content = GetContent(content, onInvalidated);
+                CreatedOn = DateTime.UtcNow;
+                ExpiresOn = null;
+                OnInvalidated = onInvalidated;
+            }
+
+            public Task<T?> Content { get; }
             public DateTime CreatedOn { get; }
             public DateTime? ExpiresOn { get; private set; }
             public Action OnInvalidated { get; }
@@ -96,25 +126,45 @@ namespace Stormancer.Server.Plugins
         }
 
         /// <summary>
-        /// Get from cache or update the cache if not found or stale. 
+        /// Gets from cache or update the cache if entry not found or stale. 
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="id"></param>
         /// <param name="addFunction"></param>
         /// <param name="invalidationDelay"></param>
         /// <returns></returns>
-        public async Task<T> Get(string id, Func<string, Task<T>> addFunction, TimeSpan invalidationDelay)
+        public async Task<T?> Get(string id, Func<string, Task<T?>> addFunction, TimeSpan invalidationDelay)
         {
 
             var entry = cache.GetOrAdd(id, i => new CacheEntry(addFunction(i), DateTime.UtcNow + invalidationDelay, () => cache.TryRemove(id, out _)));
             return await entry.Content;
         }
 
+        /// <summary>
+        /// Gets from the cache or update a cached value.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="addFunction"></param>
+        /// <returns></returns>
+        public async Task<T?> Get(string id, Func<string, Task<(T?, TimeSpan)>> addFunction)
+        {
+
+            var entry = cache.GetOrAdd(id, i => new CacheEntry(addFunction(i), () => cache.TryRemove(id, out _)));
+            return await entry.Content;
+        }
+
+        /// <summary>
+        /// Removes an entry from the cache.
+        /// </summary>
+        /// <param name="id"></param>
         public void Remove(string id)
         {
             cache.TryRemove(id, out _);
         }
 
+        /// <summary>
+        /// Disposes the cache.
+        /// </summary>
         public void Dispose()
         {
             _running = false;
