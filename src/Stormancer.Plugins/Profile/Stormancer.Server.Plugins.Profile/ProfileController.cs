@@ -31,6 +31,7 @@ using System.Threading;
 
 namespace Stormancer.Server.Plugins.Profile
 {
+   
     [Service]
     class ProfileController : ControllerBase
     {
@@ -50,9 +51,12 @@ namespace Stormancer.Server.Plugins.Profile
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task<Dictionary<string, ProfileDto?>> GetProfilesBySessionIds(IEnumerable<string> sessionIds, Dictionary<string, string> displayOptions, RequestContext<IScenePeerClient> ctx)
         {
+
             var sessions = await _sessions.GetSessions(sessionIds, ctx.CancellationToken);
 
-            var profiles = await GetProfiles(sessions.Values.Select(s => s?.User?.Id).Where(id => id != null)!, displayOptions, ctx.CancellationToken);
+            IEnumerable<string> userIds = sessions.Values.Select(s => s?.User?.Id).Where(id => id != null)!;
+
+            var profiles = userIds.Any() ? await GetProfiles(userIds, displayOptions, ctx.CancellationToken) : new Dictionary<string, ProfileDto>();
 
 
             var results = new Dictionary<string, ProfileDto?>();

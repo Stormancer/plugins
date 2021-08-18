@@ -15,6 +15,7 @@ Unreleased
 Fixed
 *****
 - When kicking players, we need to use DisconnectFromServer (which as expected disconnects from the server ) and not Disconnect, which just disconnects from scene. (Should probably be renamed DisconnectFromScene...)
+- GetSessions returns an empty entry for session ids not associated with a profile.
 Added
 *****
 - Kick now supports the filter */authenticated which enables kicking only authenticated users. (queued users are not kicked) 
