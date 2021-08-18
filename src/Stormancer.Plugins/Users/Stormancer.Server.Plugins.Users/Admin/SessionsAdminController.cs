@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Stormancer.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,15 +16,15 @@ namespace Stormancer.Server.Plugins.Users.Admin
     [Route("_sessions")]
     public class SessionsAdminController : ControllerBase
     {
-        private readonly IUserSessions sessions;
+        private readonly ISceneHost scene;
 
         /// <summary>
         /// Creates an instance of <see cref="SessionsAdminController"/>.
         /// </summary>
-        /// <param name="sessions"></param>
-        public SessionsAdminController(IUserSessions sessions)
+        /// <param name="scene"></param>
+        public SessionsAdminController(ISceneHost scene)
         {
-            this.sessions = sessions;
+            this.scene = scene;
         }
 
 
@@ -33,9 +35,15 @@ namespace Stormancer.Server.Plugins.Users.Admin
         /// <returns></returns>
         [HttpGet]
         [Route("")]
-        public IAsyncEnumerable<Session> GetSessions(CancellationToken cancellationToken)
+        public async IAsyncEnumerable<Session> GetSessions([EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            return sessions.GetSessionsAsync(cancellationToken);
+            await using var scope = scene.CreateRequestScope();
+            var sessions = scope.Resolve<IUserSessions>();
+            await foreach(var session in sessions.GetSessionsAsync(cancellationToken))
+            {
+                yield return session;
+            }
+           
         }
     }
 }
