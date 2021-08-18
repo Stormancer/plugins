@@ -790,7 +790,7 @@ namespace Stormancer.Server.Plugins.Users
             {
                 if (!sessions.ContainsKey(id))
                 {
-                    var session = await GetSession(id, cancellationToken);
+                    var session = await GetSessionById(id, cancellationToken);
                     if (session != null)
                     {
                         sessions.TryAdd(id, session);
