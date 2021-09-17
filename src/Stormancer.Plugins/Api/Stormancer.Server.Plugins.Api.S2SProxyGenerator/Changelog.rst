@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-1.0.3
------
+Unreleased
+----------
 Fixed
 *****
 - Add 'using Stormancer.Server' at the top of generated files.

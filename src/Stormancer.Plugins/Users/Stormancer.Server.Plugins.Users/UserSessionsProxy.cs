@@ -191,6 +191,11 @@ namespace Stormancer.Server.Plugins.Users
         {
             return proxy.UpdateUserHandle(userId, newHandle, appendHash, cancellationToken);
         }
+
+        public IAsyncEnumerable<Session> GetSessionsAsync(CancellationToken cancellationToken)
+        {
+            return proxy.GetSessionsAsync(cancellationToken);
+        }
     }
 
    
