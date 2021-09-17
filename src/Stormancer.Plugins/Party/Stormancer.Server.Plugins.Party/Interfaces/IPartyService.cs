@@ -114,11 +114,11 @@ namespace Stormancer.Server.Plugins.Party
         IReadOnlyDictionary<string, PartyMember> PartyMembers { get; }
 
         /// <summary>
-        /// Create an invi
+        /// Create an invitation code
         /// </summary>
         /// <returns></returns>
-        Task<string> CreateInvitationCode();
+        Task<string> CreateInvitationCodeAsync(CancellationToken cancellationToken);
         void CancelInvitationCode();
-        Task<string> CreateConnectionTokenFromInvitationCode();
+        Task<string> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode, CancellationToken cancellationToken);
     }
 }

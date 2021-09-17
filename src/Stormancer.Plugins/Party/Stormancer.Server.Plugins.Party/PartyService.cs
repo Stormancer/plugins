@@ -899,5 +899,20 @@ namespace Stormancer.Server.Plugins.Party
 
             return false;
         }
+
+        public Task<string> CreateInvitationCodeAsync(CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void CancelInvitationCode()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<string> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
