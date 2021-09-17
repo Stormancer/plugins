@@ -100,7 +100,7 @@ namespace Stormancer.Server.Plugins.Users
             get
             {
                 dynamic? userData = AuthenticatedUser?.UserData;
-                return (string?)userData?.pseudo ?? string.Empty;
+                return (string?)userData?[UsersConstants.UserHandleKey] ?? string.Empty;
             }
         }
 

@@ -80,7 +80,10 @@ namespace Stormancer.Server.Plugins.Party
 
                 host.DependencyResolver.Resolve<InvitationCodeService>().Initialize();
             };
-
+            ctx.SceneShuttingDown += (ISceneHost scene) =>
+              {
+                  scene.DependencyResolver.Resolve<InvitationCodeService>().CancelCode(scene);
+              };
             ctx.SceneCreated += (ISceneHost scene) =>
             {
                 if (scene.Metadata.ContainsKey(PartyConstants.METADATA_KEY))

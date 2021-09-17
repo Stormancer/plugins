@@ -118,7 +118,19 @@ namespace Stormancer.Server.Plugins.Party
         /// </summary>
         /// <returns></returns>
         Task<string> CreateInvitationCodeAsync(CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Cancels an active invitation code.
+        /// </summary>
         void CancelInvitationCode();
-        Task<string> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode, CancellationToken cancellationToken);
+
+
+        /// <summary>
+        /// Gets a connection Id to the gamesession associated with the provided invitation code.
+        /// </summary>
+        /// <param name="invitationCode"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns>a connection token if the invitation code matches a party, null otherwise.</returns>
+        Task<string?> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode, CancellationToken cancellationToken);
     }
 }

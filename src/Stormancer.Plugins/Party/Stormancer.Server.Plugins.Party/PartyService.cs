@@ -65,6 +65,7 @@ namespace Stormancer.Server.Plugins.Party
         private readonly IUserService _users;
         private readonly IEnumerable<IPartyPlatformSupport> _platformSupports;
         private readonly StormancerPartyPlatformSupport _stormancerPartyPlatformSupport;
+        private readonly InvitationCodeService invitationCodes;
 
         public IReadOnlyDictionary<string, PartyMember> PartyMembers => _partyState.PartyMembers;
 
@@ -84,7 +85,8 @@ namespace Stormancer.Server.Plugins.Party
             IConfiguration configuration,
             IUserService users,
             IEnumerable<IPartyPlatformSupport> platformSupports,
-            StormancerPartyPlatformSupport stormancerPartyPlatformSupport)
+            StormancerPartyPlatformSupport stormancerPartyPlatformSupport,
+            InvitationCodeService invitationCodes)
         {
             _handlers = handlers;
             _scene = scene;
@@ -97,8 +99,9 @@ namespace Stormancer.Server.Plugins.Party
             _users = users;
             _platformSupports = platformSupports;
             _stormancerPartyPlatformSupport = stormancerPartyPlatformSupport;
-
+            this.invitationCodes = invitationCodes;
             ApplySettings(configuration.Settings);
+            
         }
 
         private const string JoinDeniedError = "party.joinDenied";
@@ -902,17 +905,17 @@ namespace Stormancer.Server.Plugins.Party
 
         public Task<string> CreateInvitationCodeAsync(CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            return invitationCodes.CreateCode(this._scene, cancellationToken);
         }
 
         public void CancelInvitationCode()
         {
-            throw new NotImplementedException();
+            invitationCodes.CancelCode(this._scene);
         }
 
-        public Task<string> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode, CancellationToken cancellationToken)
+        public Task<string?> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            return invitationCodes.CreateConnectionTokenFromInvitationCodeAsync(invitationCode, cancellationToken);
         }
     }
 }

@@ -38,12 +38,16 @@ namespace Stormancer.Server.Plugins.Party
             this.management = management;
         }
 
-        public void CancelCode(string sceneId)
+        public void CancelCode(ISceneHost scene)
         {
+            var sceneId = scene.Id;
             lock (syncRoot)
             {
                 var kvp = codes.FirstOrDefault(kvp => kvp.Value.Scene.Id == sceneId);
-                codes.Remove(kvp.Key);
+                if (kvp.Key != null)
+                {
+                    codes.Remove(kvp.Key);
+                }
             }
         }
 
@@ -59,7 +63,7 @@ namespace Stormancer.Server.Plugins.Party
             return code;
         }
 
-        public async Task<string?> CreateConnectionTokenFromCodeAsync(string invitationCode, CancellationToken cancellationToken)
+        public async Task<string?> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode, CancellationToken cancellationToken)
         {
             var sceneId = await GetSceneIdForInvitationCode(invitationCode, cancellationToken);
             if(sceneId != null)
