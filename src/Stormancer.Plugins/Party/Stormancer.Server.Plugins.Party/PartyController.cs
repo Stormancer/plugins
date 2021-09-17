@@ -175,6 +175,25 @@ namespace Stormancer.Server.Plugins.Party
             }
         }
 
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public Task<string> CreateInvitationCode()
+        {
+            return _partyService.CreateInvitationCode();
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public void CancelInvitationCode()
+        {
+            _partyService.CancelInvitationCode();
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task<string> CreateConnectionTokenFromInvitationCode(string invitationCode)
+        {
+            sessio
+            return await _partyService.CreateConnectionTokenFromInvitationCode(invitationCode);
+        }
+
         protected override Task OnConnecting(IScenePeerClient client)
         {
             return (_partyService as PartyService).OnConnecting(client);

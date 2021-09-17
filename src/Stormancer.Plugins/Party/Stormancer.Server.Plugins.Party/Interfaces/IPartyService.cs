@@ -112,5 +112,13 @@ namespace Stormancer.Server.Plugins.Party
         /// This doesn't include the users that are currently in the connection process.
         /// </remarks>
         IReadOnlyDictionary<string, PartyMember> PartyMembers { get; }
+
+        /// <summary>
+        /// Create an invi
+        /// </summary>
+        /// <returns></returns>
+        Task<string> CreateInvitationCode();
+        void CancelInvitationCode();
+        Task<string> CreateConnectionTokenFromInvitationCode();
     }
 }
