@@ -223,6 +223,12 @@ namespace Stormancer.Server.Plugins.Users
             return _sessions.GetAuthenticatedUsersCount(cancellationToken);
         }
 
+        [S2SApi]
+        public IAsyncEnumerable<Session> GetSessionsAsync(CancellationToken cancellationToken)
+        {
+            return _sessions.GetSessionsAsync(cancellationToken);
+        }
+
         /// <summary>
         /// Gets the number of users currently authenticated.
         /// </summary>

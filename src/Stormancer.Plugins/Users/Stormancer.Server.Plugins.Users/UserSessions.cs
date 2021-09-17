@@ -788,10 +788,17 @@ namespace Stormancer.Server.Plugins.Users
 
             foreach (var id in sessionIds)
             {
-                var session = await GetSession(id, cancellationToken);
-                if (session != null)
+                if (!sessions.ContainsKey(id))
                 {
-                    sessions.TryAdd(id, session);
+                    var session = await GetSessionById(id, cancellationToken);
+                    if (session != null)
+                    {
+                        sessions.TryAdd(id, session);
+                    }
+                    else
+                    {
+                        sessions.TryAdd(id, null);
+                    }
                 }
             }
 
@@ -856,7 +863,10 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
-
+        public IAsyncEnumerable<Session> GetSessionsAsync(CancellationToken cancellationToken)
+        {
+            return _peerUserIndex.GetAllLocal().Select(r=>r.CreateView()).ToAsyncEnumerable();
+        }
 
         public int AuthenticatedUsersCount
         {

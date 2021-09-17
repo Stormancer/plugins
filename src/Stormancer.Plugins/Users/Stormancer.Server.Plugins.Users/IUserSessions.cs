@@ -131,6 +131,12 @@ namespace Stormancer.Server.Plugins.Users
         /// <returns></returns>
         Task<Dictionary<string, Session?>> GetSessions(IEnumerable<string> sessionIds, CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Gets all sessions connected.
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        IAsyncEnumerable<Session> GetSessionsAsync(CancellationToken cancellationToken);
 
         /// <summary>
         /// Update a user's session data entry with raw data.

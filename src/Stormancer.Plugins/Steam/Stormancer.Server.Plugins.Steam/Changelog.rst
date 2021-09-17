@@ -9,7 +9,7 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-unreleased
+Unreleased
 ----------
 - revert plugin to normal state
 - Fix queryUserIds (no error if a steamId is not found in the system)
@@ -17,6 +17,7 @@ unreleased
 - Add SteamFriendsEventHandler to IOC
 - Fix SteamFriend dto (add missing MessagePackMember)
 - Fix OnGetFriends event handler
+- Added ConfigureSteam extension method
 
 4.0.4
 -----

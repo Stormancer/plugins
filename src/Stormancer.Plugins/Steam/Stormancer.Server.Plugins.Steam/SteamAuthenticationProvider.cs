@@ -30,8 +30,42 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
+namespace Stormancer
+{
+    /// <summary>
+    /// Extension methods for DeviceIdentifier auth provider.
+    /// </summary>
+    public static class SteamAuthenticationConfigurationExtensions
+    {
+        /// <summary>
+        /// Configures steam authentication.
+        /// </summary>
+        /// <param name="config"></param>
+        /// <param name="builder"></param>
+        /// <remarks></remarks>
+        /// <returns></returns>
+        public static UsersConfigurationBuilder ConfigureSteam(this UsersConfigurationBuilder config, Func<Server.Plugins.Steam.SteamAuthConfigurationBuilder, Server.Plugins.Steam.SteamAuthConfigurationBuilder> builder)
+        {
+            var b = new Server.Plugins.Steam.SteamAuthConfigurationBuilder();
+
+            b = builder(b);
+            config.Settings[Server.Plugins.Steam.SteamConstants.PROVIDER_NAME] = JObject.FromObject(b);
+            return config;
+        }
+
+    }
+}
+
 namespace Stormancer.Server.Plugins.Steam
 {
+    /// <summary>
+    /// Configures the steam auth provider.
+    /// </summary>
+    public class SteamAuthConfigurationBuilder : AuthProviderConfigurationBuilderBase<EphemeralAuthConfigurationBuilder>
+    {
+
+    }
+
     /// <summary>
     /// Steam authentication provider.
     /// </summary>
