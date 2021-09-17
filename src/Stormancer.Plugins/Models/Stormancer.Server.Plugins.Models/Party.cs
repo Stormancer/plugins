@@ -60,29 +60,33 @@ namespace Stormancer.Server.Plugins.Models
         [MessagePackMember(1)]
         public Dictionary<string, Player> Players { get; } = new Dictionary<string, Player>();
 
-        [MessagePackMember(2)]
+
         /// <summary>
         /// Party custom data.
         /// </summary>
+        [MessagePackMember(2)]
         public string? CustomData { get; set; }
 
-        [MessagePackMember(3)]
+
         /// <summary>
         /// Party creation date.
         /// </summary>
+        [MessagePackMember(3)]
         public DateTime CreationTimeUtc { get; } = DateTime.UtcNow;
 
-        [MessagePackMember(4)]
+
         /// <summary>
         /// Number of passes of gamefinder without finding an opponent.
         /// </summary>
+        [MessagePackMember(4)]
         public int PastPasses { get; set; }
 
-        [MessagePackMember(5)]
+
         /// <summary>
         /// user id of the party leader.
         /// </summary>
-        public string PartyLeaderId { get; set; }
+        [MessagePackMember(5)]
+        public string PartyLeaderId { get; set; } = default!;
 
 
         /// <summary>
