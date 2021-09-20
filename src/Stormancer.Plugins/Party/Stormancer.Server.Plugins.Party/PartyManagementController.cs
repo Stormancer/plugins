@@ -33,18 +33,18 @@ namespace Stormancer.Server.PartyManagement
     class PartyManagementController : ControllerBase
     {
         private readonly IPartyManagementService _partyService;
-        private readonly IUserSessions _userSessionsProxy;
+        private readonly IUserSessions _sessions;
         private readonly ILogger _logger;
         private readonly IEnumerable<IPartyEventHandler> _handlers;
 
         public PartyManagementController(
             IPartyManagementService partyService,
-            IUserSessions userSessionsProxy,
+            IUserSessions sessions,
             ILogger logger,
             IEnumerable<IPartyEventHandler> handlers)
         {
             _partyService = partyService;
-            _userSessionsProxy = userSessionsProxy;
+            _sessions = sessions;
             _logger = logger;
             _handlers = handlers;
         }
@@ -56,7 +56,7 @@ namespace Stormancer.Server.PartyManagement
             {
                 throw new ClientException("party.creationFailed?reason=gameFinderNotSet");
             }
-            var user = await _userSessionsProxy.GetUser(ctx.RemotePeer, ctx.CancellationToken);
+            var user = await _sessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
 
             if(user == null)
             {
@@ -83,6 +83,24 @@ namespace Stormancer.Server.PartyManagement
             var token = await _partyService.CreateParty(partyArgs, user.Id);
 
             await ctx.SendValue(token);
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task<string> CreateConnectionTokenFromInvitationCode(string invitationCode, RequestContext<IScenePeerClient> ctx)
+        {
+            var session = await _sessions.GetSession(ctx.RemotePeer, ctx.CancellationToken);
+            if (session == null)
+            {
+                throw new ClientException("notAuthenticated");
+            }
+
+            var token = await _partyService.CreateConnectionTokenFromInvitationCodeAsync(invitationCode, ctx.CancellationToken);
+            if (token == null)
+            {
+                throw new ClientException("codeNotFound");
+            }
+
+            return token;
         }
     }
 }

@@ -25,6 +25,7 @@ using Stormancer.Server.Plugins.Management;
 using Stormancer.Server.Plugins.Party;
 using Stormancer.Server.Plugins.ServiceLocator;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.PartyManagement
@@ -35,18 +36,21 @@ namespace Stormancer.Server.PartyManagement
         public const string PROTOCOL_VERSION = "2020-05-20.1";
 
         private readonly IServiceLocator _serviceLocator;
+        private readonly InvitationCodeService invitationCodes;
 
         // Services
         private readonly ManagementClientProvider _management;
         private readonly ISceneHost _scene;
 
         public PartyManagementService(
+            InvitationCodeService invitationCodes,
             ManagementClientProvider management,
             ISceneHost scene,
             IServiceLocator serviceLocator
             )
         {
             _serviceLocator = serviceLocator;
+            this.invitationCodes = invitationCodes;
             _management = management;
             _scene = scene;
         }
@@ -85,6 +89,12 @@ namespace Stormancer.Server.PartyManagement
             );
 
             return await _management.CreateConnectionToken(sceneUri);
+        }
+
+
+        public Task<string?> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode, CancellationToken cancellationToken)
+        {
+            return invitationCodes.CreateConnectionTokenFromInvitationCodeAsync(invitationCode, cancellationToken);
         }
     }
 }

@@ -913,9 +913,6 @@ namespace Stormancer.Server.Plugins.Party
             invitationCodes.CancelCode(this._scene);
         }
 
-        public Task<string?> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode, CancellationToken cancellationToken)
-        {
-            return invitationCodes.CreateConnectionTokenFromInvitationCodeAsync(invitationCode, cancellationToken);
-        }
+        
     }
 }

@@ -81,7 +81,7 @@ namespace Stormancer.Server.Plugins.Party
         {
             using var request = await host.StartAppFunctionRequest("party.getSceneIdForInvitationCode", cancellationToken);
             await serializer.SerializeAsync(invitationCode, request.Input, cancellationToken);
-
+            request.Input.Complete();
             string? sceneId = null;
             await foreach (var result in request.Results)
             {
@@ -89,6 +89,7 @@ namespace Stormancer.Server.Plugins.Party
                 {
                     
                     var r = await serializer.DeserializeAsync<string?>(result.Output, cancellationToken);
+                    result.Output.Complete();
                     if(r!=null && sceneId == null)
                     {
                         sceneId = r;
@@ -116,13 +117,14 @@ namespace Stormancer.Server.Plugins.Party
             using var request = await host.StartAppFunctionRequest("party.isInvitationCodeAvailable", cancellationToken);
             await serializer.SerializeAsync(code, request.Input, cancellationToken);
             await serializer.SerializeAsync(state.Uid.ToByteArray(), request.Input, cancellationToken);
-
+            request.Input.Complete();
             bool found = false;
             await foreach (var result in request.Results)
             {
                 if (result.IsSuccess)
                 {
                     found |= await serializer.DeserializeAsync<bool>(result.Output, cancellationToken);
+                    result.Output.Complete();
                 }
             }
 
@@ -153,7 +155,7 @@ namespace Stormancer.Server.Plugins.Party
                 {
                     if(codes.TryGetValue(code,out var state) && state.Active)
                     {
-                        sceneId = state.Scene.FullId; 
+                        sceneId = state.Scene.Id; 
                     }
                 }
 
@@ -162,7 +164,7 @@ namespace Stormancer.Server.Plugins.Party
             host.RegisterAppFunction("party.isInvitationCodeAvailable",async ctx=> {
 
                 var code = await serializer.DeserializeAsync<string>(ctx.Input,CancellationToken.None);
-                var uid = new Guid(await serializer.DeserializeAsync<string>(ctx.Input, CancellationToken.None));
+                var uid = new Guid(await serializer.DeserializeAsync<byte[]>(ctx.Input, CancellationToken.None));
                 bool found;
                 lock(syncRoot)
                 {

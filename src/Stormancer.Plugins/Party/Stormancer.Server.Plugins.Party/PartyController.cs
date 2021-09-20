@@ -201,17 +201,7 @@ namespace Stormancer.Server.Plugins.Party
             _partyService.CancelInvitationCode();
         }
 
-        [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<string> CreateConnectionTokenFromInvitationCode(string invitationCode, RequestContext<IScenePeerClient> ctx)
-        {
-            var session = await sessions.GetSession(ctx.RemotePeer,ctx.CancellationToken);
-            if(session == null)
-            {
-                throw new ClientException("notAuthenticated");
-            }
-
-            return await _partyService.CreateConnectionTokenFromInvitationCodeAsync(invitationCode,ctx.CancellationToken);
-        }
+       
 
         protected override Task OnConnecting(IScenePeerClient client)
         {
