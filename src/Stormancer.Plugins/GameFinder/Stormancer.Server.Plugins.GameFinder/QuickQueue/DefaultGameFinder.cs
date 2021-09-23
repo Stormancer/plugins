@@ -136,7 +136,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                                 foreach (var p in list)
                                 {
                                     team.Parties.Add(p);
-                                    break;
+                                   
                                 }
                             }
 
