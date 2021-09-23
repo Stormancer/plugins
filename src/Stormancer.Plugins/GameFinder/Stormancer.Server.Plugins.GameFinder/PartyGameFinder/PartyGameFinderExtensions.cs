@@ -22,7 +22,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             gameFinderConfig.ConfigureDependencies(dep =>
             {
                 dep.Register<PartyGameFinder>().As<IGameFinderAlgorithm>().InstancePerRequest();
-                dep.Register<QuickQueueGameFinderResolver>().As<IGameFinderResolver>().InstancePerRequest();
+                dep.Register<PartyGameFinderResolver>().As<IGameFinderResolver>().InstancePerRequest();
             });
 
 
