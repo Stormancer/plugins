@@ -14,6 +14,7 @@ Unreleased
 Added
 *****
 - Added party gamefinder
+
 6.1.0.13
 ----------
 Fixed
