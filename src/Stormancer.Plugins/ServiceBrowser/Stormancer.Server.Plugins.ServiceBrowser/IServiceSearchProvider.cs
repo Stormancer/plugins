@@ -7,6 +7,6 @@ namespace Stormancer.Server.Plugins.ServiceBrowser
     public interface IServiceSearchProvider
     {
         bool Handles(string type);
-        IEnumerable<Document<JObject>> Filter(JObject filter);
+        IEnumerable<Document<JObject>> Filter(JObject filter, uint size);
     }
 }

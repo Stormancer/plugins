@@ -7,6 +7,13 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.ServiceBrowser
 {
+    public class SearchRequest
+    {
+        public string Type { get; set; }
+        public JObject Filter { get; set; }
+        public uint Size { get; set; }
+    }
+
     /// <summary>
     /// Provides APIs to search and reserve connection slots to services.
     /// </summary>
@@ -28,14 +35,16 @@ namespace Stormancer.Server.Plugins.ServiceBrowser
         /// </summary>
         /// <param name="type"></param>
         /// <param name="filter"></param>
+        /// <param name="size"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async IAsyncEnumerable<Document<T>> QueryAsync<T>(string type, JObject filter,[EnumeratorCancellation] CancellationToken cancellationToken)
+        public async IAsyncEnumerable<Document<T>> QueryAsync<T>(string type, JObject filter,uint size,[EnumeratorCancellation] CancellationToken cancellationToken)
         {
+            var searchRqArgs = new SearchRequest { Type = type, Filter = filter, Size = size };
             using var request =await host.StartAppFunctionRequest("ServiceSearch.Query", cancellationToken);
 
-            await serializer.SerializeAsync(type, request.Input, cancellationToken);
-            await serializer.SerializeAsync(filter, request.Input, cancellationToken);
+            await serializer.SerializeAsync(searchRqArgs, request.Input, cancellationToken);
+           
             request.Input.Complete();
 
             await foreach(var result in request.Results)
@@ -62,14 +71,14 @@ namespace Stormancer.Server.Plugins.ServiceBrowser
         private async Task OnQuery(IAppFunctionContext ctx)
         {
             var providers = this.providers();
-            var type = await serializer.DeserializeAsync<string>(ctx.Input, CancellationToken.None);
-            var filter = await serializer.DeserializeAsync<JObject>(ctx.Input, CancellationToken.None);
+            var rq = await serializer.DeserializeAsync<SearchRequest>(ctx.Input, CancellationToken.None);
+          
             ctx.Input.Complete();
             foreach(var provider in providers)
             {
-                if(provider.Handles(type))
+                if(provider.Handles(rq.Type))
                 {
-                    await serializer.SerializeAsync(provider.Filter(filter),ctx.Output,CancellationToken.None);
+                    await serializer.SerializeAsync(provider.Filter(rq.Filter,rq.Size),ctx.Output,CancellationToken.None);
                 }
             }
 

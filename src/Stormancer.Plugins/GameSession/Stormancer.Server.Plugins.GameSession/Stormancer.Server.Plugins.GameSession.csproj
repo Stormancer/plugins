@@ -46,6 +46,7 @@
     <ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj" />
     <ProjectReference Include="..\..\Management\Stormancer.Server.Plugins.Management\Stormancer.Server.Plugins.Management.csproj" />
     <ProjectReference Include="..\..\Models\Stormancer.Server.Plugins.Models\Stormancer.Server.Plugins.Models.csproj" />
+    <ProjectReference Include="..\..\ServiceBrowser\Stormancer.Server.Plugins.ServiceBrowser\Stormancer.Server.Plugins.ServiceQueries.csproj" />
     <ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />
   </ItemGroup>
 
