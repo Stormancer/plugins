@@ -18,6 +18,7 @@ Unreleased
 - Fix SteamFriend dto (add missing MessagePackMember)
 - Fix OnGetFriends event handler
 - Added ConfigureSteam extension method
+- Clean SteamPartyEventHandler
 
 4.0.4
 -----

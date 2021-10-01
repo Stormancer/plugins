@@ -31,7 +31,6 @@ using Stormancer.Server.Plugins.Utilities;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -47,14 +46,14 @@ namespace Stormancer.Server.Plugins.Steam
 
     internal class SteamPartyData
     {
-        public TaskQueue TaskQueue { get; } = new TaskQueue();
+        public TaskQueue TaskQueue { get; } = new();
 
         public ulong SteamIDLobby { get; set; } = 0;
 
         public int NumMembers { get => _numMembers; }
 
         // UserData[SessionId] => SteamUserData
-        public ConcurrentDictionary<string, SteamUserData> UserData { get; set; } = new ConcurrentDictionary<string, SteamUserData>();
+        public ConcurrentDictionary<string, SteamUserData> UserData { get; set; } = new();
 
         public int IncrementNumMembers()
         {
@@ -84,8 +83,7 @@ namespace Stormancer.Server.Plugins.Steam
         private readonly ILogger _logger;
         private readonly ISerializer _serializer;
         private readonly IServiceLocator _serviceLocator;
-
-        private string? _lobbyMetadataBearerTokenKey;
+        private readonly IConfiguration _configuration;
 
         /// <summary>
         /// Steam Party Event Handler contructor.
@@ -113,14 +111,7 @@ namespace Stormancer.Server.Plugins.Steam
             _logger = logger;
             _serializer = serializer;
             _serviceLocator = locator;
-
-            ApplyConfig(configuration.Settings);
-
-        }
-
-        private void ApplyConfig(dynamic config)
-        {
-            _lobbyMetadataBearerTokenKey = (string?)config?.steam?.lobbyMetadataBearerTokenKey ?? "";
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -165,7 +156,7 @@ namespace Stormancer.Server.Plugins.Steam
                 return;
             }
 
-            if (ctx.Accept && ctx.Session.platformId.Platform == SteamConstants.PROVIDER_NAME)
+            if (ctx.Accept)
             {
                 if (ctx.Party.Settings.ServerSettings.ShouldCreateSteamLobby() == true)
                 {
@@ -246,12 +237,25 @@ namespace Stormancer.Server.Plugins.Steam
                             // else we only join the Steam lobby
                             else
                             {
-                                var joinLobbyParameter = new JoinLobbyDto { SteamIDLobby = data.SteamIDLobby };
-                                await _userSessions.SendRequest("Steam.JoinLobby", "", ctx.Session.User.Id, joinLobbyParameter, CancellationToken.None);
+                                if (data.SteamIDLobby == 0)
+                                {
+                                    _logger.Log(LogLevel.Error, "SteamPartyEventHandler.OnJoining", "Missing SteamIDLobby", new
+                                    {
+                                        ctx.Party.Settings.PartyId,
+                                        UserId = ctx.Session.User.Id,
+                                        ctx.Session.SessionId
+                                    });
+                                    ctx.Accept = false;
+                                }
+                                else
+                                {
+                                    var joinLobbyParameter = new JoinLobbyDto { SteamIDLobby = data.SteamIDLobby };
+                                    await _userSessions.SendRequest("Steam.JoinLobby", "", ctx.Session.User.Id, joinLobbyParameter, CancellationToken.None);
 
-                                data.UserData[ctx.Session.SessionId] = new SteamUserData { SessionId = ctx.Session.SessionId, SteamId = (ulong)steamId };
+                                    data.UserData[ctx.Session.SessionId] = new SteamUserData { SessionId = ctx.Session.SessionId, SteamId = (ulong)steamId };
 
-                                data.IncrementNumMembers();
+                                    data.IncrementNumMembers();
+                                }
                             }
                         }
                         catch (Exception exception)
