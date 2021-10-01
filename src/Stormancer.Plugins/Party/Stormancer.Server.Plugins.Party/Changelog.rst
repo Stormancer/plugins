@@ -15,6 +15,10 @@ Unreleased
 Added
 *****
 - Invite players in the group using an invitation code.
+Changed
+*******
+- Party scene name starts with "party-"
+
 4.0.4.2
 -------
 Changed
