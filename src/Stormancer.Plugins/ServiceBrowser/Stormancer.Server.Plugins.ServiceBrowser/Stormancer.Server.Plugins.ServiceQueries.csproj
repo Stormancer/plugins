@@ -35,7 +35,7 @@
     </PackageReference>
     <PackageReference Include="Stormancer.Abstractions.Server" Version="5.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="Stormancer.Filters" Version="0.1.0" />
+    <PackageReference Include="Stormancer.Filters" Version="0.1.0-pre" />
   </ItemGroup>
 
   <ItemGroup>
