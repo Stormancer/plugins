@@ -63,6 +63,13 @@ namespace Stormancer.Server.Plugins.GameSession
         Task OnClientConnected(ClientConnectedContext ctx) => Task.CompletedTask;
 
         /// <summary>
+        /// Event executed when a client is leaving the game session.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task OnClientLeaving(ClientLeavingContext ctx) => Task.CompletedTask;
+
+        /// <summary>
         /// Eent executed when a client is ready in the gamesession.
         /// </summary>
         /// <param name="ctx"></param>
@@ -216,5 +223,34 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Current game session service.
         /// </summary>
         public IGameSessionService GameSession { get;  }
+
+
+    }
+
+    /// <summary>
+    /// Context passed to a <see cref="IGameSessionEventHandler.OnClientLeaving(ClientLeavingContext)"/> event.
+    /// </summary>
+    public class ClientLeavingContext
+    {
+        internal ClientLeavingContext(IGameSessionService service, PlayerPeer player, bool isHost)
+        {
+            GameSession = service;
+            Player = player;
+            IsHost = isHost;
+        }
+        /// <summary>
+        /// Gets the player associated with the event.
+        /// </summary>
+        public PlayerPeer Player { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the client is the host of the game.
+        /// </summary>
+        public bool IsHost { get; }
+
+        /// <summary>
+        /// Current game session service.
+        /// </summary>
+        public IGameSessionService GameSession { get; }
     }
 }
