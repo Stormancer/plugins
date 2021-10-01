@@ -26,12 +26,12 @@ using System.Collections.Generic;
 namespace Stormancer.Server.Plugins.Steam
 {
     /// <summary>
-    /// Join lobby dto.
+    /// Create lobby dto.
     /// </summary>
     public class CreateLobbyDto
     {
         /// <summary>
-        /// Stam lobby id.
+        /// Steam lobby type.
         /// </summary>
         [MessagePackMember(0)]
         public LobbyType LobbyType { get; set; } = LobbyType.Private;
@@ -53,6 +53,6 @@ namespace Stormancer.Server.Plugins.Steam
         /// </summary>
         /// <remarks>The steam API alterates the keys to "camelCase" format (first letter becomes lower case).</remarks>
         [MessagePackMember(3)]
-        public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+        public Dictionary<string, string> Metadata { get; set; } = new();
     }
 }

@@ -125,9 +125,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.A
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.PeerConfiguration", "Configuration\Stormancer.Server.Plugins.PeerConfiguration\Stormancer.Server.Plugins.PeerConfiguration.csproj", "{09722116-6834-4F01-BB22-8373DEF3B6D5}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ServiceBrowser", "ServiceBrowser", "{9E7C20DE-2E35-40CE-B9BB-5F684BD439C8}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ServiceQueries", "ServiceQueries", "{9E7C20DE-2E35-40CE-B9BB-5F684BD439C8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.ServiceBrowser", "ServiceBrowser\Stormancer.Server.Plugins.ServiceBrowser\Stormancer.Server.Plugins.ServiceBrowser.csproj", "{8C4C3DAC-2A89-4F87-BFD2-624FC3C6BEC3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.ServiceQueries", "ServiceBrowser\Stormancer.Server.Plugins.ServiceBrowser\Stormancer.Server.Plugins.ServiceQueries.csproj", "{8C4C3DAC-2A89-4F87-BFD2-624FC3C6BEC3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
