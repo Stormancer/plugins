@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Use the secrets store API to store the encryption key.
+- By default, auto generate the key and store it in the configured secret store. Set 'createKeyIfNotExists' in the policy to false to prevent this behavior.
 
 1.0.1.1
 -------

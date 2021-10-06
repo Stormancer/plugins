@@ -24,10 +24,12 @@ using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Modes;
 using Org.BouncyCastle.Crypto.Parameters;
 using Stormancer.Server.Plugins.Configuration;
+using Stormancer.Server.Secrets;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -40,6 +42,10 @@ namespace Stormancer.Server.Plugins.DataProtection
         /// </summary>
         public string? key { get; set; }
 
+        /// <summary>
+        /// Is the provider allowed to automatically generate the key.
+        /// </summary>
+        public bool createKeyIfNotExists { get; set; } = true;
         /// <summary>
         /// Nonce to use for data protection .
         /// </summary>
@@ -54,13 +60,18 @@ namespace Stormancer.Server.Plugins.DataProtection
         public static readonly int NonceBitSize = 96;
         public static readonly int MacBitSize = 96;
         public static readonly int KeyBitSize = 256;
+        private readonly ISecretsStore secretsStore;
 
         //private const string key = "GZNFfCzreuClcc4NhotyJNB/VKSCbTUnFPwosFVyQOo=";
         //private const string nonce = "dkMRLIlJJAKZjQPx";
 
+        public AesGcmProtectionProvider(ISecretsStore secretsStore)
+        {
+            this.secretsStore = secretsStore;
+        }
         public string Id => "aes-gcm";
 
-        public byte[] Protect(byte[] value, string policy, JObject json)
+        public async Task<byte[]> Protect(byte[] value, string policy, JObject json)
         {
             var config = json.ToObject<AesGcmProtectionConfig>();
             if (config == null)
@@ -78,8 +89,8 @@ namespace Stormancer.Server.Plugins.DataProtection
 
 
 
-            var b64key = File.ReadAllText(config.key);
-            var key = Convert.FromBase64String(b64key);
+           
+            var key = await GetKey(config.key, config.createKeyIfNotExists);
             byte[] nonce;
             if (config.nonce != null)
             {
@@ -95,7 +106,7 @@ namespace Stormancer.Server.Plugins.DataProtection
 
         }
 
-        public byte[] Unprotect(byte[] value, string policy, JObject json)
+        public async Task<byte[]> Unprotect(byte[] value, string policy, JObject json)
         {
             var config = json.ToObject<AesGcmProtectionConfig>();
             if (config == null)
@@ -113,12 +124,34 @@ namespace Stormancer.Server.Plugins.DataProtection
 
 
 
-            var b64key = File.ReadAllText(config.key);
-            var key = Convert.FromBase64String(b64key);
+
+            var key = await GetKey(config.key, config.createKeyIfNotExists);
             var nonceLength = NonceBitSize / 8;
             return SimpleDecrypt(new Span<byte>(value, nonceLength, value.Length - nonceLength), new Span<byte>(value, 0, nonceLength), key);
         }
 
+        private static MemoryCache<byte[]> _cache = new MemoryCache<byte[]>();
+        private Task<byte[]?> GetKey(string keyPath, bool allowGenerate) => _cache.Get(keyPath,id=>GetKeyImpl(keyPath,allowGenerate));
+
+        private async Task<(byte[]?, TimeSpan)> GetKeyImpl(string keyPath, bool allowGenerate)
+        {
+            var secret = await secretsStore.GetSecret(keyPath);
+            if(secret.Value != null || !allowGenerate)
+            {
+                return (secret.Value, TimeSpan.FromSeconds(60));
+            }   
+            else
+            {
+                var key = new byte[32];
+
+                RandomNumberGenerator.Fill(key);
+                secret = await secretsStore.SetSecret(keyPath, key);
+
+                return (secret.Value,TimeSpan.FromSeconds(60));
+            }
+            
+
+        }
 
         /// <summary>
         /// Simple Encryption And Authentication (AES-GCM) of a UTF8 string.
@@ -211,7 +244,7 @@ namespace Stormancer.Server.Plugins.DataProtection
         }
 
 
-        public byte[] UnprotectBase64Url(string value, string? defaultPolicy = null)
+        public Task<byte[]> UnprotectBase64Url(string value, string? dataProtectionPolicy = null)
         {
             if (value is null)
             {
@@ -221,25 +254,25 @@ namespace Stormancer.Server.Plugins.DataProtection
             var segs = value.Split("-");
             if (segs.Length == 2)
             {
-                defaultPolicy = segs[0];
+                dataProtectionPolicy = segs[0];
                 value = segs[1];
             }
 
-            if (defaultPolicy == null)
+            if (dataProtectionPolicy == null)
             {
-                throw new InvalidOperationException("Cannot unprotect data : Policy not found.");
+                dataProtectionPolicy = "default";
             }
-            var policyConfig = config.Settings.dataProtection?[defaultPolicy] as JObject;
+            var policyConfig = config.Settings.dataProtection?[dataProtectionPolicy] as JObject;
             if (policyConfig == null)
             {
-                throw new InvalidOperationException($"Cannot unprotect data : Policy config 'dataProtection.{defaultPolicy}' not found.");
+                throw new InvalidOperationException($"Cannot unprotect data : Policy config 'dataProtection.{dataProtectionPolicy}' not found.");
             }
 
             var providerId = policyConfig["provider"]?.ToObject<string>();
 
             if (providerId == null)
             {
-                throw new InvalidOperationException($"Cannot unprotect data : 'dataProtection.{defaultPolicy}.provider' not found.");
+                throw new InvalidOperationException($"Cannot unprotect data : 'dataProtection.{dataProtectionPolicy}.provider' not found.");
             }
 
 
@@ -250,10 +283,10 @@ namespace Stormancer.Server.Plugins.DataProtection
             }
 
             var cipherText = UrlBase64.Decode(value);
-            return provider.Unprotect(cipherText, defaultPolicy, policyConfig);
+            return provider.Unprotect(cipherText, dataProtectionPolicy, policyConfig);
         }
 
-        public string ProtectBase64Url(byte[] value, string policy)
+        public async Task<string> ProtectBase64Url(byte[] value, string policy)
         {
             if (value is null)
             {
@@ -286,7 +319,7 @@ namespace Stormancer.Server.Plugins.DataProtection
                 throw new InvalidOperationException($"Cannot protect data: provider {providerId} not found.");
             }
 
-            var cipherText = provider.Protect(value, policy, policyConfig);
+            var cipherText = await provider.Protect(value, policy, policyConfig);
             return policy + "-" + UrlBase64.Encode(cipherText);
         }
 
