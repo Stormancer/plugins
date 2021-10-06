@@ -35,6 +35,9 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.DataProtection
 {
+    /// <summary>
+    /// Configuration for the aes-gcm data protection policy.
+    /// </summary>
     public class AesGcmProtectionConfig
     {
         /// <summary>
