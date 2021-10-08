@@ -19,6 +19,7 @@ Unreleased
 - Fix OnGetFriends event handler
 - Added ConfigureSteam extension method
 - Clean SteamPartyEventHandler
+- Add "platform" field in userData on authentication
 
 4.0.4
 -----
