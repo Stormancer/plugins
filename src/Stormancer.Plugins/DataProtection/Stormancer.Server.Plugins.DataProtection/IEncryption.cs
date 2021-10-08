@@ -37,7 +37,7 @@ namespace Stormancer.Server.Plugins.DataProtection
     ///     "dataProtection":{
     ///        "policyId":{
     ///             "provider":"aes-gcm",
-    ///             "key":"path-to-key", //path to key on disk
+    ///             "key":"account-id/secretstore/keyId", //path to key in the secrets stores
     ///             "nonce":"dkMRLIlJJAKZjQPx" //optional nonce. 
     ///        }
     ///     }
@@ -58,7 +58,7 @@ namespace Stormancer.Server.Plugins.DataProtection
         /// <remarks>
         /// The class looks for the configuration key "dataProtection.[usage]" to determine the data protection policy.
         /// </remarks>
-        string ProtectBase64Url(byte[] value, string policy);
+        Task<string> ProtectBase64Url(byte[] value, string policy);
 
         /// <summary>
         /// Unprotect data from a base64url encoded cyphertext
@@ -66,7 +66,7 @@ namespace Stormancer.Server.Plugins.DataProtection
         /// <param name="value">The cyphertext to unprotect</param>
         /// <param name="defaultPolicy">Default policy to use if no policy is found embedded in the protected string.</param>
         /// <returns>Original unprotected data.</returns>
-        byte[] UnprotectBase64Url(string value, string? defaultPolicy = null);
+        Task<byte[]> UnprotectBase64Url(string value, string? defaultPolicy = null);
     }
 
     /// <summary>
@@ -91,7 +91,7 @@ namespace Stormancer.Server.Plugins.DataProtection
         /// <param name="policy"></param>
         /// <param name="config"></param>
         /// <returns></returns>
-        byte[] Protect(byte[] value,string policy, JObject config);
+        Task<byte[]> Protect(byte[] value,string policy, JObject config);
 
         /// <summary>
         /// Unprotects data.
@@ -100,6 +100,6 @@ namespace Stormancer.Server.Plugins.DataProtection
         /// <param name="policy"></param>
         /// <param name="config"></param>
         /// <returns></returns>
-        byte[] Unprotect(byte[] value,string policy, JObject config);
+        Task<byte[]> Unprotect(byte[] value,string policy, JObject config);
     }
 }
