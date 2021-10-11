@@ -219,7 +219,7 @@ namespace Stormancer.Server.Plugins.Steam
                 {
                     var uid = Guid.NewGuid().ToString("N");
 
-                    user = await _users.CreateUser(uid, JObject.FromObject(new Dictionary<string, string> { { SteamConstants.ClaimPath, steamIdString }, { "pseudo", playerSummary?.personaname ?? "" }, { "avatar", playerSummary?.avatar ?? "" }, { "steamProfileUrl", playerSummary?.profileurl ?? "" } }));
+                    user = await _users.CreateUser(uid, JObject.FromObject(new Dictionary<string, string> { { SteamConstants.ClaimPath, steamIdString }, { "pseudo", playerSummary?.personaname ?? "" }, { "avatar", playerSummary?.avatar ?? "" }, { "steamProfileUrl", playerSummary?.profileurl ?? "" }, { "platform", SteamConstants.PROVIDER_NAME } }));
 
                     user = await _users.AddAuthentication(user, SteamConstants.PROVIDER_NAME, claim => claim[SteamConstants.ClaimPath] = steamIdString, new Dictionary<string, string> { { SteamConstants.ClaimPath, steamIdString } });
                 }
@@ -234,22 +234,32 @@ namespace Stormancer.Server.Plugins.Steam
                             user.UserData[SteamConstants.STEAM_ID] = playerSummary.steamid;
                             updateUserData = true;
                         }
+
                         var userDataPseudo = user.UserData["pseudo"];
                         if (userDataPseudo == null || userDataPseudo.ToString() != playerSummary.personaname)
                         {
                             user.UserData["pseudo"] = playerSummary.personaname;
                             updateUserData = true;
                         }
+
                         var userDataAvatar = user.UserData["avatar"];
                         if (userDataAvatar == null || userDataAvatar.ToString() != playerSummary.avatar)
                         {
                             user.UserData["avatar"] = playerSummary.avatar;
                             updateUserData = true;
                         }
+
                         var userDataProfileUrl = user.UserData["steamProfileUrl"];
                         if (userDataProfileUrl == null || userDataProfileUrl.ToString() != playerSummary.profileurl)
                         {
                             user.UserData["steamProfileUrl"] = playerSummary.profileurl;
+                            updateUserData = true;
+                        }
+
+                        var userDataPlatform = user.UserData["platform"];
+                        if (userDataPlatform == null || userDataPlatform.ToString() != SteamConstants.PROVIDER_NAME)
+                        {
+                            user.UserData["platform"] = SteamConstants.PROVIDER_NAME;
                             updateUserData = true;
                         }
                     }

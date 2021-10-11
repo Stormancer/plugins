@@ -14,6 +14,7 @@ Unreleased
 Added
 *****
 - Added Profile.GetProfilesBySessionIds RPC to query profiles using a list of session ids.
+- Added "platform" field in UserProfilePart
 
 2.2.0.2
 -------
