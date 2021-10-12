@@ -14,3 +14,4 @@ Unreleased
 Added
 *****
 - Added ServiceSearchEngine dependency to query the search system and IServiceSearchProvider to write search providers.
+- Added Lucene SearchProvider and ways for apps to create Lucene indices, index documents in Lucene and provide storage for actual doc contents.
