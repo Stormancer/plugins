@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+2.1.0
+-----
+Added
+*****
+- New GetAllLocal function in memory index to return all documents stored locally.
+
 2.0.1.1
 -------
 Changed

@@ -20,7 +20,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Stormancer.Server.Plugins.API;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Components;
@@ -29,8 +28,8 @@ using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Friends
 {
@@ -53,20 +52,17 @@ namespace Stormancer.Server.Plugins.Friends
             IUserService users
             )
         {
-
             _logger = logger;
             _scene = scene;
             _channel = repository;
             _users = users;
             _esClient = clientFactory;
-           
         }
 
         private async Task<Nest.IElasticClient> CreateClient<T>(object[] parameters = null)
         {
             return await _esClient.CreateClient<T>(INDEX_NAME, parameters);
         }
-
 
         public async Task Invite(User user, User friend, CancellationToken cancellationToken)
         {
@@ -101,12 +97,12 @@ namespace Stormancer.Server.Plugins.Friends
                 throw new InvalidOperationException("Failed to invite friend.", result.OriginalException);
             }
 
-            await Notify(new FriendListUpdateDto
+            await Notify(Enumerable.Repeat(new FriendListUpdateDto
             {
                 ItemId = user.Id,
                 Operation = FriendListUpdateDtoOperation.Add,
                 Data = CreateFriendDtoSummary(friendRecord)
-            }, friend.Id, cancellationToken);
+            }, 1), friend.Id, cancellationToken);
         }
 
         private Friend CreateFriendDtoSummary(MemberRecord record)
@@ -153,8 +149,9 @@ namespace Stormancer.Server.Plugins.Friends
                 }
             }
 
-            friend.Details = config.CustomData;
+            friend.CustomData["Details"] = config.CustomData ?? "";
             friend.LastConnected = config.LastConnected == DateTime.MinValue ? DateTimeOffset.UnixEpoch : config.LastConnected;
+
             return friend;
         }
 
@@ -194,7 +191,7 @@ namespace Stormancer.Server.Plugins.Friends
 
         private Friend CreateFriendDtoDetailed(FriendListConfigRecord config, User user, bool online = true)
         {
-            return new Friend { UserId = user.Id, LastConnected = user.LastLogin, Details = config.CustomData, Status = ComputeStatus(config, online) };
+            return new Friend { UserId = user.Id, LastConnected = user.LastLogin, CustomData = { { "Details", config.CustomData ?? "" } }, Status = ComputeStatus(config, online) };
         }
 
         public async Task<bool> IsInFriendList(string userId, string friendId)
@@ -237,7 +234,7 @@ namespace Stormancer.Server.Plugins.Friends
             if (!accept)
             {
                 await client.DeleteAsync<MemberRecord>(targetFriendRecord.Id, desc => desc.Routing(user.Id));
-                await Notify(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.Remove, ItemId = senderId, Data = new Friend { } }, user.Id,cancellationToken);
+                await Notify(Enumerable.Repeat(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.Remove, ItemId = senderId, Data = new Friend { } }, 1), user.Id, cancellationToken);
             }
             else
             {
@@ -246,8 +243,8 @@ namespace Stormancer.Server.Plugins.Friends
                 var senderFriendRecord = new MemberRecord { FriendId = user.Id, OwnerId = senderId, Status = FriendRecordStatus.Accepted };
 
                 await client.IndexAsync<MemberRecord>(senderFriendRecord, desc => desc.Routing(senderId));
-                await Notify(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.Update, ItemId = senderId, Data = await CreateFriendDtoDetailed(targetFriendRecord) }, user.Id, cancellationToken);
-                await Notify(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.Add, ItemId = user.Id, Data = await CreateFriendDtoDetailed(senderFriendRecord) }, senderId, cancellationToken);
+                await Notify(Enumerable.Repeat(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.Update, ItemId = senderId, Data = await CreateFriendDtoDetailed(targetFriendRecord) }, 1), user.Id, cancellationToken);
+                await Notify(Enumerable.Repeat(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.Add, ItemId = user.Id, Data = await CreateFriendDtoDetailed(senderFriendRecord) }, 1), senderId, cancellationToken);
             }
         }
 
@@ -258,8 +255,8 @@ namespace Stormancer.Server.Plugins.Friends
             await client.DeleteAsync<MemberRecord>(friendId + "_" + user.Id, desc => desc.Routing(friendId));
             //var r = await client.UpdateAsync<object>(friendId + "_" + user.Id, desc => desc.Doc(new { Status = FriendRecordStatus.RemovedByFriend }).FilterPath(new[] { "status" }).DocAsUpsert(false).Routing(friendId));
 
-            await Notify(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.UpdateStatus, ItemId = user.Id, Data = new Friend { Status = FriendStatus.Disconnected } }, friendId, cancellationToken);
-            await Notify(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.Remove, ItemId = friendId, Data = new Friend { } }, user.Id, cancellationToken);
+            await Notify(Enumerable.Repeat(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.UpdateStatus, ItemId = user.Id, Data = new Friend { Status = FriendStatus.Disconnected } }, 1), friendId, cancellationToken);
+            await Notify(Enumerable.Repeat(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.Remove, ItemId = friendId, Data = new Friend { } }, 1), user.Id, cancellationToken);
         }
 
         public async Task SetStatus(User user, FriendListStatusConfig status, string details, CancellationToken cancellationToken)
@@ -285,24 +282,24 @@ namespace Stormancer.Server.Plugins.Friends
 
             await client.UpdateAsync<FriendListConfigRecord>(config.Id, s => s.DocAsUpsert().Doc(config));
 
-            var friends = await GetFriends(user.Id);
+            var friends = await GetFriendRecords(user.Id);
 
-            var _ = Notify(new FriendListUpdateDto
+            var _ = Notify(Enumerable.Repeat(new FriendListUpdateDto
             {
                 ItemId = user.Id,
                 Operation = FriendListUpdateDtoOperation.Update,
                 Data = CreateFriendDtoDetailed(config, user, online)
-            }, friends.Where(f => f.Status == FriendRecordStatus.Accepted).Select(f => f.FriendId), cancellationToken);
+            }, 1), friends.Where(f => f.Status == FriendRecordStatus.Accepted).Select(f => f.FriendId), cancellationToken);
         }
 
         public async Task Subscribe(IScenePeerClient peer, CancellationToken cancellationToken)
         {
-            await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+            await using (var scope = _scene.CreateRequestScope())
             {
                 var sessions = scope.Resolve<IUserSessions>();
                 var session = await sessions.GetSessionById(peer.SessionId, cancellationToken);
 
-                if(session == null)
+                if (session == null)
                 {
                     throw new ClientException("NotAuthenticated");
                 }
@@ -311,29 +308,52 @@ namespace Stormancer.Server.Plugins.Friends
 
                 var statusConfig = await GetStatusConfig(user.Id);
                 await _channel.AddPeer(user.Id, peer, statusConfig);
-                var friendsRecords = await GetFriends(user.Id);
+                var friendsRecords = await GetFriendRecords(user.Id);
                 var friends = new List<Friend>();
                 foreach (var record in friendsRecords)
                 {
                     friends.Add(await CreateFriendDtoDetailed(record));
                 }
-                var ctx = new GetFriendsCtx();
-                ctx.Friends = friends;
-                ctx.UserId = user.Id;
+                var ctx = new GetFriendsCtx(user.Id, friends, false);
+
                 await scope.ResolveAll<IFriendsEventHandler>().RunEventHandler(h => h.OnGetFriends(ctx), ex => { _logger.Log(LogLevel.Warn, "FriendsEventHandlers", "An error occured while executing the friends event handlers", ex); });
-                foreach (var friend in friends)
+
+
+
+                await Notify(friends.Select(friend => new FriendListUpdateDto { ItemId = friend.UserId, Operation = FriendListUpdateDtoOperation.Add, Data = friend }), user.Id, cancellationToken);
+
+
+                if (!friends.Any())
                 {
-                    await Notify(new FriendListUpdateDto { ItemId = friend.UserId, Operation = FriendListUpdateDtoOperation.Add, Data = friend }, user.Id, cancellationToken);
+                    await Notify(Enumerable.Empty<FriendListUpdateDto>(), user.Id, cancellationToken);
                 }
                 var newStatus = ComputeStatus(statusConfig, true);
                 if (newStatus == FriendStatus.Online)
                 {
-                    await Notify(new FriendListUpdateDto { ItemId = user.Id, Operation = FriendListUpdateDtoOperation.UpdateStatus, Data = new Friend { Status = newStatus } }, friendsRecords.Select(f => f.FriendId), cancellationToken);
+                    await Notify(Enumerable.Repeat(new FriendListUpdateDto { ItemId = user.Id, Operation = FriendListUpdateDtoOperation.UpdateStatus, Data = new Friend { Status = newStatus } }, 1), friendsRecords.Select(f => f.FriendId), cancellationToken);
                 }
             }
         }
 
-        public async Task Unsubscribe(IScenePeerClient peer,CancellationToken cancellationToken)
+        public async Task<IEnumerable<Friend>> GetFriends(string userId, CancellationToken cancellationToken)
+        {
+            await using (var scope = _scene.CreateRequestScope())
+            {
+                var friendsRecords = await GetFriendRecords(userId);
+                var friends = new List<Friend>();
+                foreach (var record in friendsRecords)
+                {
+                    friends.Add(await CreateFriendDtoDetailed(record));
+                }
+                var ctx = new GetFriendsCtx(userId, friends, true);
+
+                await scope.ResolveAll<IFriendsEventHandler>().RunEventHandler(h => h.OnGetFriends(ctx), ex => { _logger.Log(LogLevel.Warn, "FriendsEventHandlers", "An error occured while executing the friends event handlers", ex); });
+
+                return friends;
+            }
+        }
+
+        public async Task Unsubscribe(IScenePeerClient peer, CancellationToken cancellationToken)
         {
             var config = await _channel.RemovePeer(peer.SessionId);
             if (config != null && config.Item1 != null)
@@ -341,8 +361,8 @@ namespace Stormancer.Server.Plugins.Friends
                 var oldStatus = ComputeStatus(config.Item1, true);
                 if (oldStatus != FriendStatus.Disconnected)
                 {
-                    var friends = await GetFriends(config.Item2);
-                    await Notify(new FriendListUpdateDto { ItemId = config.Item2, Operation = FriendListUpdateDtoOperation.UpdateStatus, Data = new Friend { Status = FriendStatus.Disconnected } }, friends.Select(f => f.FriendId).ToArray(), cancellationToken);
+                    var friends = await GetFriendRecords(config.Item2);
+                    await Notify(Enumerable.Repeat(new FriendListUpdateDto { ItemId = config.Item2, Operation = FriendListUpdateDtoOperation.UpdateStatus, Data = new Friend { Status = FriendStatus.Disconnected } }, 1), friends.Select(f => f.FriendId).ToArray(), cancellationToken);
                 }
             }
         }
@@ -375,12 +395,12 @@ namespace Stormancer.Server.Plugins.Friends
 
         public async Task<IEnumerable<Friend>> GetFriendsWithStatus(string userId)
         {
-            var records = await GetFriends(userId);
+            var records = await GetFriendRecords(userId);
 
             return await Task.WhenAll(records.Select(r => CreateFriendDtoDetailed(r)));
         }
 
-        private async Task<IEnumerable<MemberRecord>> GetFriends(string userId)
+        private async Task<IEnumerable<MemberRecord>> GetFriendRecords(string userId)
         {
             if (userId == null)
             {
@@ -432,8 +452,8 @@ namespace Stormancer.Server.Plugins.Friends
                 return new FriendListConfigRecord { Id = userId, Status = FriendListStatusConfig.Online, CustomData = null };
             }
         }
-        public Task Notify(FriendListUpdateDto data, string userId, CancellationToken cancellationToken) => Notify(data, Enumerable.Repeat(userId, 1), cancellationToken);
-        public async Task Notify(FriendListUpdateDto data, IEnumerable<string> userIds, CancellationToken cancellationToken)
+        public Task Notify(IEnumerable<FriendListUpdateDto> data, string userId, CancellationToken cancellationToken) => Notify(data, Enumerable.Repeat(userId, 1), cancellationToken);
+        public async Task Notify(IEnumerable<FriendListUpdateDto> data, IEnumerable<string> userIds, CancellationToken cancellationToken)
         {
             await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
@@ -459,10 +479,9 @@ namespace Stormancer.Server.Plugins.Friends
 
         public async Task AddNonPersistedFriends(string userId, IEnumerable<Friend> friends, CancellationToken cancellationToken)
         {
-            foreach (var friend in friends)
-            {
-                await Notify(new FriendListUpdateDto { ItemId = friend.UserId, Operation = FriendListUpdateDtoOperation.Add, Data = friend }, userId,cancellationToken);
-            }
+
+            await Notify(friends.Select(friend => new FriendListUpdateDto { ItemId = friend.UserId, Operation = FriendListUpdateDtoOperation.Add, Data = friend }), userId, cancellationToken);
+
         }
     }
 }

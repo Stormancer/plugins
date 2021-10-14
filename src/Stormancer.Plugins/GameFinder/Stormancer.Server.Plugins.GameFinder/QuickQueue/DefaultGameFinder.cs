@@ -85,7 +85,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
                     changeOccured = false;
 
-                    var game = new Game();
+                    var game = new NewGame();
                     for (int teamId = 0; teamId < teamCount; teamId++)
                     {
                         var team = new Models.Team();
@@ -136,7 +136,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                                 foreach (var p in list)
                                 {
                                     team.Parties.Add(p);
-                                    break;
+                                   
                                 }
                             }
 
@@ -173,7 +173,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 while (changeOccured);
             }
 
-            foreach (var party in results.Games.SelectMany(g => g.AllParties))
+            foreach (var party in results.Games.SelectMany(g => g.AllParties()))
             {
                 gameFinderContext.WaitingParties.Remove(party);
             }
@@ -289,7 +289,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
                     changeOccured = false;
 
-                    var game = new Game();
+                    var game = new NewGame();
                     for (int teamId = 0; teamId < teamCount; teamId++)
                     {
                         var team = new Models.Team();
@@ -372,7 +372,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
 
 
-            foreach (var party in results.Games.SelectMany(g => g.AllParties))
+            foreach (var party in results.Games.SelectMany(g => g.AllParties()))
             {
                 gameFinderContext.WaitingParties.Remove(party);
             }

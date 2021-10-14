@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Party
@@ -27,5 +28,6 @@ namespace Stormancer.Server.Plugins.Party
     interface IPartyManagementService
     {
         Task<string> CreateParty(PartyRequestDto partyRequest, string leaderUserIdserId);
+        Task<string?> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode, CancellationToken cancellationToken);
     }
 }

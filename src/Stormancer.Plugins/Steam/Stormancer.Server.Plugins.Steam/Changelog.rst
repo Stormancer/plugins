@@ -9,10 +9,16 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-unreleased
-----------
-- revert plugin to normal state
+4.1.0.6
+-------
 - Fix queryUserIds (no error if a steamId is not found in the system)
+- Improve steam friends
+- Add SteamFriendsEventHandler to IOC
+- Fix SteamFriend dto (add missing MessagePackMember)
+- Fix OnGetFriends event handler
+- Added ConfigureSteam extension method
+- Clean SteamPartyEventHandler
+- Add "platform" field in userData on authentication
 
 4.0.4
 -----

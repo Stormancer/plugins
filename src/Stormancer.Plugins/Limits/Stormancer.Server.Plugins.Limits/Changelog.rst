@@ -9,11 +9,14 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+0.1.8
+-----
 Changed
 *******
 - Use new S2S infrastructure to get limit status.
+Fixed
+*****
+- Add a IServiceLocationProvider to always locate the limits S2S Api on the authenticator scene.
 
 0.1.6
 -----
@@ -27,6 +30,13 @@ Changed
 0.1.4
 -----
 - Use Stormancer.Abstraction.Server 4.1.0
+
+
+0.1.3.1
+-------
+Changed
+*******
+- cache results of calls to GetUserLimitsStatus
 
 0.1.3
 -----

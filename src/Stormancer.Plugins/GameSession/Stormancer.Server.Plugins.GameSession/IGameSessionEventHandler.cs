@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Server.Plugins.Models;
 using System;
@@ -63,11 +64,92 @@ namespace Stormancer.Server.Plugins.GameSession
         Task OnClientConnected(ClientConnectedContext ctx) => Task.CompletedTask;
 
         /// <summary>
+        /// Event executed when a client is leaving the game session.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task OnClientLeaving(ClientLeavingContext ctx) => Task.CompletedTask;
+
+        /// <summary>
         /// Eent executed when a client is ready in the gamesession.
         /// </summary>
         /// <param name="ctx"></param>
         /// <returns></returns>
         Task OnClientReady(ClientReadyContext ctx) => Task.CompletedTask;
+
+        /// <summary>
+        /// Event executed when a new reservation is requested.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task OnCreatingReservation(CreatingReservationContext ctx) => Task.CompletedTask;
+
+        /// <summary>
+        /// Event executed when a reservation is cancelled.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task OnReservationCancelled(ReservationCancelledContext ctx) => Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Ctx
+    /// </summary>
+    public class ReservationCancelledContext
+    {
+        internal ReservationCancelledContext(Guid reservationId, IEnumerable<string> userIdsReservationsCancelled )
+        {
+            ReservationId = reservationId;
+            UserIdsReservationsCancelled = userIdsReservationsCancelled;
+        }
+
+        /// <summary>
+        /// Id of the reservation.
+        /// </summary>
+        public Guid ReservationId { get; }
+
+        /// <summary>
+        /// List of user ids whose reservations where actually cancelled (ie if the user connected, they won't be in the list.)
+        /// </summary>
+        public IEnumerable<string> UserIdsReservationsCancelled { get; }
+    }
+
+    /// <summary>
+    /// Context passed to <see cref="IGameSessionEventHandler.OnCreatingReservation(CreatingReservationContext)"/>
+    /// </summary>
+    public class CreatingReservationContext
+    {
+        internal CreatingReservationContext(Team team, JObject customData, Guid reservationId)
+        {
+            Team = team;
+            CustomData = customData;
+            ReservationId = reservationId;
+        }
+        /// <summary>
+        /// Team object created by the reservation.
+        /// </summary>
+        /// <remarks>
+        /// If the team already exists, content are automatically merged.
+        /// </remarks>
+        public Team Team { get; }
+
+        /// <summary>
+        /// Reservation custom data.
+        /// </summary>
+        public JObject CustomData { get; }
+
+        /// <summary>
+        /// Id of the reservation
+        /// </summary>
+        public Guid ReservationId { get; }
+
+        /// <summary>
+        /// True if accept the reservation.
+        /// </summary>
+        /// <remarks>
+        /// true by default.
+        /// </remarks>
+        public bool Accept { get; set; } = true;
     }
 
     /// <summary>
@@ -205,16 +287,45 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <summary>
         /// Gets the player associated with the event.
         /// </summary>
-        public PlayerPeer Player { get;  }
+        public PlayerPeer Player { get; }
 
         /// <summary>
         /// Gets a value indicating whether the client is the host of the game.
         /// </summary>
-        public bool IsHost { get;  }
+        public bool IsHost { get; }
 
         /// <summary>
         /// Current game session service.
         /// </summary>
-        public IGameSessionService GameSession { get;  }
+        public IGameSessionService GameSession { get; }
+
+
+    }
+
+    /// <summary>
+    /// Context passed to a <see cref="IGameSessionEventHandler.OnClientLeaving(ClientLeavingContext)"/> event.
+    /// </summary>
+    public class ClientLeavingContext
+    {
+        internal ClientLeavingContext(IGameSessionService service, PlayerPeer player, bool isHost)
+        {
+            GameSession = service;
+            Player = player;
+            IsHost = isHost;
+        }
+        /// <summary>
+        /// Gets the player associated with the event.
+        /// </summary>
+        public PlayerPeer Player { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the client is the host of the game.
+        /// </summary>
+        public bool IsHost { get; }
+
+        /// <summary>
+        /// Current game session service.
+        /// </summary>
+        public IGameSessionService GameSession { get; }
     }
 }

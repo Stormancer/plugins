@@ -25,6 +25,7 @@ using Stormancer.Plugins;
 using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Party.Dto;
 using Stormancer.Server.Plugins.Party.Model;
+using Stormancer.Server.Plugins.Users;
 using System;
 using System.Threading.Tasks;
 
@@ -36,13 +37,16 @@ namespace Stormancer.Server.Plugins.Party
 
         private const string NotInPartyError = "party.notInParty";
         private const string UnauthorizedError = "party.unauthorized";
+        private readonly IUserSessions sessions;
         private readonly IPartyService _partyService;
         private readonly ISerializer _serializer;
 
         public PartyController(
+            IUserSessions sessions,
             IPartyService partyService,
             ISerializer serializer)
         {
+            this.sessions = sessions;
             _partyService = partyService;
             _serializer = serializer;
         }
@@ -50,8 +54,8 @@ namespace Stormancer.Server.Plugins.Party
         public async Task UpdatePartySettings(RequestContext<IScenePeerClient> ctx)
         {
             var partySettings = ctx.ReadObject<PartySettingsDto>();
-            PartyMember member;
-            if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out member))
+           
+            if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
             {
                 throw new ClientException(NotInPartyError);
             }
@@ -65,8 +69,8 @@ namespace Stormancer.Server.Plugins.Party
 
         public Task UpdatePartyUserData(RequestContext<IScenePeerClient> ctx)
         {
-            PartyMember member;
-            if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out member))
+            
+            if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
             {
                 throw new ClientException(NotInPartyError);
             }
@@ -78,8 +82,8 @@ namespace Stormancer.Server.Plugins.Party
 
         public Task PromoteLeader(RequestContext<IScenePeerClient> ctx)
         {
-            PartyMember member;
-            if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out member))
+           
+            if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
             {
                 throw new ClientException(NotInPartyError);
             }
@@ -96,8 +100,8 @@ namespace Stormancer.Server.Plugins.Party
 
         public async Task KickPlayer(RequestContext<IScenePeerClient> ctx)
         {
-            PartyMember member;
-            if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out member))
+           
+            if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
             {
                 throw new ClientException(NotInPartyError);
             }
@@ -113,8 +117,8 @@ namespace Stormancer.Server.Plugins.Party
         public async Task UpdateGameFinderPlayerStatus(RequestContext<IScenePeerClient> ctx)
         {
             var newStatus = ctx.ReadObject<PartyMemberStatusUpdateRequest>();
-            PartyMember member;
-            if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out member))
+          
+            if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
             {
                 throw new ClientException(NotInPartyError);
             }
@@ -175,24 +179,48 @@ namespace Stormancer.Server.Plugins.Party
             }
         }
 
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public Task<string> CreateInvitationCode(RequestContext<IScenePeerClient> ctx)
+        {
+            if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
+            {
+                throw new ClientException(NotInPartyError);
+            }
+
+            return _partyService.CreateInvitationCodeAsync(ctx.CancellationToken);
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public void CancelInvitationCode(RequestContext<IScenePeerClient> ctx)
+        {
+            if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
+            {
+                throw new ClientException(NotInPartyError);
+            }
+
+            _partyService.CancelInvitationCode();
+        }
+
+       
+
         protected override Task OnConnecting(IScenePeerClient client)
         {
-            return (_partyService as PartyService).OnConnecting(client);
+            return (_partyService as PartyService)!.OnConnecting(client);
         }
 
         protected override Task OnConnectionRejected(IScenePeerClient client)
         {
-            return (_partyService as PartyService).OnConnectionRejected(client);
+            return (_partyService as PartyService)!.OnConnectionRejected(client);
         }
 
         protected override Task OnConnected(IScenePeerClient client)
         {
-            return (_partyService as PartyService).OnConnected(client);
+            return (_partyService as PartyService)!.OnConnected(client);
         }
 
         protected override Task OnDisconnected(DisconnectedArgs args)
         {
-            return (_partyService as PartyService).OnDisconnected(args);
+            return (_partyService as PartyService)!.OnDisconnected(args);
         }
     }
 }

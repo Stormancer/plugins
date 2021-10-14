@@ -9,6 +9,15 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+3.1.0.1
+-------
+Added
+*****
+- Added GetFriends API for the server to get the friends of an user.
+Fixed
+*****
+- Fix Friends notification api
+
 3.0.0.2
 -------
 Changed

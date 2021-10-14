@@ -66,9 +66,10 @@ namespace Stormancer.Server.Plugins.Party
                 builder.Register<PartyState>().InstancePerScene();
                 builder.Register<StormancerPartyPlatformSupport>().As<IPartyPlatformSupport>().AsSelf().InstancePerRequest();
                 builder.Register<PartySceneLocator>().As<IServiceLocatorProvider>();
+                builder.Register<InvitationCodeService>().AsSelf().SingleInstance();
             };
 
-            ctx.HostStarting += (host) => {
+            ctx.HostStarting += (IHost host) => {
                 host.AddSceneTemplate(PARTY_SCENE_TYPE, (ISceneHost scene) => {
                     scene.AddParty();
                 });
@@ -76,8 +77,13 @@ namespace Stormancer.Server.Plugins.Party
 
                     scene.AddPartyManagement();
                 });
-            };
 
+                host.DependencyResolver.Resolve<InvitationCodeService>().Initialize();
+            };
+            ctx.SceneShuttingDown += (ISceneHost scene) =>
+              {
+                  scene.DependencyResolver.Resolve<InvitationCodeService>().CancelCode(scene);
+              };
             ctx.SceneCreated += (ISceneHost scene) =>
             {
                 if (scene.Metadata.ContainsKey(PartyConstants.METADATA_KEY))

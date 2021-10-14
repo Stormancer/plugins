@@ -2,6 +2,7 @@
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.AdminApi;
 using Stormancer.Server.Plugins.Configuration;
+using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
@@ -35,6 +36,7 @@ namespace Stormancer.Server.Plugins.Limits
                  builder.Register<LimitsAdminWebApiConfig>().As<IAdminWebApiConfig>();
                  builder.Register<LimitsClient>().InstancePerRequest();
                  builder.Register<LimitsAuthenticationEventHandler>().As<IAuthenticationEventHandler>().As<IUserSessionEventHandler>().InstancePerRequest();
+                 builder.Register<LimitsLocator>().As<IServiceLocatorProvider>();
              };
             ctx.SceneCreated += (ISceneHost scene) =>
             {
@@ -60,6 +62,22 @@ namespace Stormancer.Server.Plugins.Limits
                     builder.Register<LimitsController>();
                 }
             };
+        }
+    }
+
+    class LimitsLocator : IServiceLocatorProvider
+    {
+        public Task LocateService(ServiceLocationCtx ctx)
+        {
+            switch (ctx.ServiceType)
+            {
+                case "stormancer.plugins.limits":
+                    ctx.SceneId = Users.Constants.GetSceneId();
+                    break;
+                default:
+                    break;
+            }
+            return Task.CompletedTask;
         }
     }
 }

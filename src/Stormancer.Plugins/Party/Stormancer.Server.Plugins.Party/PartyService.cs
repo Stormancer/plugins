@@ -65,6 +65,7 @@ namespace Stormancer.Server.Plugins.Party
         private readonly IUserService _users;
         private readonly IEnumerable<IPartyPlatformSupport> _platformSupports;
         private readonly StormancerPartyPlatformSupport _stormancerPartyPlatformSupport;
+        private readonly InvitationCodeService invitationCodes;
 
         public IReadOnlyDictionary<string, PartyMember> PartyMembers => _partyState.PartyMembers;
 
@@ -84,7 +85,8 @@ namespace Stormancer.Server.Plugins.Party
             IConfiguration configuration,
             IUserService users,
             IEnumerable<IPartyPlatformSupport> platformSupports,
-            StormancerPartyPlatformSupport stormancerPartyPlatformSupport)
+            StormancerPartyPlatformSupport stormancerPartyPlatformSupport,
+            InvitationCodeService invitationCodes)
         {
             _handlers = handlers;
             _scene = scene;
@@ -97,8 +99,9 @@ namespace Stormancer.Server.Plugins.Party
             _users = users;
             _platformSupports = platformSupports;
             _stormancerPartyPlatformSupport = stormancerPartyPlatformSupport;
-
+            this.invitationCodes = invitationCodes;
             ApplySettings(configuration.Settings);
+            
         }
 
         private const string JoinDeniedError = "party.joinDenied";
@@ -341,7 +344,7 @@ namespace Stormancer.Server.Plugins.Party
                 }
                 var originalDto = partySettingsDto.Clone();
                 var ctx = new PartySettingsUpdateCtx(this, partySettingsDto);
-                await _handlers().RunEventHandler(h => h.OnUpdatingSettings(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnOpudatingPartySettings", ex));
+                await _handlers().RunEventHandler(h => h.OnUpdatingSettings(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnUpdatingSettings", ex));
 
                 if (!ctx.ApplyChanges)
                 {
@@ -350,7 +353,7 @@ namespace Stormancer.Server.Plugins.Party
                 }
 
                 Log(LogLevel.Trace, "UpdateSettings", "Settings update accepted", partySettingsDto);
-                await _handlers().RunEventHandler(h => h.OnUpdateSettings(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnOpudatePartySettings", ex));
+                await _handlers().RunEventHandler(h => h.OnUpdateSettings(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnUpdateSettings", ex));
 
                 // If the event handlers have modified the settings, we need to notify the leader to invalidate their local copy.
                 // Make an additional bump to the version number to achieve this.
@@ -899,5 +902,17 @@ namespace Stormancer.Server.Plugins.Party
 
             return false;
         }
+
+        public Task<string> CreateInvitationCodeAsync(CancellationToken cancellationToken)
+        {
+            return invitationCodes.CreateCode(this._scene, cancellationToken);
+        }
+
+        public void CancelInvitationCode()
+        {
+            invitationCodes.CancelCode(this._scene);
+        }
+
+        
     }
 }

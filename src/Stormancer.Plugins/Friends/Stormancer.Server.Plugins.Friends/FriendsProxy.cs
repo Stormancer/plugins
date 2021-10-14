@@ -51,6 +51,11 @@ namespace Stormancer.Server.Plugins.Friends
             return proxy.AddNonPersistedFriends(userId, friends, cancellationToken);
         }
 
+        public Task<IEnumerable<Friend>> GetFriends(string userId, CancellationToken cancellationToken)
+        {
+            return proxy.GetFriends(userId,cancellationToken) ;
+        }
+
         public Task Invite(User user, User friendId, CancellationToken cancellationToken)
         {
             throw new NotSupportedException();

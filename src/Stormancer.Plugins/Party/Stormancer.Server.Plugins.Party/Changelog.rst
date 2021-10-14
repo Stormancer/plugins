@@ -9,6 +9,16 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+
+4.1.0.5
+-------
+Added
+*****
+- Invite players in the group using an invitation code.
+Changed
+*******
+- Party scene name starts with "party-"
+
 4.0.4.2
 -------
 Changed

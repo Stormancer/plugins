@@ -25,6 +25,7 @@ using Stormancer.Server.Plugins.Management;
 using Stormancer.Server.Plugins.Party;
 using Stormancer.Server.Plugins.ServiceLocator;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.PartyManagement
@@ -35,25 +36,28 @@ namespace Stormancer.Server.PartyManagement
         public const string PROTOCOL_VERSION = "2020-05-20.1";
 
         private readonly IServiceLocator _serviceLocator;
+        private readonly InvitationCodeService invitationCodes;
 
         // Services
         private readonly ManagementClientProvider _management;
         private readonly ISceneHost _scene;
 
         public PartyManagementService(
+            InvitationCodeService invitationCodes,
             ManagementClientProvider management,
             ISceneHost scene,
             IServiceLocator serviceLocator
             )
         {
             _serviceLocator = serviceLocator;
+            this.invitationCodes = invitationCodes;
             _management = management;
             _scene = scene;
         }
 
         public async Task<string> CreateParty(PartyRequestDto partyRequest, string leaderUserId)
         {
-            var partyId = string.IsNullOrEmpty(partyRequest.PlatformSessionId) ? Guid.NewGuid().ToString() : partyRequest.PlatformSessionId;
+            var partyId = string.IsNullOrWhiteSpace(partyRequest.PlatformSessionId) ? ("party-" + Guid.NewGuid().ToString()) : partyRequest.PlatformSessionId;
             var sceneUri = await _serviceLocator.GetSceneId(PartyPlugin.PARTY_SERVICEID, partyId);
 
             if (string.IsNullOrEmpty(partyRequest.GameFinderName))
@@ -85,6 +89,12 @@ namespace Stormancer.Server.PartyManagement
             );
 
             return await _management.CreateConnectionToken(sceneUri);
+        }
+
+
+        public Task<string?> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode, CancellationToken cancellationToken)
+        {
+            return invitationCodes.CreateConnectionTokenFromInvitationCodeAsync(invitationCode, cancellationToken);
         }
     }
 }

@@ -216,6 +216,8 @@ namespace Stormancer.Server.Plugins.GameSession
             scene.Disconnected.Add((args) => this.PeerDisconnecting(args.Peer));
             scene.AddRoute("player.ready", this.ReceivedReady, _ => _);
             scene.AddRoute("player.faulted", this.ReceivedFaulted, _ => _);
+
+            _reservationCleanupTimer = new Timer((_) => _ = ReservationCleanupCallback(null), null, 5000, 5000);
         }
 
         private void ApplySettings()
@@ -257,7 +259,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 {
                     throw new ArgumentNullException(nameof(peer));
                 }
-                if (peer.ContentType == "application/server-id" && _serverGuid !=null)
+                if (peer.ContentType == "application/server-id" && _serverGuid != null)
                 {
                     var peerGuid = new Guid(peer.UserData);
                     var serverGuid = new Guid(_serverGuid);
@@ -466,7 +468,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public bool IsServer(IScenePeerClient peer)
         {
-            if(_serverGuid == null)
+            if (_serverGuid == null)
             {
                 return false;
             }
@@ -697,16 +699,16 @@ namespace Stormancer.Server.Plugins.GameSession
                 EvaluateGameComplete();
 
                 var tcs = _clients[userId].GameCompleteTcs;
-                if(tcs !=null)
+                if (tcs != null)
                 {
                     return await tcs.Task;
                 }
                 else
                 {
-                    static void NoOp(Stream stream,ISerializer serializer) { };
+                    static void NoOp(Stream stream, ISerializer serializer) { };
                     return NoOp;
                 }
-               
+
             }
             else
             {
@@ -757,7 +759,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 {
                     _gameCompleteExecuted = true;
 
-                    var ctx = new GameSessionCompleteCtx(this, _scene, _config, _clients.Select(kvp => new GameSessionResult(kvp.Key, kvp.Value.Peer, kvp.Value.ResultData?? new MemoryStream())), _clients.Keys);
+                    var ctx = new GameSessionCompleteCtx(this, _scene, _config, _clients.Select(kvp => new GameSessionResult(kvp.Key, kvp.Value.Peer, kvp.Value.ResultData ?? new MemoryStream())), _clients.Keys);
 
                     async Task runHandlers()
                     {
@@ -828,6 +830,7 @@ namespace Stormancer.Server.Plugins.GameSession
         public ValueTask DisposeAsync()
         {
             _gameCompleteCts?.Dispose();
+            _reservationCleanupTimer?.Dispose();
             return CloseGameServer();
         }
 
@@ -854,5 +857,186 @@ namespace Stormancer.Server.Plugins.GameSession
 
             gameSessionConfigUpdater(_config);
         }
+        #region Reservations
+        public async Task<GameSessionReservation?> CreateReservationAsync(Team team, JObject args, CancellationToken cancellationToken)
+        {
+            if (_config == null)
+            {
+                return null;
+            }
+            await using var scope = _scene.CreateRequestScope();
+
+
+            foreach (var player in team.AllPlayers)
+            {
+                var playerTeam = FindPlayerTeam(player.UserId);
+                if (playerTeam != null && playerTeam.TeamId != team.TeamId)
+                {
+                    return null;
+                }
+            }
+            var reservationState = new ReservationState();
+            var ctx = new CreatingReservationContext(team, args, reservationState.ReservationId);
+
+            await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
+                h => h.OnCreatingReservation(ctx),
+                ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing OnCreatingReservation event", ex));
+
+
+            if (ctx.Accept)
+            {
+
+                var currentTeam = _config.Teams.FirstOrDefault(t => t.TeamId == team.TeamId);
+
+                if (currentTeam != null)
+                {
+                    foreach (var party in team.Parties)
+                    {
+                        var currentParty = currentTeam.Parties.FirstOrDefault(p => p.PartyId == party.PartyId);
+                        if (currentParty != null)
+                        {
+                            foreach (var player in party.Players)
+                            {
+                                currentParty.Players.TryAdd(player.Key, player.Value);
+                                reservationState.UserIds.Add(player.Key);
+                            }
+                        }
+                        else
+                        {
+                            currentTeam.Parties.Add(party);
+                            reservationState.UserIds.AddRange(party.Players.Keys);
+                        }
+                    }
+                }
+                else
+                {
+                    _config.Teams.Add(team);
+                    reservationState.UserIds.AddRange(team.AllPlayers.Select(p => p.UserId));
+                }
+                _reservationStates.TryAdd(reservationState.ReservationId, reservationState);
+
+                return new GameSessionReservation { ReservationId = reservationState.ReservationId.ToString(), ExpiresOn = reservationState.ExpiresOn };
+            }
+            else
+            {
+                return null;
+            }
+
+
+        }
+        public async Task CancelReservationAsync(string id, CancellationToken cancellationToken)
+        {
+            if (_reservationStates.TryRemove(Guid.Parse(id), out var reservationState))
+            {
+                var ids = new List<string>();
+                foreach (var userId in reservationState.UserIds)
+                {
+                    if (TryRemoveUserFromConfig(userId))
+                    {
+                        ids.Add(userId);
+                    }
+                }
+
+                await using var scope = _scene.CreateRequestScope();
+
+                await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
+                   h => h.OnReservationCancelled(new ReservationCancelledContext(reservationState.ReservationId, ids)),
+                   ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing OnReservationCancelled event", ex));
+
+            }
+
+        }
+
+        private bool _reservationCleanupRunning = false;
+        private async Task ReservationCleanupCallback(object? userState)
+        {
+            if (!_reservationCleanupRunning)
+            {
+                _reservationCleanupRunning = true;
+                try
+                {
+                    foreach (var reservationState in _reservationStates.Values)
+                    {
+                        if (reservationState.ExpiresOn < DateTime.UtcNow)
+                        {
+                            var ids = new List<string>();
+                            foreach (var userId in reservationState.UserIds)
+                            {
+                                if (TryRemoveUserFromConfig(userId))
+                                {
+                                    ids.Add(userId);
+                                }
+                            }
+
+                            await using var scope = _scene.CreateRequestScope();
+
+                            await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
+                               h => h.OnReservationCancelled(new ReservationCancelledContext(reservationState.ReservationId, ids)),
+                               ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing OnReservationCancelled event", ex));
+                        }
+
+
+                    }
+                }
+                finally
+                {
+                    _reservationCleanupRunning = false;
+                }
+            }
+
+
+        }
+
+        private bool TryRemoveUserFromConfig(string userId)
+        {
+            if (!_clients.ContainsKey(userId))
+            {
+                foreach (var team in _config.Teams)
+                {
+                    foreach (var party in team.Parties)
+                    {
+                        if (party.Players.Remove(userId))
+                        {
+                            if (!party.Players.Any())
+                            {
+                                team.Parties.Remove(party);
+                            }
+                            if (!team.Parties.Any())
+                            {
+                                _config.Teams.Remove(team);
+                            }
+                            return true;
+                        }
+
+                    }
+                }
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        private class ReservationState
+        {
+            public Guid ReservationId { get; } = Guid.NewGuid();
+            public DateTime ExpiresOn { get; set; } = DateTime.UtcNow + TimeSpan.FromMinutes(1);
+            public List<string> UserIds { get; set; } = new List<string>();
+        }
+
+        private ConcurrentDictionary<Guid, ReservationState> _reservationStates = new ConcurrentDictionary<Guid, ReservationState>();
+        private Timer _reservationCleanupTimer;
+
+        private Team? FindPlayerTeam(string userId)
+        {
+            if (_config == null)
+            {
+                return null;
+            }
+            return _config.Teams.FirstOrDefault(t => t.AllPlayers.Any(p => p.UserId == userId));
+        }
+        #endregion
+
     }
 }

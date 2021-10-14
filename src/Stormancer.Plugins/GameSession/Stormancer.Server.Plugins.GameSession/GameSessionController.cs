@@ -20,17 +20,22 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.GameSession.Models;
+using Stormancer.Server.Plugins.Models;
 using Stormancer.Server.Plugins.Users;
+using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
+    [Service(Named = true, ServiceType = "stormancer.plugins.gamefinder")]
     class GameSessionController : ControllerBase
     {
         private readonly IGameSessionService _service;
@@ -111,5 +116,24 @@ namespace Stormancer.Server.Plugins.GameSession
 
             throw new ClientException("no host configured in gameSession.");
         }
+
+        [S2SApi]
+        public Task<GameSessionReservation?> CreateReservation(Team team, JObject args,CancellationToken cancellationToken)
+        {
+           
+           return  _service.CreateReservationAsync(team, args,cancellationToken);
+        }
+
+        [S2SApi]
+        public Task CancelReservation(string id, CancellationToken cancellationToken)
+        {
+            return _service.CancelReservationAsync(id,cancellationToken);
+        }
+    }
+
+    public class GameSessionReservation
+    {
+        public DateTime ExpiresOn { get; set; }
+        public string ReservationId { get; set; }
     }
 }

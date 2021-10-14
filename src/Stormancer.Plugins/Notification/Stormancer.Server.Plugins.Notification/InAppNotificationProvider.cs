@@ -125,6 +125,32 @@ namespace Stormancer.Server.Plugins.Notification
                 filter = new MatchAllFilter();
                
             }
+            else if(notif.UserId == "*/authenticated")
+            {
+                var sessionIds = new List<string>();
+                foreach (var peer in _scene.RemotePeers)
+                {
+                    var session = await _userSessions.GetSessionById(peer.SessionId, cancellationToken);
+                    if (session == null)
+                    {
+                        sessionIds.Add(peer.SessionId);
+                    }
+                }
+                filter = new MatchArrayFilter(sessionIds);
+            }
+            else if(notif.UserId == "*/!authenticated")
+            {
+                var sessionIds = new List<string>();
+                foreach(var peer in _scene.RemotePeers)
+                {
+                    var session = await _userSessions.GetSessionById(peer.SessionId, cancellationToken);
+                    if(session== null)
+                    {
+                        sessionIds.Add(peer.SessionId);
+                    }
+                }
+                filter = new MatchArrayFilter(sessionIds);
+            }
             else
             {
                 var list = new List<string>();

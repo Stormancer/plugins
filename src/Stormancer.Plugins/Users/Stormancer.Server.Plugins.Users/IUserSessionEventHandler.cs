@@ -51,6 +51,32 @@ namespace Stormancer.Server.Plugins.Users
         public bool Accept { get; set; } = true;
         public string ErrorMessage { get; set; } = "";
     }
+    /// <summary>
+    /// Context passed to <see cref="IUserSessionEventHandler.OnKicking(KickContext)"/> event handler.
+    /// </summary>
+    public class KickContext
+    {
+        internal KickContext(IScenePeerClient peer, string query)
+        {
+            Peer = peer;
+            Query = query;
+        }
+
+        /// <summary>
+        /// Peer examined
+        /// </summary>
+        public IScenePeerClient Peer { get; }
+
+        /// <summary>
+        /// Kick query.
+        /// </summary>
+        public string Query { get; }
+
+        /// <summary>
+        /// A boolean indicating whether the peer should be kicked.
+        /// </summary>
+        public bool Kick { get; set; } = true;
+    }
 
     public interface IUserSessionEventHandler
     {
@@ -62,6 +88,12 @@ namespace Stormancer.Server.Plugins.Users
         {
             return Task.CompletedTask;
         }
+
+        /// <summary>
+        /// Called for each peer when a * kick request is performed.
+        /// </summary>
+        /// <param name="ctx"></param>
+        Task OnKicking(KickContext ctx) => Task.CompletedTask;
     }
 }
 

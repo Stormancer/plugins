@@ -22,6 +22,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Leaderboards
@@ -94,15 +95,16 @@ namespace Stormancer.Server.Plugins.Leaderboards
         /// Runs a leaderboard query
         /// </summary>
         /// <param name="query">An object representing the leaderboard query.</param>
+        /// <param name="cancellationToken"></param>
         /// <returns>A set of leaderboard results, as well as 2 leaderboard cursors to get the previous and next pages if they exist.</returns>
-        Task<LeaderboardResult<ScoreRecord>> Query(LeaderboardQuery query);
+        Task<LeaderboardResult<ScoreRecord>> Query(LeaderboardQuery query,CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the set of leaderboard results associated with the provided cursor.
         /// </summary>
         /// <param name="cursor">A leaderboard query cursor. A cursor is associated to a leaderboard page and can be fetched from a leaderboard result.</param>
         /// <returns>A set of leaderboard results, as well as 2 leaderboard cursors to get the previous and next pages if they exist.</returns>
-        Task<LeaderboardResult<ScoreRecord>> QueryCursor(string cursor);
+        Task<LeaderboardResult<ScoreRecord>> QueryCursor(string cursor, CancellationToken cancellationToken);
 
         /// <summary>
         /// Updates a score in the leaderboard
@@ -176,15 +178,16 @@ namespace Stormancer.Server.Plugins.Leaderboards
         /// <param name="filters"></param>
         /// <param name="leaderboardName"></param>
         /// <returns></returns>
-        Task<long> GetRanking(ScoreRecord score, LeaderboardQuery filters, string leaderboardName);
+        Task<long> GetRanking(ScoreRecord score, LeaderboardQuery filters, string leaderboardName, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the total of scores matching a filter in a leaderboard.
         /// </summary>
         /// <param name="filters"></param>
         /// <param name="leaderboardName"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<long> GetTotal(LeaderboardQuery filters, string leaderboardName);
+        Task<long> GetTotal(LeaderboardQuery filters, string leaderboardName, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets a list of favorite leaderboards.

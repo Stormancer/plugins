@@ -59,5 +59,22 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         event Action OnGameSessionCompleted;
 
+        /// <summary>
+        /// Creates a reservation
+        /// </summary>
+        /// <param name="team"></param>
+        /// <param name="args"></param>
+        /// <param name="cancellationToken"></param>
+        /// <remarks>Returns null if no reservation was done.</remarks>
+        /// <returns></returns>
+        Task<GameSessionReservation?> CreateReservationAsync(Team team, JObject args, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Cancels a reservation using its id.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task CancelReservationAsync(string id, CancellationToken cancellationToken);
     }
 }

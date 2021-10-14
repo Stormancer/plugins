@@ -9,6 +9,13 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+2.3.1
+-----
+Added
+*****
+- Added Profile.GetProfilesBySessionIds RPC to query profiles using a list of session ids.
+- Added "platform" field in UserProfilePart
+
 2.2.0.2
 -------
 Changed

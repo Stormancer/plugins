@@ -30,6 +30,8 @@ namespace Stormancer.Server.Plugins.Party.Model
 {
     internal class PartyState
     {
+
+        
         /// <summary>
         /// Version number for the party's state.
         /// </summary>
@@ -46,10 +48,10 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// Current settings for the party.
         /// </summary>
         /// <remarks>
-        /// Settings initially have the values that were given to <see cref="PartyManagement.IPartyManagementService.CreateParty(PartyManagement.PartyRequestDto, string)"/> .
+        /// Settings initially have the values that were given to <see cref="IPartyManagementService.CreateParty(PartyRequestDto, string)"/> .
         /// During the lifetime of the party, they may be updated by calls to <see cref="IPartyService.UpdateSettings(Dto.PartySettingsDto)"/> and <see cref="IPartyService.PromoteLeader(string)"/>
         /// </remarks>
-        public PartyConfiguration Settings { get; set; }
+        public PartyConfiguration Settings { get; set; } = default!;
 
         /// <summary>
         /// This version number is specific to the settings. It is incremented every time the settings are changed.

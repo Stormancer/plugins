@@ -53,6 +53,12 @@ namespace Stormancer.Server.Plugins.Database
             get;
         }
 
+        /// <summary>
+        /// Returns an <see cref="IEnumerable{TValue}"/> enumerating all values stored locally.
+        /// </summary>
+        /// <returns></returns>
+        IEnumerable<TValue> GetAllLocal();
+
 
     }
     //TODO: Upgrade to distributed algorithm
@@ -125,6 +131,11 @@ namespace Stormancer.Server.Plugins.Database
 
                 return Task.FromResult(new Result<TValue>(found ? c.Value : default(TValue), false, found ? c.Version : -1));
             }
+        }
+
+        public IEnumerable<TValue> GetAllLocal()
+        {
+            return _dictionary.Values.Select(c => c.Value);
         }
 
         public int Count

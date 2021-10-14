@@ -655,7 +655,7 @@ namespace Stormancer.Server.Plugins.Users
             {
                 try
                 {
-                
+
                     var peer = await GetPeer(recipientUserId, cancellationToken);
                     if (peer == null)
                     {
@@ -683,7 +683,7 @@ namespace Stormancer.Server.Plugins.Users
                     bool headerSent = false;
                     await foreach (var packet in rpc)
                     {
-                        if(!headerSent)
+                        if (!headerSent)
                         {
                             headerSent = true;
                             await rq.OutputPipe.Writer.WriteObject(true, serializer, cancellationToken);
@@ -788,10 +788,17 @@ namespace Stormancer.Server.Plugins.Users
 
             foreach (var id in sessionIds)
             {
-                var session = await GetSession(id, cancellationToken);
-                if (session != null)
+                if (!sessions.ContainsKey(id))
                 {
-                    sessions.TryAdd(id, session);
+                    var session = await GetSessionById(id, cancellationToken);
+                    if (session != null)
+                    {
+                        sessions.TryAdd(id, session);
+                    }
+                    else
+                    {
+                        sessions.TryAdd(id, null);
+                    }
                 }
             }
 
@@ -801,14 +808,65 @@ namespace Stormancer.Server.Plugins.Users
 
         public async Task KickUser(string userId, string reason, CancellationToken cancellationToken)
         {
-            var peer = await GetPeer(userId, cancellationToken);
-            if (peer != null)
+            if (userId == "*")
             {
-                await peer.DisconnectFromServer(reason);
+                await Task.WhenAll(_scene.RemotePeers.Select(async p =>
+                {
+                    var ctx = new KickContext(p, userId);
+                    await _eventHandlers().RunEventHandler(h => h.OnKicking(ctx), ex => logger.Log(LogLevel.Error, "userSessions", "An error occured while running onKick event.", new { }));
+
+                    if (ctx.Kick)
+                    {
+                        await p.DisconnectFromServer(reason);
+                    }
+                }));
+            }
+            else if(userId == "*/authenticated")
+            {
+                await Task.WhenAll(_scene.RemotePeers.Select(async p =>
+                {
+                    if (GetSession(p, cancellationToken) != null)
+                    {
+                        var ctx = new KickContext(p, userId);
+                        await _eventHandlers().RunEventHandler(h => h.OnKicking(ctx), ex => logger.Log(LogLevel.Error, "userSessions", "An error occured while running onKick event.", new { }));
+
+                        if (ctx.Kick)
+                        {
+                            await p.DisconnectFromServer(reason);
+                        }
+                    }
+                }));
+            }
+            else if (userId == "*/!authenticated")
+            {
+                await Task.WhenAll(_scene.RemotePeers.Select(async p =>
+                {
+                    if (GetSession(p, cancellationToken) != null)
+                    {
+                        var ctx = new KickContext(p, userId);
+                        await _eventHandlers().RunEventHandler(h => h.OnKicking(ctx), ex => logger.Log(LogLevel.Error, "userSessions", "An error occured while running onKick event.", new { }));
+
+                        if (ctx.Kick)
+                        {
+                            await p.DisconnectFromServer(reason);
+                        }
+                    }
+                }));
+            }
+            else
+            {
+                var peer = await GetPeer(userId, cancellationToken);
+                if (peer != null)
+                {
+                    await peer.DisconnectFromServer(reason);
+                }
             }
         }
 
-
+        public IAsyncEnumerable<Session> GetSessionsAsync(CancellationToken cancellationToken)
+        {
+            return _peerUserIndex.GetAllLocal().Select(r=>r.CreateView()).ToAsyncEnumerable();
+        }
 
         public int AuthenticatedUsersCount
         {
