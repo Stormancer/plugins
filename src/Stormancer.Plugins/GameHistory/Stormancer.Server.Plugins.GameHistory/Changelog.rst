@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+2.0.3.2
+-------
 Changed
 *******
 - Add an optional parameter to the AddToHistory method for waiting for the records to be indexed

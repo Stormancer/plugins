@@ -107,8 +107,9 @@ namespace Stormancer.Server.Plugins.Queries
 
                 if (_indices.TryGetValue(type, out var index))
                 {
-                    index.Writer.AddDocument(index.Mapper(id, document));
+                    index.Writer.UpdateDocument(new Term("_id", id), index.Mapper(id, document));
 
+                    index.Writer.Flush(false, false);
                     return true;
                 }
                 else
@@ -125,7 +126,7 @@ namespace Stormancer.Server.Plugins.Queries
                 if (_indices.TryGetValue(type, out var index))
                 {
                     index.Writer.DeleteDocuments(new Term("_id", id));
-
+                    index.Writer.Flush(false, true);
                     return true;
                 }
                 else
@@ -147,17 +148,17 @@ namespace Stormancer.Server.Plugins.Queries
 
 
                 var docs = searcher.Search(new ConstantScoreQuery(filter.ToLuceneQuery()), (int)size);
-
+                var ids = docs.ScoreDocs.Select(hit => searcher.Doc(hit.Doc)?.Get("_id")).NotNull().ToList();
                 foreach (var store in _documentStores())
                 {
                     if (store.Handles(type))
                     {
-                        return store.GetDocuments(docs.ScoreDocs.Select(hit => searcher.Doc(hit.Doc)?.Get("_id")).NotNull());
+                        return store.GetDocuments(ids);
                     }
                 }
-               
 
-                
+
+
             }
             return Enumerable.Empty<Document<JObject>>();
 
@@ -190,7 +191,7 @@ namespace Stormancer.Server.Plugins.Queries
         bool Handles(string type);
         IEnumerable<Document<JObject>> GetDocuments(IEnumerable<string> ids);
 
-      
+
     }
 
     public static class LuceneFilterExtensions
@@ -199,16 +200,16 @@ namespace Stormancer.Server.Plugins.Queries
         {
             return expression switch
             {
-                { Type: "term" } => ((TermFilterExpression)expression).ToLuceneQuery(),
+                { Type: "match" } => ((TermFilterExpression)expression).ToLuceneQuery(),
                 { Type: "bool" } => ((BoolFilterExpression)expression).ToLuceneQuery(),
                 _ => throw new NotSupportedException()
             };
         }
         internal static IEnumerable<string> NotNull(this IEnumerable<string?> source)
         {
-            foreach(var item in source)
+            foreach (var item in source)
             {
-                if(item!=null)
+                if (item != null)
                 {
                     yield return item;
                 }
@@ -240,7 +241,7 @@ namespace Stormancer.Server.Plugins.Queries
         public static BooleanQuery ToLuceneQuery(this BoolFilterExpression expression)
         {
             var query = new BooleanQuery();
-            query.MinimumNumberShouldMatch = expression.MinimumShouldMatch;
+          
             foreach (var clause in expression.Must)
             {
                 query.Add(new BooleanClause(clause.ToLuceneQuery(), Occur.MUST));
@@ -250,11 +251,14 @@ namespace Stormancer.Server.Plugins.Queries
             {
                 query.Add(new BooleanClause(clause.ToLuceneQuery(), Occur.MUST_NOT));
             }
-
+            int shouldClauses = 0;
             foreach (var clause in expression.Should)
             {
+                shouldClauses++;
                 query.Add(new BooleanClause(clause.ToLuceneQuery(), Occur.SHOULD));
             }
+
+            query.MinimumNumberShouldMatch = Math.Min(expression.MinimumShouldMatch,shouldClauses);
             return query;
 
         }

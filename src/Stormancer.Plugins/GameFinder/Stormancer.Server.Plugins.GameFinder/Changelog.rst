@@ -9,11 +9,15 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
------------
+7.0.0
+-----
 Added
 *****
 - Added party gamefinder
+Changed
+*******
+- Added capability to join existing GameSessions by adding an 'ExistingGame' instance to GameResult. To creat a new gamesession, add a 'NewGame' object instead.
+
 
 6.1.0.13
 ----------

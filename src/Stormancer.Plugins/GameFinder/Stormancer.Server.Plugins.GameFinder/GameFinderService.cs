@@ -347,7 +347,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                         // If this party is an S2S party, the exception will be forwarded to the S2S caller which is responsible for handling it
                         client.Tcs.TrySetException(new ClientException(reason));
                         // Remove games that contain a rejected party
-                        games.Games.RemoveAll(m => m.AllParties.Contains(party));
+                        games.Games.RemoveAll(m => m.AllParties().Contains(party));
                     }
 
                     if (games.Games.Any() || games.GameSessionTickets.Any())
@@ -411,9 +411,9 @@ namespace Stormancer.Server.Plugins.GameFinder
                 Func<IGameFinderResolutionWriterContext, Task>? resolutionAction = null;
                 string? gameSceneId = null;
                 // I do not use 'if (gameCandidate is Game game)' so that 'game' does not leak in the outer scope
-                if (gameCandidate is Game)
+                if (gameCandidate is NewGame)
                 {
-                    var game = (Game)gameCandidate;
+                    var game = (NewGame)gameCandidate;
                     var resolverCtx = new GameResolverContext(game);
                     await resolver.ResolveGame(resolverCtx);
                     resolutionAction = resolverCtx.ResolutionAction;
@@ -431,6 +431,11 @@ namespace Stormancer.Server.Plugins.GameFinder
                     await resolver.ResolveJoinOpenGame(ctx);
                     resolutionAction = ctx.ResolutionAction;
                     gameSceneId = ctx.GameSessionTicket.Id;
+                }
+                else
+                {
+                    gameSceneId = gameCandidate.Id;
+                    resolutionAction = _ => Task.CompletedTask;
                 }
 
                 if (_data.isReadyCheckEnabled)
@@ -785,12 +790,12 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         private class GameResolverContext : IGameResolverContext
         {
-            internal GameResolverContext(Game game)
+            internal GameResolverContext(NewGame game)
             {
                 Game = game;
             }
 
-            public Game Game { get; }
+            public NewGame Game { get; }
 
             /// <summary>
             /// Sets an action executed during Game Resolution.

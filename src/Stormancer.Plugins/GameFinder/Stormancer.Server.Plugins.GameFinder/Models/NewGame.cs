@@ -29,10 +29,27 @@ using System.Linq;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
-    public class Game : IGameCandidate
+    /// <summary>
+    /// Use when a the party(ies) are joining an existing gamesession.
+    /// </summary>
+    public class ExistingGame : IGameCandidate
+    {
+        public ExistingGame(string id)
+        {
+            Id = id;
+        }
+        public string Id { get; }
+
+        public IEnumerable<Team> Teams { get; set; } = new List<Team>();
+    }
+
+    /// <summary>
+    /// Use when the party(ies) are joining a new gamesession.
+    /// </summary>
+    public class NewGame : IGameCandidate
     {
         #region constructors
-        public Game()
+        public NewGame()
         {
             Id = Guid.NewGuid().ToString();
         }

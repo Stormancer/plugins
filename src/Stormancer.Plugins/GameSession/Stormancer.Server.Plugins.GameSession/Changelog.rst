@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+5.1.0.1
+-------
+Added
+*****
+- Added player reservation API.
+
 5.0.1.2
 -------
 Changed

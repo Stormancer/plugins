@@ -9,13 +9,14 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
+4.0.1
 -----
 Added
 *****
 - CancellationToken added to query APIs
 - Support for friendsOnly option to automatically filter a leaderbard by the friend list managed by Stormancer.Server.Plugins.Friends.
 - Add mySelf in the friends only query.
+
 Changed
 *******
 - Fix UserId in LeaderboardQuery.

@@ -58,7 +58,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <remarks>
         /// This needs to be concurrent because it can be modified during a call to <see cref="IGameSessionService.OpenToGameFinder"/>, while being read from by other code.
         /// </remarks>
-        public ConcurrentBag<Team> Teams { get; set; } = new ConcurrentBag<Team>();
+        public List<Team> Teams { get; set; } = new List<Team>();
 
         /// <summary>
         /// Get the User ID of every player in Teams

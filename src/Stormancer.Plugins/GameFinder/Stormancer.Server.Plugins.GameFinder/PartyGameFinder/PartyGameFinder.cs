@@ -20,7 +20,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             var result = new GameFinderResult();
             foreach(var party in gameFinderContext.WaitingParties)
             {
-                var game = new Game();
+                var game = new NewGame();
                 var team = new Team(party);
                 game.Teams.Add(team);
                 result.Games.Add(game);

@@ -34,7 +34,7 @@ namespace Stormancer.Server.Plugins.GameFinder
     /// <summary>
     /// GameFinder controller
     /// </summary>
-    [Service(Named =true, ServiceType = "stormancer.plugins.gamefinder")]
+    [Service(Named =true, ServiceType = "stormancer.plugins.gamesession")]
     public class GameFinderController : ControllerBase, IServiceMetadataProvider
     {
         /// <summary>

@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+0.1.0.10
+--------
 Added
 *****
 - Added ServiceSearchEngine dependency to query the search system and IServiceSearchProvider to write search providers.

@@ -26,6 +26,7 @@ using Stormancer.Plugins;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Analytics;
 using Stormancer.Server.Plugins.Configuration;
+using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
@@ -46,6 +47,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 builder.Register<DedicatedServerAuthProvider>().As<IAuthenticationProvider>();
                 builder.Register<GameSessions>().As<IGameSessions>();
                 builder.Register<ServerPools>().As<IServerPools>().As<IConfigurationChangedEventHandler>().SingleInstance();
+                builder.Register<GameSessionsServiceLocator>().As<IServiceLocatorProvider>();
             };
 
             ctx.HostStarted += (IHost host) =>
@@ -90,6 +92,17 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 }
             };
+        }
+    }
+    class GameSessionsServiceLocator : IServiceLocatorProvider
+    {
+        public Task LocateService(ServiceLocationCtx ctx)
+        {
+            if(ctx.ServiceType == "stormancer.plugins.gamesession")
+            {
+                ctx.SceneId = ctx.ServiceName;
+            }
+            return Task.CompletedTask;
         }
     }
 
