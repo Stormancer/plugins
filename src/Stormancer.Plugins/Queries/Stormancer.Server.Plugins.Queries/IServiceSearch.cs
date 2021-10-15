@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.ServiceBrowser
+namespace Stormancer.Server.Plugins.Queries
 {
     public class SearchRequest
     {
@@ -17,13 +17,13 @@ namespace Stormancer.Server.Plugins.ServiceBrowser
     /// <summary>
     /// Provides APIs to search and reserve connection slots to services.
     /// </summary>
-    public class ServiceSearchEngine
+    public class SearchEngine
     {
         private readonly IHost host;
         private readonly ISerializer serializer;
         private readonly Func<IEnumerable<IServiceSearchProvider>> providers;
 
-        public ServiceSearchEngine(IHost host,ISerializer serializer, Func<IEnumerable<IServiceSearchProvider>> providers)
+        public SearchEngine(IHost host, ISerializer serializer, Func<IEnumerable<IServiceSearchProvider>> providers)
         {
             this.host = host;
             this.serializer = serializer;
@@ -38,29 +38,29 @@ namespace Stormancer.Server.Plugins.ServiceBrowser
         /// <param name="size"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async IAsyncEnumerable<Document<T>> QueryAsync<T>(string type, JObject filter,uint size,[EnumeratorCancellation] CancellationToken cancellationToken)
+        public async IAsyncEnumerable<Document<T>> QueryAsync<T>(string type, JObject filter, uint size, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             var searchRqArgs = new SearchRequest { Type = type, Filter = filter, Size = size };
-            using var request =await host.StartAppFunctionRequest("ServiceSearch.Query", cancellationToken);
+            using var request = await host.StartAppFunctionRequest("ServiceSearch.Query", cancellationToken);
 
             await serializer.SerializeAsync(searchRqArgs, request.Input, cancellationToken);
-           
+
             request.Input.Complete();
 
-            await foreach(var result in request.Results)
+            await foreach (var result in request.Results)
             {
                 if (result.IsSuccess)
                 {
                     var docs = await serializer.DeserializeAsync<IEnumerable<Document<T>>>(result.Output, cancellationToken);
-                    
-                    foreach(var doc in docs)
+
+                    foreach (var doc in docs)
                     {
                         yield return doc;
                     }
                 }
                 result.Output.Complete();
             }
-            
+
         }
 
         internal void Initialize()
@@ -72,19 +72,19 @@ namespace Stormancer.Server.Plugins.ServiceBrowser
         {
             var providers = this.providers();
             var rq = await serializer.DeserializeAsync<SearchRequest>(ctx.Input, CancellationToken.None);
-          
+
             ctx.Input.Complete();
-            foreach(var provider in providers)
+            foreach (var provider in providers)
             {
-                if(provider.Handles(rq.Type))
+                if (provider.Handles(rq.Type))
                 {
-                    await serializer.SerializeAsync(provider.Filter(rq.Filter,rq.Size),ctx.Output,CancellationToken.None);
+                    await serializer.SerializeAsync(provider.Filter(rq.Type, rq.Filter, rq.Size), ctx.Output, CancellationToken.None);
                 }
             }
 
             ctx.Output.Complete();
         }
-        
+
     }
 
     public class Document<T>

@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+2.2.0
+-----
 Added
 *****
 - MemoryCache: Added a Get overload that supports providing a cache entry invalidation delay as a return of the cache value getter.

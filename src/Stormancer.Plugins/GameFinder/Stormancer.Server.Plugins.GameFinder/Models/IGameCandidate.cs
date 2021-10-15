@@ -26,7 +26,7 @@ using System.Linq;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
-    interface IGameCandidate
+    public interface IGameCandidate
     {
         public string Id { get; }
 

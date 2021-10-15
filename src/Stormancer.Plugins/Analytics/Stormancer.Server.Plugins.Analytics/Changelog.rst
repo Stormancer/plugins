@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+2.0.4
+-----
 Changed
 *******
 - (Breaking) AnalyticsController.Push now is a Fire & Forget client API instead of an RPC. 

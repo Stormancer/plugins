@@ -11,12 +11,15 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+- Add Unknow value to FriendStatus, FriendListStatusConfig and FriendRecordStatus enums.
+
+3.1.0.1
+-------
 Added
 *****
 - Added GetFriends API for the server to get the friends of an user.
-- Add Unknow value to FriendStatus, FriendListStatusConfig and FriendRecordStatus enums.
-Changed
-*******
+Fixed
+*****
 - Fix Friends notification api
 
 3.0.0.2

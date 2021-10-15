@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+0.1.8
+-----
 Changed
 *******
 - Use new S2S infrastructure to get limit status.

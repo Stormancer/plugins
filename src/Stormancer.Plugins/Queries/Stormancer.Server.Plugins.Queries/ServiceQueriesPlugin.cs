@@ -1,12 +1,11 @@
 ﻿using Stormancer.Plugins;
-using Stormancer.Server.Plugins.ServiceBrowser;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.ServiceQueries
+namespace Stormancer.Server.Plugins.Queries
 {
     class ServiceQueriesPlugin : IHostPlugin
     {
@@ -14,12 +13,13 @@ namespace Stormancer.Server.Plugins.ServiceQueries
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
               {
-                  builder.Register<ServiceSearchEngine>().SingleInstance();
+                  builder.Register<SearchEngine>().SingleInstance();
+                  builder.Register<LuceneSearchProvider>().As<IServiceSearchProvider>().As<ILucene>().SingleInstance();
               };
 
             ctx.HostStarting += (IHost host) =>
               {
-                  host.DependencyResolver.Resolve<ServiceSearchEngine>().Initialize();
+                  host.DependencyResolver.Resolve<SearchEngine>().Initialize();
               };
         }
     }

@@ -2,11 +2,11 @@
 using System;
 using System.Collections.Generic;
 
-namespace Stormancer.Server.Plugins.ServiceBrowser
+namespace Stormancer.Server.Plugins.Queries
 {
     public interface IServiceSearchProvider
     {
         bool Handles(string type);
-        IEnumerable<Document<JObject>> Filter(JObject filter, uint size);
+        IEnumerable<Document<JObject>> Filter(string type, JObject filter, uint size);
     }
 }

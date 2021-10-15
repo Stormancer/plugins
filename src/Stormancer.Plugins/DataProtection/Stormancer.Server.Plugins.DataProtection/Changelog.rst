@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+2.0.0
+-----
 Changed
 *******
 - Use the secrets store API to store the encryption key.

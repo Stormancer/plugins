@@ -102,7 +102,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// Description of the game starting.
         /// </summary>
-        public Game Game { get; set; } = default!;
+        public NewGame Game { get; set; } = default!;
     }
 
     /// <summary>

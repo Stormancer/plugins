@@ -9,11 +9,14 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+0.1.4.1
+-------
 Changed
 *******
 - Broadcast message action sends the SessionId as a SessionId object instead of a string.
+Fixed
+*****
+- Fixed issue where entity broadcasts where not properly routed.
 
 0.1.3.1
 -------

@@ -33,7 +33,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// Game
         /// </summary>
-        Game Game { get; }
+        NewGame Game { get; }
 
         /// <summary>
         /// Resolution action

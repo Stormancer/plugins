@@ -10,8 +10,8 @@ Please use only reStructuredText in this file, no Markdown!
 This project adheres to semantic versioning.
 
 
-Unreleased
-----------
+4.1.0.5
+-------
 Added
 *****
 - Invite players in the group using an invitation code.
