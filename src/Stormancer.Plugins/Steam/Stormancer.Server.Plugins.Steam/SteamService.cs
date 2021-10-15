@@ -295,7 +295,8 @@ namespace Stormancer.Server.Plugins.Steam
 
         public async Task<IEnumerable<SteamFriend>> GetFriendListFromClient(string userId)
         {
-            return await _userSessions.SendRequest<IEnumerable<SteamFriend>, bool>("Steam.GetFriends", "", userId, true, CancellationToken.None);
+            bool dummyValue = true;
+            return await _userSessions.SendRequest<IEnumerable<SteamFriend>, bool>("Steam.GetFriends", "", userId, dummyValue, CancellationToken.None);
         }
 
         /// <summary>

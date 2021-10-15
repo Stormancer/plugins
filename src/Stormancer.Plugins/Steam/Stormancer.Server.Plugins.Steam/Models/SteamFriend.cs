@@ -36,7 +36,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// Steam Id.
         /// </summary>
         [MessagePackMember(0)]
-        public string steamid { get; set; } = string.Empty;
+        public string steamid { get; set; } = "";
 
         /// <summary>
         /// Relationship type.

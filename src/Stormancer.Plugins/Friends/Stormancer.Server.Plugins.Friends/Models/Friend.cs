@@ -19,6 +19,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
 using MsgPack.Serialization;
 using System;
 using System.Collections.Generic;
@@ -137,15 +138,17 @@ namespace Stormancer.Server.Plugins.Friends
     [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
     public enum FriendRecordStatus
     {
+        Unknow = -1,
         Accepted = 0,
         InvitationSent = 1,
         WaitingAccept = 2,
-        RemovedByFriend = 3
+        RemovedByFriend = 3,
     }
 
     [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
     public enum FriendListStatusConfig
     {
+        Unknow = -1,
         Online = 0,
         Invisible = 1,
         Away = 2
@@ -154,6 +157,7 @@ namespace Stormancer.Server.Plugins.Friends
     [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
     public enum FriendStatus
     {
+        Unknow = -1,
         Online = 0,
         Away = 1,
         Pending = 2,

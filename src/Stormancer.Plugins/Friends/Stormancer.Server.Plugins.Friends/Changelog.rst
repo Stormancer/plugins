@@ -14,6 +14,7 @@ Unreleased
 Added
 *****
 - Added GetFriends API for the server to get the friends of an user.
+- Add Unknow value to FriendStatus, FriendListStatusConfig and FriendRecordStatus enums.
 Changed
 *******
 - Fix Friends notification api
