@@ -12,6 +12,7 @@ This project adheres to semantic versioning.
 Unreleased
 ----------
 - Add optional maxFriendsCount parameter to GetFriendList functions
+- Profile part returns a SteamId as a string (instead of a ulong)
 
 4.1.0.6
 -------

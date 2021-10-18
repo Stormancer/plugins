@@ -74,7 +74,7 @@ namespace Stormancer.Server.Plugins.Steam
                                 var steamProfile = steamProfiles[steamId];
                                 if (steamProfile != null)
                                 {
-                                    j["steamid"] = steamId;
+                                    j["steamid"] = steamId.ToString();
                                     j["personaname"] = steamProfile.personaname;
                                     j["personastate"] = steamProfile.personastate;
                                     j["avatar"] = steamProfile.avatarfull;
