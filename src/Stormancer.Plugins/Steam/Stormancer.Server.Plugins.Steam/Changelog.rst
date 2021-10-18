@@ -9,6 +9,10 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+- Add optional maxFriendsCount parameter to GetFriendList functions
+
 4.1.0.6
 -------
 - Fix queryUserIds (no error if a steamId is not found in the system)

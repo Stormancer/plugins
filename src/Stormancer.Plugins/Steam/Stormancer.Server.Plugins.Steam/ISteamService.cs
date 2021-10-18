@@ -60,14 +60,14 @@ namespace Stormancer.Server.Plugins.Steam
         /// </summary>
         /// <param name="steamId">steam Id</param>
         /// <returns></returns>
-        Task<IEnumerable<SteamFriend>> GetFriendListFromWebApi(ulong steamId);
+        Task<IEnumerable<SteamFriend>> GetFriendListFromWebApi(ulong steamId, uint maxFriendsCount = uint.MaxValue);
 
         /// <summary>
         /// Get steam player friends.
         /// </summary>
         /// <param name="userId">Stormancer user Id</param>
         /// <returns></returns>
-        Task<IEnumerable<SteamFriend>> GetFriendListFromClient(string userId);
+        Task<IEnumerable<SteamFriend>> GetFriendListFromClient(string userId, uint maxFriendsCount = uint.MaxValue);
 
         // ILobbyMatchmakingService
 

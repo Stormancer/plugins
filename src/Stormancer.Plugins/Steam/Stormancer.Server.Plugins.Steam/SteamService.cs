@@ -269,7 +269,7 @@ namespace Stormancer.Server.Plugins.Steam
             return (await GetPlayerSummaries(new[] { steamId }))?[steamId];
         }
 
-        public async Task<IEnumerable<SteamFriend>> GetFriendListFromWebApi(ulong steamId)
+        public async Task<IEnumerable<SteamFriend>> GetFriendListFromWebApi(ulong steamId, uint maxFriendsCount = uint.MaxValue)
         {
             var requestUrl = "ISteamUser/GetFriendList/v1/";
             var querystring = $"?key={_apiKey}&steamid={steamId}&relationship=friend";
@@ -289,14 +289,18 @@ namespace Stormancer.Server.Plugins.Steam
                     throw new Exception("GetFriendList failed: The Steam API response is null.");
                 }
 
+                if (steamResponse.friendslist.friends.Count() > maxFriendsCount)
+                {
+                    steamResponse.friendslist.friends.Take((int)maxFriendsCount);
+                }
+
                 return steamResponse.friendslist.friends;
             }
         }
 
-        public async Task<IEnumerable<SteamFriend>> GetFriendListFromClient(string userId)
+        public async Task<IEnumerable<SteamFriend>> GetFriendListFromClient(string userId, uint maxFriendsCount = uint.MaxValue)
         {
-            bool dummyValue = true;
-            return await _userSessions.SendRequest<IEnumerable<SteamFriend>, bool>("Steam.GetFriends", "", userId, dummyValue, CancellationToken.None);
+            return await _userSessions.SendRequest<IEnumerable<SteamFriend>, uint>("Steam.GetFriends", "", userId, maxFriendsCount, CancellationToken.None);
         }
 
         /// <summary>
