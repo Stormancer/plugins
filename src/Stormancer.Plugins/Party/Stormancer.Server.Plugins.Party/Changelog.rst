@@ -9,6 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Fixed
+*****
+- Let Gamefinder proxy locate the gamefinder scene from the service name instead of doing that in the party plugin.
 
 4.1.0.5
 -------

@@ -564,8 +564,8 @@ namespace Stormancer.Server.Plugins.Party
             //Send S2S find match request
             try
             {
-                var sceneUri = await _locator.GetSceneId("stormancer.plugins.gamefinder", _partyState.Settings.GameFinderName);
-                await _gameFinderClient.FindGame(sceneUri, gameFinderRequest, _partyState.FindGameCts?.Token ?? CancellationToken.None);
+                //var sceneUri = await _locator.GetSceneId("stormancer.plugins.gamefinder", );
+                await _gameFinderClient.FindGame(_partyState.Settings.GameFinderName, gameFinderRequest, _partyState.FindGameCts?.Token ?? CancellationToken.None);
             }
             catch (TaskCanceledException)
             {
