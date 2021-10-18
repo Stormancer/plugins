@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Fixed
+*****
+- Fix code generator configuration to search GameFinder scene with the proper service type (gamefinder and not gamesession).
+
 7.0.0
 -----
 Added
