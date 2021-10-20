@@ -82,7 +82,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 throw new ClientException("serverPool.notAuthenticatedAsDedicatedServer");
             }
 
-            return await pools.SetReady(session.platformId.OnlineId,ctx.RemotePeer);
+            return await pools.SetReady(session.platformId.PlatformUserId,ctx.RemotePeer);
         }
     }
 }

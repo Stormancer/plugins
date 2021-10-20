@@ -140,7 +140,7 @@ namespace Stormancer.Server.Plugins.Users
             {
                 return AuthenticationResult.CreateFailure("loginPassword.login.missingArgument?id=password", pId, authenticationCtx.Parameters);
             }
-            pId.OnlineId = login;
+            pId.PlatformUserId = login;
 
             var user = await users.GetUserByClaim(PROVIDER_NAME, ClaimPath + ".login", login);
 
@@ -195,7 +195,7 @@ namespace Stormancer.Server.Plugins.Users
                 throw new ClientException("auth.loginPassword.create.missingParameter?id=email");
             }
 
-            pId.OnlineId = login;
+            pId.PlatformUserId = login;
 
             var user = await users.GetUserByClaim(PROVIDER_NAME, ClaimPath + ".login", login);
             if (user != null)

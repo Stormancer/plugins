@@ -128,7 +128,7 @@ namespace Stormancer.Server.Plugins.Galaxy
                     return AuthenticationResult.CreateFailure("Gog galaxy uid must not be empty.", pId, authenticationCtx.Parameters);
                 }
                 authenticationCtx.Parameters.TryGetValue("displayName", out var pseudo);
-                pId.OnlineId = id;
+                pId.PlatformUserId = id;
 
 
 

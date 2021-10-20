@@ -119,7 +119,7 @@ namespace Stormancer.Server.Plugins.Users
             }
 
 
-            pId.OnlineId = user.Id;
+            pId.PlatformUserId = user.Id;
 
             return AuthenticationResult.CreateSuccess(user, pId, authenticationCtx.Parameters);
 

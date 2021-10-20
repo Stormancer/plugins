@@ -67,7 +67,7 @@ namespace Stormancer.server.Plugins.Firebase
                     user = await users.AddAuthentication(user, Type, claim => claim[ClaimPath] = firebaseUid, new Dictionary<string, string> { { ClaimPath, firebaseUid } });
                 }
 
-                var pId = new PlatformId { Platform = Type, OnlineId = firebaseUid };
+                var pId = new PlatformId { Platform = Type, PlatformUserId = firebaseUid };
               
                 return AuthenticationResult.CreateSuccess(user, pId, authenticationCtx.Parameters);
             }

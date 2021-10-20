@@ -291,7 +291,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <returns></returns>
         public override string ToString()
         {
-            return Platform + ":" + OnlineId;
+            return Platform + ":" + PlatformUserId;
         }
 
         /// <summary>
@@ -302,7 +302,7 @@ namespace Stormancer.Server.Plugins.Users
         public static PlatformId Parse(string value)
         {
             var els = value.Split(':');
-            return new PlatformId { Platform = els[0], OnlineId = els[1] };
+            return new PlatformId { Platform = els[0], PlatformUserId = els[1] };
         }
 
         /// <summary>
@@ -313,7 +313,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <summary>
         /// Online id of the user in the platform.
         /// </summary>
-        public string OnlineId { get; set; }
+        public string PlatformUserId { get; set; }
 
         /// <summary>
         /// Returns true if the platform id is "unknown".
@@ -333,11 +333,24 @@ namespace Stormancer.Server.Plugins.Users
         {
             get
             {
-                return new PlatformId { Platform = "unknown", OnlineId = "" };
+                return new PlatformId { Platform = "unknown", PlatformUserId = "" };
             }
         }
 
-
+        /// <summary>
+        /// Online id of the user in the platform.
+        /// </summary>
+        [Obsolete("This property is obsolete and has been renamed. Use PlatformUserId instead.", false)]
+        public string OnlineId
+        {
+            get
+            {
+                return PlatformUserId;
+            }
+            set
+            {
+                PlatformUserId = value;
+            }
+        }
     }
 }
-

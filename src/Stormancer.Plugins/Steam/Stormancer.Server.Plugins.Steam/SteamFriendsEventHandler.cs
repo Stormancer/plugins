@@ -77,6 +77,13 @@ namespace Stormancer.Server.Plugins.Steam
                 throw new InvalidOperationException("Invalid UserId");
             }
 
+            var user = await _userService.GetUser(getFriendsCtx.UserId);
+
+            if (user?.Auth?[SteamConstants.PROVIDER_NAME] == null)
+            {
+                return;
+            }
+
             var steamFriends = await _steamService.GetFriendListFromClient(getFriendsCtx.UserId);
 
             if (!steamFriends.Any())

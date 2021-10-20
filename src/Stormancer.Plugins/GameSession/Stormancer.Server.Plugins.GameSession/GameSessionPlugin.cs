@@ -132,7 +132,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 //TODO: Reimplement security.
                 var gameId = token;
 
-                return AuthenticationResult.CreateSuccess(new User { Id = "ds-" + gameId }, new PlatformId { OnlineId = gameId, Platform = PROVIDER_NAME }, authenticationCtx.Parameters);
+                return AuthenticationResult.CreateSuccess(new User { Id = "ds-" + gameId }, new PlatformId { PlatformUserId = gameId, Platform = PROVIDER_NAME }, authenticationCtx.Parameters);
             }
             catch (Exception ex)
             {

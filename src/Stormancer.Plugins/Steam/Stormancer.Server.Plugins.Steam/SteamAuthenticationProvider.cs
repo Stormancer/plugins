@@ -165,7 +165,7 @@ namespace Stormancer.Server.Plugins.Steam
                 {
                     return AuthenticationResult.CreateFailure("Invalid steam session ticket.", pId, authenticationCtx.Parameters);
                 }
-                pId.OnlineId = steamId.ToString()!;
+                pId.PlatformUserId = steamId.ToString()!;
 
                 if (_vacEnabled)
                 {

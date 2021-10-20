@@ -67,7 +67,7 @@ namespace Stormancer.Server.Plugins.Users
         {
             var pId = new PlatformId { Platform = Type };
             var uid = Guid.NewGuid().ToString("N");
-            pId.OnlineId = uid;
+            pId.PlatformUserId = uid;
             var user = new User { Id = uid };
             user.Auth[Type] = new JObject();
             user.UserData[IsEphemeralKey] = true;

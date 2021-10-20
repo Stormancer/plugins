@@ -124,7 +124,7 @@ namespace Stormancer.Server.Plugins.Users
             }
             else
             {
-                return AuthenticationResult.CreateSuccess(user, new PlatformId { Platform = ImpersonatingProvider, OnlineId = ImpersonatingClaimValue }, authenticationCtx.Parameters);
+                return AuthenticationResult.CreateSuccess(user, new PlatformId { Platform = ImpersonatingProvider, PlatformUserId = ImpersonatingClaimValue }, authenticationCtx.Parameters);
             }
         }
 
