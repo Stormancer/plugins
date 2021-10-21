@@ -33,8 +33,11 @@ namespace Stormancer.Server.Plugins.Users
         Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string,string>> query, int take, int skip, CancellationToken cancellationToken);
 
         Task<User?> GetUser(string uid);
+
         Task<User> AddAuthentication(User user, string provider, Action<dynamic> authDataModifier, Dictionary<string,string> cacheEntries);
+
         Task<User> RemoveAuthentication(User user, string provider);
+
         Task<User?> GetUserByClaim(string provider, string claimPath, string login);
         
         /// <summary>
@@ -45,16 +48,23 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="logins"></param>
         /// <returns></returns>
         Task<Dictionary<string, User?>> GetUsersByClaim(string provider, string claimPath, string[] logins);
-        Task<User> CreateUser(string uid, JObject userData);
+
+        Task<User> CreateUser(string userId, JObject userData, string lastPlatform = "");
+
+        Task<User> CreateUser(string userId, JObject userData);
 
         Task<IEnumerable<User>> QueryUserHandlePrefix(string prefix, int take, int skip);
+
+        Task UpdateLastPlatform(string uid, string lastPlatform);
 
         Task UpdateUserData<T>(string uid, T data);
 
         Task UpdateCommunicationChannel(string userId, string channel, JObject data);
+
         Task Delete(string id);
 
         Task UpdateLastLoginDate(string userId);
+
         Task<Dictionary<string, User?>> GetUsers(IEnumerable<string> userIds, CancellationToken cancellationToken);
     }
 }

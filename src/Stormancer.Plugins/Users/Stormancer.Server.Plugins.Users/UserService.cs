@@ -188,25 +188,43 @@ namespace Stormancer.Server.Plugins.Users
             return user;
         }
 
-        public async Task<User> CreateUser(string id, JObject userData)
+        public async Task<User> CreateUser(string userId, JObject userData, string lastPlatform = "")
         {
-
-            var user = new User() { Id = id, UserData = userData, };
+            var user = new User() { Id = userId, LastPlatform = lastPlatform, UserData = userData, };
             var esClient = await Client<User>();
             await esClient.IndexAsync(user, s => s.Refresh(Elasticsearch.Net.Refresh.WaitFor));
-
             return user;
         }
+
+        public Task<User> CreateUser(string userId, JObject userData)
+        {
+            return CreateUser(userId, userData);
+        }
+
         public class UserLastLoginUpdate
         {
             public DateTime LastLogin { get; set; }
         }
+
+        public class UserLastPlatformUpdate
+        {
+            public string LastPlatform { get; set; } = "";
+        }
+
         public async Task UpdateLastLoginDate(string userId)
         {
             var c = await Client<User>();
             await c.UpdateAsync<User, UserLastLoginUpdate>(userId,
                 u => u.Doc(new UserLastLoginUpdate { LastLogin = DateTime.UtcNow })
-                );
+            );
+        }
+
+        public async Task UpdateLastPlatform(string userId, string lastPlatform)
+        {
+            var c = await Client<User>();
+            await c.UpdateAsync<User, UserLastPlatformUpdate>(userId,
+                u => u.Doc(new UserLastPlatformUpdate { LastPlatform = lastPlatform })
+            );
         }
 
         private class ClaimUser

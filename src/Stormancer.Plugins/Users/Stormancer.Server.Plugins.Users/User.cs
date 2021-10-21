@@ -77,6 +77,11 @@ namespace Stormancer.Server.Plugins.Users
         /// Gets or sets informations about the channels the user can be contacted through.
         /// </summary>
         public JObject Channels { get; set; }
+
+        /// <summary>
+        /// Stores the last platform the user authenticated on.
+        /// </summary>
+        public string LastPlatform { get; set; } = "";
     }
 
     /// <summary>
