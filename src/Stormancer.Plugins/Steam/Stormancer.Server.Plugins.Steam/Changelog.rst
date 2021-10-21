@@ -13,6 +13,7 @@ Unreleased
 ----------
 - Add optional maxFriendsCount parameter to GetFriendList functions
 - Profile part returns a SteamId as a string (instead of a ulong)
+- Steam profile part now writes the platform in platforms field array in user profile part
 
 4.1.0.6
 -------
