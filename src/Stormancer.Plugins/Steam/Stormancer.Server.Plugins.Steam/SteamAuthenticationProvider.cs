@@ -49,7 +49,7 @@ namespace Stormancer
             var b = new Server.Plugins.Steam.SteamAuthConfigurationBuilder();
 
             b = builder(b);
-            config.Settings[Server.Plugins.Steam.SteamConstants.PROVIDER_NAME] = JObject.FromObject(b);
+            config.Settings[Server.Plugins.Steam.SteamConstants.PLATFORM_NAME] = JObject.FromObject(b);
             return config;
         }
 
@@ -77,7 +77,7 @@ namespace Stormancer.Server.Plugins.Steam
         private ILogger _logger;
         private readonly IUserService _users;
         private readonly ISteamService _steam;
-        public string Type => SteamConstants.PROVIDER_NAME;
+        public string Type => SteamConstants.PLATFORM_NAME;
 
         /// <summary>
         /// Steam authentication provider constructor.
@@ -151,7 +151,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// <returns></returns>
         public async Task<AuthenticationResult> Authenticate(AuthenticationContext authenticationCtx, CancellationToken ct)
         {
-            var pId = new PlatformId { Platform = SteamConstants.PROVIDER_NAME };
+            var pId = new PlatformId { Platform = SteamConstants.PLATFORM_NAME };
             if (!authenticationCtx.Parameters.TryGetValue("ticket", out var ticket) || string.IsNullOrWhiteSpace(ticket))
             {
                 return AuthenticationResult.CreateFailure("Steam session ticket must not be empty.", pId, authenticationCtx.Parameters);
@@ -213,18 +213,26 @@ namespace Stormancer.Server.Plugins.Steam
                 }
 
                 var steamIdString = steamId.GetValueOrDefault().ToString();
-                var user = await _users.GetUserByClaim(SteamConstants.PROVIDER_NAME, SteamConstants.ClaimPath, steamIdString);
+                var user = await _users.GetUserByClaim(SteamConstants.PLATFORM_NAME, SteamConstants.ClaimPath, steamIdString);
                 var playerSummary = await _steam.GetPlayerSummary(steamId.Value);
                 if (user == null)
                 {
                     var uid = Guid.NewGuid().ToString("N");
 
-                    user = await _users.CreateUser(uid, JObject.FromObject(new Dictionary<string, string> { { SteamConstants.ClaimPath, steamIdString }, { "pseudo", playerSummary?.personaname ?? "" }, { "avatar", playerSummary?.avatar ?? "" }, { "steamProfileUrl", playerSummary?.profileurl ?? "" }, { "platform", SteamConstants.PROVIDER_NAME } }));
+                    user = await _users.CreateUser(uid, JObject.FromObject(new Dictionary<string, string> {
+                        { SteamConstants.ClaimPath, steamIdString },
+                        { "pseudo", playerSummary?.personaname ?? "" }
+                    }), SteamConstants.PLATFORM_NAME);
 
-                    user = await _users.AddAuthentication(user, SteamConstants.PROVIDER_NAME, claim => claim[SteamConstants.ClaimPath] = steamIdString, new Dictionary<string, string> { { SteamConstants.ClaimPath, steamIdString } });
+                    user = await _users.AddAuthentication(user, SteamConstants.PLATFORM_NAME, claim => claim[SteamConstants.ClaimPath] = steamIdString, new Dictionary<string, string> { { SteamConstants.ClaimPath, steamIdString } });
                 }
                 else
                 {
+                    if (user.LastPlatform != SteamConstants.PLATFORM_NAME)
+                    {
+                        await _users.UpdateLastPlatform(user.Id, SteamConstants.PLATFORM_NAME);
+                    }
+
                     bool updateUserData = false;
                     if (playerSummary != null)
                     {
@@ -239,27 +247,6 @@ namespace Stormancer.Server.Plugins.Steam
                         if (userDataPseudo == null || userDataPseudo.ToString() != playerSummary.personaname)
                         {
                             user.UserData["pseudo"] = playerSummary.personaname;
-                            updateUserData = true;
-                        }
-
-                        var userDataAvatar = user.UserData["avatar"];
-                        if (userDataAvatar == null || userDataAvatar.ToString() != playerSummary.avatar)
-                        {
-                            user.UserData["avatar"] = playerSummary.avatar;
-                            updateUserData = true;
-                        }
-
-                        var userDataProfileUrl = user.UserData["steamProfileUrl"];
-                        if (userDataProfileUrl == null || userDataProfileUrl.ToString() != playerSummary.profileurl)
-                        {
-                            user.UserData["steamProfileUrl"] = playerSummary.profileurl;
-                            updateUserData = true;
-                        }
-
-                        var userDataPlatform = user.UserData["platform"];
-                        if (userDataPlatform == null || userDataPlatform.ToString() != SteamConstants.PROVIDER_NAME)
-                        {
-                            user.UserData["platform"] = SteamConstants.PROVIDER_NAME;
                             updateUserData = true;
                         }
                     }
@@ -309,12 +296,12 @@ namespace Stormancer.Server.Plugins.Steam
         {
             if (user != null)
             {
-                var steamId = (string?)user.Auth[SteamConstants.PROVIDER_NAME]?[SteamConstants.ClaimPath];
+                var steamId = (string?)user.Auth[SteamConstants.PLATFORM_NAME]?[SteamConstants.ClaimPath];
                 if (steamId == null)
                 {
-                    throw new ClientException($"authentication.unlink_failed?reason=not_linked&provider={SteamConstants.PROVIDER_NAME}");
+                    throw new ClientException($"authentication.unlink_failed?reason=not_linked&provider={SteamConstants.PLATFORM_NAME}");
                 }
-                await _users.RemoveAuthentication(user, SteamConstants.PROVIDER_NAME);
+                await _users.RemoveAuthentication(user, SteamConstants.PLATFORM_NAME);
             }
         }
 

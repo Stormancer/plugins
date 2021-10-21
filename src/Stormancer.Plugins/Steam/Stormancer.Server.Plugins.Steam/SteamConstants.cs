@@ -6,9 +6,9 @@
     public static class SteamConstants
     {
         /// <summary>
-        /// Provider name used for Steam.
+        /// Platform name used for Steam.
         /// </summary>
-        public const string PROVIDER_NAME = "steam";
+        public const string PLATFORM_NAME = "steam";
 
         /// <summary>
         /// Steam Id claim path.

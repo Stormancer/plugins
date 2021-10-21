@@ -37,7 +37,7 @@ namespace Stormancer
         /// <returns></returns>
         public static ulong? GetSteamId(this User user)
         {
-            if (user.Auth.TryGetValue(SteamConstants.PROVIDER_NAME, out var steamAuth))
+            if (user.Auth.TryGetValue(SteamConstants.PLATFORM_NAME, out var steamAuth))
             {
                 var steamId = steamAuth[SteamConstants.ClaimPath];
                 if (steamId != null)

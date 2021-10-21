@@ -151,7 +151,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// <returns></returns>
         public async Task OnJoining(JoiningPartyContext ctx)
         {
-            if (ctx.Session.platformId.Platform != SteamConstants.PROVIDER_NAME)
+            if (ctx.Session.platformId.Platform != SteamConstants.PLATFORM_NAME)
             {
                 return;
             }

@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Profile;
 using Stormancer.Server.Plugins.Users;
@@ -45,7 +46,10 @@ namespace Stormancer.Server.Plugins.Steam
 
         public async Task GetProfiles(ProfileCtx ctx, CancellationToken cancellationToken)
         {
-            if (!ctx.DisplayOptions.ContainsKey(SteamConstants.PROVIDER_NAME))
+            var hasProfilePartSteam = ctx.DisplayOptions.ContainsKey(SteamConstants.PLATFORM_NAME);
+            var hasProfilePartUser = ctx.DisplayOptions.ContainsKey("user");
+
+            if (!hasProfilePartSteam && !hasProfilePartUser)
             {
                 return;
             }
@@ -60,16 +64,18 @@ namespace Stormancer.Server.Plugins.Steam
                 return;
             }
 
-            if (ctx.DisplayOptions[SteamConstants.PROVIDER_NAME] == "details")
+            if (hasProfilePartSteam)
             {
-                var steamProfiles = await _steam.GetPlayerSummaries(users.Select(u => (ulong)(u.UserData[SteamConstants.STEAM_ID] ?? 0)));
-
-                foreach (var user in users)
+                if (ctx.DisplayOptions[SteamConstants.PLATFORM_NAME] == "details")
                 {
-                    if (user != null)
+                    var steamProfiles = await _steam.GetPlayerSummaries(users.Select(u => (ulong)(u.UserData[SteamConstants.STEAM_ID] ?? 0)));
+
+                    foreach (var user in users)
                     {
-                        ctx.UpdateProfileData(user.Id, SteamConstants.PROVIDER_NAME, j =>
+                        if (user != null)
                         {
+                            ctx.UpdateProfileData(user.Id, SteamConstants.PLATFORM_NAME, j =>
+                            {
                                 var steamId = (ulong?)user.UserData[SteamConstants.STEAM_ID] ?? 0UL;
                                 var steamProfile = steamProfiles[steamId];
                                 if (steamProfile != null)
@@ -80,24 +86,47 @@ namespace Stormancer.Server.Plugins.Steam
                                     j["avatar"] = steamProfile.avatarfull;
                                     j["profileurl"] = steamProfile.profileurl;
                                 }
-                            return j;
-                        });
+                                return j;
+                            });
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (var user in users)
+                    {
+                        if (user != null)
+                        {
+                            ctx.UpdateProfileData(user.Id, SteamConstants.PLATFORM_NAME, j =>
+                            {
+                                j["steamid"] = (ulong?)user.UserData[SteamConstants.STEAM_ID] ?? 0UL;
+                                return j;
+                            });
+                        }
                     }
                 }
             }
-            else
+
+            if (hasProfilePartUser)
             {
                 foreach (var user in users)
                 {
                     if (user != null)
                     {
-                        ctx.UpdateProfileData(user.Id, SteamConstants.PROVIDER_NAME, j =>
+                        var steamId = user.GetSteamId()?.ToString();
+                        if (!string.IsNullOrWhiteSpace(steamId))
                         {
-                            j["steamid"] = (ulong?)user.UserData[SteamConstants.STEAM_ID] ?? 0UL;
-                            j["avatar"] = (string?)user.UserData["avatar"] ?? "";
-                            j["profileurl"] = (string?)user.UserData["steamProfileUrl"] ?? "";
-                            return j;
-                        });
+                            ctx.UpdateProfileData(user.Id, "user", data =>
+                            {
+                                if (!data.ContainsKey("platforms"))
+                                {
+                                    data["platforms"] = new JObject();
+                                }
+                                data["platforms"]![SteamConstants.PLATFORM_NAME] = new JObject();
+                                data["platforms"]![SteamConstants.PLATFORM_NAME]![SteamConstants.STEAM_ID] = steamId;
+                                return data;
+                            });
+                        }
                     }
                 }
             }

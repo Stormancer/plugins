@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Users;
 using System.Threading;
 using System.Threading.Tasks;
@@ -49,6 +50,13 @@ namespace Stormancer.Server.Plugins.Profile
                   {
                       if (user != null)
                       {
+                          j["lastPlatform"] = user.LastPlatform ?? "";
+
+                          if (!j.ContainsKey("platforms"))
+                          {
+                              j["platforms"] = new JObject();
+                          }
+
                           if (user.UserData.ContainsKey("handle"))
                           {
                               j["userhandle"] = user.UserData["handle"];
@@ -57,11 +65,6 @@ namespace Stormancer.Server.Plugins.Profile
                           if (user.UserData.ContainsKey("pseudo"))
                           {
                               j["pseudo"] = user.UserData["pseudo"];
-                          }
-
-                          if (user.UserData.ContainsKey("platform"))
-                          {
-                              j["platform"] = user.UserData["platform"];
                           }
                       }
                       return j;

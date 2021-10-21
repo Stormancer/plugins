@@ -79,7 +79,7 @@ namespace Stormancer.Server.Plugins.Steam
 
             var user = await _userService.GetUser(getFriendsCtx.UserId);
 
-            if (user?.Auth?[SteamConstants.PROVIDER_NAME] == null)
+            if (user?.Auth?[SteamConstants.PLATFORM_NAME] == null)
             {
                 return;
             }
@@ -92,7 +92,7 @@ namespace Stormancer.Server.Plugins.Steam
             }
 
             // Get users from friends
-            var users = await _userService.GetUsersByClaim(SteamConstants.PROVIDER_NAME, SteamConstants.ClaimPath, steamFriends.Select(steamFriend => steamFriend.steamid).ToArray());
+            var users = await _userService.GetUsersByClaim(SteamConstants.PLATFORM_NAME, SteamConstants.ClaimPath, steamFriends.Select(steamFriend => steamFriend.steamid).ToArray());
 
             // Remove users not found or already present in context friendList
             var friendDatas = steamFriends
