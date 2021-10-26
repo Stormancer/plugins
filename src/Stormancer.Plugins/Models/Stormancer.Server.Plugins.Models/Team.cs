@@ -51,7 +51,6 @@ namespace Stormancer.Server.Plugins.Models
         [MessagePackMember(1)]
         public List<Party> Parties { get; set; } = new List<Party>();
 
-        [MessagePackMember(2)]
         public IEnumerable<string> PlayerIds { get => Parties.SelectMany(group => group.Players.Keys); }
 
         public object? CustomData { get; set; }
