@@ -9,6 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+*****
+- added 'GameSession.GetTeams' public RPC route to get the list of players registered in the gamesession.
 5.1.0.1
 -------
 Added

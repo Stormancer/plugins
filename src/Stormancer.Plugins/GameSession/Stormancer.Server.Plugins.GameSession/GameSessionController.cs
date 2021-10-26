@@ -117,6 +117,12 @@ namespace Stormancer.Server.Plugins.GameSession
             throw new ClientException("no host configured in gameSession.");
         }
 
+        [Api(ApiAccess.Public,ApiType.Rpc)]
+        public System.Collections.Generic.IEnumerable<Team> GetTeams()
+        {
+            return _service.GetGameSessionConfig().Teams;
+        }
+
         [S2SApi]
         public Task<GameSessionReservation?> CreateReservation(Team team, JObject args,CancellationToken cancellationToken)
         {
