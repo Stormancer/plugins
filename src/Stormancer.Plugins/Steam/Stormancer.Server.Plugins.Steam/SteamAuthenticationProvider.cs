@@ -231,6 +231,7 @@ namespace Stormancer.Server.Plugins.Steam
                     if (user.LastPlatform != SteamConstants.PLATFORM_NAME)
                     {
                         await _users.UpdateLastPlatform(user.Id, SteamConstants.PLATFORM_NAME);
+                        user.LastPlatform = SteamConstants.PLATFORM_NAME;
                     }
 
                     bool updateUserData = false;

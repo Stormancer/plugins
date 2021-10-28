@@ -11,9 +11,14 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Added
+*****
 - Add optional maxFriendsCount parameter to GetFriendList functions
-- Profile part returns a SteamId as a string (instead of a ulong)
 - Steam profile part now writes the platform in platforms field array in user profile part
+Changed
+*******
+- Profile part returns a SteamId as a string (instead of a ulong)
+- Fix User.LastPlatform in Auth provider when User already present in DB
 
 4.1.0.6
 -------
