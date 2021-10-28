@@ -15,6 +15,10 @@ Fixed
 *****
 - Let Gamefinder proxy locate the gamefinder scene from the service name instead of doing that in the party plugin.
 
+Changed
+*******
+- Use latest Models library
+
 4.1.0.5
 -------
 Added
