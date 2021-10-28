@@ -40,6 +40,11 @@ namespace Stormancer.Server.Plugins.Profile
 
         public async Task GetProfiles(ProfileCtx ctx, CancellationToken cancellationToken)
         {
+            if (!ctx.DisplayOptions.ContainsKey("user"))
+            {
+                return;
+            }
+
             //TODO: Optimize.
             foreach (var id in ctx.Users)
             {
@@ -57,12 +62,12 @@ namespace Stormancer.Server.Plugins.Profile
                               j["platforms"] = new JObject();
                           }
 
-                          if (user.UserData.ContainsKey("handle"))
+                          if (!j.ContainsKey("handle") && user.UserData.ContainsKey("handle"))
                           {
                               j["userhandle"] = user.UserData["handle"];
                           }
 
-                          if (user.UserData.ContainsKey("pseudo"))
+                          if (!j.ContainsKey("pseudo") && user.UserData.ContainsKey("pseudo"))
                           {
                               j["pseudo"] = user.UserData["pseudo"];
                           }

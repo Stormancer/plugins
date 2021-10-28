@@ -14,6 +14,9 @@ Unreleased
 Added
 *****
 - Added field lastPlatform in user profile part
+Changed
+*******
+- Improve user profile part
 
 2.3.1
 -----
