@@ -28,20 +28,24 @@ namespace Stormancer.Server.Plugins.Models
     public class Player
     {
         public Player()
-        { }
+        {
+        }
+
         public Player(string sessionId, string userId, byte[] data = null)
         {
             UserId = userId;
             SessionId = sessionId;
             Data = data;
         }
-        [MessagePackMember(2)]
-        public string UserId { get; }
-        [MessagePackMember(1)]
-        public string SessionId { get; }
-        
+
         [MessagePackMember(0)]
         public byte[] Data { get; set; }
+
+        [MessagePackMember(1)]
+        public string SessionId { get; set; }
+
+        [MessagePackMember(2)]
+        public string UserId { get; set; }
 
         /// <summary>
         /// Temporary data storage
