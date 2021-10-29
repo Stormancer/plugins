@@ -152,6 +152,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private readonly IConfiguration _configuration;
         private readonly ILogger _logger;
+        private readonly IServerPools serverPools;
         private readonly ISceneHost _scene;
         private readonly IEnvironment _environment;
         private readonly IDelegatedTransports _pools;
@@ -182,6 +183,7 @@ namespace Stormancer.Server.Plugins.GameSession
         private DateTime _shutdownDate;
 
         public GameSessionService(
+            IServerPools serverPools,
             ISceneHost scene,
             IConfiguration configuration,
             IEnvironment environment,
@@ -194,6 +196,7 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             _analytics = analytics;
             _management = management;
+            this.serverPools = serverPools;
             _scene = scene;
             _configuration = configuration;
             _logger = logger;
@@ -211,6 +214,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 return Task.CompletedTask;
             });
             scene.Connecting.Add(this.PeerConnecting);
+           
             scene.ConnectionRejected.Add(this.PeerConnectionRejected);
             scene.Connected.Add(this.PeerConnected);
             scene.Disconnected.Add((args) => this.PeerDisconnecting(args.Peer));
@@ -219,6 +223,8 @@ namespace Stormancer.Server.Plugins.GameSession
 
             _reservationCleanupTimer = new Timer((_) => _ = ReservationCleanupCallback(null), null, 5000, 5000);
         }
+
+      
 
         private void ApplySettings()
         {

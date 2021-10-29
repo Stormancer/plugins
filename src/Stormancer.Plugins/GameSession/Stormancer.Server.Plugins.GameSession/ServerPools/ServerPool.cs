@@ -26,11 +26,24 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
+    /// <summary>
+    /// Provides server pool providers.
+    /// </summary>
     public interface IServerPoolProvider
     {
+        /// <summary>
+        /// Tries creating a server pool provider.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="config"></param>
+        /// <param name="pool"></param>
+        /// <returns></returns>
         bool TryCreate(string id, JObject config,out IServerPool pool);
     }
 
+    /// <summary>
+    /// A server instance currently running in a pool.
+    /// </summary>
     public class Server : IDisposable
     {
         public string Id { get; internal set; }
@@ -38,6 +51,16 @@ namespace Stormancer.Server.Plugins.GameSession
         public DateTime CreatedOn { get; internal set; }
         public IScenePeerClient Peer { get; internal set; }
         public TaskCompletionSource<GameServerStartupParameters> RunTcs { get; internal set; }
+
+
+        /// <summary>
+        /// Shutsdown a server.
+        /// </summary>
+        /// <returns></returns>
+        Task Shutdown()
+        {
+            return Peer.Send("ServerPool.Shutdown", s => { }, Core.PacketPriority.MEDIUM_PRIORITY, Core.PacketReliability.RELIABLE);
+        }
 
         public void Dispose()
         {

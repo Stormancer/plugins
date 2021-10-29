@@ -22,6 +22,7 @@
 
 using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
+using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Configuration;
 using System;
 using System.Collections.Concurrent;
@@ -30,9 +31,18 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
+    /// <summary>
+    /// Provides access to server pools.
+    /// </summary>
     public interface IServerPools
     {
+        /// <summary>
+        /// Gets a server pool by its id.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         IServerPool GetPool(string id);
+
     }
 
     internal class ServerPools : IServerPools, IConfigurationChangedEventHandler
@@ -40,7 +50,7 @@ namespace Stormancer.Server.Plugins.GameSession
         private readonly ILogger logger;
         private readonly IConfiguration configuration;
         private readonly IEnumerable<IServerPoolProvider> providers;
-        private readonly ConcurrentDictionary<string, IServerPool> _pools = new ConcurrentDictionary<string, IServerPool>();
+        private readonly ConcurrentDictionary<string,Lazy< IServerPool>> _pools = new ConcurrentDictionary<string, Lazy<IServerPool>>();
 
         public ServerPools(ILogger logger, IConfiguration config, IEnumerable<IServerPoolProvider> providers)
         {
@@ -57,18 +67,22 @@ namespace Stormancer.Server.Plugins.GameSession
             var config = configuration.Settings;
             var configs = (Dictionary<string, JObject>)(config.serverPools);
             var destroyedPools = new List<string>();
-            foreach (var pool in _pools)
+            foreach (var kvp in _pools)
             {
-                if (configs.TryGetValue(pool.Key, out var c))
+                if (kvp.Value != null)
                 {
-                    pool.Value.UpdateConfiguration(c);
-                }
-                else
-                {
-                    pool.Value?.Dispose();
-                    destroyedPools.Add(pool.Key);
+                    if (configs.TryGetValue(kvp.Key, out var c))
+                    {
+                        kvp.Value.Value.UpdateConfiguration(c);
+                    }
+                    else
+                    {
+                        kvp.Value.Value.Dispose();
+                        
 
+                    }
                 }
+                destroyedPools.Add(kvp.Key);
             }
             foreach (var id in destroyedPools)
             {
@@ -120,7 +134,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public IServerPool GetPool(string id)
         {
-            return _pools.GetOrAdd(id, _ =>
+            return _pools.GetOrAdd(id, _ =>new Lazy<IServerPool>(()=>
              {
                  var config = GetConfiguration(id);
                  if (config == null)
@@ -137,12 +151,17 @@ namespace Stormancer.Server.Plugins.GameSession
 
                  }
                  throw new InvalidOperationException($"Failed to create pool {id}. No provider could create the pool.");
-             });
+             })).Value;
         }
 
         public void OnConfigurationChanged()
         {
             ApplySettings();
+        }
+
+        public Task ShutdownServer(Server server)
+        {
+            throw new NotImplementedException();
         }
     }
 }
