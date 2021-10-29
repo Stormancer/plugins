@@ -254,7 +254,7 @@ namespace Stormancer.Server.Plugins.DataProtection
                 throw new ArgumentNullException(nameof(value));
             }
 
-            var segs = value.Split("-");
+            var segs = value.Split("|");
             if (segs.Length == 2)
             {
                 dataProtectionPolicy = segs[0];
@@ -323,7 +323,7 @@ namespace Stormancer.Server.Plugins.DataProtection
             }
 
             var cipherText = await provider.Protect(value, policy, policyConfig);
-            return policy + "-" + UrlBase64.Encode(cipherText);
+            return policy + "|" + UrlBase64.Encode(cipherText);
         }
 
 
