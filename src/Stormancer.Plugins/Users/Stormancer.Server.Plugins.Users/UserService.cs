@@ -253,7 +253,7 @@ namespace Stormancer.Server.Plugins.Users
             var datas = logins.Select(login => new ClaimUser(login, GetCacheId(provider, claimPath, login))).ToArray();
 
             // Get all auth claims
-            var response = await c.MultiGetAsync(desc => desc.GetMany<AuthenticationClaim>(datas.Select(data => data.CacheId)).Index(GetIndex<AuthenticationClaim>()));
+            var response = await c.MultiGetAsync(desc => desc.GetMany<AuthenticationClaim>(datas.Select(data => data.CacheId), (desc, _) => desc.Index(GetIndex<AuthenticationClaim>())));
 
             // Get users for found claims
             var usersToGet = new List<string>();
