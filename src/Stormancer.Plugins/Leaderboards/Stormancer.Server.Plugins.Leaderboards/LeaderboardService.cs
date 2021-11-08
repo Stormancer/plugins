@@ -156,7 +156,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
                     q1 => q1.Bool(
                         b2 => b2.Must(
                             q2 => q2.Term(t => t.Field(fullScorePath).Value(pivotScore)),
-                            q2 => q2.Term(r => r.Field(record => record.CreatedOn).Value(pivot.CreatedOn)),
+                            q2 => q2.DateRange(r => r.Field(record => record.CreatedOn).LessThanOrEquals(pivot.CreatedOn).GreaterThanOrEquals(pivot.CreatedOn)),
                             q2 => q2.TermRange(r => leaderboardOrdering == LeaderboardOrdering.Descending ? r.Field(record => record.Id).LessThan(pivot.Id) : r.Field(record => record.Id).GreaterThan(pivot.Id))
                         )
                     )
@@ -183,8 +183,8 @@ namespace Stormancer.Server.Plugins.Leaderboards
                     q1 => q1.Bool(
                         b2 => b2.Must(
                             q2 => q2.Term(t => t.Field(fullScorePath).Value(pivotScore)),
-                            q2 => q2.Term(r => r.Field(record => record.CreatedOn).Value(pivot.CreatedOn)),
-                            q2=> q2.TermRange(r=> leaderboardOrdering == LeaderboardOrdering.Descending ? r.Field(record=>record.Id).GreaterThan(pivot.Id) : r.Field(record => record.Id).LessThan(pivot.Id))
+                            q2 => q2.DateRange(r => r.Field(record => record.CreatedOn).LessThanOrEquals(pivot.CreatedOn).GreaterThanOrEquals(pivot.CreatedOn)),
+                            q2 => q2.TermRange(r=> leaderboardOrdering == LeaderboardOrdering.Descending ? r.Field(record=>record.Id).GreaterThan(pivot.Id) : r.Field(record => record.Id).LessThan(pivot.Id))
                         )
                     )
                 )
