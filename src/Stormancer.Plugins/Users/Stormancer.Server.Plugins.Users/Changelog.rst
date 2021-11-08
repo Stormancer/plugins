@@ -14,6 +14,7 @@ Unreleased
 Changed
 *******
 - Add property User.LastPlatform
+- Fix GetUsersByClaim bad index configuration
 
 5.1.1.3
 -------
