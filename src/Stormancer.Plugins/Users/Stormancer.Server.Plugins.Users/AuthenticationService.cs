@@ -27,7 +27,9 @@ using Stormancer.Server.Plugins.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -345,20 +347,35 @@ namespace Stormancer.Server.Plugins.Users
                 {
                     try
                     {
-                        var parameters = await peer.RpcTask<string, RenewCredentialsParameters>(RenewCredentialsRoute, provider.Type);
-                        var ctx = new AuthenticationContext(parameters.Parameters, peer, session.CreateView());
-                        var expiration = await provider.RenewCredentials(ctx);
-                        if (expiration.HasValue)
+                        using var packet = await peer.Rpc(RenewCredentialsRoute, s => peer.Serializer().Serialize(provider.Type, s));
+                        var position = packet.Stream.Position;
+                        try
                         {
-                            session.AuthenticationExpirationDates[provider.Type] = expiration.Value;
-                            if (!closestExpirationDate.HasValue || expiration.Value < closestExpirationDate.Value)
+                            var parameters = peer.Serializer().Deserialize<RenewCredentialsParameters>(packet.Stream);
+
+
+                            var ctx = new AuthenticationContext(parameters.Parameters, peer, session.CreateView());
+                            var expiration = await provider.RenewCredentials(ctx);
+                            if (expiration.HasValue)
                             {
-                                closestExpirationDate = expiration.Value;
+                                session.AuthenticationExpirationDates[provider.Type] = expiration.Value;
+                                if (!closestExpirationDate.HasValue || expiration.Value < closestExpirationDate.Value)
+                                {
+                                    closestExpirationDate = expiration.Value;
+                                }
+                            }
+                            else
+                            {
+                                session.AuthenticationExpirationDates.Remove(provider.Type);
                             }
                         }
-                        else
+                        catch (Exception)
                         {
-                            session.AuthenticationExpirationDates.Remove(provider.Type);
+                            packet.Stream.Seek(position, SeekOrigin.Begin);
+                            var data = new byte[packet.Stream.Length - packet.Stream.Position];
+                            packet.Stream.Read(data);
+                            _logger.Log(LogLevel.Error, "authentication.renewCredentials", "an error occured while renewing credentials", new { data = Convert.ToBase64String(data) }); ;
+                            throw;
                         }
                     }
                     catch (OperationCanceledException ex) when (ex.Message == "Peer disconnected")
