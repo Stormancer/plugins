@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+*****
+- Added MemoryCache<T>.GetMany batched cache access function.
+
 2.2.0
 -----
 Added

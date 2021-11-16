@@ -38,16 +38,16 @@ namespace Stormancer.Server.Plugins
     {
         private class CacheEntry
         {
-            public CacheEntry(Task<T?> content, DateTime expiresOn, Action onInvalidated)
+            public CacheEntry(string id, Task<T?> content, DateTime expiresOn, Action<string> onInvalidated)
             {
-                async Task<T?> GetContent(Task<T?> c, Action invalidate)
+                async Task<T?> GetContent(Task<T?> c, Action<string> invalidate)
                 {
                     try
                     {
                         var r = await c;
                         if (r == null)
                         {
-                            invalidate();
+                            invalidate(id);
                         }
                         else
                         {
@@ -57,26 +57,27 @@ namespace Stormancer.Server.Plugins
                     }
                     catch (Exception)
                     {
-                        invalidate();
+                        invalidate(id);
                         throw;
                     }
                 }
                 Content = GetContent(content, onInvalidated);
                 CreatedOn = DateTime.UtcNow;
                 ExpiresOn = null;
+                Id = id;
                 OnInvalidated = onInvalidated;
             }
 
-            public CacheEntry(Task<(T?, TimeSpan)> content, Action onInvalidated)
+            public CacheEntry(string id, Task<(T?, TimeSpan)> content, Action<string> onInvalidated)
             {
-                async Task<T?> GetContent(Task<(T?, TimeSpan)> c, Action invalidate)
+                async Task<T?> GetContent(Task<(T?, TimeSpan)> c, Action<string> invalidate)
                 {
                     try
                     {
                         var (r, invalidationDelay) = await c;
                         if (r == null)
                         {
-                            invalidate();
+                            invalidate(id);
                         }
                         else
                         {
@@ -86,23 +87,27 @@ namespace Stormancer.Server.Plugins
                     }
                     catch (Exception)
                     {
-                        invalidate();
+                        invalidate(id);
                         throw;
                     }
                 }
                 Content = GetContent(content, onInvalidated);
                 CreatedOn = DateTime.UtcNow;
                 ExpiresOn = null;
+                Id = id;
                 OnInvalidated = onInvalidated;
             }
 
             public Task<T?> Content { get; }
             public DateTime CreatedOn { get; }
             public DateTime? ExpiresOn { get; private set; }
-            public Action OnInvalidated { get; }
+            public string Id { get; }
+            public Action<string> OnInvalidated { get; }
         }
 
-        ConcurrentDictionary<string, CacheEntry> cache = new ConcurrentDictionary<string, CacheEntry>();
+        private object _syncRoot = new object();
+
+        Dictionary<string, CacheEntry> cache = new Dictionary<string, CacheEntry>();
         private bool _running = true;
 
 
@@ -116,11 +121,14 @@ namespace Stormancer.Server.Plugins
 
                 while (_running)
                 {
-                    await Task.Delay(60000);
+
+
                     foreach (var entry in cache.Where(kvp => (kvp.Value.ExpiresOn ?? DateTime.MaxValue) < DateTime.UtcNow).ToArray())
                     {
-                        entry.Value.OnInvalidated();
+                        entry.Value.OnInvalidated(entry.Key);
                     }
+                    await Task.Delay(60000);
+
                 }
             });
         }
@@ -135,8 +143,16 @@ namespace Stormancer.Server.Plugins
         /// <returns></returns>
         public async Task<T?> Get(string id, Func<string, Task<T?>> addFunction, TimeSpan invalidationDelay)
         {
+            CacheEntry? entry;
+            lock (_syncRoot)
+            {
+                if (!cache.TryGetValue(id, out entry))
+                {
+                    entry = new CacheEntry(id, addFunction(id), DateTime.UtcNow + invalidationDelay, (i) => Remove(i));
+                    cache.Add(id, entry);
+                }
+            }
 
-            var entry = cache.GetOrAdd(id, i => new CacheEntry(addFunction(i), DateTime.UtcNow + invalidationDelay, () => cache.TryRemove(id, out _)));
             return await entry.Content;
         }
 
@@ -148,10 +164,55 @@ namespace Stormancer.Server.Plugins
         /// <returns></returns>
         public async Task<T?> Get(string id, Func<string, Task<(T?, TimeSpan)>> addFunction)
         {
+            CacheEntry? entry;
+            lock (_syncRoot)
+            {
+                if (!cache.TryGetValue(id, out entry))
+                {
+                    entry = new CacheEntry(id, addFunction(id), (i) => Remove(i));
+                    cache.Add(id, entry);
+                }
+            }
 
-            var entry = cache.GetOrAdd(id, i => new CacheEntry(addFunction(i), () => cache.TryRemove(id, out _)));
             return await entry.Content;
         }
+
+        /// <summary>
+        /// Gets several cache values at once, and calls 'addFunction' once for all unknown values, enabling batch retrieval.
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <param name="addFunction"></param>
+        /// <returns></returns>
+        public Dictionary<string, Task<T?>> GetMany(IEnumerable<string> ids, Func<IEnumerable<string>, Dictionary<string, Task<(T?, TimeSpan)>>> addFunction)
+        {
+            var results = new Dictionary<string, Task<T?>>();
+            lock (_syncRoot)
+            {
+                var unknownIds = new List<string>();
+                foreach (var id in ids)
+                {
+                    if (cache.TryGetValue(id, out var entry) && entry.ExpiresOn > DateTime.UtcNow)
+                    {
+                        results.Add(id, entry.Content);
+                    }
+                    else
+                    {
+                        unknownIds.Add(id);
+                    }
+                }
+
+                foreach (var r in addFunction(unknownIds))
+                {
+                    var entry = new CacheEntry(r.Key, r.Value, (i) => Remove(i));
+                    cache.Add(r.Key, entry);
+                    results.Add(r.Key, entry.Content);
+                }
+
+
+            }
+            return results;
+        }
+
 
         /// <summary>
         /// Removes an entry from the cache.
@@ -159,8 +220,12 @@ namespace Stormancer.Server.Plugins
         /// <param name="id"></param>
         public void Remove(string id)
         {
-            cache.TryRemove(id, out _);
+            lock (_syncRoot)
+            {
+                cache.Remove(id, out _);
+            }
         }
+
 
         /// <summary>
         /// Disposes the cache.
