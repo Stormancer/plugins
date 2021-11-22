@@ -15,6 +15,7 @@ Changed
 *******
 - Add property User.LastPlatform
 - Fix GetUsersByClaim bad index configuration
+- Add debug logs on renewCredentials failure
 
 5.1.1.3
 -------
