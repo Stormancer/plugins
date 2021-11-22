@@ -35,6 +35,7 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
+
     class LocalServer : IGameServerProvider
     {
         private readonly ILogger _logger;
@@ -44,16 +45,15 @@ namespace Stormancer.Server.Plugins.GameSession
         private class GameServerContainer : IDisposable
         {
             public Process ServerProcess { get; set; }
-            public IDisposable ServerPortLease { get; set; }
-            public IDisposable P2pPortLease { get; set; }
-            public ushort ServerDedicatedPort { get; set; }
-            public ushort ServerPort { get; set; }
-            public string PublicIp { get; set; }
+            Dictionary<string, ILease> PortLeases { get; set; }
 
             public void Dispose()
             {
-                ServerPortLease?.Dispose();
-                P2pPortLease?.Dispose();
+                foreach(var lease in PortLeases.Values)
+                {
+                    
+                    lease.Dispose();
+                }
             }
         }
 
@@ -119,7 +119,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             server.ServerProcess.Exited += (sender, args) =>
             {
-                if(_servers.TryRemove(id, out var container))
+                if (_servers.TryRemove(id, out var container))
                 {
                     container?.Dispose();
                 }
@@ -141,7 +141,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     try
                     {
                         _logger.Log(LogLevel.Info, "gameserver", $"Closing down game server for scene {id}.", new { prcId = prc.Id });
-                        
+
                         if (!(prc?.HasExited ?? true))
                         {
                             _logger.Log(LogLevel.Error, "gameserver", $"Failed to close dedicated server. Killing it instead. The server should shutdown when receiving a message on the 'gameSession.shutdown' route.", new { prcId = prc.Id });
