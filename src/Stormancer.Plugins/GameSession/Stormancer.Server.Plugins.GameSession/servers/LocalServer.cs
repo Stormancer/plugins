@@ -44,8 +44,19 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private class GameServerContainer : IDisposable
         {
-            public Process ServerProcess { get; set; }
-            Dictionary<string, ILease> PortLeases { get; set; }
+            public Process ServerProcess { get; set; } = new();
+
+            Dictionary<string, ILease> PortLeases { get; set; } = new();
+
+            public ushort ServerDedicatedPort { get; set; }
+
+            public ushort ServerPort { get; set; }
+
+            public string PublicIp { get; set; } = "";
+
+            public ILease? ServerPortLease { get; set; }
+
+            public ILease? P2pPortLease { get; set; }
 
             public void Dispose()
             {
