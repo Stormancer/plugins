@@ -22,9 +22,9 @@
 
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
-using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Models;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -78,5 +78,22 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <param name="request">Request the game session is linked with. The game session stays advertised as lon as the request is not cancelled by the game session.</param>
         /// <returns></returns>
         internal IAsyncEnumerable<IEnumerable<Team>> OpenGameSession(JObject data,IS2SRequestContext request);
+
+        /// <summary>
+        /// Check if each candidate is compatible with the others in its own collection.
+        /// </summary>
+        /// <param name="candidates">Collection of candidates.</param>
+        /// <returns></returns>
+        IAsyncEnumerable<bool> AreCompatibleAsync(IEnumerable<Parties> candidates);
+
+        /// <summary>
+        /// Check if parties are compatible with the others.
+        /// </summary>
+        /// <param name="candidate">Candidates.</param>
+        /// <returns></returns>
+        public ValueTask<bool> AreCompatibleAsync(Parties candidate)
+        {
+            return AreCompatibleAsync(Enumerable.Repeat(candidate, 1)).FirstAsync();
+        }
     }
 }

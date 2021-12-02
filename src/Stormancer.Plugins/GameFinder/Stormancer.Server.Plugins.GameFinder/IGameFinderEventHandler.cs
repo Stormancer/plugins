@@ -22,6 +22,7 @@
 
 using Stormancer.Server.Plugins.Models;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
@@ -105,6 +106,32 @@ namespace Stormancer.Server.Plugins.GameFinder
         public NewGame Game { get; set; } = default!;
     }
 
+    public class AreCompatibleContext
+    {
+        internal AreCompatibleContext(IEnumerable<Parties> parties)
+        {
+            Parties = parties.ToArray();
+            Results = new bool[Parties.Length];
+            for(int i = 0; i < Parties.Length; i++)
+            {
+                Results[i] = true;
+            }
+        }
+
+        public Parties[] Parties { get; }
+
+        public bool[] Results { get; }
+
+        public bool GetResult(int id)
+        {
+            return Results[id];
+        }
+
+        public void SetResult(int id, bool result)
+        {
+            Results[id] = result;
+        }
+    }
     /// <summary>
     /// Provides implementer way to handle events in the gamefinder pipeline.
     /// </summary>
@@ -115,20 +142,27 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="searchStartCtx"></param>
         /// <returns></returns>
-        Task OnStart(SearchStartContext searchStartCtx);
+        Task OnStart(SearchStartContext searchStartCtx) => Task.CompletedTask;
 
         /// <summary>
         /// Fired when a party completes a game search (successfully or not)
         /// </summary>
         /// <param name="searchEndCtx"></param>
         /// <returns></returns>
-        Task OnEnd(SearchEndContext searchEndCtx);
+        Task OnEnd(SearchEndContext searchEndCtx) => Task.CompletedTask;
 
         /// <summary>
         /// Fired when the gamefinder starts a new game.
         /// </summary>
         /// <param name="searchGameStartedCtx"></param>
         /// <returns></returns>
-        Task OnGameStarted(GameStartedContext searchGameStartedCtx);
+        Task OnGameStarted(GameStartedContext searchGameStartedCtx) => Task.CompletedTask;
+
+        /// <summary>
+        /// Check if each candidate is compatible with the others in its own collection.
+        /// </summary>
+        /// <param name="ctx">Context containing a collection of candidates.</param>
+        /// <returns></returns>
+        Task AreCompatibleAsync(AreCompatibleContext ctx) => Task.CompletedTask;
     }
 }

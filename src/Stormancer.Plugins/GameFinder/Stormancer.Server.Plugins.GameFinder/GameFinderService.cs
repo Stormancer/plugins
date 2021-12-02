@@ -47,6 +47,13 @@ namespace Stormancer.Server.Plugins.GameFinder
     /// </summary>
     public class GameFinderContext
     {
+        private readonly IGameFinderService service;
+
+        internal GameFinderContext(IGameFinderService service)
+        {
+            this.service = service;
+        }
+
         /// <summary>
         /// Parties in the queue.
         /// </summary>
@@ -72,6 +79,36 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <seealso cref="GameFinderController.OpenGameSession(JObject, IS2SRequestContext)"/>
         public List<OpenGameSession> OpenGameSessions { get; } = new List<OpenGameSession>();
+
+        /// <summary>
+        /// Check if each candidate is compatible with the others in its own collection.
+        /// </summary>
+        /// <param name="candidates">Collection of candidates.</param>
+        /// <returns></returns>
+        public IAsyncEnumerable<bool> AreCompatibleAsync(IEnumerable<Parties> candidates)
+        {
+            return service.AreCompatibleAsync(candidates);
+        }
+
+        /// <summary>
+        /// Check if parties are compatible with the others.
+        /// </summary>
+        /// <param name="candidate">Candidates.</param>
+        /// <returns></returns>
+        public ValueTask<bool> AreCompatibleAsync(Parties candidate)
+        {
+            return AreCompatibleAsync(Enumerable.Repeat(candidate, 1)).FirstAsync();
+        }
+    }
+
+    public readonly struct Parties
+    {
+        public Parties(IEnumerable<Party> parties)
+        {
+            Value = parties;
+        }
+
+        public IEnumerable<Party> Value { get; }
     }
 
     internal class GameFinderService : IGameFinderService, IConfigurationChangedEventHandler
@@ -147,24 +184,17 @@ namespace Stormancer.Server.Plugins.GameFinder
             _data.interval = TimeSpan.FromSeconds((double)(specificConfig?.interval ?? 1));
             _data.isReadyCheckEnabled = (bool?)specificConfig?.readyCheck?.enabled ?? false;
             _data.readyCheckTimeout = (int)(specificConfig?.readyCheck?.timeout ?? 1000);
-
-
-
-
-
         }
 
-        public async Task FindGame(Models.Party party, CancellationToken ct)
+        public async Task FindGame(Party party, CancellationToken ct)
         {
             if (!_data.acceptRequests)
             {
                 throw new ClientException("gamefinder.disabled?reason=deploymentNotActive");
             }
 
-
             try
             {
-
             }
             catch (Exception)
             {
@@ -234,7 +264,6 @@ namespace Stormancer.Server.Plugins.GameFinder
             {
                 state.Tcs.SetException(ex);
                 await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Failed), ct);
-
             }
 
             try
@@ -247,10 +276,8 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
             finally //Always remove party from list.
             {
-
                 foreach (var p in peersInGroup)
                 {
-
                     if (p?.Peer?.SessionId != null)
                     {
                         _data.peersToGroup.TryRemove(p.Peer.SessionId, out _);
@@ -270,7 +297,6 @@ namespace Stormancer.Server.Plugins.GameFinder
                 }
             }
         }
-
 
         public async Task Run(CancellationToken ct)
         {
@@ -316,10 +342,9 @@ namespace Stormancer.Server.Plugins.GameFinder
                         value.Candidate = null;
                     }
 
-                    GameFinderContext mmCtx = new GameFinderContext();
+                    GameFinderContext mmCtx = new GameFinderContext(this);
                     mmCtx.WaitingParties.AddRange(waitingParties.Keys);
                     mmCtx.OpenGameSessions.AddRange(_data.openGameSessions.Values.Where(ogs => ogs.IsOpen));
-
 
                     var gameFinder = scope.Resolve<IGameFinderAlgorithm>();
                     var resolver = scope.Resolve<IGameFinderResolver>();
@@ -327,7 +352,6 @@ namespace Stormancer.Server.Plugins.GameFinder
                     dynamic? specificConfig = gameFinderConfigs?.GetValue(_data.kind);
                     gameFinder.RefreshConfig(_data.kind, specificConfig);
                     resolver.RefreshConfig(_data.kind, specificConfig);
-
 
                     var games = await gameFinder.FindGames(mmCtx);
 
@@ -369,6 +393,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                         _ = ResolveGameFound(game, waitingParties, resolver, cancellationToken); // Resolve game, but don't wait for completion.
                                                                                                  //_logger.Log(LogLevel.Debug, $"{LOG_CATEGORY}.FindGamesOnce", $"Resolve complete game for {waitingParties.Count} players", new { waitingCount = waitingParties.Count, currentGame = game });
                     }
+
                     foreach (var ticket in games.GameSessionTickets)
                     {
                         foreach (var party in ticket.Teams.SelectMany(t => t.Parties))
@@ -442,9 +467,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 {
                     await BroadcastToPlayers(gameCandidate, UPDATE_NOTIFICATION_ROUTE, (s, sz) =>
                     {
-
                         s.WriteByte((byte)GameFinderStatusUpdate.WaitingPlayersReady);
-
                     }, cancellationToken);
 
                     using (var gameReadyCheckState = CreateReadyCheck(gameCandidate))
@@ -462,7 +485,6 @@ namespace Stormancer.Server.Plugins.GameFinder
                         {
                             foreach (var party in result.UnreadyGroups)//Cancel gameFinder for timeouted parties
                             {
-
                                 if (_data.waitingParties.TryGetValue(party, out var mrs))
                                 {
                                     mrs.Tcs.TrySetCanceled();
@@ -470,7 +492,6 @@ namespace Stormancer.Server.Plugins.GameFinder
                             }
                             foreach (var party in result.ReadyGroups)//Put ready parties back in queue.
                             {
-
                                 if (_data.waitingParties.TryGetValue(party, out var mrs))
                                 {
                                     mrs.State = RequestState.Ready;
@@ -478,7 +499,6 @@ namespace Stormancer.Server.Plugins.GameFinder
                                     {
                                         s.WriteByte((byte)GameFinderStatusUpdate.SearchStart);
                                     }, cancellationToken);
-
                                 }
                             }
                             return; //stop here
@@ -909,6 +929,17 @@ namespace Stormancer.Server.Plugins.GameFinder
         public void OnConfigurationChanged()
         {
             ApplyConfig();
+        }
+
+        public async IAsyncEnumerable<bool> AreCompatibleAsync(IEnumerable<Parties> candidates)
+        {
+            var ctx = new AreCompatibleContext(candidates);
+            await handlers().RunEventHandler(h => h.AreCompatibleAsync(ctx), ex=>_logger.Log(LogLevel.Error,LOG_CATEGORY,"an error occured while running AreCompatible event handler.",ex));
+
+            foreach(var result in ctx.Results)
+            {
+                yield return result;
+            }
         }
     }
 }

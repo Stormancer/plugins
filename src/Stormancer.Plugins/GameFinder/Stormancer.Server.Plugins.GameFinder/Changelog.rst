@@ -14,6 +14,7 @@ Unreleased
 Fixed
 *****
 - Fix code generator configuration to search GameFinder scene with the proper service type (gamefinder and not gamesession).
+- Add AreCompatible event handlers
 
 7.0.0
 -----
