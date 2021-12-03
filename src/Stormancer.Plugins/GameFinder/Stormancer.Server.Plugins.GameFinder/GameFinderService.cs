@@ -934,9 +934,12 @@ namespace Stormancer.Server.Plugins.GameFinder
         public async IAsyncEnumerable<bool> AreCompatibleAsync(IEnumerable<Parties> candidates)
         {
             var ctx = new AreCompatibleContext(candidates);
-            await handlers().RunEventHandler(h => h.AreCompatibleAsync(ctx), ex=>_logger.Log(LogLevel.Error,LOG_CATEGORY,"an error occured while running AreCompatible event handler.",ex));
+            await using (var scope = _scene.CreateRequestScope())
+            {
+                await scope.ResolveAll<IGameFinderEventHandler>().RunEventHandler(h => h.AreCompatibleAsync(ctx), ex => _logger.Log(LogLevel.Error, LOG_CATEGORY, "an error occured while running AreCompatible event handler.", ex));
+            }
 
-            foreach(var result in ctx.Results)
+            foreach (var result in ctx.Results)
             {
                 yield return result;
             }
