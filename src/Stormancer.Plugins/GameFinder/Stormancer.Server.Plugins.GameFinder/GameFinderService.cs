@@ -121,13 +121,9 @@ namespace Stormancer.Server.Plugins.GameFinder
         public const long ProtocolVersion = 2020_01_10_1;
 
         private ISceneHost _scene;
-
-
-        private readonly Func<IEnumerable<IGameFinderEventHandler>> handlers;
-        private readonly IAnalyticsService analytics;
-
+        private readonly IAnalyticsService _analytics;
         private readonly ILogger _logger;
-        private readonly IConfiguration configuration;
+        private readonly IConfiguration _configuration;
         private readonly ISerializer _serializer;
         private readonly GameFinderData _data;
 
@@ -135,7 +131,6 @@ namespace Stormancer.Server.Plugins.GameFinder
         public bool IsRunning { get => _data.IsRunning; private set => _data.IsRunning = value; }
 
         public GameFinderService(ISceneHost scene,
-            Func<IEnumerable<IGameFinderEventHandler>> handlers,
             IAnalyticsService analytics,
             IEnvironment env,
             ILogger logger,
@@ -143,12 +138,9 @@ namespace Stormancer.Server.Plugins.GameFinder
             ISerializer serializer,
             GameFinderData data)
         {
-
-            this.handlers = handlers;
-            this.analytics = analytics;
-
+            _analytics = analytics;
             _logger = logger;
-            this.configuration = configuration;
+            _configuration = configuration;
             _serializer = serializer;
             _data = data;
             _scene = scene;
@@ -156,8 +148,6 @@ namespace Stormancer.Server.Plugins.GameFinder
             env.ActiveDeploymentChanged += Env_ActiveDeploymentChanged;
 
             ApplyConfig();
-
-
         }
 
         private void Env_ActiveDeploymentChanged(object? sender, ActiveDeploymentChangedEventArgs e)
@@ -171,7 +161,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         private void ApplyConfig()
         {
-            dynamic config = configuration.Settings;
+            dynamic config = _configuration.Settings;
             if (_data.kind == null || config == null)
             {
                 _logger.Log(LogLevel.Error, LOG_CATEGORY, "GameFinder service can't find gameFinder kind or server application config", new { gameFinderKind = _data.kind });
@@ -355,7 +345,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
                     var games = await gameFinder.FindGames(mmCtx);
 
-                    analytics.Push("gameFinder", "pass", JObject.FromObject(new
+                    _analytics.Push("gameFinder", "pass", JObject.FromObject(new
                     {
                         type = _data.kind,
                         playersWaiting = _data.waitingParties.SelectMany(kvp => kvp.Key.Players).Count(),
@@ -447,7 +437,8 @@ namespace Stormancer.Server.Plugins.GameFinder
                     var ctx = new GameStartedContext();
                     ctx.GameFinderId = this._scene.Id;
                     ctx.Game = game;
-                    await handlers().RunEventHandler(h => h.OnGameStarted(ctx), ex => { });
+
+                    await RunEventHandlerInRequestScope<IGameFinderEventHandler>(_scene, h => h.OnGameStarted(ctx), ex => _logger.Log(LogLevel.Error, LOG_CATEGORY, "an error occured while running OnGameStarted event handler.", ex));
                 }
                 else if (gameCandidate is OpenGameSessionTicket)
                 {
@@ -564,7 +555,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                         sectx.Party = party;
                         sectx.PassesCount = party.PastPasses;
                         sectx.Reason = SearchEndReason.Succeeded;
-                        await handlers().RunEventHandler(h => h.OnEnd(sectx), ex => { });
+                        await RunEventHandlerInRequestScope<IGameFinderEventHandler>(_scene, h => h.OnEnd(sectx), ex => _logger.Log(LogLevel.Error, LOG_CATEGORY, "an error occured while running OnEnd event handler.", ex));
                     }
                     var state = waitingParties[party];
                     state.Tcs.TrySetResult(null);
@@ -691,7 +682,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             sectx.Party = party;
             sectx.PassesCount = party.PastPasses;
             sectx.Reason = requestedByPlayer ? SearchEndReason.Canceled : SearchEndReason.Disconnected;
-            return handlers().RunEventHandler(h => h.OnEnd(sectx), ex => { });
+            return RunEventHandlerInRequestScope<IGameFinderEventHandler>(_scene, h => h.OnEnd(sectx), ex => _logger.Log(LogLevel.Error, LOG_CATEGORY, "an error occured while running OnEnd event handler.", ex));
         }
 
         private async Task<IScenePeerClient?> GetPlayer(Player member, CancellationToken cancellationToken)
@@ -890,7 +881,6 @@ namespace Stormancer.Server.Plugins.GameFinder
             var origin = indexOfSharp < 0 ? request.Origin : request.Origin.Substring(0, indexOfSharp);
             if (indexOfSharp >= 0)
             {
-
             }
 
             var session = new OpenGameSession(origin, data, subject);
@@ -934,14 +924,20 @@ namespace Stormancer.Server.Plugins.GameFinder
         public async IAsyncEnumerable<bool> AreCompatibleAsync(IEnumerable<Parties> candidates)
         {
             var ctx = new AreCompatibleContext(candidates);
-            await using (var scope = _scene.CreateRequestScope())
-            {
-                await scope.ResolveAll<IGameFinderEventHandler>().RunEventHandler(h => h.AreCompatibleAsync(ctx), ex => _logger.Log(LogLevel.Error, LOG_CATEGORY, "an error occured while running AreCompatible event handler.", ex));
-            }
+
+            await RunEventHandlerInRequestScope<IGameFinderEventHandler>(_scene, h => h.AreCompatibleAsync(ctx), ex => _logger.Log(LogLevel.Error, LOG_CATEGORY, "an error occured while running AreCompatible event handler.", ex));
 
             foreach (var result in ctx.Results)
             {
                 yield return result;
+            }
+        }
+
+        public async static Task RunEventHandlerInRequestScope<THandler>(ISceneHost scene, Func<THandler, Task> onRun, Action<Exception> onError) where THandler : class
+        {
+            await using (var scope = scene.CreateRequestScope())
+            {
+                await scope.ResolveAll<THandler>().RunEventHandler(onRun, onError);
             }
         }
     }
