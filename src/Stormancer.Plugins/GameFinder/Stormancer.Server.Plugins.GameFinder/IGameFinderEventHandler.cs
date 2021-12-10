@@ -129,7 +129,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         public void SetResult(int id, bool result)
         {
-            Results[id] = result;
+            Results[id] &= result;
         }
     }
     /// <summary>
