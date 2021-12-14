@@ -265,17 +265,20 @@ namespace Stormancer.Server.Plugins.Utilities
             // The timer callback should be the only one removing from the active collection. If we can't find
             // our entry in the collection, then this is a bug.
             var removed = _activeHandlers.TryRemove(active.Name, out var found);
-            Debug.Assert(removed, "Entry not found. We should always be able to remove the entry");
-            Debug.Assert(object.ReferenceEquals(active, found!.Value), "Different entry found. The entry should not have been replaced");
+            if (removed)
+            {
+               
+                Debug.Assert(object.ReferenceEquals(active, found!.Value), "Different entry found. The entry should not have been replaced");
 
-            // At this point the handler is no longer 'active' and will not be handed out to any new clients.
-            // However we haven't dropped our strong reference to the handler, so we can't yet determine if
-            // there are still any other outstanding references (we know there is at least one).
-            //
-            // We use a different state object to track expired handlers. This allows any other thread that acquired
-            // the 'active' entry to use it without safety problems.
-            var expired = new ExpiredHandlerTrackingEntry(active);
-            _expiredHandlers.Enqueue(expired);
+                // At this point the handler is no longer 'active' and will not be handed out to any new clients.
+                // However we haven't dropped our strong reference to the handler, so we can't yet determine if
+                // there are still any other outstanding references (we know there is at least one).
+                //
+                // We use a different state object to track expired handlers. This allows any other thread that acquired
+                // the 'active' entry to use it without safety problems.
+                var expired = new ExpiredHandlerTrackingEntry(active);
+                _expiredHandlers.Enqueue(expired);
+            }
 
 
             StartCleanupTimer();
