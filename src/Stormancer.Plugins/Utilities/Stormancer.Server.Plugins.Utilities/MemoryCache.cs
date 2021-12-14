@@ -23,6 +23,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -61,9 +62,10 @@ namespace Stormancer.Server.Plugins
                         throw;
                     }
                 }
+                ExpiresOn = null;
                 Content = GetContent(content, onInvalidated);
                 CreatedOn = DateTime.UtcNow;
-                ExpiresOn = null;
+               
                 Id = id;
                 OnInvalidated = onInvalidated;
             }
@@ -91,9 +93,10 @@ namespace Stormancer.Server.Plugins
                         throw;
                     }
                 }
+                ExpiresOn = null;
                 Content = GetContent(content, onInvalidated);
                 CreatedOn = DateTime.UtcNow;
-                ExpiresOn = null;
+               
                 Id = id;
                 OnInvalidated = onInvalidated;
             }
@@ -157,6 +160,32 @@ namespace Stormancer.Server.Plugins
         }
 
         /// <summary>
+        /// Tries to peek a value in the cache, and returns false if the value doesn't exist.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="value"></param>
+        /// <param name="expiresOn"></param>
+        /// <returns></returns>
+        public bool TryPeek(string id,[NotNullWhen(true)] out Task<T?>? value,[NotNullWhen(true)] out DateTime? expiresOn)
+        {
+            lock (_syncRoot)
+            {
+                if (cache.TryGetValue(id, out var entry) && entry.ExpiresOn > DateTime.UtcNow)
+                {
+                    expiresOn = entry.ExpiresOn;
+                    value = entry.Content;
+                    return true;
+                }
+                else
+                {
+                    expiresOn = default;
+                    value = default;
+                    return false;
+                }
+            }
+        }
+
+        /// <summary>
         /// Gets from the cache or update a cached value.
         /// </summary>
         /// <param name="id"></param>
@@ -200,12 +229,14 @@ namespace Stormancer.Server.Plugins
                         unknownIds.Add(id);
                     }
                 }
-
-                foreach (var r in addFunction(unknownIds))
+                if (unknownIds.Any())
                 {
-                    var entry = new CacheEntry(r.Key, r.Value, (i) => Remove(i));
-                    cache.Add(r.Key, entry);
-                    results.Add(r.Key, entry.Content);
+                    foreach (var r in addFunction(unknownIds))
+                    {
+                        var entry = new CacheEntry(r.Key, r.Value, (i) => Remove(i));
+                        cache.Add(r.Key, entry);
+                        results.Add(r.Key, entry.Content);
+                    }
                 }
 
 
