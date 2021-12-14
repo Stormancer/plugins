@@ -73,8 +73,6 @@ namespace Stormancer.Server.Plugins.Utilities
 
         private void Timer_Tick()
         {
-            Debug.Assert(_callback != null);
-            Debug.Assert(_timer != null);
 
             lock (_lock)
             {
