@@ -65,7 +65,7 @@ namespace Stormancer.Server.Plugins
                 ExpiresOn = null;
                 Content = GetContent(content, onInvalidated);
                 CreatedOn = DateTime.UtcNow;
-               
+
                 Id = id;
                 OnInvalidated = onInvalidated;
             }
@@ -96,7 +96,7 @@ namespace Stormancer.Server.Plugins
                 ExpiresOn = null;
                 Content = GetContent(content, onInvalidated);
                 CreatedOn = DateTime.UtcNow;
-               
+
                 Id = id;
                 OnInvalidated = onInvalidated;
             }
@@ -164,13 +164,13 @@ namespace Stormancer.Server.Plugins
         /// </summary>
         /// <param name="id"></param>
         /// <param name="value"></param>
-        /// <param name="expiresOn"></param>
+        /// <param name="expiresOn">Date d'expiration de l'entrée. Can be null if the task didn't complete yet.</param>
         /// <returns></returns>
-        public bool TryPeek(string id,[NotNullWhen(true)] out Task<T?>? value,[NotNullWhen(true)] out DateTime? expiresOn)
+        public bool TryPeek(string id, [NotNullWhen(true)] out Task<T?>? value, out DateTime? expiresOn)
         {
             lock (_syncRoot)
             {
-                if (cache.TryGetValue(id, out var entry) && entry.ExpiresOn > DateTime.UtcNow)
+                if (cache.TryGetValue(id, out var entry) && (entry.ExpiresOn == null || entry.ExpiresOn > DateTime.UtcNow))
                 {
                     expiresOn = entry.ExpiresOn;
                     value = entry.Content;
@@ -196,10 +196,10 @@ namespace Stormancer.Server.Plugins
             CacheEntry? entry;
             lock (_syncRoot)
             {
-                if (!cache.TryGetValue(id, out entry))
+                if (!cache.TryGetValue(id, out entry) || (entry.ExpiresOn != null && entry.ExpiresOn < DateTime.UtcNow))
                 {
                     entry = new CacheEntry(id, addFunction(id), (i) => Remove(i));
-                    cache.Add(id, entry);
+                    cache[id] = entry;
                 }
             }
 
@@ -220,7 +220,7 @@ namespace Stormancer.Server.Plugins
                 var unknownIds = new List<string>();
                 foreach (var id in ids)
                 {
-                    if (cache.TryGetValue(id, out var entry) && entry.ExpiresOn > DateTime.UtcNow)
+                    if (cache.TryGetValue(id, out var entry) && (entry.ExpiresOn == null || entry.ExpiresOn > DateTime.UtcNow))
                     {
                         results.Add(id, entry.Content);
                     }
@@ -234,7 +234,8 @@ namespace Stormancer.Server.Plugins
                     foreach (var r in addFunction(unknownIds))
                     {
                         var entry = new CacheEntry(r.Key, r.Value, (i) => Remove(i));
-                        cache.Add(r.Key, entry);
+                        cache[r.Key] = entry;
+
                         results.Add(r.Key, entry.Content);
                     }
                 }
