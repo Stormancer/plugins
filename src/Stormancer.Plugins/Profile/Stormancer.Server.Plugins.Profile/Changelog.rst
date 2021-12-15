@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+2.4.1.2
+-------
 Added
 *****
 - Added field lastPlatform in user profile part

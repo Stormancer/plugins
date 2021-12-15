@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+4.1.0.13
+--------
 Added
 *****
 - Add optional maxFriendsCount parameter to GetFriendList functions

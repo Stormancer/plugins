@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+4.0.2.1
+-------
 Fixed
 *****
 - if score and timestamp are equal, compare guids.

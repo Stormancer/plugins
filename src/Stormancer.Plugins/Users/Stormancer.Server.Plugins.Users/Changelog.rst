@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+5.2.2.5
+-------
 Changed
 *******
 - Add property User.LastPlatform

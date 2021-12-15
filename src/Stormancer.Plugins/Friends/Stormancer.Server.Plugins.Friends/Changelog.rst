@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+3.1.1
+-----
 - Add Unknow value to FriendStatus, FriendListStatusConfig and FriendRecordStatus enums.
 
 3.1.0.1

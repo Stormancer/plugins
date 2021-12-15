@@ -9,13 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+7.1.0.3
+-------
 Fixed
 *****
 - Fix code generator configuration to search GameFinder scene with the proper service type (gamefinder and not gamesession).
 - Add AreCompatible event handlers
-- Fix AreCompatible event handlers
 
 7.0.0
 -----
