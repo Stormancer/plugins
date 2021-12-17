@@ -194,7 +194,12 @@ namespace Stormancer.Server.Plugins.Party
                 if (!ctx.Accept)
                 {
                     Log(LogLevel.Trace, "OnConnecting", "Join denied by event handler", peer.SessionId, session.User?.Id);
-                    throw new ClientException(JoinDeniedError);
+                    var message = JoinDeniedError;
+                    if (!string.IsNullOrWhiteSpace(ctx.Reason))
+                    {
+                        message += $"?reason={ctx.Reason}";
+                    }
+                    throw new ClientException(message);
                 }
 
                 Log(LogLevel.Trace, "OnConnecting", "Join accepted", peer.SessionId, session.User?.Id);
