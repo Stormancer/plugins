@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+4.1.1.6
+-------
+Changed
+*******
+- Catch OperationCanceledException instead of TaskCanceledException to avoid useless server log spams when FindGame is canceled by clients.
+
 4.1.1.5
 -------
 Changed
