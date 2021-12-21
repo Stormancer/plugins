@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Lobby metadata token key stored in secrets store
+
 4.1.0.13
 --------
 Added
