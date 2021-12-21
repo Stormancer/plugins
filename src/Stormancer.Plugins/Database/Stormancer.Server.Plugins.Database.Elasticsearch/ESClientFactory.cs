@@ -19,23 +19,23 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
+using Elasticsearch.Net;
+using Nest;
+using Nest.JsonNetSerializer;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Stormancer.Diagnostics;
+using Stormancer.Plugins;
+using Stormancer.Server.Components;
+using Stormancer.Server.Plugins.Configuration;
+using Stormancer.Server.Secrets;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Nest;
-using Stormancer;
-using Stormancer.Plugins;
-using Stormancer.Server.Components;
-using System.Collections.Concurrent;
-using Stormancer.Diagnostics;
-using Newtonsoft.Json.Linq;
-using Elasticsearch.Net;
-using Nest.JsonNetSerializer;
-using Stormancer.Server;
-using Stormancer.Server.Plugins.Configuration;
-using Newtonsoft.Json;
 
 namespace Stormancer.Server.Plugins.Database
 {
@@ -48,15 +48,43 @@ namespace Stormancer.Server.Plugins.Database
         }
     }
 
+    /// <summary>
+    /// Basic ES Credentials.
+    /// </summary>
     public class ESBasicCredentials
     {
-        public string Login { get; set; }
-        public string Password { get; set; }
+        /// <summary>
+        /// Login path in secrets store.
+        /// </summary>
+        public string? LoginPath { get; set; }
+
+        /// <summary>
+        /// Login.
+        /// </summary>
+        public string? Login { get; set; }
+
+        /// <summary>
+        /// Password path in secrets store.
+        /// </summary>
+        public string? PasswordPath { get; set; }
+
+        /// <summary>
+        /// Password.
+        /// </summary>
+        public string? Password { get; set; }
     }
+
+    /// <summary>
+    /// ES Credentials.
+    /// </summary>
     public class ESCredentials
     {
-        public ESBasicCredentials Basic { get; set; }
+        /// <summary>
+        /// Basic credentials.
+        /// </summary>
+        public ESBasicCredentials? Basic { get; set; }
     }
+
     public class ESConnectionPoolConfig
     {
         // Replace : when the config specifies one or more endpoints, do not keep the default one.
@@ -65,6 +93,7 @@ namespace Stormancer.Server.Plugins.Database
         public bool Sniffing { get; set; } = false;
         public ESCredentials Credentials { get; set; }
     }
+
     public class ESIndexPolicyConfig
     {
 
@@ -88,23 +117,20 @@ namespace Stormancer.Server.Plugins.Database
 
         public void Build(HostPluginBuildContext ctx)
         {
-
             ctx.HostDependenciesRegistration += (IDependencyBuilder b) =>
             {
                 b.Register<ESClientFactory>().As<IESClientFactory>().As<IConfigurationChangedEventHandler>().SingleInstance();
                 SmartFormat.Smart.Default.AddExtensions(new TimeIntervalFormatter());
-
-
             };
+
             ctx.HostStarted += (IHost host) =>
              {
                  host.DependencyResolver.Resolve<IESClientFactory>().Init();
 
              };
-
-
         }
     }
+
     public class ConnectionParameters
     {
         public string ConnectionPool { get; set; }
@@ -170,6 +196,7 @@ namespace Stormancer.Server.Plugins.Database
         Nest.IElasticClient CreateClient(ConnectionParameters p);
         Task Init();
     }
+
     public class IndexNameFormatContext
     {
         public string type;
@@ -180,8 +207,6 @@ namespace Stormancer.Server.Plugins.Database
         public string deployment;
 
         public Dictionary<string, object> ctx = new Dictionary<string, object>();
-
-
     }
 
     public interface IESClientFactoryEventHandler
@@ -189,16 +214,16 @@ namespace Stormancer.Server.Plugins.Database
         void OnCreatingIndexName(IndexNameFormatContext ctx);
     }
 
-
     class ESClientFactory : IESClientFactory, IConfigurationChangedEventHandler, IDisposable
     {
         private const string LOG_CATEGORY = "ESClientFactory";
 
         private static ConcurrentDictionary<string, Task> _mappingInitialized = new ConcurrentDictionary<string, Task>();
         private IEnvironment _environment;
-        private readonly IConfiguration configuration;
-        private ConcurrentDictionary<string, Nest.ElasticClient> _clients = new ConcurrentDictionary<string, ElasticClient>();
+        private readonly IConfiguration _configuration;
+        private ConcurrentDictionary<string, ElasticClient> _clients = new ConcurrentDictionary<string, ElasticClient>();
         private Dictionary<string, ConnectionPool> _connectionPools;
+        private readonly ISecretsStore _secretsStore;
 
         private class ConnectionPool : IDisposable
         {
@@ -217,6 +242,7 @@ namespace Stormancer.Server.Plugins.Database
                 Pool?.Dispose();
             }
         }
+
         private string _account;
         private string _application;
         private string _deploymentId;
@@ -225,19 +251,21 @@ namespace Stormancer.Server.Plugins.Database
         private readonly Func<IEnumerable<IESClientFactoryEventHandler>> _eventHandlers;
 
         //private List<Elasticsearch.Net.Connection.HttpClientConnection> _connections = new List<Elasticsearch.Net.Connection.HttpClientConnection>();
-        public ESClientFactory(IEnvironment environment, IConfiguration configuration, ILogger logger, Func<IEnumerable<IESClientFactoryEventHandler>> eventHandlers)
+        
+        public ESClientFactory(IEnvironment environment, IConfiguration configuration, ILogger logger, Func<IEnumerable<IESClientFactoryEventHandler>> eventHandlers, ISecretsStore secretsStore)
         {
             _eventHandlers = eventHandlers;
             _environment = environment;
-            this.configuration = configuration;
+            _configuration = configuration;
             _logger = logger;
-           
+            _secretsStore = secretsStore;
+
             ApplySettings();
         }
 
         private void ApplySettings()
         {
-            dynamic config = configuration.Settings;
+            dynamic config = _configuration.Settings;
             _clients.Clear();
             _config = (ESConfig)(config?.elasticsearch?.ToObject<ESConfig>()) ?? new ESConfig();
 
@@ -248,33 +276,29 @@ namespace Stormancer.Server.Plugins.Database
                 var endpoints = c.Endpoints.DefaultIfEmpty("http://localhost:9200").Select(endpoint => new Uri(endpoint));
                 if (c.Sniffing)
                 {
-                    //      var connectionEndpoints = ((JArray)config.esEndpoints).ToObject<string[]>();
-                    pool = new Elasticsearch.Net.SniffingConnectionPool(endpoints);
+                    //var connectionEndpoints = ((JArray)config.esEndpoints).ToObject<string[]>();
+                    pool = new SniffingConnectionPool(endpoints);
                 }
                 else
                 {
-                    pool = new Elasticsearch.Net.StaticConnectionPool(endpoints);
+                    pool = new StaticConnectionPool(endpoints);
                 }
                 return new ConnectionPool(pool, c.Credentials);
-
-
             }) ?? new Dictionary<string, ConnectionPool>();
 
             if (!_connectionPools.ContainsKey("default"))
             {
-                _connectionPools.Add("default", new ConnectionPool(new Elasticsearch.Net.StaticConnectionPool(new[] { new Uri("http://localhost:9200") }), null));
+                _connectionPools.Add("default", new ConnectionPool(new StaticConnectionPool(new[] { new Uri("http://localhost:9200") }), null));
             }
         }
 
         public Task<IElasticClient> CreateClient<T>(string name, object[] parameters)
         {
             return CreateClient(typeof(T).Name, name, parameters);
-
         }
 
         public Task<Nest.IElasticClient> CreateClient(string type, string name, params object[] parameters)
         {
-
             var p = GetConnectionParameters(type, name, parameters);
             return Task.FromResult(CreateClient(p));
         }
@@ -327,9 +351,7 @@ namespace Stormancer.Server.Plugins.Database
                 pattern = _config.defaultPattern;
             }
 
-
             indexName = SmartFormat.Smart.Format(pattern, formatCtx);
-
 
             if (string.IsNullOrWhiteSpace(indexName))
             {
@@ -338,8 +360,6 @@ namespace Stormancer.Server.Plugins.Database
 
             return new ConnectionParameters { ConnectionPool = policyConfig.ConnectionPool, IndexName = indexName.ToLowerInvariant(), maxRetries = policyConfig.MaxRetries, retryTimeout = policyConfig.RetryTimeout };
         }
-
-
 
         public IElasticClient CreateClient(ConnectionParameters p)
         {
@@ -353,7 +373,6 @@ namespace Stormancer.Server.Plugins.Database
             return _clients.GetOrAdd(p.IndexName, i =>
             {
                 var t = typeof(JToken);
-
 
                 ConnectionSettings.SourceSerializerFactory s = (IElasticsearchSerializer s, IConnectionSettingsValues v) => new JsonNetSerializer(s, v);
 
@@ -415,11 +434,34 @@ namespace Stormancer.Server.Plugins.Database
             _account = app.AccountId;
             _application = app.ApplicationName;
             _deploymentId = app.DeploymentId;
+
+            foreach (var pair in _connectionPools)
+            {
+                var cp = pair.Value;
+                if (cp.Credentials.Basic != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(cp.Credentials.Basic.LoginPath) && !string.IsNullOrWhiteSpace(cp.Credentials.Basic.PasswordPath))
+                    {
+                        var loginSecret = await _secretsStore.GetSecret(cp.Credentials.Basic.LoginPath);
+                        if (loginSecret != null && loginSecret.Value != null)
+                        {
+                            cp.Credentials.Basic.Login = Encoding.UTF8.GetString(loginSecret.Value);
+                        }
+
+                        var passwordSecret = await _secretsStore.GetSecret(cp.Credentials.Basic.PasswordPath);
+                        if (passwordSecret != null && passwordSecret.Value != null)
+                        {
+                            cp.Credentials.Basic.Password = Encoding.UTF8.GetString(passwordSecret.Value);
+                        }
+                    }
+                }
+            }
         }
 
         public void OnConfigurationChanged()
         {
             ApplySettings();
+            _ = Init();
         }
     }
 }
