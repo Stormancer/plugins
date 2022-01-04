@@ -13,7 +13,7 @@ Unreleased
 ----------
 Changed
 *******
-- ES Login and password can now be retrieved from the secrets store.
+- ES password can now be retrieved from the secrets store.
 
 2.1.0.1
 -----

@@ -54,11 +54,6 @@ namespace Stormancer.Server.Plugins.Database
     public class ESBasicCredentials
     {
         /// <summary>
-        /// Login path in secrets store.
-        /// </summary>
-        public string? LoginPath { get; set; }
-
-        /// <summary>
         /// Login.
         /// </summary>
         public string? Login { get; set; }
@@ -440,14 +435,8 @@ namespace Stormancer.Server.Plugins.Database
                 var cp = pair.Value;
                 if (cp.Credentials.Basic != null)
                 {
-                    if (!string.IsNullOrWhiteSpace(cp.Credentials.Basic.LoginPath) && !string.IsNullOrWhiteSpace(cp.Credentials.Basic.PasswordPath))
+                    if (!string.IsNullOrWhiteSpace(cp.Credentials.Basic.PasswordPath))
                     {
-                        var loginSecret = await _secretsStore.GetSecret(cp.Credentials.Basic.LoginPath);
-                        if (loginSecret != null && loginSecret.Value != null)
-                        {
-                            cp.Credentials.Basic.Login = Encoding.UTF8.GetString(loginSecret.Value);
-                        }
-
                         var passwordSecret = await _secretsStore.GetSecret(cp.Credentials.Basic.PasswordPath);
                         if (passwordSecret != null && passwordSecret.Value != null)
                         {
