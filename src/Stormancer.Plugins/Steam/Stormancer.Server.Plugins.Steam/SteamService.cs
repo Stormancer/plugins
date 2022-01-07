@@ -31,6 +31,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Runtime.Serialization;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -109,21 +110,14 @@ namespace Stormancer.Server.Plugins.Steam
         {
             _usemockup = (bool?)config?.steam?.usemockup ?? false;
             _appId = (uint?)config?.steam?.appId ?? (uint)0;
-            if (!string.IsNullOrWhiteSpace(config?.steam?.apiKey))
+            if (!string.IsNullOrWhiteSpace((string?)config?.steam?.apiKey))
             {
                 _apiKeyTask = GetApiKey((string?)config?.steam?.apiKey);
             }
-            if (!string.IsNullOrWhiteSpace(config?.steam?.lobbyMetadataBearerTokenKey))
+            if (!string.IsNullOrWhiteSpace((string?)config?.steam?.lobbyMetadataBearerTokenKey))
             {
                 _lobbyMetadataBearerTokenKeyTask = GetLobbyMetadataBearerTokenKey((string?)config?.steam?.lobbyMetadataBearerTokenKey);
             }
-        }
-
-        public static string RandomString(int length)
-        {
-            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            return new string(Enumerable.Repeat(chars, length)
-                .Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
         private async Task<string> GetApiKey(string? apiKeyPath)
@@ -152,8 +146,9 @@ namespace Stormancer.Server.Plugins.Steam
             var secret = await _secretsStore.GetSecret(lobbyMetadataBearerTokenKeyPath);
             if (secret == null || secret.Value == null)
             {
-                var key = RandomString(30);
-                secret = await _secretsStore.SetSecret(lobbyMetadataBearerTokenKeyPath, Encoding.UTF8.GetBytes(key));
+                var key = new byte[32];
+                RandomNumberGenerator.Fill(key);
+                secret = await _secretsStore.SetSecret(lobbyMetadataBearerTokenKeyPath, key);
             }
 
             return Encoding.UTF8.GetString(secret.Value!) ?? "";
