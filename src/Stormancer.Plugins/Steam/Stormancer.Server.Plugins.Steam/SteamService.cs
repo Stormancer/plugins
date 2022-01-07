@@ -109,8 +109,14 @@ namespace Stormancer.Server.Plugins.Steam
         {
             _usemockup = (bool?)config?.steam?.usemockup ?? false;
             _appId = (uint?)config?.steam?.appId ?? (uint)0;
-            _apiKeyTask = GetApiKey((string?)config?.steam?.apiKey);
-            _lobbyMetadataBearerTokenKeyTask = GetLobbyMetadataBearerTokenKey((string?)config?.steam?.lobbyMetadataBearerTokenKey);
+            if (!string.IsNullOrWhiteSpace(config?.steam?.apiKey))
+            {
+                _apiKeyTask = GetApiKey((string?)config?.steam?.apiKey);
+            }
+            if (!string.IsNullOrWhiteSpace(config?.steam?.lobbyMetadataBearerTokenKey))
+            {
+                _lobbyMetadataBearerTokenKeyTask = GetLobbyMetadataBearerTokenKey((string?)config?.steam?.lobbyMetadataBearerTokenKey);
+            }
         }
 
         public static string RandomString(int length)
