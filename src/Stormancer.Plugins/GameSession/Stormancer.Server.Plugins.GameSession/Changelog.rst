@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+*****
+- Added IGamesessions.CreateReservation and IGameSessions.CancelReservation methods to create and cancel reservations to open gamesessions.
+
 5.2.0
 -----
 Added

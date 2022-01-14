@@ -45,6 +45,7 @@ using Stormancer.Plugins;
 using System.Runtime.CompilerServices;
 using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Models;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
@@ -449,7 +450,10 @@ namespace Stormancer.Server.Plugins.GameSession
             lock (_clients)
             {
                 var client = _clients.FirstOrDefault(kvp => kvp.Value.Peer == peer);
-                _clients.TryRemove(client.Key, out _);
+                if (client.Key != null)
+                {
+                    _clients.TryRemove(client.Key, out _);
+                }
             }
             await Task.CompletedTask;
         }
@@ -872,6 +876,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 var playerTeam = FindPlayerTeam(player.UserId);
                 if (playerTeam != null && playerTeam.TeamId != team.TeamId)
                 {
+                    //Player already in another team, we can't make new reservation.
                     return null;
                 }
             }
@@ -914,6 +919,11 @@ namespace Stormancer.Server.Plugins.GameSession
                     reservationState.UserIds.AddRange(team.AllPlayers.Select(p => p.UserId));
                 }
                 _reservationStates.TryAdd(reservationState.ReservationId, reservationState);
+                var createdCtx = new CreatedReservationContext(team, args, reservationState.ReservationId);
+
+                await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
+                    h => h.OnCreatedReservation(createdCtx),
+                    ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing OnCreatedReservation event", ex));
 
                 return new GameSessionReservation { ReservationId = reservationState.ReservationId.ToString(), ExpiresOn = reservationState.ExpiresOn };
             }
@@ -928,12 +938,12 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             if (_reservationStates.TryRemove(Guid.Parse(id), out var reservationState))
             {
-                var ids = new List<string>();
+                var ids = new List<(string,string)>();
                 foreach (var userId in reservationState.UserIds)
                 {
-                    if (TryRemoveUserFromConfig(userId))
+                    if (TryRemoveUserFromConfig(userId, out var teamId))
                     {
-                        ids.Add(userId);
+                        ids.Add((teamId,userId));
                     }
                 }
 
@@ -959,12 +969,12 @@ namespace Stormancer.Server.Plugins.GameSession
                     {
                         if (reservationState.ExpiresOn < DateTime.UtcNow)
                         {
-                            var ids = new List<string>();
+                            var ids = new List<(string,string)>();
                             foreach (var userId in reservationState.UserIds)
                             {
-                                if (TryRemoveUserFromConfig(userId))
+                                if (TryRemoveUserFromConfig(userId, out var teamId))
                                 {
-                                    ids.Add(userId);
+                                    ids.Add((teamId,userId));
                                 }
                             }
 
@@ -987,9 +997,9 @@ namespace Stormancer.Server.Plugins.GameSession
 
         }
 
-        private bool TryRemoveUserFromConfig(string userId)
+        private bool TryRemoveUserFromConfig(string userId, [NotNullWhen(true)] out string? teamId)
         {
-            if (!_clients.ContainsKey(userId))
+            if (!_clients.ContainsKey(userId) && _config != null)
             {
                 foreach (var team in _config.Teams)
                 {
@@ -1005,17 +1015,16 @@ namespace Stormancer.Server.Plugins.GameSession
                             {
                                 _config.Teams.Remove(team);
                             }
+                            teamId = team.TeamId;
                             return true;
                         }
 
                     }
                 }
-                return true;
             }
-            else
-            {
-                return false;
-            }
+            teamId = null;
+            return false;
+
         }
 
         private class ReservationState

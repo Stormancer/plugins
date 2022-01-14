@@ -28,7 +28,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 dep.Register<QuickQueueGameFinderResolver>().As<IGameFinderResolver>().InstancePerRequest();
             });
 
-            
+
             var options = optionsBuilder(new QuickQueueOptions<TPartySettings>());
 
             OptionsStore[gameFinderConfig.ConfigId] = options;
@@ -72,7 +72,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                     if (!OptionsStore.ContainsKey(gameFinderConfig.ConfigId))
                     {
                         var options = optionsBuilder(new QuickQueueOptions());
-                        OptionsStore.Add(gameFinderConfig.ConfigId, options);
+                        OptionsStore[gameFinderConfig.ConfigId] = options;
                     }
                 }
                 //var config = scene.DependencyResolver.Resolve<IConfiguration>();
@@ -111,6 +111,14 @@ namespace Stormancer.Server.Plugins.GameFinder
         public Func<TPartySettings?, uint> teamCount { get; set; } = _ => 2;
 
         /// <summary>
+        /// Allows joining a game already in progress.
+        /// </summary>
+        /// <remarks>
+        /// If true, the game is created when the first player enters gamefinding, then new players are added until the game is full.
+        /// </remarks>
+        public Func<TPartySettings?, bool> allowJoinExistingGame = _ => false;
+
+        /// <summary>
         /// Returns true if 2 party can play together.
         /// </summary>
         public Func<TPartySettings?, TPartySettings?, bool> canPlayTogether { get; set; } = (_, _) => true;
@@ -133,9 +141,28 @@ namespace Stormancer.Server.Plugins.GameFinder
             return Task.FromResult<TPartySettings?>(default);
         };
 
+        /// <summary>
+        /// Allows joining a game already in progress.
+        /// </summary>
+        /// <remarks>
+        /// If true, the game is created when the first player enters gamefinding, then new players are added until the game is full.
+        /// </remarks>
+        public QuickQueueOptions<TPartySettings> AllowJoinExistingGame(bool allow)
+        {
+            return AllowJoinExistingGame(_ => allow);
+        }
 
-
-
+        /// <summary>
+        /// Allows joining a game already in progress.
+        /// </summary>
+        /// <remarks>
+        /// If true, the game is created when the first player enters gamefinding, then new players are added until the game is full.
+        /// </remarks>
+        public QuickQueueOptions<TPartySettings> AllowJoinExistingGame(Func<TPartySettings?, bool> func)
+        {
+            allowJoinExistingGame = func;
+            return this;
+        }
 
         /// <summary>
         /// Sets the teamsize
@@ -230,6 +257,13 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         public Func<dynamic?, uint> teamCount { get; set; } = _ => 2;
 
+        /// <summary>
+        /// Allows joining a game already in progress.
+        /// </summary>
+        /// <remarks>
+        /// If true, the game is created when the first player enters gamefinding, then new players are added until the game is full.
+        /// </remarks>
+        public Func<dynamic?, bool> allowJoinExistingGame = _ => false;
 
         /// <summary>
         /// Can parties play together method.
@@ -253,6 +287,29 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
             return Task.FromResult<dynamic?>(null);
         };
+
+        /// <summary>
+        /// Allows joining a game already in progress.
+        /// </summary>
+        /// <remarks>
+        /// If true, the game is created when the first player enters gamefinding, then new players are added until the game is full.
+        /// </remarks>
+        public QuickQueueOptions AllowJoinExistingGame(bool allow)
+        {
+            return AllowJoinExistingGame(_ => allow);
+        }
+
+        /// <summary>
+        /// Allows joining a game already in progress.
+        /// </summary>
+        /// <remarks>
+        /// If true, the game is created when the first player enters gamefinding, then new players are added until the game is full.
+        /// </remarks>
+        public QuickQueueOptions AllowJoinExistingGame(Func<dynamic?, bool> func)
+        {
+            allowJoinExistingGame = func;
+            return this;
+        }
 
         /// <summary>
         /// Sets the teamsize

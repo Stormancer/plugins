@@ -85,6 +85,12 @@ namespace Stormancer.Server.Plugins.GameSession
         Task OnCreatingReservation(CreatingReservationContext ctx) => Task.CompletedTask;
 
         /// <summary>
+        /// Event executed when a new reservation has been accepted.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task OnCreatedReservation(CreatedReservationContext ctx) => Task.CompletedTask;
+        /// <summary>
         /// Event executed when a reservation is cancelled.
         /// </summary>
         /// <param name="ctx"></param>
@@ -97,7 +103,7 @@ namespace Stormancer.Server.Plugins.GameSession
     /// </summary>
     public class ReservationCancelledContext
     {
-        internal ReservationCancelledContext(Guid reservationId, IEnumerable<string> userIdsReservationsCancelled )
+        internal ReservationCancelledContext(Guid reservationId, IEnumerable<(string,string)> userIdsReservationsCancelled )
         {
             ReservationId = reservationId;
             UserIdsReservationsCancelled = userIdsReservationsCancelled;
@@ -109,9 +115,9 @@ namespace Stormancer.Server.Plugins.GameSession
         public Guid ReservationId { get; }
 
         /// <summary>
-        /// List of user ids whose reservations where actually cancelled (ie if the user connected, they won't be in the list.)
+        /// List of (teamId,userId) tuple whose reservations where actually cancelled (ie if the user connected, they won't be in the list.)
         /// </summary>
-        public IEnumerable<string> UserIdsReservationsCancelled { get; }
+        public IEnumerable<(string, string)> UserIdsReservationsCancelled { get; }
     }
 
     /// <summary>
@@ -151,6 +157,40 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </remarks>
         public bool Accept { get; set; } = true;
     }
+
+
+    /// <summary>
+    /// Context passed to <see cref="IGameSessionEventHandler.OnCreatedReservation(CreatedReservationContext)"/>
+    /// </summary>
+    public class CreatedReservationContext
+    {
+        internal CreatedReservationContext(Team team, JObject customData, Guid reservationId)
+        {
+            Team = team;
+            CustomData = customData;
+            ReservationId = reservationId;
+        }
+        /// <summary>
+        /// Team object created by the reservation.
+        /// </summary>
+        /// <remarks>
+        /// If the team already exists, content are automatically merged.
+        /// </remarks>
+        public Team Team { get; }
+
+        /// <summary>
+        /// Reservation custom data.
+        /// </summary>
+        public JObject CustomData { get; }
+
+        /// <summary>
+        /// Id of the reservation
+        /// </summary>
+        public Guid ReservationId { get; }
+
+      
+    }
+
 
     /// <summary>
     /// Base context for game session events.

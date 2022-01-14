@@ -24,6 +24,7 @@ using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Configuration;
+using Stormancer.Server.Plugins.Queries;
 using Stormancer.Server.Plugins.ServiceLocator;
 using System;
 using System.Collections.Generic;
@@ -58,13 +59,18 @@ namespace Stormancer.Server.Plugins.GameFinder
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
                 builder.Register<GameFinderController>();
-               
+                builder.Register<QuickQueueGameSessionsLuceneStore>().AsSelf().As<ILuceneDocumentStore>().SingleInstance();
                 builder.Register<GameFinderData>().AsSelf().InstancePerScene();
                 builder.Register<ServiceLocationProvider>().As<IServiceLocatorProvider>();
             };
             ctx.SceneCreated += SceneCreated;
 
+            ctx.HostStarting += (IHost host) =>
+            {
+                var gameSessionsRepository = host.DependencyResolver.Resolve<QuickQueueGameSessionsLuceneStore>();
+                gameSessionsRepository.Initialize();
 
+            };
 
             ctx.HostStarted += (IHost host) =>
             {

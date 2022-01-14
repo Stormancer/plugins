@@ -22,6 +22,7 @@
 
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Management;
+using Stormancer.Server.Plugins.Models;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.IO;
@@ -77,20 +78,45 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <param name="serverId"></param>
         /// <returns></returns>
         Task<string> CreateServerConnectionToken(string gameSessionId, Guid serverId);
+
+
+        /// <summary>
+        /// Tries to reserve a slot in a gamesession for a team.
+        /// </summary>
+        /// <param name="gameSessionId"></param>
+        /// <param name="team"></param>
+        /// <param name="args"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<GameSessionReservation?> CreateReservation(string gameSessionId, Plugins.Models.Team team, JObject args, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Cancels a reservation from a gamesession.
+        /// </summary>
+        /// <param name="gameSessionId"></param>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task CancelReservation(string gameSessionId, string id, CancellationToken cancellationToken);
+        
     }
 
     internal class GameSessions : IGameSessions
     {
         private readonly ManagementClientProvider management;
+        private readonly GameSessionProxy s2SProxy;
         private readonly IUserSessions sessions;
         private readonly ISerializer serializer;
 
-        public GameSessions(ManagementClientProvider management, IUserSessions sessions, ISerializer serializer)
+        public GameSessions(ManagementClientProvider management,GameSessionProxy s2sProxy, IUserSessions sessions, ISerializer serializer)
         {
             this.management = management;
+            s2SProxy = s2sProxy;
             this.sessions = sessions;
             this.serializer = serializer;
         }
+
+       
 
         public Task Create(string template, string id, GameSessionConfiguration config)
         {
@@ -111,6 +137,16 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 }, RetryPolicies.IncrementalDelay(4, TimeSpan.FromSeconds(200)), CancellationToken.None, ex => true);
             }
+        }
+
+        public Task<GameSessionReservation?> CreateReservation(string gameSessionId, Team team, JObject args, CancellationToken cancellationToken)
+        {
+            return s2SProxy.CreateReservation(gameSessionId, team,args, cancellationToken);
+        }
+
+        public Task CancelReservation(string gameSessionId, string reservationId, CancellationToken cancellationToken)
+        {
+            return s2SProxy.CancelReservation(gameSessionId, reservationId, cancellationToken);
         }
 
         public Task<string> CreateServerConnectionToken(string gameSessionId, Guid serverId)
