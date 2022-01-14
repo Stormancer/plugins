@@ -25,11 +25,13 @@ using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Users;
+using Stormancer.Server.Secrets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Runtime.Serialization;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -78,11 +80,13 @@ namespace Stormancer.Server.Plugins.Steam
 
         private bool _usemockup;
         private uint _appId;
-        private string _apiKey = "";
-        private string _lobbyMetadataBearerTokenKey = "";
+        private Task<string> _apiKeyTask = Task.FromResult("");
+        private Task<string> _lobbyMetadataBearerTokenKeyTask = Task.FromResult("");
 
-        private ILogger _logger;
-        private IUserSessions _userSessions;
+        private readonly ILogger _logger;
+        private readonly IUserSessions _userSessions;
+        private readonly ISecretsStore _secretsStore;
+        private static Random random = new Random();
 
         public static HttpClient client = new HttpClient();
 
@@ -92,10 +96,12 @@ namespace Stormancer.Server.Plugins.Steam
         /// <param name="configuration"></param>
         /// <param name="logger"></param>
         /// <param name="userSessions"></param>
-        public SteamService(IConfiguration configuration, ILogger logger, IUserSessions userSessions)
+        /// <param name="secretsStore"></param>
+        public SteamService(IConfiguration configuration, ILogger logger, IUserSessions userSessions, ISecretsStore secretsStore)
         {
             _logger = logger;
             _userSessions = userSessions;
+            _secretsStore = secretsStore;
 
             ApplyConfig(configuration.Settings);
         }
@@ -104,8 +110,48 @@ namespace Stormancer.Server.Plugins.Steam
         {
             _usemockup = (bool?)config?.steam?.usemockup ?? false;
             _appId = (uint?)config?.steam?.appId ?? (uint)0;
-            _apiKey = (string?)config?.steam?.apiKey ?? "";
-            _lobbyMetadataBearerTokenKey = (string?)config?.steam?.lobbyMetadataBearerTokenKey ?? "";
+            if (!string.IsNullOrWhiteSpace((string?)config?.steam?.apiKey))
+            {
+                _apiKeyTask = GetApiKey((string?)config?.steam?.apiKey);
+            }
+            if (!string.IsNullOrWhiteSpace((string?)config?.steam?.lobbyMetadataBearerTokenKey))
+            {
+                _lobbyMetadataBearerTokenKeyTask = GetLobbyMetadataBearerTokenKey((string?)config?.steam?.lobbyMetadataBearerTokenKey);
+            }
+        }
+
+        private async Task<string> GetApiKey(string? apiKeyPath)
+        {
+            if (string.IsNullOrWhiteSpace(apiKeyPath))
+            {
+                throw new InvalidOperationException("Missing 'steam.apiKey' secrets store path in config");
+            }
+
+            var secret = await _secretsStore.GetSecret(apiKeyPath);
+            if (secret == null || secret.Value == null)
+            {
+                throw new InvalidOperationException($"Missing Steam ApiKey in secrets store '{apiKeyPath}'");
+            }
+
+            return Encoding.UTF8.GetString(secret.Value) ?? "";
+        }
+
+        private async Task<string> GetLobbyMetadataBearerTokenKey(string? lobbyMetadataBearerTokenKeyPath)
+        {
+            if (string.IsNullOrWhiteSpace(lobbyMetadataBearerTokenKeyPath))
+            {
+                throw new InvalidOperationException("Missing 'steam.lobbyMetadataBearerTokenKey' secrets store path in config");
+            }
+
+            var secret = await _secretsStore.GetSecret(lobbyMetadataBearerTokenKeyPath);
+            if (secret == null || secret.Value == null)
+            {
+                var key = new byte[32];
+                RandomNumberGenerator.Fill(key);
+                secret = await _secretsStore.SetSecret(lobbyMetadataBearerTokenKeyPath, key);
+            }
+
+            return Encoding.UTF8.GetString(secret.Value!) ?? "";
         }
 
         public async Task<ulong?> AuthenticateUserTicket(string ticket)
@@ -117,7 +163,13 @@ namespace Stormancer.Server.Plugins.Steam
 
             const string AuthenticateUri = "ISteamUserAuth/AuthenticateUserTicket/v0001/";
 
-            var querystring = $"?key={_apiKey}"
+            var apiKey = await _apiKeyTask;
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new InvalidOperationException("Steam Api Key is invalid");
+            }
+
+            var querystring = $"?key={apiKey}"
                 + $"&appid={_appId}"
                 + $"&ticket={ticket}";
 
@@ -158,12 +210,19 @@ namespace Stormancer.Server.Plugins.Steam
 
         public async Task<string> OpenVACSession(string steamId)
         {
+            var apiKey = await _apiKeyTask;
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new InvalidOperationException("Steam Api Key is invalid");
+            }
+
             const string uri = "ICheatReportingService/StartSecureMultiplayerSession/v0001/";
             var p = new Dictionary<string, string> {
-                {"key",_apiKey },
-                {"appid",_appId.ToString() },
-                {"steamid",steamId }
+                {"key", apiKey },
+                {"appid", _appId.ToString() },
+                {"steamid", steamId }
             };
+
             using (var client = new HttpClient())
             {
                 client.BaseAddress = new Uri(ApiRoot);
@@ -182,12 +241,18 @@ namespace Stormancer.Server.Plugins.Steam
 
         public async Task CloseVACSession(string steamId, string sessionId)
         {
+            var apiKey = await _apiKeyTask;
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new InvalidOperationException("Steam Api Key is invalid");
+            }
+
             const string uri = "ICheatReportingService/EndSecureMultiplayerSession/v0001/";
             var p = new Dictionary<string, string> {
-                {"key",_apiKey },
-                {"appid",_appId.ToString() },
-                {"steamid",steamId },
-                {"session_id",sessionId }
+                {"key", apiKey },
+                {"appid", _appId.ToString() },
+                {"steamid", steamId },
+                {"session_id", sessionId }
             };
 
             using (var client = new HttpClient())
@@ -199,19 +264,24 @@ namespace Stormancer.Server.Plugins.Steam
                     response.EnsureSuccessStatusCode();
                     var json = await response.Content.ReadAsStringAsync();
                     var j = JObject.Parse(json);
-
                 }
             }
         }
 
         public async Task<bool> RequestVACStatusForUser(string steamId, string sessionId)
         {
+            var apiKey = await _apiKeyTask;
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new InvalidOperationException("Steam Api Key is invalid");
+            }
+
             const string uri = "ICheatReportingService/RequestVacStatusForUser/v0001/";
             var p = new Dictionary<string, string> {
-                {"key",_apiKey },
-                {"appid",_appId.ToString() },
-                {"steamid",steamId },
-                {"session_id",sessionId }
+                {"key", apiKey },
+                {"appid", _appId.ToString() },
+                {"steamid", steamId },
+                {"session_id", sessionId }
             };
 
             using (var client = new HttpClient())
@@ -242,9 +312,15 @@ namespace Stormancer.Server.Plugins.Steam
             var steamIdsWithoutRepeat = steamIds.Distinct().ToList();
             Dictionary<ulong, SteamPlayerSummary> result = new Dictionary<ulong, SteamPlayerSummary>();
 
+            var apiKey = await _apiKeyTask;
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new InvalidOperationException("Steam Api Key is invalid");
+            }
+
             for (var i = 0; i * 100 < steamIdsWithoutRepeat.Count; i++)
             {
-                var querystring = $"?key={_apiKey}"
+                var querystring = $"?key={apiKey}"
                     + $"&steamids={string.Join(",", steamIdsWithoutRepeat.Skip(100 * i).Take(100).Select(v => v.ToString()))}";
 
                 using (var response = await TryGetAsync(GetPlayerSummariesUri + querystring))
@@ -271,8 +347,14 @@ namespace Stormancer.Server.Plugins.Steam
 
         public async Task<IEnumerable<SteamFriend>> GetFriendListFromWebApi(ulong steamId, uint maxFriendsCount = uint.MaxValue)
         {
+            var apiKey = await _apiKeyTask;
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new InvalidOperationException("Steam Api Key is invalid");
+            }
+
             var requestUrl = "ISteamUser/GetFriendList/v1/";
-            var querystring = $"?key={_apiKey}&steamid={steamId}&relationship=friend";
+            var querystring = $"?key={apiKey}&steamid={steamId}&relationship=friend";
             var response = await TryGetAsync(requestUrl + querystring);
             if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
@@ -338,9 +420,15 @@ namespace Stormancer.Server.Plugins.Steam
             };
             var input_json = JsonConvert.SerializeObject(createLobbyInputJson, Formatting.None, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
 
+            var apiKey = await _apiKeyTask;
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new InvalidOperationException("Steam Api Key is invalid");
+            }
+
             var body = new Dictionary<string, string>
             {
-                { "key", _apiKey },
+                { "key", apiKey },
                 { "input_json", input_json },
             };
 
@@ -379,9 +467,15 @@ namespace Stormancer.Server.Plugins.Steam
             };
             var input_json = JsonConvert.SerializeObject(removeUserFromLobbyInputJson, Formatting.None, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
 
+            var apiKey = await _apiKeyTask;
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new InvalidOperationException("Steam Api Key is invalid");
+            }
+
             var body = new Dictionary<string, string>
             {
-                { "key", _apiKey },
+                { "key", apiKey },
                 { "input_json", input_json },
             };
 
@@ -389,18 +483,16 @@ namespace Stormancer.Server.Plugins.Steam
             response.EnsureSuccessStatusCode();
         }
 
-        public Task<Dictionary<string, PartyDataDto>> DecodePartyDataBearerTokens(Dictionary<string, string> tokens)
+        public async Task<Dictionary<string, PartyDataDto>> DecodePartyDataBearerTokens(Dictionary<string, string> tokens)
         {
-            return Task.FromResult(
-                tokens.ToDictionary(kvp => kvp.Key, kvp => TokenGenerator.DecodeToken<PartyDataDto>(kvp.Value, _lobbyMetadataBearerTokenKey))
-            );
+            var lobbyMetadataBearerTokenKey = await _lobbyMetadataBearerTokenKeyTask;
+            return tokens.ToDictionary(kvp => kvp.Key, kvp => TokenGenerator.DecodeToken<PartyDataDto>(kvp.Value, lobbyMetadataBearerTokenKey));
         }
 
-        public Task<string> CreatePartyDataBearerToken(string partyId, string leaderUserId, ulong leaderSteamId)
+        public async Task<string> CreatePartyDataBearerToken(string partyId, string leaderUserId, ulong leaderSteamId)
         {
-            return Task.FromResult(
-                TokenGenerator.CreateToken(new PartyDataDto { PartyId = partyId, LeaderUserId = leaderUserId, LeaderSteamId = leaderSteamId }, _lobbyMetadataBearerTokenKey)
-            );
+            var lobbyMetadataBearerTokenKey = await _lobbyMetadataBearerTokenKeyTask;
+            return TokenGenerator.CreateToken(new PartyDataDto { PartyId = partyId, LeaderUserId = leaderUserId, LeaderSteamId = leaderSteamId }, lobbyMetadataBearerTokenKey);
         }
 
         private async Task<HttpResponseMessage> TryGetAsync(string requestUrl)

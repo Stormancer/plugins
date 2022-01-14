@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+5.2.3
+-----
+Changed
+*******
+- Fix renewCredentials stream uses
+
 5.2.2.5
 -------
 Changed

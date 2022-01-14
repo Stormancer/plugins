@@ -194,7 +194,12 @@ namespace Stormancer.Server.Plugins.Party
                 if (!ctx.Accept)
                 {
                     Log(LogLevel.Trace, "OnConnecting", "Join denied by event handler", peer.SessionId, session.User?.Id);
-                    throw new ClientException(JoinDeniedError);
+                    var message = JoinDeniedError;
+                    if (!string.IsNullOrWhiteSpace(ctx.Reason))
+                    {
+                        message += $"?reason={ctx.Reason}";
+                    }
+                    throw new ClientException(message);
                 }
 
                 Log(LogLevel.Trace, "OnConnecting", "Join accepted", peer.SessionId, session.User?.Id);
@@ -567,13 +572,11 @@ namespace Stormancer.Server.Plugins.Party
                 //var sceneUri = await _locator.GetSceneId("stormancer.plugins.gamefinder", );
                 await _gameFinderClient.FindGame(_partyState.Settings.GameFinderName, gameFinderRequest, _partyState.FindGameCts?.Token ?? CancellationToken.None);
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException)
             {
-
             }
             catch (RpcException ex) when (ex.Message.Contains("disconnected")) //Player disconnected during matchmaking.
             {
-
             }
             catch (Exception ex)
             {
