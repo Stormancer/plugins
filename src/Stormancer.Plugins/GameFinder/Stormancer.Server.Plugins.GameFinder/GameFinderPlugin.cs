@@ -26,6 +26,7 @@ using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.ServiceLocator;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.GameFinder
@@ -45,7 +46,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         public const string ProtocolVersionKey = "stormancer.plugins.gamefinder.protocol";
 
-        internal static Dictionary<string, GameFinderConfig> Configs = new Dictionary<string, GameFinderConfig>();
+        internal static ConcurrentDictionary<string, GameFinderConfig> Configs = new ConcurrentDictionary<string, GameFinderConfig>();
 
         /// <summary>
         /// Build the plugin (register components in the IoC)
@@ -112,6 +113,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 {
                     var gameFinderService = scene.DependencyResolver.Resolve<IGameFinderService>();
 
+                    
                     //Start gameFinder
                     scene.RunTask(gameFinderService.Run);
 

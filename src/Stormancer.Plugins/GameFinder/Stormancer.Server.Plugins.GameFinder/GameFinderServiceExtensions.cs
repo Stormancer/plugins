@@ -40,12 +40,12 @@ namespace Stormancer
         /// <param name="gameFinderBuilder"></param>
         public static void AddGameFinder(this ISceneHost scene, string configId, Func<GameFinderConfig, GameFinderConfig> gameFinderBuilder)
         {
-            if(!Regex.IsMatch(configId, @"^[0-9a-z-_]*$", RegexOptions.IgnoreCase))
+            if (!Regex.IsMatch(configId, @"^[0-9a-z-_]*$", RegexOptions.IgnoreCase))
             {
                 throw new ArgumentException("configId should only contain alphanumeric, dash and underscore characters.");
             }
-            var config = gameFinderBuilder(new GameFinderConfig(scene,configId));
-            GameFinderPlugin.Configs[scene.Id] = config;
+            var config = gameFinderBuilder(new GameFinderConfig(scene, configId));
+            GameFinderPlugin.Configs.AddOrUpdate(scene.Id, config, (id, old) => config);
             scene.Metadata[GameFinderPlugin.METADATA_KEY] = configId;
             scene.Metadata[GameFinderPlugin.ProtocolVersionKey] = GameFinderService.ProtocolVersion.ToString();
         }
