@@ -297,23 +297,27 @@ namespace Stormancer.Server.Plugins.GameFinder
             {
                 try
                 {
-                    watch.Restart();
-                    await this.FindGamesOnce(ct);
-                    watch.Stop();
+                    try
+                    {
+                        watch.Restart();
+                        await this.FindGamesOnce(ct);
+                        watch.Stop();
 
-                    var playersNum = this._data.waitingParties.Where(kvp => kvp.Value.State == RequestState.Ready).Sum(kvp => kvp.Key.Players.Count);
-                    var groupsNum = this._data.waitingParties.Where(kvp => kvp.Value.State == RequestState.Ready).Count();
-                    //_logger.Log(LogLevel.Trace, $"{LOG_CATEGORY}.Run", $"A {_data.kind} pass was run for {playersNum} players and {groupsNum} parties", new
-                    //{
-                    //    Time = watch.Elapsed,
-                    //    playersWaiting = playersNum,
-                    //    groupsWaiting = groupsNum
-                    //});
+                        var playersNum = this._data.waitingParties.Where(kvp => kvp.Value.State == RequestState.Ready).Sum(kvp => kvp.Key.Players.Count);
+                        var groupsNum = this._data.waitingParties.Where(kvp => kvp.Value.State == RequestState.Ready).Count();
+                        //_logger.Log(LogLevel.Trace, $"{LOG_CATEGORY}.Run", $"A {_data.kind} pass was run for {playersNum} players and {groupsNum} parties", new
+                        //{
+                        //    Time = watch.Elapsed,
+                        //    playersWaiting = playersNum,
+                        //    groupsWaiting = groupsNum
+                        //});
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.Log(LogLevel.Error, LOG_CATEGORY, "An error occurred while running a gameFinder.", e);
+                    }
                 }
-                catch (Exception e)
-                {
-                    _logger.Log(LogLevel.Error, LOG_CATEGORY, "An error occurred while running a gameFinder.", e);
-                }
+                catch { }
                 await Task.Delay(this._data.interval);
             }
             IsRunning = false;

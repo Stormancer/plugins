@@ -119,6 +119,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 {
                     var gameFinderService = scene.DependencyResolver.Resolve<IGameFinderService>();
 
+                    
                     //Start gameFinder
                     scene.RunTask(gameFinderService.Run);
 
