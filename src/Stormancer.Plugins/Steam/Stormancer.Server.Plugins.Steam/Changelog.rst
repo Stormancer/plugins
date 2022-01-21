@@ -9,6 +9,10 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+4.1.1
+-----
+- Add cancellation token used by party
+
 4.1.0.17
 --------
 Changed
