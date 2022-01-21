@@ -664,7 +664,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
                         else if (score.NewValue != null && score.OldValue == null)
                         {
                             var index = GetIndex(score.NewValue.LeaderboardName);
-                            _logger.Log(LogLevel.Debug, "leaderboard", $"Adding score {score.NewValue.Id} to leaderboard {score.NewValue.LeaderboardName}", new { score = score.NewValue, index });
+                            
                             desc = desc.Create<ScoreRecord>(s => s
                                 .Id(GetDocumentId(score.NewValue.LeaderboardName, score.NewValue.Id))
                                 .Document(score.NewValue)

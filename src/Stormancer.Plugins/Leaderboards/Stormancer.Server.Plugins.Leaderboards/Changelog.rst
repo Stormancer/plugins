@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+4.0.2.2
+----------
+Changed
+*******
+- Remove debug logs
+
 4.0.2.1
 -------
 Fixed

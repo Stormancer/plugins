@@ -173,8 +173,6 @@ namespace Stormancer.Server.Plugins.Steam
                 + $"&appid={_appId}"
                 + $"&ticket={ticket}";
 
-            _logger.Log(LogLevel.Debug, $"authenticator.steam", $"AuthenticateUserTicket: {AuthenticateUri}  Query: {querystring}", new { });
-
             using (var response = await TryGetAsync(AuthenticateUri + querystring))
             {
                 if (!response.IsSuccessStatusCode)
