@@ -85,7 +85,8 @@ namespace Stormancer.Server.Plugins.Party
             IUserService users,
             IEnumerable<IPartyPlatformSupport> platformSupports,
             StormancerPartyPlatformSupport stormancerPartyPlatformSupport,
-            InvitationCodeService invitationCodes)
+            InvitationCodeService invitationCodes
+        )
         {
             _handlers = handlers;
             _scene = scene;
@@ -100,7 +101,7 @@ namespace Stormancer.Server.Plugins.Party
             _stormancerPartyPlatformSupport = stormancerPartyPlatformSupport;
             this.invitationCodes = invitationCodes;
             ApplySettings(configuration.Settings);
-            
+
         }
 
         private const string JoinDeniedError = "party.joinDenied";
@@ -235,14 +236,14 @@ namespace Stormancer.Server.Plugins.Party
             {
                 _partyState.PendingAcceptedPeers.Remove(peer);
                 var session = await _userSessions.GetSession(peer, CancellationToken.None);
-               
+
                 if (session == null)
                 {
                     await peer.Disconnect(GenericJoinError);
                     return;
                 }
                 var user = session.User;
-                
+
 
                 var partyUser = new PartyMember { UserId = user.Id, StatusInParty = PartyMemberStatus.NotReady, Peer = peer };
                 _partyState.PartyMembers.TryAdd(peer.SessionId, partyUser);
@@ -487,10 +488,14 @@ namespace Stormancer.Server.Plugins.Party
 
         public string PartyId => _scene.Id;
 
-        public async Task UpdatePartyUserData(string userId, byte[] data)
+        public async Task UpdatePartyUserData(string userId, byte[] data, CancellationToken ct)
         {
             await _partyState.TaskQueue.PushWork(async () =>
             {
+                if (ct.IsCancellationRequested)
+                {
+                    return;
+                }
 
                 if (!TryGetMemberByUserId(userId, out var partyUser))
                 {
@@ -504,10 +509,15 @@ namespace Stormancer.Server.Plugins.Party
             });
         }
 
-        public async Task PromoteLeader(string playerToPromote)
+        public async Task PromoteLeader(string playerToPromote, CancellationToken ct)
         {
             await _partyState.TaskQueue.PushWork(async () =>
             {
+                if (ct.IsCancellationRequested)
+                {
+                    return;
+                }
+
                 PartyMember user;
                 if (!TryGetMemberByUserId(playerToPromote, out user))
                 {
@@ -526,14 +536,17 @@ namespace Stormancer.Server.Plugins.Party
             });
         }
 
-        public async Task KickPlayerByLeader(string playerToKick)
+        public async Task KickPlayerByLeader(string playerToKick, CancellationToken ct)
         {
             await _partyState.TaskQueue.PushWork(async () =>
             {
+                if (ct.IsCancellationRequested)
+                {
+                    return;
+                }
+
                 if (TryGetMemberByUserId(playerToKick, out var partyUser))
                 {
-
-
                     if (playerToKick == _partyState.Settings.PartyLeaderId)
                     {
                         throw new ClientException(CannotKickLeaderError);
@@ -939,6 +952,6 @@ namespace Stormancer.Server.Plugins.Party
             invitationCodes.CancelCode(this._scene);
         }
 
-        
+
     }
 }

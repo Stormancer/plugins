@@ -53,7 +53,7 @@ namespace Stormancer.Server.Plugins.Party
         public async Task UpdatePartySettings(RequestContext<IScenePeerClient> ctx)
         {
             var partySettings = ctx.ReadObject<PartySettingsDto>();
-           
+
             if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
             {
                 throw new ClientException(NotInPartyError);
@@ -68,20 +68,18 @@ namespace Stormancer.Server.Plugins.Party
 
         public Task UpdatePartyUserData(RequestContext<IScenePeerClient> ctx)
         {
-            
             if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
             {
                 throw new ClientException(NotInPartyError);
             }
             var data = _serializer.Deserialize<byte[]>(ctx.InputStream);
 
-            _partyService.UpdatePartyUserData(member.UserId, data);
+            _partyService.UpdatePartyUserData(member.UserId, data, ctx.CancellationToken);
             return Task.CompletedTask;
         }
 
         public Task PromoteLeader(RequestContext<IScenePeerClient> ctx)
         {
-           
             if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
             {
                 throw new ClientException(NotInPartyError);
@@ -92,14 +90,14 @@ namespace Stormancer.Server.Plugins.Party
             }
 
             var playerToPromote = ctx.ReadObject<string>();
-            _partyService.PromoteLeader(playerToPromote);
+            _partyService.PromoteLeader(playerToPromote, ctx.CancellationToken);
 
             return Task.CompletedTask;
         }
 
         public async Task KickPlayer(RequestContext<IScenePeerClient> ctx)
         {
-           
+
             if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
             {
                 throw new ClientException(NotInPartyError);
@@ -110,13 +108,13 @@ namespace Stormancer.Server.Plugins.Party
             }
 
             var playerIdToKick = ctx.ReadObject<string>();
-            await _partyService.KickPlayerByLeader(playerIdToKick);
+            await _partyService.KickPlayerByLeader(playerIdToKick, ctx.CancellationToken);
         }
 
         public async Task UpdateGameFinderPlayerStatus(RequestContext<IScenePeerClient> ctx)
         {
             var newStatus = ctx.ReadObject<PartyMemberStatusUpdateRequest>();
-          
+
             if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
             {
                 throw new ClientException(NotInPartyError);
@@ -200,7 +198,7 @@ namespace Stormancer.Server.Plugins.Party
             _partyService.CancelInvitationCode();
         }
 
-       
+
 
         protected override Task OnConnecting(IScenePeerClient client)
         {

@@ -44,11 +44,11 @@ namespace Stormancer.Server.Plugins.Party
 
         Task UpdateGameFinderPlayerStatus(string userId, PartyMemberStatusUpdateRequest partyUserStatus, CancellationToken ct);
 
-        Task UpdatePartyUserData(string userId, byte[] data);
+        Task UpdatePartyUserData(string userId, byte[] data, CancellationToken ct);
 
-        Task PromoteLeader(string newLeaderUserId);
+        Task PromoteLeader(string newLeaderUserId, CancellationToken ct);
 
-        Task KickPlayerByLeader(string playerToKickUserId);
+        Task KickPlayerByLeader(string playerToKickUserId, CancellationToken ct);
 
         /// <summary>
         /// Send the whole party state to the given user.
