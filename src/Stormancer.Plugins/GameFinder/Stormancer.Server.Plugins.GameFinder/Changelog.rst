@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+7.2.1
+-----
 Added
 *****
 - Added support in quick queue to join existing games if 'allowJoinExistingGame' is true in the gamefinder quickqueue config.
