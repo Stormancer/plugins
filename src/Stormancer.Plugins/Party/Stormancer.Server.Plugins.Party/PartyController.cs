@@ -24,7 +24,6 @@ using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Party.Dto;
-using Stormancer.Server.Plugins.Party.Model;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Threading.Tasks;
@@ -64,7 +63,7 @@ namespace Stormancer.Server.Plugins.Party
             {
                 throw new ClientException(UnauthorizedError);
             }
-            await _partyService.UpdateSettings(partySettings);
+            await _partyService.UpdateSettings(partySettings, ctx.CancellationToken);
         }
 
         public Task UpdatePartyUserData(RequestContext<IScenePeerClient> ctx)
@@ -123,7 +122,7 @@ namespace Stormancer.Server.Plugins.Party
                 throw new ClientException(NotInPartyError);
             }
 
-            await _partyService.UpdateGameFinderPlayerStatus(member.UserId, newStatus);
+            await _partyService.UpdateGameFinderPlayerStatus(member.UserId, newStatus, ctx.CancellationToken);
         }
 
         public async Task GetPartyState(RequestContext<IScenePeerClient> ctx)
@@ -132,7 +131,7 @@ namespace Stormancer.Server.Plugins.Party
             {
                 try
                 {
-                    await _partyService.SendPartyState(user.UserId);
+                    await _partyService.SendPartyState(user.UserId, ctx.CancellationToken);
                 }
                 catch (OperationCanceledException)
                 {

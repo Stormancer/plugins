@@ -9,6 +9,13 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+4.1.2
+-----
+Changed
+*******
+- Fix handlers in case scope destroyed
+- PartyService use PartyController cancellation tokens
+
 4.1.1.6
 -------
 Changed
