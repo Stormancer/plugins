@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Fixed
+*****
+- Fixed missing analytics events for login/logout.
+
 5.2.3.1
 -------
 Changed
