@@ -405,7 +405,6 @@ namespace Stormancer.Server.Plugins.Users
             return peer != null ? await GetSessionById(peer.SessionId, cancellationToken) : null;
         }
 
-
         public async Task<SessionRecord?> GetSessionRecordById(string sessionId)
         {
             var result = await _peerUserIndex.TryGet(sessionId);
@@ -415,8 +414,7 @@ namespace Stormancer.Server.Plugins.Users
             }
             else
             {
-
-                //logger.Log(LogLevel.Trace, "usersession", $"Get session failed for id {sessionId}, {_peerUserIndex.Count} sessions found", new { });
+                logger.Log(LogLevel.Warn, "usersession", $"Get session failed for id {sessionId}, {_peerUserIndex.Count} sessions found", new { });
                 return null;
             }
         }
