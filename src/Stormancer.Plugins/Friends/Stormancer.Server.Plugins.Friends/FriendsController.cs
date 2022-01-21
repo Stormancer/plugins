@@ -46,12 +46,15 @@ namespace Stormancer.Server.Plugins.Friends
             _friends = friends;
             _users = users;
         }
-        protected override Task OnConnected(IScenePeerClient peer)=> _friends.Subscribe(peer, System.Threading.CancellationToken.None);
 
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public Task Subscribe(RequestContext<IScenePeerClient> ctx)
+        {
+            return _friends.Subscribe(ctx.RemotePeer, ctx.CancellationToken);
+        }
 
         protected override Task OnDisconnected(DisconnectedArgs args) => _friends.Unsubscribe(args.Peer, System.Threading.CancellationToken.None);
        
-
         public async Task InviteFriend(RequestContext<IScenePeerClient> ctx)
         {
             var friendId = ctx.ReadObject<string>();
