@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Fixed
+*****
+- Fixed issue that prevented the quickqueue gamefinder from creating a team in an already existing gamesession.
+
 7.2.1
 -----
 Added
