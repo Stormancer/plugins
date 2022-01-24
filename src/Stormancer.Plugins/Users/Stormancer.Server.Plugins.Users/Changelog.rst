@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+
+5.2.3.3
+-------
+Fixed
+*****
+- Remove log when session not found in release.
 5.2.3.2
 -------
 Fixed
