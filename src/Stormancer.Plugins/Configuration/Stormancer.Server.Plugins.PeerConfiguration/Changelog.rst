@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+0.1.0.2
+-------
 Added
 *****
 - Initial release of the PeerConfiguration plugin. The plugin synchronizes a configuration from a subsection of the SA config to client peers, with the possibility of grouping the peers into group and sending different configurations to each groups.

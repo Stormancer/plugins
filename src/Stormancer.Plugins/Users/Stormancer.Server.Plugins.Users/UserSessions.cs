@@ -414,7 +414,9 @@ namespace Stormancer.Server.Plugins.Users
             }
             else
             {
+#if DEBUG
                 logger.Log(LogLevel.Warn, "usersession", $"Get session failed for id {sessionId}, {_peerUserIndex.Count} sessions found", new { });
+#endif
                 return null;
             }
         }

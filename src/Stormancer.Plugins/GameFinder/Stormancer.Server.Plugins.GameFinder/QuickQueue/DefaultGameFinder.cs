@@ -177,6 +177,48 @@ namespace Stormancer.Server.Plugins.GameFinder
 
                                         }
                                     }
+
+                                    //can I create new team ?
+                                    if(party.Players.Count < teamSize && session.Source.TargetTeamCount > session.Source.Teams.Count)
+                                    {
+                                        var team = new Team(party);
+                                        var reservation = await gameSessions.CreateReservation(session.Id,team  , new JObject(), CancellationToken.None);
+
+                                        if (reservation != null)
+                                        {
+                                            session.Source.Teams.Add(new QuickQueueGameSessionTeamData { PlayerCount = party.Players.Count, TeamId = team.TeamId });
+                                            
+                                            //Add game to result
+                                            var game = results.Games.FirstOrDefault(g => g.Id == session.Id);
+                                            if (game != null)
+                                            {
+                                                var gameTeam = game.Teams.FirstOrDefault(t => t.TeamId == team.TeamId);
+                                                if (gameTeam != null)
+                                                {
+                                                    gameTeam.Parties.Add(party);
+                                                }
+                                                else
+                                                {
+                                                    game.Teams.Add(new Team(party) { TeamId = team.TeamId });
+                                                }
+                                            }
+                                            else
+                                            {
+                                                game = new ExistingGame(session.Id);
+                                                game.Teams.Add(new Team(party) { TeamId = team.TeamId });
+                                            }
+                                            p.Remove(party);
+                                            return sessions;
+                                        }
+                                        else
+                                        {
+                                            //We should have been able to do a reservation. As we didn't, we need to retry.
+                                            return (await QueryGameSessions(group.Key)).OrderBy(session => session.Source.CreatedOn).ToList();
+
+
+                                        }
+                                    }
+
                                 }
                                 {
                                     //No session found that can contain the party. Create a new one.
