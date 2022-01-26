@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Fix handlers (use a request scope in sequential operations)
+
 4.1.2.1
 -------
 Changed
