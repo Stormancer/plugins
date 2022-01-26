@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Fix GameSessionService.PeerConnectionRejected
+
 5.3.0
 -----
 Added
