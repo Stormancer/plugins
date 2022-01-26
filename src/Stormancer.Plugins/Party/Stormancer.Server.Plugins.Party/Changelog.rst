@@ -14,6 +14,7 @@ Unreleased
 Changed
 *******
 - Fix handlers (use a request scope in sequential operations)
+- FindGame returns false on error
 
 4.1.2.1
 -------

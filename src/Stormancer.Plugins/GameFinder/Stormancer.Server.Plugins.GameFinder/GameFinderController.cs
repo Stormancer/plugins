@@ -60,7 +60,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <param name="request"></param>
         /// <returns></returns>
         [S2SApi( Route= FindGameS2SRoute)]
-        public Task FindGame(Models.Party party, IS2SRequestContext request)
+        public Task<bool> FindGame(Models.Party party, IS2SRequestContext request)
         {
             return _gameFinderService.FindGame(party, request.CancellationToken);
         }

@@ -595,7 +595,12 @@ namespace Stormancer.Server.Plugins.Party
             try
             {
                 //var sceneUri = await _locator.GetSceneId("stormancer.plugins.gamefinder", );
-                await _gameFinderClient.FindGame(_partyState.Settings.GameFinderName, gameFinderRequest, _partyState.FindGameCts?.Token ?? CancellationToken.None);
+                var success = await _gameFinderClient.FindGame(_partyState.Settings.GameFinderName, gameFinderRequest, _partyState.FindGameCts?.Token ?? CancellationToken.None);
+
+                if (!success)
+                {
+                    BroadcastFFNotification(GameFinderFailedRoute, new GameFinderFailureDto { });
+                }
             }
             catch (OperationCanceledException)
             {

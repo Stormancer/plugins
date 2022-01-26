@@ -176,20 +176,12 @@ namespace Stormancer.Server.Plugins.GameFinder
             _data.readyCheckTimeout = (int)(specificConfig?.readyCheck?.timeout ?? 1000);
         }
 
-        public async Task FindGame(Party party, CancellationToken ct)
+        public async Task<bool> FindGame(Party party, CancellationToken ct)
         {
             if (!_data.acceptRequests)
             {
-                throw new ClientException("gamefinder.disabled?reason=deploymentNotActive");
-            }
-
-            try
-            {
-            }
-            catch (Exception)
-            {
-                await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Failed), ct);
-                throw;
+                //throw new ClientException("gamefinder.disabled?reason=deploymentNotActive");
+                return false;
             }
 
             PlayerPeer[]? peersInGroup = null;
@@ -215,7 +207,8 @@ namespace Stormancer.Server.Plugins.GameFinder
                 {
                     if (p.Peer == null)
                     {
-                        throw new ClientException($"'{p.Player.UserId} has disconnected.");
+                        //throw new ClientException($"'{p.Player.UserId} has disconnected.");
+                        return false;
                     }
                     //If player already waiting just replace infos instead of failing
                     //if (_data.peersToGroup.ContainsKey(p.Peer.Id))
@@ -264,6 +257,10 @@ namespace Stormancer.Server.Plugins.GameFinder
             {
                 await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Cancelled), CancellationToken.None);
             }
+            catch (Exception)
+            {
+                return false;
+            }
             finally //Always remove party from list.
             {
                 foreach (var p in peersInGroup)
@@ -286,6 +283,8 @@ namespace Stormancer.Server.Plugins.GameFinder
                     }
                 }
             }
+
+            return true;
         }
 
         public async Task Run(CancellationToken ct)
