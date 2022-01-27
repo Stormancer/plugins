@@ -54,7 +54,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <param name="party"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        Task<bool> FindGame(Party party, CancellationToken ct);
+        Task<FindGameResult> FindGame(Party party, CancellationToken ct);
       
         /// <summary>
         /// Cancels a pending game search.

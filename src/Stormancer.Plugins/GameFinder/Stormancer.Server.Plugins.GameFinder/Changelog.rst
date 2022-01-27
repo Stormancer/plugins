@@ -13,7 +13,7 @@ Unreleased
 ----------
 Changed
 *******
-- FindGame returns false on error
+- FindGame returns false and an error message on failure
 
 7.2.1.1
 -------
