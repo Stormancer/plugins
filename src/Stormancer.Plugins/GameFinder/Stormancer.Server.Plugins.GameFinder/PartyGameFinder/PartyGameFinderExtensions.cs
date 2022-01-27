@@ -61,6 +61,18 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// Id of the template the game finder should use to create game session scenes.
         /// </summary>
         public string gameSessionTemplate { get; set; } = "gameSession";
+
+        /// <summary>
+        /// Is the party leader the host of gamesession?
+        /// </summary>
+        public bool partyLeaderIsHost { get; set; } = false;
+
+        public PartyGameFinderOptions PartyLeaderIsHost(bool value)
+        {
+            partyLeaderIsHost = value;
+            return this;
+        }
+
         /// <summary>
         /// Sets the template to use to create gamesessions.
         /// </summary>
