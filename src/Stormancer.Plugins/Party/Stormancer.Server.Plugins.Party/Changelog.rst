@@ -14,7 +14,7 @@ Unreleased
 Changed
 *******
 - Fix handlers (use a request scope in sequential operations)
-- FindGame returns false on error
+- FindGame returns false and message error on failure
 
 4.1.2.1
 -------
