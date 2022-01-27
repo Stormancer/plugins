@@ -30,12 +30,10 @@ namespace Stormancer.Server.Plugins.Profile
     class PseudoProfilePart : IProfilePartBuilder
     {
         private readonly IUserService _users;
-        private readonly IUserSessions _sessions;
 
-        public PseudoProfilePart(IUserService users, IUserSessions sessions)
+        public PseudoProfilePart(IUserService users)
         {
             _users = users;
-            _sessions = sessions;
         }
 
         public async Task GetProfiles(ProfileCtx ctx, CancellationToken cancellationToken)
@@ -45,35 +43,36 @@ namespace Stormancer.Server.Plugins.Profile
                 return;
             }
 
-            //TODO: Optimize.
-            foreach (var id in ctx.Users)
+            var users = await _users.GetUsers(ctx.Users, cancellationToken);
+
+            foreach (var pair in users)
             {
-                // Prefer to retrieve the user directly from the session. If the user is offline, use the database.
-                var session = await _sessions.GetSessionByUserId(id, cancellationToken);
-                var user = session?.User ?? await _users.GetUser(id);
-                ctx.UpdateProfileData(id, "user", j =>
-                  {
-                      if (user != null)
-                      {
-                          j["lastPlatform"] = user.LastPlatform ?? "";
+                var userId = pair.Key;
+                var user = pair.Value;
 
-                          if (!j.ContainsKey("platforms"))
-                          {
-                              j["platforms"] = new JObject();
-                          }
+                ctx.UpdateProfileData(userId, "user", j =>
+                {
+                    if (user != null)
+                    {
+                        j["lastPlatform"] = user.LastPlatform ?? "";
 
-                          if (!j.ContainsKey("handle") && user.UserData.ContainsKey("handle"))
-                          {
-                              j["userhandle"] = user.UserData["handle"];
-                          }
+                        if (!j.ContainsKey("platforms"))
+                        {
+                            j["platforms"] = new JObject();
+                        }
 
-                          if (!j.ContainsKey("pseudo") && user.UserData.ContainsKey("pseudo"))
-                          {
-                              j["pseudo"] = user.UserData["pseudo"];
-                          }
-                      }
-                      return j;
-                  });
+                        if (!j.ContainsKey("handle") && user.UserData.ContainsKey("handle"))
+                        {
+                            j["userhandle"] = user.UserData["handle"];
+                        }
+
+                        if (!j.ContainsKey("pseudo") && user.UserData.ContainsKey("pseudo"))
+                        {
+                            j["pseudo"] = user.UserData["pseudo"];
+                        }
+                    }
+                    return j;
+                });
             }
         }
     }
