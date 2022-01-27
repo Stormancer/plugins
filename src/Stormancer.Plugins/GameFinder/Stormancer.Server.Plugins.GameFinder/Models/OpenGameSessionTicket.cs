@@ -67,7 +67,6 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         public List<Team> Teams { get; }
 
-        IEnumerable<Team> IGameCandidate.Teams { get => Teams; }
 
         /// <summary>
         /// Id of the GameSession scene for this ticket.

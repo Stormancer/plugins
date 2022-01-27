@@ -220,7 +220,7 @@ namespace Stormancer.Server.Plugins.Steam
                                         partySettingsDto.PublicServerData = new();
                                     }
                                     partySettingsDto.PublicServerData["SteamIDLobby"] = steamIDLobby.ToString();
-                                    _ = ctx.Party.UpdateSettings(partySettingsDto);
+                                    _ = ctx.Party.UpdateSettings(partySettingsDto, CancellationToken.None);
                                     data.SteamIDLobby = steamIDLobby;
                                 }
                                 else

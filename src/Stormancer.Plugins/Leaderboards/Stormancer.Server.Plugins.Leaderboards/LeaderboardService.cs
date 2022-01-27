@@ -379,18 +379,15 @@ namespace Stormancer.Server.Plugins.Leaderboards
                     {
                         return new LeaderboardResult<ScoreRecord> { LeaderboardName = leaderboardQuery.Name, Results = new List<LeaderboardRanking<ScoreRecord>>() };
                     }
-                    _logger.Log(LogLevel.Error, "leaderboard", "failed to process query request.", new { result.ServerError, leaderboardQuery });
                     throw new InvalidOperationException($"Failed to query leaderboard : {result.ServerError.Error.Reason}");
                 }
                 else if (result.OriginalException != null)
                 {
-                    _logger.Log(LogLevel.Error, "leaderboard", "failed to process query request.", new { result.OriginalException, leaderboardQuery });
                     throw new InvalidOperationException($"Failed to query leaderboard : {result.OriginalException.Message}", result.OriginalException);
                 }
                 else
                 {
-                    _logger.Log(LogLevel.Error, "leaderboard", "failed to process query request: an unknown error occurred.", new { leaderboardQuery });
-                    throw new InvalidOperationException($"Failed to query leaderboard: an unknown error occurred.");
+                    throw new InvalidOperationException($"Failed to query leaderboard : an unknown error occurred.");
                 }
             }
             var documents = result.Documents.ToList();
@@ -416,8 +413,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 }
                 catch (InvalidOperationException ex)
                 {
-                    _logger.Log(LogLevel.Error, "leaderboard", ex.Message, ex);
-                    throw new InvalidOperationException($"Failed to query leaderboard : {ex.Message}");
+                    throw new InvalidOperationException($"Failed to query leaderboard", ex);
                 }
                 var rank = firstRank;
                 var lastScore = double.MaxValue;
@@ -664,7 +660,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
                         else if (score.NewValue != null && score.OldValue == null)
                         {
                             var index = GetIndex(score.NewValue.LeaderboardName);
-                            _logger.Log(LogLevel.Debug, "leaderboard", $"Adding score {score.NewValue.Id} to leaderboard {score.NewValue.LeaderboardName}", new { score = score.NewValue, index });
+                            
                             desc = desc.Create<ScoreRecord>(s => s
                                 .Id(GetDocumentId(score.NewValue.LeaderboardName, score.NewValue.Id))
                                 .Document(score.NewValue)

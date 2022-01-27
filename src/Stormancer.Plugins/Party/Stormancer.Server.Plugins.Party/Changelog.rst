@@ -11,6 +11,38 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Changed
+*******
+- Fix handlers (use a request scope in sequential operations)
+- FindGame returns false and message error on failure
+
+4.1.2.1
+-------
+Changed
+*******
+- PartyService use PartyController cancellation tokens
+
+4.1.2
+-----
+Changed
+*******
+- Fix handlers in case scope destroyed
+- PartyService use PartyController cancellation tokens
+
+4.1.1.6
+-------
+Changed
+*******
+- Catch OperationCanceledException instead of TaskCanceledException to avoid useless server log spams when FindGame is canceled by clients.
+
+4.1.1.5
+-------
+Changed
+*******
+- Add Reason in JoiningPartyContext
+
+4.1.1.4
+-------
 Fixed
 *****
 - Let Gamefinder proxy locate the gamefinder scene from the service name instead of doing that in the party plugin.

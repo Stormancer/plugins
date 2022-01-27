@@ -348,34 +348,21 @@ namespace Stormancer.Server.Plugins.Users
                     try
                     {
                         using var packet = await peer.Rpc(RenewCredentialsRoute, s => peer.Serializer().Serialize(provider.Type, s));
-                        var position = packet.Stream.Position;
-                        try
+                        var parameters = peer.Serializer().Deserialize<RenewCredentialsParameters>(packet.Stream);
+
+                        var ctx = new AuthenticationContext(parameters.Parameters, peer, session.CreateView());
+                        var expiration = await provider.RenewCredentials(ctx);
+                        if (expiration.HasValue)
                         {
-                            var parameters = peer.Serializer().Deserialize<RenewCredentialsParameters>(packet.Stream);
-
-
-                            var ctx = new AuthenticationContext(parameters.Parameters, peer, session.CreateView());
-                            var expiration = await provider.RenewCredentials(ctx);
-                            if (expiration.HasValue)
+                            session.AuthenticationExpirationDates[provider.Type] = expiration.Value;
+                            if (!closestExpirationDate.HasValue || expiration.Value < closestExpirationDate.Value)
                             {
-                                session.AuthenticationExpirationDates[provider.Type] = expiration.Value;
-                                if (!closestExpirationDate.HasValue || expiration.Value < closestExpirationDate.Value)
-                                {
-                                    closestExpirationDate = expiration.Value;
-                                }
-                            }
-                            else
-                            {
-                                session.AuthenticationExpirationDates.Remove(provider.Type);
+                                closestExpirationDate = expiration.Value;
                             }
                         }
-                        catch (Exception)
+                        else
                         {
-                            packet.Stream.Seek(position, SeekOrigin.Begin);
-                            var data = new byte[packet.Stream.Length - packet.Stream.Position];
-                            packet.Stream.Read(data);
-                            _logger.Log(LogLevel.Error, "authentication.renewCredentials", "an error occured while renewing credentials", new { data = Convert.ToBase64String(data) }); ;
-                            throw;
+                            session.AuthenticationExpirationDates.Remove(provider.Type);
                         }
                     }
                     catch (OperationCanceledException ex) when (ex.Message == "Peer disconnected")
@@ -391,7 +378,8 @@ namespace Stormancer.Server.Plugins.Users
                                 Provider = provider.Type,
                                 SessionId = session.SessionId,
                                 UserId = session.User?.Id
-                            }, provider.Type, session.SessionId, session.User?.Id ?? "");
+                            }, provider.Type, session.SessionId, session.User?.Id ?? ""
+                        );
 
                         await peer.DisconnectFromServer($"authentication.renewCredentialsError?provider={provider.Type}");
                         return null;

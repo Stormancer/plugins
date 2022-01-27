@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+2.1.0.3
+-------
+Changed
+*******
+- ES password can now be retrieved from the secrets store.
+
 2.1.0.1
 -----
 Added

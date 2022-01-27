@@ -153,6 +153,7 @@ namespace Stormancer.Server.Plugins.Users
 
             //b.Register<UserSessionCache>(dr => new UserSessionCache(dr.Resolve<ISceneHost>(), dr.Resolve<ISerializer>(), dr.Resolve<ILogger>())).AsSelf().InstancePerScene();
             b.Register<PlatformSpecificServices>().As<IPlatformSpecificServices>();
+            b.Register<Analytics.AnalyticsEventHandler>().As<IUserSessionEventHandler>();
         }
 
         private void HostStarting(IHost host)

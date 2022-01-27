@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+3.0.3.3
+-------
 Changed
 *******
 - Explicitely set msgpack field order

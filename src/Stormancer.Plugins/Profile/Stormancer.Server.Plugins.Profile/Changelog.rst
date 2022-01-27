@@ -11,6 +11,12 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Changed
+*******
+- Optimize PseudoProfilePart
+
+2.4.1.2
+-------
 Added
 *****
 - Added field lastPlatform in user profile part

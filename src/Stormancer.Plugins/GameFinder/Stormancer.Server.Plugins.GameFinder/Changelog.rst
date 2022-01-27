@@ -11,14 +11,31 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Changed
+*******
+- FindGame returns false and an error message on failure
+Added
+*****
+- Added LeaderPartyIsHost parameter to party gamefinder.
+
+7.2.1.1
+-------
+Fixed
+*****
+- Fixed issue that prevented the quickqueue gamefinder from creating a team in an already existing gamesession.
+
+7.2.1
+-----
+Added
+*****
+- Added support in quick queue to join existing games if 'allowJoinExistingGame' is true in the gamefinder quickqueue config.
+
+7.1.0.3
+-------
 Fixed
 *****
 - Fix code generator configuration to search GameFinder scene with the proper service type (gamefinder and not gamesession).
 - Add AreCompatible event handlers
-- Fix AreCompatible event handlers
-Added
-*****
-- Added LeaderPartyIsHost parameter to party gamefinder.
 
 7.0.0
 -----

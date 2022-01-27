@@ -20,7 +20,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
@@ -34,6 +33,7 @@ using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
@@ -86,7 +86,8 @@ namespace Stormancer.Server.Plugins.Party
             IUserService users,
             IEnumerable<IPartyPlatformSupport> platformSupports,
             StormancerPartyPlatformSupport stormancerPartyPlatformSupport,
-            InvitationCodeService invitationCodes)
+            InvitationCodeService invitationCodes
+        )
         {
             _handlers = handlers;
             _scene = scene;
@@ -101,7 +102,6 @@ namespace Stormancer.Server.Plugins.Party
             _stormancerPartyPlatformSupport = stormancerPartyPlatformSupport;
             this.invitationCodes = invitationCodes;
             ApplySettings(configuration.Settings);
-            
         }
 
         private const string JoinDeniedError = "party.joinDenied";
@@ -166,6 +166,7 @@ namespace Stormancer.Server.Plugins.Party
 
         internal async Task OnConnecting(IScenePeerClient peer)
         {
+            var handlers = _handlers();
             await _partyState.TaskQueue.PushWork(async () =>
             {
                 //Todo jojo later
@@ -190,11 +191,16 @@ namespace Stormancer.Server.Plugins.Party
                 }
 
                 var ctx = new JoiningPartyContext(this, session, _partyState.PendingAcceptedPeers.Count + _partyState.PartyMembers.Count);
-                await _handlers().RunEventHandler(h => h.OnJoining(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnJoining", ex));
+                await handlers.RunEventHandler(h => h.OnJoining(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnJoining", ex));
                 if (!ctx.Accept)
                 {
                     Log(LogLevel.Trace, "OnConnecting", "Join denied by event handler", peer.SessionId, session.User?.Id);
-                    throw new ClientException(JoinDeniedError);
+                    var message = JoinDeniedError;
+                    if (!string.IsNullOrWhiteSpace(ctx.Reason))
+                    {
+                        message += $"?reason={ctx.Reason}";
+                    }
+                    throw new ClientException(message);
                 }
 
                 Log(LogLevel.Trace, "OnConnecting", "Join accepted", peer.SessionId, session.User?.Id);
@@ -230,14 +236,14 @@ namespace Stormancer.Server.Plugins.Party
             {
                 _partyState.PendingAcceptedPeers.Remove(peer);
                 var session = await _userSessions.GetSession(peer, CancellationToken.None);
-               
+
                 if (session == null)
                 {
                     await peer.Disconnect(GenericJoinError);
                     return;
                 }
                 var user = session.User;
-                
+
 
                 var partyUser = new PartyMember { UserId = user.Id, StatusInParty = PartyMemberStatus.NotReady, Peer = peer };
                 _partyState.PartyMembers.TryAdd(peer.SessionId, partyUser);
@@ -334,17 +340,27 @@ namespace Stormancer.Server.Plugins.Party
             }
         }
 
-        public async Task UpdateSettings(PartySettingsDto partySettingsDto)
+        public async Task UpdateSettings(PartySettingsDto partySettingsDto, CancellationToken ct)
         {
             await _partyState.TaskQueue.PushWork(async () =>
             {
+                if (ct.IsCancellationRequested)
+                {
+                    return;
+                }
+
                 if (partySettingsDto.GameFinderName == "")
                 {
                     throw new ClientException(GameFinderNameError);
                 }
+
+                await using var scope = _scene.CreateRequestScope();
+                var handlers = scope.Resolve<IEnumerable<IPartyEventHandler>>();
+
                 var originalDto = partySettingsDto.Clone();
                 var ctx = new PartySettingsUpdateCtx(this, partySettingsDto);
-                await _handlers().RunEventHandler(h => h.OnUpdatingSettings(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnUpdatingSettings", ex));
+
+                await handlers.RunEventHandler(h => h.OnUpdatingSettings(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnUpdatingSettings", ex));
 
                 if (!ctx.ApplyChanges)
                 {
@@ -353,7 +369,7 @@ namespace Stormancer.Server.Plugins.Party
                 }
 
                 Log(LogLevel.Trace, "UpdateSettings", "Settings update accepted", partySettingsDto);
-                await _handlers().RunEventHandler(h => h.OnUpdateSettings(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnUpdateSettings", ex));
+                await handlers.RunEventHandler(h => h.OnUpdateSettings(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnUpdateSettings", ex));
 
                 // If the event handlers have modified the settings, we need to notify the leader to invalidate their local copy.
                 // Make an additional bump to the version number to achieve this.
@@ -377,13 +393,10 @@ namespace Stormancer.Server.Plugins.Party
 
                 Dictionary<PartyMember, PartySettingsUpdateDto> updates = _partyState.PartyMembers.Values.ToDictionary(m => m, _ => new PartySettingsUpdateDto(_partyState));
 
-                await _handlers().RunEventHandler(h => h.OnSendingSettingsUpdateToMembers(new PartySettingsMemberUpdateCtx(this, updates)),
+                await handlers.RunEventHandler(h => h.OnSendingSettingsUpdateToMembers(new PartySettingsMemberUpdateCtx(this, updates)),
                 ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnSendingSettingsToMember", ex));
 
-                await BroadcastStateUpdateRpc(
-                    PartySettingsUpdateDto.Route,
-                    updates
-                    );
+                await BroadcastStateUpdateRpc(PartySettingsUpdateDto.Route, updates);
             });
         }
 
@@ -393,7 +406,7 @@ namespace Stormancer.Server.Plugins.Party
         /// <param name="partyUserStatus"></param>
         /// <param name="userId"></param>
         /// <returns></returns>
-        public async Task UpdateGameFinderPlayerStatus(string userId, PartyMemberStatusUpdateRequest partyUserStatus)
+        public async Task UpdateGameFinderPlayerStatus(string userId, PartyMemberStatusUpdateRequest partyUserStatus, CancellationToken ct)
         {
             if (string.IsNullOrEmpty(userId))
             {
@@ -405,8 +418,13 @@ namespace Stormancer.Server.Plugins.Party
                 throw new ArgumentNullException(nameof(partyUserStatus));
             }
 
+            var handlers = _handlers();
             await _partyState.TaskQueue.PushWork(async () =>
             {
+                if (ct.IsCancellationRequested)
+                {
+                    return;
+                }
 
                 if (!TryGetMemberByUserId(userId, out var user))
                 {
@@ -431,7 +449,7 @@ namespace Stormancer.Server.Plugins.Party
                 await BroadcastStateUpdateRpc(BatchStatusUpdate.Route, update);
 
                 var eventHandlerCtx = new PlayerReadyStateContext(this, user);
-                await _handlers().RunEventHandler(h => h.OnPlayerReadyStateChanged(eventHandlerCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnPlayerReadyStateChanged", ex));
+                await handlers.RunEventHandler(h => h.OnPlayerReadyStateChanged(eventHandlerCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnPlayerReadyStateChanged", ex));
 
                 bool shouldLaunchGameFinderRequest = false;
                 switch (eventHandlerCtx.GameFinderPolicy)
@@ -471,10 +489,14 @@ namespace Stormancer.Server.Plugins.Party
 
         public string PartyId => _scene.Id;
 
-        public async Task UpdatePartyUserData(string userId, byte[] data)
+        public async Task UpdatePartyUserData(string userId, byte[] data, CancellationToken ct)
         {
             await _partyState.TaskQueue.PushWork(async () =>
             {
+                if (ct.IsCancellationRequested)
+                {
+                    return;
+                }
 
                 if (!TryGetMemberByUserId(userId, out var partyUser))
                 {
@@ -488,10 +510,15 @@ namespace Stormancer.Server.Plugins.Party
             });
         }
 
-        public async Task PromoteLeader(string playerToPromote)
+        public async Task PromoteLeader(string playerToPromote, CancellationToken ct)
         {
             await _partyState.TaskQueue.PushWork(async () =>
             {
+                if (ct.IsCancellationRequested)
+                {
+                    return;
+                }
+
                 PartyMember user;
                 if (!TryGetMemberByUserId(playerToPromote, out user))
                 {
@@ -510,14 +537,17 @@ namespace Stormancer.Server.Plugins.Party
             });
         }
 
-        public async Task KickPlayerByLeader(string playerToKick)
+        public async Task KickPlayerByLeader(string playerToKick, CancellationToken ct)
         {
             await _partyState.TaskQueue.PushWork(async () =>
             {
+                if (ct.IsCancellationRequested)
+                {
+                    return;
+                }
+
                 if (TryGetMemberByUserId(playerToKick, out var partyUser))
                 {
-
-
                     if (playerToKick == _partyState.Settings.PartyLeaderId)
                     {
                         throw new ClientException(CannotKickLeaderError);
@@ -565,15 +595,18 @@ namespace Stormancer.Server.Plugins.Party
             try
             {
                 //var sceneUri = await _locator.GetSceneId("stormancer.plugins.gamefinder", );
-                await _gameFinderClient.FindGame(_partyState.Settings.GameFinderName, gameFinderRequest, _partyState.FindGameCts?.Token ?? CancellationToken.None);
-            }
-            catch (TaskCanceledException)
-            {
+                var findGameResult = await _gameFinderClient.FindGame(_partyState.Settings.GameFinderName, gameFinderRequest, _partyState.FindGameCts?.Token ?? CancellationToken.None);
 
+                if (!findGameResult.Success)
+                {
+                    BroadcastFFNotification(GameFinderFailedRoute, new GameFinderFailureDto { Reason = findGameResult.ErrorMsg });
+                }
+            }
+            catch (OperationCanceledException)
+            {
             }
             catch (RpcException ex) when (ex.Message.Contains("disconnected")) //Player disconnected during matchmaking.
             {
-
             }
             catch (Exception ex)
             {
@@ -696,17 +729,23 @@ namespace Stormancer.Server.Plugins.Party
             _scene.Broadcast(route, data);
         }
 
-        public async Task SendPartyState(string recipientUserId)
+        public async Task SendPartyState(string recipientUserId, CancellationToken ct)
         {
+            var handlers = _handlers();
             await _partyState.TaskQueue.PushWork(async () =>
             {
+                if (ct.IsCancellationRequested)
+                {
+                    return;
+                }
+
                 PartyMember member;
                 if (!TryGetMemberByUserId(recipientUserId, out member))
                 {
                     throw new ClientException(NoSuchMemberError(recipientUserId));
                 }
 
-                var state = await MakePartyStateDto(member);
+                var state = await MakePartyStateDto(member, handlers);
 
                 using (var cts = new CancellationTokenSource())
                 {
@@ -725,11 +764,17 @@ namespace Stormancer.Server.Plugins.Party
 
         public async Task SendPartyStateAsRequestAnswer(RequestContext<IScenePeerClient> ctx)
         {
+            var handlers = _handlers();
             await _partyState.TaskQueue.PushWork(async () =>
             {
+                if (ctx.CancellationToken.IsCancellationRequested)
+                {
+                    throw new TaskCanceledException();
+                }
+
                 if (_partyState.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
                 {
-                    var dto = await MakePartyStateDto(member);
+                    var dto = await MakePartyStateDto(member, handlers);
 
                     return ctx.SendValue(dto);
                 }
@@ -740,7 +785,7 @@ namespace Stormancer.Server.Plugins.Party
             });
         }
 
-        private async Task<PartyStateDto> MakePartyStateDto(PartyMember recipient)
+        private async Task<PartyStateDto> MakePartyStateDto(PartyMember recipient, IEnumerable<IPartyEventHandler> handlers)
         {
             var dto = new PartyStateDto
             {
@@ -751,9 +796,16 @@ namespace Stormancer.Server.Plugins.Party
                 Version = _partyState.VersionNumber
             };
 
-            await _handlers().RunEventHandler(
-                h => h.OnSendingSettingsUpdateToMembers(new PartySettingsMemberUpdateCtx(this, new Dictionary<PartyMember, PartySettingsUpdateDto> { { recipient, dto.Settings } })),
-                ex => Log(LogLevel.Error, "MakePartyStateDto", "An exception was thrown by a OnSendingSettingsUpdateToMembers handler"));
+            await handlers.RunEventHandler(
+                h => h.OnSendingSettingsUpdateToMembers(
+                    new PartySettingsMemberUpdateCtx(
+                        this,
+                        new Dictionary<PartyMember,
+                        PartySettingsUpdateDto> { { recipient, dto.Settings } }
+                    )
+                ),
+                ex => Log(LogLevel.Error, "MakePartyStateDto", "An exception was thrown by a OnSendingSettingsUpdateToMembers handler")
+            );
 
             return dto;
         }
@@ -913,6 +965,6 @@ namespace Stormancer.Server.Plugins.Party
             invitationCodes.CancelCode(this._scene);
         }
 
-        
+
     }
 }

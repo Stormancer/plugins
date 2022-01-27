@@ -40,7 +40,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         }
         public string Id { get; }
 
-        public IEnumerable<Team> Teams { get; set; } = new List<Team>();
+        public List<Team> Teams { get; set; } = new List<Team>();
     }
 
     /// <summary>
@@ -89,7 +89,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         public IEnumerable<Party> AllParties => Teams.SelectMany(team => team.Parties);
 
         [MessagePackIgnore]
-        IEnumerable<Team> IGameCandidate.Teams { get => Teams; }
+        List<Team> IGameCandidate.Teams { get => Teams; }
 
         /// <summary>
         /// Gets a sequence of all players in the game.

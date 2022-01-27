@@ -111,6 +111,12 @@ namespace Stormancer.Server.Plugins.GameFinder
         public IEnumerable<Party> Value { get; }
     }
 
+    public struct FindGameResult
+    {
+        public bool Success { get; set; }
+        public string ErrorMsg { get; set; }
+    }
+
     internal class GameFinderService : IGameFinderService, IConfigurationChangedEventHandler
     {
         private const string UPDATE_NOTIFICATION_ROUTE = "gamefinder.update";
@@ -176,115 +182,120 @@ namespace Stormancer.Server.Plugins.GameFinder
             _data.readyCheckTimeout = (int)(specificConfig?.readyCheck?.timeout ?? 1000);
         }
 
-        public async Task FindGame(Party party, CancellationToken ct)
+        public async Task<FindGameResult> FindGame(Party party, CancellationToken ct)
         {
-            if (!_data.acceptRequests)
-            {
-                throw new ClientException("gamefinder.disabled?reason=deploymentNotActive");
-            }
-
             try
             {
-            }
-            catch (Exception)
-            {
-                await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Failed), ct);
-                throw;
-            }
 
-            PlayerPeer[]? peersInGroup = null;
-            await using (var scope = _scene.DependencyResolver.CreateChild(Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
-            {
-                var sessions = scope.Resolve<IUserSessions>();
-                peersInGroup = await Task.WhenAll(party.Players.Select(async p =>
+                if (!_data.acceptRequests)
                 {
-                    var peer = await sessions.GetPeer(p.Value.UserId, ct);
-
-                    if (peer == null)
-                    {
-                        throw new ClientException($"'{p.Value.UserId} has disconnected.");
-                    }
-                    return new PlayerPeer { Peer = peer, Player = p.Value };
-                }));
-            }
-            var state = new GameFinderRequestState(party);
-
-            try
-            {
-                foreach (var p in peersInGroup)
-                {
-                    if (p.Peer == null)
-                    {
-                        throw new ClientException($"'{p.Player.UserId} has disconnected.");
-                    }
-                    //If player already waiting just replace infos instead of failing
-                    //if (_data.peersToGroup.ContainsKey(p.Peer.Id))
-                    //{
-                    //    throw new ClientException($"'{p.Player.UserId} is already waiting for a game.");
-                    //}
+                    return new FindGameResult { Success = false, ErrorMsg = "gamefinder.disabled?reason=deploymentNotActive" };
                 }
 
-                _data.waitingParties[party] = state;
-                foreach (var p in peersInGroup)
+                PlayerPeer[]? peersInGroup = null;
+                await using (var scope = _scene.DependencyResolver.CreateChild(Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
                 {
-                    _data.peersToGroup[p.Peer.SessionId] = party;
-                }
-
-                ct.Register(() =>
-                {
-                    state.Tcs.TrySetCanceled();
-                });
-
-                var memStream = new MemoryStream();
-                //requestS2S.InputStream.Seek(0, SeekOrigin.Begin);
-                //requestS2S.InputStream.CopyTo(memStream);
-                //await BroadcastToPlayers(party, UPDATE_FINDGAME_REQUEST_PARAMS_ROUTE, (s, sz) =>
-                //{
-                //    memStream.Seek(0, System.IO.SeekOrigin.Begin);
-                //    memStream.CopyTo(s);
-                //});
-                await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) =>
-                {
-                    s.WriteByte((byte)GameFinderStatusUpdate.SearchStart);
-
-                }, ct);
-                state.State = RequestState.Ready;
-            }
-            catch (Exception ex)
-            {
-                state.Tcs.SetException(ex);
-                await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Failed), ct);
-            }
-
-            try
-            {
-                await state.Tcs.Task;
-            }
-            catch (TaskCanceledException)
-            {
-                await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Cancelled), CancellationToken.None);
-            }
-            finally //Always remove party from list.
-            {
-                foreach (var p in peersInGroup)
-                {
-                    if (p?.Peer?.SessionId != null)
+                    var sessions = scope.Resolve<IUserSessions>();
+                    peersInGroup = await Task.WhenAll(party.Players.Select(async p =>
                     {
-                        _data.peersToGroup.TryRemove(p.Peer.SessionId, out _);
-                    }
-                }
+                        var peer = await sessions.GetPeer(p.Value.UserId, ct);
 
-                if (_data.waitingParties.TryRemove(party, out var group) && group.Candidate != null)
-                {
-                    if (_pendingReadyChecks.TryGetValue(group.Candidate.Id, out var rc))
-                    {
-                        if (!rc.RanToCompletion)
+                        if (peer == null)
                         {
-                            // Todo jojo What can i do with this ?
-                            //rc.Cancel(currentUser.Id);
+                            throw new ClientException($"'{p.Value.UserId} has disconnected.");
+                        }
+                        return new PlayerPeer { Peer = peer, Player = p.Value };
+                    }));
+                }
+                var state = new GameFinderRequestState(party);
+
+                try
+                {
+                    foreach (var p in peersInGroup)
+                    {
+                        if (p.Peer == null)
+                        {
+                            return new FindGameResult { Success = false, ErrorMsg = $"'{p.Player.UserId} has disconnected." };
+                        }
+                        //If player already waiting just replace infos instead of failing
+                        //if (_data.peersToGroup.ContainsKey(p.Peer.Id))
+                        //{
+                        //    throw new ClientException($"'{p.Player.UserId} is already waiting for a game.");
+                        //}
+                    }
+
+                    _data.waitingParties[party] = state;
+                    foreach (var p in peersInGroup)
+                    {
+                        _data.peersToGroup[p.Peer.SessionId] = party;
+                    }
+
+                    ct.Register(() =>
+                    {
+                        state.Tcs.TrySetCanceled();
+                    });
+
+                    var memStream = new MemoryStream();
+                    //requestS2S.InputStream.Seek(0, SeekOrigin.Begin);
+                    //requestS2S.InputStream.CopyTo(memStream);
+                    //await BroadcastToPlayers(party, UPDATE_FINDGAME_REQUEST_PARAMS_ROUTE, (s, sz) =>
+                    //{
+                    //    memStream.Seek(0, System.IO.SeekOrigin.Begin);
+                    //    memStream.CopyTo(s);
+                    //});
+                    await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) =>
+                    {
+                        s.WriteByte((byte)GameFinderStatusUpdate.SearchStart);
+
+                    }, ct);
+                    state.State = RequestState.Ready;
+                }
+                catch (Exception ex)
+                {
+                    state.Tcs.SetException(ex);
+                    await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Failed), ct);
+                }
+
+                try
+                {
+                    await state.Tcs.Task;
+                }
+                catch (TaskCanceledException)
+                {
+                    await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Cancelled), CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    return new FindGameResult { Success = false, ErrorMsg = ex.Message };
+                }
+                finally //Always remove party from list.
+                {
+                    foreach (var p in peersInGroup)
+                    {
+                        if (p?.Peer?.SessionId != null)
+                        {
+                            _data.peersToGroup.TryRemove(p.Peer.SessionId, out _);
+                        }
+                    }
+
+                    if (_data.waitingParties.TryRemove(party, out var group) && group.Candidate != null)
+                    {
+                        if (_pendingReadyChecks.TryGetValue(group.Candidate.Id, out var rc))
+                        {
+                            if (!rc.RanToCompletion)
+                            {
+                                // Todo jojo What can i do with this ?
+                                //rc.Cancel(currentUser.Id);
+                            }
                         }
                     }
                 }
+
+                return new FindGameResult { Success = true };
+            }
+            catch (Exception ex)
+            {
+                return new FindGameResult { Success = false, ErrorMsg = ex.Message };
             }
         }
 
@@ -297,23 +308,27 @@ namespace Stormancer.Server.Plugins.GameFinder
             {
                 try
                 {
-                    watch.Restart();
-                    await this.FindGamesOnce(ct);
-                    watch.Stop();
+                    try
+                    {
+                        watch.Restart();
+                        await this.FindGamesOnce(ct);
+                        watch.Stop();
 
-                    var playersNum = this._data.waitingParties.Where(kvp => kvp.Value.State == RequestState.Ready).Sum(kvp => kvp.Key.Players.Count);
-                    var groupsNum = this._data.waitingParties.Where(kvp => kvp.Value.State == RequestState.Ready).Count();
-                    //_logger.Log(LogLevel.Trace, $"{LOG_CATEGORY}.Run", $"A {_data.kind} pass was run for {playersNum} players and {groupsNum} parties", new
-                    //{
-                    //    Time = watch.Elapsed,
-                    //    playersWaiting = playersNum,
-                    //    groupsWaiting = groupsNum
-                    //});
+                        var playersNum = this._data.waitingParties.Where(kvp => kvp.Value.State == RequestState.Ready).Sum(kvp => kvp.Key.Players.Count);
+                        var groupsNum = this._data.waitingParties.Where(kvp => kvp.Value.State == RequestState.Ready).Count();
+                        //_logger.Log(LogLevel.Trace, $"{LOG_CATEGORY}.Run", $"A {_data.kind} pass was run for {playersNum} players and {groupsNum} parties", new
+                        //{
+                        //    Time = watch.Elapsed,
+                        //    playersWaiting = playersNum,
+                        //    groupsWaiting = groupsNum
+                        //});
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.Log(LogLevel.Error, LOG_CATEGORY, "An error occurred while running a gameFinder.", e);
+                    }
                 }
-                catch (Exception e)
-                {
-                    _logger.Log(LogLevel.Error, LOG_CATEGORY, "An error occurred while running a gameFinder.", e);
-                }
+                catch { }
                 await Task.Delay(this._data.interval);
             }
             IsRunning = false;

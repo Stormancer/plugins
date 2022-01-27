@@ -11,9 +11,22 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Changed
+*******
+- Fix GameSessionService.PeerConnectionRejected
+
+5.3.0
+-----
+Added
+*****
+- Added IGamesessions.CreateReservation and IGameSessions.CancelReservation methods to create and cancel reservations to open gamesessions.
+
+5.2.0
+-----
 Added
 *****
 - added 'GameSession.GetTeams' public RPC route to get the list of players registered in the gamesession.
+
 5.1.0.1
 -------
 Added

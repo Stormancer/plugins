@@ -9,8 +9,24 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+4.1.1
+-----
+- Add cancellation token used by party
+
+4.1.0.17
+--------
+Changed
+*******
+- Remove debug logs
+
+4.1.0.16
+--------
+Changed
+*******
+- Lobby metadata token key stored in secrets store
+
+4.1.0.13
+--------
 Added
 *****
 - Add optional maxFriendsCount parameter to GetFriendList functions

@@ -13,6 +13,35 @@ Unreleased
 ----------
 Changed
 *******
+- Add more precise debug logs when session not found
+
+5.2.3.3
+-------
+Fixed
+*****
+- Remove log when session not found in release.
+5.2.3.2
+-------
+Fixed
+*****
+- Fixed missing analytics events for login/logout.
+
+5.2.3.1
+-------
+Changed
+*******
+- Add warn log when user session not found
+
+5.2.3
+-----
+Changed
+*******
+- Fix renewCredentials stream uses
+
+5.2.2.5
+-------
+Changed
+*******
 - Add property User.LastPlatform
 - Fix GetUsersByClaim bad index configuration
 - Add debug logs on renewCredentials failure

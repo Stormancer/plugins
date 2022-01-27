@@ -11,6 +11,18 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Changed
+*******
+- Remove unnecessary logs
+
+4.0.2.2
+-------
+Changed
+*******
+- Remove debug logs
+
+4.0.2.1
+-------
 Fixed
 *****
 - if score and timestamp are equal, compare guids.

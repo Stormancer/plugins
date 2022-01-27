@@ -24,9 +24,9 @@ using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Party.Dto;
-using Stormancer.Server.Plugins.Party.Model;
 using Stormancer.Server.Plugins.Users;
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Party
@@ -54,7 +54,7 @@ namespace Stormancer.Server.Plugins.Party
         public async Task UpdatePartySettings(RequestContext<IScenePeerClient> ctx)
         {
             var partySettings = ctx.ReadObject<PartySettingsDto>();
-           
+
             if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
             {
                 throw new ClientException(NotInPartyError);
@@ -64,25 +64,24 @@ namespace Stormancer.Server.Plugins.Party
             {
                 throw new ClientException(UnauthorizedError);
             }
-            await _partyService.UpdateSettings(partySettings);
+
+            await _partyService.UpdateSettings(partySettings, ctx.CancellationToken);
         }
 
         public Task UpdatePartyUserData(RequestContext<IScenePeerClient> ctx)
         {
-            
             if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
             {
                 throw new ClientException(NotInPartyError);
             }
             var data = _serializer.Deserialize<byte[]>(ctx.InputStream);
 
-            _partyService.UpdatePartyUserData(member.UserId, data);
+            _partyService.UpdatePartyUserData(member.UserId, data, ctx.CancellationToken);
             return Task.CompletedTask;
         }
 
         public Task PromoteLeader(RequestContext<IScenePeerClient> ctx)
         {
-           
             if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
             {
                 throw new ClientException(NotInPartyError);
@@ -93,14 +92,14 @@ namespace Stormancer.Server.Plugins.Party
             }
 
             var playerToPromote = ctx.ReadObject<string>();
-            _partyService.PromoteLeader(playerToPromote);
+            _partyService.PromoteLeader(playerToPromote, ctx.CancellationToken);
 
             return Task.CompletedTask;
         }
 
         public async Task KickPlayer(RequestContext<IScenePeerClient> ctx)
         {
-           
+
             if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
             {
                 throw new ClientException(NotInPartyError);
@@ -111,19 +110,19 @@ namespace Stormancer.Server.Plugins.Party
             }
 
             var playerIdToKick = ctx.ReadObject<string>();
-            await _partyService.KickPlayerByLeader(playerIdToKick);
+            await _partyService.KickPlayerByLeader(playerIdToKick, ctx.CancellationToken);
         }
 
         public async Task UpdateGameFinderPlayerStatus(RequestContext<IScenePeerClient> ctx)
         {
             var newStatus = ctx.ReadObject<PartyMemberStatusUpdateRequest>();
-          
+
             if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
             {
                 throw new ClientException(NotInPartyError);
             }
 
-            await _partyService.UpdateGameFinderPlayerStatus(member.UserId, newStatus);
+            await _partyService.UpdateGameFinderPlayerStatus(member.UserId, newStatus, ctx.CancellationToken);
         }
 
         public async Task GetPartyState(RequestContext<IScenePeerClient> ctx)
@@ -132,7 +131,7 @@ namespace Stormancer.Server.Plugins.Party
             {
                 try
                 {
-                    await _partyService.SendPartyState(user.UserId);
+                    await _partyService.SendPartyState(user.UserId, ctx.CancellationToken);
                 }
                 catch (OperationCanceledException)
                 {
@@ -201,7 +200,7 @@ namespace Stormancer.Server.Plugins.Party
             _partyService.CancelInvitationCode();
         }
 
-       
+
 
         protected override Task OnConnecting(IScenePeerClient client)
         {

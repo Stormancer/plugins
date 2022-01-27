@@ -139,16 +139,20 @@ namespace Stormancer.Server.Plugins.Users
         [S2SApi]
         public Task<Session?> GetSessionById(string sessionId, CancellationToken cancellationToken)
         {
-            return _sessions.GetSessionById(sessionId, cancellationToken);
+            var session = _sessions.GetSessionById(sessionId, cancellationToken);
+#if DEBUG
+            if (session == null)
+            {
+                _logger.Log(LogLevel.Warn, "usersession", $"Get session failed for id {sessionId}", new { });
+            }
+#endif
+            return session!;
         }
 
         [S2SApi]
         public Task<Dictionary<PlatformId, Session?>> GetSessionsByPlatformIds(IEnumerable<PlatformId> platformIds, CancellationToken cancellationToken)
         {
-
             return _sessions.GetSessions(platformIds, cancellationToken);
-
-
         }
 
         [S2SApi]

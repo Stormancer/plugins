@@ -62,8 +62,16 @@ namespace Stormancer.Server.Plugins.Party
     /// </summary>
     public class JoiningPartyContext
     {
+        /// <summary>
+        /// Party.
+        /// </summary>
         public IPartyService Party { get; }
+
+        /// <summary>
+        /// Session.
+        /// </summary>
         public Session Session { get; }
+
         /// <summary>
         /// The number of users who:
         /// - Are members of the party, or
@@ -74,7 +82,16 @@ namespace Stormancer.Server.Plugins.Party
         /// you should check this number instead of <code>Party.PartyMembers.Count</code>.
         /// </remarks>
         public int TotalOccupiedSlots { get; }
+
+        /// <summary>
+        /// Put false to deny the join (if the party can not be joined).
+        /// </summary>
         public bool Accept { get; set; } = true;
+
+        /// <summary>
+        /// Reason for party join denied.
+        /// </summary>
+        public string? Reason { get; set; }
 
         internal JoiningPartyContext(IPartyService party, Session session, int slots)
         {
@@ -87,6 +104,7 @@ namespace Stormancer.Server.Plugins.Party
     public class JoinDeniedContext
     {
         public IPartyService Party { get; }
+
         public Session Session { get; }
 
         internal JoinDeniedContext(IPartyService party, Session session)

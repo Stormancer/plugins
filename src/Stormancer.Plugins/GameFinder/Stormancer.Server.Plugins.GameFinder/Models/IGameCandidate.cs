@@ -28,9 +28,15 @@ namespace Stormancer.Server.Plugins.GameFinder
 {
     public interface IGameCandidate
     {
+        /// <summary>
+        /// Gets the unique id of the game.
+        /// </summary>
         public string Id { get; }
 
-        public IEnumerable<Team> Teams { get; }
+        /// <summary>
+        /// Gets the list of teams in the game.
+        /// </summary>
+        public List<Team> Teams { get; }
     }
 
     static class IGameCandidateExtensions

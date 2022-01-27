@@ -39,11 +39,16 @@ namespace Stormancer.Server.Plugins.Party
         /// Id of the party
         /// </summary>
         string PartyId { get; }
-        Task UpdateSettings(PartySettingsDto partySettings);
-        Task UpdateGameFinderPlayerStatus(string userId, PartyMemberStatusUpdateRequest partyUserStatus);
-        Task UpdatePartyUserData(string userId, byte[] data);
-        Task PromoteLeader(string newLeaderUserId);
-        Task KickPlayerByLeader(string playerToKickUserId);
+
+        Task UpdateSettings(PartySettingsDto partySettings, CancellationToken ct);
+
+        Task UpdateGameFinderPlayerStatus(string userId, PartyMemberStatusUpdateRequest partyUserStatus, CancellationToken ct);
+
+        Task UpdatePartyUserData(string userId, byte[] data, CancellationToken ct);
+
+        Task PromoteLeader(string newLeaderUserId, CancellationToken ct);
+
+        Task KickPlayerByLeader(string playerToKickUserId, CancellationToken ct);
 
         /// <summary>
         /// Send the whole party state to the given user.
@@ -56,7 +61,7 @@ namespace Stormancer.Server.Plugins.Party
         /// </remarks>
         /// <param name="recipientUserId">User who will receive the party state via an RPC.</param>
         /// <returns>Task that completes when the RPC containing the party state that is sent to <paramref name="recipientUserId"/> completes.</returns>
-        Task SendPartyState(string recipientUserId);
+        Task SendPartyState(string recipientUserId, CancellationToken ct);
 
         /// <summary>
         /// Send the whole party state as the answer to the given RPC in <paramref name="ctx"/>.
