@@ -17,6 +17,7 @@ Changed
 Added
 *****
 - Added LeaderPartyIsHost parameter to party gamefinder.
+- Added "gamefinder" "end" analytics event.
 
 7.2.1.1
 -------

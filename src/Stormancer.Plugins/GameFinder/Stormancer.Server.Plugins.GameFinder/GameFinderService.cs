@@ -186,7 +186,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         {
             try
             {
-
+                var startTime = DateTime.UtcNow;
                 if (!_data.acceptRequests)
                 {
                     return new FindGameResult { Success = false, ErrorMsg = "gamefinder.disabled?reason=deploymentNotActive" };
@@ -253,15 +253,19 @@ namespace Stormancer.Server.Plugins.GameFinder
                 catch (Exception ex)
                 {
                     state.Tcs.SetException(ex);
+                    _analytics.Push("gameFinder", "end", JObject.FromObject(new { partySize = party.Players.Count, duration = (DateTime.UtcNow - startTime).TotalMilliseconds, type = "failed" }));
                     await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Failed), ct);
                 }
 
                 try
                 {
                     await state.Tcs.Task;
+                    _analytics.Push("gameFinder", "end", JObject.FromObject(new { partySize = party.Players.Count, duration = (DateTime.UtcNow - startTime).TotalMilliseconds, type = "success" }));
+
                 }
                 catch (TaskCanceledException)
                 {
+                    _analytics.Push("gameFinder", "end", JObject.FromObject(new { partySize = party.Players.Count , duration = (DateTime.UtcNow - startTime).TotalMilliseconds, type = "cancelled" }));
                     await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Cancelled), CancellationToken.None);
                 }
                 catch (Exception ex)
@@ -290,8 +294,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                         }
                     }
                 }
-
-                return new FindGameResult { Success = true };
+               return new FindGameResult { Success = true };
             }
             catch (Exception ex)
             {
