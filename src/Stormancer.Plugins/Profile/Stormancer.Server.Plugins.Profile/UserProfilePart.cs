@@ -22,6 +22,7 @@
 
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Users;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -43,7 +44,8 @@ namespace Stormancer.Server.Plugins.Profile
                 return;
             }
 
-            var users = await _users.GetUsers(ctx.Users, cancellationToken);
+            var allUsers = await _users.GetUsers(ctx.Users, cancellationToken);
+            var users = allUsers.Where(kvp => kvp.Value != null);
 
             foreach (var pair in users)
             {

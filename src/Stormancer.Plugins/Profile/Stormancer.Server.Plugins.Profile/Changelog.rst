@@ -14,6 +14,9 @@ Unreleased
 Changed
 *******
 - Optimize PseudoProfilePart
+Fixed
+*****
+- PseudoProfilePart: Handle not found users in db
 
 2.4.1.2
 -------
