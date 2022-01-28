@@ -14,6 +14,10 @@ Unreleased
 Changed
 *******
 - FindGame returns false and an error message on failure
+Added
+*****
+- Added LeaderPartyIsHost parameter to party gamefinder.
+- Added "gamefinder" "end" analytics event.
 
 7.2.1.1
 -------
