@@ -178,16 +178,23 @@ namespace Stormancer.Server.Plugins.Party
                 //      1. Si il y a un party demande à celui-ci (S2S) si l'utilisateur et bien connecter dessus.
                 //  2. Si il ne l'est pas alors on continue le pipeline normal
                 //  3. Si il l'est alors on selon la config on change du SA on bloque ou on déconnect depuis l'autre scene et on la co à la nouvelle.
+
+                if (_partyState.PartyMembers.Count >= _partyState.Settings.ServerSettings.MaxMembers())
+                {
+                    Log(LogLevel.Trace, "OnConnecting", "Party join denied because the party is full.", peer.SessionId);
+                    throw new ClientException(JoinDeniedError + "?reason=partyFull");
+                }
+
                 if (!_partyState.Settings.IsJoinable)
                 {
                     Log(LogLevel.Trace, "OnConnecting", "Party join denied because the party is not joinable.", peer.SessionId);
-                    throw new ClientException(JoinDeniedError);
+                    throw new ClientException(JoinDeniedError + "?reason=notJoinable");
                 }
 
                 var session = await _userSessions.GetSession(peer, CancellationToken.None);
                 if (session == null)
                 {
-                    throw new ClientException("notAuthenticated");
+                    throw new ClientException(JoinDeniedError + "?reason=notAuthenticated");
                 }
 
                 var ctx = new JoiningPartyContext(this, session, _partyState.PendingAcceptedPeers.Count + _partyState.PartyMembers.Count);

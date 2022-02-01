@@ -15,6 +15,7 @@ Changed
 *******
 - Fix handlers (use a request scope in sequential operations)
 - FindGame returns false and message error on failure
+- Add reason on party error (format: party.joinDenied?reason=xxxxxxxx)
 
 4.1.2.1
 -------
