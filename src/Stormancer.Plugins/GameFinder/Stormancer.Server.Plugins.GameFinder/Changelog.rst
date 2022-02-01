@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+7.3.0
+-----
 Changed
 *******
 - FindGame returns false and an error message on failure
