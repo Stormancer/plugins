@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+4.1.1.1
+-------
+Fixed
+*****
+- SteamProfilePart: Handle not found users in db
+
 4.1.1
 -----
 - Add cancellation token used by party

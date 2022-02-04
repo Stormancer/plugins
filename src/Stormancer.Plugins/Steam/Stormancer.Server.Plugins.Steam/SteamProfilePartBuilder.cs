@@ -54,7 +54,8 @@ namespace Stormancer.Server.Plugins.Steam
                 return;
             }
 
-            var users = (await _users.GetUsers(ctx.Users, cancellationToken))
+            var allUsers = await _users.GetUsers(ctx.Users, cancellationToken);
+            var users = allUsers
                 .Where(kvp => kvp.Value?.UserData.ContainsKey(SteamConstants.STEAM_ID)??false)
                 .Select(kvp => kvp.Value!)
                 .ToList();

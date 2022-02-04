@@ -9,6 +9,15 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+2.4.2.1
+-------
+Changed
+*******
+- Optimize PseudoProfilePart
+Fixed
+*****
+- PseudoProfilePart: Handle not found users in db
+
 2.4.1.2
 -------
 Added

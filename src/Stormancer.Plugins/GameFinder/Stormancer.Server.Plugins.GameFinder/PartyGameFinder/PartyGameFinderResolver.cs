@@ -37,6 +37,7 @@ namespace Stormancer.Server.Plugins.GameFinder
     {
         private readonly IGameSessions gameSessions;
         private string template = "gameSession";
+        private bool partyLeaderIsHost;
 
         /// <summary>
         /// Constructor
@@ -68,6 +69,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             var options = PartyGameFinderExtensions.GetOptions<PartyGameFinderOptions>(id);
 
             template = options.gameSessionTemplate;
+            partyLeaderIsHost = options.partyLeaderIsHost;
 
         }
 
@@ -81,8 +83,15 @@ namespace Stormancer.Server.Plugins.GameFinder
             if (gameCtx.Game != null)
             {
                 var config = new GameSessionConfiguration();
+                
                 config.Public = false;
+                
+                if(partyLeaderIsHost)
+                {
+                    config.HostUserId = gameCtx.Game.AllParties.First().PartyLeaderId;
+                }
 
+                
                 foreach (var team in gameCtx.Game.Teams)
                 {
                     config.Teams.Add(team);

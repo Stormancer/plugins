@@ -26,6 +26,7 @@ using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Party.Dto;
 using Stormancer.Server.Plugins.Users;
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Party
@@ -63,6 +64,7 @@ namespace Stormancer.Server.Plugins.Party
             {
                 throw new ClientException(UnauthorizedError);
             }
+
             await _partyService.UpdateSettings(partySettings, ctx.CancellationToken);
         }
 
