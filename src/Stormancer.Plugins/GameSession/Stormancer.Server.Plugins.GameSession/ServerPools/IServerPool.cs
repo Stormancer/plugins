@@ -21,20 +21,23 @@
 // SOFTWARE.
 
 using Newtonsoft.Json.Linq;
+using Stormancer.Server.Plugins.Users;
 using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.GameSession
+namespace Stormancer.Server.Plugins.GameSession.ServerPool
 {
     public interface IServerPoolProvider
     {
-        bool TryCreate(string id, JObject config,out IServerPool pool);
+        bool TryCreate(string id, JObject config,[NotNullWhen(true)] out IServerPool? pool);
     }
 
     public class Server : IDisposable
     {
         public string Id { get; internal set; }
-        public GameServer GameServer { get; internal set; }
+        public GameServerInstance GameServer { get; internal set; }
         public DateTime CreatedOn { get; internal set; }
         public IScenePeerClient Peer { get; internal set; }
         public TaskCompletionSource<GameServerStartupParameters> RunTcs { get; internal set; }
@@ -44,10 +47,29 @@ namespace Stormancer.Server.Plugins.GameSession
         }
     }
 
+    /// <summary>
+    /// A game server in the pool that should join a gamesession.
+    /// </summary>
+    public class GameServer
+    {
+        /// <summary>
+        /// Gets or sets the session id of the gameServer
+        /// </summary>
+        public string GameServerSessionId { get; set; } = default!;
+    }
+
+    
     public interface IServerPool: IDisposable
     {
         string Id { get; }
-        Task<Server> GetServer(string gameSessionId, GameSessionConfiguration gameSessionConfig);
+
+        /// <summary>
+        /// Waits for a server to be available, then re
+        /// </summary>
+        /// <param name="gameSessionId"></param>
+        /// <param name="gameSessionConfig"></param>
+        /// <returns></returns>
+        Task<GameServer> WaitGameServerAsync(string gameSessionId, GameSessionConfiguration gameSessionConfig, CancellationToken cancellationToken);
 
         void UpdateConfiguration(JObject config);
 
@@ -60,7 +82,8 @@ namespace Stormancer.Server.Plugins.GameSession
         int MaxServersInPool { get; }
         int MinServerReady { get; }
 
-        Task<GameServerStartupParameters> SetReady(string gameId, IScenePeerClient client);
-        Task SetShutdown(string gameId);
+        bool CanManage(Session session, IScenePeerClient peer);
+        Task<GameServerStartupParameters?> WaitGameSessionAsync(Session session, IScenePeerClient client, CancellationToken cancellationToken);
+        Task OnGameServerDisconnected(string sessionId);
     }
 }

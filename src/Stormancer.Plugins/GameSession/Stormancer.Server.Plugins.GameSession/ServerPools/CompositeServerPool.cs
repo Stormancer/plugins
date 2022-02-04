@@ -22,12 +22,15 @@
 
 using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
+using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.GameSession
+namespace Stormancer.Server.Plugins.GameSession.ServerPool
 {
     class CompositeServerPoolProvider : IServerPoolProvider
     {
@@ -41,11 +44,18 @@ namespace Stormancer.Server.Plugins.GameSession
             this.pools = pools;
             this.logger = logger;
         }
-        public bool TryCreate(string id, JObject config, out IServerPool pool)
+        public bool TryCreate(string id, JObject config,[NotNullWhen(true)] out IServerPool? pool)
         {
-
-            pool = new CompositeServerPool(id, pools(), logger);
-            return true;
+            if (config["type"] == JValue.CreateString("composite"))
+            {
+                pool = new CompositeServerPool(id, pools(), logger);
+                return true;
+            }
+            else
+            {
+                pool = default;
+                return false;
+            }
 
         }
     }
@@ -86,41 +96,58 @@ namespace Stormancer.Server.Plugins.GameSession
 
         }
 
-        public async Task<Server> GetServer(string gameSessionId, GameSessionConfiguration config)
+        public async Task<GameServer> WaitGameServerAsync(string gameSessionId, GameSessionConfiguration config, CancellationToken cancellationToken)
         {
             var candidate = _subPools.Reverse<IServerPool>().FirstOrDefault(p => p.ServersReady > 0);
             if (candidate != null)
             {
-                return await candidate.GetServer(gameSessionId, config);
+                return await candidate.WaitGameServerAsync(gameSessionId, config,cancellationToken);
             }
 
             candidate = _subPools.FirstOrDefault(p => p.CanAcceptRequest);
-            return await candidate.GetServer(gameSessionId, config);
+            if (candidate != null)
+            {
+                return await candidate.WaitGameServerAsync(gameSessionId, config, cancellationToken);
+            }
+            else
+            {
+                throw new InvalidOperationException("No pool available to service the request.");
+            }
 
         }
 
-        public Task<GameServerStartupParameters> SetReady(string id, IScenePeerClient client)
-        {
-            throw new NotImplementedException();
-        }
-        public Task SetShutdown(string id)
-        {
-            throw new NotImplementedException();
-        }
+      
+       
         public void UpdateConfiguration(JObject config)
         {
             this.config = config;
             dynamic d = config;
             MinServerReady = ((int?)d.ready) ?? 0;
-            var poolIds = ((JArray)(d.pools))?.ToObject<List<string>>();
+            var poolIds = ((JArray)(d.pools))?.ToObject<List<string>>() ?? Enumerable.Empty<string>();
             _subPools.Clear();
             foreach (var poolId in poolIds)
             {
-                var pool = pools.GetPool(poolId);
-                _subPools.Add(pool);
+                if (pools.TryGetPool(poolId, out var pool))
+                {
+                    _subPools.Add(pool);
+                }
             }
         }
 
+        public bool CanManage(Session session, IScenePeerClient peer) => false;
+        
 
+        public Task<GameServerStartupParameters?> WaitGameSessionAsync(Session session, IScenePeerClient client, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
+
+        public async Task OnGameServerDisconnected(string sessionId)
+        {
+           foreach(var pool in _subPools)
+            {
+                await pool.OnGameServerDisconnected(sessionId);
+            }
+        }
     }
 }

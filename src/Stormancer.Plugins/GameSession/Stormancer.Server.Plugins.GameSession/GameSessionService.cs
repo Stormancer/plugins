@@ -46,6 +46,7 @@ using System.Runtime.CompilerServices;
 using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Models;
 using System.Diagnostics.CodeAnalysis;
+using Stormancer.Server.Plugins.GameSession.ServerPool;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
@@ -153,6 +154,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private readonly IConfiguration _configuration;
         private readonly ILogger _logger;
+        private readonly ServerPoolProxy serverPool;
         private readonly ISceneHost _scene;
         private readonly IEnvironment _environment;
         private readonly IDelegatedTransports _pools;
@@ -163,8 +165,6 @@ namespace Stormancer.Server.Plugins.GameSession
         private GameSessionConfiguration? _config;
         private readonly CancellationTokenSource _sceneCts = new();
 
-
-        private readonly byte[]? _serverGuid;
 
         private readonly ConcurrentDictionary<string, Client> _clients = new();
         private ServerStatus _status = ServerStatus.WaitingPlayers;
@@ -191,10 +191,12 @@ namespace Stormancer.Server.Plugins.GameSession
             ILogger logger,
             IAnalyticsService analytics,
             RpcService rpc,
+             ServerPool.ServerPoolProxy serverPool,
             ISerializer serializer)
         {
             _analytics = analytics;
             _management = management;
+            this.serverPool = serverPool;
             _scene = scene;
             _configuration = configuration;
             _logger = logger;
@@ -269,18 +271,6 @@ namespace Stormancer.Server.Plugins.GameSession
                         await SignalServerReady(peer.SessionId);
                         return;
                     }
-                }
-                if (IsWorker(packet.Connection))
-                {
-                    if (_status == ServerStatus.Started)
-                    {
-                        await _scene.Send(new MatchPeerFilter(peer), P2P_TOKEN_ROUTE, s =>
-                        {
-                            var serializer = peer.Serializer();
-                            serializer.Serialize(_p2pToken, s);
-                        }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
-                    }
-                    return;
                 }
 
                 var user = await GetUserId(peer);
@@ -470,7 +460,7 @@ namespace Stormancer.Server.Plugins.GameSession
             _status = ServerStatus.Started;
         }
 
-        public bool IsServer(IScenePeerClient peer)
+        public bool IsServer(Session session)
         {
             if (_serverGuid == null)
             {
@@ -514,57 +504,56 @@ namespace Stormancer.Server.Plugins.GameSession
                 peer.Send(P2P_TOKEN_ROUTE, "");
                 return;
             }
-            if (!IsWorker(peer))
+
+            var userId = client.Key;
+
+            _analytics.Push("gamesession", "playerJoined", JObject.FromObject(new { userId, gameSessionId = this._scene.Id, sessionId = peer.SessionId }));
+            //Check if the gameSession is Dedicated or listen-server            
+
+            // If the host is not defined a P2P was sent with "" to notify client is host.
+            _logger.Log(LogLevel.Trace, "gamesession", $"Gamesession {_scene.Id} evaluating {userId} as host (expected host :{_config.HostUserId})", new { });
+            if (string.IsNullOrEmpty(_config.HostUserId) || _config.HostUserId == userId)
             {
-                var userId = client.Key;
-
-                _analytics.Push("gamesession", "playerJoined", JObject.FromObject(new { userId, gameSessionId = this._scene.Id, sessionId = peer.SessionId }));
-                //Check if the gameSession is Dedicated or listen-server            
-
-                // If the host is not defined a P2P was sent with "" to notify client is host.
-                _logger.Log(LogLevel.Trace, "gamesession", $"Gamesession {_scene.Id} evaluating {userId} as host (expected host :{_config.HostUserId})", new { });
-                if (string.IsNullOrEmpty(_config.HostUserId) || _config.HostUserId == userId)
+                _config.HostUserId = userId;
+                if (GetServerTcs().TrySetResult(peer))
                 {
-                    _config.HostUserId = userId;
-                    if (GetServerTcs().TrySetResult(peer))
-                    {
-                        _logger.Log(LogLevel.Debug, LOG_CATEOGRY, "Host defined and connecting", userId);
-                        peer.Send(P2P_TOKEN_ROUTE, "");
-                    }
-                    else
-                    {
-                        _logger.Log(LogLevel.Debug, LOG_CATEOGRY, "Client connecting", userId);
-                    }
+                    _logger.Log(LogLevel.Debug, LOG_CATEOGRY, "Host defined and connecting", userId);
+                    peer.Send(P2P_TOKEN_ROUTE, "");
                 }
-
-
-                foreach (var uId in _clients.Keys)
+                else
                 {
-                    if (uId != userId)
-                    {
-                        var currentClient = _clients[uId];
-                        var isHost = GetServerTcs().Task.IsCompleted && GetServerTcs().Task.Result.SessionId == currentClient.Peer?.SessionId;
-                        peer.Send("player.update",
-                            new PlayerUpdate { UserId = uId, IsHost = isHost, Status = (byte)currentClient.Status, Data = currentClient.FaultReason ?? "" },
-                            PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
-                    }
+                    _logger.Log(LogLevel.Debug, LOG_CATEOGRY, "Client connecting", userId);
                 }
-                if (_status == ServerStatus.Started)
-                {
-                    if (_p2pToken == null && GetServerTcs().Task.IsCompleted)
-                    {
-                        _p2pToken = await _scene.DependencyResolver.Resolve<IPeerInfosService>().CreateP2pToken((await GetServerTcs().Task).SessionId, _scene.Id);
-                    }
-
-                    peer.Send(P2P_TOKEN_ROUTE, _p2pToken);
-                }
-
-                var playerConnectedCtx = new ClientConnectedContext(this, new PlayerPeer(peer, new Player(peer.SessionId, userId)), _config.HostUserId == userId);
-                await using var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag);
-                await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
-                    h => h.OnClientConnected(playerConnectedCtx),
-                    ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing OnClientConnected event", ex));
             }
+
+
+            foreach (var uId in _clients.Keys)
+            {
+                if (uId != userId)
+                {
+                    var currentClient = _clients[uId];
+                    var isHost = GetServerTcs().Task.IsCompleted && GetServerTcs().Task.Result.SessionId == currentClient.Peer?.SessionId;
+                    peer.Send("player.update",
+                        new PlayerUpdate { UserId = uId, IsHost = isHost, Status = (byte)currentClient.Status, Data = currentClient.FaultReason ?? "" },
+                        PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
+                }
+            }
+            if (_status == ServerStatus.Started)
+            {
+                if (_p2pToken == null && GetServerTcs().Task.IsCompleted)
+                {
+                    _p2pToken = await _scene.DependencyResolver.Resolve<IPeerInfosService>().CreateP2pToken((await GetServerTcs().Task).SessionId, _scene.Id);
+                }
+
+                peer.Send(P2P_TOKEN_ROUTE, _p2pToken);
+            }
+
+            var playerConnectedCtx = new ClientConnectedContext(this, new PlayerPeer(peer, new Player(peer.SessionId, userId)), _config.HostUserId == userId);
+            await using var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag);
+            await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
+                h => h.OnClientConnected(playerConnectedCtx),
+                ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing OnClientConnected event", ex));
+
         }
 
         private Task? _serverStartTask = null;
@@ -938,12 +927,12 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             if (_reservationStates.TryRemove(Guid.Parse(id), out var reservationState))
             {
-                var ids = new List<(string,string)>();
+                var ids = new List<(string, string)>();
                 foreach (var userId in reservationState.UserIds)
                 {
                     if (TryRemoveUserFromConfig(userId, out var teamId))
                     {
-                        ids.Add((teamId,userId));
+                        ids.Add((teamId, userId));
                     }
                 }
 
@@ -969,12 +958,12 @@ namespace Stormancer.Server.Plugins.GameSession
                     {
                         if (reservationState.ExpiresOn < DateTime.UtcNow)
                         {
-                            var ids = new List<(string,string)>();
+                            var ids = new List<(string, string)>();
                             foreach (var userId in reservationState.UserIds)
                             {
                                 if (TryRemoveUserFromConfig(userId, out var teamId))
                                 {
-                                    ids.Add((teamId,userId));
+                                    ids.Add((teamId, userId));
                                 }
                             }
 

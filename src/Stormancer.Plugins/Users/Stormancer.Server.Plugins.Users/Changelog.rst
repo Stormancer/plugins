@@ -9,7 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-
+Unreleased
+----------
+Fixed
+*****
+- Calling ConfigureUsers several times don't resets the config.
 5.2.3.3
 -------
 Fixed

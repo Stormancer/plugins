@@ -26,6 +26,7 @@ using Stormancer.Server.Plugins.Models;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -77,7 +78,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <param name="gameSessionId"></param>
         /// <param name="serverId"></param>
         /// <returns></returns>
-        Task<string> CreateServerConnectionToken(string gameSessionId, Guid serverId);
+        Task<string> CreateServerConnectionToken(string gameSessionId, string serverId);
 
 
         /// <summary>
@@ -149,9 +150,9 @@ namespace Stormancer.Server.Plugins.GameSession
             return s2SProxy.CancelReservation(gameSessionId, reservationId, cancellationToken);
         }
 
-        public Task<string> CreateServerConnectionToken(string gameSessionId, Guid serverId)
+        public Task<string> CreateServerConnectionToken(string gameSessionId, string serverId)
         {
-            return management.CreateConnectionToken(gameSessionId, serverId.ToByteArray(), "application/server-id");
+            return management.CreateConnectionToken(gameSessionId, Encoding.UTF8.GetBytes(serverId), "application/server-id");
         }
     }
 }
