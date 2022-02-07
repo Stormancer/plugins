@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+3.0.3.4
+-------
+Changed
+*******
+- Deterministic build
+
 3.0.3.3
 -------
 Changed

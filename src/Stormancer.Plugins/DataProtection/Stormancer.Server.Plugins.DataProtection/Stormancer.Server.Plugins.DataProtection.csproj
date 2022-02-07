@@ -12,7 +12,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <Description>Provides data protection tools to stormancer applications.</Description>
-    <Deterministic>true</Deterministic>	  
+    <Deterministic>true</Deterministic>
   </PropertyGroup>
 
   <PropertyGroup>
