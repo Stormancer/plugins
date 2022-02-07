@@ -5,7 +5,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>0.1.0.2</Version>
+    <Version>0.1.0.3</Version>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -13,6 +13,7 @@
     <LangVersion>latest</LangVersion>
     <Description>Synchronizes a section of the server app configuration with peers (clients and servers).</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Deterministic>true</Deterministic>
   </PropertyGroup>
 
   <PropertyGroup>

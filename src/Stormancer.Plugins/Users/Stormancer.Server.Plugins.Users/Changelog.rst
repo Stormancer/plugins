@@ -13,7 +13,20 @@ Unreleased
 ----------
 Fixed
 *****
-- Calling ConfigureUsers several times don't resets the config.
+- Calling ConfigureUsers several times doesn't reset the config between two calls.
+
+5.2.3.12
+--------
+Changed
+*******
+- Deterministic build
+
+5.2.3.11
+--------
+Changed
+*******
+- Add more precise debug logs when session not found
+
 5.2.3.3
 -------
 Fixed

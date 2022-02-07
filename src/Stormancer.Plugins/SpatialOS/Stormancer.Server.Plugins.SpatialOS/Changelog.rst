@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+0.2.3.1
+-------
+Changed
+*******
+- Deterministic build
+
 0.2.3
 -----
 - Make plugin compatible with users 5.x

@@ -5,13 +5,14 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>2.0.0.1</Version>
+    <Version>2.0.0.2</Version>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <Description>Provides data protection tools to stormancer applications.</Description>
+    <Deterministic>true</Deterministic>
   </PropertyGroup>
 
   <PropertyGroup>
