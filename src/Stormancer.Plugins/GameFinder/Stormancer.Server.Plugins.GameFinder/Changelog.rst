@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+7.3.0.2
+-------
+Fixed
+*****
+- Fixed crash when running the quick queue gamefinder
+
 7.3.0.1
 -------
 Changed

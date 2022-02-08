@@ -440,6 +440,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             teamCount = options.teamCount;
             canMatch = options.CanPlayTogether;
             getSettings = options.getSettings;
+            allowJoinGameInProgress = options.allowJoinExistingGame;
         }
     }
 
