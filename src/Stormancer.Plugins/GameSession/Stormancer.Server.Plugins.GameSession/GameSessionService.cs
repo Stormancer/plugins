@@ -154,7 +154,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private readonly IConfiguration _configuration;
         private readonly ILogger _logger;
-        private readonly ServerPoolProxy serverPool;
+      
         private readonly ISceneHost _scene;
         private readonly IEnvironment _environment;
         private readonly IDelegatedTransports _pools;
@@ -191,12 +191,11 @@ namespace Stormancer.Server.Plugins.GameSession
             ILogger logger,
             IAnalyticsService analytics,
             RpcService rpc,
-             ServerPool.ServerPoolProxy serverPool,
             ISerializer serializer)
         {
             _analytics = analytics;
             _management = management;
-            this.serverPool = serverPool;
+           
             _scene = scene;
             _configuration = configuration;
             _logger = logger;
@@ -257,20 +256,25 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             try
             {
+
                 var peer = packet.Connection;
-                if (peer == null)
+                await using var dr = _scene.CreateRequestScope();
+                var sessions = dr.Resolve<IUserSessions>();
+
+                var session = await sessions.GetSession(peer, CancellationToken.None);
+
+                //Peer not authd.
+                if (session is null)
                 {
-                    throw new ArgumentNullException(nameof(peer));
+                    return;
                 }
-                if (peer.ContentType == "application/server-id" && _serverGuid != null)
+
+                if (IsServer(session))
                 {
-                    var peerGuid = new Guid(peer.UserData);
-                    var serverGuid = new Guid(_serverGuid);
-                    if (serverGuid == peerGuid)
-                    {
-                        await SignalServerReady(peer.SessionId);
-                        return;
-                    }
+
+                    await SignalServerReady(peer.SessionId);
+                    return;
+
                 }
 
                 var user = await GetUserId(peer);
@@ -389,10 +393,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private async Task PeerConnecting(IScenePeerClient peer)
         {
-            if (peer.ContentType == "application/server-id" && !IsServer(peer))
-            {
-                throw new ClientException("Failed to authenticate as dedicated server");
-            }
+
 
             if (peer == null)
             {
@@ -462,30 +463,30 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public bool IsServer(Session session)
         {
-            if (_serverGuid == null)
-            {
-                return false;
-            }
 
-            if (peer != null && peer.ContentType == "application/server-id")
-            {
-                var peerGuid = new Guid(peer.UserData);
-                var serverGuid = new Guid(_serverGuid);
-                return serverGuid == peerGuid;
-            }
-            else
-            {
-                return false;
-            }
+            return session.platformId.Platform.StartsWith(DedicatedServerAuthProvider.PROVIDER_NAME);
         }
 
         private async Task PeerConnected(IScenePeerClient peer)
         {
             Debug.Assert(_config != null);
 
-            if (peer == null)
+            await using var dr = _scene.CreateRequestScope();
+            var sessions = dr.Resolve<IUserSessions>();
+
+            var session = await sessions.GetSession(peer, CancellationToken.None);
+
+            if(session is null)
             {
-                throw new ArgumentNullException(nameof(peer));
+                return;
+            }
+
+            if (IsServer(session))
+            {
+                GetServerTcs().TrySetResult(peer);
+
+                peer.Send(P2P_TOKEN_ROUTE, "");
+                return;
             }
 
             var client = _clients.First(client => client.Value.Peer == peer);
@@ -497,13 +498,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             await TryStart();
 
-            if (IsServer(peer))
-            {
-                GetServerTcs().TrySetResult(peer);
-
-                peer.Send(P2P_TOKEN_ROUTE, "");
-                return;
-            }
+            
 
             var userId = client.Key;
 

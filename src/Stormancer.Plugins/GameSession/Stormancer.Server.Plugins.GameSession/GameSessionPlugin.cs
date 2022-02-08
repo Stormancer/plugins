@@ -100,7 +100,7 @@ namespace Stormancer.Server.Plugins.GameSession
                             d.Resolve<ILogger>(),
                             d.Resolve<IAnalyticsService>(),
                             d.Resolve<RpcService>(),
-                            d.Resolve<ServerPool.ServerPoolProxy>(),
+                           
                             d.Resolve<ISerializer>())
                     )
                     .As<IGameSessionService>()
