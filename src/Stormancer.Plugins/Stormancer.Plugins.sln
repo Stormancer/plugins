@@ -129,6 +129,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Queries", "Queries", "{E222
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Queries", "Queries\Stormancer.Server.Plugins.Queries\Stormancer.Server.Plugins.Queries.csproj", "{3E5E476D-447C-4D57-84F1-9378BE7BF147}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SocketApi", "SocketApi", "{2AD1B518-2EBD-4DB5-8852-7E387A885470}"
+	ProjectSection(SolutionItems) = preProject
+		SocketApi\readme.md = SocketApi\readme.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Client", "Client", "{E364C134-6168-488D-A6CF-759C8424CF1A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -302,6 +309,7 @@ Global
 		{EEB6C693-26BA-42F1-B826-9B9841B5E124} = {548AD42A-A006-483A-8213-BDF68F16BAE2}
 		{09722116-6834-4F01-BB22-8373DEF3B6D5} = {B74452AA-C538-4B1D-A910-0D2404089D49}
 		{3E5E476D-447C-4D57-84F1-9378BE7BF147} = {E22235C6-7B33-4C1A-A2CD-5291FF7881DB}
+		{E364C134-6168-488D-A6CF-759C8424CF1A} = {2AD1B518-2EBD-4DB5-8852-7E387A885470}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}
