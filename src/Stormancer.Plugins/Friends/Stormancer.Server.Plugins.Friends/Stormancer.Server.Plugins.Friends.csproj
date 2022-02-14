@@ -11,7 +11,7 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
-		<Description>Provides a friend system to a Stormancer application.</Description>
+		<Description>Provides a friend system to Stormancer applications.</Description>
 		<Deterministic>true</Deterministic>
 	</PropertyGroup>
 

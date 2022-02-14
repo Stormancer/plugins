@@ -20,6 +20,8 @@
 	<PropertyGroup>
 		<PackageIcon>icon.png</PackageIcon>
 	</PropertyGroup>
+
+	
 	<ItemGroup>
 		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
 	</ItemGroup>
@@ -36,6 +38,10 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Stormancer.Abstractions.Server" Version="5.2.0.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj" />
 	</ItemGroup>
 
 
