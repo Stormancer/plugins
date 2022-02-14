@@ -13,19 +13,25 @@ namespace Stormancer.Server.Plugins.SocketApi
     {
         private readonly ISceneHost scene;
         private readonly IPeerInfosService peers;
+        private readonly ISerializer serializer;
 
-        public SocketController(ISceneHost scene, IPeerInfosService peers)
+        public SocketController(ISceneHost scene, IPeerInfosService peers,ISerializer serializer)
         {
             
             this.scene = scene;
             this.peers = peers;
+            this.serializer = serializer;
         }
 
         [Api(ApiAccess.Public, ApiType.FireForget)]
         public Task SendUnreliable(Packet<IScenePeerClient> packet)
         {
             var sessionId = packet.ReadObject<SessionId>();
-            return scene.Send(new MatchPeerFilter(sessionId.ToString()), "relay.receive", s => packet.Stream.CopyTo(s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE);
+            return scene.Send(new MatchPeerFilter(sessionId.ToString()), "relay.receive", s =>
+            {
+                serializer.Serialize(SessionId.From(packet.Connection.SessionId), s);
+                packet.Stream.CopyTo(s);
+            }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE);
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]

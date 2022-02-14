@@ -19,7 +19,6 @@ namespace Stormancer.Server.Plugins.SocketApi
         }
     }
 
-
     internal class SocketPlugin : IHostPlugin
     {
         public const string METADATA_KEY = "stormancer.socketApi";

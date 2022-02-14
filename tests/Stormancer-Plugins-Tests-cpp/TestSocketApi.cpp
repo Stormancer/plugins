@@ -135,7 +135,6 @@ TEST(Gameplay, TestSocketApi) {
 		config->addPlugin(new Stormancer::Party::PartyPlugin());
 		config->addPlugin(new Stormancer::GameFinder::GameFinderPlugin());
 		config->addPlugin(new Stormancer::GameSessions::GameSessionsPlugin());
-		config->addPlugin(new Stormancer::Socket::SocketApiPlugin());
 
 		//Use the dispatcher we created earlier to ensure all callbacks are run on the test main thread.
 		config->actionDispatcher = dispatcher;
