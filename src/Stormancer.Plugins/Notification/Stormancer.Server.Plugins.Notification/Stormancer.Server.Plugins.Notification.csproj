@@ -27,6 +27,7 @@
   </PropertyGroup>
   <ItemGroup>
     <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
+	  <cpp Include="$(ProjectDir)../cpp/*" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
@@ -42,5 +43,6 @@
   </ItemGroup>
   <Target Name="PostPack" AfterTargets="Pack">
     <Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
+	  <Copy SourceFiles="@(cpp)" DestinationFolder="$(ProjectDir)../../../../output/cpp/notifications" />
   </Target>
 </Project>

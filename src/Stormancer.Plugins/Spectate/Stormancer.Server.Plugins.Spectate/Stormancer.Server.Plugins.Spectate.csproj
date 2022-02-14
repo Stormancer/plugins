@@ -34,6 +34,7 @@
 
 	<ItemGroup>
 		<NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
+		<cpp Include="$(ProjectDir)../cpp/*" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -43,6 +44,7 @@
 
 	<Target Name="PostPack" AfterTargets="Pack">
 		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
+		<Copy SourceFiles="@(cpp)" DestinationFolder="$(ProjectDir)../../../../output/cpp/spectate" />
 	</Target>
 
 </Project>
