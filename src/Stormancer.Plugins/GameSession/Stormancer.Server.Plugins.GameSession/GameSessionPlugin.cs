@@ -90,17 +90,18 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 if (scene.Metadata.ContainsKey(METADATA_KEY))
                 {
+                    builder.Register(d => new GameSessionState(scene));
                     builder.Register(d =>
                         new GameSessionService(
+                            d.Resolve<GameSessionState>(),
                             scene,
                             d.Resolve<IConfiguration>(),
                             d.Resolve<IEnvironment>(),
-                            d.Resolve<IDelegatedTransports>(),
                             d.Resolve<Management.ManagementClientProvider>(),
                             d.Resolve<ILogger>(),
                             d.Resolve<IAnalyticsService>(),
                             d.Resolve<RpcService>(),
-                           
+                            d.Resolve<IServerPools>(),
                             d.Resolve<ISerializer>())
                     )
                     .As<IGameSessionService>()

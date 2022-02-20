@@ -85,5 +85,6 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         bool CanManage(Session session, IScenePeerClient peer);
         Task<GameServerStartupParameters?> WaitGameSessionAsync(Session session, IScenePeerClient client, CancellationToken cancellationToken);
         Task OnGameServerDisconnected(string sessionId);
+        Task CloseServer(string sessionId);
     }
 }

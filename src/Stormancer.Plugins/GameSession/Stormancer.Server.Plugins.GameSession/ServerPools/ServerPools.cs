@@ -33,11 +33,20 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession.ServerPool
 {
+    /// <summary>
+    /// Provides method to interact with server pools.
+    /// </summary>
     public interface IServerPools
     {
+        /// <summary>
+        /// Tries to get a pool by id.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="pool"></param>
+        /// <returns></returns>
         bool TryGetPool(string id, [NotNullWhen(true)] out IServerPool? pool);
 
-
+       
     }
 
     internal class ServerPools : IServerPools, IConfigurationChangedEventHandler
@@ -182,5 +191,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         {
             ApplySettings();
         }
+
+       
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Stormancer.Core;
+using Stormancer.Server.Plugins.SocketApi;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,7 +7,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.SocketApi
+namespace Stormancer
 {
     /// <summary>
     /// Extension methods

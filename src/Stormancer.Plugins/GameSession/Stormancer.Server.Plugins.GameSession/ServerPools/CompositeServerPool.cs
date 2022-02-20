@@ -149,5 +149,13 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                 await pool.OnGameServerDisconnected(sessionId);
             }
         }
+
+        public async Task CloseServer(string sessionId)
+        {
+            foreach(var pool in _subPools)
+            {
+                await pool.CloseServer(sessionId);
+            }
+        }
     }
 }

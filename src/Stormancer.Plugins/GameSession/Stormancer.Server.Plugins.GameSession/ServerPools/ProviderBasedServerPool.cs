@@ -284,5 +284,15 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                 await provider.StopServer(server.Id);
             }
         }
+
+        public async Task CloseServer(string sessionId)
+        {
+          
+              
+            if (_runningServers.TryGetValue(sessionId, out var server))
+            {
+                await server.Peer.Send("ServerPool.Shutdown", _ => { }, Core.PacketPriority.MEDIUM_PRIORITY, Core.PacketReliability.RELIABLE);
+            }
+        }
     }
 }

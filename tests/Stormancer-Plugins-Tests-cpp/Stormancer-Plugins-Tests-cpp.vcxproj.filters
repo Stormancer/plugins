@@ -3,6 +3,7 @@
   <ItemGroup>
     <ClCompile Include="TestSocketApi.cpp" />
     <ClCompile Include="pch.cpp" />
+    <ClCompile Include="TestDevServer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />

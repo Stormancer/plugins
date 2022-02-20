@@ -155,7 +155,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         private object _syncRoot = new object();
         private Queue<GetServerPendingRequest> _requests = new Queue<GetServerPendingRequest>();
         private Queue<RunningGameServer> _waitingServers = new Queue<RunningGameServer>();
-
+        private Dictionary<string, IScenePeerClient> _connectedServers = new Dictionary<string, IScenePeerClient>();
 
 
         public Task<GameServer> WaitGameServerAsync(string gameSessionId, GameSessionConfiguration gameSessionConfig, CancellationToken cancellationToken)
@@ -217,6 +217,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                         server.Session = null;
                     }
                 }
+                _connectedServers.Remove(sessionId);
             }
             return Task.CompletedTask;
         }
@@ -226,6 +227,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
             lock (_syncRoot)
             {
+                _connectedServers[session.SessionId] = client;
                 while (_requests.TryDequeue(out var request))
                 {
                     if (request.GameSessionId is not null)
@@ -267,6 +269,19 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         public void UpdateConfiguration(JObject config)
         {
 
+        }
+
+        public async Task CloseServer(string sessionId)
+        {
+            IScenePeerClient? client;
+            lock (_syncRoot)
+            {
+                _connectedServers.TryGetValue(sessionId, out client);
+            }
+            if(client!=null)
+            {
+                await client.Send("ServerPool.Shutdown", _ => { }, Core.PacketPriority.MEDIUM_PRIORITY, Core.PacketReliability.RELIABLE);
+            }
         }
     }
 }

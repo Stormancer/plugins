@@ -20,26 +20,64 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using System.Threading;
 using System.Threading.Tasks;
 using Stormancer.Diagnostics;
 
-namespace Stormancer.Server.Utils.Extensions
+namespace Stormancer
 {
+    /// <summary>
+    /// Extension methods for <see cref="Task"/>.
+    /// </summary>
     public static class TaskExtensions
     {
-        public static void LogNonSuccess(this Task task, string name, ILogger logger)
+       
+
+        /// <summary>
+        /// Wait until the task completes, with support for cancellation.
+        /// </summary>
+        /// <param name="task"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public static async Task WaitAsync(this Task task, CancellationToken cancellationToken)
         {
-            task.ContinueWith(t =>
+            var tcs = new TaskCompletionSource();
+
+            using var registration = cancellationToken.Register(() => { tcs.TrySetCanceled(); });
+
+            await Task.WhenAny(task, tcs.Task);
+            if(task.IsCompleted)
             {
-                if (t.IsCanceled)
-                {
-                    logger.Warn("Task", $"Task '{name}' was canceled");
-                }
-                else if (t.IsFaulted)
-                {
-                    logger.Log(LogLevel.Error, "Task", $"Task '{name}' threw an exception", t.Exception);
-                }
-            }, TaskContinuationOptions.NotOnRanToCompletion);
+                return;
+            }
+            else
+            {
+                throw new TaskCanceledException();
+            }
+        }
+
+        /// <summary>
+        /// Wait until the task completes, with support for cancellation.
+        /// </summary>
+        /// <param name="task"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public static async Task<T> WaitAsync<T>(this Task<T> task, CancellationToken cancellationToken)
+        {
+            var tcs = new TaskCompletionSource();
+
+            using var registration = cancellationToken.Register(() => { tcs.TrySetCanceled(); });
+
+            await Task.WhenAny(task, tcs.Task);
+            if (task.IsCompleted)
+            {
+                return task.Result;
+            }
+            else
+            {
+                throw new TaskCanceledException();
+            }
+
         }
     }
 }

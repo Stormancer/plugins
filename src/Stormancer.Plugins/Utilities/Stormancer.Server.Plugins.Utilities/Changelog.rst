@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+*****
+- Added Task.WaitAsync extension methods to enable "cancellation" of non cancellable tasks. In case of cancellation, the source task keeps running, but the resultant task faults.
+
 2.3.0.12
 --------
 Changed
