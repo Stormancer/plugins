@@ -219,7 +219,7 @@ namespace Stormancer.Server.Plugins.Users
                 else
                 {
                     uid = Guid.NewGuid().ToString("N");
-                    user = await users.CreateUser(uid, JObject.FromObject(new { login, email = email ?? "" }));
+                    user = await users.CreateUser(uid, JObject.FromObject(new { login, email = email ?? "" }), PROVIDER_NAME);
                 }
                      
                 if (parameters.TryGetValue("pseudo", out var pseudo))

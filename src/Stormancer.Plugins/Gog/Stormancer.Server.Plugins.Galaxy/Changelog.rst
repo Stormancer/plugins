@@ -9,6 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Specify CurrentPlatform when creating an user.
 2.0.2.1
 -------
 Changed
