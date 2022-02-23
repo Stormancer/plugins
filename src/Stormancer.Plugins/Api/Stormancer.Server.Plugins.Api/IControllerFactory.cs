@@ -807,6 +807,12 @@ namespace Stormancer.Server.Plugins.API
             public static void ReadCt(RequestContext<IScenePeer> ctx, out CancellationToken output, IDependencyResolver resolver) => output = ctx.CancellationToken;
             public static void ReadCt(RequestContext<IScenePeerClient> ctx, out CancellationToken output, IDependencyResolver resolver) => output = ctx.CancellationToken;
 
+            public static void ReadPeer(RequestContext<IScenePeerClient> ctx, out IScenePeerClient output, IDependencyResolver resolver) => output = ctx.RemotePeer;
+
+            public static void ReadPeer(Packet<IScenePeerClient> ctx, out IScenePeerClient output, IDependencyResolver resolver) => output = ctx.Connection;
+
+            public static void ReadPeer(RequestContext<IScenePeer> ctx, out IScenePeer output, IDependencyResolver resolver) => output = ctx.RemotePeer;
+
             public static async Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> ReadObject<TData>(Task<ValueTuple<IS2SRequestContext, List<object?>, IDependencyResolver>> t)
             {
                 var tuple = t.Result;
@@ -1100,10 +1106,28 @@ namespace Stormancer.Server.Plugins.API
                     }
                     else if(parameterInfo.ParameterType == typeof(CancellationToken))
                     {
-                        var readObjectMethod = typeof(ApiHelpers).GetRuntimeMethodExt("ReadCt", p => p[0].ParameterType == typeof(TRq));//Select good ReadCt overload
+                        var readObjectMethod = typeof(ApiHelpers).GetRuntimeMethodExt(nameof(ReadCt), p => p[0].ParameterType == typeof(TRq));//Select good ReadCt overload
                         if(readObjectMethod == null)
                         {
                             throw new NotSupportedException("Only RPC support cancellation.");
+                        }
+                        block.Add(Expression.Call(readObjectMethod, ctx, variables[i], resolver));
+                    }
+                    else if(parameterInfo.ParameterType == typeof(IScenePeerClient))
+                    {
+                        var readObjectMethod = typeof(ApiHelpers).GetRuntimeMethodExt(nameof(ReadPeer), p => p[0].ParameterType == typeof(TRq));//Select good ReadCt overload
+                        if (readObjectMethod == null)
+                        {
+                            throw new NotSupportedException("Argument of type IScenePeerClient not supported.");
+                        }
+                        block.Add(Expression.Call(readObjectMethod, ctx, variables[i], resolver));
+                    }
+                    else if (parameterInfo.ParameterType == typeof(IScenePeer))
+                    {
+                        var readObjectMethod = typeof(ApiHelpers).GetRuntimeMethodExt(nameof(ReadPeer), p => p[0].ParameterType == typeof(TRq));//Select good ReadCt overload
+                        if (readObjectMethod == null)
+                        {
+                            throw new NotSupportedException("Argument of type IScenePeer not supported.");
                         }
                         block.Add(Expression.Call(readObjectMethod, ctx, variables[i], resolver));
                     }

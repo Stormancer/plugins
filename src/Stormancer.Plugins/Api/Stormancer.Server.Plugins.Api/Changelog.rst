@@ -9,6 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+*****
+- Add support to IScenePeerClient as argument in controller actions.
 2.3.1.2
 -------
 Changed

@@ -1,23 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
-    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Company>Stormancer</Company>
-    <Authors>Stormancer</Authors>
-    <Version>5.2.3.12</Version>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <Nullable>enable</Nullable>
-    <LangVersion>latest</LangVersion>
-    <Description>Provides authentication, user management and sessions features to a Stormancer server application.</Description>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Deterministic>true</Deterministic>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-    <Version>$(Version)-pre</Version>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net5.0</TargetFramework>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Company>Stormancer</Company>
+		<Authors>Stormancer</Authors>
+		<Version>6.0.0</Version>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<Description>Provides authentication, user management and sessions features to a Stormancer server application.</Description>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<Deterministic>true</Deterministic>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
+		<Version>$(Version)-pre</Version>
+	</PropertyGroup>
 
   <PropertyGroup>
     <PackageIcon>icon.png</PackageIcon>

@@ -9,6 +9,13 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Fixed
+*****
+- Calling ConfigureUsers several times doesn't reset the config between two calls.
+- Removed IUSerService.CreateUser() overload with only 2 arguments: Providers should always specify the current platform when creating users.
+
 5.2.3.12
 --------
 Changed

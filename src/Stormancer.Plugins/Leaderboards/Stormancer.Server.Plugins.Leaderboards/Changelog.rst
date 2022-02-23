@@ -9,6 +9,16 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- When querying a leaderboard by id, if the id is not found, return an empty result instead of throwing an exception.
+
+Fixed
+*****
+- Don't allow the score updater to change the current score object, but have it work on a clone.
+
 4.0.2.4
 -------
 Changed
