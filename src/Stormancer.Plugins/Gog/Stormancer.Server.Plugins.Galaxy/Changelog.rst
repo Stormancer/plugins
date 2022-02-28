@@ -14,6 +14,7 @@ Unreleased
 Changed
 *******
 - Specify CurrentPlatform when creating an user.
+
 2.0.2.1
 -------
 Changed

@@ -14,6 +14,7 @@ Unreleased
 Added
 *****
 - Add support to IScenePeerClient as argument in controller actions.
+
 2.3.1.2
 -------
 Changed
