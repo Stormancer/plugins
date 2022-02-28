@@ -14,9 +14,9 @@
 
 constexpr  char* ServerEndpoint = "http://localhost";//"http://gc3.stormancer.com";
 constexpr  char* Account = "tests";
-constexpr  char* Application = "test";
+constexpr  char* Application = "test-app";
 
-void log(std::shared_ptr<Stormancer::IClient> client, Stormancer::LogLevel level, std::string msg)
+static void log(std::shared_ptr<Stormancer::IClient> client, Stormancer::LogLevel level, std::string msg)
 {
 	client->dependencyResolver().resolve<Stormancer::ILogger>()->log(level, "gameplay.test-devserver", msg);
 }
@@ -28,10 +28,25 @@ static pplx::task<bool> StartServerImpl(int id)
 	auto pool = client->dependencyResolver().resolve<Stormancer::ServerPools::ServerPools>();
 	
 	pool->setGetStatusCallback([]() { return Stormancer::ServerPools::Status::Ready; });
-	pool->waitGameSession<bool>().then([](Stormancer::ServerPools::GameSessionStartupParameters<bool> p) 
+	return pool->waitGameSession<bool>().then([client](Stormancer::ServerPools::GameSessionStartupParameters<bool> p) 
 		{
-			p.
-			return true;
+			auto gs = client->dependencyResolver().resolve < Stormancer::GameSessions::GameSession>();
+			return gs->connectToGameSession(p.gameSessionConnectionToken);
+		
+		})
+		.then([client](pplx::task<Stormancer::GameSessions::GameSessionConnectionParameters> t)
+		{
+			try
+			{
+				t.get();
+				return true;
+			}
+			catch (std::exception& ex)
+			{
+				log(client, Stormancer::LogLevel::Error, ex.what());
+				return false;
+			}
+
 		});
 }
 static pplx::task<bool> JoinGameImpl(int id)
@@ -61,7 +76,7 @@ static pplx::task<bool> JoinGameImpl(int id)
 
 
 	Stormancer::Party::PartyRequestDto request;
-	request.GameFinderName = "test";
+	request.GameFinderName = "server-test";
 	//Name of the matchmaking, defined in Stormancer.Server.TestApp/TestPlugin.cs.
 	//>  host.AddGamefinder("matchmaking", "matchmaking");
 

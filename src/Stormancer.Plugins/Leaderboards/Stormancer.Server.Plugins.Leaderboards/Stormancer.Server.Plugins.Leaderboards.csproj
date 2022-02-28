@@ -35,7 +35,7 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Stormancer.Abstractions.Server" Version="5.2.0.2" />
+		<PackageReference Include="Stormancer.Abstractions.Server" Version="6.0.0-pre" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\..\Admin\Stormancer.Server.Plugins.AdminApi\Stormancer.Server.Plugins.WebApi.csproj" />
@@ -47,7 +47,7 @@
 	</ItemGroup>
 
 	<Target Name="PostPack" AfterTargets="Pack">
-		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages"/>
+		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
 		<Copy SourceFiles="@(cpp)" DestinationFolder="$(ProjectDir)../../../../output/cpp/leadeboards" />
 	</Target>
 </Project>

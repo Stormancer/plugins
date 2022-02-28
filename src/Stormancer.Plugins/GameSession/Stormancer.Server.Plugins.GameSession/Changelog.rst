@@ -14,6 +14,8 @@ Unreleased
 Changed
 *******
 - Fix GameSessionService.PeerConnectionRejected
+- Use GameSessionController to register to OnConnecting/ed disconnecting events.
+
 Added
 *****
 - Rework of server pools

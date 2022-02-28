@@ -54,17 +54,18 @@ namespace Stormancer.Server.Plugins.GameSession
 
         protected override Task OnConnecting(IScenePeerClient client)
         {
-            return base.OnConnecting(client);
+            return _service.OnPeerConnecting(client);
+           
         }
 
         protected override Task OnConnected(IScenePeerClient peer)
         {
-            return base.OnConnected(peer);
+            return _service.OnPeerConnected(peer);
         }
 
         protected override Task OnConnectionRejected(IScenePeerClient client)
         {
-            return base.OnConnectionRejected(client);
+            return _service.OnPeerConnectionRejected(client);
         }
 
         protected override Task OnDisconnected(DisconnectedArgs args)

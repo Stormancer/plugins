@@ -1,0 +1,1 @@
+stormancer manage app deploy --app ./local-dev.profile.json --create --configure --deploy

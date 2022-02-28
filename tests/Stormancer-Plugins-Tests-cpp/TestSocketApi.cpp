@@ -16,7 +16,7 @@ constexpr  char* ServerEndpoint = "http://localhost";//"http://gc3.stormancer.co
 constexpr  char* Account = "tests";
 constexpr  char* Application = "test";
 
-void log(std::shared_ptr<Stormancer::IClient> client, Stormancer::LogLevel level, std::string msg)
+static void log(std::shared_ptr<Stormancer::IClient> client, Stormancer::LogLevel level, std::string msg)
 {
 	client->dependencyResolver().resolve<Stormancer::ILogger>()->log(level, "gameplay.testSocketApi", msg);
 }

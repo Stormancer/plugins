@@ -412,6 +412,7 @@ namespace Stormancer
             host.ConfigureUsers(u =>
             {
                 u.Settings[DedicatedServerAuthProvider.PROVIDER_NAME] = JObject.FromObject(new { enabled = true });
+                u.Settings[DevDedicatedServerAuthProvider.PROVIDER_NAME] = JObject.FromObject(new { enabled = true });
                 return u;
             });
             host.DependencyResolver.Resolve<IConfiguration>().SetDefaultValue(ServerPoolsConstants.CONFIG_SECTION, builder.Configuration);

@@ -91,6 +91,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             var configs = ((JObject?)config.serverPools)?.ToObject<Dictionary<string,JObject>>();
             var destroyedPools = new List<string>();
 
+            if(configs == null)
+            {
+                return;
+            }
 
             lock (_poolsSyncRoot)
             {

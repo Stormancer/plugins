@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
@@ -63,6 +64,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     s.Metadata["stormancer.serverPool"] = "1.0.0";
                     s.AddController<ServerPoolController>();
                 });
+               
             };
 
             ctx.HostStarted += (IHost host) =>

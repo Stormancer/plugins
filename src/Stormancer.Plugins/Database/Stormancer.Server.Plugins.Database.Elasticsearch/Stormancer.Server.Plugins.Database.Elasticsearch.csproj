@@ -33,7 +33,7 @@
 		</PackageReference>
 		<PackageReference Include="NEST" Version="7.10.0" />
 		<PackageReference Include="SmartFormat.NET" Version="2.5.3" />
-		<PackageReference Include="Stormancer.Abstractions.Server" Version="5.2.0.2" />
+		<PackageReference Include="Stormancer.Abstractions.Server" Version="6.0.0-pre" />
 	</ItemGroup>
 
 	<ItemGroup>

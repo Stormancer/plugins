@@ -38,7 +38,7 @@ namespace Stormancer.Plugins.Tests.ServerApp
             };
             ctx.HostStarted += (IHost host) =>
             {
-                host.AddGamefinder("test", "test");
+                host.AddGamefinder("server-test", "server-test");
             };
         }
     }
