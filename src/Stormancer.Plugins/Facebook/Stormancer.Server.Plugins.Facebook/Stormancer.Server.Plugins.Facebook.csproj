@@ -34,7 +34,7 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="5.2.0.2" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="6.0.0-pre" />
   </ItemGroup>
 
   <ItemGroup>

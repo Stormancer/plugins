@@ -25,9 +25,11 @@ using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Users;
+using System;
+using System.Threading;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.GameSession
+namespace Stormancer.Server.Plugins.GameSession.ServerPool
 {
     /// <summary>
     /// Startup data passed to a game server.
@@ -52,6 +54,7 @@ namespace Stormancer.Server.Plugins.GameSession
         public string GameSessionId { get; internal set; } = default!;
     }
 
+    [Service(Named = false, ServiceType = "stormancer.plugins.serverPool")]
     class ServerPoolController : ControllerBase
     {
         private readonly ServerPools pools;
@@ -65,24 +68,48 @@ namespace Stormancer.Server.Plugins.GameSession
 
         protected override Task OnDisconnected(DisconnectedArgs args)
         {
-            pools.SetShutdown(args.Peer.SessionId);
+
+            pools.RemoveGameServer(args.Peer.SessionId);
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Method called by the game server to wait for a gamesession to be ready.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        /// <exception cref="ClientException"></exception>
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<GameServerStartupParameters> SetReady(RequestContext<IScenePeerClient> ctx)
+        public async Task<GameServerStartupParameters> WaitGameSession(RequestContext<IScenePeerClient> ctx)
         {
-            var session = await sessions.GetSession(ctx.RemotePeer,ctx.CancellationToken);
-            if(session == null)
+            var session = await sessions.GetSession(ctx.RemotePeer, ctx.CancellationToken);
+            if (session == null)
             {
                 throw new ClientException("session.notFound");
             }
-            if(session.platformId.Platform != DedicatedServerAuthProvider.PROVIDER_NAME)
+
+
+
+            var p = await pools.WaitGameAvailableAsync(session, ctx.RemotePeer, ctx.CancellationToken);
+            if (p == null)
             {
-                throw new ClientException("serverPool.notAuthenticatedAsDedicatedServer");
+                throw new ClientException("serverPool.notAuthorized");
+            }
+            return p;
+        }
+
+        [S2SApi]
+        public Task<GameServer> WaitGameServer(string poolId, string gameSessionId, GameSessionConfiguration config, CancellationToken cancellationToken)
+        {
+            if (pools.TryGetPool(poolId, out var pool))
+            {
+                return pool.WaitGameServerAsync(gameSessionId, config, cancellationToken);
+            }
+            else
+            {
+                throw new InvalidOperationException($"gameserverpool.notfound?pool={poolId}");
             }
 
-            return await pools.SetReady(session.platformId.PlatformUserId,ctx.RemotePeer);
         }
     }
 }

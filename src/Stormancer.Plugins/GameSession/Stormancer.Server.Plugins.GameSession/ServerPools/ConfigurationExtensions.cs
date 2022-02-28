@@ -15,6 +15,15 @@ namespace Stormancer
     /// </summary>
     public class ServerPoolsConfigurationBuilder
     {
+        private readonly IHost host;
+
+        internal ServerPoolsConfigurationBuilder(IHost host, JObject configSection)
+        {
+            this.host = host;
+            Configuration = configSection;
+        }
+
+
         /// <summary>
         /// Adds a composite server pool to the configuration.
         /// </summary>
@@ -93,6 +102,31 @@ namespace Stormancer
             var configBuilder = new DockerPoolConfigurationBuilder(poolId, section);
 
             configurator(configBuilder);
+            
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a pool of unauthenticated game servers that are started by the developers themselves without any authentication.
+        /// </summary>
+        /// <param name="poolId"></param>
+        /// <remarks>
+        /// Dev pools MUST NOT be enabled in production environments, as doing so would allow players to run unauthenticated self hosted game servers. 
+        /// </remarks>
+        /// <returns></returns>
+        public ServerPoolsConfigurationBuilder DevPool(string poolId)
+        {
+            JObject section;
+            if (!Configuration.TryGetValue(poolId, out var sectionToken))
+            {
+                section = JObject.FromObject(new DevPoolConfiguration());
+                Configuration[poolId] = section;
+            }
+            host.ConfigureUsers(u =>
+            {
+                u.Settings[DevDedicatedServerAuthProvider.PROVIDER_NAME] = JObject.FromObject(new { enabled = true });
+                return u;
+            });
 
 
             return this;
@@ -101,15 +135,20 @@ namespace Stormancer
         /// <summary>
         /// Gets or sets the configuration section object as a json.
         /// </summary>
-        public JObject Configuration { get; set; } = new JObject();
+        public JObject Configuration { get; }
     }
 
+    public class DevPoolConfiguration : PoolConfiguration
+    {
+        public override string Type => "dev";
+    }
 
     /// <summary>
     /// Base class for pool configurations.
     /// </summary>
-    public class PoolConfiguration
+    public abstract class PoolConfiguration
     {
+        public abstract string Type { get; }
         /// <summary>
         /// number of server ready to accept game sessions to maintain.
         /// </summary>
@@ -133,7 +172,7 @@ namespace Stormancer
         /// </summary>
         public string PoolId { get; }
 
-      
+
         /// <summary>
         /// Config section of the server pool.
         /// </summary>
@@ -144,9 +183,9 @@ namespace Stormancer
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="updater"></param>
-        protected void UpdateConfiguration<T>(Action<T> updater) where T: new()
+        protected void UpdateConfiguration<T>(Action<T> updater) where T : new()
         {
-            var config = ConfigSection.ToObject<T>()?? new T();
+            var config = ConfigSection.ToObject<T>() ?? new T();
             updater(config);
             ConfigSection = JObject.FromObject(config);
         }
@@ -181,7 +220,7 @@ namespace Stormancer
         {
 
             JArray array;
-            if(ConfigSection.TryGetValue("pools",out var token))
+            if (ConfigSection.TryGetValue("pools", out var token))
             {
                 array = (JArray)token;
             }
@@ -212,6 +251,8 @@ namespace Stormancer
         /// arguments passed to the container on startup.
         /// </summary>
         public IEnumerable<string>? arguments { get; set; }
+
+        public override string Type => "localProcess";
     }
 
 
@@ -277,6 +318,8 @@ namespace Stormancer
         /// arguments passed to the container on startup.
         /// </summary>
         public IEnumerable<string>? arguments { get; set; }
+
+        public override string Type => "docker";
     }
 
     /// <summary>
@@ -286,6 +329,7 @@ namespace Stormancer
     {
         internal DockerPoolConfigurationBuilder(string poolId, JObject section) : base(poolId, section)
         {
+
         }
 
         /// <summary>
@@ -322,15 +366,26 @@ namespace Stormancer
         public DockerPoolConfigurationBuilder Arguments(IEnumerable<string> args)
         {
             UpdateConfiguration<DockerPoolConfiguration>(c => c.arguments = args);
-          
+
             return this;
         }
 
 
     }
 
+    /// <summary>
+    /// Configuration object for a 
+    /// </summary>
+    public class DevPoolConfigurationBuilder : ServerPoolConfigurationBuilder
+    {
 
- 
+        internal DevPoolConfigurationBuilder(string poolId, JObject section) : base(poolId, section)
+        {
+        }
+    }
+
+
+
 
     /// <summary>
     /// Extension methods for server pool configuration.
@@ -349,12 +404,18 @@ namespace Stormancer
             {
                 throw new ArgumentNullException(nameof(configurator));
             }
+            var configuration = host.DependencyResolver.Resolve<IConfiguration>();
+            var configSection = configuration.GetValue(ServerPoolsConstants.CONFIG_SECTION, new JObject());
+            var builder = new ServerPoolsConfigurationBuilder(host,configSection);
 
-            var config = new ServerPoolsConfigurationBuilder();
-
-            config = configurator(config);
-
-            host.DependencyResolver.Resolve<IConfiguration>().SetDefaultValue(ServerPoolsConstants.CONFIG_SECTION, config.Configuration);
+            builder = configurator(builder);
+            host.ConfigureUsers(u =>
+            {
+                u.Settings[DedicatedServerAuthProvider.PROVIDER_NAME] = JObject.FromObject(new { enabled = true });
+                u.Settings[DevDedicatedServerAuthProvider.PROVIDER_NAME] = JObject.FromObject(new { enabled = true });
+                return u;
+            });
+            host.DependencyResolver.Resolve<IConfiguration>().SetDefaultValue(ServerPoolsConstants.CONFIG_SECTION, builder.Configuration);
         }
     }
 }

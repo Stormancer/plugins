@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net5.0</TargetFramework>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Company>Stormancer</Company>
+		<Authors>Stormancer</Authors>
+		<Version>0.1.0.1</Version>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<Description>Provides a API similar to sockets for P2P communication in a scene.</Description>
+		<Deterministic>true</Deterministic>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
+		<Version>$(Version)-pre</Version>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<PackageIcon>icon.png</PackageIcon>
+	</PropertyGroup>
+
+	
+	<ItemGroup>
+		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
+		<Pdbs Include="$(TargetDir)*.pdb" />
+		<cpp Include="$(ProjectDir)../cpp/*" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Stormancer.Abstractions.Server" Version="6.0.0-pre" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj" />
+	</ItemGroup>
+
+
+	<Target Name="PostPack" AfterTargets="Pack">
+		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
+		<Copy SourceFiles="@(cpp)" DestinationFolder="$(ProjectDir)../../../../output/cpp/socket" />
+	</Target>
+
+
+</Project>

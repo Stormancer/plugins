@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using Newtonsoft.Json.Linq;
+using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Components;
@@ -49,6 +50,27 @@ namespace Stormancer.Server.Plugins.GameSession
             _logger = logger;
             _sessions = sessions;
             _environment = environment;
+        }
+
+        protected override Task OnConnecting(IScenePeerClient client)
+        {
+            return _service.OnPeerConnecting(client);
+           
+        }
+
+        protected override Task OnConnected(IScenePeerClient peer)
+        {
+            return _service.OnPeerConnected(peer);
+        }
+
+        protected override Task OnConnectionRejected(IScenePeerClient client)
+        {
+            return _service.OnPeerConnectionRejected(client);
+        }
+
+        protected override Task OnDisconnected(DisconnectedArgs args)
+        {
+            return _service.OnPeerDisconnecting(args.Peer);
         }
 
         public async Task PostResults(RequestContext<IScenePeerClient> ctx)
@@ -134,6 +156,18 @@ namespace Stormancer.Server.Plugins.GameSession
         public Task CancelReservation(string id, CancellationToken cancellationToken)
         {
             return _service.CancelReservationAsync(id,cancellationToken);
+        }
+
+        [Api(ApiAccess.Public, ApiType.FireForget, Route ="player.ready")]
+        public Task SetPlayerReady(string data, Packet<IScenePeerClient> packet)
+        {
+            
+            return _service.SetPlayerReady(packet.Connection,data);
+        }
+        [Api(ApiAccess.Public, ApiType.FireForget, Route = "player.faulted")]
+        public Task SetFaulted(Packet<IScenePeerClient> packet)
+        {
+            return _service.SetPeerFaulted(packet.Connection);
         }
     }
 

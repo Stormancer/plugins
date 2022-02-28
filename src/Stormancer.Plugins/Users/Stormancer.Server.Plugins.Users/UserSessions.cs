@@ -618,8 +618,12 @@ namespace Stormancer.Server.Plugins.Users
                 session.User.UserData = userData;
             }
 
-            if (session != null &&
-                session.User.UserData.TryGetValue(EphemeralAuthenticationProvider.IsEphemeralKey, out var isEphemeral) && (bool)isEphemeral)
+            if (session == null || session.User == null)
+            {
+                throw new ClientException("notAuthenticated");
+            }
+
+            if (session.User.UserData.TryGetValue(EphemeralAuthenticationProvider.IsEphemeralKey, out var isEphemeral) && (bool)isEphemeral)
             {
                 await UpdateHandleEphemeral();
             }
@@ -818,7 +822,7 @@ namespace Stormancer.Server.Plugins.Users
                     }
                 }));
             }
-            else if(userId == "*/authenticated")
+            else if (userId == "*/authenticated")
             {
                 await Task.WhenAll(_scene.RemotePeers.Select(async p =>
                 {
@@ -862,7 +866,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public IAsyncEnumerable<Session> GetSessionsAsync(CancellationToken cancellationToken)
         {
-            return _peerUserIndex.GetAllLocal().Select(r=>r.CreateView()).ToAsyncEnumerable();
+            return _peerUserIndex.GetAllLocal().Select(r => r.CreateView()).ToAsyncEnumerable();
         }
 
         public int AuthenticatedUsersCount

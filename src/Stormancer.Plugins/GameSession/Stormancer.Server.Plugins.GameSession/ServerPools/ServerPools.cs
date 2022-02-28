@@ -23,16 +23,30 @@
 using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Configuration;
+using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.GameSession
+namespace Stormancer.Server.Plugins.GameSession.ServerPool
 {
+    /// <summary>
+    /// Provides method to interact with server pools.
+    /// </summary>
     public interface IServerPools
     {
-        IServerPool GetPool(string id);
+        /// <summary>
+        /// Tries to get a pool by id.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="pool"></param>
+        /// <returns></returns>
+        bool TryGetPool(string id, [NotNullWhen(true)] out IServerPool? pool);
+
+       
     }
 
     internal class ServerPools : IServerPools, IConfigurationChangedEventHandler
@@ -40,70 +54,121 @@ namespace Stormancer.Server.Plugins.GameSession
         private readonly ILogger logger;
         private readonly IConfiguration configuration;
         private readonly IEnumerable<IServerPoolProvider> providers;
-        private readonly ConcurrentDictionary<string, IServerPool> _pools = new ConcurrentDictionary<string, IServerPool>();
+        private readonly Dictionary<string, IServerPool> _pools = new Dictionary<string, IServerPool>();
+        private object _poolsSyncRoot = new object();
+
+        private record GameServerConnectionInfo(string sessionId, string poolId);
+        private object _gameServersSyncRoot = new object();
+        private Dictionary<string, GameServerConnectionInfo> _gameServers = new Dictionary<string, GameServerConnectionInfo>();
 
         public ServerPools(ILogger logger, IConfiguration config, IEnumerable<IServerPoolProvider> providers)
         {
             this.logger = logger;
             this.configuration = config;
             this.providers = providers;
-           
+            ApplySettings();
         }
 
-      
+        private bool TryCreateFromConfig(string poolId, JObject config, [NotNullWhen(true)] out IServerPool? pool)
+        {
+
+            foreach (var provider in providers)
+            {
+                if (provider.TryCreate(poolId, config, out pool))
+                {
+                    return true;
+                }
+
+            }
+            pool = default;
+            return false;
+        }
+
 
         private void ApplySettings()
         {
             var config = configuration.Settings;
-            var configs = (Dictionary<string, JObject>)(config.serverPools);
+            var configs = ((JObject?)config.serverPools)?.ToObject<Dictionary<string,JObject>>();
             var destroyedPools = new List<string>();
-            foreach (var pool in _pools)
-            {
-                if (configs.TryGetValue(pool.Key, out var c))
-                {
-                    pool.Value.UpdateConfiguration(c);
-                }
-                else
-                {
-                    pool.Value?.Dispose();
-                    destroyedPools.Add(pool.Key);
 
-                }
-            }
-            foreach (var id in destroyedPools)
+            if(configs == null)
             {
-                _pools.TryRemove(id, out _);
+                return;
+            }
+
+            lock (_poolsSyncRoot)
+            {
+                foreach (var (id, poolConfig) in configs)
+                {
+                    if (!_pools.ContainsKey(id) && TryCreateFromConfig(id, poolConfig, out var pool))
+                    {
+                        _pools.Add(id, pool);
+                    }
+                }
+
+                foreach (var (poolId, pool) in _pools)
+                {
+
+                    if (configs.TryGetValue(poolId, out var c))
+                    {
+                        pool.UpdateConfiguration(c);
+                    }
+                    else
+                    {
+                        pool?.Dispose();
+                        destroyedPools.Add(poolId);
+
+                    }
+                }
+                foreach (var id in destroyedPools)
+                {
+                    _pools.Remove(id, out _);
+                }
+
+                
             }
         }
-        
-        private ConcurrentDictionary<string,string > _sessionToOnlineId = new ConcurrentDictionary<string, string>();
 
-        internal Task<GameServerStartupParameters> SetReady(string onlineId, IScenePeerClient peer)
+
+        internal async Task<GameServerStartupParameters?> WaitGameAvailableAsync(Session session, IScenePeerClient peer, CancellationToken cancellationToken)
         {
-            var poolId = onlineId.Split('/')[0];
-            var id = onlineId.Split('/')[1];
-            var pool = GetPool(poolId);
-            if(pool == null)
+            IServerPool? selectedPool = null;
+            lock (_poolsSyncRoot)
             {
-                throw new ArgumentException($"pool {poolId} not found");
+                foreach (var (poolId, pool) in _pools)
+                {
+                    if(pool.CanManage(session, peer))
+                    {
+                        selectedPool = pool;
+                        _gameServers[session.SessionId] = new GameServerConnectionInfo(session.SessionId, poolId);
+                    }
+                }
             }
-            _sessionToOnlineId.TryAdd(peer.SessionId, onlineId);
-            return pool.SetReady(id, peer);
+
+            if(selectedPool!=null)
+            {
+               return await selectedPool.WaitGameSessionAsync(session, peer,cancellationToken);
+            }
+            else
+            {
+                return null;
+            }
+
         }
 
-        internal void SetShutdown(string sessionId)
+        internal void RemoveGameServer(string sessionId)
         {
-            if (_sessionToOnlineId.TryRemove(sessionId, out var onlineId))
+            lock(_poolsSyncRoot)
             {
-                var poolId = onlineId.Split('/')[0];
-                var id = onlineId.Split('/')[1];
-                var pool = GetPool(poolId);
-                if (pool == null)
+                if(_gameServers.Remove(sessionId,out var infos))
                 {
-                    throw new ArgumentException($"pool {poolId} not found");
+                    if(TryGetPool(infos.poolId,out var pool))
+                    {
+                        pool.OnGameServerDisconnected(sessionId);
+                    }
                 }
-                pool.SetShutdown(id);
             }
+           
         }
 
         private JObject? GetConfiguration(string id)
@@ -118,31 +183,19 @@ namespace Stormancer.Server.Plugins.GameSession
             }
         }
 
-        public IServerPool GetPool(string id)
+        public bool TryGetPool(string id, [NotNullWhen(true)] out IServerPool? pool)
         {
-            return _pools.GetOrAdd(id, _ =>
-             {
-                 var config = GetConfiguration(id);
-                 if (config == null)
-                 {
-                     throw new ArgumentException($"No config found for pool {id}");
-                 }
-
-                 foreach (var provider in providers)
-                 {
-                     if (provider.TryCreate(id, config, out var pool))
-                     {
-                         return pool;
-                     }
-
-                 }
-                 throw new InvalidOperationException($"Failed to create pool {id}. No provider could create the pool.");
-             });
+            lock (_poolsSyncRoot)
+            {
+                return _pools.TryGetValue(id, out pool);
+            }
         }
 
         public void OnConfigurationChanged()
         {
             ApplySettings();
         }
+
+       
     }
 }

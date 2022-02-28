@@ -82,7 +82,7 @@ namespace Stormancer.Server.Plugins.GameSession
             this.pools = pools;
         }
 
-        public async Task<GameServer> StartServer(string id, JObject c, CancellationToken ct)
+        public async Task<GameServerInstance> StartServer(string id, JObject c, CancellationToken ct)
         {
             dynamic config = c;
 
@@ -97,7 +97,7 @@ namespace Stormancer.Server.Plugins.GameSession
             var server = await LeaseServerPort(c);
 
             var serverGuid = Guid.NewGuid();
-            var result = new GameServer { Id = serverGuid };
+            var result = new GameServerInstance { Id = serverGuid };
 
             //Token used to authenticate the DS with the DedicatedServerAuthProvider
             var authenticationToken = id;

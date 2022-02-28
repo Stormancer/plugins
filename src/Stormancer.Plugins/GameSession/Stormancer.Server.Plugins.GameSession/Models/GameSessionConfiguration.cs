@@ -72,5 +72,21 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         [MessagePackMember(5)]
         public JObject Parameters { get; set; } = new JObject();
+
+        /// <summary>
+        /// If true, the gamesession shouldn't choose a client as the host, but request a gameserver.
+        /// </summary>
+        /// <remarks>
+        /// If set, requires <see cref="GameServerPool"/> to be set.
+        /// </remarks>
+        [MessagePackMember(6)]
+        public bool StartGameServer { get; set; }
+
+
+        /// <summary>
+        /// The gameserver pool from which the game server should be requested, if StartGameServer is true.
+        /// </summary>
+        [MessagePackMember(7)]
+        public string? GameServerPool { get; set; }
     }
 }

@@ -39,8 +39,15 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Database
 {
+    /// <summary>
+    /// ES dabatase plugin entry point.
+    /// </summary>
     public class Startup
     {
+        /// <summary>
+        /// Entry point.
+        /// </summary>
+        /// <param name="builder"></param>
         public void Run(IAppBuilder builder)
         {
             builder.AddPlugin(new ESClientPlugin());
@@ -80,29 +87,81 @@ namespace Stormancer.Server.Plugins.Database
         public ESBasicCredentials? Basic { get; set; }
     }
 
+    /// <summary>
+    /// Configuration of an ES connection pool.
+    /// </summary>
     public class ESConnectionPoolConfig
     {
+        /// <summary>
+        /// Gets or sets the ES Endpoints
+        /// </summary>
         // Replace : when the config specifies one or more endpoints, do not keep the default one.
         [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
         public List<string> Endpoints { get; set; } = new List<string> { "http://localhost:9200" };
-        public bool Sniffing { get; set; } = false;
-        public ESCredentials Credentials { get; set; }
+
+        /// <summary>
+        /// Is sniffing enabled on the ES connection.
+        /// </summary>
+        /// <remarks>
+        /// Defaults to true.
+        /// </remarks>
+        public bool Sniffing { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets ES credentials.
+        /// </summary>
+        public ESCredentials? Credentials { get; set; }
     }
 
+    /// <summary>
+    /// Represents a policy that maps an app storage id to an ES index.
+    /// </summary>
     public class ESIndexPolicyConfig
     {
 
+        /// <summary>
+        /// Retry timeout.
+        /// </summary>
         public int RetryTimeout { get; set; } = 5;
+
+        /// <summary>
+        /// Max number of retries before failure.
+        /// </summary>
         public int MaxRetries { get; set; } = 5;
-        public string Pattern { get; set; }
-        public string ConnectionPool { get; set; } = "default";
+
+        /// <summary>
+        /// Pattern used to transform the app index into an ES index.
+        /// </summary>
+        public string? Pattern { get; set; }
+
+        /// <summary>
+        /// Connection pool to use to interact with the index.
+        /// </summary>
+        public string? ConnectionPool { get; set; } = "default";
 
     }
 
+    /// <summary>
+    /// Elasticsearch config section.
+    /// </summary>
     public class ESConfig
     {
+        /// <summary>
+        /// Default pattern used if no pattern is declated for an app index.
+        /// </summary>
         public string defaultPattern = "{account}-{application}-{name}-{type}";
+
+        /// <summary>
+        /// Indice policies
+        /// </summary>
+        /// <remarks>
+        /// If no policy exist for an app index, a default policy is generated. Create custom policies only to accomodate custom requirements.
+        /// </remarks>
         public Dictionary<string, JObject> Indices { get; set; } = new Dictionary<string, JObject>();
+
+        /// <summary>
+        /// ES connection pools.
+        /// </summary>
         public Dictionary<string, ESConnectionPoolConfig> ConnectionPools { get; set; } = new Dictionary<string, ESConnectionPoolConfig>();
     }
 
@@ -187,7 +246,7 @@ namespace Stormancer.Server.Plugins.Database
         ConnectionParameters GetConnectionParameters<T>(string name, params object[] parameters);
         string GetIndex<T>(string name, params object[] parameters);
         string GetIndex(string type, string name, params object[] parameters);
-        Elasticsearch.Net.IConnectionPool GetConnectionPool(string id);
+        IConnectionPool? GetConnectionPool(string id);
         Nest.IElasticClient CreateClient(ConnectionParameters p);
         Task Init();
     }
@@ -222,7 +281,7 @@ namespace Stormancer.Server.Plugins.Database
 
         private class ConnectionPool : IDisposable
         {
-            public ConnectionPool(Elasticsearch.Net.IConnectionPool pool, ESCredentials credentials)
+            public ConnectionPool(Elasticsearch.Net.IConnectionPool pool, ESCredentials? credentials)
             {
                 Pool = pool;
                 Credentials = credentials;
@@ -230,7 +289,7 @@ namespace Stormancer.Server.Plugins.Database
 
             public IConnectionPool Pool { get; }
 
-            public ESCredentials Credentials { get; }
+            public ESCredentials? Credentials { get; }
 
             public void Dispose()
             {
@@ -246,7 +305,7 @@ namespace Stormancer.Server.Plugins.Database
         private readonly Func<IEnumerable<IESClientFactoryEventHandler>> _eventHandlers;
 
         //private List<Elasticsearch.Net.Connection.HttpClientConnection> _connections = new List<Elasticsearch.Net.Connection.HttpClientConnection>();
-        
+
         public ESClientFactory(IEnvironment environment, IConfiguration configuration, ILogger logger, Func<IEnumerable<IESClientFactoryEventHandler>> eventHandlers, ISecretsStore secretsStore)
         {
             _eventHandlers = eventHandlers;
@@ -262,7 +321,7 @@ namespace Stormancer.Server.Plugins.Database
         {
             dynamic config = _configuration.Settings;
             _clients.Clear();
-            _config = (ESConfig)(config?.elasticsearch?.ToObject<ESConfig>()) ?? new ESConfig();
+            _config = (ESConfig?)(config?.elasticsearch?.ToObject<ESConfig>()) ?? new ESConfig();
 
             _connectionPools = _config.ConnectionPools?.ToDictionary(kvp => kvp.Key, kvp =>
             {
@@ -313,10 +372,10 @@ namespace Stormancer.Server.Plugins.Database
 
         public ConnectionParameters GetConnectionParameters(string type, string name, params object[] parameters)
         {
-            string indexName = null;
-            JObject indexConfig;
-            ESIndexPolicyConfig policyConfig;
-            if (_config.Indices.TryGetValue(name, out indexConfig))
+            string? indexName = null;
+
+            ESIndexPolicyConfig? policyConfig;
+            if (_config.Indices.TryGetValue(name, out var indexConfig))
             {
                 policyConfig = indexConfig.ToObject<ESIndexPolicyConfig>();
             }
@@ -340,7 +399,7 @@ namespace Stormancer.Server.Plugins.Database
                 _logger.Log(Stormancer.Diagnostics.LogLevel.Error, LOG_CATEGORY, "An error occured while running an 'database.OnCreate' event handler", ex);
             });
 
-            var pattern = policyConfig.Pattern;
+            var pattern = policyConfig?.Pattern;
             if (pattern == null)
             {
                 pattern = _config.defaultPattern;
@@ -353,13 +412,13 @@ namespace Stormancer.Server.Plugins.Database
                 indexName = $"{name}-{type}";
             }
 
-            return new ConnectionParameters { ConnectionPool = policyConfig.ConnectionPool, IndexName = indexName.ToLowerInvariant(), maxRetries = policyConfig.MaxRetries, retryTimeout = policyConfig.RetryTimeout };
+            return new ConnectionParameters { ConnectionPool = policyConfig?.ConnectionPool ?? "default", IndexName = indexName.ToLowerInvariant(), maxRetries = policyConfig.MaxRetries, retryTimeout = policyConfig.RetryTimeout };
         }
 
         public IElasticClient CreateClient(ConnectionParameters p)
         {
-            ConnectionPool connectionPool;
-            if (!_connectionPools.TryGetValue(p.ConnectionPool, out connectionPool))
+           
+            if (!_connectionPools.TryGetValue(p.ConnectionPool, out var connectionPool))
             {
                 _logger.Log(Stormancer.Diagnostics.LogLevel.Trace, "es", "Failed to find connection Pool", new { });
                 throw new InvalidOperationException($"Failed to find connection pool {p.ConnectionPool} in elasticsearch config.");
@@ -390,17 +449,23 @@ namespace Stormancer.Server.Plugins.Database
             return GetConnectionParameters(type, name, parameters).IndexName;
         }
 
-        public IConnectionPool GetConnectionPool(string id)
+        public IConnectionPool? GetConnectionPool(string id)
         {
-            ConnectionPool connection;
-            if (_connectionPools.TryGetValue(id, out connection))
+           
+            if (_connectionPools.TryGetValue(id, out var connection))
             {
                 return connection.Pool;
             }
             else
             {
-                _connectionPools.TryGetValue("default", out connection);
-                return connection.Pool;
+                if (_connectionPools.TryGetValue("default", out connection))
+                {
+                    return connection.Pool;
+                }
+                else
+                {
+                    return null;
+                }
             }
         }
 
@@ -433,7 +498,7 @@ namespace Stormancer.Server.Plugins.Database
             foreach (var pair in _connectionPools)
             {
                 var cp = pair.Value;
-                if (cp.Credentials.Basic != null)
+                if (cp.Credentials?.Basic != null)
                 {
                     if (!string.IsNullOrWhiteSpace(cp.Credentials.Basic.PasswordPath))
                     {

@@ -46,9 +46,27 @@ using System.Runtime.CompilerServices;
 using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Models;
 using System.Diagnostics.CodeAnalysis;
+using Stormancer.Server.Plugins.GameSession.ServerPool;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
+
+    internal class GameSessionState
+    {
+        private readonly ISceneHost scene;
+
+        public GameSessionState(ISceneHost scene)
+        {
+            this.scene = scene;
+        }
+
+        public GameSessionTemplateConfiguration GetTemplateConfiguration() => GameSessionsExtensions.GetConfig(scene.Template);
+
+        public bool UseGameServer() => GetTemplateConfiguration().GameServerConfig.useGameServerGetter(scene);
+        public string? GameServerPool() => GetTemplateConfiguration().GameServerConfig.gameServerPoolIdGetter(scene);
+
+        public TimeSpan GameServerStartTimeout() => GetTemplateConfiguration().GameServerConfig.serverStartTimeoutGetter(scene);
+    }
     /// <summary>
     /// Server status
     /// </summary>
@@ -153,18 +171,17 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private readonly IConfiguration _configuration;
         private readonly ILogger _logger;
+        private readonly GameSessionState state;
         private readonly ISceneHost _scene;
         private readonly IEnvironment _environment;
-        private readonly IDelegatedTransports _pools;
         private readonly RpcService _rpc;
+        private readonly IServerPools pools;
         private readonly ISerializer _serializer;
 
         private TimeSpan _gameSessionTimeout = TimeSpan.MaxValue;
         private GameSessionConfiguration? _config;
         private readonly CancellationTokenSource _sceneCts = new();
 
-
-        private readonly byte[]? _serverGuid;
 
         private readonly ConcurrentDictionary<string, Client> _clients = new();
         private ServerStatus _status = ServerStatus.WaitingPlayers;
@@ -183,24 +200,27 @@ namespace Stormancer.Server.Plugins.GameSession
         private DateTime _shutdownDate;
 
         public GameSessionService(
+            GameSessionState state,
             ISceneHost scene,
             IConfiguration configuration,
             IEnvironment environment,
-            IDelegatedTransports pools,
             ManagementClientProvider management,
             ILogger logger,
             IAnalyticsService analytics,
             RpcService rpc,
+            IServerPools pools,
             ISerializer serializer)
         {
             _analytics = analytics;
             _management = management;
+            this.state = state;
             _scene = scene;
             _configuration = configuration;
             _logger = logger;
             _environment = environment;
-            _pools = pools;
+
             _rpc = rpc;
+            this.pools = pools;
             _serializer = serializer;
 
 
@@ -211,12 +231,8 @@ namespace Stormancer.Server.Plugins.GameSession
                 _sceneCts.Cancel();
                 return Task.CompletedTask;
             });
-            scene.Connecting.Add(this.PeerConnecting);
-            scene.ConnectionRejected.Add(this.PeerConnectionRejected);
-            scene.Connected.Add(this.PeerConnected);
-            scene.Disconnected.Add((args) => this.PeerDisconnecting(args.Peer));
-            scene.AddRoute("player.ready", this.ReceivedReady, _ => _);
-            scene.AddRoute("player.faulted", this.ReceivedFaulted, _ => _);
+           
+            
 
             _reservationCleanupTimer = new Timer((_) => _ = ReservationCleanupCallback(null), null, 5000, 5000);
         }
@@ -251,36 +267,28 @@ namespace Stormancer.Server.Plugins.GameSession
             }
         }
 
-        private async Task ReceivedReady(Packet<IScenePeerClient> packet)
+        public async Task SetPlayerReady(IScenePeerClient peer, string customData)
         {
             try
             {
-                var peer = packet.Connection;
-                if (peer == null)
+
+                await using var dr = _scene.CreateRequestScope();
+                var sessions = dr.Resolve<IUserSessions>();
+
+                var session = await sessions.GetSession(peer, CancellationToken.None);
+
+                //Peer not authd.
+                if (session is null)
                 {
-                    throw new ArgumentNullException(nameof(peer));
-                }
-                if (peer.ContentType == "application/server-id" && _serverGuid != null)
-                {
-                    var peerGuid = new Guid(peer.UserData);
-                    var serverGuid = new Guid(_serverGuid);
-                    if (serverGuid == peerGuid)
-                    {
-                        await SignalServerReady(peer.SessionId);
-                        return;
-                    }
-                }
-                if (IsWorker(packet.Connection))
-                {
-                    if (_status == ServerStatus.Started)
-                    {
-                        await _scene.Send(new MatchPeerFilter(peer), P2P_TOKEN_ROUTE, s =>
-                        {
-                            var serializer = peer.Serializer();
-                            serializer.Serialize(_p2pToken, s);
-                        }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
-                    }
                     return;
+                }
+
+                if (IsServer(session))
+                {
+
+                    await SignalServerReady(peer.SessionId);
+                    return;
+
                 }
 
                 var user = await GetUserId(peer);
@@ -309,7 +317,7 @@ namespace Stormancer.Server.Plugins.GameSession
                             _logger.Log(LogLevel.Error, "gameSession", "An error occured while running gameSession.OnClientReady event handlers", ex);
                         });
                     }
-                    BroadcastClientUpdate(currentClient, user, packet.ReadObject<string>());
+                    BroadcastClientUpdate(currentClient, user, customData);
                 }
 
                 await CheckAllPlayersReady();
@@ -355,9 +363,9 @@ namespace Stormancer.Server.Plugins.GameSession
             _scene.Broadcast("player.update", new PlayerUpdate { UserId = userId, Status = (byte)client.Status, Data = data ?? "", IsHost = (_config.HostUserId == userId) }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
         }
 
-        private async Task ReceivedFaulted(Packet<IScenePeerClient> packet)
+        public async Task SetPeerFaulted(IScenePeerClient peer)
         {
-            var peer = packet.Connection;
+            
             if (peer == null)
             {
                 throw new ArgumentNullException(nameof(peer));
@@ -374,7 +382,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 throw new InvalidOperationException("Unknown client.");
             }
 
-            _ = packet.ReadObject<string>(); // Discard reason string
+          
             currentClient.Status = PlayerStatus.Faulted;
 
             if (this._status == ServerStatus.WaitingPlayers
@@ -397,12 +405,9 @@ namespace Stormancer.Server.Plugins.GameSession
             return peer.ContentType == "application/server-id";
         }
 
-        private async Task PeerConnecting(IScenePeerClient peer)
+        public async Task OnPeerConnecting(IScenePeerClient peer)
         {
-            if (peer.ContentType == "application/server-id" && !IsServer(peer))
-            {
-                throw new ClientException("Failed to authenticate as dedicated server");
-            }
+
 
             if (peer == null)
             {
@@ -445,7 +450,7 @@ namespace Stormancer.Server.Plugins.GameSession
             }
         }
 
-        private async Task PeerConnectionRejected(IScenePeerClient peer)
+        public async Task OnPeerConnectionRejected(IScenePeerClient peer)
         {
             lock (_clients)
             {
@@ -470,34 +475,34 @@ namespace Stormancer.Server.Plugins.GameSession
             _status = ServerStatus.Started;
         }
 
-        public bool IsServer(IScenePeerClient peer)
+        public bool IsServer(Session session)
         {
-            if (_serverGuid == null)
-            {
-                return false;
-            }
 
-            if (peer != null && peer.ContentType == "application/server-id")
-            {
-                var peerGuid = new Guid(peer.UserData);
-                var serverGuid = new Guid(_serverGuid);
-                return serverGuid == peerGuid;
-            }
-            else
-            {
-                return false;
-            }
+            return session.platformId.Platform.StartsWith(DedicatedServerAuthProvider.PROVIDER_NAME);
         }
 
-        private async Task PeerConnected(IScenePeerClient peer)
+        public async Task OnPeerConnected(IScenePeerClient peer)
         {
             Debug.Assert(_config != null);
 
-            if (peer == null)
+            await using var dr = _scene.CreateRequestScope();
+            var sessions = dr.Resolve<IUserSessions>();
+
+            var session = await sessions.GetSession(peer, CancellationToken.None);
+
+            if (session is null)
             {
-                throw new ArgumentNullException(nameof(peer));
+                return;
             }
 
+            if (IsServer(session))
+            {
+                GetServerTcs().TrySetResult(peer);
+
+                peer.Send(P2P_TOKEN_ROUTE, "");
+                return;
+            }
+         
             var client = _clients.First(client => client.Value.Peer == peer);
             client.Value.Status = PlayerStatus.Connected;
             if (!_config.Public)
@@ -507,64 +512,57 @@ namespace Stormancer.Server.Plugins.GameSession
 
             await TryStart();
 
-            if (IsServer(peer))
+
+
+            var userId = client.Key;
+
+            _analytics.Push("gamesession", "playerJoined", JObject.FromObject(new { userId, gameSessionId = this._scene.Id, sessionId = peer.SessionId }));
+            //Check if the gameSession is Dedicated or listen-server            
+
+            // If the host is not defined a P2P was sent with "" to notify client is host.
+            _logger.Log(LogLevel.Trace, "gamesession", $"Gamesession {_scene.Id} evaluating {userId} as host (expected host :{_config.HostUserId})", new { });
+            if (string.IsNullOrEmpty(_config.HostUserId) || _config.HostUserId == userId)
             {
-                GetServerTcs().TrySetResult(peer);
-
-                peer.Send(P2P_TOKEN_ROUTE, "");
-                return;
+                _config.HostUserId = userId;
+                if (GetServerTcs().TrySetResult(peer))
+                {
+                    _logger.Log(LogLevel.Debug, LOG_CATEOGRY, "Host defined and connecting", userId);
+                    peer.Send(P2P_TOKEN_ROUTE, "");
+                }
+                else
+                {
+                    _logger.Log(LogLevel.Debug, LOG_CATEOGRY, "Client connecting", userId);
+                }
             }
-            if (!IsWorker(peer))
+
+
+            foreach (var uId in _clients.Keys)
             {
-                var userId = client.Key;
-
-                _analytics.Push("gamesession", "playerJoined", JObject.FromObject(new { userId, gameSessionId = this._scene.Id, sessionId = peer.SessionId }));
-                //Check if the gameSession is Dedicated or listen-server            
-
-                // If the host is not defined a P2P was sent with "" to notify client is host.
-                _logger.Log(LogLevel.Trace, "gamesession", $"Gamesession {_scene.Id} evaluating {userId} as host (expected host :{_config.HostUserId})", new { });
-                if (string.IsNullOrEmpty(_config.HostUserId) || _config.HostUserId == userId)
+                if (uId != userId)
                 {
-                    _config.HostUserId = userId;
-                    if (GetServerTcs().TrySetResult(peer))
-                    {
-                        _logger.Log(LogLevel.Debug, LOG_CATEOGRY, "Host defined and connecting", userId);
-                        peer.Send(P2P_TOKEN_ROUTE, "");
-                    }
-                    else
-                    {
-                        _logger.Log(LogLevel.Debug, LOG_CATEOGRY, "Client connecting", userId);
-                    }
+                    var currentClient = _clients[uId];
+                    var isHost = GetServerTcs().Task.IsCompleted && GetServerTcs().Task.Result.SessionId == currentClient.Peer?.SessionId;
+                    peer.Send("player.update",
+                        new PlayerUpdate { UserId = uId, IsHost = isHost, Status = (byte)currentClient.Status, Data = currentClient.FaultReason ?? "" },
+                        PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
                 }
-
-
-                foreach (var uId in _clients.Keys)
-                {
-                    if (uId != userId)
-                    {
-                        var currentClient = _clients[uId];
-                        var isHost = GetServerTcs().Task.IsCompleted && GetServerTcs().Task.Result.SessionId == currentClient.Peer?.SessionId;
-                        peer.Send("player.update",
-                            new PlayerUpdate { UserId = uId, IsHost = isHost, Status = (byte)currentClient.Status, Data = currentClient.FaultReason ?? "" },
-                            PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
-                    }
-                }
-                if (_status == ServerStatus.Started)
-                {
-                    if (_p2pToken == null && GetServerTcs().Task.IsCompleted)
-                    {
-                        _p2pToken = await _scene.DependencyResolver.Resolve<IPeerInfosService>().CreateP2pToken((await GetServerTcs().Task).SessionId, _scene.Id);
-                    }
-
-                    peer.Send(P2P_TOKEN_ROUTE, _p2pToken);
-                }
-
-                var playerConnectedCtx = new ClientConnectedContext(this, new PlayerPeer(peer, new Player(peer.SessionId, userId)), _config.HostUserId == userId);
-                await using var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag);
-                await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
-                    h => h.OnClientConnected(playerConnectedCtx),
-                    ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing OnClientConnected event", ex));
             }
+            if (_status == ServerStatus.Started)
+            {
+                if (_p2pToken == null && GetServerTcs().Task.IsCompleted)
+                {
+                    _p2pToken = await _scene.DependencyResolver.Resolve<IPeerInfosService>().CreateP2pToken((await GetServerTcs().Task).SessionId, _scene.Id);
+                }
+
+                peer.Send(P2P_TOKEN_ROUTE, _p2pToken);
+            }
+
+            var playerConnectedCtx = new ClientConnectedContext(this, new PlayerPeer(peer, new Player(peer.SessionId, userId)), _config.HostUserId == userId);
+            await using var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag);
+            await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
+                h => h.OnClientConnected(playerConnectedCtx),
+                ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing OnClientConnected event", ex));
+
         }
 
         private Task? _serverStartTask = null;
@@ -589,7 +587,19 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(h => h.GameSessionStarting(ctx), ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing GameSessionStarting event", ex));
             }
+           
+            if (state.UseGameServer())
+            {
+                var poolId = state.GameServerPool();
+                Debug.Assert(poolId != null);//UseGameServer == true
 
+                if (pools.TryGetPool(poolId, out var pool))
+                {
+                    var server = await pool.WaitGameServerAsync(this.GameSessionId, this._config, _gameCompleteCts.Token);
+                    using var cts = new CancellationTokenSource(state.GameServerStartTimeout());
+                    await GetServerTcs().Task.WaitAsync(cts.Token);
+                }
+            }
 
             _logger.Log(LogLevel.Trace, "gamesession", "No server executable enabled. Game session started.", new { });
             _status = ServerStatus.Started;
@@ -608,7 +618,7 @@ namespace Stormancer.Server.Plugins.GameSession
             return _serverPeer;
         }
 
-        public Task PeerDisconnecting(IScenePeerClient peer)
+        public Task OnPeerDisconnecting(IScenePeerClient peer)
         {
             Debug.Assert(_config != null);
             if (IsHost(peer.SessionId))
@@ -671,7 +681,19 @@ namespace Stormancer.Server.Plugins.GameSession
             return Task.CompletedTask;
         }
 
-        private static ValueTask CloseGameServer() => ValueTask.CompletedTask;
+        private async ValueTask CloseGameServer()
+        {
+            if (GetServerTcs().Task.IsCompletedSuccessfully)
+            {
+               
+                var poolId = state.GameServerPool();
+                Debug.Assert(poolId != null);
+                if(state.UseGameServer() && pools.TryGetPool(poolId, out var pool))
+                {
+                    await pool.CloseServer(GetServerTcs().Task.Result.SessionId);
+                }
+            }
+        }
 
         public Task Reset()
         {
@@ -831,11 +853,12 @@ namespace Stormancer.Server.Plugins.GameSession
             return sessionId == GetServerTcs().Task.Result.SessionId;
         }
 
-        public ValueTask DisposeAsync()
+        public async ValueTask DisposeAsync()
         {
             _gameCompleteCts?.Dispose();
             _reservationCleanupTimer?.Dispose();
-            return CloseGameServer();
+            GetServerTcs().TrySetCanceled();
+            await CloseGameServer();
         }
 
         public GameSessionConfigurationDto GetGameSessionConfig()
@@ -938,12 +961,12 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             if (_reservationStates.TryRemove(Guid.Parse(id), out var reservationState))
             {
-                var ids = new List<(string,string)>();
+                var ids = new List<(string, string)>();
                 foreach (var userId in reservationState.UserIds)
                 {
                     if (TryRemoveUserFromConfig(userId, out var teamId))
                     {
-                        ids.Add((teamId,userId));
+                        ids.Add((teamId, userId));
                     }
                 }
 
@@ -969,12 +992,12 @@ namespace Stormancer.Server.Plugins.GameSession
                     {
                         if (reservationState.ExpiresOn < DateTime.UtcNow)
                         {
-                            var ids = new List<(string,string)>();
+                            var ids = new List<(string, string)>();
                             foreach (var userId in reservationState.UserIds)
                             {
                                 if (TryRemoveUserFromConfig(userId, out var teamId))
                                 {
-                                    ids.Add((teamId,userId));
+                                    ids.Add((teamId, userId));
                                 }
                             }
 
