@@ -53,6 +53,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
     {
         private readonly ILogger logger;
         private readonly IConfiguration configuration;
+    
         private readonly IEnumerable<IServerPoolProvider> providers;
         private readonly Dictionary<string, IServerPool> _pools = new Dictionary<string, IServerPool>();
         private object _poolsSyncRoot = new object();
@@ -65,6 +66,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         {
             this.logger = logger;
             this.configuration = config;
+           
             this.providers = providers;
             ApplySettings();
         }
@@ -147,7 +149,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
             if(selectedPool!=null)
             {
-               return await selectedPool.WaitGameSessionAsync(session, peer,cancellationToken);
+               var parameters = await selectedPool.WaitGameSessionAsync(session, peer,cancellationToken);
+               
+                return parameters;
+
             }
             else
             {

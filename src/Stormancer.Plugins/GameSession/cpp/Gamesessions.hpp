@@ -486,15 +486,18 @@ namespace Stormancer
 							auto update = packet->readObject<Stormancer::GameSessions::PlayerUpdate>();
 							SessionPlayer player(update.userId, (PlayerStatus)update.status, update.isHost);
 
-							auto end = that->_users.end();
-							auto it = std::find_if(that->_users.begin(), end, [player](SessionPlayer p) { return p.playerId == player.playerId; });
-							if (it == end)
+							if (player.playerId != "server")
 							{
-								that->_users.push_back(player);
-							}
-							else
-							{
-								*it = player;
+								auto end = that->_users.end();
+								auto it = std::find_if(that->_users.begin(), end, [player](SessionPlayer p) { return p.playerId == player.playerId; });
+								if (it == end)
+								{
+									that->_users.push_back(player);
+								}
+								else
+								{
+									*it = player;
+								}
 							}
 							that->onPlayerStateChanged(player, update.data);
 						}

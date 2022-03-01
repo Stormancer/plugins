@@ -261,10 +261,15 @@ namespace Stormancer.Server.Plugins.GameSession
             }
             else
             {
-                await using var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag);
-                var sessions = scope.Resolve<IUserSessions>();
-                return (await sessions.GetUser(peer, CancellationToken.None))?.Id;
+                return (await GetSessionAsync(peer))?.User?.Id;
             }
+        }
+
+        private async Task<Session?> GetSessionAsync(IScenePeerClient peer)
+        {
+            await using var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag);
+            var sessions = scope.Resolve<IUserSessions>();
+            return await sessions.GetSession(peer, CancellationToken.None);
         }
 
         public async Task SetPlayerReady(IScenePeerClient peer, string customData)
@@ -413,11 +418,11 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 throw new ArgumentNullException(nameof(peer));
             }
-            var user = await GetUserId(peer);
-
-            if (user == null)
+            var session = await GetSessionAsync(peer);
+            var user = session?.User?.Id;
+            if (session == null || user == null)
             {
-                throw new ClientException("You are not authenticated.");
+                throw new ClientException("notAuthenticated");
             }
 
             if (_config == null)
@@ -425,11 +430,18 @@ namespace Stormancer.Server.Plugins.GameSession
                 throw new InvalidOperationException("Game session plugin configuration missing in scene instance metadata. Please check the scene creation process.");
             }
 
+            if(IsServer(session))
+            {
+                return;
+            }
+           
+
+            
             if (!_config.Public && !_config.UserIds.Contains(user))
             {
                 throw new ClientException("You are not authorized to join this game.");
             }
-
+           
             var client = new Client(peer);
             lock (_clients)
             {
@@ -467,12 +479,16 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             _p2pToken = await _scene.DependencyResolver.Resolve<IPeerInfosService>().CreateP2pToken(sessionId, _scene.Id);
 
-            foreach (var p in _scene.RemotePeers.Where(p => p.SessionId != sessionId))
-            {
-                p.Send(P2P_TOKEN_ROUTE, _p2pToken);
-            }
+            await _scene.Send(new MatchArrayFilter(_scene.RemotePeers.Where(p => p.SessionId != sessionId)), P2P_TOKEN_ROUTE,s=> _serializer.Serialize(_p2pToken,s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+            
+
+
             //_scene.Broadcast(P2P_TOKEN_ROUTE, _p2pToken);
             _status = ServerStatus.Started;
+            var playerUpdate = new PlayerUpdate { IsHost = true, Status = (byte)PlayerStatus.Ready, UserId = "server"  };
+            await _scene.Send(new MatchArrayFilter(_scene.RemotePeers.Where(p => p.SessionId != sessionId)), "player.update", s => _serializer.Serialize(playerUpdate, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
+
+
         }
 
         public bool IsServer(Session session)

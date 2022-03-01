@@ -51,7 +51,8 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         /// <summary>
         /// Gets or sets the game session Id.
         /// </summary>
-        public string GameSessionId { get; internal set; } = default!;
+        [MessagePackMember(2)]
+        public string GameSessionId { get; set; } = default!;
     }
 
     [Service(Named = false, ServiceType = "stormancer.plugins.serverPool")]
@@ -59,11 +60,13 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
     {
         private readonly ServerPools pools;
         private readonly IUserSessions sessions;
+        private readonly IGameSessions gamesessions;
 
-        public ServerPoolController(ServerPools pools, IUserSessions sessions)
+        public ServerPoolController(ServerPools pools, IUserSessions sessions, IGameSessions gamesessions)
         {
             this.pools = pools;
             this.sessions = sessions;
+            this.gamesessions = gamesessions;
         }
 
         protected override Task OnDisconnected(DisconnectedArgs args)
@@ -90,12 +93,16 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
 
 
-            var p = await pools.WaitGameAvailableAsync(session, ctx.RemotePeer, ctx.CancellationToken);
-            if (p == null)
+            var parameters = await pools.WaitGameAvailableAsync(session, ctx.RemotePeer, ctx.CancellationToken);
+            if (parameters != null)
+            {
+                parameters.GameSessionConnectionToken = await gamesessions.CreateConnectionToken(parameters.GameSessionId, session.SessionId);
+            }
+            if (parameters == null)
             {
                 throw new ClientException("serverPool.notAuthorized");
             }
-            return p;
+            return parameters;
         }
 
         [S2SApi]

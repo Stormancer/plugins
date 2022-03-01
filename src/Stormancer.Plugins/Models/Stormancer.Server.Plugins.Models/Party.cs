@@ -72,7 +72,7 @@ namespace Stormancer.Server.Plugins.Models
         /// Party creation date.
         /// </summary>
         [MessagePackMember(3)]
-        public DateTime CreationTimeUtc { get; } = DateTime.UtcNow;
+        public DateTime CreationTimeUtc { get; set; } = DateTime.UtcNow;
 
 
         /// <summary>

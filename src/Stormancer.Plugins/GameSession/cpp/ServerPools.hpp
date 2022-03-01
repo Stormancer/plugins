@@ -41,17 +41,32 @@ namespace Stormancer
 			//Game complete
 			Complete
 		};
-		struct Group
+		struct Player
+		{
+			std::string data;
+			std::string sessionId;
+			std::string userId;
+			MSGPACK_DEFINE(data,sessionId,userId)
+		};
+		struct PlayerParty
 		{
 			std::string groupId;
-			std::vector<std::string> playerIds;
 
-			MSGPACK_DEFINE(groupId, playerIds)
+			std::unordered_map<std::string, Player> playerIds;
+
+			std::string customData;
+
+			msgpack::type::ext creationTimeUtc;
+
+			int pastPasses;
+
+			std::string partyLeaderId;
+			MSGPACK_DEFINE(groupId, playerIds,customData,creationTimeUtc,pastPasses)
 		};
 		struct Team
 		{
 			std::string teamId;
-			std::vector<Group> groups;
+			std::vector<PlayerParty> groups;
 
 			MSGPACK_DEFINE(teamId, groups)
 		};
@@ -63,12 +78,11 @@ namespace Stormancer
 			std::string hostUserId;
 			std::vector<Team> teams;
 		
-			std::vector<std::string> playerIds;
-
+			
 			//parameters is transmitted as a msgpack map. It must therefore use MSGPACK_DEFINE_MAP instead of MSGPACK_DEFINE
-			T parameters;
+			std::shared_ptr<T> parameters;
 
-			MSGPACK_DEFINE(isPublic, canRestart, hostUserId, teams, playerIds, parameters )
+			MSGPACK_DEFINE(isPublic, canRestart, hostUserId, teams, parameters )
 		};
 
 		template<typename T>
