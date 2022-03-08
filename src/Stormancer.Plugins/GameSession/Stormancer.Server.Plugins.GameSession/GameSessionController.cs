@@ -87,7 +87,7 @@ namespace Stormancer.Server.Plugins.GameSession
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<string?> GetP2PToken(RequestContext<IScenePeerClient> ctx)
+        public async Task<HostInfosMessage> GetP2PToken(RequestContext<IScenePeerClient> ctx)
         {
             return await _service.CreateP2PToken(ctx.RemotePeer.SessionId);
         }

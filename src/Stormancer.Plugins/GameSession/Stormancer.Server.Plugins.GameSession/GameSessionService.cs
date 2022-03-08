@@ -47,6 +47,7 @@ using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Models;
 using System.Diagnostics.CodeAnalysis;
 using Stormancer.Server.Plugins.GameSession.ServerPool;
+using MsgPack.Serialization;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
@@ -131,6 +132,30 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Player disconnected.
         /// </summary>
         Disconnected = 4
+    }
+
+    /// <summary>
+    /// Message sent to peers to provide infos about the game session host and connectivity. 
+    /// </summary>
+    public class HostInfosMessage
+    {
+        /// <summary>
+        /// If P2P enabled, contains the connection token to the host.
+        /// </summary>
+        [MessagePackMember(0)]
+        public string? P2PToken { get; set; }
+
+        /// <summary>
+        /// True if the receiving peer is the host.
+        /// </summary>
+        [MessagePackMember(1)]
+        public bool IsHost { get; set; }
+
+        /// <summary>
+        /// Session id of the host.
+        /// </summary>
+        [MessagePackMember(2)]
+        public string? HostSessionId { get; set; }
     }
 
     internal class GameSessionService : IGameSessionService, IConfigurationChangedEventHandler, IAsyncDisposable
@@ -333,10 +358,8 @@ namespace Stormancer.Server.Plugins.GameSession
 
                     _p2pToken = p2pToken;
 
-                    foreach (var p in _scene.RemotePeers.Where(p => p != peer))
-                    {
-                        p.Send(P2P_TOKEN_ROUTE, p2pToken);
-                    }
+                    await SendP2PToken(_scene.RemotePeers.Where(p => p != peer), false, p2pToken, peer.SessionId);
+                    
                 }
             }
             catch (Exception ex)
@@ -479,11 +502,10 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             _p2pToken = await _scene.DependencyResolver.Resolve<IPeerInfosService>().CreateP2pToken(sessionId, _scene.Id);
 
-            await _scene.Send(new MatchArrayFilter(_scene.RemotePeers.Where(p => p.SessionId != sessionId)), P2P_TOKEN_ROUTE,s=> _serializer.Serialize(_p2pToken,s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
-            
+            await SendP2PToken(_scene.RemotePeers.Where(p => p.SessionId != sessionId), false, _p2pToken, sessionId);
+         
 
-
-            //_scene.Broadcast(P2P_TOKEN_ROUTE, _p2pToken);
+          
             _status = ServerStatus.Started;
             var playerUpdate = new PlayerUpdate { IsHost = true, Status = (byte)PlayerStatus.Ready, UserId = "server"  };
             await _scene.Send(new MatchArrayFilter(_scene.RemotePeers.Where(p => p.SessionId != sessionId)), "player.update", s => _serializer.Serialize(playerUpdate, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
@@ -495,6 +517,11 @@ namespace Stormancer.Server.Plugins.GameSession
         {
 
             return session.platformId.Platform.StartsWith(DedicatedServerAuthProvider.PROVIDER_NAME);
+        }
+
+        public Task SendP2PToken(IEnumerable<IScenePeerClient> target, bool isHost, string token,string hostSessionId)
+        {
+            return _scene.Send(new MatchArrayFilter(target), P2P_TOKEN_ROUTE, s => _serializer.Serialize(new HostInfosMessage { HostSessionId = hostSessionId, IsHost = isHost, P2PToken = token }, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
         }
 
         public async Task OnPeerConnected(IScenePeerClient peer)
@@ -515,7 +542,8 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 GetServerTcs().TrySetResult(peer);
 
-                peer.Send(P2P_TOKEN_ROUTE, "");
+                await SendP2PToken(Enumerable.Repeat(peer, 1), true, "", "");
+             
                 return;
             }
          
@@ -543,7 +571,8 @@ namespace Stormancer.Server.Plugins.GameSession
                 if (GetServerTcs().TrySetResult(peer))
                 {
                     _logger.Log(LogLevel.Debug, LOG_CATEOGRY, "Host defined and connecting", userId);
-                    peer.Send(P2P_TOKEN_ROUTE, "");
+                    await SendP2PToken(Enumerable.Repeat(peer, 1), true, "", "");
+
                 }
                 else
                 {
@@ -565,12 +594,19 @@ namespace Stormancer.Server.Plugins.GameSession
             }
             if (_status == ServerStatus.Started)
             {
+                
                 if (_p2pToken == null && GetServerTcs().Task.IsCompleted)
                 {
+                    
                     _p2pToken = await _scene.DependencyResolver.Resolve<IPeerInfosService>().CreateP2pToken((await GetServerTcs().Task).SessionId, _scene.Id);
                 }
 
-                peer.Send(P2P_TOKEN_ROUTE, _p2pToken);
+
+                if (_p2pToken != null)
+                {
+                    await SendP2PToken(Enumerable.Repeat(peer, 1), false, _p2pToken, (await GetServerTcs().Task).SessionId);
+                }
+
             }
 
             var playerConnectedCtx = new ClientConnectedContext(this, new PlayerPeer(peer, new Player(peer.SessionId, userId)), _config.HostUserId == userId);
@@ -838,16 +874,17 @@ namespace Stormancer.Server.Plugins.GameSession
             }
         }
 
-        public async Task<string?> CreateP2PToken(string sessionId)
+        public async Task<HostInfosMessage> CreateP2PToken(string sessionId)
         {
             var hostPeer = await GetServerTcs().Task;
             if (sessionId == hostPeer.SessionId)
             {
-                return null;
+                return new HostInfosMessage { IsHost = true, HostSessionId = sessionId };
             }
             else
             {
-                return await _scene.DependencyResolver.Resolve<IPeerInfosService>().CreateP2pToken(hostPeer.SessionId, _scene.Id);
+                return new HostInfosMessage { IsHost = false, HostSessionId = hostPeer.SessionId, P2PToken = await _scene.DependencyResolver.Resolve<IPeerInfosService>().CreateP2pToken(hostPeer.SessionId, _scene.Id) };
+              
             }
         }
 

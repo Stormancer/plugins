@@ -32,21 +32,19 @@ namespace Stormancer
 			/// </summary>
 			/// <param name="sceneId"></param>
 			/// <param name="buffer"></param>
-			/// <param name="offset"></param>
 			/// <param name="maxLength"></param>
 			/// <returns></returns>
-			virtual ReceivedMsgInfos receive(std::string sceneId, char* buffer, int offset, int maxLength) = 0;
+			virtual ReceivedMsgInfos receive(std::string sceneId, char* buffer, int maxLength) = 0;
 
 			/// <summary>
 			/// Returns a task that completes when a datagram is received on the specified scene.
 			/// </summary>
 			/// <param name="sceneId"></param>
 			/// <param name="buffer"></param>
-			/// <param name="offset"></param>
 			/// <param name="maxLength"></param>
 			/// <param name="cancellationToken"></param>
 			/// <returns></returns>
-			virtual pplx::task<ReceivedMsgInfos> receiveAsync(std::string sceneId, char* buffer, int offset, int maxLength, pplx::cancellation_token cancellationToken) = 0;
+			virtual pplx::task<ReceivedMsgInfos> receiveAsync(std::string sceneId, char* buffer, int maxLength, pplx::cancellation_token cancellationToken) = 0;
 
 		};
 	}
@@ -95,7 +93,7 @@ namespace Stormancer
 
 				}
 
-				pplx::task<ReceivedMsgInfos> receiveAsync(char* buffer, int offset, int maxLength, pplx::cancellation_token cancellationToken)
+				pplx::task<ReceivedMsgInfos> receiveAsync(char* buffer, int maxLength, pplx::cancellation_token cancellationToken)
 				{
 					return _channel.reader().waitToReadAsync(cancellationToken).then([buffer, maxLength, this](WaitToReadResult<Packetisp_ptr> result)
 						{
@@ -112,7 +110,7 @@ namespace Stormancer
 								r.length = length;
 								r.success = true;
 								serializer.deserialize(packet->stream, r.sessionId);
-
+								std::memcpy(buffer, packet->stream.currentPtr(), length);
 								return r;
 
 							}
@@ -174,19 +172,19 @@ namespace Stormancer
 
 			}
 
-			ReceivedMsgInfos receive(std::string sceneId, char* buffer, int offset, int maxLength)
+			ReceivedMsgInfos receive(std::string sceneId, char* buffer, int maxLength)
 			{
-				return receiveAsync(sceneId, buffer, offset, maxLength, pplx::cancellation_token::none()).get();
+				return receiveAsync(sceneId, buffer, maxLength, pplx::cancellation_token::none()).get();
 			}
 
-			pplx::task<ReceivedMsgInfos> receiveAsync(std::string sceneId, char* buffer, int offset, int maxLength, pplx::cancellation_token cancellationToken)
+			pplx::task<ReceivedMsgInfos> receiveAsync(std::string sceneId, char* buffer, int maxLength, pplx::cancellation_token cancellationToken)
 			{
 				auto it = _services.find(sceneId);
 				if (it != _services.end())
 				{
 					if (auto s = it->second.lock())
 					{
-						return s->receiveAsync(buffer, offset, maxLength, cancellationToken);
+						return s->receiveAsync(buffer, maxLength, cancellationToken);
 					}
 				}
 
