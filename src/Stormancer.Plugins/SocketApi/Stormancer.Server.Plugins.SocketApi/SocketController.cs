@@ -1,4 +1,5 @@
-﻿using Stormancer.Core;
+﻿using Microsoft.IO;
+using Stormancer.Core;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.API;
 using System;
@@ -9,12 +10,14 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.SocketApi
 {
-    class SocketController : ControllerBase
+    public class SocketController : ControllerBase
     {
         private readonly ISceneHost scene;
         private readonly IPeerInfosService peers;
         private readonly ISerializer serializer;
-
+        private static readonly RecyclableMemoryStreamManager
+                recyclableMemoryStreamManager =
+                new RecyclableMemoryStreamManager();
         public SocketController(ISceneHost scene, IPeerInfosService peers,ISerializer serializer)
         {
             
@@ -24,13 +27,16 @@ namespace Stormancer.Server.Plugins.SocketApi
         }
 
         [Api(ApiAccess.Public, ApiType.FireForget)]
-        public Task SendUnreliable(Packet<IScenePeerClient> packet)
+        public async Task SendUnreliable(Packet<IScenePeerClient> packet)
         {
             var sessionId = packet.ReadObject<SessionId>();
-            return scene.Send(new MatchPeerFilter(sessionId.ToString()), "relay.receive", s =>
+            using var stream = recyclableMemoryStreamManager.GetStream();
+            await packet.Stream.CopyToAsync(stream);
+            stream.Seek(0, System.IO.SeekOrigin.Begin);
+            await scene.Send(new MatchPeerFilter(sessionId.ToString()), "relay.receive", s =>
             {
                 serializer.Serialize(SessionId.From(packet.Connection.SessionId), s);
-                packet.Stream.CopyTo(s);
+                stream.CopyTo(s);
             }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE);
         }
 
