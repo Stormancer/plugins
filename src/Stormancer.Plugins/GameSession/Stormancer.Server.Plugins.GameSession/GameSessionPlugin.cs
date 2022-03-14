@@ -55,6 +55,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 builder.Register<ServerPools>().As<IServerPools>().AsSelf().As<IConfigurationChangedEventHandler>().SingleInstance();
                 builder.Register<GameSessionsServiceLocator>().As<IServiceLocatorProvider>();
                 builder.Register<DevServerPoolProvider>().As<IServerPoolProvider>().SingleInstance();
+                builder.Register<DockerGameServerProvider>().As<IGameServerProvider>().SingleInstance();
             };
 
             ctx.HostStarting += (IHost host) =>

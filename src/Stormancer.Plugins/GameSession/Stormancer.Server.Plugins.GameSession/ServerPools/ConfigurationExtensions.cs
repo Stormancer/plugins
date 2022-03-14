@@ -319,7 +319,9 @@ namespace Stormancer
         /// </summary>
         public IEnumerable<string>? arguments { get; set; }
 
-        public override string Type => "docker";
+        public override string Type => "fromProvider";
+
+        public string provider { get; set; } = "docker";
     }
 
     /// <summary>
@@ -412,7 +414,7 @@ namespace Stormancer
             host.ConfigureUsers(u =>
             {
                 u.Settings[DedicatedServerAuthProvider.PROVIDER_NAME] = JObject.FromObject(new { enabled = true });
-                u.Settings[DevDedicatedServerAuthProvider.PROVIDER_NAME] = JObject.FromObject(new { enabled = true });
+               
                 return u;
             });
             host.DependencyResolver.Resolve<IConfiguration>().SetDefaultValue(ServerPoolsConstants.CONFIG_SECTION, builder.Configuration);

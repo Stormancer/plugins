@@ -8,6 +8,7 @@
 #include "stormancer/msgpack_define.h"
 #include "stormancer/DependencyInjection.h"
 #include "stormancer/Utilities/TaskUtilities.h"
+#include "stormancer/IPlugin.h"
 #include <string>
 #include <unordered_map>
 #include <memory>

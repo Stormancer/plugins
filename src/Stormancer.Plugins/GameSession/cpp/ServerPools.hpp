@@ -1,7 +1,8 @@
 #pragma once
-#include "Users/ClientAPI.hpp"
-#include "Users/Users.hpp"
+#include "users/ClientAPI.hpp"
+#include "users/Users.hpp"
 #include "stormancer/IPlugin.h"
+#include "stormancer/Configuration.h"
 #include <sstream>
 #include <iostream>
 #include <vector>
@@ -25,6 +26,8 @@ namespace Stormancer
 			/// Stormancer.Server.PublishedAddresses	: Comma separated list of public address the players can use to communicate with this server.
 			/// Stormancer.Server.PublishedPort			: The public port mapped to the port the client is bound to.
 			/// Stormancer.Server.AuthenticationToken	: Server authentication token.
+			/// Stormancer.Server.Account
+			/// Stormancer.Server.Application
 			/// </remarks>
 			constexpr const char* GetParametersFromEnv = "server.parameters.fromEnvironmentVariables";
 		}
@@ -46,7 +49,7 @@ namespace Stormancer
 			std::string data;
 			std::string sessionId;
 			std::string userId;
-			MSGPACK_DEFINE(data,sessionId,userId)
+			MSGPACK_DEFINE(data, sessionId, userId)
 		};
 		struct PlayerParty
 		{
@@ -61,7 +64,7 @@ namespace Stormancer
 			int pastPasses;
 
 			std::string partyLeaderId;
-			MSGPACK_DEFINE(groupId, playerIds,customData,creationTimeUtc,pastPasses)
+			MSGPACK_DEFINE(groupId, playerIds, customData, creationTimeUtc, pastPasses)
 		};
 		struct Team
 		{
@@ -77,12 +80,12 @@ namespace Stormancer
 			bool canRestart;
 			std::string hostUserId;
 			std::vector<Team> teams;
-		
-			
+
+
 			//parameters is transmitted as a msgpack map. It must therefore use MSGPACK_DEFINE_MAP instead of MSGPACK_DEFINE
 			std::shared_ptr<T> parameters;
 
-			MSGPACK_DEFINE(isPublic, canRestart, hostUserId, teams, parameters )
+			MSGPACK_DEFINE(isPublic, canRestart, hostUserId, teams, parameters)
 		};
 
 		template<typename T>
@@ -165,11 +168,27 @@ namespace Stormancer
 						}
 
 						/// Stormancer.Server.AuthenticationToken	: Server authentication token.
-						auto authToken = std::getenv("Stormancer.Server.AuthenticationToken");
+						auto authTokenStr = std::getenv("Stormancer.Server.AuthenticationToken");
 
-						if (authToken)
+						if (authTokenStr)
 						{
-							this->authToken = authToken;
+							this->authToken = authTokenStr;
+						}
+
+						/// Stormancer.Server.AuthenticationToken	: Server authentication token.
+						auto accountStr = std::getenv("Stormancer.Server.Account");
+
+						if (accountStr)
+						{
+							_config->account = accountStr;
+						}
+
+						/// Stormancer.Server.AuthenticationToken	: Server authentication token.
+						auto appStr = std::getenv("Stormancer.Server.Application");
+
+						if (appStr)
+						{
+							_config->application = appStr;
 						}
 					}
 				}
@@ -258,9 +277,9 @@ namespace Stormancer
 			class ServerAuthenticationHandler : public Stormancer::Users::IAuthenticationEventHandler
 			{
 			public:
-				ServerAuthenticationHandler(std::shared_ptr<ServerPoolConfiguration> config, std::shared_ptr<ILogger> logger) 
+				ServerAuthenticationHandler(std::shared_ptr<ServerPoolConfiguration> config, std::shared_ptr<ILogger> logger)
 					: _config(config)
-					,_logger(logger)
+					, _logger(logger)
 				{
 
 				}

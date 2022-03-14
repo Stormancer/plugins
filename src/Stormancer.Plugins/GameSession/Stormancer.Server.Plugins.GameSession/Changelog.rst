@@ -20,6 +20,7 @@ Added
 *****
 - Rework of server pools
 - Add back game server support in gamesession.
+- Add support for game servers running on local docker.
 
 5.3.0
 -----

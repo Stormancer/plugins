@@ -1,5 +1,5 @@
 #pragma once
-#include "Users/Users.hpp"
+#include "users/Users.hpp"
 #include "stormancer/IPlugin.h"
 #include "stormancer/msgpack_define.h"
 #include "stormancer/ITokenHandler.h"
@@ -607,9 +607,9 @@ namespace Stormancer
 
 				pplx::task<std::shared_ptr<GameSessionService>> service()
 				{
-					return scene.then([](std::shared_ptr<Scene> scene)
+					return scene.then([](std::shared_ptr<Scene> s)
 						{
-							return scene->dependencyResolver().resolve<GameSessionService>();
+							return s->dependencyResolver().resolve<GameSessionService>();
 						});
 				}
 
