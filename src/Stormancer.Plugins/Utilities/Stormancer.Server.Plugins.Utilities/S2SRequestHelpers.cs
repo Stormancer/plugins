@@ -98,7 +98,7 @@ namespace Stormancer.Server
             await inputPipe.Writer.CompleteAsync();
             await outputPipe.Reader.CompleteAsync();
 
-            rq.Dispose();
+            await rq.DisposeAsync();
 
         }
 

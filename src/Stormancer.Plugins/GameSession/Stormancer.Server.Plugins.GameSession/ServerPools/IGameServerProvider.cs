@@ -27,7 +27,7 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
-    public class GameServer
+    public class GameServerInstance
     {
         public Guid Id { get; set; }
         public Action OnClosed { get; set; }
@@ -35,7 +35,7 @@ namespace Stormancer.Server.Plugins.GameSession
     public interface IGameServerProvider
     {
         string Type { get; }
-        Task<GameServer> StartServer(string id, JObject config, CancellationToken ct);
+        Task<GameServerInstance> StartServer(string id, JObject config, CancellationToken ct);
 
         Task StopServer(string id);
     }

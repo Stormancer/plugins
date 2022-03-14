@@ -140,7 +140,7 @@ namespace Stormancer.Server.Plugins.Galaxy
                     var uid = Guid.NewGuid().ToString("N");
 
 
-                    user = await users.CreateUser(uid, JObject.FromObject(new { gogUserId = id, pseudo = pseudo ?? "unknown" }));
+                    user = await users.CreateUser(uid, JObject.FromObject(new { gogUserId = id, pseudo = pseudo ?? "unknown" }), GogConstants.PROVIDER_NAME);
 
                     user = await users.AddAuthentication(user, GogConstants.PROVIDER_NAME, claim => claim[CLAIM_PATH] = id, new Dictionary<string, string> { { CLAIM_PATH, id } });
                 }

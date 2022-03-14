@@ -23,14 +23,16 @@
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
+using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.GameSession
+namespace Stormancer.Server.Plugins.GameSession.ServerPool
 {
     class ProviderBasedServerPoolProvider : IServerPoolProvider
     {
@@ -44,11 +46,16 @@ namespace Stormancer.Server.Plugins.GameSession
             this.logger = logger;
             this.gameSessions = gameSessions;
         }
-        public bool TryCreate(string id, JObject config, out IServerPool pool)
+        public bool TryCreate(string id, JObject config,[NotNullWhen(true)] out IServerPool? pool)
         {
             pool = null;
             var d = (dynamic)config;
-            var pId = (string)d?.provider;
+            if((string?)d?.type != "fromProvider")
+            {
+                return false;
+            }
+
+            var pId = (string?)d?.provider;
             if (pId == null)
             {
                 return false;
@@ -69,7 +76,7 @@ namespace Stormancer.Server.Plugins.GameSession
     {
         private class GameServerRequest
         {
-            public TaskCompletionSource<Server> RequestCompletedCompletionSource { get; set; }
+            public TaskCompletionSource<GameServer> RequestCompletedCompletionSource { get; set; }
             public GameSessionConfiguration GameSessionConfiguration { get; set; }
             public string Id { get; set; }
         }
@@ -107,12 +114,12 @@ namespace Stormancer.Server.Plugins.GameSession
                                 {
 
 
-                                    request.RequestCompletedCompletionSource.SetResult(server);
+                                    request.RequestCompletedCompletionSource.SetResult(new GameServer { GameServerSessionId = server.Peer.SessionId });
 
                                     _runningServers.TryAdd(serverId, server);
                                     var startupParameters = new GameServerStartupParameters
                                     {
-                                        GameSessionConnectionToken = await gameSessions.CreateServerConnectionToken(request.Id, server.GameServer.Id),
+                                        GameSessionConnectionToken = await gameSessions.CreateServerConnectionToken(request.Id, server.Id),
                                         Config = request.GameSessionConfiguration,
                                         GameSessionId = request.Id
                                     };
@@ -211,13 +218,13 @@ namespace Stormancer.Server.Plugins.GameSession
             isRunning = false;
         }
 
-        public Task<Server> GetServer(string gameSessionId, GameSessionConfiguration config)
+        public Task<GameServer> WaitGameServerAsync(string gameSessionId, GameSessionConfiguration config,CancellationToken cancellationToken)
         {
             if (!isRunning)
             {
                 throw new InvalidOperationException("Pool not running");
             }
-            var tcs = new TaskCompletionSource<Server>();
+            var tcs = new TaskCompletionSource<GameServer>();
             _pendingRequests.Enqueue(new GameServerRequest { RequestCompletedCompletionSource = tcs, Id = gameSessionId, GameSessionConfiguration = config });
 
             return tcs.Task;
@@ -246,19 +253,46 @@ namespace Stormancer.Server.Plugins.GameSession
 
         }
 
-        public async Task SetShutdown(string gameId)
+        
+        public bool CanManage(Session session, IScenePeerClient peer)
         {
-            if (_runningServers.TryRemove(gameId, out var server))
+            return session.platformId.Platform == DedicatedServerAuthProvider.PROVIDER_NAME;
+        }
+
+        public async Task<GameServerStartupParameters?> WaitGameSessionAsync(Session session, IScenePeerClient client,CancellationToken cancellationToken)
+        {
+            var id = session.platformId.PlatformUserId;
+
+            if (_startingServers.TryRemove(id, out var server))
             {
-                if (server.Peer != null)
-                {
-                    server.Peer.Send("gameSession.shutdown", s => { }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
-                    await Task.Delay(10000);
-                }
-
-                await provider.StopServer(gameId);
+                server.Peer = client;
+                server.RunTcs = new TaskCompletionSource<GameServerStartupParameters>();
+                _readyServers.TryAdd(id, server);
+                return await server.RunTcs.Task;
             }
+            else
+            {
+                return null;
+            }
+        }
 
+        public async Task OnGameServerDisconnected(string sessionId)
+        {
+           
+            if (_runningServers.TryRemove(sessionId, out var server))
+            {
+                await provider.StopServer(server.Id);
+            }
+        }
+
+        public async Task CloseServer(string sessionId)
+        {
+          
+              
+            if (_runningServers.TryGetValue(sessionId, out var server))
+            {
+                await server.Peer.Send("ServerPool.Shutdown", _ => { }, Core.PacketPriority.MEDIUM_PRIORITY, Core.PacketReliability.RELIABLE);
+            }
         }
     }
 }

@@ -5,7 +5,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>1.0.2.1</Version>
+    <Version>1.0.2.3</Version>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -24,7 +24,7 @@
     
   <ItemGroup>
     <PackageReference Include="FirebaseAdmin" Version="2.0.0" />
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="5.2.0.2" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="6.0.0.1-pre" />
   </ItemGroup>
 
   <ItemGroup>

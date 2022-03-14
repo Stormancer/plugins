@@ -42,15 +42,102 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         string GameSessionId { get; }
         void SetConfiguration(dynamic metadata);
+
+        /// <summary>
+        /// Posts gameresults.
+        /// </summary>
+        /// <param name="inputStream"></param>
+        /// <param name="remotePeer"></param>
+        /// <returns></returns>
         Task<Action<Stream,ISerializer>> PostResults(Stream inputStream, IScenePeerClient remotePeer);
+
+
+        /// <summary>
+        /// Updates the policy used to decide when the session should be shutdown.
+        /// </summary>
+        /// <param name="shutdown"></param>
+        /// <returns></returns>
         Task UpdateShutdownMode(ShutdownModeParameters shutdown);
+
+        /// <summary>
+        /// Resets the gamesession.
+        /// </summary>
+        /// <returns></returns>
         Task Reset();
+
+        /// <summary>
+        /// Gets the gamesession configuration.
+        /// </summary>
+        /// <returns></returns>
         GameSessionConfigurationDto GetGameSessionConfig();
 
-        Task<string?> CreateP2PToken(string sessionId);
+        /// <summary>
+        /// Create a P2P token to connect to the gamesession's host.
+        /// </summary>
+        /// <param name="sessionId"></param>
+        /// <returns></returns>
+        Task<HostInfosMessage> CreateP2PToken(string sessionId);
+
+        /// <summary>
+        /// Performs an update action on the gamesession config.
+        /// </summary>
+        /// <param name="gameSessionConfigUpdater"></param>
         void UpdateGameSessionConfig(Action<GameSessionConfiguration> gameSessionConfigUpdater);
+
+        /// <summary>
+        /// Tries to start the gamesession.
+        /// </summary>
+        /// <returns></returns>
         Task TryStart();
 
+        /// <summary>
+        /// Sets a peer as ready in the gamesession.
+        /// </summary>
+        /// <param name="peer"></param>
+        /// <param name="customData"></param>
+        /// <returns></returns>
+        Task SetPlayerReady(IScenePeerClient peer,string customData);
+
+        /// <summary>
+        /// Disconnects the peer from the gameSession
+        /// </summary>
+        /// <param name="peer"></param>
+        /// <returns></returns>
+        Task OnPeerDisconnecting(IScenePeerClient peer);
+
+        /// <summary>
+        /// The peer is disconnecting from the gamesession.
+        /// </summary>
+        /// <param name="peer"></param>
+        /// <returns></returns>
+        Task OnPeerConnecting(IScenePeerClient peer);
+
+        /// <summary>
+        /// The peer connection was rejected by the gamesession.
+        /// </summary>
+        /// <param name="peer"></param>
+        /// <returns></returns>
+        Task OnPeerConnectionRejected(IScenePeerClient peer);
+
+        /// <summary>
+        /// The peer successfully connected to the gamesession.
+        /// </summary>
+        /// <param name="peer"></param>
+        /// <returns></returns>
+        Task OnPeerConnected(IScenePeerClient peer);
+
+        /// <summary>
+        /// Sets a peer as faulted.
+        /// </summary>
+        /// <param name="peer"></param>
+        /// <returns></returns>
+        Task SetPeerFaulted(IScenePeerClient peer);
+
+        /// <summary>
+        /// Is host
+        /// </summary>
+        /// <param name="sessionId"></param>
+        /// <returns></returns>
         bool IsHost(string sessionId);
 
 

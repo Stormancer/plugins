@@ -21,12 +21,17 @@
 // SOFTWARE.
 
 using MsgPack.Serialization;
+using System;
 using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.Models
 {
+    /// <summary>
+    /// A player 
+    /// </summary>
     public class Player
     {
+      
         public Player()
         {
         }
@@ -35,7 +40,16 @@ namespace Stormancer.Server.Plugins.Models
         {
             UserId = userId;
             SessionId = sessionId;
-            Data = data;
+            
+            if(data== null)
+            {
+                Data = Array.Empty<byte>();
+            }
+            else
+            {
+                Data = data;
+            }
+            
         }
 
         [MessagePackMember(0)]

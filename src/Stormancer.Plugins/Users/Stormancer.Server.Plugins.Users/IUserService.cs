@@ -49,12 +49,30 @@ namespace Stormancer.Server.Plugins.Users
         /// <returns></returns>
         Task<Dictionary<string, User?>> GetUsersByClaim(string provider, string claimPath, string[] logins);
 
-        Task<User> CreateUser(string userId, JObject userData, string lastPlatform = "");
+        /// <summary>
+        /// Creates an user
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="userData"></param>
+        /// <param name="currentPlatform"></param>
+        /// <returns></returns>
+        Task<User> CreateUser(string userId, JObject userData, string currentPlatform);
 
-        Task<User> CreateUser(string userId, JObject userData);
-
+        /// <summary>
+        /// Search for users having a specific handle prefix.
+        /// </summary>
+        /// <param name="prefix"></param>
+        /// <param name="take"></param>
+        /// <param name="skip"></param>
+        /// <returns></returns>
         Task<IEnumerable<User>> QueryUserHandlePrefix(string prefix, int take, int skip);
 
+        /// <summary>
+        /// Updates the current user platform.
+        /// </summary>
+        /// <param name="uid"></param>
+        /// <param name="lastPlatform"></param>
+        /// <returns></returns>
         Task UpdateLastPlatform(string uid, string lastPlatform);
 
         Task UpdateUserData<T>(string uid, T data);

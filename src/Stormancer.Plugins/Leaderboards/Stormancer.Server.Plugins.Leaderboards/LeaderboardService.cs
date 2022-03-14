@@ -309,7 +309,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 start = await GetScore(leaderboardQuery.StartId, leaderboardQuery.Name);
                 if (start == null)
                 {
-                    throw new ClientException($"Record {leaderboardQuery.StartId} not found in leaderboard {leaderboardQuery.Name}.");
+                    return new LeaderboardResult<ScoreRecord>() { LeaderboardName = leaderboardQuery.Name, Total = 0 };
                 }
             }
 
@@ -596,7 +596,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
                         Scores = (JObject)currentScore.Scores.DeepClone()
                     } : null;
 
-                    var score = await scoreUpdater(id, currentScore);
+                    var score = await scoreUpdater(id, r);
                     if (score != null)
                     {
                         score.Id = id.Id;

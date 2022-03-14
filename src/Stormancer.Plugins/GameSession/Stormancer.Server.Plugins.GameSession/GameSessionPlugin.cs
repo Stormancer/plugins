@@ -20,12 +20,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Analytics;
 using Stormancer.Server.Plugins.Configuration;
+using Stormancer.Server.Plugins.GameSession.ServerPool;
 using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Users;
 using System;
@@ -39,19 +41,36 @@ namespace Stormancer.Server.Plugins.GameSession
     {
         public const string METADATA_KEY = "stormancer.gamesession";
 
+        public const string POOL_SCENEID = "gamesession-serverpool";
+
         public void Build(HostPluginBuildContext ctx)
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
                 builder.Register<GameSessionController>().InstancePerRequest();
+                builder.Register<ServerPoolController>().InstancePerRequest();
                 builder.Register<DedicatedServerAuthProvider>().As<IAuthenticationProvider>();
+                builder.Register<DevDedicatedServerAuthProvider>().As<IAuthenticationProvider>();
                 builder.Register<GameSessions>().As<IGameSessions>();
-                builder.Register<ServerPools>().As<IServerPools>().As<IConfigurationChangedEventHandler>().SingleInstance();
+                builder.Register<ServerPools>().As<IServerPools>().AsSelf().As<IConfigurationChangedEventHandler>().SingleInstance();
                 builder.Register<GameSessionsServiceLocator>().As<IServiceLocatorProvider>();
+                builder.Register<DevServerPoolProvider>().As<IServerPoolProvider>().SingleInstance();
+                builder.Register<DockerGameServerProvider>().As<IGameServerProvider>().SingleInstance();
+            };
+
+            ctx.HostStarting += (IHost host) =>
+            {
+                host.AddSceneTemplate(POOL_SCENEID, s =>
+                {
+                    s.Metadata["stormancer.serverPool"] = "1.0.0";
+                    s.AddController<ServerPoolController>();
+                });
+               
             };
 
             ctx.HostStarted += (IHost host) =>
             {
+                host.EnsureSceneExists(POOL_SCENEID, POOL_SCENEID, false, true);
             };
 
             ctx.SceneCreated += (ISceneHost scene) =>
@@ -74,16 +93,18 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 if (scene.Metadata.ContainsKey(METADATA_KEY))
                 {
+                    builder.Register(d => new GameSessionState(scene));
                     builder.Register(d =>
                         new GameSessionService(
+                            d.Resolve<GameSessionState>(),
                             scene,
                             d.Resolve<IConfiguration>(),
                             d.Resolve<IEnvironment>(),
-                            d.Resolve<IDelegatedTransports>(),
                             d.Resolve<Management.ManagementClientProvider>(),
                             d.Resolve<ILogger>(),
                             d.Resolve<IAnalyticsService>(),
                             d.Resolve<RpcService>(),
+                            d.Resolve<IServerPools>(),
                             d.Resolve<ISerializer>())
                     )
                     .As<IGameSessionService>()
@@ -94,70 +115,20 @@ namespace Stormancer.Server.Plugins.GameSession
             };
         }
     }
+
     class GameSessionsServiceLocator : IServiceLocatorProvider
     {
         public Task LocateService(ServiceLocationCtx ctx)
         {
-            if(ctx.ServiceType == "stormancer.plugins.gamesession")
+            if (ctx.ServiceType == "stormancer.plugins.gamesession")
             {
                 ctx.SceneId = ctx.ServiceName;
             }
-            return Task.CompletedTask;
-        }
-    }
-
-    class DedicatedServerAuthProvider : IAuthenticationProvider
-    {
-        public const string PROVIDER_NAME = "dedicatedServer";
-        private IEnvironment _env;
-
-        public string Type => PROVIDER_NAME;
-        public DedicatedServerAuthProvider(IEnvironment env)
-        {
-            _env = env;
-        }
-
-        public void AddMetadata(Dictionary<string, string> result)
-        {
-            //result.Add("provider.dedicatedServer", "enabled");
-        }
-
-        public async Task<AuthenticationResult> Authenticate(AuthenticationContext authenticationCtx, CancellationToken ct)
-        {
-            var token = authenticationCtx.Parameters["token"];
-            var appInfos = await _env.GetApplicationInfos();
-
-            try
+            if (ctx.ServiceType == "stormancer.plugins.serverPool")
             {
-                //TODO: Reimplement security.
-                var gameId = token;
-
-                return AuthenticationResult.CreateSuccess(new User { Id = "ds-" + gameId }, new PlatformId { PlatformUserId = gameId, Platform = PROVIDER_NAME }, authenticationCtx.Parameters);
+                ctx.SceneId = GameSessionPlugin.POOL_SCENEID;
             }
-            catch (Exception ex)
-            {
-                return AuthenticationResult.CreateFailure("Invalid token :" + ex.ToString(), new PlatformId { Platform = PROVIDER_NAME }, authenticationCtx.Parameters);
-            }
-        }
-
-        public Task Setup(Dictionary<string, string> parameters, Session? session)
-        {
-            throw new NotSupportedException();
-        }
-
-        public Task OnGetStatus(Dictionary<string, string> status, Session session)
-        {
             return Task.CompletedTask;
-        }
-
-        public Task Unlink(User user)
-        {
-            throw new NotSupportedException();
-        }
-
-        public Task<DateTime?> RenewCredentials(AuthenticationContext authenticationContext)
-        {
-            throw new NotImplementedException();
         }
     }
 }
