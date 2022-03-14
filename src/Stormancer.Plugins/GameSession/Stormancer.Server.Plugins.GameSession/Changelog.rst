@@ -14,6 +14,7 @@ Unreleased
 Changed
 *******
 - Fix GameSessionService.PeerConnectionRejected
+- Call OnClientLeaving when peer disconnecting
 
 5.3.0
 -----

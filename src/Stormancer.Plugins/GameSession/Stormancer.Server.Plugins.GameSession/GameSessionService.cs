@@ -585,11 +585,10 @@ namespace Stormancer.Server.Plugins.GameSession
             Debug.Assert(_config != null);
 
             var ctx = new GameSessionContext(this._scene, _config, this);
-            await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+            await using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
             {
                 await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(h => h.GameSessionStarting(ctx), ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing GameSessionStarting event", ex));
             }
-
 
             _logger.Log(LogLevel.Trace, "gamesession", "No server executable enabled. Game session started.", new { });
             _status = ServerStatus.Started;
@@ -608,9 +607,10 @@ namespace Stormancer.Server.Plugins.GameSession
             return _serverPeer;
         }
 
-        public Task PeerDisconnecting(IScenePeerClient peer)
+        public async Task PeerDisconnecting(IScenePeerClient peer)
         {
             Debug.Assert(_config != null);
+
             if (IsHost(peer.SessionId))
             {
                 lock (_lock)
@@ -618,11 +618,14 @@ namespace Stormancer.Server.Plugins.GameSession
                     _serverPeer = null;
                 }
             }
+
             if (peer == null)
             {
                 throw new ArgumentNullException(nameof(peer));
             }
+
             _analytics.Push("gamesession", "playerLeft", JObject.FromObject(new { sessionId = peer.SessionId, gameSessionId = this._scene.Id }));
+
             Client? client = null;
             string? userId = null;
             lock (_clients)
@@ -639,13 +642,24 @@ namespace Stormancer.Server.Plugins.GameSession
                         {
                             _clients.TryRemove(userId, out _);
                         }
+
                         // no need to continue searching for the client, we already found it
                         break;
                     }
                 }
             }
+
             if (client != null && userId != null)
             {
+                var ctx = new ClientLeavingContext(this, new PlayerPeer(peer, new Player(peer.SessionId, userId)), _config.HostUserId == userId);
+                await using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
+                {
+                    await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.OnClientLeaving(ctx), ex =>
+                    {
+                        _logger.Log(LogLevel.Error, "gameSession", "An error occured while running gameSession.OnClientLeaving event handlers", ex);
+                    });
+                }
+
                 client.Peer = null;
                 client.Status = PlayerStatus.Disconnected;
 
@@ -668,7 +682,6 @@ namespace Stormancer.Server.Plugins.GameSession
                     });
                 }
             }
-            return Task.CompletedTask;
         }
 
         private static ValueTask CloseGameServer() => ValueTask.CompletedTask;
