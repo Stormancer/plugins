@@ -19,7 +19,7 @@ namespace Stormancer.Plugins.Tests.ServerApp
             ctx.HostStarting += (IHost host) =>
             {
                 host.ConfigureUsers(u => u.ConfigureEphemeral(b => b.Enabled()));
-                host.ConfigureServerPools(c => c.DevPool("dev"));
+               
                 host.ConfigureGamefinderTemplate("server-test", c => c
                     .ConfigureQuickQueue(b => b
                         .AllowJoinExistingGame(true)
@@ -29,16 +29,39 @@ namespace Stormancer.Plugins.Tests.ServerApp
                     )
                 );
 
+                host.ConfigureServerPools(c => c.DevPool("dev"));
+
                 host.ConfigureGameSession("gamesession-server", c => c
                     .UseGameServer(c => c
                         .PoolId("dev")
                      )
                     .CustomizeScene(scene=>scene.AddSocket())
                 );
+
+
+
+                
+                host.ConfigureGamefinderTemplate("server-test-docker", c => c
+                    .ConfigureQuickQueue(b => b
+                        .GameSessionTemplate("gamesession-server-docker")
+                        .TeamCount(1)
+                        .TeamSize(1)
+                    )
+                );
+
+                host.ConfigureServerPools(c => c.DockerPool("docker", b => b.Image("battlegoblins-server")));
+
+                host.ConfigureGameSession("gamesession-server-docker", c => c
+                    .UseGameServer(c => c
+                        .PoolId("docker")
+                     )
+                    .CustomizeScene(scene => scene.AddSocket())
+                );
             };
             ctx.HostStarted += (IHost host) =>
             {
                 host.AddGamefinder("server-test", "server-test");
+                host.AddGamefinder("server-test-docker", "server-test-docker");
             };
         }
     }

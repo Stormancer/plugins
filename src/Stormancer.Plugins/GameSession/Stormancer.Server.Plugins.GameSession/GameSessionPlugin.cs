@@ -52,9 +52,10 @@ namespace Stormancer.Server.Plugins.GameSession
                 builder.Register<DedicatedServerAuthProvider>().As<IAuthenticationProvider>();
                 builder.Register<DevDedicatedServerAuthProvider>().As<IAuthenticationProvider>();
                 builder.Register<GameSessions>().As<IGameSessions>();
-                builder.Register<ServerPools>().As<IServerPools>().AsSelf().As<IConfigurationChangedEventHandler>().SingleInstance();
+                builder.Register<ServerPools>().As<IServerPools>().AsSelf().As<IConfigurationChangedEventHandler>().InstancePerScene();
                 builder.Register<GameSessionsServiceLocator>().As<IServiceLocatorProvider>();
                 builder.Register<DevServerPoolProvider>().As<IServerPoolProvider>().SingleInstance();
+                builder.Register<ProviderBasedServerPoolProvider>().As<IServerPoolProvider>().InstancePerScene();
                 builder.Register<DockerGameServerProvider>().As<IGameServerProvider>().SingleInstance();
             };
 
@@ -104,7 +105,6 @@ namespace Stormancer.Server.Plugins.GameSession
                             d.Resolve<ILogger>(),
                             d.Resolve<IAnalyticsService>(),
                             d.Resolve<RpcService>(),
-                            d.Resolve<IServerPools>(),
                             d.Resolve<ISerializer>())
                     )
                     .As<IGameSessionService>()

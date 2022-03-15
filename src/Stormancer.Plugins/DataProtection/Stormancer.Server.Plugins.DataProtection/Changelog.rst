@@ -12,7 +12,12 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Changed
+*******
 - Update dependency to Stormancer.Abstraction.Server 6.0.0.1
+Fixed
+*****
+- Nonce wasn't properly generated when missing from the configuration.
 
 2.0.0.2
 -------

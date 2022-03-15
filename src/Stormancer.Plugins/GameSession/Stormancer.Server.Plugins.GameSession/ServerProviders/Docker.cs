@@ -32,6 +32,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -52,12 +53,12 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private class GameServerContainer : IDisposable
         {
-           
-            public GameServerContainer(GameServerInstance instance,params ILease[] leases)
+
+            public GameServerContainer(GameServerInstance instance, params ILease[] leases)
             {
                 Instance = instance;
                 PortLeases = leases;
-                
+
             }
 
             public GameServerInstance Instance { get; }
@@ -77,24 +78,24 @@ namespace Stormancer.Server.Plugins.GameSession
                 }
             }
 
-           
+
         }
 
         private async Task StartMonitorDocker()
         {
-            while(_docker !=null)
+            while (_docker != null)
             {
                 await Task.Delay(500);
 
                 try
                 {
-                    await _docker.System.MonitorEventsAsync(new ContainerEventsParameters { Since = _monitorSince.ToString() }, this);
+                    await _docker.System.MonitorEventsAsync(new ContainerEventsParameters { Since = ((int)(_monitorSince - DateTime.UnixEpoch).TotalSeconds).ToString() }, this);
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     _logger.Log(LogLevel.Error, "docker", "an error occured while calling Instance.OnClosed.", ex);
                 }
-                
+
 
 
             }
@@ -105,13 +106,13 @@ namespace Stormancer.Server.Plugins.GameSession
             if (value.Status == "stop")
             {
                 var server = _servers.Values.FirstOrDefault(s => s.ContainerId == value.ID);
-                if(server!=null)
+                if (server != null)
                 {
                     try
                     {
                         server.Instance.OnClosed?.Invoke();
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         _logger.Log(LogLevel.Error, "docker", "an error occured while calling Instance.OnClosed.", ex);
                     }
@@ -142,7 +143,7 @@ namespace Stormancer.Server.Plugins.GameSession
             _monitorSince = DateTime.UtcNow;
 
             _ = StartMonitorDocker();
-         
+
         }
 
         public async Task<GameServerInstance> StartServer(string id, JObject c, CancellationToken ct)
@@ -155,60 +156,93 @@ namespace Stormancer.Server.Plugins.GameSession
 
             var applicationInfo = await _environment.GetApplicationInfos();
             var fed = await _environment.GetFederation();
+            var node = await _environment.GetNodeInfos();
 
+            var arguments = string.Join(" ", config.arguments ?? Enumerable.Empty<string>());
 
-            var arguments = string.Join(" ", config.arguments);
-
+            var udpTransports = node.Transports.First(t => t.Item1 == "raknet");
             var server = await LeaseServerPort(c);
 
-           
-
-            //Token used to authenticate the DS with the DedicatedServerAuthProvider
-
-            var authenticationToken = await dataProtector.ProtectBase64Url(Encoding.UTF8.GetBytes(id), "gameServer");
-
-            var endpoints = string.Join(',', fed.current.endpoints);
-            var environmentVariables = new Dictionary<string, string>();
-            //startInfo.EnvironmentVariables.Add("connectionToken", token);
-            environmentVariables.Add("Stormancer.Server.Port", server.ServerPort.ToString());
-            environmentVariables.Add("Stormancer.Srver.ClusterEndpoints", endpoints);
-            environmentVariables.Add("Stormancer.Server.PublishedAddresses", server.PublicIp);
-            environmentVariables.Add("Stormancer.Server.PublishedPort", server.ServerPort.ToString());
-            environmentVariables.Add("Stormancer.Server.AuthenticationToken", authenticationToken);
-            environmentVariables.Add("Stormancer.Server.Account", applicationInfo.AccountId);
-            environmentVariables.Add("Stormancer.Server.Application", applicationInfo.ApplicationName);
-            environmentVariables.Add("Stormancer.Server.Arguments", arguments);
-           
-
-            var response = await _docker.Containers.CreateContainerAsync(new CreateContainerParameters()
+            try
             {
-                Image = config.image,
-                Name = id,
-                HostConfig = new HostConfig()
+
+                //Token used to authenticate the DS with the DedicatedServerAuthProvider
+
+                var authenticationToken = await dataProtector.ProtectBase64Url(Encoding.UTF8.GetBytes(id), "gameServer");
+
+                var endpoints = string.Join(',', fed.current.endpoints.Select(e => TransformEndpoint(e)));
+                var environmentVariables = new Dictionary<string, string>();
+                //startInfo.EnvironmentVariables.Add("connectionToken", token);
+                environmentVariables.Add("Stormancer_Server_Port", server.ServerPort.ToString());
+                environmentVariables.Add("Stormancer_Server_ClusterEndpoints", endpoints);
+                environmentVariables.Add("Stormancer_Server_PublishedAddresses", server.PublicIp);
+                environmentVariables.Add("Stormancer_Server_PublishedPort", server.ServerPort.ToString());
+                environmentVariables.Add("Stormancer_Server_AuthenticationToken", authenticationToken);
+                environmentVariables.Add("Stormancer_Server_Account", applicationInfo.AccountId);
+                environmentVariables.Add("Stormancer_Server_Application", applicationInfo.ApplicationName);
+                environmentVariables.Add("Stormancer_Server_Arguments", arguments);
+                environmentVariables.Add("Stormancer_Server_TransportEndpoint", TransformEndpoint(udpTransports.Item2.First()));
+
+               
+                var response = await _docker.Containers.CreateContainerAsync(new CreateContainerParameters()
                 {
-                    DNS = new[] { "8.8.8.8", "8.8.4.4" }
-                },
-                ExposedPorts = new Dictionary<string, EmptyStruct> { { server.ServerPort.ToString(), new EmptyStruct() } },
-                 
-            });
+                    Image = config.image,
+                    Name = id.Substring(id.IndexOf('/') + 1),
+                    HostConfig = new HostConfig()
+                    {
+                        DNS = new[] { "8.8.8.8", "8.8.4.4" },
+                        PortBindings = new Dictionary<string, IList<PortBinding>>
+                        {
+                            [server.ServerPort + "/udp"] = new List<PortBinding>
+                             {
+                                 new PortBinding
+                                 {
+                                     HostIP = server.PublicIp, 
+                                     HostPort = server.ServerPort.ToString()
+                                 }
+                             }
+                        }
 
-            server.ContainerId = response.ID;
-          
-            var startResponse = await _docker.Containers.StartContainerAsync(response.ID, new ContainerStartParameters {  });
+                    },
+                    ExposedPorts = new Dictionary<string, EmptyStruct> { { server.ServerPort + "/udp", new EmptyStruct() } },
+                    Env = environmentVariables.Select(kvp => $"{kvp.Key}={kvp.Value}").ToList(),
+
+                });
+
+                server.ContainerId = response.ID;
+
+                var startResponse = await _docker.Containers.StartContainerAsync(response.ID, new ContainerStartParameters { });
 
 
-            if (startResponse)
-            {
-                _servers.TryAdd(id, server);
-                return server.Instance;
+                if (startResponse)
+                {
+                    _servers.TryAdd(id, server);
+                    return server.Instance;
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Failed to start container {response.ID}");
+                }
             }
-            else
+            catch
             {
-                throw new InvalidOperationException($"Failed to start container {response.ID}");
+                server.Dispose();
+                throw;
             }
 
-            
+
+
         }
+
+        private string TransformEndpoint(string endpoint)
+        {
+            var host = GetHost();
+            return endpoint.Replace("localhost", host).Replace("127.0.0.1", host);
+
+        }
+        private string GetHost() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "172.17.0.1" : "172.17.0.1";
+
+
 
         public async Task StopServer(string id)
         {
@@ -216,7 +250,7 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 if (await _docker.Containers.StopContainerAsync(server.ContainerId, new ContainerStopParameters { WaitBeforeKillSeconds = 10 }))
                 {
-
+                    await _docker.Containers.RemoveContainerAsync(server.ContainerId, new ContainerRemoveParameters { Force = true });
                 }
 
             }
@@ -224,7 +258,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private async Task<GameServerContainer> LeaseServerPort(dynamic config)
         {
-            var serverLease = await pools.AcquirePort((string)config.serverPool ?? "public1");
+            var serverLease = await pools.AcquirePort((string)config.portPoolId ?? "public");
             if (!serverLease.Success)
             {
 
@@ -232,7 +266,7 @@ namespace Stormancer.Server.Plugins.GameSession
             }
             var serverGuid = Guid.NewGuid();
             var result = new GameServerInstance { Id = serverGuid };
-            var server = new GameServerContainer(result,serverLease)
+            var server = new GameServerContainer(result, serverLease)
             {
                 ServerPort = serverLease.Port,
                 PublicIp = serverLease.PublicIp
@@ -244,10 +278,10 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public void Dispose()
         {
-            if(_docker != null)
+            if (_docker != null)
             {
                 var docker = _docker;
-            
+
                 docker.Dispose();
             }
         }

@@ -118,5 +118,19 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             }
 
         }
+
+        [S2SApi]
+        public Task CloseServer(string poolId, string sessionId)
+        {
+            if (pools.TryGetPool(poolId, out var pool))
+            {
+                return pool.CloseServer(sessionId);
+            }
+            else
+            {
+                return Task.CompletedTask;
+            }
+           
+        }
     }
 }
