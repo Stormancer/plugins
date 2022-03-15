@@ -281,7 +281,7 @@ namespace Stormancer
 
 						_logger->log(LogLevel::Trace, "gamession.p2ptoken", "received empty p2p token: I'm the host.");
 						_myP2PRole = P2PRole::Host;
-						onRoleReceived(P2PRole::Host);
+						onRoleReceived(std::make_tuple(hostInfos.hostSessionId, P2PRole::Host));
 						_waitServerTce.set();
 						if (openTunnel)
 						{
@@ -299,7 +299,7 @@ namespace Stormancer
 						{
 							auto& p2pToken = hostInfos.p2pToken;
 							return scene->openP2PConnection(p2pToken, ct)
-								.then([wThat, ct, openTunnel](std::shared_ptr<IP2PScenePeer> p2pPeer)
+								.then([wThat, ct, openTunnel,hostInfos](std::shared_ptr<IP2PScenePeer> p2pPeer)
 									{
 										auto that = wThat.lock();
 										if (!that)
@@ -308,7 +308,7 @@ namespace Stormancer
 										}
 
 										that->_myP2PRole = P2PRole::Client;
-										that->onRoleReceived(P2PRole::Client);
+										that->onRoleReceived(std::make_tuple(hostInfos.hostSessionId, P2PRole::Client));
 										if (that->_onConnectionOpened)
 										{
 											that->_onConnectionOpened(p2pPeer);
@@ -317,13 +317,13 @@ namespace Stormancer
 										if (openTunnel)
 										{
 											return p2pPeer->openP2PTunnel(GAMESESSION_P2P_SERVER_ID, ct)
-												.then([wThat, p2pPeer](std::shared_ptr<P2PTunnel> guestTunnel)
+												.then([wThat, p2pPeer,hostInfos](std::shared_ptr<P2PTunnel> guestTunnel)
 													{
 														auto that = wThat.lock();
 														if (that)
 														{
 															that->_tunnel = guestTunnel;
-															that->onTunnelOpened(guestTunnel);
+															that->onTunnelOpened(std::make_tuple(hostInfos.hostSessionId,guestTunnel));
 														}
 														return p2pPeer;
 													});
@@ -355,7 +355,7 @@ namespace Stormancer
 						else
 						{
 							_myP2PRole = P2PRole::Client;
-							onRoleReceived(P2PRole::Client);
+							onRoleReceived(std::make_tuple(hostInfos.hostSessionId, P2PRole::Client));
 							return pplx::task_from_result<std::shared_ptr<Stormancer::IP2PScenePeer>>(std::shared_ptr<Stormancer::IP2PScenePeer>());
 						}
 					}
@@ -485,8 +485,8 @@ namespace Stormancer
 #pragma region public_members
 
 				Event<> onAllPlayersReady;
-				Event<P2PRole> onRoleReceived;
-				Event<std::shared_ptr<Stormancer::P2PTunnel>> onTunnelOpened;
+				Event<std::tuple<std::string,P2PRole>> onRoleReceived;
+				Event<std::tuple<std::string, std::shared_ptr<Stormancer::P2PTunnel>>> onTunnelOpened;
 				Event<> onShutdownReceived;
 				Event<SessionPlayer, std::string> onPlayerStateChanged;
 
@@ -983,8 +983,11 @@ namespace Stormancer
 
 							auto service = scene->dependencyResolver().resolve<GameSessionService>();
 
-							gameSessionContainer->onRoleReceived = service->onRoleReceived.subscribe([wThat, useTunnel, wContainer](P2PRole role)
+							gameSessionContainer->onRoleReceived = service->onRoleReceived.subscribe([wThat, useTunnel, wContainer](std::tuple<std::string,P2PRole> tuple)
 								{
+									auto role = std::get<1>(tuple);
+									auto hostSessionId = std::get<0>(tuple);
+
 									auto gameSessionContainer = wContainer.lock();
 									auto that = wThat.lock();
 									if (that && gameSessionContainer)
@@ -994,7 +997,7 @@ namespace Stormancer
 											GameSessionConnectionParameters gameSessionParameters;
 											gameSessionParameters.endpoint = gameSessionContainer->mapName;
 											gameSessionParameters.isHost = (role == P2PRole::Host);
-											gameSessionParameters.hostSessionId = gameSessionContainer->service().get()->hostSessionId;
+											gameSessionParameters.hostSessionId = hostSessionId;
 											that->onRoleReceived(gameSessionParameters);
 											gameSessionContainer->sessionReadyTce.set(gameSessionParameters);
 										}
@@ -1003,15 +1006,17 @@ namespace Stormancer
 
 							if (useTunnel)
 							{
-								gameSessionContainer->onTunnelOpened = service->onTunnelOpened.subscribe([wThat, wContainer](std::shared_ptr<Stormancer::P2PTunnel> p2pTunnel)
+								gameSessionContainer->onTunnelOpened = service->onTunnelOpened.subscribe([wThat, wContainer](std::tuple<std::string,std::shared_ptr<Stormancer::P2PTunnel>> tuple)
 									{
+										auto p2pTunnel = std::get<1>(tuple);
+										auto hostSessionId = std::get<0>(tuple);
 										auto gameSessionContainer = wContainer.lock();
 										auto that = wThat.lock();
 										if (gameSessionContainer && that)
 										{
 											GameSessionConnectionParameters gameSessionParameters;
 											gameSessionParameters.isHost = false;
-											gameSessionParameters.hostSessionId = gameSessionContainer->service().get()->hostSessionId;
+											gameSessionParameters.hostSessionId = hostSessionId;
 											gameSessionParameters.endpoint = p2pTunnel->ip + ":" + std::to_string(p2pTunnel->port);
 
 											that->onTunnelOpened(gameSessionParameters);

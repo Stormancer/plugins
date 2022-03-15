@@ -15,6 +15,7 @@ Changed
 *******
 - Fix GameSessionService.PeerConnectionRejected
 - Use GameSessionController to register to OnConnecting/ed disconnecting events.
+- Call OnClientLeaving when peer disconnecting
 
 Added
 *****
