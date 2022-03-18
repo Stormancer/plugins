@@ -32,7 +32,7 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Party
 {
-    [Service(Named =true, ServiceType = "party-")]
+    [Service(Named = true, ServiceType = "party-")]
     class PartyController : ControllerBase
     {
         public const string PROTOCOL_VERSION = "2020-01-28.1";
@@ -203,23 +203,42 @@ namespace Stormancer.Server.Plugins.Party
         }
 
         [S2SApi]
-        public Task UpdatePartyStatusAsync(string newStatus, CancellationToken cancellationToken)
+        public Task UpdatePartyStatusAsync(string? expectedStatus, string newStatus, string? details, CancellationToken cancellationToken)
         {
-            var partySettings = new PartySettingsDto(_partyService.Settings);
-            partySettings.PublicServerData["stormancer.partyStatus"] = newStatus;
-            return _partyService.UpdateSettings(partySettings, cancellationToken);
+            return _partyService.UpdateSettings(cfg =>
+            {
+                if (expectedStatus != null && (!_partyService.Settings.PublicServerData.TryGetValue("stormancer.partyStatus", out var status) || status != expectedStatus))
+                {
+                    return null;
+                }
+                else
+                {
+                    var partySettings = new PartySettingsDto(_partyService.Settings);
+                    partySettings.PublicServerData["stormancer.partyStatus"] = newStatus;
+                    partySettings.PublicServerData["stormancer.partyStatus.details"] = details ?? String.Empty;
+                    return partySettings;
+                }
+
+            }, cancellationToken);
+
+
         }
 
         [S2SApi]
-        public string GetPartyStatus(CancellationToken cancellationToken)
+        public PartyStatus GetPartyStatus(CancellationToken cancellationToken)
         {
-            if(_partyService.Settings.PublicServerData.TryGetValue("stormancer.partyStatus",out var status))
+            if (_partyService.Settings.PublicServerData.TryGetValue("stormancer.partyStatus", out var status))
             {
-                return status;
+                var result = new PartyStatus() { Status = status };
+                if(_partyService.Settings.PublicServerData.TryGetValue("stormancer.partyStatus.details", out var details))
+                {
+                    result.Details = details;
+                }
+                return result;
             }
             else
             {
-                return String.Empty;
+                return new PartyStatus();
             }
         }
 
@@ -242,5 +261,21 @@ namespace Stormancer.Server.Plugins.Party
         {
             return (_partyService as PartyService)!.OnDisconnected(args);
         }
+    }
+
+    /// <summary>
+    /// Advertised party status.
+    /// </summary>
+    public class PartyStatus
+    {
+        /// <summary>
+        /// Gets or sets current status
+        /// </summary>
+        public string Status { get; set; } = default!;
+
+        /// <summary>
+        /// Gets or sets details about the status.
+        /// </summary>
+        public string Details { get; set; } = default!;
     }
 }

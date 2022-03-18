@@ -23,6 +23,7 @@
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Party.Dto;
 using Stormancer.Server.Plugins.Party.Model;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
@@ -47,6 +48,14 @@ namespace Stormancer.Server.Plugins.Party
         /// <param name="ct"></param>
         /// <returns></returns>
         Task UpdateSettings(PartySettingsDto partySettings, CancellationToken ct);
+
+        /// <summary>
+        /// Updates party settings.
+        /// </summary>
+        /// <param name="partySettingsUpdater">updater (return null for no change)</param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        Task UpdateSettings(Func<PartyConfiguration,PartySettingsDto?> partySettingsUpdater, CancellationToken ct);
 
         /// <summary>
         /// Updates the gamefinder status of a player.
