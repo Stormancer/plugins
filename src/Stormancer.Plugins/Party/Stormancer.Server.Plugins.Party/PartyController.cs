@@ -27,10 +27,12 @@ using Stormancer.Server.Plugins.Party.Dto;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Party
 {
+    [Service(Named =true, ServiceType = "party-")]
     class PartyController : ControllerBase
     {
         public const string PROTOCOL_VERSION = "2020-01-28.1";
@@ -200,7 +202,26 @@ namespace Stormancer.Server.Plugins.Party
             _partyService.CancelInvitationCode();
         }
 
+        [S2SApi]
+        public Task UpdatePartyStatusAsync(string newStatus, CancellationToken cancellationToken)
+        {
+            var partySettings = new PartySettingsDto(_partyService.Settings);
+            partySettings.PublicServerData["stormancer.partyStatus"] = newStatus;
+            return _partyService.UpdateSettings(partySettings, cancellationToken);
+        }
 
+        [S2SApi]
+        public string GetPartyStatus(CancellationToken cancellationToken)
+        {
+            if(_partyService.Settings.PublicServerData.TryGetValue("stormancer.partyStatus",out var status))
+            {
+                return status;
+            }
+            else
+            {
+                return String.Empty;
+            }
+        }
 
         protected override Task OnConnecting(IScenePeerClient client)
         {

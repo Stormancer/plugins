@@ -57,11 +57,28 @@ namespace Stormancer.Plugins.Tests.ServerApp
                      )
                     .CustomizeScene(scene => scene.AddSocket())
                 );
+
+
+
+
+                host.ConfigureGamefinderTemplate("replication-test", c => c
+                    .ConfigureQuickQueue(b => b
+                        .GameSessionTemplate("gamesession-replication")
+                        .TeamCount(2)
+                        .TeamSize(1)
+                    )
+                );
+                host.ConfigureGameSession("gamesession-replication", c => c
+                   
+                   .CustomizeScene(scene => scene.AddReplication())
+               );
+
             };
             ctx.HostStarted += (IHost host) =>
             {
                 host.AddGamefinder("server-test", "server-test");
                 host.AddGamefinder("server-test-docker", "server-test-docker");
+                host.AddGamefinder("replication-test", "replication-test");
             };
         }
     }

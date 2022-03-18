@@ -11,6 +11,7 @@
     <PackageReference Include="Stormancer.Server.Plugins.GameFinder" Version="*-*" />
     <PackageReference Include="Stormancer.Server.Plugins.GameSession" Version="*-*" />
     <PackageReference Include="Stormancer.Server.Plugins.Party" Version="*-*" />
+    <PackageReference Include="Stormancer.Server.Plugins.Replication" Version="*-*" />
     <PackageReference Include="Stormancer.Server.Plugins.SocketApi" Version="*-*" />
     <PackageReference Include="Stormancer.Server.Plugins.Users" Version="*-*" />
   </ItemGroup>
