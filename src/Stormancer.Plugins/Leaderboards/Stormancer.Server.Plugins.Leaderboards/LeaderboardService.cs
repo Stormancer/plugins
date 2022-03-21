@@ -184,7 +184,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
                         b2 => b2.Must(
                             q2 => q2.Term(t => t.Field(fullScorePath).Value(pivotScore)),
                             q2 => q2.DateRange(r => r.Field(record => record.CreatedOn).LessThanOrEquals(pivot.CreatedOn).GreaterThanOrEquals(pivot.CreatedOn)),
-                            q2 => q2.TermRange(r=> leaderboardOrdering == LeaderboardOrdering.Descending ? r.Field(record=>record.Id).GreaterThan(pivot.Id) : r.Field(record => record.Id).LessThan(pivot.Id))
+                            q2 => q2.TermRange(r => leaderboardOrdering == LeaderboardOrdering.Descending ? r.Field(record => record.Id).GreaterThan(pivot.Id) : r.Field(record => record.Id).LessThan(pivot.Id))
                         )
                     )
                 )
@@ -206,12 +206,21 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
         public async Task<Dictionary<string, ScoreRecord?>> GetScores(IEnumerable<string> playerIds, string leaderboardName)
         {
+            var finalResults = playerIds.ToDictionary(id => id, _ => default(ScoreRecord));
             var index = GetModifiedLeaderboardName(leaderboardName);
             var client = await CreateESClient<ScoreRecord>(index);
             var ids = playerIds.Select(id => GetDocumentId(leaderboardName, id));
             var startResult = await client.MultiGetAsync(v => v.GetMany<ScoreRecord>(ids));
             var results = startResult.GetMany<ScoreRecord>(ids);
-            return results.ToDictionary(h => h.Id, h => h.Found ? h.Source : null);
+
+            foreach(var h in results )
+            {
+                if(h.Found && finalResults.ContainsKey(h.Source.Id))
+                {
+                    finalResults[h.Source.Id] = h.Source;
+                }
+            }
+            return finalResults;
         }
 
         public async Task<long> GetRanking(ScoreRecord score, LeaderboardQuery filters, string leaderboardName, CancellationToken cancellationToken)
@@ -661,7 +670,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
                         else if (score.NewValue != null && score.OldValue == null)
                         {
                             var index = GetIndex(score.NewValue.LeaderboardName);
-                            
+
                             desc = desc.Create<ScoreRecord>(s => s
                                 .Id(GetDocumentId(score.NewValue.LeaderboardName, score.NewValue.Id))
                                 .Document(score.NewValue)
