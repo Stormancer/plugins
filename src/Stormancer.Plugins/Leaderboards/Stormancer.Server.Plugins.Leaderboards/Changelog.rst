@@ -11,9 +11,6 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
-
-5.0.2
------
 Changed
 *******
 - When querying a leaderboard by id, if the id is not found, return an empty result instead of throwing an exception.
