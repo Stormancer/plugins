@@ -65,7 +65,7 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// This property is ignored for msgpack serialization because the client can't update it.
         /// </remarks>
         [MessagePackIgnore]
-        public Dictionary<string, string>? PublicServerData { get; set; } = null;
+        public Dictionary<string, string> PublicServerData { get; set; } = default!;
 
         /// <summary>
         /// Creates a <see cref="PartySettingsDto"/> object.

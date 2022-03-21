@@ -6,12 +6,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="6.0.0-pre" />
-    <PackageReference Include="Stormancer.Server.Plugins.GameFinder" Version="7.3.0.2-pre" />
-    <PackageReference Include="Stormancer.Server.Plugins.GameSession" Version="5.4.0.6-pre" />
-    <PackageReference Include="Stormancer.Server.Plugins.Party" Version="4.1.4.2-pre" />
-    <PackageReference Include="Stormancer.Server.Plugins.SocketApi" Version="0.1.0.1-pre" />
-    <PackageReference Include="Stormancer.Server.Plugins.Users" Version="6.0.0-pre" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="*-*" />
+    <PackageReference Include="Stormancer.Server.Plugins.DataProtection" Version="*-*" />
+    <PackageReference Include="Stormancer.Server.Plugins.GameFinder" Version="*-*" />
+    <PackageReference Include="Stormancer.Server.Plugins.GameSession" Version="*-*" />
+    <PackageReference Include="Stormancer.Server.Plugins.Party" Version="*-*" />
+    <PackageReference Include="Stormancer.Server.Plugins.Replication" Version="*-*" />
+    <PackageReference Include="Stormancer.Server.Plugins.SocketApi" Version="*-*" />
+    <PackageReference Include="Stormancer.Server.Plugins.Users" Version="*-*" />
   </ItemGroup>
 
 </Project>

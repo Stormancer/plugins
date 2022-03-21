@@ -27,10 +27,12 @@ using Stormancer.Server.Plugins.Party.Dto;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Party
 {
+    [Service(Named = true, ServiceType = "party-")]
     class PartyController : ControllerBase
     {
         public const string PROTOCOL_VERSION = "2020-01-28.1";
@@ -200,7 +202,45 @@ namespace Stormancer.Server.Plugins.Party
             _partyService.CancelInvitationCode();
         }
 
+        [S2SApi]
+        public Task UpdatePartyStatusAsync(string? expectedStatus, string newStatus, string? details, CancellationToken cancellationToken)
+        {
+            return _partyService.UpdateSettings(cfg =>
+            {
+                if (expectedStatus != null && (!_partyService.Settings.PublicServerData.TryGetValue("stormancer.partyStatus", out var status) || status != expectedStatus))
+                {
+                    return null;
+                }
+                else
+                {
+                    var partySettings = new PartySettingsDto(_partyService.Settings);
+                    partySettings.PublicServerData["stormancer.partyStatus"] = newStatus;
+                    partySettings.PublicServerData["stormancer.partyStatus.details"] = details ?? String.Empty;
+                    return partySettings;
+                }
 
+            }, cancellationToken);
+
+
+        }
+
+        [S2SApi]
+        public PartyStatus GetPartyStatus(CancellationToken cancellationToken)
+        {
+            if (_partyService.Settings.PublicServerData.TryGetValue("stormancer.partyStatus", out var status))
+            {
+                var result = new PartyStatus() { Status = status };
+                if(_partyService.Settings.PublicServerData.TryGetValue("stormancer.partyStatus.details", out var details))
+                {
+                    result.Details = details;
+                }
+                return result;
+            }
+            else
+            {
+                return new PartyStatus();
+            }
+        }
 
         protected override Task OnConnecting(IScenePeerClient client)
         {
@@ -221,5 +261,21 @@ namespace Stormancer.Server.Plugins.Party
         {
             return (_partyService as PartyService)!.OnDisconnected(args);
         }
+    }
+
+    /// <summary>
+    /// Advertised party status.
+    /// </summary>
+    public class PartyStatus
+    {
+        /// <summary>
+        /// Gets or sets current status
+        /// </summary>
+        public string Status { get; set; } = default!;
+
+        /// <summary>
+        /// Gets or sets details about the status.
+        /// </summary>
+        public string Details { get; set; } = default!;
     }
 }

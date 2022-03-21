@@ -12,7 +12,7 @@
 #include "stormancer/IClientFactory.h"
 #include "stormancer/Logger/VisualStudioLogger.h"
 
-constexpr  char* ServerEndpoint = "http://localhost";//"http://gc3.stormancer.com";
+static constexpr const char* ServerEndpoint = "http://localhost";//"http://gc3.stormancer.com";
 constexpr  char* Account = "tests";
 constexpr  char* Application = "test-app";
 
@@ -20,7 +20,11 @@ static void log(std::shared_ptr<Stormancer::IClient> client, Stormancer::LogLeve
 {
 	client->dependencyResolver().resolve<Stormancer::ILogger>()->log(level, "gameplay.test-devserver", msg);
 }
-
+struct GameCustomParameters
+{
+	bool test;
+	MSGPACK_DEFINE_MAP(test);
+};
 static pplx::task<bool> StartServerImpl(int id)
 {
 	auto client = Stormancer::IClientFactory::GetClient(id);
@@ -28,13 +32,18 @@ static pplx::task<bool> StartServerImpl(int id)
 	auto pool = client->dependencyResolver().resolve<Stormancer::ServerPools::ServerPools>();
 	
 	pool->setGetStatusCallback([]() { return Stormancer::ServerPools::Status::Ready; });
-	return pool->waitGameSession<bool>().then([client](Stormancer::ServerPools::GameSessionStartupParameters<bool> p) 
+	return pool->waitGameSession<GameCustomParameters>().then([client](Stormancer::ServerPools::GameSessionStartupParameters<GameCustomParameters> p)
 		{
 			auto gs = client->dependencyResolver().resolve < Stormancer::GameSessions::GameSession>();
 			return gs->connectToGameSession(p.gameSessionConnectionToken);
 		
 		})
 		.then([client](pplx::task<Stormancer::GameSessions::GameSessionConnectionParameters> t)
+		{
+			auto gs = client->dependencyResolver().resolve < Stormancer::GameSessions::GameSession>();
+			return gs->setPlayerReady();
+		})
+		.then([client](pplx::task<void> t)
 		{
 			try
 			{
@@ -127,7 +136,7 @@ static pplx::task<bool> JoinGameImpl(int id)
 								auto gameSessions = client->dependencyResolver().resolve<Stormancer::GameSessions::GameSession>();
 								return  gameSessions->setPlayerReady();
 
-							}).then([](pplx::task<void> t)
+							}).then([client](pplx::task<void> t)
 								{
 									//catch errors
 									try
@@ -135,8 +144,9 @@ static pplx::task<bool> JoinGameImpl(int id)
 										t.get();
 										return true;
 									}
-									catch (std::exception&)
+									catch (std::exception& ex)
 									{
+										log(client, Stormancer::LogLevel::Error, ex.what());
 										return false;
 									}
 								});
@@ -170,6 +180,7 @@ TEST(Gameplay, TestDevServer) {
 		{
 			config->addPlugin(new Stormancer::Users::UsersPlugin());
 			config->addPlugin(new Stormancer::ServerPools::ServerPoolsPlugin());
+			config->addPlugin(new Stormancer::GameSessions::GameSessionsPlugin());
 		}
 
 		//Use the dispatcher we created earlier to ensure all callbacks are run on the test main thread.

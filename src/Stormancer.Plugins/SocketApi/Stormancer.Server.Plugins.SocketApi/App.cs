@@ -29,7 +29,7 @@ namespace Stormancer.Server.Plugins.SocketApi
                 builder.Register<SocketController>();
             };
 
-            ctx.SceneCreating += (ISceneHost scene) =>
+            ctx.SceneCreated += (ISceneHost scene) =>
             {
                 if (scene.Metadata.ContainsKey(METADATA_KEY))
                 {

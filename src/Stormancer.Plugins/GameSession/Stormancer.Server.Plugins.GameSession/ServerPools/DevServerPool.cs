@@ -26,7 +26,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         }
         public bool TryCreate(string id, JObject config, [NotNullWhen(true)] out IServerPool? pool)
         {
-            if (config["Type"]?.ToObject<string>() == "dev")
+            if (config["type"]?.ToObject<string>() == "dev")
             {
                 pool = new DevServerPool(id, logger);
                 return true;

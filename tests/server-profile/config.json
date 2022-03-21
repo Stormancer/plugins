@@ -1,0 +1,9 @@
+{
+	"dataProtection":{
+		"gameServer":{
+			"provider":"aes-gcm",
+			"key":"tests/test-secrets/gameServer",
+			"createKeyIfNotExists":true
+		}
+	}
+}

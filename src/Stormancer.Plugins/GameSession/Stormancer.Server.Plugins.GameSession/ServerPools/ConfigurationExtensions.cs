@@ -49,7 +49,7 @@ namespace Stormancer
             var configBuilder = new CompositeServerPoolConfigurationBuilder(poolId, section);
 
             builder(configBuilder);
-
+            Configuration[poolId] = configBuilder.ConfigSection;
 
 
             return this;
@@ -76,7 +76,7 @@ namespace Stormancer
             var configBuilder = new LocalProcessPoolConfigurationBuilder(poolId, section);
 
             builder(configBuilder);
-
+            Configuration[poolId] = configBuilder.ConfigSection;
 
             return this;
         }
@@ -102,7 +102,7 @@ namespace Stormancer
             var configBuilder = new DockerPoolConfigurationBuilder(poolId, section);
 
             configurator(configBuilder);
-            
+            Configuration[poolId] = configBuilder.ConfigSection;
             return this;
         }
 
@@ -140,7 +140,7 @@ namespace Stormancer
 
     public class DevPoolConfiguration : PoolConfiguration
     {
-        public override string Type => "dev";
+        public override string type => "dev";
     }
 
     /// <summary>
@@ -148,7 +148,7 @@ namespace Stormancer
     /// </summary>
     public abstract class PoolConfiguration
     {
-        public abstract string Type { get; }
+        public abstract string type { get; }
         /// <summary>
         /// number of server ready to accept game sessions to maintain.
         /// </summary>
@@ -176,7 +176,7 @@ namespace Stormancer
         /// <summary>
         /// Config section of the server pool.
         /// </summary>
-        protected JObject ConfigSection { get; set; } = new JObject();
+        internal JObject ConfigSection { get; set; } = new JObject();
 
         /// <summary>
         /// Updates the configuration section of hte pool, as a statically typed object.
@@ -252,7 +252,7 @@ namespace Stormancer
         /// </summary>
         public IEnumerable<string>? arguments { get; set; }
 
-        public override string Type => "localProcess";
+        public override string type => "localProcess";
     }
 
 
@@ -319,7 +319,14 @@ namespace Stormancer
         /// </summary>
         public IEnumerable<string>? arguments { get; set; }
 
-        public override string Type => "docker";
+        public override string type => "fromProvider";
+
+        public string provider { get; set; } = "docker";
+
+        /// <summary>
+        /// Id of the de port pool used (delegated transport id)
+        /// </summary>
+        public string portPoolId { get; set; } = "public1";
     }
 
     /// <summary>
@@ -370,7 +377,16 @@ namespace Stormancer
             return this;
         }
 
-
+        /// <summary>
+        /// Sets the path to the docker image that contains the dedicated server.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public DockerPoolConfigurationBuilder PortPoolId(string id)
+        {
+            UpdateConfiguration<DockerPoolConfiguration>(c => c.portPoolId = id);
+            return this;
+        }
     }
 
     /// <summary>
@@ -412,7 +428,7 @@ namespace Stormancer
             host.ConfigureUsers(u =>
             {
                 u.Settings[DedicatedServerAuthProvider.PROVIDER_NAME] = JObject.FromObject(new { enabled = true });
-                u.Settings[DevDedicatedServerAuthProvider.PROVIDER_NAME] = JObject.FromObject(new { enabled = true });
+               
                 return u;
             });
             host.DependencyResolver.Resolve<IConfiguration>().SetDefaultValue(ServerPoolsConstants.CONFIG_SECTION, builder.Configuration);

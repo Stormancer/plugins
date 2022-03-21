@@ -49,7 +49,8 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <summary>
         /// Group connected to gameSession
         /// </summary>
-        [MessagePackMember(3)]
+
+        [MessagePackIgnore]
         public IEnumerable<Team> TeamsList => Teams.ToList();
 
         /// <summary>
@@ -58,12 +59,13 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <remarks>
         /// This needs to be concurrent because it can be modified during a call to <see cref="IGameSessionService.OpenToGameFinder"/>, while being read from by other code.
         /// </remarks>
+        [MessagePackMember(3)]
         public List<Team> Teams { get; set; } = new List<Team>();
 
         /// <summary>
         /// Get the User ID of every player in Teams
         /// </summary>
-        [MessagePackMember(4)]
+        [MessagePackIgnore]
         public IEnumerable<string> UserIds { get => Teams.SelectMany(t => t.PlayerIds); }
 
         /// <summary>

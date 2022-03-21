@@ -23,6 +23,7 @@
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Party.Dto;
 using Stormancer.Server.Plugins.Party.Model;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
@@ -40,14 +41,54 @@ namespace Stormancer.Server.Plugins.Party
         /// </summary>
         string PartyId { get; }
 
+        /// <summary>
+        /// Updates party settings.
+        /// </summary>
+        /// <param name="partySettings"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
         Task UpdateSettings(PartySettingsDto partySettings, CancellationToken ct);
 
+        /// <summary>
+        /// Updates party settings.
+        /// </summary>
+        /// <param name="partySettingsUpdater">updater (return null for no change)</param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        Task UpdateSettings(Func<PartyConfiguration,PartySettingsDto?> partySettingsUpdater, CancellationToken ct);
+
+        /// <summary>
+        /// Updates the gamefinder status of a player.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="partyUserStatus"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
         Task UpdateGameFinderPlayerStatus(string userId, PartyMemberStatusUpdateRequest partyUserStatus, CancellationToken ct);
 
+        /// <summary>
+        /// Updates party user data.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="data"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
         Task UpdatePartyUserData(string userId, byte[] data, CancellationToken ct);
 
+        /// <summary>
+        /// Promotes an user as leader.
+        /// </summary>
+        /// <param name="newLeaderUserId"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
         Task PromoteLeader(string newLeaderUserId, CancellationToken ct);
 
+        /// <summary>
+        /// Kicks a player.
+        /// </summary>
+        /// <param name="playerToKickUserId"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
         Task KickPlayerByLeader(string playerToKickUserId, CancellationToken ct);
 
         /// <summary>

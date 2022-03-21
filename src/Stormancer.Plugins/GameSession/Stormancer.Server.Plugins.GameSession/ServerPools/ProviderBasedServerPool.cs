@@ -38,13 +38,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
     {
         private readonly IEnumerable<IGameServerProvider> serverProviders;
         private readonly ILogger logger;
+        private readonly ISceneHost scene;
         private readonly IGameSessions gameSessions;
 
-        public ProviderBasedServerPoolProvider(IEnumerable<IGameServerProvider> serverProviders, ILogger logger, IGameSessions gameSessions)
+        public ProviderBasedServerPoolProvider(IEnumerable<IGameServerProvider> serverProviders, ILogger logger, ISceneHost scene)
         {
             this.serverProviders = serverProviders;
             this.logger = logger;
-            this.gameSessions = gameSessions;
+            this.scene = scene;
         }
         public bool TryCreate(string id, JObject config,[NotNullWhen(true)] out IServerPool? pool)
         {
@@ -66,7 +67,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             {
                 return false;
             }
-            pool = new ProviderBasedServerPool(id, provider, logger, gameSessions);
+            pool = new ProviderBasedServerPool(id, provider, logger, scene);
             return true;
 
         }
@@ -79,6 +80,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             public TaskCompletionSource<GameServer> RequestCompletedCompletionSource { get; set; }
             public GameSessionConfiguration GameSessionConfiguration { get; set; }
             public string Id { get; set; }
+            public CancellationToken CancellationToken { get; internal set; }
         }
 
         private readonly IGameServerProvider provider;
@@ -91,7 +93,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         private bool isRunning = false;
         public string Id { get; }
-        public ProviderBasedServerPool(string id, IGameServerProvider provider, ILogger logger, IGameSessions gameSessions)
+        public ProviderBasedServerPool(string id, IGameServerProvider provider, ILogger logger, ISceneHost scene)
         {
             Id = id;
             this.provider = provider;
@@ -117,9 +119,11 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                                     request.RequestCompletedCompletionSource.SetResult(new GameServer { GameServerSessionId = server.Peer.SessionId });
 
                                     _runningServers.TryAdd(serverId, server);
+
+                                    await using var scope = scene.CreateRequestScope();
                                     var startupParameters = new GameServerStartupParameters
                                     {
-                                        GameSessionConnectionToken = await gameSessions.CreateServerConnectionToken(request.Id, server.Id),
+                                        GameSessionConnectionToken = await scope.Resolve<IGameSessions>().CreateServerConnectionToken(request.Id, server.Id),
                                         Config = request.GameSessionConfiguration,
                                         GameSessionId = request.Id
                                     };
@@ -133,7 +137,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                         }
 
                         //meet running servers requirements to satisfy requests + min ready server requirements
-                        var serversToStart = _pendingRequests.Count - _readyServers.Count - _startingServers.Count + MinServerReady;
+                        var serversToStart = PendingServerRequests - _readyServers.Count - _startingServers.Count + MinServerReady;
 
                         for (int i = 0; i < serversToStart; i++)
                         {
@@ -146,9 +150,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                         //clean timedout servers
                         foreach (var server in _startingServers.Values.ToArray())
                         {
-                            if (server.CreatedOn < DateTime.UtcNow - TimeSpan.FromMinutes(10))
+                            if (server.CreatedOn < DateTime.UtcNow - TimeSpan.FromSeconds(GameServerTimeout))
                             {
-                                _startingServers.TryRemove(server.Id, out _);
+                                if(_startingServers.TryRemove(server.Id, out _))
+                                {
+                                    _ = provider.StopServer(server.Id);
+                                }
                             }
                         }
                     }
@@ -206,10 +213,11 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         public int MinServerReady { get; private set; }
         public int MaxServersInPool { get; private set; }
+        public int GameServerTimeout { get; private set; }
 
         public int ServersRunning => _runningServers.Count;
 
-        public int PendingServerRequests => _pendingRequests.Count;
+        public int PendingServerRequests => _pendingRequests.Count(rq=>!rq.CancellationToken.IsCancellationRequested);
 
         public bool CanAcceptRequest => ServersRunning + PendingServerRequests < MaxServersInPool;
 
@@ -225,7 +233,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                 throw new InvalidOperationException("Pool not running");
             }
             var tcs = new TaskCompletionSource<GameServer>();
-            _pendingRequests.Enqueue(new GameServerRequest { RequestCompletedCompletionSource = tcs, Id = gameSessionId, GameSessionConfiguration = config });
+            _pendingRequests.Enqueue(new GameServerRequest { RequestCompletedCompletionSource = tcs, Id = gameSessionId, GameSessionConfiguration = config, CancellationToken = cancellationToken });
 
             return tcs.Task;
         }
@@ -236,6 +244,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             dynamic d = config;
             MinServerReady = ((int?)d.ready) ?? 0;
             MaxServersInPool = ((int?)d.ready) ?? int.MaxValue;
+            GameServerTimeout = ((int?)d.serverTimeout) ?? 60;
         }
 
         public Task<GameServerStartupParameters> SetReady(string id, IScenePeerClient client)

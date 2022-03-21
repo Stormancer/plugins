@@ -14,7 +14,7 @@
 
 #pragma warning(disable: 4265) // Disable virtual destructor requirement warnings
 #ifndef STORM_NOINCLUDE_STEAM
-#	include "steam/steam_api.h"
+#include "steam_api.h"
 #endif
 #pragma warning(default: 4265)
 

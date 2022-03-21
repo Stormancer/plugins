@@ -25,28 +25,17 @@ namespace Stormancer
 			/// <param name="buffer"></param>
 			/// <param name="offset"></param>
 			/// <param name="length"></param>
-			virtual bool send(std::string sceneId, Stormancer::SessionId destination, char* buffer, int length) = 0;
+			virtual bool send(std::string sceneId, Stormancer::SessionId destination, Stormancer::byte* buffer, int length) = 0;
 
 			/// <summary>
 			/// Blocks the thread until a datagram is received on the specified scene.
 			/// </summary>
 			/// <param name="sceneId"></param>
 			/// <param name="buffer"></param>
-			/// <param name="offset"></param>
 			/// <param name="maxLength"></param>
 			/// <returns></returns>
-			virtual ReceivedMsgInfos receive(std::string sceneId, char* buffer, int offset, int maxLength) = 0;
+			virtual ReceivedMsgInfos receive(std::string sceneId, Stormancer::byte* buffer, int maxLength) = 0;
 
-			/// <summary>
-			/// Returns a task that completes when a datagram is received on the specified scene.
-			/// </summary>
-			/// <param name="sceneId"></param>
-			/// <param name="buffer"></param>
-			/// <param name="offset"></param>
-			/// <param name="maxLength"></param>
-			/// <param name="cancellationToken"></param>
-			/// <returns></returns>
-			virtual pplx::task<ReceivedMsgInfos> receiveAsync(std::string sceneId, char* buffer, int offset, int maxLength, pplx::cancellation_token cancellationToken) = 0;
 
 		};
 	}
@@ -84,10 +73,16 @@ namespace Stormancer
 				void initialize(std::shared_ptr<Scene> scene)
 				{
 					_sceneId = scene->id();
+					Scene::RouteOptions options;
+					options.filter = MessageOriginFilter::Peer;
 					scene->addRoute("relay.receive", [this](Packetisp_ptr packet)
 						{
-							_channel.writer().tryWrite(packet);
+							_channel.writer().tryWrite(std::make_tuple(false, packet));
 						});
+					scene->addRoute("Socket.SendUnreliable", [this](Packetisp_ptr packet)
+						{
+							_channel.writer().tryWrite(std::make_tuple(true, packet));
+						}, options);
 				}
 
 				void onDisconnecting()
@@ -95,48 +90,78 @@ namespace Stormancer
 
 				}
 
-				pplx::task<ReceivedMsgInfos> receiveAsync(char* buffer, int offset, int maxLength, pplx::cancellation_token cancellationToken)
+				ReceivedMsgInfos receive(byte* buffer, int maxLength)
 				{
-					return _channel.reader().waitToReadAsync(cancellationToken).then([buffer, maxLength, this](WaitToReadResult<Packetisp_ptr> result)
+
+					std::tuple<bool, Packetisp_ptr> tuple;
+					ReceivedMsgInfos r;
+					int length = 0;
+					if (_channel.reader().tryReadIf(tuple, [&length, &maxLength](std::tuple<bool, Packetisp_ptr>& tuple)
 						{
-							Packetisp_ptr packet;
-							ReceivedMsgInfos r;
-							int length = 0;
-							if (result.isSuccessful && result.reader.tryReadIf(packet, [&length, &maxLength](Packetisp_ptr& p)
-								{
-									length = (int)p->stream.totalSize() - 18;
-									return length <= maxLength;
-								}))
+							auto isP2P = std::get<0>(tuple);
+							auto p = std::get<1>(tuple);
+							if (isP2P)
 							{
-
-								r.length = length;
-								r.success = true;
-								serializer.deserialize(packet->stream, r.sessionId);
-
-								return r;
-
+								length = (int)p->stream.totalSize();
 							}
 							else
 							{
-
-								r.length = length;
-								r.success = false;
-								return r;
+								length = (int)p->stream.totalSize() - 17;
 							}
-						});
+							return length <= maxLength;
+						}))
+					{
+
+						auto packet = std::get<1>(tuple);
+						auto isP2P = std::get<0>(tuple);
+						r.length = length;
+						r.success = true;
+						if (isP2P)
+						{
+							r.sessionId = SessionId::parse(packet->connection->id());
+						}
+						else
+						{
+							serializer.deserialize(packet->stream, r.sessionId);
+						}
+						std::memcpy(buffer, packet->stream.currentPtr(), length);
+						return r;
+
+					}
+					else
+					{
+
+						r.length = length;
+						r.success = false;
+						return r;
+					}
+
 				}
 
-				bool send(Stormancer::SessionId destination, char* buffer, int length)
+				bool send(Stormancer::SessionId destination, byte* buffer, int length)
 				{
 					if (auto scene = _scene.lock())
 					{
-						scene->send("Socket.SendUnreliable", [buffer, length, this, destination](obytestream& stream)
-							{
+						auto destStr = destination.toString();
+						auto it = scene->connectedPeers().find(destStr);
+						if (it == scene->connectedPeers().end())
+						{
+							scene->send("Socket.SendUnreliable", [buffer, length, this, destination](obytestream& stream)
+								{
 
-								serializer.serialize(stream, destination);
-								stream.write(buffer, length);
-							}, PacketPriority::MEDIUM_PRIORITY, PacketReliability::UNRELIABLE);
+									serializer.serialize(stream, destination);
+									stream.write(buffer, length);
+								}, PacketPriority::MEDIUM_PRIORITY, PacketReliability::UNRELIABLE);
+						}
+						else
+						{
+							scene->send(PeerFilter::matchPeers(destStr), "Socket.SendUnreliable", [buffer, length, this, destination](obytestream& stream)
+								{
 
+									serializer.serialize(stream, destination);
+									stream.write(buffer, length);
+								}, PacketPriority::MEDIUM_PRIORITY, PacketReliability::UNRELIABLE);
+						}
 						return true;
 					}
 					else
@@ -147,7 +172,7 @@ namespace Stormancer
 
 				std::string _sceneId;
 				std::weak_ptr<Scene> _scene;
-				Stormancer::Channel<Packetisp_ptr> _channel;
+				Stormancer::Channel<std::tuple<bool, Packetisp_ptr>> _channel;
 				Stormancer::Serializer serializer;
 			};
 		}
@@ -156,7 +181,7 @@ namespace Stormancer
 		{
 			friend SocketApiPlugin;
 		public:
-			bool send(std::string sceneId, Stormancer::SessionId destination, char* buffer, int length)
+			bool send(std::string sceneId, Stormancer::SessionId destination, byte* buffer, int length)
 			{
 				auto it = _services.find(sceneId);
 				if (it != _services.end())
@@ -174,28 +199,24 @@ namespace Stormancer
 
 			}
 
-			ReceivedMsgInfos receive(std::string sceneId, char* buffer, int offset, int maxLength)
-			{
-				return receiveAsync(sceneId, buffer, offset, maxLength, pplx::cancellation_token::none()).get();
-			}
-
-			pplx::task<ReceivedMsgInfos> receiveAsync(std::string sceneId, char* buffer, int offset, int maxLength, pplx::cancellation_token cancellationToken)
+			ReceivedMsgInfos receive(std::string sceneId, byte* buffer, int maxLength)
 			{
 				auto it = _services.find(sceneId);
 				if (it != _services.end())
 				{
 					if (auto s = it->second.lock())
 					{
-						return s->receiveAsync(buffer, offset, maxLength, cancellationToken);
+						return s->receive(buffer, maxLength);
 					}
 				}
 
 				ReceivedMsgInfos result;
 				result.success = false;
 				result.length = -1;
-				return pplx::task_from_result(result);
-
+				return result;
 			}
+
+
 
 		private:
 			void onConnected(std::weak_ptr<details::SocketApiService> service)
@@ -233,13 +254,13 @@ namespace Stormancer
 			}
 			void registerClientDependencies(ContainerBuilder& clientBuilder) override
 			{
-				clientBuilder.registerDependency<SocketApi_Impl>().as<SocketApi>();
+				clientBuilder.registerDependency<SocketApi_Impl>().as<SocketApi>().singleInstance();
 			}
 			void registerSceneDependencies(ContainerBuilder& sceneBuilder, std::shared_ptr<Scene> scene) override
 			{
 				if (!scene->getHostMetadata(METADATA_KEY).empty())
 				{
-					sceneBuilder.registerDependency<details::SocketApiService>();
+					sceneBuilder.registerDependency<details::SocketApiService>().singleInstance();
 				}
 
 			}

@@ -85,11 +85,7 @@ namespace Stormancer.Server.Plugins.DataProtection
             {
                 throw new InvalidOperationException($"'key' configuration value missing or invalid in configuration object 'dataProtection.{policy}'. Should be an absolute file to the key file to use with the policy.");
             }
-            if (!json.TryGetValue("nonce", out var nonceToken) || nonceToken == null || nonceToken.Type != JTokenType.String)
-            {
-                throw new InvalidOperationException($"'nonce' configuration value missing or invalid in configuration object 'dataProtection.{policy}'. Should be an absolute file to the nonce file to use with the policy.");
-            }
-
+           
 
 
            
@@ -120,13 +116,7 @@ namespace Stormancer.Server.Plugins.DataProtection
             {
                 throw new InvalidOperationException($"'key' configuration value missing or invalid in configuration object 'dataProtection.{policy}'. Should be an absolute file to the key file to use with the policy.");
             }
-            if (!json.TryGetValue("nonce", out var nonceToken) || nonceToken == null || nonceToken.Type != JTokenType.String)
-            {
-                throw new InvalidOperationException($"'nonce' configuration value missing or invalid in configuration object 'dataProtection.{policy}'. Should be an absolute file to the nonce file to use with the policy.");
-            }
-
-
-
+            
 
             var key = await GetKey(config.key, config.createKeyIfNotExists);
             var nonceLength = NonceBitSize / 8;

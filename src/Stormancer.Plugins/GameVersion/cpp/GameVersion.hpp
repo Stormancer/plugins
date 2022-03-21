@@ -12,6 +12,12 @@ namespace Stormancer
 {
 	namespace GameVersion
 	{
+		bool IsBadGameVersionError(const std::string& authError)
+		{
+			size_t startPos = authError.find("badGameVersion");
+			return startPos != std::string::npos;
+		}
+		
 		/// <summary>
 		/// Keys to use in Configuration::additionalParameters map to customize the plugin behavior.
 		/// </summary>

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Users/ClientAPI.hpp"
-#include "Users/Users.hpp"
+#include "users/ClientAPI.hpp"
+#include "users/Users.hpp"
 #include "stormancer/StormancerTypes.h"
 #include "stormancer/msgpack_define.h"
 #include "stormancer/Event.h"
@@ -257,15 +257,15 @@ namespace Stormancer
 					{
 						if (auto friendsService = wFriendsService.lock())
 						{
-							auto& friends = friendsService->friends;
-							auto oldFriends = friends;
+							auto& f = friendsService->friends;
+							auto oldFriends = f;
 
 							for (auto oldFriendIt : oldFriends)
 							{
 								if (newFriends.find(oldFriendIt.first) == newFriends.end())
 								{
 									// REMOVE
-									friends.erase(oldFriendIt.first);
+									f.erase(oldFriendIt.first);
 									friendsService->friendListChanged(FriendListUpdatedEvent{ FriendListUpdateOperation::Remove, oldFriendIt.second });
 								}
 							}
@@ -276,7 +276,7 @@ namespace Stormancer
 								if (friendIt == oldFriends.end())
 								{
 									// ADD
-									auto fr = friends[newFriend.first] = std::make_shared<Friend>(newFriend.second);
+									auto fr = f[newFriend.first] = std::make_shared<Friend>(newFriend.second);
 									friendsService->friendListChanged(FriendListUpdatedEvent{ FriendListUpdateOperation::Add, fr });
 								}
 								else

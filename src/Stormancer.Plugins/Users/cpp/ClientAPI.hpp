@@ -1,7 +1,7 @@
 #pragma once
 
 #include "stormancer/Scene.h"
-#include "Users/Users.hpp"
+#include "users/Users.hpp"
 
 namespace Stormancer
 {

@@ -1,7 +1,8 @@
 #pragma once
-#include "Users/ClientAPI.hpp"
-#include "Users/Users.hpp"
+#include "users/ClientAPI.hpp"
+#include "users/Users.hpp"
 #include "stormancer/IPlugin.h"
+#include "stormancer/Configuration.h"
 #include <sstream>
 #include <iostream>
 #include <vector>
@@ -21,10 +22,13 @@ namespace Stormancer
 			/// <remarks>
 			/// Env variables:
 			/// Stormancer.Server.ClusterEndpoints		: Comma separated list of endpoints the server should use to communicate with the Stormancer cluster.
+			/// Stormancer.Server.TransportEndpoint     : If set, forces the client to use a specific UDP transport endpoint.
 			/// Stormancer.Server.Port					: The local port the server should bind to.
 			/// Stormancer.Server.PublishedAddresses	: Comma separated list of public address the players can use to communicate with this server.
 			/// Stormancer.Server.PublishedPort			: The public port mapped to the port the client is bound to.
 			/// Stormancer.Server.AuthenticationToken	: Server authentication token.
+			/// Stormancer.Server.Account
+			/// Stormancer.Server.Application
 			/// </remarks>
 			constexpr const char* GetParametersFromEnv = "server.parameters.fromEnvironmentVariables";
 		}
@@ -41,17 +45,32 @@ namespace Stormancer
 			//Game complete
 			Complete
 		};
-		struct Group
+		struct Player
+		{
+			std::string data;
+			std::string sessionId;
+			std::string userId;
+			MSGPACK_DEFINE(data, sessionId, userId)
+		};
+		struct PlayerParty
 		{
 			std::string groupId;
-			std::vector<std::string> playerIds;
 
-			MSGPACK_DEFINE(groupId, playerIds)
+			std::unordered_map<std::string, Player> playerIds;
+
+			std::string customData;
+
+			msgpack::type::ext creationTimeUtc;
+
+			int pastPasses;
+
+			std::string partyLeaderId;
+			MSGPACK_DEFINE(groupId, playerIds, customData, creationTimeUtc, pastPasses)
 		};
 		struct Team
 		{
 			std::string teamId;
-			std::vector<Group> groups;
+			std::vector<PlayerParty> groups;
 
 			MSGPACK_DEFINE(teamId, groups)
 		};
@@ -62,13 +81,12 @@ namespace Stormancer
 			bool canRestart;
 			std::string hostUserId;
 			std::vector<Team> teams;
-		
-			std::vector<std::string> playerIds;
+
 
 			//parameters is transmitted as a msgpack map. It must therefore use MSGPACK_DEFINE_MAP instead of MSGPACK_DEFINE
-			T parameters;
+			std::shared_ptr<T> parameters;
 
-			MSGPACK_DEFINE(isPublic, canRestart, hostUserId, teams, playerIds, parameters )
+			MSGPACK_DEFINE(isPublic, canRestart, hostUserId, teams, parameters)
 		};
 
 		template<typename T>
@@ -87,77 +105,113 @@ namespace Stormancer
 			class ServerPoolConfiguration
 			{
 			public:
-				ServerPoolConfiguration(std::shared_ptr<Stormancer::Configuration> config) :
-					_config(config)
+				ServerPoolConfiguration(std::shared_ptr<Stormancer::Configuration> config, std::shared_ptr<Stormancer::ILogger> logger) :
+					_config(config),
+					_logger(logger)
 				{
 
 				}
 
 				void applyConfig()
 				{
-					auto it = _config->additionalHeaders.find(ConfigurationKeys::GetParametersFromEnv);
-					getConfigFromEnvironmentVariables = it != _config->additionalHeaders.end() && it->second == "true";
+					_logger->log(Stormancer::LogLevel::Info, "initialization", "Loading env...");
 
-					if (getConfigFromEnvironmentVariables)
+
+
+					/// Stormancer.Server.ClusterEndpoints	: Comma separated list of endpoints the server should use to communicate with the Stormancer cluster.
+
+					auto serverEndpoints = std::getenv("Stormancer_Server_ClusterEndpoints");
+					if (serverEndpoints)
 					{
-						/// Stormancer.Server.ClusterEndpoints	: Comma separated list of endpoints the server should use to communicate with the Stormancer cluster.
+						_logger->log(Stormancer::LogLevel::Info, "initialization", "Stormancer_Server_ClusterEndpoints set", serverEndpoints);
+						_config->clearServerEndpoints();
 
-						auto serverEndpoints = std::getenv("Stormancer.Server.ClusterEndpoints");
-						if (serverEndpoints)
-						{
-							_config->clearServerEndpoints();
+						std::istringstream f(serverEndpoints);
+						std::string s;
+						while (getline(f, s, ',')) {
 
-							std::istringstream f(serverEndpoints);
-							std::string s;
-							while (getline(f, s, ',')) {
-
-								_config->addServerEndpoint(s);
-							}
-						}
-
-						/// Stormancer.Server.Port		: The local port the transport should bind to.
-						auto port = std::getenv("Stormancer.Server.Port");
-
-						if (port)
-						{
-							_config->port = std::atoi(port);
-						}
-
-						/// Stormancer.Server.PublishedEndpoint	: The public endpoint the players can use to communicate with this server.
-						auto publishedAddresses = std::getenv("Stormancer.Server.PublishedAddresses");
-						if (publishedAddresses)
-						{
-							//If there is a published address, the peer is directly reachable. We disable nat traversal. 
-							_config->enableNatPunchthrough = false;
-
-							std::istringstream f(publishedAddresses);
-							std::string s;
-							while (getline(f, s, ',')) {
-
-								_config->publishedAddresses.push_back(s);
-							}
-							/// Stormancer.Server.PublishedPort			: The public port mapped to the port the client is bound to.
-							auto publishedPort = std::getenv("Stormancer.Server.PublishedPort");
-
-							if (publishedPort)
-							{
-								_config->publishedPort = std::atoi(publishedPort);
-							}
-							else
-							{
-								_config->publishedPort = _config->port;
-							}
+							_config->addServerEndpoint(s);
 
 						}
 
-						/// Stormancer.Server.AuthenticationToken	: Server authentication token.
-						auto authToken = std::getenv("Stormancer.Server.AuthenticationToken");
-
-						if (authToken)
-						{
-							this->authToken = authToken;
-						}
+						_config->discoveryEnabled = false;
 					}
+
+					auto transportEndpointStr = std::getenv("Stormancer_Server_TransportEndpoint");
+
+					if (transportEndpointStr)
+					{
+						_logger->log(Stormancer::LogLevel::Info, "initialization", "Stormancer_Server_TransportEndpoint set", transportEndpointStr);
+						_config->forceTransportEndpoint = transportEndpointStr;
+					}
+
+					/// Stormancer.Server.Port		: The local port the transport should bind to.
+					auto port = std::getenv("Stormancer_Server_Port");
+
+					if (port)
+					{
+						_logger->log(Stormancer::LogLevel::Info, "initialization", "Stormancer_Server_Port set", port);
+						_config->port = std::atoi(port);
+					}
+
+					/// Stormancer.Server.PublishedEndpoint	: The public endpoint the players can use to communicate with this server.
+					auto publishedAddresses = std::getenv("Stormancer_Server_PublishedAddresses");
+					if (publishedAddresses)
+					{
+						_logger->log(Stormancer::LogLevel::Info, "initialization", "Stormancer_Server_PublishedAddresses set", publishedAddresses);
+						//If there is a published address, the peer is directly reachable. We disable nat traversal. 
+						_config->enableNatPunchthrough = false;
+
+						std::istringstream f(publishedAddresses);
+						std::string s;
+						while (getline(f, s, ',')) {
+
+							_config->publishedAddresses.push_back(s);
+						}
+						/// Stormancer.Server.PublishedPort			: The public port mapped to the port the client is bound to.
+						auto publishedPort = std::getenv("Stormancer_Server_PublishedPort");
+
+						if (publishedPort)
+						{
+							_logger->log(Stormancer::LogLevel::Info, "initialization", "Stormancer_Server_PublishedPort set", publishedPort);
+							_config->publishedPort = std::atoi(publishedPort);
+						}
+						else
+						{
+							_config->publishedPort = _config->port;
+						}
+
+					}
+
+					/// Stormancer.Server.AuthenticationToken	: Server authentication token.
+					auto authTokenStr = std::getenv("Stormancer_Server_AuthenticationToken");
+
+					if (authTokenStr)
+					{
+						_logger->log(Stormancer::LogLevel::Info, "initialization", "Stormancer_Server_AuthenticationToken set", "*******");
+						this->authToken = authTokenStr;
+					}
+
+					/// Stormancer.Server.AuthenticationToken	: Server authentication token.
+					auto accountStr = std::getenv("Stormancer_Server_Account");
+
+					if (accountStr)
+					{
+						_logger->log(Stormancer::LogLevel::Info, "initialization", "Stormancer_Server_Account set", accountStr);
+						_config->account = accountStr;
+					}
+
+					/// Stormancer.Server.AuthenticationToken	: Server authentication token.
+					auto appStr = std::getenv("Stormancer_Server_Application");
+
+					if (appStr)
+					{
+						_logger->log(Stormancer::LogLevel::Info, "initialization", "Stormancer_Server_Application set", appStr);
+						_config->application = appStr;
+					}
+
+					_logger->log(Stormancer::LogLevel::Info, "initialization", "Env loaded.");
+
 				}
 
 			public:
@@ -166,6 +220,7 @@ namespace Stormancer
 
 			private:
 				std::shared_ptr<Stormancer::Configuration> _config;
+				std::shared_ptr<Stormancer::ILogger> _logger;
 			};
 			class ServerPoolsService :public std::enable_shared_from_this<ServerPoolsService>
 			{
@@ -244,9 +299,9 @@ namespace Stormancer
 			class ServerAuthenticationHandler : public Stormancer::Users::IAuthenticationEventHandler
 			{
 			public:
-				ServerAuthenticationHandler(std::shared_ptr<ServerPoolConfiguration> config, std::shared_ptr<ILogger> logger) 
+				ServerAuthenticationHandler(std::shared_ptr<ServerPoolConfiguration> config, std::shared_ptr<ILogger> logger)
 					: _config(config)
-					,_logger(logger)
+					, _logger(logger)
 				{
 
 				}
@@ -375,7 +430,7 @@ namespace Stormancer
 			void registerClientDependencies(Stormancer::ContainerBuilder& builder) override
 			{
 				builder.registerDependency<ServerPools, Stormancer::Users::UsersApi>().singleInstance();
-				builder.registerDependency<details::ServerPoolConfiguration, Stormancer::Configuration>().singleInstance();
+				builder.registerDependency<details::ServerPoolConfiguration, Stormancer::Configuration, Stormancer::ILogger>().singleInstance();
 				builder.registerDependency<details::ServerAuthenticationHandler, details::ServerPoolConfiguration, Stormancer::ILogger>().as<Stormancer::Users::IAuthenticationEventHandler>();
 			}
 
