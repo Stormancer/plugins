@@ -169,7 +169,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
         /// <param name="ids"></param>
         /// <param name="leaderboardName"></param>
         /// <returns></returns>
-        Task<Dictionary<string, ScoreRecord?>> GetScores(List<string> ids, string leaderboardName);
+        Task<Dictionary<string, ScoreRecord?>> GetScores(IEnumerable<string> ids, string leaderboardName);
 
         /// <summary>
         /// Gets the ranking associated with a score in a leaderboard.

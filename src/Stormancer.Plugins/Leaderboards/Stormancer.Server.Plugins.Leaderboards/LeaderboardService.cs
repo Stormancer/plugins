@@ -204,12 +204,13 @@ namespace Stormancer.Server.Plugins.Leaderboards
             return startResult.Source;
         }
 
-        public async Task<Dictionary<string, ScoreRecord?>> GetScores(List<string> playerIds, string leaderboardName)
+        public async Task<Dictionary<string, ScoreRecord?>> GetScores(IEnumerable<string> playerIds, string leaderboardName)
         {
             var index = GetModifiedLeaderboardName(leaderboardName);
             var client = await CreateESClient<ScoreRecord>(index);
-            var startResult = await client.MultiGetAsync(v => v.GetMany<ScoreRecord>(playerIds.Select(id => GetDocumentId(leaderboardName, id))));
-            var results = startResult.GetMany<ScoreRecord>(playerIds);
+            var ids = playerIds.Select(id => GetDocumentId(leaderboardName, id));
+            var startResult = await client.MultiGetAsync(v => v.GetMany<ScoreRecord>(ids));
+            var results = startResult.GetMany<ScoreRecord>(ids);
             return results.ToDictionary(h => h.Id, h => h.Found ? h.Source : null);
         }
 

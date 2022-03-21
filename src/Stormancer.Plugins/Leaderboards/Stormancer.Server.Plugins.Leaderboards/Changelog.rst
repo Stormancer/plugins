@@ -9,15 +9,17 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+5.0.2
+-----
 Changed
 *******
 - When querying a leaderboard by id, if the id is not found, return an empty result instead of throwing an exception.
+- GetScores takes an IEnumerable<string> instead of a List<string> for its ids.
 
 Fixed
 *****
 - Don't allow the score updater to change the current score object, but have it work on a clone.
+- Uses correct ids in GetScores
 
 4.0.2.4
 -------
