@@ -16,6 +16,9 @@ Changed
 - Fix GameSessionService.PeerConnectionRejected
 - Use GameSessionController to register to OnConnecting/ed disconnecting events.
 - Call OnClientLeaving when peer disconnecting
+Fixed
+*****
+- Don't error every 500ms when a docker pull is created, but docker is not reachable.
 
 Added
 *****

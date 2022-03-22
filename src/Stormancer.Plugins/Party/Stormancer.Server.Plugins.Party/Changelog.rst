@@ -12,7 +12,12 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Changed
+*******
 - Update dependency to Stormancer.Abstraction.Server 6.0.0.1
+Added
+*****
+- Add JoinCurrentGameSession
 
 4.1.4.2
 -------

@@ -36,7 +36,7 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
-    [Service(Named = true, ServiceType = "stormancer.plugins.gamefinder")]
+    [Service(Named = true, ServiceType = "stormancer.plugins.gamesession")]
     class GameSessionController : ControllerBase
     {
         private readonly IGameSessionService _service;

@@ -23,7 +23,9 @@
 using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.PartyManagement;
+using Stormancer.Server.Plugins.GameSession;
 using Stormancer.Server.Plugins.Party.Interfaces;
+using Stormancer.Server.Plugins.Party.JoinGame;
 using Stormancer.Server.Plugins.Party.Model;
 using Stormancer.Server.Plugins.ServiceLocator;
 using System.Threading.Tasks;
@@ -67,6 +69,10 @@ namespace Stormancer.Server.Plugins.Party
                 builder.Register<StormancerPartyPlatformSupport>().As<IPartyPlatformSupport>().AsSelf().InstancePerRequest();
                 builder.Register<PartySceneLocator>().As<IServiceLocatorProvider>();
                 builder.Register<InvitationCodeService>().AsSelf().SingleInstance();
+                builder.Register<JoinGamePartyController>().InstancePerRequest();
+                builder.Register<JoinGamesessionController>().InstancePerRequest();
+                builder.Register<JoinGameSessionEventHandler>().As<IGameSessionEventHandler>().InstancePerRequest();
+                builder.Register<JoinGameSessionState>().InstancePerScene();
             };
 
             ctx.HostStarting += (IHost host) => {
@@ -89,7 +95,7 @@ namespace Stormancer.Server.Plugins.Party
                 if (scene.Metadata.ContainsKey(PartyConstants.METADATA_KEY))
                 {
                     scene.AddController<PartyController>();
-
+                    scene.AddController<JoinGamePartyController>();
 
                     scene.Starting.Add(async metadata =>
                     {
@@ -102,10 +108,16 @@ namespace Stormancer.Server.Plugins.Party
                         
                     });
                 }
+                
+                if(scene.Metadata.ContainsKey("stormancer.gamesession"))
+                {
+                    scene.AddController<JoinGamesessionController>();
+                }
 
                 if (scene.Metadata.ContainsKey(PARTYMANAGEMENT_METADATA_KEY))
                 {
                     scene.AddController<PartyManagementController>();
+                    
                 }
             };
 

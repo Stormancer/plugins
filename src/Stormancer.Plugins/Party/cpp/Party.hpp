@@ -359,6 +359,19 @@ namespace Stormancer
 			virtual pplx::task<void> joinPartyByInvitationCode(std::string invitationCode, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
 
 			/// <summary>
+			/// Gets a boolean indicating if the party is currently in a gamesession.
+			/// </summary>
+			/// <returns></returns>
+			virtual bool isInGameSession() = 0;
+
+			/// <summary>
+			/// If the party is in a gamesession, gets a token to connect to it.
+			/// </summary>
+			/// <param name="ct"></param>
+			/// <returns></returns>
+			virtual pplx::task<std::string> getCurrentGameSessionConnectionToken(pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
+
+			/// <summary>
 			/// Leave the party
 			/// </summary>
 			/// <returns>A task that completes with the operation.</returns>
@@ -1607,6 +1620,12 @@ namespace Stormancer
 						return syncStateOnError(_rpcService->rpc<void>("party.updatepartysettings", newPartySettings));
 					}
 				}
+
+				pplx::task<std::string> getCurrentGameSessionConnectionToken(pplx::cancellation_token ct = pplx::cancellation_token::none())
+				{
+					return _rpcService->rpc<std::string>("JoinGameParty.RequestReservationInCurrentGamesession", ct);
+				}
+
 
 				/// 
 				/// Set our party status (ready/not ready).
@@ -2922,6 +2941,39 @@ namespace Stormancer
 
 					_leavePartyTask = pplx::create_task(_leavePartyTce, _dispatcher);
 					return _leavePartyTask;
+				}
+
+				/// <summary>
+				/// Gets a boolean indicating if the party is currently in a gamesession.
+				/// </summary>
+				/// <returns></returns>
+				bool isInGameSession() override
+				{
+					auto party = tryGetParty();
+					if (party != nullptr)
+					{
+						auto& serverData = party->settings().publicServerData;
+						return serverData.find("gamesession") != serverData.end();
+					}
+					else
+					{
+						return false;
+					}
+				}
+
+				/// <summary>
+				/// If the party is in a gamesession, gets a token to connect to it.
+				/// </summary>
+				/// <param name="ct"></param>
+				/// <returns></returns>
+				pplx::task<std::string> getCurrentGameSessionConnectionToken(pplx::cancellation_token ct = pplx::cancellation_token::none()) override
+				{
+					auto party = tryGetParty();
+					if (!party)
+					{
+						STORM_RETURN_TASK_FROM_EXCEPTION_OPT(std::runtime_error(PartyError::Str::NotInParty), _dispatcher, void);
+					}
+					return party->partyService()->getCurrentGameSessionConnectionToken(ct);
 				}
 
 				bool isInParty() const noexcept override

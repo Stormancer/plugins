@@ -85,7 +85,7 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             while (_docker != null)
             {
-                await Task.Delay(500);
+                await Task.Delay(1000);
 
                 try
                 {
@@ -93,7 +93,8 @@ namespace Stormancer.Server.Plugins.GameSession
                 }
                 catch (Exception ex)
                 {
-                    _logger.Log(LogLevel.Error, "docker", "an error occured while calling Instance.OnClosed.", ex);
+                    _logger.Log(LogLevel.Warn, "docker", "an error occurend while querying docker for events.", ex);
+                    await Task.Delay(10000);
                 }
 
 
