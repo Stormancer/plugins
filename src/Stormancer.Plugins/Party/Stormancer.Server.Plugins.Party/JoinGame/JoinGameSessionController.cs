@@ -15,7 +15,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
     /// <summary>
     /// Provides API to join a gamesession associated with the party.
     /// </summary>
-    [Service(Named = true, ServiceType = "party-")]
+    [Service(Named = true, ServiceType = PartyPlugin.PARTY_SERVICEID)]
     public class JoinGamePartyController : ControllerBase
     {
         private readonly IGameSessions gameSessions;
@@ -43,10 +43,11 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
         public async Task<string?> RequestReservationInCurrentGamesession(RequestContext<IScenePeerClient> ctx)
         {
 
-            if (party.Settings.PublicServerData.TryGetValue("gamesession", out var sceneId))
+            if (party.Settings.PublicServerData.TryGetValue("stormancer.partyStatus", out var partyStatus) && partyStatus == "gamesession" &&
+                party.Settings.PublicServerData.TryGetValue("stormancer.partyStatus.details", out var gameSessionId))
             {
 
-                return await gamesession.JoinInParty(sceneId, party.PartyId, ctx.RemotePeer.SessionId, ctx.CancellationToken);
+                return await gamesession.JoinInParty(gameSessionId, party.PartyId, ctx.RemotePeer.SessionId, ctx.CancellationToken);
             }
             else
             {

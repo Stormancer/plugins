@@ -17,7 +17,8 @@ Changed
 - Update dependency to Stormancer.Abstraction.Server 6.0.0.1
 Added
 *****
-- Add JoinCurrentGameSession
+- Add JoinCurrentGameSession : This functionality enables connecting to the game session to which other players in the party are currently connected.
+- Add Party status to PublicServerData to track if the party is currently in a gamesession.
 
 4.1.4.2
 -------

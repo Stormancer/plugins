@@ -32,7 +32,7 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Party
 {
-    [Service(Named = true, ServiceType = "party-")]
+    [Service(Named = true, ServiceType = PartyPlugin.PARTY_SERVICEID)]
     class PartyController : ControllerBase
     {
         public const string PROTOCOL_VERSION = "2020-01-28.1";

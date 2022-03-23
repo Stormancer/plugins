@@ -559,7 +559,7 @@ namespace Stormancer.Server.Plugins.Party
 
         public ConcurrentDictionary<string, object> ServerData => _partyState.ServerData;
 
-        public string PartyId => _scene.Id;
+        public string PartyId => Settings.PartyId;
 
         public async Task UpdatePartyUserData(string userId, byte[] data, CancellationToken ct)
         {
