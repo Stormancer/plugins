@@ -184,7 +184,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 environmentVariables.Add("Stormancer_Server_Arguments", arguments);
                 environmentVariables.Add("Stormancer_Server_TransportEndpoint", TransformEndpoint(udpTransports.Item2.First()));
 
-               
+                _logger.Log(LogLevel.Info, "docker", "creating docker container.", new { image = config.image});
                 var response = await _docker.Containers.CreateContainerAsync(new CreateContainerParameters()
                 {
                     Image = config.image,
@@ -209,9 +209,10 @@ namespace Stormancer.Server.Plugins.GameSession
                     Env = environmentVariables.Select(kvp => $"{kvp.Key}={kvp.Value}").ToList(),
 
                 });
-
+                
+              
                 server.ContainerId = response.ID;
-
+                _logger.Log(LogLevel.Info, "docker", "starting docker container.", new { image = config.image, container = response.ID });
                 var startResponse = await _docker.Containers.StartContainerAsync(response.ID, new ContainerStartParameters { });
 
 
@@ -247,8 +248,11 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async Task StopServer(string id)
         {
+           
             if (_servers.TryRemove(id, out var server))
             {
+                _logger.Log(LogLevel.Info, "docker", "stopping docker container.", new {  container = server.ContainerId });
+
                 if (await _docker.Containers.StopContainerAsync(server.ContainerId, new ContainerStopParameters { WaitBeforeKillSeconds = 10 }))
                 {
                     await _docker.Containers.RemoveContainerAsync(server.ContainerId, new ContainerRemoveParameters { Force = true });
