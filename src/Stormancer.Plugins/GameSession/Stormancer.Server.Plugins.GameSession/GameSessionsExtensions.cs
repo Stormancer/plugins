@@ -138,7 +138,7 @@ namespace Stormancer
         /// </remarks>
         /// <param name="getter"></param>
         /// <returns></returns>
-        public GameSessionServerTemplateConfiguration PoolId(Func<ISceneHost,string?> getter)
+        public GameSessionServerTemplateConfiguration PoolId(Func<ISceneHost, string?> getter)
         {
             useGameServerGetter = scene => getter(scene) != null;
             gameServerPoolIdGetter = getter;
@@ -192,7 +192,34 @@ namespace Stormancer
             CustomizationAction += sceneBuilder;
             return this;
         }
+        /// <summary>
+        /// Is Peer direct connection (P2P) enabled in this game session?
+        /// </summary>
+        /// <remarks>
+        /// Peer direct connection defaults to true.
+        /// </remarks>
+        internal Func<ISceneHost, bool> PeerDirectConnectionEnabled { get; set; } = _ => true;
 
+        /// <summary>
+        /// Configures Peer direct connections in the gamesession.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public GameSessionTemplateConfiguration EnablePeerDirectConnection(bool value = true)
+        {
+            return EnablePeerDirectConnection(_ => value);
+        }
+
+        /// <summary>
+        /// Configures Peer direct connections in the gamesession.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public GameSessionTemplateConfiguration EnablePeerDirectConnection(Func<ISceneHost, bool> value)
+        {
+            PeerDirectConnectionEnabled = value;
+            return this;
+        }
 
     }
 

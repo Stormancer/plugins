@@ -279,7 +279,7 @@ namespace Stormancer
 					if (hostInfos.isHost) // Host
 					{
 
-						_logger->log(LogLevel::Trace, "gamession.p2ptoken", "received empty p2p token: I'm the host.");
+						_logger->log(LogLevel::Trace, "gamession.p2ptoken", "received host=true.");
 						_myP2PRole = P2PRole::Host;
 						onRoleReceived(std::make_tuple(hostInfos.hostSessionId, P2PRole::Host));
 						_waitServerTce.set();
@@ -291,7 +291,7 @@ namespace Stormancer
 					}
 					else // Client
 					{
-						_logger->log(LogLevel::Trace, "gamession.p2ptoken", "received valid p2p token: I'm a client.");
+						_logger->log(LogLevel::Trace, "gamession.p2ptoken", "received host=false.");
 
 
 						std::weak_ptr<GameSessionService> wThat = this->shared_from_this();
@@ -299,7 +299,7 @@ namespace Stormancer
 						{
 							auto& p2pToken = hostInfos.p2pToken;
 							return scene->openP2PConnection(p2pToken, ct)
-								.then([wThat, ct, openTunnel,hostInfos](std::shared_ptr<IP2PScenePeer> p2pPeer)
+								.then([wThat, ct, openTunnel, hostInfos](std::shared_ptr<IP2PScenePeer> p2pPeer)
 									{
 										auto that = wThat.lock();
 										if (!that)
@@ -317,13 +317,13 @@ namespace Stormancer
 										if (openTunnel)
 										{
 											return p2pPeer->openP2PTunnel(GAMESESSION_P2P_SERVER_ID, ct)
-												.then([wThat, p2pPeer,hostInfos](std::shared_ptr<P2PTunnel> guestTunnel)
+												.then([wThat, p2pPeer, hostInfos](std::shared_ptr<P2PTunnel> guestTunnel)
 													{
 														auto that = wThat.lock();
 														if (that)
 														{
 															that->_tunnel = guestTunnel;
-															that->onTunnelOpened(std::make_tuple(hostInfos.hostSessionId,guestTunnel));
+															that->onTunnelOpened(std::make_tuple(hostInfos.hostSessionId, guestTunnel));
 														}
 														return p2pPeer;
 													});
@@ -355,8 +355,15 @@ namespace Stormancer
 						else
 						{
 							_myP2PRole = P2PRole::Client;
-							onRoleReceived(std::make_tuple(hostInfos.hostSessionId, P2PRole::Client));
-							return pplx::task_from_result<std::shared_ptr<Stormancer::IP2PScenePeer>>(std::shared_ptr<Stormancer::IP2PScenePeer>());
+							if (!openTunnel)
+							{
+								onRoleReceived(std::make_tuple(hostInfos.hostSessionId, P2PRole::Client));
+								return pplx::task_from_result<std::shared_ptr<Stormancer::IP2PScenePeer>>(std::shared_ptr<Stormancer::IP2PScenePeer>());
+							}
+							else
+							{
+								return pplx::task_from_exception<std::shared_ptr<Stormancer::IP2PScenePeer>>(std::runtime_error("useTunnel is not supported: P2P disabled on the server."));
+							}
 						}
 					}
 				}
@@ -485,7 +492,7 @@ namespace Stormancer
 #pragma region public_members
 
 				Event<> onAllPlayersReady;
-				Event<std::tuple<std::string,P2PRole>> onRoleReceived;
+				Event<std::tuple<std::string, P2PRole>> onRoleReceived;
 				Event<std::tuple<std::string, std::shared_ptr<Stormancer::P2PTunnel>>> onTunnelOpened;
 				Event<> onShutdownReceived;
 				Event<SessionPlayer, std::string> onPlayerStateChanged;
@@ -983,7 +990,7 @@ namespace Stormancer
 
 							auto service = scene->dependencyResolver().resolve<GameSessionService>();
 
-							gameSessionContainer->onRoleReceived = service->onRoleReceived.subscribe([wThat, useTunnel, wContainer](std::tuple<std::string,P2PRole> tuple)
+							gameSessionContainer->onRoleReceived = service->onRoleReceived.subscribe([wThat, useTunnel, wContainer](std::tuple<std::string, P2PRole> tuple)
 								{
 									auto role = std::get<1>(tuple);
 									auto hostSessionId = std::get<0>(tuple);
@@ -1006,7 +1013,7 @@ namespace Stormancer
 
 							if (useTunnel)
 							{
-								gameSessionContainer->onTunnelOpened = service->onTunnelOpened.subscribe([wThat, wContainer](std::tuple<std::string,std::shared_ptr<Stormancer::P2PTunnel>> tuple)
+								gameSessionContainer->onTunnelOpened = service->onTunnelOpened.subscribe([wThat, wContainer](std::tuple<std::string, std::shared_ptr<Stormancer::P2PTunnel>> tuple)
 									{
 										auto p2pTunnel = std::get<1>(tuple);
 										auto hostSessionId = std::get<0>(tuple);

@@ -25,6 +25,7 @@ Added
 - Rework of server pools
 - Add back game server support in gamesession.
 - Add support for game servers running on local docker.
+- Add EnableDirectConnection configuration value to disable P2P connection.
 
 5.3.0
 -----

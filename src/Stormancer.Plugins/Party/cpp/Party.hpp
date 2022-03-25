@@ -2971,7 +2971,7 @@ namespace Stormancer
 					auto party = tryGetParty();
 					if (!party)
 					{
-						STORM_RETURN_TASK_FROM_EXCEPTION_OPT(std::runtime_error(PartyError::Str::NotInParty), _dispatcher, void);
+						STORM_RETURN_TASK_FROM_EXCEPTION_OPT(std::runtime_error(PartyError::Str::NotInParty), _dispatcher, std::string);
 					}
 					return party->partyService()->getCurrentGameSessionConnectionToken(ct);
 				}

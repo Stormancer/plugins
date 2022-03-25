@@ -19,7 +19,7 @@ namespace Stormancer.Plugins.Tests.ServerApp
             ctx.HostStarting += (IHost host) =>
             {
                 host.ConfigureUsers(u => u.ConfigureEphemeral(b => b.Enabled()));
-               
+
                 host.ConfigureGamefinderTemplate("server-test", c => c
                     .ConfigureQuickQueue(b => b
                         .AllowJoinExistingGame(true)
@@ -35,12 +35,12 @@ namespace Stormancer.Plugins.Tests.ServerApp
                     .UseGameServer(c => c
                         .PoolId("dev")
                      )
-                    .CustomizeScene(scene=>scene.AddSocket())
+                    .CustomizeScene(scene => scene.AddSocket())
                 );
 
 
 
-                
+
                 host.ConfigureGamefinderTemplate("server-test-docker", c => c
                     .ConfigureQuickQueue(b => b
                         .GameSessionTemplate("gamesession-server-docker")
@@ -69,9 +69,32 @@ namespace Stormancer.Plugins.Tests.ServerApp
                     )
                 );
                 host.ConfigureGameSession("gamesession-replication", c => c
-                   
+
                    .CustomizeScene(scene => scene.AddReplication())
-               );
+                );
+
+                host.ConfigureGamefinderTemplate("joingame-test", c => c
+                    .ConfigureQuickQueue(b => b
+                        .AllowJoinExistingGame(true)
+                        .GameSessionTemplate("gamesession-replication")
+                        .TeamCount(2)
+                        .TeamSize(1)
+                    )
+                );
+
+
+                host.ConfigureGameSession("gamesession-disable-direct-connection", c => c
+
+                   .EnablePeerDirectConnection(false)
+                );
+
+                host.ConfigureGamefinderTemplate("disable-direct-connection-test", c => c
+                    .ConfigureQuickQueue(b =>b
+                        .GameSessionTemplate("gamesession-disable-direct-connection")
+                        .TeamCount(2)
+                        .TeamSize(1)
+                    )
+                );
 
             };
             ctx.HostStarted += (IHost host) =>
@@ -79,6 +102,8 @@ namespace Stormancer.Plugins.Tests.ServerApp
                 host.AddGamefinder("server-test", "server-test");
                 host.AddGamefinder("server-test-docker", "server-test-docker");
                 host.AddGamefinder("replication-test", "replication-test");
+                host.AddGamefinder("joingame-test", "joingame-test");
+                host.AddGamefinder("disable-direct-connection-test", "disable-direct-connection-test");
             };
         }
     }

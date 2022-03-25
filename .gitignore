@@ -352,3 +352,4 @@ launchSettings.json
 output
 output
 **/out
+tests/server-profile/data

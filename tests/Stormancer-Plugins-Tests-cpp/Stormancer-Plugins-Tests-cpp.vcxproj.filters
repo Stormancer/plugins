@@ -4,6 +4,8 @@
     <ClCompile Include="TestSocketApi.cpp" />
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="TestDevServer.cpp" />
+    <ClCompile Include="TestParty.cpp" />
+    <ClCompile Include="TestDisableGameSessionDirectConnection.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
