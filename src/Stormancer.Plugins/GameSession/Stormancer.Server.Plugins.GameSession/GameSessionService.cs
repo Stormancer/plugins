@@ -480,11 +480,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 {
                     if (_clients.TryGetValue(user, out var alreadyConnectedClient))
                     {
-                        if (alreadyConnectedClient.Status != PlayerStatus.Disconnected)
-                        {
-                            throw new ClientException("User already connected to gamesession.");
-                        }
-                        else if (!_clients.TryUpdate(user, client, alreadyConnectedClient))
+                        if (!_clients.TryUpdate(user, client, alreadyConnectedClient))
                         {
                             throw new ClientException("Failed to update peer associated with user.");
                         }
@@ -726,6 +722,11 @@ namespace Stormancer.Server.Plugins.GameSession
                         if (_config.Public)
                         {
                             _clients.TryRemove(userId, out _);
+                        }
+                        else
+                        {
+                            kvp.Value.Peer = null;
+                            kvp.Value.Status = PlayerStatus.Disconnected;
                         }
 
                         // no need to continue searching for the client, we already found it
