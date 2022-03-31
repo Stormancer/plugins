@@ -45,6 +45,9 @@
     <ClInclude Include="..\..\src\Stormancer.Plugins\Friends\cpp\Friends.hpp">
       <Filter>friends</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Profile\cpp\Profiles.hpp">
+      <Filter>profile</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="steam">
@@ -76,6 +79,9 @@
     </Filter>
     <Filter Include="friends">
       <UniqueIdentifier>{a09716fe-039f-4827-a7fd-24a5c6e48a51}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="profile">
+      <UniqueIdentifier>{443214e2-35b5-42a6-b6dd-3fc0812c7f70}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

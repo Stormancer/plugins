@@ -40,6 +40,7 @@
     <ClInclude Include="..\..\src\Stormancer.Plugins\GameSession\cpp\ServerPools.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Gog\cpp\galaxy.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Party\cpp\Party.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Profile\cpp\Profiles.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Replication\cpp\CommandLog.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\SocketApi\cpp\socket.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Steam\cpp\Steam.hpp" />
