@@ -963,7 +963,7 @@ namespace Stormancer.Server.Plugins.GameSession
         public GameSessionConfigurationDto GetGameSessionConfig()
         {
             Debug.Assert(_config != null);
-            return new GameSessionConfigurationDto { Teams = _config.TeamsList, Parameters = _config.Parameters, UserIds = _config.UserIds, HostUserId = _config.HostUserId };
+            return new GameSessionConfigurationDto { Teams = _config.TeamsList, Parameters = _config.Parameters, UserIds = _config.UserIds, HostUserId = _config.HostUserId, GameFinder = _config.GameFinder };
         }
 
 
