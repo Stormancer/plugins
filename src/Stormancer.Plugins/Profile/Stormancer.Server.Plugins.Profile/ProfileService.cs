@@ -52,14 +52,27 @@ namespace Stormancer.Server.Plugins.Profile
         }
 
 
-        public async Task<Dictionary<string, Dictionary<string, JObject>>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, Session? requestingUser, CancellationToken cancellationToken)
+        public async Task<Dictionary<string, Dictionary<string, JObject>?>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, Session? requestingUser, CancellationToken cancellationToken)
         {
             var dic = new ConcurrentDictionary<string, ConcurrentDictionary<string, JObject>>();
+           
             var ctx = new ProfileCtx(userIds, dic, displayOptions, requestingUser);
 
             await _handlers.RunEventHandler(h => h.GetProfiles(ctx, cancellationToken), ex => _logger.Log(LogLevel.Error, "profiles", "An error occured while getting profiles.", ex));
 
-            return dic.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToDictionary(d => d.Key, d => d.Value));
+            var result = new Dictionary<string, Dictionary<string, JObject>?>();
+            foreach(var id in userIds)
+            {
+                if(dic.TryGetValue(id,out var data))
+                {
+                    result[id] = data.ToDictionary(d => d.Key, d => d.Value);
+                }
+                else
+                {
+                    result[id] = null;
+                }
+            }
+            return result;
         }
 
         public Task DeleteCustomProfilePart(string userId, string partId, bool fromClient)

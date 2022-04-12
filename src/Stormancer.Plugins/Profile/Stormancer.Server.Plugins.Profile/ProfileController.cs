@@ -31,7 +31,7 @@ using System.Threading;
 
 namespace Stormancer.Server.Plugins.Profile
 {
-   
+
     [Service]
     class ProfileController : ControllerBase
     {
@@ -56,7 +56,7 @@ namespace Stormancer.Server.Plugins.Profile
 
             IEnumerable<string> userIds = sessions.Values.Select(s => s?.User?.Id).Where(id => id != null)!;
 
-            var profiles = userIds.Any() ? await GetProfiles(userIds, displayOptions, ctx.CancellationToken) : new Dictionary<string, ProfileDto>();
+            var profiles = userIds.Any() ? await GetProfiles(userIds, displayOptions, ctx.CancellationToken) : new Dictionary<string, ProfileDto?>();
 
 
             var results = new Dictionary<string, ProfileDto?>();
@@ -73,7 +73,7 @@ namespace Stormancer.Server.Plugins.Profile
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<Dictionary<string, ProfileDto>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, RequestContext<IScenePeerClient> ctx)
+        public async Task<Dictionary<string, ProfileDto?>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, RequestContext<IScenePeerClient> ctx)
         {
 
             var session = await _sessions.GetSession(ctx.RemotePeer, ctx.CancellationToken);
@@ -83,14 +83,14 @@ namespace Stormancer.Server.Plugins.Profile
             }
 
             var profiles = await _profiles.GetProfiles(userIds, displayOptions, session, ctx.CancellationToken);
-            return profiles.ToDictionary(kvp => kvp.Key, kvp => new ProfileDto { Data = kvp.Value.ToDictionary(kvp2 => kvp2.Key, kvp2 => kvp2.Value.ToString()) });
+            return profiles.ToDictionary(kvp => kvp.Key, kvp => kvp.Value != null ? new ProfileDto { Data = kvp.Value.ToDictionary(kvp2 => kvp2.Key, kvp2 => kvp2.Value.ToString()) } : null);
         }
 
         [S2SApi]
-        public async Task<Dictionary<string, ProfileDto>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, CancellationToken cancellationToken)
+        public async Task<Dictionary<string, ProfileDto?>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, CancellationToken cancellationToken)
         {
             var profiles = await _profiles.GetProfiles(userIds, displayOptions, null, cancellationToken);
-            return profiles.ToDictionary(kvp => kvp.Key, kvp => new ProfileDto { Data = kvp.Value.ToDictionary(kvp2 => kvp2.Key, kvp2 => kvp2.Value.ToString()) });
+            return profiles.ToDictionary(kvp => kvp.Key, kvp => kvp.Value != null ? new ProfileDto { Data = kvp.Value.ToDictionary(kvp2 => kvp2.Key, kvp2 => kvp2.Value.ToString()) } : null);
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
@@ -118,7 +118,7 @@ namespace Stormancer.Server.Plugins.Profile
 
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<Dictionary<string, ProfileDto>> QueryProfiles(string pseudoPrefix, int skip, int take, RequestContext<IScenePeerClient> ctx)
+        public async Task<Dictionary<string, ProfileDto?>> QueryProfiles(string pseudoPrefix, int skip, int take, RequestContext<IScenePeerClient> ctx)
         {
             if (pseudoPrefix.Length < 3)
             {
@@ -126,7 +126,7 @@ namespace Stormancer.Server.Plugins.Profile
             }
             var users = await _users.QueryUserHandlePrefix(pseudoPrefix, take, skip);
             var profiles = await _profiles.GetProfiles(users.Select(u => u.Id), new Dictionary<string, string> { { "displayType", "summary" } }, await _sessions.GetSession(ctx.RemotePeer, ctx.CancellationToken), ctx.CancellationToken);
-            return profiles.ToDictionary(kvp => kvp.Key, kvp => new ProfileDto { Data = kvp.Value.ToDictionary(kvp2 => kvp2.Key, kvp2 => kvp2.Value.ToString()) });
+            return profiles.ToDictionary(kvp => kvp.Key, kvp => kvp.Value != null ? new ProfileDto { Data = kvp.Value.ToDictionary(kvp2 => kvp2.Key, kvp2 => kvp2.Value.ToString()) }:null);
         }
 
         /// <summary>
