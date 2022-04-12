@@ -49,5 +49,10 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// Leave it empty if no scene was created.
         /// </remarks>
         string GameSceneId { get; set; }
+
+        /// <summary>
+        /// Name of the gamefinder.
+        /// </summary>
+        string GameFinderName { get; }
     }
 }

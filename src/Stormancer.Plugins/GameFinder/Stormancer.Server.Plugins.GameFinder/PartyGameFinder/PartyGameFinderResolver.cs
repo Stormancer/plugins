@@ -98,7 +98,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 }
 
                 config.Parameters = gameCtx.Game.PrivateCustomData;
-
+                config.GameFinder = gameCtx.GameFinderName;
                 await gameSessions.Create(template, gameCtx.GameSceneId, config);
 
                 gameCtx.ResolutionAction = (writerCtx =>

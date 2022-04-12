@@ -11,6 +11,9 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Added
+*****
+- GameFinder name has been added to gamesession's initialization configuration.
 Fixed
 *****
 - Fixed crash when running the quick queue gamefinder
