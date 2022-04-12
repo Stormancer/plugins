@@ -15,6 +15,7 @@ Unreleased
 Changed
 *******
 - Update dependency to Stormancer.Abstraction.Server 6.0.0.1
+- Only generate numbers in invitation codes.
 Added
 *****
 - Add JoinCurrentGameSession : This functionality enables connecting to the game session to which other players in the party are currently connected.
