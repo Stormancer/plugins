@@ -18,6 +18,9 @@ Unreleased
 Changed
 *******
 - Deterministic build
+Fixed
+*****
+- SteamConfigBuilder must inherits from  AuthProviderConfigurationBuilderBase<SteamAuthConfigurationBuilder>
 
 4.1.1.1
 -------
