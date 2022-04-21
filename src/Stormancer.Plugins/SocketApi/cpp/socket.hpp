@@ -3,6 +3,7 @@
 
 #include "stormancer/Tasks.h"
 #include "stormancer/SessionId.h"
+#include "stormancer/async.h"
 
 namespace Stormancer
 {
@@ -25,7 +26,7 @@ namespace Stormancer
 			/// <param name="buffer"></param>
 			/// <param name="offset"></param>
 			/// <param name="length"></param>
-			virtual bool send(std::string sceneId, Stormancer::SessionId destination, Stormancer::byte* buffer, int length) = 0;
+			virtual bool send(const std::string& sceneId, const Stormancer::SessionId& destination, Stormancer::byte* buffer, const int& length) = 0;
 
 			/// <summary>
 			/// Blocks the thread until a datagram is received on the specified scene.
@@ -34,7 +35,7 @@ namespace Stormancer
 			/// <param name="buffer"></param>
 			/// <param name="maxLength"></param>
 			/// <returns></returns>
-			virtual ReceivedMsgInfos receive(std::string sceneId, Stormancer::byte* buffer, int maxLength) = 0;
+			virtual ReceivedMsgInfos receive(const std::string& sceneId, Stormancer::byte* buffer, const int& maxLength) = 0;
 
 
 		};
@@ -64,23 +65,34 @@ namespace Stormancer
 				friend SocketApiPlugin;
 
 			public:
+
 				std::string sceneId()
 				{
-
-					return _sceneId;
+					if (auto scene = _scene.lock())
+					{
+						return scene->id();
+					}
+					else
+					{
+						return "";
+					}
 				}
 			private:
 				void initialize(std::shared_ptr<Scene> scene)
 				{
-					_sceneId = scene->id();
+
+					_scene = scene;
 					Scene::RouteOptions options;
 					options.filter = MessageOriginFilter::Peer;
-					scene->addRoute("relay.receive", [this](Packetisp_ptr packet)
+					options.dispatchMethod = Stormancer::DispatchMethod::Immediate;
+					scene->addRoute("relay.receive", [this, scene](Packetisp_ptr packet)
 						{
+							scene->dependencyResolver().resolve<ILogger>()->log(Stormancer::LogLevel::Info, "socket", "socket.relay.received:" + std::to_string(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
 							_channel.writer().tryWrite(std::make_tuple(false, packet));
 						});
-					scene->addRoute("Socket.SendUnreliable", [this](Packetisp_ptr packet)
+					scene->addRoute("Socket.SendUnreliable", [this, scene](Packetisp_ptr packet)
 						{
+							scene->dependencyResolver().resolve<ILogger>()->log(Stormancer::LogLevel::Info, "socket", "socket.p2p.received:" + std::to_string(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
 							_channel.writer().tryWrite(std::make_tuple(true, packet));
 						}, options);
 				}
@@ -151,16 +163,15 @@ namespace Stormancer
 
 									serializer.serialize(stream, destination);
 									stream.write(buffer, length);
-								}, PacketPriority::MEDIUM_PRIORITY, PacketReliability::UNRELIABLE);
+								}, PacketPriority::IMMEDIATE_PRIORITY, PacketReliability::UNRELIABLE);
 						}
 						else
 						{
 							scene->send(PeerFilter::matchPeers(destStr), "Socket.SendUnreliable", [buffer, length, this, destination](obytestream& stream)
 								{
 
-									serializer.serialize(stream, destination);
 									stream.write(buffer, length);
-								}, PacketPriority::MEDIUM_PRIORITY, PacketReliability::UNRELIABLE);
+								}, PacketPriority::IMMEDIATE_PRIORITY, PacketReliability::UNRELIABLE);
 						}
 						return true;
 					}
@@ -170,18 +181,18 @@ namespace Stormancer
 					}
 				}
 
-				std::string _sceneId;
+
 				std::weak_ptr<Scene> _scene;
 				Stormancer::Channel<std::tuple<bool, Packetisp_ptr>> _channel;
 				Stormancer::Serializer serializer;
 			};
 		}
 
-		class SocketApi_Impl : public SocketApi
+		class SocketApi_Impl final : public SocketApi
 		{
 			friend SocketApiPlugin;
 		public:
-			bool send(std::string sceneId, Stormancer::SessionId destination, byte* buffer, int length)
+			bool send(const std::string& sceneId, const Stormancer::SessionId& destination, byte* buffer, const int& length) override
 			{
 				auto it = _services.find(sceneId);
 				if (it != _services.end())
@@ -199,7 +210,7 @@ namespace Stormancer
 
 			}
 
-			ReceivedMsgInfos receive(std::string sceneId, byte* buffer, int maxLength)
+			ReceivedMsgInfos receive(const std::string& sceneId, byte* buffer, const int& maxLength) override
 			{
 				auto it = _services.find(sceneId);
 				if (it != _services.end())
@@ -252,10 +263,12 @@ namespace Stormancer
 			{
 				return PluginDescription(PLUGIN_NAME, PLUGIN_VERSION);
 			}
+
 			void registerClientDependencies(ContainerBuilder& clientBuilder) override
 			{
 				clientBuilder.registerDependency<SocketApi_Impl>().as<SocketApi>().singleInstance();
 			}
+
 			void registerSceneDependencies(ContainerBuilder& sceneBuilder, std::shared_ptr<Scene> scene) override
 			{
 				if (!scene->getHostMetadata(METADATA_KEY).empty())

@@ -14,11 +14,64 @@
 
 constexpr  char* ServerEndpoint = "http://localhost";//"http://gc3.stormancer.com";
 constexpr  char* Account = "tests";
-constexpr  char* Application = "test";
+constexpr  char* Application = "test-app";
 
 static void log(std::shared_ptr<Stormancer::IClient> client, Stormancer::LogLevel level, std::string msg)
 {
 	client->dependencyResolver().resolve<Stormancer::ILogger>()->log(level, "gameplay.testSocketApi", msg);
+}
+
+static void testSocketClient(std::string sceneId, Stormancer::SessionId serverSessionId, pplx::cancellation_token cancellationToken, std::shared_ptr<Stormancer::IClient> client)
+{
+	log(client, Stormancer::LogLevel::Info, "start test client.");
+	byte* sendBuffer = new byte[1];
+	sendBuffer[0] = 165;
+	auto socket = client->dependencyResolver().resolve< Stormancer::Socket::SocketApi>();
+	auto startTime = std::chrono::high_resolution_clock::now();
+	log(client, Stormancer::LogLevel::Info, "client.start: " + std::to_string(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+	if (!socket->send(sceneId, serverSessionId, sendBuffer, 1))
+	{
+		log(client, Stormancer::LogLevel::Info, "Failed sending test data.");
+	}
+	else
+	{
+		log(client, Stormancer::LogLevel::Info, "Successfully sent test data.");
+	}
+	delete[] sendBuffer;
+
+	byte* receiveBuffer = new byte[10];
+
+	while (!cancellationToken.is_canceled())
+	{
+		auto result = socket->receive(sceneId, receiveBuffer, 10);
+		if (result.success && result.length == 1 && receiveBuffer[0] == 165)
+		{
+			auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime);
+			log(client, Stormancer::LogLevel::Info, "client.end: " + std::to_string(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+			log(client, Stormancer::LogLevel::Info, "duration: " + std::to_string(duration.count()) + "ms");
+			return;
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(0));
+	}
+}
+
+static void testSocketServer(std::string sceneId, pplx::cancellation_token cancellationToken, std::shared_ptr<Stormancer::IClient> client)
+{
+	log(client, Stormancer::LogLevel::Info, "start test client.");
+	auto socket = client->dependencyResolver().resolve< Stormancer::Socket::SocketApi>();
+	byte* receiveBuffer = new byte[1024];
+
+	while (!cancellationToken.is_canceled())
+	{
+		auto result = socket->receive(sceneId, receiveBuffer, 10);
+		
+		if (result.success)
+		{
+			log(client, Stormancer::LogLevel::Info, "server.received: " + std::to_string(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+			socket->send(sceneId, result.sessionId, receiveBuffer, result.length);
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(0));
+	}
 }
 
 static pplx::task<bool> JoinGameImpl(int id)
@@ -48,7 +101,7 @@ static pplx::task<bool> JoinGameImpl(int id)
 
 
 	Stormancer::Party::PartyRequestDto request;
-	request.GameFinderName = "matchmaking";
+	request.GameFinderName = "replication-test";
 	//Name of the matchmaking, defined in Stormancer.Server.TestApp/TestPlugin.cs.
 	//>  host.AddGamefinder("matchmaking", "matchmaking");
 
@@ -79,15 +132,17 @@ static pplx::task<bool> JoinGameImpl(int id)
 						.then([id, client](Stormancer::GameSessions::GameSessionConnectionParameters params)
 							{
 
-
+								
 								//P2P connection established.
 								//In the host, this continuation is executed immediatly.
 								//In clients this continuation is executed only if the host called gameSessions->setPlayerReady() (see below)
 								if (params.isHost)
 								{
-									//Start the game host. To communicate with clients, either:
-									//- Use the scene API to send and listen to messages.
-									//- Start a datagram socket and bind to the port specified in config->severGamePort
+									pplx::create_task([params, client]() {
+										auto gameSessions = client->dependencyResolver().resolve<Stormancer::GameSessions::GameSession>();
+										testSocketServer(gameSessions->scene()->id(), pplx::cancellation_token::none(), client);
+									
+									});
 								}
 								else
 								{
@@ -97,21 +152,37 @@ static pplx::task<bool> JoinGameImpl(int id)
 									// They will be automatically routed to the socket bound by the host as described above.
 								}
 								auto gameSessions = client->dependencyResolver().resolve<Stormancer::GameSessions::GameSession>();
-								return  gameSessions->setPlayerReady();
+								return  gameSessions->setPlayerReady().then([params]() {return params; });
 
-							}).then([](pplx::task<void> t)
+							}).then([client](Stormancer::GameSessions::GameSessionConnectionParameters params)
+							{
+								if (!params.isHost)
 								{
-									//catch errors
-									try
-									{
-										t.get();
-										return true;
-									}
-									catch (std::exception&)
-									{
-										return false;
-									}
-								});
+									return pplx::create_task([client, params]() {
+										auto gameSessions = client->dependencyResolver().resolve<Stormancer::GameSessions::GameSession>();
+										testSocketClient(gameSessions->scene()->id(), Stormancer::SessionId::parse(params.hostSessionId), pplx::cancellation_token::none(), client);
+										});
+								}
+								else
+								{
+									return pplx::task_from_result();
+								}
+							})
+							.then([client](pplx::task<void> t)
+							{
+								//catch errors
+								try
+								{
+									t.get();
+									
+									return true;
+								}
+								catch (std::exception& ex)
+								{
+									log(client, Stormancer::LogLevel::Error, ex.what());
+									return false;
+								}
+							});
 
 
 }
@@ -126,15 +197,16 @@ TEST(Gameplay, TestSocketApi) {
 
 		//Create a configuration that connects to the test application.
 		auto config = Stormancer::Configuration::create(std::string(ServerEndpoint), std::string(Account), std::string(Application));
-		
+
 		//Log in VS output window.
 		config->logger = std::make_shared<Stormancer::VisualStudioLogger>();
-		
+
 		//Add plugins required by the test.
 		config->addPlugin(new Stormancer::Users::UsersPlugin());
 		config->addPlugin(new Stormancer::Party::PartyPlugin());
 		config->addPlugin(new Stormancer::GameFinder::GameFinderPlugin());
 		config->addPlugin(new Stormancer::GameSessions::GameSessionsPlugin());
+		config->addPlugin(new Stormancer::Socket::SocketApiPlugin());
 
 		//Use the dispatcher we created earlier to ensure all callbacks are run on the test main thread.
 		config->actionDispatcher = dispatcher;
@@ -166,6 +238,6 @@ TEST(Gameplay, TestSocketApi) {
 
 	Stormancer::IClientFactory::ReleaseClient(0);
 	Stormancer::IClientFactory::ReleaseClient(1);
-	
+
 
 }

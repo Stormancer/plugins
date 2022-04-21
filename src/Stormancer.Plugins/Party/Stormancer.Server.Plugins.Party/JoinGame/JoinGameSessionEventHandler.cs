@@ -13,6 +13,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
     internal class JoinGameSessionState
     {
         public Dictionary<string,string> UserIdToPartyId = new Dictionary<string,string>();
+        internal object syncRoot = new object();
     }
     internal class JoinGameSessionEventHandler : IGameSessionEventHandler
     {
@@ -26,11 +27,11 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
             this.gameSession = gameSession;
             this.state = state;
         }
-        private object syncRoot = new object();
+       
         public async Task OnClientConnected(ClientConnectedContext ctx)
         {
             string? partyId = null;
-            lock (syncRoot)
+            lock (state.syncRoot)
             {
                 var party = ctx.GameSession.GetGameSessionConfig().Teams.SelectMany(t => t.Parties).FirstOrDefault(p => p.Players.ContainsKey(ctx.Player.Player.UserId));
 
@@ -58,7 +59,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
         public async Task OnClientLeaving(ClientLeavingContext ctx)
         {
             string? partyId = null;
-            lock (syncRoot)
+            lock (state.syncRoot)
             {
                 var party = ctx.GameSession.GetGameSessionConfig().Teams.SelectMany(t => t.Parties).FirstOrDefault(p => p.Players.ContainsKey(ctx.Player.Player.UserId));
                 if (party != null)

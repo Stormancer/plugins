@@ -955,20 +955,27 @@ namespace Stormancer
 
 				bool isSessionHost() const
 				{
-					auto container = _currentGameSession;
-					if (!container || !container->scene.is_done())
+					try
+					{
+						auto container = _currentGameSession;
+						if (!container || !container->scene.is_done())
+						{
+							return false;
+						}
+
+						auto session = container->scene.get();
+						if (session)
+						{
+							auto service = session->dependencyResolver().resolve<GameSessionService>();
+							return service->getMyP2PRole() == P2PRole::Host;
+						}
+
+						return false;
+					}
+					catch (std::exception&)
 					{
 						return false;
 					}
-
-					auto session = container->scene.get();
-					if (session)
-					{
-						auto service = session->dependencyResolver().resolve<GameSessionService>();
-						return service->getMyP2PRole() == P2PRole::Host;
-					}
-
-					return false;
 				}
 
 #pragma endregion
