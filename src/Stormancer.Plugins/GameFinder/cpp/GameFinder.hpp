@@ -212,14 +212,21 @@ namespace Stormancer
 				{
 					tce.set(ev);
 				});
-
+				auto stateChangedSubscription = this->subscribeGameFinderStateChanged([tce](GameFinderStatusChangedEvent evt)
+					{
+						if (evt.status == GameFinderStatus::Canceled)
+						{
+							tce.set_exception(std::runtime_error("operation_cancelled"));
+						}
+					});
 				auto failedSubscription = this->subscribeFindGameFailed([tce](FindGameFailedEvent ev)
 				{
 					tce.set_exception(std::runtime_error(ev.reason));
 				});
 
 				//The continuation is there only to make sure the subscriptions don't expire before task completion.
-				return pplx::create_task(tce).then([foundSubscription, failedSubscription](GameFoundEvent ev) { return ev; });
+				
+				return pplx::create_task(tce).then([foundSubscription, failedSubscription, stateChangedSubscription](GameFoundEvent ev) { return ev; });
 			}
 		};
 
