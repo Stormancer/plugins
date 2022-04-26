@@ -68,6 +68,31 @@ namespace Stormancer.Server.Plugins.Party.Dto
         public Dictionary<string, string> PublicServerData { get; set; } = default!;
 
         /// <summary>
+        /// Json document used to search the party.
+        /// </summary>
+        /// <remarks>
+        /// Must be a valdi json object.
+        /// The party is not searchable if set to empty or an invalid json object.
+        /// The content of the document are indexed using the field paths as keys, with '.' as separator.
+        /// 
+        /// For example, the following document:
+        /// {
+        ///    "numplayers":3,
+        ///    "gamemode":{
+        ///      "map":"level3-a",
+        ///      "extraFooEnabled":true
+        ///    }
+        /// }
+        /// 
+        /// will be indexed with the following keys:
+        /// - "numplayers": 3 (numeric)
+        /// - "gamemode.map":"level3-a" (string)
+        /// - "gamemode.extraFooEnabled":true (bool)
+        /// </remarks>
+        [MessagePackMember(4)]
+        public string IndexedDocument { get; set; } = string.Empty;
+
+        /// <summary>
         /// Creates a <see cref="PartySettingsDto"/> object.
         /// </summary>
         public PartySettingsDto()
