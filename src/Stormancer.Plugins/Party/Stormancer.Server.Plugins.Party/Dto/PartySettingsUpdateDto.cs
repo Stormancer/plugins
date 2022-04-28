@@ -109,7 +109,7 @@ namespace Stormancer.Server.Plugins.Party.Dto
             CustomData = config.CustomData;
             OnlyLeaderCanInvite = config.OnlyLeaderCanInvite;
             IsJoinable = config.IsJoinable;
-            PublicServerData = config.PublicServerData?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            PublicServerData = config.PublicServerData.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         }
 
         /// <summary>
@@ -124,7 +124,7 @@ namespace Stormancer.Server.Plugins.Party.Dto
                 CustomData = CustomData,
                 OnlyLeaderCanInvite = this.OnlyLeaderCanInvite,
                 IsJoinable = this.IsJoinable,
-                PublicServerData = this.PublicServerData?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+                PublicServerData = this.PublicServerData.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
             };
         }
 

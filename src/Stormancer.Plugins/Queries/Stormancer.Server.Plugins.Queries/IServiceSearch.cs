@@ -87,11 +87,21 @@ namespace Stormancer.Server.Plugins.Queries
 
     }
 
+    /// <summary>
+    /// A document returned by a query.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class Document<T>
     {
+        /// <summary>
+        /// Gets or sets the id of the document.
+        /// </summary>
         public string Id { get; set; }
 
-        public T Source { get; set; }
+        /// <summary>
+        /// Gets or sets the content of the document.
+        /// </summary>
+        public T? Source { get; set; }
     }
 
 }

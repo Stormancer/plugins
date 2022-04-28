@@ -11,7 +11,10 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Changed
+*******
 - Update dependency to Stormancer.Abstraction.Server 6.0.0.1
+- Allow Document to contain null Source to denote "not found".
 
 0.1.0.11
 -------
