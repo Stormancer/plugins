@@ -29,11 +29,20 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
+    /// <summary>
+    /// Result of a login operation.
+    /// </summary>
     public class LoginResult
     {
+        /// <summary>
+        /// Error message associated with the login operation, if failed.
+        /// </summary>
         [MessagePackMember(0)]
-        public string ErrorMsg { get; set; } = "";
+        public string? ErrorMsg { get; set; }
 
+        /// <summary>
+        /// A value indicating if login was successful.
+        /// </summary>
         [MessagePackMember(1)]
         public bool Success { get; set; }
         

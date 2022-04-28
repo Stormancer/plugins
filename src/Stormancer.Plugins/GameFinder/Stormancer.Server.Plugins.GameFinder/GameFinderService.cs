@@ -447,7 +447,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 if (gameCandidate is NewGame)
                 {
                     var game = (NewGame)gameCandidate;
-                    var resolverCtx = new GameResolverContext(game);
+                    var resolverCtx = new GameResolverContext(game, _data.kind);
                     await resolver.ResolveGame(resolverCtx);
                     resolutionAction = resolverCtx.ResolutionAction;
                     gameSceneId = resolverCtx.GameSceneId;
@@ -819,12 +819,14 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         private class GameResolverContext : IGameResolverContext
         {
-            internal GameResolverContext(NewGame game)
+            internal GameResolverContext(NewGame game, string gameFinderName)
             {
                 Game = game;
+                GameFinderName = gameFinderName;
             }
 
             public NewGame Game { get; }
+            public string GameFinderName { get; }
 
             /// <summary>
             /// Sets an action executed during Game Resolution.

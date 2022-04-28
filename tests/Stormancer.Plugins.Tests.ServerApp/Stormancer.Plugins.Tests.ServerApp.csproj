@@ -1,19 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
-	  <StormancerPackageExcludes>bin;obj</StormancerPackageExcludes>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<StormancerPackageExcludes>bin;obj</StormancerPackageExcludes>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="*-*" />
-    <PackageReference Include="Stormancer.Server.Plugins.DataProtection" Version="*-*" />
-    <PackageReference Include="Stormancer.Server.Plugins.GameFinder" Version="*-*" />
-    <PackageReference Include="Stormancer.Server.Plugins.GameSession" Version="*-*" />
-    <PackageReference Include="Stormancer.Server.Plugins.Party" Version="*-*" />
-    <PackageReference Include="Stormancer.Server.Plugins.Replication" Version="*-*" />
-    <PackageReference Include="Stormancer.Server.Plugins.SocketApi" Version="*-*" />
-    <PackageReference Include="Stormancer.Server.Plugins.Users" Version="*-*" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Stormancer.Abstractions.Server" Version="7.0.0" />
+		<PackageReference Include="Stormancer.Server.Plugins.DataProtection" Version="*-*" />
+		<PackageReference Include="Stormancer.Server.Plugins.GameFinder" Version="*-*" />
+		<PackageReference Include="Stormancer.Server.Plugins.GameSession" Version="*-*" />
+		<PackageReference Include="Stormancer.Server.Plugins.Party" Version="*-*" />
+		<PackageReference Include="Stormancer.Server.Plugins.Replication" Version="*-*" />
+		<PackageReference Include="Stormancer.Server.Plugins.SocketApi" Version="*-*" />
+		<PackageReference Include="Stormancer.Server.Plugins.Users" Version="*-*" />
+		<PackageReference Include="Stormancer.Server.Plugins.Utilities" Version="*-*" />
+	</ItemGroup>
 
 </Project>

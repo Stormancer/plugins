@@ -10,6 +10,9 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.SocketApi
 {
+    /// <summary>
+    /// Controller relaying messages when no direct connection is available.
+    /// </summary>
     public class SocketController : ControllerBase
     {
         private readonly ISceneHost scene;
@@ -18,6 +21,14 @@ namespace Stormancer.Server.Plugins.SocketApi
         private static readonly RecyclableMemoryStreamManager
                 recyclableMemoryStreamManager =
                 new RecyclableMemoryStreamManager();
+
+
+        /// <summary>
+        /// Creates a new <see cref="SocketController"/> object.
+        /// </summary>
+        /// <param name="scene"></param>
+        /// <param name="peers"></param>
+        /// <param name="serializer"></param>
         public SocketController(ISceneHost scene, IPeerInfosService peers,ISerializer serializer)
         {
             
@@ -26,6 +37,11 @@ namespace Stormancer.Server.Plugins.SocketApi
             this.serializer = serializer;
         }
 
+        /// <summary>
+        /// Relays a message unreliably to another peer.
+        /// </summary>
+        /// <param name="packet"></param>
+        /// <returns></returns>
         [Api(ApiAccess.Public, ApiType.FireForget)]
         public async Task SendUnreliable(Packet<IScenePeerClient> packet)
         {
@@ -37,9 +53,14 @@ namespace Stormancer.Server.Plugins.SocketApi
             {
                 serializer.Serialize(SessionId.From(packet.Connection.SessionId), s);
                 stream.CopyTo(s);
-            }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.UNRELIABLE);
+            }, PacketPriority.IMMEDIATE_PRIORITY, PacketReliability.UNRELIABLE);
         }
 
+        /// <summary>
+        /// Creates a P2P direct connection token to be used by clients.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <returns></returns>
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public Task<string> CreateP2PToken(SessionId target)
         {

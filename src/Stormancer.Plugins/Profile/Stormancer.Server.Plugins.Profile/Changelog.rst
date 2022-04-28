@@ -11,7 +11,12 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Changed
+*******
 - Update dependency to Stormancer.Abstraction.Server 6.0.0.1
+Fixed
+*****
+- Create empty entries in GetProfiles for missing profiles.
 
 2.4.2.2
 -------

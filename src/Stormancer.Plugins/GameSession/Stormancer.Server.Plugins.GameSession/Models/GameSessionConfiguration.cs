@@ -90,5 +90,11 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         [MessagePackMember(7)]
         public string? GameServerPool { get; set; }
+
+        /// <summary>
+        /// Name of the gamefinder creating the gamesession, if available.
+        /// </summary>
+        [MessagePackMember(8)]
+        public string? GameFinder { get; set; }
     }
 }

@@ -12,8 +12,9 @@ namespace Stormancer.Server.Plugins.Party
 
     class InvitationCodeService
     {
-        private const string CODE_CHARACTERS = "abcdefghjkmnopqrstuvwxyzABCDEFGHIJKLMNPQRSTUVWXYZ0123456789";
+        private const string CODE_CHARACTERS = "123456789";
         private const int CODE_LENGTH = 6;
+
         private static Random random = new Random();
         private class InvitationCodeState
         {

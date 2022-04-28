@@ -12,7 +12,8 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
     /// </summary>
     internal class JoinGameSessionState
     {
-        public List<string> PartyIds = new List<string>();
+        public Dictionary<string,string> UserIdToPartyId = new Dictionary<string,string>();
+        internal object syncRoot = new object();
     }
     internal class JoinGameSessionEventHandler : IGameSessionEventHandler
     {
@@ -26,17 +27,22 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
             this.gameSession = gameSession;
             this.state = state;
         }
-        private object syncRoot = new object();
+       
         public async Task OnClientConnected(ClientConnectedContext ctx)
         {
             string? partyId = null;
-            lock (syncRoot)
+            lock (state.syncRoot)
             {
                 var party = ctx.GameSession.GetGameSessionConfig().Teams.SelectMany(t => t.Parties).FirstOrDefault(p => p.Players.ContainsKey(ctx.Player.Player.UserId));
 
-                if (party != null && !state.PartyIds.Contains(party.PartyId))
+                if (party != null)
                 {
-                    state.PartyIds.Add(party.PartyId);
+                    if(!state.UserIdToPartyId.Values.Contains(party.PartyId))
+                    {
+                        partyId = party.PartyId;
+                    }
+                    state.UserIdToPartyId[ctx.Player.Player.UserId] = party.PartyId;
+                    
                     partyId = party.PartyId;
                 }
             }
@@ -53,13 +59,17 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
         public async Task OnClientLeaving(ClientLeavingContext ctx)
         {
             string? partyId = null;
-            lock (syncRoot)
+            lock (state.syncRoot)
             {
                 var party = ctx.GameSession.GetGameSessionConfig().Teams.SelectMany(t => t.Parties).FirstOrDefault(p => p.Players.ContainsKey(ctx.Player.Player.UserId));
-                if (party != null && state.PartyIds.Contains(party.PartyId))
+                if (party != null)
                 {
-                    state.PartyIds.Remove(party.PartyId);
-                    partyId = party.PartyId;
+                    
+                    state.UserIdToPartyId.Remove(ctx.Player.Player.UserId);
+                    if (!state.UserIdToPartyId.Values.Contains(party.PartyId))
+                    {
+                        partyId = party.PartyId;
+                    }
                 }
             }
 

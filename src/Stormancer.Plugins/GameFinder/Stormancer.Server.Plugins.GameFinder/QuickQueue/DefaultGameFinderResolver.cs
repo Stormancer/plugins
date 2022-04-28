@@ -87,7 +87,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 {
                     config.Teams.Add(team);
                 }
-
+                config.GameFinder = gameCtx.GameFinderName;
                 config.Parameters = gameCtx.Game.PrivateCustomData;
 
                 await gameSessions.Create(template, gameCtx.GameSceneId, config);

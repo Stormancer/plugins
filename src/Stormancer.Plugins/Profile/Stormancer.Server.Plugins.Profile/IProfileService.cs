@@ -41,7 +41,7 @@ namespace Stormancer.Server.Plugins.Profile
         /// <param name="requestingUser"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<Dictionary<string,Dictionary<string,JObject>>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, Session? requestingUser, CancellationToken cancellationToken);
+        Task<Dictionary<string,Dictionary<string,JObject>?>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, Session? requestingUser, CancellationToken cancellationToken);
 
         /// <summary>
         /// Updates the user handle and returns the new handle.

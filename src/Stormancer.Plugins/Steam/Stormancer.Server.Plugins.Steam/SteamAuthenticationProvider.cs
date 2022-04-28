@@ -61,7 +61,7 @@ namespace Stormancer.Server.Plugins.Steam
     /// <summary>
     /// Configures the steam auth provider.
     /// </summary>
-    public class SteamAuthConfigurationBuilder : AuthProviderConfigurationBuilderBase<EphemeralAuthConfigurationBuilder>
+    public class SteamAuthConfigurationBuilder : AuthProviderConfigurationBuilderBase<SteamAuthConfigurationBuilder>
     {
 
     }

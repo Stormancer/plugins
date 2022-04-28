@@ -70,8 +70,11 @@ namespace Stormancer.Plugins.Tests.ServerApp
                 );
                 host.ConfigureGameSession("gamesession-replication", c => c
 
-                   .CustomizeScene(scene => scene.AddReplication())
-                );
+                   .CustomizeScene(scene => {
+                       scene.AddReplication();
+                       scene.AddSocket();
+                       })
+                ) ;
 
                 host.ConfigureGamefinderTemplate("joingame-test", c => c
                     .ConfigureQuickQueue(b => b
