@@ -36,17 +36,20 @@ namespace Stormancer.Server.PartyManagement
         private readonly IUserSessions _sessions;
         private readonly ILogger _logger;
         private readonly IEnumerable<IPartyEventHandler> _handlers;
+        private readonly PartyConfigurationService configuration;
 
         public PartyManagementController(
             IPartyManagementService partyService,
             IUserSessions sessions,
             ILogger logger,
-            IEnumerable<IPartyEventHandler> handlers)
+            IEnumerable<IPartyEventHandler> handlers,
+            PartyConfigurationService configuration)
         {
             _partyService = partyService;
             _sessions = sessions;
             _logger = logger;
             _handlers = handlers;
+            this.configuration = configuration;
         }
 
         public async Task CreateSession(RequestContext<IScenePeerClient> ctx)
@@ -63,6 +66,8 @@ namespace Stormancer.Server.PartyManagement
                 throw new ClientException("notAuthenticated");
             }
             var eventCtx = new PartyCreationContext(partyArgs);
+
+            configuration.OnPartyCreating(eventCtx);
             await _handlers.RunEventHandler(handler => handler.OnCreatingParty(eventCtx), ex =>
             {
                 _logger.Log(LogLevel.Error, "PartyManagementController.CreateSession", "An exception was thrown by an OnCreatingParty event handler", ex);

@@ -188,15 +188,25 @@ namespace Stormancer.Server.Plugins.Party
                 throw new ClientException(NotInPartyError);
             }
 
+            if (member.UserId != _partyService.Settings.PartyLeaderId)
+            {
+                throw new ClientException("unauthorized");
+            }
+
             return _partyService.CreateInvitationCodeAsync(ctx.CancellationToken);
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public void CancelInvitationCode(RequestContext<IScenePeerClient> ctx)
         {
+          
             if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
             {
                 throw new ClientException(NotInPartyError);
+            }
+            if (member.UserId != _partyService.Settings.PartyLeaderId)
+            {
+                throw new ClientException("unauthorized");
             }
 
             _partyService.CancelInvitationCode();

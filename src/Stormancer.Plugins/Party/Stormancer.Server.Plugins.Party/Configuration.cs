@@ -1,4 +1,5 @@
-﻿using Stormancer.Server.Plugins.Configuration;
+﻿using Stormancer.Core;
+using Stormancer.Server.Plugins.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,14 +21,11 @@ namespace Stormancer.Server.Plugins.Party
         /// <returns></returns>
         public static IHost ConfigurePlayerParty(this IHost host, Func<PartyConfigurationBuilder, PartyConfigurationBuilder> builderFct)
         {
-            var config = host.DependencyResolver.Resolve<IConfiguration>();
-            var section = config.GetValue<PartyConfigurationSection>("party") ?? new PartyConfigurationSection();
-
-            PartyConfigurationBuilder builder = new(section);
+            var config = host.DependencyResolver.Resolve<PartyConfigurationService>();
+          
+            PartyConfigurationBuilder builder = new(config);
 
             builder = builderFct(builder);
-
-            config.SetDefaultValue("party", builder.Configuration);
             return host;
         }
     }
@@ -41,15 +39,99 @@ namespace Stormancer.Server.Plugins.Party
     public class PartyConfigurationSection
     {
         /// <summary>
+        /// Default authorized invitation code character list.
+        /// </summary>
+        public const string DEFAULT_AUTHORIZED_INVITATION_CODE_CHARACTERS = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+        
+        /// <summary>
+        /// Default invitation code length;
+        /// </summary>
+        public const int DEFAULT_INVITATION_CODE_LENGTH = 6;
+
+
+        /// <summary>
         /// List of characters authorized to create invitation codes
         /// </summary>
-        public string authorizedInvitationCodeCharacters { get; set; } = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+        public string? authorizedInvitationCodeCharacters { get; set; } 
 
         /// <summary>
         /// Length of invitation codes.
         /// </summary>
-        public int invitationCodeLength { get; set; } = 6;
+        public int? invitationCodeLength { get; set; }
 
+        /// <summary>
+        /// Enables platform invitation.
+        /// </summary>
+        public bool? EnablePlatformInvitation { get; set; }
+
+    }
+
+
+    internal class PartyConfigurationService
+    {
+        private readonly IConfiguration configuration;
+
+        public PartyConfigurationService(IConfiguration configuration)
+        {
+            this.configuration = configuration;
+        }
+
+        private PartyConfigurationSection GetConfigSection()
+        {
+            return configuration.GetValue<PartyConfigurationSection>("party") ?? new PartyConfigurationSection();
+        }
+        internal string GetAuthorizedInvitationCodeCharacters(ISceneHost partyScene)
+        {
+            var configValue = GetConfigSection().authorizedInvitationCodeCharacters;
+            if(configValue !=null)
+            {
+                return configValue;
+            }
+            var characters = GetAuthorizedInvitationCodeCharactersFunc?.Invoke(partyScene);
+            if (characters is null)
+            {
+                return PartyConfigurationSection.DEFAULT_AUTHORIZED_INVITATION_CODE_CHARACTERS;
+            }
+            else
+            {
+                return characters;
+            }
+        }
+
+        internal int GetInvitationCodeLength(ISceneHost partyScene)
+        {
+            var configValue = GetConfigSection().invitationCodeLength;
+            if(configValue!=null)
+            {
+                return configValue.Value;
+            }
+            var length = GetInvitationLengthFunc?.Invoke(partyScene);
+            if (length is null)
+            {
+                return PartyConfigurationSection.DEFAULT_INVITATION_CODE_LENGTH;
+            }
+            else
+            {
+                return length.Value;
+            }
+        }
+        internal void OnPartyCreating(PartyCreationContext ctx)
+        {
+            var enablePlatformInvitation = GetConfigSection().EnablePlatformInvitation;
+            if(enablePlatformInvitation !=null)
+            {
+                ctx.PartyRequest.ServerSettings.ShouldCreatePlatformLobby(true);
+            }
+
+            if(ShouldEnablePlatformLobbiesFunc is not null)
+            {
+                ShouldEnablePlatformLobbiesFunc(ctx);
+            }
+        }
+        internal Func<ISceneHost, string?>? GetAuthorizedInvitationCodeCharactersFunc { get; set; }
+        internal Func<ISceneHost, int?>? GetInvitationLengthFunc { get; set; }
+
+        internal Action<PartyCreationContext>? ShouldEnablePlatformLobbiesFunc { get; set; }
     }
 
     /// <summary>
@@ -60,9 +142,9 @@ namespace Stormancer.Server.Plugins.Party
         /// <summary>
         /// Party configuration section
         /// </summary>
-        public PartyConfigurationSection Configuration { get; }
+        internal PartyConfigurationService Configuration { get; }
 
-        internal PartyConfigurationBuilder(PartyConfigurationSection section)
+        internal PartyConfigurationBuilder(PartyConfigurationService section)
         {
             Configuration = section;
 
@@ -76,7 +158,7 @@ namespace Stormancer.Server.Plugins.Party
         /// <returns></returns>
         public PartyConfigurationBuilder AuthorizedInvitationCodeCharacters(string characters)
         {
-            Configuration.authorizedInvitationCodeCharacters = characters;
+            Configuration.GetAuthorizedInvitationCodeCharactersFunc = _ => characters;
             return this;
         }
 
@@ -87,7 +169,18 @@ namespace Stormancer.Server.Plugins.Party
         /// <returns></returns>
         public PartyConfigurationBuilder InvitationCodeLength(int length)
         {
-            Configuration.invitationCodeLength = length;
+            Configuration.GetInvitationLengthFunc = _ => length;
+            return this;
+        }
+
+        /// <summary>
+        /// Enables platform invitation in all parties.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public PartyConfigurationBuilder EnablePlatformInvitations(bool value = true)
+        {
+            Configuration.ShouldEnablePlatformLobbiesFunc = ctx => ctx.PartyRequest.ServerSettings.ShouldCreatePlatformLobby(value);
             return this;
         }
     }

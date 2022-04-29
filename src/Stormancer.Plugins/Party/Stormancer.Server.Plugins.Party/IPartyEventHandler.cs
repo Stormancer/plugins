@@ -30,8 +30,14 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Party
 {
+    /// <summary>
+    /// Context passed to <see cref="IPartyEventHandler.OnCreatingParty(PartyCreationContext)"/>.
+    /// </summary>
     public class PartyCreationContext
     {
+        /// <summary>
+        /// The party creation request parameters.
+        /// </summary>
         public PartyRequestDto PartyRequest { get; }
         public bool Accept { get; set; }
         public string ErrorMessage { get; set; }

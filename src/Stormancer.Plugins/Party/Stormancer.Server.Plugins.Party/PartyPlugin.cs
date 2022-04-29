@@ -73,6 +73,7 @@ namespace Stormancer.Server.Plugins.Party
                 builder.Register<JoinGamesessionController>().InstancePerRequest();
                 builder.Register<JoinGameSessionEventHandler>().As<IGameSessionEventHandler>().InstancePerRequest();
                 builder.Register<JoinGameSessionState>().InstancePerScene();
+                builder.Register<PartyConfigurationService>().SingleInstance();
             };
 
             ctx.HostStarting += (IHost host) => {

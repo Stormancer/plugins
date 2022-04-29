@@ -65,7 +65,7 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// This property is ignored for msgpack serialization because the client can't update it.
         /// </remarks>
         [MessagePackIgnore]
-        public Dictionary<string, string> PublicServerData { get; set; } = default!;
+        public Dictionary<string, string>? PublicServerData { get; set; }
 
         /// <summary>
         /// Json document used to search the party.
@@ -124,7 +124,7 @@ namespace Stormancer.Server.Plugins.Party.Dto
                 CustomData = CustomData,
                 OnlyLeaderCanInvite = this.OnlyLeaderCanInvite,
                 IsJoinable = this.IsJoinable,
-                PublicServerData = this.PublicServerData.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+                PublicServerData = this.PublicServerData?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
             };
         }
 

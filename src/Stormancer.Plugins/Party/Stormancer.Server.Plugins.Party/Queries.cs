@@ -46,7 +46,7 @@ namespace Stormancer.Server.Plugins.Party
 
         public void Initialize()
         {
-            lucene.TryCreateIndex()
+            lucene.TryCreateIndex(PARTY_LUCENE_INDEX, DefaultMapper.JsonMapper);
         }
     }
 }

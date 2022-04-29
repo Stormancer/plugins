@@ -12,8 +12,6 @@ namespace Stormancer.Server.Plugins.Party
 
     class InvitationCodeService
     {
-        private const string CODE_CHARACTERS = "123456789";
-        private const int CODE_LENGTH = 6;
 
         private static Random random = new Random();
         private class InvitationCodeState
@@ -31,12 +29,14 @@ namespace Stormancer.Server.Plugins.Party
         private readonly IHost host;
         private readonly ISerializer serializer;
         private readonly ManagementClientProvider management;
+        private readonly PartyConfigurationService partyConfiguration;
 
-        public InvitationCodeService(IHost host, ISerializer serializer, ManagementClientProvider management)
+        public InvitationCodeService(IHost host, ISerializer serializer, ManagementClientProvider management, PartyConfigurationService partyConfiguration)
         {
             this.host = host;
             this.serializer = serializer;
             this.management = management;
+            this.partyConfiguration = partyConfiguration;
         }
 
         public void CancelCode(ISceneHost scene)
@@ -108,7 +108,7 @@ namespace Stormancer.Server.Plugins.Party
             {
                 do
                 {
-                    code = GenerateCode();
+                    code = GenerateCode(scene);
                 }
                 while (codes.ContainsKey(code));
                 state = new InvitationCodeState(scene);
@@ -191,12 +191,14 @@ namespace Stormancer.Server.Plugins.Party
             });
         }
 
-        private string GenerateCode()
+        private string GenerateCode(ISceneHost scene)
         {
-            var builder = new StringBuilder(CODE_LENGTH);
-            for (int i = 0; i < CODE_LENGTH; i++)
+            var codeLength = partyConfiguration.GetInvitationCodeLength(scene);
+            var codeCharacters = partyConfiguration.GetAuthorizedInvitationCodeCharacters(scene);
+            var builder = new StringBuilder(codeLength);
+            for (int i = 0; i < codeLength; i++)
             {
-                builder.Append(CODE_CHARACTERS[random.Next(0, CODE_CHARACTERS.Length)]);
+                builder.Append(codeCharacters[random.Next(0, codeCharacters.Length)]);
             }
             return builder.ToString();
         }

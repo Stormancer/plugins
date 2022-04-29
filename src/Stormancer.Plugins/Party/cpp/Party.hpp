@@ -3103,7 +3103,14 @@ namespace Stormancer
 					{
 						STORM_RETURN_TASK_FROM_EXCEPTION_OPT(std::runtime_error(PartyError::Str::NotInParty), _dispatcher, void);
 					}
-					return party->partyService()->cancelInvitationCode(ct);
+					if (party->isLeader())
+					{
+						return party->partyService()->cancelInvitationCode(ct);
+					}
+					else
+					{
+						return pplx::task_from_exception<void>(std::runtime_error("unauthorized"));
+					}
 				}
 
 				// Not const because of mutex lock
