@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Microsoft.IO;
 using Stormancer.Core;
 using Stormancer.Core.Helpers;
 using Stormancer.Diagnostics;
@@ -648,6 +649,7 @@ namespace Stormancer.Server.Plugins.Users
             public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
         }
+        private RecyclableMemoryStreamManager _memoryStreamManager = new RecyclableMemoryStreamManager();
         public IRemotePipe SendRequest(string operationName, string senderUserId, string recipientUserId, CancellationToken cancellationToken)
         {
             var rq = new PeerRequest();
@@ -663,20 +665,23 @@ namespace Stormancer.Server.Plugins.Users
                         throw new ClientException("NotConnected");
 
                     }
-
-
+                    using var stream = _memoryStreamManager.GetStream();
+                    await rq.InputPipe.Reader.TryCopyToAsync(PipeWriter.Create(stream), false, cancellationToken);
+                    rq.InputPipe.Reader.Complete();
+                    stream.Seek(0, SeekOrigin.Begin);
                     var rpc = peer.Rpc("sendRequest", s =>
                     {
                         try
                         {
                             peer.Serializer().Serialize(senderUserId, s);
                             peer.Serializer().Serialize(operationName, s);
-                            rq.InputPipe.Reader.TryCopyToAsync(PipeWriter.Create(s), true, cancellationToken).AsTask().Wait();
+                            stream.CopyTo(s);
 
                         }
                         finally
                         {
-                            rq.InputPipe.Reader.Complete();
+                            stream.Dispose();
+                           
                         }
 
                     }).ToAsyncEnumerable().WithCancellation(cancellationToken);
@@ -700,12 +705,15 @@ namespace Stormancer.Server.Plugins.Users
                         headerSent = true;
                         await rq.OutputPipe.Writer.WriteObject(true, serializer, cancellationToken);
                     }
+
+                    rq.OutputPipe.Writer.Complete();
                 }
                 catch (Exception ex)
                 {
                     rq.InputPipe.Reader.Complete(ex);
                     rq.OutputPipe.Writer.Complete(ex);
                 }
+
             }
             _ = Task.Run(SendRequestImpl);
 
