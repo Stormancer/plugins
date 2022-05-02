@@ -59,9 +59,9 @@ namespace Stormancer.Server.Plugins.GameFinder
             this.gameSessions = gameSessions;
         }
 
-        internal ValueTask<List<Document<QuickQueueGameSessionData>>> QueryGameSessions(ParametersGroup parameters)
+        internal async Task<IEnumerable<Document<QuickQueueGameSessionData>>> QueryGameSessions(ParametersGroup parameters)
         {
-            return search.QueryAsync<QuickQueueGameSessionData>("gamesessions.quickQueue", JObject.FromObject(new
+            var docs =  (await search.QueryAsync<QuickQueueGameSessionData>("gamesessions.quickQueue", JObject.FromObject(new
             {
                 @bool = new
                 {
@@ -86,7 +86,9 @@ namespace Stormancer.Server.Plugins.GameFinder
                                 }
                 }
 
-            }), 20, CancellationToken.None).ToListAsync();
+            }), 0, 20, CancellationToken.None)).Hits;
+
+            return docs;
         }
 
         abstract internal Task<IEnumerable<IGrouping<ParametersGroup, Party>>> GetGroups(IEnumerable<Party> parties);

@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Utilities;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -31,7 +32,7 @@ namespace Stormancer.Server.Plugins.Party.Model
     internal class PartyState
     {
 
-        
+
         /// <summary>
         /// Version number for the party's state.
         /// </summary>
@@ -108,5 +109,14 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// If one is issued while another one exists, the existing one is canceled.
         /// </remarks>
         public Dictionary<string, ConcurrentDictionary<string, Invitation>> PendingInvitations { get; } = new Dictionary<string, ConcurrentDictionary<string, Invitation>>();
+
+        /// <summary>
+        /// Indexed json document used to search for the party.
+        /// </summary>
+        /// <remarks>
+        /// Null if not searchable.
+        /// </remarks>
+        public JObject? SearchDocument { get; set; }
+
     }
 }

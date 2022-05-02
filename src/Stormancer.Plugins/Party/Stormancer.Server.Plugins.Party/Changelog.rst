@@ -22,6 +22,7 @@ Added
 - Add JoinCurrentGameSession : This functionality enables connecting to the game session to which other players in the party are currently connected.
 - Add Party status to PublicServerData to track if the party is currently in a gamesession.
 - Add configuration system.
+- Add Party search system and API.
 
 4.1.4.2
 -------

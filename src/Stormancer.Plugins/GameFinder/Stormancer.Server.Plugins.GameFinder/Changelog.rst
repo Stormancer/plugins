@@ -17,6 +17,9 @@ Added
 Fixed
 *****
 - Fixed crash when running the quick queue gamefinder
+Changed
+*******
+- Compatibility with updated Queries API.
 
 7.3.0.1
 -------

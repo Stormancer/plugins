@@ -136,8 +136,10 @@ namespace Stormancer.Server.Plugins.Queries
             }
         }
 
-        public IEnumerable<Document<JObject>> Filter(string type, JObject query, uint size)
+        public SearchResult<JObject> Filter(string type, JObject query, uint size)
         {
+            var result = new SearchResult<JObject>();
+
             if (_indices.TryGetValue(type, out var index))
             {
                 using var reader = index.Writer.GetReader(true);
@@ -145,22 +147,22 @@ namespace Stormancer.Server.Plugins.Queries
 
                 var filter = _filtersEngine.Parse(query);
 
-
-
                 var docs = searcher.Search(new ConstantScoreQuery(filter.ToLuceneQuery()), (int)size);
                 var ids = docs.ScoreDocs.Select(hit => searcher.Doc(hit.Doc)?.Get("_id")).NotNull().ToList();
                 foreach (var store in _documentStores())
                 {
                     if (store.Handles(type))
                     {
-                        return store.GetDocuments(ids);
+                        result.Hits = store.GetDocuments(ids);
+                        result.Total = (uint)docs.TotalHits;
+                        return result;
                     }
                 }
-
-
-
             }
-            return Enumerable.Empty<Document<JObject>>();
+
+            result.Hits = Enumerable.Empty<Document<JObject>>();
+            return result;
+
 
         }
 
@@ -241,7 +243,7 @@ namespace Stormancer.Server.Plugins.Queries
         public static BooleanQuery ToLuceneQuery(this BoolFilterExpression expression)
         {
             var query = new BooleanQuery();
-          
+
             foreach (var clause in expression.Must)
             {
                 query.Add(new BooleanClause(clause.ToLuceneQuery(), Occur.MUST));
@@ -258,7 +260,7 @@ namespace Stormancer.Server.Plugins.Queries
                 query.Add(new BooleanClause(clause.ToLuceneQuery(), Occur.SHOULD));
             }
 
-            query.MinimumNumberShouldMatch = Math.Min(expression.MinimumShouldMatch,shouldClauses);
+            query.MinimumNumberShouldMatch = Math.Min(expression.MinimumShouldMatch, shouldClauses);
             return query;
 
         }

@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
@@ -66,6 +67,7 @@ namespace Stormancer.Server.Plugins.Party
         private readonly IEnumerable<IPartyPlatformSupport> _platformSupports;
         private readonly StormancerPartyPlatformSupport _stormancerPartyPlatformSupport;
         private readonly InvitationCodeService invitationCodes;
+        private readonly PartyLuceneDocumentStore partyDocumentsStore;
 
         public IReadOnlyDictionary<string, PartyMember> PartyMembers => _partyState.PartyMembers;
 
@@ -86,7 +88,8 @@ namespace Stormancer.Server.Plugins.Party
             IUserService users,
             IEnumerable<IPartyPlatformSupport> platformSupports,
             StormancerPartyPlatformSupport stormancerPartyPlatformSupport,
-            InvitationCodeService invitationCodes
+            InvitationCodeService invitationCodes,
+            PartyLuceneDocumentStore partyDocumentsStore
         )
         {
             _handlers = handlers;
@@ -101,6 +104,7 @@ namespace Stormancer.Server.Plugins.Party
             _platformSupports = platformSupports;
             _stormancerPartyPlatformSupport = stormancerPartyPlatformSupport;
             this.invitationCodes = invitationCodes;
+            this.partyDocumentsStore = partyDocumentsStore;
             ApplySettings(configuration.Settings);
         }
 
@@ -395,6 +399,25 @@ namespace Stormancer.Server.Plugins.Party
                 _partyState.Settings.CustomData = partySettingsDto.CustomData;
                 _partyState.Settings.OnlyLeaderCanInvite = partySettingsDto.OnlyLeaderCanInvite;
                 _partyState.Settings.IsJoinable = partySettingsDto.IsJoinable;
+
+
+                if (!string.IsNullOrEmpty(partySettingsDto.IndexedDocument))
+                {
+                    try
+                    {
+                        _partyState.SearchDocument = JObject.Parse(partySettingsDto.IndexedDocument);
+                    }
+                    catch (Exception)
+                    {
+                        _partyState.SearchDocument = null;
+                        //Ignore parse errors.
+                    }
+                }
+                else
+                {
+                    _partyState.SearchDocument = null;
+                }
+
                 if (partySettingsDto.PublicServerData != null)
                 {
                     _partyState.Settings.PublicServerData = partySettingsDto.PublicServerData;
@@ -409,6 +432,8 @@ namespace Stormancer.Server.Plugins.Party
                 ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnSendingSettingsToMember", ex));
 
                 await BroadcastStateUpdateRpc(PartySettingsUpdateDto.Route, updates);
+
+                partyDocumentsStore.UpdateDocument(_partyState.Settings.PartyId, _partyState.SearchDocument);
             });
         }
 
@@ -455,6 +480,24 @@ namespace Stormancer.Server.Plugins.Party
                 _partyState.Settings.CustomData = partySettingsDto.CustomData;
                 _partyState.Settings.OnlyLeaderCanInvite = partySettingsDto.OnlyLeaderCanInvite;
                 _partyState.Settings.IsJoinable = partySettingsDto.IsJoinable;
+                
+                if(!string.IsNullOrEmpty(partySettingsDto.IndexedDocument))
+                {
+                    try
+                    {
+                        _partyState.SearchDocument = JObject.Parse(partySettingsDto.IndexedDocument);
+                    }
+                    catch (Exception) 
+                    {
+                        _partyState.SearchDocument = null;
+                        //Ignore parse errors.
+                    }
+                }
+                else
+                {
+                    _partyState.SearchDocument = null;
+                }
+              
                 if (partySettingsDto.PublicServerData != null)
                 {
                     _partyState.Settings.PublicServerData = partySettingsDto.PublicServerData;
@@ -469,6 +512,8 @@ namespace Stormancer.Server.Plugins.Party
                 ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnSendingSettingsToMember", ex));
 
                 await BroadcastStateUpdateRpc(PartySettingsUpdateDto.Route, updates);
+
+                partyDocumentsStore.UpdateDocument(_partyState.Settings.PartyId, _partyState.SearchDocument);
             });
         }
 

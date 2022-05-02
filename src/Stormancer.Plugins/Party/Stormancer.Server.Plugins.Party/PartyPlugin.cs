@@ -27,6 +27,7 @@ using Stormancer.Server.Plugins.GameSession;
 using Stormancer.Server.Plugins.Party.Interfaces;
 using Stormancer.Server.Plugins.Party.JoinGame;
 using Stormancer.Server.Plugins.Party.Model;
+using Stormancer.Server.Plugins.Queries;
 using Stormancer.Server.Plugins.ServiceLocator;
 using System.Threading.Tasks;
 
@@ -74,6 +75,7 @@ namespace Stormancer.Server.Plugins.Party
                 builder.Register<JoinGameSessionEventHandler>().As<IGameSessionEventHandler>().InstancePerRequest();
                 builder.Register<JoinGameSessionState>().InstancePerScene();
                 builder.Register<PartyConfigurationService>().SingleInstance();
+                builder.Register<PartyLuceneDocumentStore>().As<ILuceneDocumentStore>().AsSelf().SingleInstance();
             };
 
             ctx.HostStarting += (IHost host) => {

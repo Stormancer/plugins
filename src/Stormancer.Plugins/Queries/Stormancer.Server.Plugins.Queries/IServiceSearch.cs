@@ -7,13 +7,46 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Queries
 {
+    /// <summary>
+    /// Search request
+    /// </summary>
     public class SearchRequest
     {
-        public string Type { get; set; }
-        public JObject Filter { get; set; }
-        public uint Size { get; set; }
+        /// <summary>
+        /// Type of documents to search for.
+        /// </summary>
+        public string Type { get; set; } = default!;
+
+        /// <summary>
+        /// Query filter.
+        /// </summary>
+        /// <remarks>
+        /// Null is empty.(match all)
+        /// </remarks>
+        public JObject? Filter { get; set; }
+
+        /// <summary>
+        /// Number of items to return.
+        /// </summary>
+        public uint Size { get; set; } = 10;
     }
 
+    /// <summary>
+    /// Results of a search
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public class SearchResult<T>
+    {
+        /// <summary>
+        /// Total of documents matching the query.
+        /// </summary>
+        public uint Total { get; set; }
+
+        /// <summary>
+        /// Documents in the response.
+        /// </summary>
+        public IEnumerable<Document<T>> Hits { get; set; } = default!;
+    }
     /// <summary>
     /// Provides APIs to search and reserve connection slots to services.
     /// </summary>
@@ -23,6 +56,13 @@ namespace Stormancer.Server.Plugins.Queries
         private readonly ISerializer serializer;
         private readonly Func<IEnumerable<IServiceSearchProvider>> providers;
 
+
+        /// <summary>
+        /// Creates a new <see cref="SearchEngine"/> object.
+        /// </summary>
+        /// <param name="host"></param>
+        /// <param name="serializer"></param>
+        /// <param name="providers"></param>
         public SearchEngine(IHost host, ISerializer serializer, Func<IEnumerable<IServiceSearchProvider>> providers)
         {
             this.host = host;
@@ -35,31 +75,44 @@ namespace Stormancer.Server.Plugins.Queries
         /// </summary>
         /// <param name="type"></param>
         /// <param name="filter"></param>
+        /// <param name="skip"></param>
         /// <param name="size"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async IAsyncEnumerable<Document<T>> QueryAsync<T>(string type, JObject filter, uint size, [EnumeratorCancellation] CancellationToken cancellationToken)
+        public async Task<SearchResult<T>> QueryAsync<T>(string type, JObject filter, uint skip, uint size, CancellationToken cancellationToken)
         {
-            var searchRqArgs = new SearchRequest { Type = type, Filter = filter, Size = size };
+            var searchRqArgs = new SearchRequest { Type = type, Filter = filter, Size = size + skip };
             using var request = await host.StartAppFunctionRequest("ServiceSearch.Query", cancellationToken);
 
             await serializer.SerializeAsync(searchRqArgs, request.Input, cancellationToken);
 
             request.Input.Complete();
 
-            await foreach (var result in request.Results)
+            var result = new SearchResult<T>();
+            var hits = new List<Document<T>>();
+            result.Hits = hits;
+            var current = 0;
+            await foreach (var appFuncResult in request.Results)
             {
-                if (result.IsSuccess)
+                if (appFuncResult.IsSuccess)
                 {
-                    var docs = await serializer.DeserializeAsync<IEnumerable<Document<T>>>(result.Output, cancellationToken);
+                    var partialResult = await serializer.DeserializeAsync<SearchResult<T>>(appFuncResult.Output, cancellationToken);
 
-                    foreach (var doc in docs)
+                    foreach (var doc in partialResult.Hits)
                     {
-                        yield return doc;
+                        if (current >= skip && current < skip + size)
+                        {
+                            hits.Add(doc);
+                        }
+                        current++;
+
                     }
+                    result.Total += partialResult.Total;
                 }
-                result.Output.Complete();
+                appFuncResult.Output.Complete();
             }
+
+            return result;
 
         }
 
@@ -78,7 +131,7 @@ namespace Stormancer.Server.Plugins.Queries
             {
                 if (provider.Handles(rq.Type))
                 {
-                    await serializer.SerializeAsync(provider.Filter(rq.Type, rq.Filter, rq.Size), ctx.Output, CancellationToken.None);
+                    await serializer.SerializeAsync(provider.Filter(rq.Type, rq.Filter ?? new JObject(), rq.Size), ctx.Output, CancellationToken.None);
                 }
             }
 
@@ -96,12 +149,14 @@ namespace Stormancer.Server.Plugins.Queries
         /// <summary>
         /// Gets or sets the id of the document.
         /// </summary>
-        public string Id { get; set; }
+        public string Id { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets the content of the document.
         /// </summary>
         public T? Source { get; set; }
     }
+
+
 
 }

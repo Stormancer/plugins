@@ -20,12 +20,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Party;
+using Stormancer.Server.Plugins.Queries;
 using Stormancer.Server.Plugins.Users;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.PartyManagement
@@ -37,19 +41,22 @@ namespace Stormancer.Server.PartyManagement
         private readonly ILogger _logger;
         private readonly IEnumerable<IPartyEventHandler> _handlers;
         private readonly PartyConfigurationService configuration;
+        private readonly PartySearchService search;
 
         public PartyManagementController(
             IPartyManagementService partyService,
             IUserSessions sessions,
             ILogger logger,
             IEnumerable<IPartyEventHandler> handlers,
-            PartyConfigurationService configuration)
+            PartyConfigurationService configuration,
+            PartySearchService search)
         {
             _partyService = partyService;
             _sessions = sessions;
             _logger = logger;
             _handlers = handlers;
             this.configuration = configuration;
+            this.search = search;
         }
 
         public async Task CreateSession(RequestContext<IScenePeerClient> ctx)
@@ -61,7 +68,7 @@ namespace Stormancer.Server.PartyManagement
             }
             var user = await _sessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
 
-            if(user == null)
+            if (user == null)
             {
                 throw new ClientException("notAuthenticated");
             }
@@ -106,6 +113,13 @@ namespace Stormancer.Server.PartyManagement
             }
 
             return token;
+        }
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task<SearchResult<string>> SearchParties(string jsonQuery, uint skip, uint size, CancellationToken cancellationToken)
+        {
+            var result = await search.SearchParties(JObject.Parse(jsonQuery), skip, size, cancellationToken);
+
+            return new SearchResult<string> { Total = result.Total, Hits = result.Hits.Select(d => new Document<string> { Id = d.Id, Source = d.Source?.ToString(Newtonsoft.Json.Formatting.None) ?? "{}" }) };
         }
     }
 }
