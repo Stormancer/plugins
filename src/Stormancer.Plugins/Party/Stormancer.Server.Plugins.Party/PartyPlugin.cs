@@ -76,6 +76,7 @@ namespace Stormancer.Server.Plugins.Party
                 builder.Register<JoinGameSessionState>().InstancePerScene();
                 builder.Register<PartyConfigurationService>().SingleInstance();
                 builder.Register<PartyLuceneDocumentStore>().As<ILuceneDocumentStore>().AsSelf().SingleInstance();
+                builder.Register<PartySearchService>();
             };
 
             ctx.HostStarting += (IHost host) => {
