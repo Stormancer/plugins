@@ -25,8 +25,10 @@ using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Friends;
 using Stormancer.Server.Plugins.Party;
 using Stormancer.Server.Plugins.Profile;
+using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Steam;
 using Stormancer.Server.Plugins.Users;
+using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Steam
 {
@@ -45,6 +47,7 @@ namespace Stormancer.Server.Plugins.Steam
                 builder.Register<SteamFriendsEventHandler>().As<IFriendsEventHandler>();
                 builder.Register<SteamPartyEventHandler>().As<IPartyEventHandler>().InstancePerRequest();
                 builder.Register<SteamUserTicketAuthenticator>().As<ISteamUserTicketAuthenticator>();
+                builder.Register<SteamServiceLocator>().As<IServiceLocatorProvider>();
             };
 
             ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
@@ -58,11 +61,11 @@ namespace Stormancer.Server.Plugins.Steam
 
             ctx.SceneCreated += (ISceneHost scene) =>
             {
-                if (scene.Metadata.ContainsKey(METADATA_KEY))
+                if(scene.Template == Constants.SCENE_TEMPLATE)
                 {
                     scene.AddController<SteamController>();
                 }
-                
+
                 if (scene.Metadata.ContainsKey(PartyConstants.METADATA_KEY))
                 {
                     scene.AddController<SteamPartyController>();
@@ -70,24 +73,18 @@ namespace Stormancer.Server.Plugins.Steam
             };
         }
     }
-}
 
-namespace Stormancer
-{
-    /// <summary>
-    /// Steam plugin extension methods.
-    /// </summary>
-    public static class SteamExtensions
+
+    internal class SteamServiceLocator : IServiceLocatorProvider
     {
-        /// <summary>
-        /// Adds the Steam plugin on the scene.
-        /// </summary>
-        /// <param name="scene"></param>
-        /// <returns></returns>
-        public static ISceneHost AddSteam(this ISceneHost scene)
+        public Task LocateService(ServiceLocationCtx ctx)
         {
-            scene.Metadata[SteamPlugin.METADATA_KEY] = "enabled";
-            return scene;
+            if(ctx.ServiceType == "stormancer.steam")
+            {
+                ctx.SceneId = Constants.GetSceneId();
+            }
+            return Task.CompletedTask;
         }
     }
 }
+
