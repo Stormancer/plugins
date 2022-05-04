@@ -165,7 +165,7 @@ namespace Stormancer.Server.Plugins.Users
 
                     Debug.Assert(session != null);//We just created the session.
 
-                    result.Authentications = session.Identities.ToDictionary(entry => entry.Key, entry => entry.Value);
+
                     var ctx = new LoggedInCtx { Result = result, Session = session, AuthCtx = authenticationCtx, CancellationToken = ct };
                     await _handlers().RunEventHandler(h => h.OnLoggedIn(ctx), ex => _logger.Log(LogLevel.Error, "user.login", "An error occured while running OnLoggedIn event handler", ex));
                 }
@@ -173,6 +173,8 @@ namespace Stormancer.Server.Plugins.Users
                 {
                     //_logger.Log(LogLevel.Warn, "user.login", $"Authentication failed, reason: {authResult.ReasonMsg}", authResult);
                     result.ErrorMsg = authResult.ReasonMsg;
+                    result.Metadata = _emptyDictionary;
+                    result.Authentications = _emptyDictionary;
                 }
             }
             else
@@ -182,7 +184,9 @@ namespace Stormancer.Server.Plugins.Users
                 result.ErrorMsg = validationCtx.Reason;
                 //return result;
             }
-
+            
+            result.Authentications = session?.Identities.ToDictionary(entry => entry.Key, entry => entry.Value) ?? _emptyDictionary;
+            
             if (!result.Success && session == null)
             {
                 // FIXME: Temporary workaround to issue where disconnections cause large increases in CPU/Memory usage
