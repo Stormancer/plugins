@@ -61,9 +61,10 @@ namespace Stormancer.Server.Plugins.Steam
 
             ctx.SceneCreated += (ISceneHost scene) =>
             {
-                if(scene.Template == Constants.SCENE_TEMPLATE)
+                if (scene.Template == Constants.SCENE_TEMPLATE)
                 {
                     scene.AddController<SteamController>();
+                    scene.Metadata[METADATA_KEY] = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";
                 }
 
                 if (scene.Metadata.ContainsKey(PartyConstants.METADATA_KEY))
@@ -79,7 +80,7 @@ namespace Stormancer.Server.Plugins.Steam
     {
         public Task LocateService(ServiceLocationCtx ctx)
         {
-            if(ctx.ServiceType == "stormancer.steam")
+            if (ctx.ServiceType == "stormancer.steam")
             {
                 ctx.SceneId = Constants.GetSceneId();
             }

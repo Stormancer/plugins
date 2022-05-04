@@ -59,6 +59,10 @@ namespace Stormancer.Server.Plugins.Steam
         {
             var leaderUserId = _partyService.Settings.PartyLeaderId;
             var leaderUser = await _userService.GetUser(leaderUserId);
+            if(leaderUser == null)
+            {
+                throw new ClientException("userNotFound");
+            }
             var leaderSteamId = leaderUser.GetSteamId() ?? 0;
             return await _steamService.CreatePartyDataBearerToken(_partyService.PartyId, leaderUserId, leaderSteamId);
         }

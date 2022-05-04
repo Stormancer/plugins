@@ -129,16 +129,19 @@ namespace Stormancer.Server.Plugins.Steam
         /// <returns></returns>
         public async Task OnLoggedOut(LogoutContext ctx)
         {
-            var steamId = ctx.Session.User.GetSteamId();
-            if (steamId != null && _vacSessions.TryRemove(steamId.Value, out var vacSessionId))
+            if (ctx.Session.User != null)
             {
-                try
+                var steamId = ctx.Session.User.GetSteamId();
+                if (steamId != null && _vacSessions.TryRemove(steamId.Value, out var vacSessionId))
                 {
-                    await _steam.CloseVACSession(steamId.ToString()!, vacSessionId);
-                }
-                catch (Exception ex)
-                {
-                    _logger.Log(LogLevel.Error, $"authenticator.steam", "Failed to close vac session for user '{steamId}'", ex);
+                    try
+                    {
+                        await _steam.CloseVACSession(steamId.ToString()!, vacSessionId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Log(LogLevel.Error, $"authenticator.steam", "Failed to close vac session for user '{steamId}'", ex);
+                    }
                 }
             }
         }
