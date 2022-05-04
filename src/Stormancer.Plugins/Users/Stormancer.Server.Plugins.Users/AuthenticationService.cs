@@ -186,7 +186,10 @@ namespace Stormancer.Server.Plugins.Users
             }
             
             result.Authentications = session?.Identities.ToDictionary(entry => entry.Key, entry => entry.Value) ?? _emptyDictionary;
-            
+            if(result.Metadata == null)
+            {
+                result.Metadata = _emptyDictionary;
+            }
             if (!result.Success && session == null)
             {
                 // FIXME: Temporary workaround to issue where disconnections cause large increases in CPU/Memory usage
