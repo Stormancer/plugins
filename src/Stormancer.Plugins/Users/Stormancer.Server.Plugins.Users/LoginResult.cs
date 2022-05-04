@@ -53,7 +53,10 @@ namespace Stormancer.Server.Plugins.Users
         public string? Username { get; set; }
 
         [MessagePackMember(4)]
-        public Dictionary<string, string> Authentications { get; set; } = new Dictionary<string, string>();
+        public Dictionary<string, string> Authentications { get; set; } = default!;
+
+        [MessagePackMember(5)]
+        public Dictionary<string, string> Metadata { get; set; } = default!;
     }
 }
 

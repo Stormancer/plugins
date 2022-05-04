@@ -59,12 +59,20 @@ namespace Stormancer.Server.Plugins.Steam
                 }
             };
 
+            ctx.SceneCreating += (ISceneHost scene) =>
+            {
+                if (scene.Template == Constants.SCENE_TEMPLATE)
+                {
+                    scene.Metadata[METADATA_KEY] = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";
+                }
+            };
+
             ctx.SceneCreated += (ISceneHost scene) =>
             {
                 if (scene.Template == Constants.SCENE_TEMPLATE)
                 {
                     scene.AddController<SteamController>();
-                    scene.Metadata[METADATA_KEY] = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";
+                    
                 }
 
                 if (scene.Metadata.ContainsKey(PartyConstants.METADATA_KEY))

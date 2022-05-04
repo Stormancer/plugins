@@ -106,7 +106,7 @@ namespace Stormancer.Server.Plugins.Users
                 var provider = GetProviders().FirstOrDefault(p => p.Type == auth.Type);
                 if (provider == null)
                 {
-                    return new LoginResult { Success = false, ErrorMsg = $"authentication.notSupported?type={auth.Type}" };
+                    return new LoginResult { Success = false, ErrorMsg = $"authentication.notSupported?type={auth.Type}", Authentications = new Dictionary<string, string>(), Metadata = new Dictionary<string, string>() };
                 }
 
                 var authResult = await provider.Authenticate(authenticationCtx, ct);
@@ -160,6 +160,7 @@ namespace Stormancer.Server.Plugins.Users
                     result.Success = true;
                     result.UserId = authResult?.AuthenticatedUser?.Id;
                     result.Username = authResult?.AuthenticatedUser?.UserData[UsersConstants.UserHandleKey]?.ToObject<string>() ?? string.Empty;
+                    result.Metadata = authResult?.Metadata ?? _emptyDictionary;
                     session = await sessions.GetSessionRecordById(peer.SessionId);
 
                     Debug.Assert(session != null);//We just created the session.
@@ -191,6 +192,8 @@ namespace Stormancer.Server.Plugins.Users
             return result;
 
         }
+
+        private static Dictionary<string, string> _emptyDictionary = new Dictionary<string, string>();
 
         public async Task RememberDeviceFor2fa(RememberDeviceParameters p, IScenePeerClient peer, CancellationToken ct)
         {

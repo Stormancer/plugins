@@ -126,6 +126,11 @@ namespace Stormancer.Server.Plugins.Users
         /// Callback called when the user session is created.
         /// </summary>
         public Action<SessionRecord>? OnSessionUpdated { get; set; }
+
+        /// <summary>
+        /// Optional metadata returned by the login attempt.
+        /// </summary>
+        public Dictionary<string, string>? Metadata { get; set; } 
     }
 }
 
