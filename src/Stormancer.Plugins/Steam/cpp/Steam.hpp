@@ -1578,7 +1578,7 @@ namespace Stormancer
 					auto steamMatchmaking = SteamMatchmaking();
 					if (partyApi && partyApi->isLeader() && steamApi && steamMatchmaking)
 					{
-						auto steamIDLobbyIt = settings.publicServerData.find("SteamIdLobby");
+						auto steamIDLobbyIt = settings.publicServerData.find("SteamIDLobby");
 						if (steamIDLobbyIt != settings.publicServerData.end())
 						{
 							auto steamIDLobby = std::stoull(steamIDLobbyIt->second);
