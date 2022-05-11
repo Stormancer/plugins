@@ -8,6 +8,7 @@
 #include "stormancer/msgpack_define.h"
 #include "stormancer/DependencyInjection.h"
 #include "stormancer/Utilities/TaskUtilities.h"
+#include "stormancer/Utilities/PointerUtilities.h"
 #include "stormancer/IPlugin.h"
 #include <string>
 #include <unordered_map>
@@ -113,8 +114,9 @@ namespace Stormancer
 			std::string userId;
 			std::string username;
 			std::unordered_map<std::string, std::string> authentications;
+			std::unordered_map<std::string, std::string> metadatas;
 
-			MSGPACK_DEFINE(errorMsg, success, userId, username, authentications);
+			MSGPACK_DEFINE(errorMsg, success, userId, username, authentications, metadatas);
 		};
 
 		struct OperationCtx
@@ -137,6 +139,15 @@ namespace Stormancer
 			std::unordered_map<std::string, std::string> parameters;
 
 			MSGPACK_DEFINE(parameters);
+		};
+
+		struct LoginCredentialsResult
+		{
+			AuthParameters authParameters;
+
+			LoginResult loginResult;
+
+			MSGPACK_DEFINE(authParameters, loginResult);
 		};
 
 		/// <summary>
@@ -181,12 +192,14 @@ namespace Stormancer
 			}
 
 		protected:
+
 			PlatformUserId(std::string id) : userId(id) {}
 		};
 
 		struct CredentialsContext
 		{
 			std::shared_ptr<AuthParameters> authParameters;
+
 			std::shared_ptr<PlatformUserId> platformUserId;
 		};
 
@@ -197,11 +210,20 @@ namespace Stormancer
 			/// The type (name) of the provider that needs its credentials renewed
 			/// </summary>
 			std::string authProviderType;
+
 			/// <summary>
 			/// Parameters needed by the server-side authentication provider to renew the credentials. Must be set by the event handler.
 			/// </summary>
 			std::shared_ptr<RenewCredentialsParameters> response;
+
 			std::shared_ptr<UsersApi> usersApi;
+		};
+
+		struct OnLoggedInContext
+		{
+			AuthParameters authParameters;
+
+			LoginResult loginResult;
 		};
 
 		/// <summary>
@@ -302,12 +324,12 @@ namespace Stormancer
 				return pplx::task_from_result();
 			}
 
-
 			/// <summary>
 			/// Function called after the user successfully logged in.
 			/// </summary>
-			virtual void OnLoggedIn(LoginResult)
+			virtual pplx::task<void> OnLoggedIn(OnLoggedInContext)
 			{
+				return pplx::task_from_result();
 			}
 
 			/// <summary>
@@ -381,6 +403,11 @@ namespace Stormancer
 			~UsersApi()
 			{
 				_connectionSubscription.unsubscribe();
+			}
+
+			void setAutoReconnect(bool autoReconnect)
+			{
+				_autoReconnectEnabled = autoReconnect;
 			}
 
 			/// <summary>
@@ -462,7 +489,8 @@ namespace Stormancer
 			/// </returns>
 			pplx::task<void> login(pplx::cancellation_token ct = pplx::cancellation_token::none())
 			{
-				_autoReconnect = true;
+				_loginInProgress = true;
+				_autoReconnect = _autoReconnectEnabled;
 				return getAuthenticationScene(ct)
 					.then([](std::shared_ptr<Scene>)
 				{
@@ -478,6 +506,7 @@ namespace Stormancer
 			/// <returns>A <c>pplx::task</c> that completes when the disconnection process is done.</returns>
 			pplx::task<void> logout(pplx::cancellation_token ct = pplx::cancellation_token::none())
 			{
+				_loginInProgress = false;
 				_autoReconnect = false;
 				if (_currentConnectionState != GameConnectionState::Disconnected && _currentConnectionState != GameConnectionState::Disconnecting)
 				{
@@ -507,13 +536,31 @@ namespace Stormancer
 				}
 			}
 
+			pplx::task<LoginCredentialsResult> renewLoginCredentials(pplx::cancellation_token ct = pplx::cancellation_token::none())
+			{
+				if (_currentConnectionState != GameConnectionState::Authenticated)
+				{
+					STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error("NotAuthenticated"), LoginCredentialsResult);
+				}
+
+				return sendCredentialsToServer(ct)
+					.then([](LoginCredentialsResult loginCredentialsResult)
+				{
+					if (!loginCredentialsResult.loginResult.success)
+					{
+						throw std::runtime_error("Login failed : " + loginCredentialsResult.loginResult.errorMsg);
+					}
+
+					return loginCredentialsResult;
+				});
+			}
+			
 			pplx::task<std::string> getSceneConnectionToken(const std::string& serviceType, const std::string& serviceName, pplx::cancellation_token ct = pplx::cancellation_token::none())
 			{
 				auto logger = this->_logger;
 				return getAuthenticationScene(ct)
 					.then([serviceType, serviceName, ct, logger](std::shared_ptr<Scene> authScene)
 				{
-
 					auto rpcService = authScene->dependencyResolver().resolve<RpcService>();
 					logger->log(LogLevel::Info, "authentication", "Getting token for " + serviceType + " and name  " + serviceName);
 
@@ -629,14 +676,14 @@ namespace Stormancer
 			{
 				if (_wClient.expired())
 				{
-					STORM_RETURN_TASK_FROM_EXCEPTION_OPT(std::runtime_error("Client is invalid."), _userDispatcher, std::shared_ptr<Scene>);
+					STORM_RETURN_TASK_FROM_EXCEPTION_OPT(ObjectDeletedException("Client"), _userDispatcher, std::shared_ptr<Scene>);
 				}
 
-				std::weak_ptr<UsersApi> wThat = this->shared_from_this();
+				auto wThat = STORM_WEAK_FROM_THIS();
 
 				if (!_authTask)
 				{
-					if (!_autoReconnect)
+					if (!_loginInProgress)
 					{
 						STORM_RETURN_TASK_FROM_EXCEPTION_OPT(std::runtime_error("Authenticator disconnected. Call login before using the UsersApi."), _userDispatcher, std::shared_ptr<Scene>);
 					}
@@ -663,6 +710,7 @@ namespace Stormancer
 								catch (const UnrecoverableException&)
 								{
 									that->_autoReconnect = false;
+									that->_loginInProgress = false;
 								}
 								catch (...)
 								{
@@ -735,6 +783,7 @@ namespace Stormancer
 						if (auto that = wThat.lock())
 						{
 							that->_authTask = nullptr;
+							that->setConnectionState(GameConnectionState::Disconnected);
 						}
 						tce.set_exception(std::current_exception());
 					}
@@ -847,16 +896,16 @@ namespace Stormancer
 			/// </remarks>
 			pplx::task<std::unordered_map<std::string, std::string>> refreshAuthenticationStatus(pplx::cancellation_token ct = pplx::cancellation_token::none())
 			{
-				std::weak_ptr<UsersApi> wThis = this->shared_from_this();
+				auto wThat = STORM_WEAK_FROM_THIS();
 				return getAuthenticationScene(ct)
-					.then([ct, wThis](std::shared_ptr<Scene> scene)
+					.then([ct, wThat](std::shared_ptr<Scene> scene)
 				{
 					auto rpc = scene->dependencyResolver().resolve<RpcService>();
 
 					return rpc->rpc<std::unordered_map<std::string, std::string>>("Authentication.GetStatus", ct)
-						.then([wThis](std::unordered_map<std::string, std::string> status)
+						.then([wThat](std::unordered_map<std::string, std::string> status)
 					{
-						if (auto that = wThis.lock())
+						if (auto that = wThat.lock())
 						{
 							that->_currentStatus = status;
 						}
@@ -865,7 +914,7 @@ namespace Stormancer
 				});
 			}
 
-			//Get the metadata for the authentication system, advertising what kind of authentication is available and which parameters it supports.
+			// Get the metadata for the authentication system, advertising what kind of authentication is available and which parameters it supports.
 			pplx::task<std::unordered_map<std::string, std::string>> getMetadata(pplx::cancellation_token ct = pplx::cancellation_token::none())
 			{
 				return getAuthenticationScene(ct)
@@ -873,39 +922,6 @@ namespace Stormancer
 				{
 					auto rpc = scene->dependencyResolver().resolve<RpcService>();
 					return rpc->rpc<std::unordered_map<std::string, std::string>>("Authentication.GetMetadata", ct);
-				});
-			}
-
-			//Perform an additionnal authentication on an already connected client (for instance to perform linking)
-			pplx::task<std::unordered_map<std::string, std::string>> authenticate(AuthParameters p, pplx::cancellation_token ct = pplx::cancellation_token::none())
-			{
-				std::weak_ptr<UsersApi> wThat = this->shared_from_this();
-				return getAuthenticationScene(ct)
-					.then([ct, p](std::shared_ptr<Scene> scene)
-				{
-					auto rpc = scene->dependencyResolver().resolve<RpcService>();
-					return rpc->rpc<LoginResult>("Authentication.Login", ct, p);
-				})
-					.then([ct, wThat](LoginResult r)
-				{
-					auto that = wThat.lock();
-					if (!that)
-					{
-						throw ObjectDeletedException("UsersApi");
-					}
-					if (r.success)
-					{
-						that->_currentStatus = r.authentications;
-					}
-					else
-					{
-						throw std::runtime_error("authentication.failed?reason=" + r.errorMsg);
-					}
-					for (auto h : that->_authenticationEventHandlers)
-					{
-						h->OnLoggedIn(r);
-					}
-					return that->currentAuthenticationStatus();
 				});
 			}
 
@@ -920,7 +936,7 @@ namespace Stormancer
 				});
 			}
 
-			//Unlink the authenticated user from auth provided by the specified provider
+			// Unlink the authenticated user from auth provided by the specified provider
 			pplx::task<void> unlink(std::string type, pplx::cancellation_token ct = pplx::cancellation_token::none())
 			{
 				return getAuthenticationScene(ct)
@@ -971,6 +987,11 @@ namespace Stormancer
 				});
 			}
 
+			LoginCredentialsResult getLastLoginCredentialsResult() const
+			{
+				return _lastLoginCredentialsResult;
+			}
+
 #pragma endregion
 
 		private:
@@ -980,7 +1001,7 @@ namespace Stormancer
 
 #pragma region private_methods
 
-			//(reason)=>reconnect?
+			// (reason) => reconnect?
 			std::function<bool(std::string)> _reconnectFilter;
 
 			void setConnectionState(GameConnectionState state)
@@ -995,13 +1016,14 @@ namespace Stormancer
 						_authTask = nullptr;
 						if (state.reason == "User connected elsewhere" || state.reason == "Authentication failed" || state.reason == "auth.login.new_connection" || (_reconnectFilter && !_reconnectFilter(reason)))
 						{
+							_loginInProgress = false;
 							_autoReconnect = false;
 							if (auto client = _wClient.lock())
 							{
-								client->disconnect();//Disconnect still connected scenes.
+								client->disconnect(); // Disconnect still connected scenes.
 							}
 						}
-						if (_autoReconnect && !_wClient.expired())
+						if (_loginInProgress && _autoReconnect && !_wClient.expired())
 						{
 							setConnectionState(GameConnectionState::Reconnecting);
 						}
@@ -1040,10 +1062,11 @@ namespace Stormancer
 			pplx::task<std::shared_ptr<Scene>> loginImpl(pplx::cancellation_token ct = pplx::cancellation_token::none())
 			{
 				setConnectionState(GameConnectionState::Connecting);
-				std::weak_ptr<UsersApi> wThat = this->shared_from_this();
+				auto wThat = STORM_WEAK_FROM_THIS();
 
 				if (_authenticationEventHandlers.empty() && !this->getCredentialsCallback)
 				{
+					_loginInProgress = false;
 					_autoReconnect = false;
 					setConnectionState(GameConnectionState::Disconnected);
 					STORM_RETURN_TASK_FROM_EXCEPTION_OPT(std::runtime_error("No IAuthenticationEventHandler are present, and 'getCredentialsCallback' is not set. At least one IAuthenticationEventHandler should be available in the client's DependencyScope, or 'getCredentialsCallback' should be set."), _userDispatcher, std::shared_ptr<Scene>);
@@ -1051,6 +1074,7 @@ namespace Stormancer
 				auto client = _wClient.lock();
 				if (!client)
 				{
+					_loginInProgress = false;
 					_autoReconnect = false;
 					setConnectionState(GameConnectionState::Disconnected);
 					STORM_RETURN_TASK_FROM_EXCEPTION_OPT(ObjectDeletedException("Client"), _userDispatcher, std::shared_ptr<Scene>);
@@ -1073,9 +1097,16 @@ namespace Stormancer
 									break;
 								case ConnectionState::Disconnected:
 									that->setConnectionState(GameConnectionState(GameConnectionState::State::Disconnected, state.reason));
+									if (!state.reason.empty())
+									{
+										that->_lastError = state.reason;
+									}
 									break;
 								case ConnectionState::Connecting:
 									that->connectionStateChanged(GameConnectionState::Connecting);
+									break;
+								case ConnectionState::Connected:
+									that->_lastError = "";
 									break;
 								default:
 									break;
@@ -1093,11 +1124,7 @@ namespace Stormancer
 						Serializer serializer;
 						serializer.deserialize(ctx->inputStream(), opCtx.originId, opCtx.operation);
 
-						auto that = wThat.lock();
-						if (!that)
-						{
-							throw (ObjectDeletedException("UsersApi"));
-						}
+						auto that = LockOrThrow(wThat, "UsersApi");
 
 						auto it = that->_operationHandlers.find(opCtx.operation);
 						if (it == that->_operationHandlers.end())
@@ -1136,81 +1163,111 @@ namespace Stormancer
 				}, ct)
 					.then([wThat, ct](std::shared_ptr<Scene> scene)
 				{
-					auto that = wThat.lock();
+					auto that = LockOrThrow(wThat, "UsersApi");
 
-					if (!that)
+					return that->sendCredentialsToServerImpl(scene, ct)
+						.then([scene, wThat](LoginCredentialsResult loginCredentialsResult)
 					{
-						throw (ObjectDeletedException("UsersApi"));
-					}
+						auto that = LockOrThrow(wThat, "UsersApi");
 
-					if (!that->_autoReconnect)
-					{
-						throw std::runtime_error("Auto recconnection is disable please login before");
-					}
+						auto task = pplx::task_from_result();
 
-					return that->runCredentialsEventHandlers()
-						.then([scene, ct, wThat](pplx::task<AuthParameters> ctxTask)
-					{
-						AuthParameters ctx;
-						auto that = wThat.lock();
-						try
+						if (!loginCredentialsResult.loginResult.success)
 						{
-							ctx = ctxTask.get();
-							if (ctx.type.empty())
-							{
-								throw std::runtime_error("No credentials found");
-							}
-						}
-						catch (const std::exception& ex)
-						{
-							// if an exception was thrown by auth event handlers, do not try to reconnect
-							if (that)
-							{
-								that->_autoReconnect = false;
-							}
-							throw CredentialsException("An exception was thrown by an IAuthenticationEventHandler::retrieveCredentials() call", ex);
-						}
-						if (!that)
-						{
-							throw ObjectDeletedException("UsersApi");
-						}
-
-						auto rpcService = scene->dependencyResolver().resolve<RpcService>();
-						return rpcService->rpc<LoginResult>("Authentication.Login", ct, ctx);
-					})
-						.then([scene, wThat](LoginResult result)
-					{
-						auto that = wThat.lock();
-						if (!that)
-						{
-							throw ObjectDeletedException("UsersApi");
-						}
-
-						if (!result.success)
-						{
-							that->_autoReconnect = false;//disable auto reconnection
+							that->_loginInProgress = false;
+							that->_autoReconnect = false; // disable auto reconnection
 							that->setConnectionState(GameConnectionState::Disconnected);
-							throw std::runtime_error("Login failed : " + result.errorMsg);
+							throw std::runtime_error("Login failed : " + loginCredentialsResult.loginResult.errorMsg);
 						}
 						else
 						{
-							that->_currentStatus = result.authentications;
-							that->_userId = result.userId;
-							that->_username = result.username;
+							that->_currentStatus = loginCredentialsResult.loginResult.authentications;
+							that->_userId = loginCredentialsResult.loginResult.userId;
+							that->_username = loginCredentialsResult.loginResult.username;
 							that->setConnectionState(GameConnectionState::Authenticated);
+
+							OnLoggedInContext onLoggedInCtx;
+
+							onLoggedInCtx.authParameters = loginCredentialsResult.authParameters;
+							onLoggedInCtx.loginResult = loginCredentialsResult.loginResult;
+
 							for (auto h : that->_authenticationEventHandlers)
 							{
-								try
+								task = task.then([h, onLoggedInCtx]()
 								{
-									h->OnLoggedIn(result);
-								}
-								catch (std::exception&)
-								{
-
-								}
+									h->OnLoggedIn(onLoggedInCtx);
+								});
 							}
 						}
-						return scene;
+
+						return task.then([scene]()
+						{
+							return scene;
+						});
+					});
+				});
+			}
+
+			pplx::task<LoginCredentialsResult> sendCredentialsToServer(pplx::cancellation_token ct = pplx::cancellation_token::none())
+			{
+				auto wUsersApi = STORM_WEAK_FROM_THIS();
+
+				return getAuthenticationScene(ct)
+					.then([wUsersApi, ct](std::shared_ptr<Scene> scene)
+				{
+					auto usersApi = LockOrThrow(wUsersApi, "UsersApi");
+
+					return usersApi->sendCredentialsToServerImpl(scene, ct);
+				});
+			}
+
+			pplx::task<LoginCredentialsResult> sendCredentialsToServerImpl(std::shared_ptr<Scene> scene, pplx::cancellation_token ct = pplx::cancellation_token::none())
+			{
+				if (!_loginInProgress)
+				{
+					throw std::runtime_error("Auto recconnection is disabled please login before");
+				}
+
+				return runCredentialsEventHandlers()
+					.then([scene, ct, wThat = STORM_WEAK_FROM_THIS()](pplx::task<AuthParameters> authParametersTask)
+				{
+					auto that = LockOrThrow(wThat, "UsersApi");
+
+					AuthParameters authParameters;
+
+					try
+					{
+						authParameters = authParametersTask.get();
+						if (authParameters.type.empty())
+						{
+							throw std::runtime_error("No credentials found");
+						}
+					}
+					catch (const std::exception& ex)
+					{
+						// if an exception was thrown by auth event handlers, do not try to reconnect
+						if (that)
+						{
+							that->_loginInProgress = false;
+							that->_autoReconnect = false;
+						}
+						throw CredentialsException("An exception was thrown by an IAuthenticationEventHandler::retrieveCredentials() call", ex);
+					}
+
+					auto rpcService = scene->dependencyResolver().resolve<RpcService>();
+					return rpcService->rpc<LoginResult>("Authentication.Login", ct, authParameters)
+						.then([authParameters, wThat](LoginResult loginResult)
+					{
+						auto that = LockOrThrow(wThat, "UsersApi");
+
+						LoginCredentialsResult loginCredentialsResult { authParameters, loginResult };
+
+						if (that)
+						{
+							that->_lastLoginCredentialsResult = loginCredentialsResult;
+						}
+
+						return LoginCredentialsResult { authParameters, loginResult };
 					});
 				});
 			}
@@ -1230,14 +1287,10 @@ namespace Stormancer
 					getCredsTask = getCredentialsCallback();
 				}
 
-				std::weak_ptr<UsersApi> weakThis = this->shared_from_this();
-				return getCredsTask.then([weakThis](AuthParameters authParameters)
+				auto wThat = STORM_WEAK_FROM_THIS();
+				return getCredsTask.then([wThat](AuthParameters authParameters)
 				{
-					auto that = weakThis.lock();
-					if (!that)
-					{
-						throw ObjectDeletedException("UsersApi");
-					}
+					auto that = LockOrThrow(wThat, "UsersApi");
 
 					CredentialsContext credentialsContext;
 					credentialsContext.authParameters = std::make_shared<AuthParameters>(authParameters);
@@ -1286,6 +1339,8 @@ namespace Stormancer
 			const std::string SCENE_ID = "authenticator";
 			const std::string LOGIN_ROUTE = "login";
 
+			bool _loginInProgress = false;
+			bool _autoReconnectEnabled = true;
 			bool _autoReconnect = true;
 
 			std::string _userId;
@@ -1295,6 +1350,7 @@ namespace Stormancer
 			std::string _lastError;
 			rxcpp::composite_subscription _connectionSubscription;
 			ILogger_ptr _logger;
+			LoginCredentialsResult _lastLoginCredentialsResult;
 
 			//Task that completes when the user is authenticated.
 			std::shared_ptr<pplx::task<std::shared_ptr<Scene>>> _authTask;
