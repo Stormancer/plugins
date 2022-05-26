@@ -279,7 +279,7 @@ namespace Stormancer
 					if (hostInfos.isHost) // Host
 					{
 
-						_logger->log(LogLevel::Trace, "gamession.p2ptoken", "received host=true.");
+						_logger->log(LogLevel::Info, "gamession.p2ptoken", "received host=true.");
 						_myP2PRole = P2PRole::Host;
 						onRoleReceived(std::make_tuple(hostInfos.hostSessionId, P2PRole::Host));
 						_waitServerTce.set();
@@ -291,7 +291,7 @@ namespace Stormancer
 					}
 					else // Client
 					{
-						_logger->log(LogLevel::Trace, "gamession.p2ptoken", "received host=false.");
+						_logger->log(LogLevel::Info, "gamession.p2ptoken", "received host=false.");
 
 
 						std::weak_ptr<GameSessionService> wThat = this->shared_from_this();
@@ -463,7 +463,7 @@ namespace Stormancer
 						_logger->log(LogLevel::Error, "GameSessions", "Scene deleted");
 						return;
 					}
-					_logger->log(LogLevel::Trace, "GameSessions", "Sending player ready");
+					_logger->log(LogLevel::Debug, "GameSessions", "Sending player ready");
 					scene->send("player.ready", [data](obytestream& stream)
 						{
 							msgpack::pack(stream, data);
@@ -720,7 +720,7 @@ namespace Stormancer
 									throw ObjectDeletedException("GameSession");
 								}
 
-								logger->log(LogLevel::Trace, "GameSession", "Requesting P2P token", "");
+								logger->log(LogLevel::Debug, "GameSession", "Requesting P2P token", "");
 								return that->requestP2PToken(scene, cancellationToken)
 									.then([scene, openTunnel, cancellationToken](pplx::task<HostInfosMessage> task)
 										{
@@ -729,7 +729,7 @@ namespace Stormancer
 											try
 											{
 												auto token = task.get();
-												logger->log(LogLevel::Trace, "GameSession", "Initialize P2Ps", "");
+												logger->log(LogLevel::Debug, "GameSession", "Initialize P2Ps", "");
 												return service->initializeP2P(token, openTunnel, cancellationToken);
 											}
 											catch (std::exception& e)
@@ -760,7 +760,7 @@ namespace Stormancer
 									pplx::cancel_current_task();
 								}
 
-								logger->log(LogLevel::Trace, "GameSession", "Waiting role", "");
+								logger->log(LogLevel::Info, "GameSession", "Waiting role", "");
 
 								auto hostReadyTce = c->_hostIsReadyTce;
 								return c->sessionReadyAsync()
@@ -772,12 +772,12 @@ namespace Stormancer
 											}
 											else // Client = waiting for host to be ready
 											{
-												logger->log(LogLevel::Trace, "GameSession", "Waiting host is ready", "");
+												logger->log(LogLevel::Info, "GameSession", "Waiting host is ready", "");
 
 												return pplx::create_task(hostReadyTce, cancellationToken)
 													.then([gameSessionConnectionParameters, logger]()
 														{
-															logger->log(LogLevel::Trace, "GameSession", "Host is ready", "");
+															logger->log(LogLevel::Info, "GameSession", "Host is ready", "");
 															return gameSessionConnectionParameters;
 														}, cancellationToken);
 											}
@@ -903,27 +903,39 @@ namespace Stormancer
 				{
 					auto dispatcher = _wDispatcher.lock();
 					auto taskOptions = dispatcher ? pplx::task_options(dispatcher) : pplx::task_options();
-
+					std::weak_ptr<GameSession_Impl> wThat = this->shared_from_this();
 					// catch err
 					return this->getCurrentGameSession(ct)
-						.then([ct, logger = _logger](pplx::task<std::shared_ptr<Scene>> task)
+						.then([ct, logger = _logger, wThat](pplx::task<std::shared_ptr<Scene>> task)
 							{
 								try
 								{
 									auto scene = task.get();
 									if (scene)
 									{
-										logger->log(LogLevel::Trace, "GameSession", "Disconnecting from previous games session", scene->id());
+										logger->log(LogLevel::Info, "GameSession", "Disconnecting from previous games session", scene->id());
 										auto gameSessionService = scene->dependencyResolver().resolve<GameSessionService>();
+										if (auto that = wThat.lock())
+										{
+											that->_currentGameSession = nullptr;
+										}
 										return gameSessionService->disconnect(ct);
 									}
 									else
 									{
+										if (auto that = wThat.lock())
+										{
+											that->_currentGameSession = nullptr;
+										}
 										return pplx::task_from_result();
 									}
 								}
 								catch (std::exception&)
 								{
+									if (auto that = wThat.lock())
+									{
+										that->_currentGameSession = nullptr;
+									}
 									return pplx::task_from_result();
 								}
 							}, taskOptions);
@@ -933,7 +945,14 @@ namespace Stormancer
 				{
 					if (this->_currentGameSession && this->_currentGameSession->scene.is_done())
 					{
-						return this->_currentGameSession->scene.get();
+						try
+						{
+							return this->_currentGameSession->scene.get();
+						}
+						catch (std::exception&)//Ignore errors : They mean that we are not in a gamesession.
+						{
+							return nullptr;
+						}
 					}
 					else
 					{

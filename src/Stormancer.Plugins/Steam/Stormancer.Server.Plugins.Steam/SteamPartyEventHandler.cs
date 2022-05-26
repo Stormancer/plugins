@@ -66,6 +66,7 @@ namespace Stormancer.Server.Plugins.Steam
         }
 
         private int _numMembers = 0;
+        public bool IsJoinable { get; set; }
     }
 
     /// <summary>
@@ -184,6 +185,7 @@ namespace Stormancer.Server.Plugins.Steam
                             {
                                 var lobbyName = $"{LobbyPrefix}{ctx.Party.Settings.PartyId}";
                                 var joinable = ctx.Party.Settings.IsJoinable;
+                                
                                 var maxMembers = ctx.Party.Settings.ServerSettings.SteamMaxMembers() ?? 5;
                                 var lobbyType = ctx.Party.Settings.ServerSettings.SteamLobbyType() ?? LobbyType.FriendsOnly;
 
@@ -199,7 +201,7 @@ namespace Stormancer.Server.Plugins.Steam
                                 {
                                     LobbyType = lobbyType,
                                     MaxMembers = maxMembers,
-                                    Joinable = true,
+                                    Joinable = joinable,
                                     Metadata = new Dictionary<string, string> { { "partyDataToken", partyDataBearerToken } }
                                 };
                                 var steamIDLobby = await _userSessions.SendRequest<ulong, CreateLobbyDto>("Steam.CreateLobby", "", ctx.Session.User.Id,createLobbyParameters, CancellationToken.None);
@@ -222,6 +224,7 @@ namespace Stormancer.Server.Plugins.Steam
                                     partySettingsDto.PublicServerData["SteamIDLobby"] = steamIDLobby.ToString();
                                     _ = ctx.Party.UpdateSettings(partySettingsDto, CancellationToken.None);
                                     data.SteamIDLobby = steamIDLobby;
+                                    data.IsJoinable = joinable;
                                 }
                                 else
                                 {
