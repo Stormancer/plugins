@@ -745,6 +745,10 @@ namespace Stormancer
 												pplx::cancel_current_task();
 											}
 											c->p2pHost = peer;
+											if (!peer)
+											{
+												c->_hostIsReadyTce.set();
+											}
 											return scene;
 										}, cancellationToken);
 							}, cancellationToken);
@@ -1096,7 +1100,6 @@ namespace Stormancer
 
 				pplx::task<HostInfosMessage> requestP2PToken(std::shared_ptr<Scene> scene, pplx::cancellation_token ct = pplx::cancellation_token::none())
 				{
-					std::weak_ptr<GameSession> wThat = this->shared_from_this();
 					std::shared_ptr<GameSessionService> gameSessionService = scene->dependencyResolver().resolve<GameSessionService>();
 					return gameSessionService->requestP2PToken(ct);
 				}

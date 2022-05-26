@@ -48,7 +48,7 @@ namespace Stormancer.Server.Plugins.GameSession
         private readonly IDelegatedTransports pools;
 
         private readonly DockerClient _docker;
-
+        private bool _shouldMonitorDocker = false;
 
 
         private class GameServerContainer : IDisposable
@@ -87,18 +87,19 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 await Task.Delay(1000);
 
+                if (!_shouldMonitorDocker)
+                {
+                    return;
+                }
                 try
                 {
                     await _docker.System.MonitorEventsAsync(new ContainerEventsParameters { Since = ((int)(_monitorSince - DateTime.UnixEpoch).TotalSeconds).ToString() }, this);
                 }
                 catch (Exception ex)
                 {
-                    _logger.Log(LogLevel.Warn, "docker", "an error occurend while querying docker for events.", ex);
+                    _logger.Log(LogLevel.Warn, "docker", "an error occured while querying docker for events.", ex);
                     await Task.Delay(10000);
                 }
-
-
-
             }
         }
         public void Report(Message value)
@@ -149,6 +150,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async Task<GameServerInstance> StartServer(string id, JObject c, CancellationToken ct)
         {
+            _shouldMonitorDocker = true;
             var config = c.ToObject<DockerPoolConfiguration>();
             if (config == null || config.image == null)
             {
@@ -184,7 +186,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 environmentVariables.Add("Stormancer_Server_Arguments", arguments);
                 environmentVariables.Add("Stormancer_Server_TransportEndpoint", TransformEndpoint(udpTransports.Item2.First()));
 
-                _logger.Log(LogLevel.Info, "docker", "creating docker container.", new { image = config.image});
+                _logger.Log(LogLevel.Info, "docker", "creating docker container.", new { image = config.image });
                 var response = await _docker.Containers.CreateContainerAsync(new CreateContainerParameters()
                 {
                     Image = config.image,
@@ -198,7 +200,7 @@ namespace Stormancer.Server.Plugins.GameSession
                              {
                                  new PortBinding
                                  {
-                                     HostIP = server.PublicIp, 
+                                     HostIP = server.PublicIp,
                                      HostPort = server.ServerPort.ToString()
                                  }
                              }
@@ -209,8 +211,8 @@ namespace Stormancer.Server.Plugins.GameSession
                     Env = environmentVariables.Select(kvp => $"{kvp.Key}={kvp.Value}").ToList(),
 
                 });
-                
-              
+
+
                 server.ContainerId = response.ID;
                 _logger.Log(LogLevel.Info, "docker", "starting docker container.", new { image = config.image, container = response.ID });
                 var startResponse = await _docker.Containers.StartContainerAsync(response.ID, new ContainerStartParameters { });
@@ -248,10 +250,10 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async Task StopServer(string id)
         {
-           
+
             if (_servers.TryRemove(id, out var server))
             {
-                _logger.Log(LogLevel.Info, "docker", "stopping docker container.", new {  container = server.ContainerId });
+                _logger.Log(LogLevel.Info, "docker", "stopping docker container.", new { container = server.ContainerId });
 
                 if (await _docker.Containers.StopContainerAsync(server.ContainerId, new ContainerStopParameters { WaitBeforeKillSeconds = 10 }))
                 {

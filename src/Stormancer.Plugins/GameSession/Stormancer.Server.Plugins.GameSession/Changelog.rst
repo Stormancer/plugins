@@ -14,21 +14,19 @@ Unreleased
 Added
 *****
 - GameFinder name has been added to gamesession's initialization configuration.
+- Rework of server pools
+- Add back game server support in gamesession.
+- Add support for game servers running on local docker.
+- Add EnableDirectConnection configuration value to disable P2P connection.
 Changed
 *******
 - Fix GameSessionService.PeerConnectionRejected
 - Use GameSessionController to register to OnConnecting/ed disconnecting events.
 - Call OnClientLeaving when peer disconnecting
+- If DirectConnectionEnabled is selected, we don't wait for the host to connect, and we don't send any p2p token
 Fixed
 *****
-- Don't error every 500ms when a docker pull is created, but docker is not reachable.
-
-Added
-*****
-- Rework of server pools
-- Add back game server support in gamesession.
-- Add support for game servers running on local docker.
-- Add EnableDirectConnection configuration value to disable P2P connection.
+- Don't poll docker status until a docker server gets started.
 
 5.3.0
 -----

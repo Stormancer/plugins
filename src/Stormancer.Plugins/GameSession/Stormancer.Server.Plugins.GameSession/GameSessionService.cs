@@ -619,7 +619,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 }
 
 
-                if (_p2pToken != null && !state.DirectConnectionEnabled())
+                if (_p2pToken != null && state.DirectConnectionEnabled())
                 {
                     await SendP2PToken(Enumerable.Repeat(peer, 1), false, _p2pToken, (await GetServerTcs().Task).SessionId);
                 }
@@ -916,6 +916,11 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async Task<HostInfosMessage> CreateP2PToken(string sessionId)
         {
+            if (!state.DirectConnectionEnabled())
+            {
+                return new HostInfosMessage { IsHost = false, HostSessionId = null, P2PToken = null };
+            }
+
             var hostPeer = await GetServerTcs().Task;
             if (sessionId == hostPeer.SessionId)
             {
@@ -923,14 +928,7 @@ namespace Stormancer.Server.Plugins.GameSession
             }
             else
             {
-                if (state.DirectConnectionEnabled())
-                {
-                    return new HostInfosMessage { IsHost = false, HostSessionId = hostPeer.SessionId, P2PToken = await _scene.DependencyResolver.Resolve<IPeerInfosService>().CreateP2pToken(hostPeer.SessionId, _scene.Id) };
-                }
-                else
-                {
-                    return new HostInfosMessage { IsHost = false, HostSessionId = hostPeer.SessionId, P2PToken = null };
-                }
+                return new HostInfosMessage { IsHost = false, HostSessionId = hostPeer.SessionId, P2PToken = await _scene.DependencyResolver.Resolve<IPeerInfosService>().CreateP2pToken(hostPeer.SessionId, _scene.Id) };
             }
         }
 
