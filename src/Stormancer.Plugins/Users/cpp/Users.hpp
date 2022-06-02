@@ -361,21 +361,24 @@ namespace Stormancer
 		class CredentialsException : public std::exception
 		{
 		public:
-			CredentialsException(const char* message, const std::exception& innerException) : message(makeMessage(message, innerException))
+			CredentialsException(const std::string& message, const std::exception_ptr& innerException) 
+				: innerException(innerException)
+				, message(message)
 			{
 			}
 
 			const char* what() const noexcept override
 			{
+				
 				return message.c_str();
 			}
 
-		private:
-			static std::string makeMessage(const char* message, const std::exception& innerException)
+			const std::exception_ptr innerException;
+			static std::string makeMessage(const std::string& message, const std::exception& innerException)
 			{
-				return std::string(message) + " [Inner exception message: " + std::string(innerException.what()) + "]";
+				return message + " [Inner exception message: " + std::string(innerException.what()) + "]";
 			}
-
+		private:
 			std::string message;
 		};
 
@@ -1174,6 +1177,7 @@ namespace Stormancer
 
 						if (!loginCredentialsResult.loginResult.success)
 						{
+							that->_lastError = loginCredentialsResult.loginResult.errorMsg;
 							that->_loginInProgress = false;
 							that->_autoReconnect = false; // disable auto reconnection
 							that->setConnectionState(GameConnectionState::Disconnected);
@@ -1251,7 +1255,7 @@ namespace Stormancer
 							that->_loginInProgress = false;
 							that->_autoReconnect = false;
 						}
-						throw CredentialsException("An exception was thrown by an IAuthenticationEventHandler::retrieveCredentials() call", ex);
+						throw CredentialsException(CredentialsException::makeMessage("An exception was thrown by an IAuthenticationEventHandler::retrieveCredentials() call",ex), std::current_exception());
 					}
 
 					auto rpcService = scene->dependencyResolver().resolve<RpcService>();
