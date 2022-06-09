@@ -22,6 +22,7 @@
 
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
+using Stormancer.Server.Plugins.GameSession.ServerPool;
 using Stormancer.Server.Plugins.Models;
 using System;
 using System.Collections.Generic;
@@ -76,6 +77,13 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <param name="ctx"></param>
         /// <returns></returns>
         Task OnClientReady(ClientReadyContext ctx) => Task.CompletedTask;
+
+        /// <summary>
+        /// Event executed when a server is ready in the gamesession.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task OnServerReady(ServerReadyContext ctx) => Task.CompletedTask;
 
         /// <summary>
         /// Event executed when a new reservation is requested.
@@ -257,6 +265,27 @@ namespace Stormancer.Server.Plugins.GameSession
         public IScenePeerClient Peer { get; }
     }
 
+    /// <summary>
+    /// Context passed to a  <see cref="IGameSessionEventHandler.OnServerReady(ServerReadyContext)"/> event.
+    /// </summary>
+    public class ServerReadyContext
+    {
+        internal ServerReadyContext(IScenePeerClient peer, GameServer gameServer)
+        {
+            Peer = peer;
+            GameServer = gameServer;
+        }
+
+        /// <summary>
+        /// Gets the server's peer object.
+        /// </summary>
+        public IScenePeerClient Peer { get; }
+
+        /// <summary>
+        /// Gets details about the server.
+        /// </summary>
+        public GameServer GameServer { get; }
+    }
     /// <summary>
     /// Context passed to a <see cref="IGameSessionEventHandler.GameSessionCompleted(GameSessionCompleteCtx)"/> event.
     /// </summary>

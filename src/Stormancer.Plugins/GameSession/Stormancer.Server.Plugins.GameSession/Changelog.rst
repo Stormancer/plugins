@@ -18,6 +18,8 @@ Added
 - Add back game server support in gamesession.
 - Add support for game servers running on local docker.
 - Add EnableDirectConnection configuration value to disable P2P connection.
+- Add new ServerReady event handler triggered when using a gamesession with a server.
+
 Changed
 *******
 - Fix GameSessionService.PeerConnectionRejected

@@ -72,7 +72,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Gamesession parameters like map to launch, gameType and everything can be useful to 
         /// dedicated server.
         /// </summary>
-        [MessagePackMember(5)]
+        [MessagePackMember(4)]
         public JObject Parameters { get; set; } = new JObject();
 
         /// <summary>
@@ -81,20 +81,20 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <remarks>
         /// If set, requires <see cref="GameServerPool"/> to be set.
         /// </remarks>
-        [MessagePackMember(6)]
+        [MessagePackMember(5)]
         public bool StartGameServer { get; set; }
 
 
         /// <summary>
         /// The gameserver pool from which the game server should be requested, if StartGameServer is true.
         /// </summary>
-        [MessagePackMember(7)]
+        [MessagePackMember(6)]
         public string? GameServerPool { get; set; }
 
         /// <summary>
         /// Name of the gamefinder creating the gamesession, if available.
         /// </summary>
-        [MessagePackMember(8)]
+        [MessagePackMember(7)]
         public string? GameFinder { get; set; }
     }
 }

@@ -35,7 +35,7 @@ namespace Stormancer.Server.Plugins.Party
     [Service(Named = true, ServiceType = PartyPlugin.PARTY_SERVICEID)]
     class PartyController : ControllerBase
     {
-        public const string PROTOCOL_VERSION = "2020-01-28.1";
+        public const string PROTOCOL_VERSION = "2022-06-09.1";
 
         private const string NotInPartyError = "party.notInParty";
         private const string UnauthorizedError = "party.unauthorized";

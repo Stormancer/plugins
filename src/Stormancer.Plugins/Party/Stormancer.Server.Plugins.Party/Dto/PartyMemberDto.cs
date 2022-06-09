@@ -25,15 +25,30 @@ using Stormancer.Server.Plugins.Party.Model;
 
 namespace Stormancer.Server.Plugins.Party.Dto
 {
+    /// <summary>
+    /// Informations about a party member.
+    /// </summary>
     public class PartyMemberDto
     {
+        /// <summary>
+        /// Gets or sets the Party member's user id.
+        /// </summary>
         [MessagePackMember(0)]
-        public string UserId { get; set; }
+        public string UserId { get; set; } = default!;
 
         [MessagePackMember(1)]
         public PartyMemberStatus PartyUserStatus { get; set; }
 
+        /// <summary>
+        /// Gets or sets the party member user data.
+        /// </summary>
         [MessagePackMember(2)]
         public byte[] UserData { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Party member's session id.
+        /// </summary>
+        [MessagePackMember(3)]
+        public SessionId SessionId { get; set; }
     }
 }

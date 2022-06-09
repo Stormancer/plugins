@@ -667,7 +667,17 @@ namespace Stormancer.Server.Plugins.GameSession
                 var pools = scope.Resolve<ServerPoolProxy>();
                 var server = await pools.WaitGameServer(poolId, GameSessionId, _config, _gameCompleteCts.Token);
                 using var cts = new CancellationTokenSource(state.GameServerStartTimeout());
-                await GetServerTcs().Task.WaitAsync(cts.Token);
+                var peer = await GetServerTcs().Task.WaitAsync(cts.Token);
+
+                var serverCtx = new ServerReadyContext(peer,server);
+
+                await using (var serverReadyscope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+                {
+                    await serverReadyscope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.OnServerReady(serverCtx), ex =>
+                    {
+                        _logger.Log(LogLevel.Error, "gameSession", "An error occured while running gameSession.OnServertReady event handlers", ex);
+                    });
+                }
 
             }
 

@@ -276,7 +276,7 @@ namespace Stormancer.Server.Plugins.Party
                 var ClientPluginVersion = peer.Metadata[PartyPlugin.CLIENT_METADATA_KEY];
                 Log(LogLevel.Trace, "OnConnected", "Connection complete", new { peer.SessionId, user.Id, ClientPluginVersion }, peer.SessionId, user.Id);
 
-                await BroadcastStateUpdateRpc(MemberConnectedRoute, new PartyMemberDto { PartyUserStatus = partyUser.StatusInParty, UserData = partyUser.UserData, UserId = partyUser.UserId });
+                await BroadcastStateUpdateRpc(MemberConnectedRoute, new PartyMemberDto { PartyUserStatus = partyUser.StatusInParty, UserData = partyUser.UserData, UserId = partyUser.UserId, SessionId = SessionId.From(partyUser.Peer.SessionId) });
 
                 _ = RunOperationCompletedEventHandler((service, handlers, scope) =>
                 {
@@ -909,7 +909,7 @@ namespace Stormancer.Server.Plugins.Party
                 LeaderId = _partyState.Settings.PartyLeaderId,
                 Settings = new PartySettingsUpdateDto(_partyState),
                 PartyMembers = _partyState.PartyMembers.Values.Select(member =>
-                    new PartyMemberDto { PartyUserStatus = member.StatusInParty, UserData = member.UserData, UserId = member.UserId }).ToList(),
+                    new PartyMemberDto { PartyUserStatus = member.StatusInParty, UserData = member.UserData, UserId = member.UserId, SessionId = SessionId.From(member.Peer.SessionId) }).ToList(),
                 Version = _partyState.VersionNumber
             };
 

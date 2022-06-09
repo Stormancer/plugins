@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using MsgPack.Serialization;
 using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
@@ -115,11 +116,47 @@ namespace Stormancer.Server.PartyManagement
             return token;
         }
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<SearchResult<string>> SearchParties(string jsonQuery, uint skip, uint size, CancellationToken cancellationToken)
+        public async Task<PartySearchResultDto> SearchParties(string jsonQuery, uint skip, uint size, CancellationToken cancellationToken)
         {
             var result = await search.SearchParties(JObject.Parse(jsonQuery), skip, size, cancellationToken);
 
-            return new SearchResult<string> { Total = result.Total, Hits = result.Hits.Select(d => new Document<string> { Id = d.Id, Source = d.Source?.ToString(Newtonsoft.Json.Formatting.None) ?? "{}" }) };
+            return new PartySearchResultDto { Total = result.Total, Hits = result.Hits.Select(d => new PartySearchDocumentDto { Id = d.Id, Source = d.Source?.ToString(Newtonsoft.Json.Formatting.None) ?? "{}" }) };
         }
+    }
+
+    /// <summary>
+    /// A party search document.
+    /// </summary>
+    public class PartySearchDocumentDto
+    {
+        /// <summary>
+        /// Id of the party.
+        /// </summary>
+        [MessagePackMember(0)]
+        public string Id { get; set; } = default!;
+
+        /// <summary>
+        /// Json Data associated with the party.
+        /// </summary>
+        [MessagePackMember(1)]
+        public string Source { get; set; } = default!;
+    }
+
+    /// <summary>
+    /// A party search result.
+    /// </summary>
+    public class PartySearchResultDto
+    {
+        /// <summary>
+        /// Total number of documents returned by the search.
+        /// </summary>
+        [MessagePackMember(0)]
+        public uint Total { get; set; }
+
+        /// <summary>
+        /// Results in the search result.
+        /// </summary>
+        [MessagePackMember(1)]
+        public IEnumerable<PartySearchDocumentDto> Hits { get; set; }
     }
 }
