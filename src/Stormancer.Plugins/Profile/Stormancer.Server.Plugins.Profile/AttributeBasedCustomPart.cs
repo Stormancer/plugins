@@ -22,6 +22,7 @@
 
 using Nest;
 using Newtonsoft.Json.Linq;
+using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Database;
 using System;
 using System.Collections.Generic;
@@ -39,11 +40,13 @@ namespace Stormancer.Server.Plugins.Profile
     {
         private readonly IESClientFactory clientFactory;
         private readonly ISerializer serializer;
+        private readonly ILogger logger;
 
-        public AttributeBasedCustomPart(IESClientFactory client, ISerializer serializer)
+        public AttributeBasedCustomPart(IESClientFactory client, ISerializer serializer, ILogger logger)
         {
             this.clientFactory = client;
             this.serializer = serializer;
+            this.logger = logger;
         }
 
         Task<IElasticClient> GetClient(string partId) => clientFactory.CreateClient(partId, "profileParts");
@@ -67,7 +70,18 @@ namespace Stormancer.Server.Plugins.Profile
 
                     _customProfilePartTypescache = AssemblyLoadContext.Default.Assemblies
                         .Where(a => !a.IsDynamic)
-                        .SelectMany(a => a.GetExportedTypes())
+                        .SelectMany(a =>
+                        {
+                            try
+                            {
+                                return a.GetExportedTypes();
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.Log(Diagnostics.LogLevel.Error, "profiles.customParts", $"Failed to get exported types from {a}", ex);
+                                return Enumerable.Empty<Type>();
+                            }
+                        })
                         .Select(t => new { type = t, attr = t.GetCustomAttribute<CustomProfilePartAttribute>() })
                         .Where(t => t.attr != null)
                         .ToDictionary(t => t.attr!.PartId, t => t.type) ?? new Dictionary<string, Type>();

@@ -157,6 +157,6 @@ namespace Stormancer.Server.PartyManagement
         /// Results in the search result.
         /// </summary>
         [MessagePackMember(1)]
-        public IEnumerable<PartySearchDocumentDto> Hits { get; set; }
+        public IEnumerable<PartySearchDocumentDto> Hits { get; set; } = default!;
     }
 }

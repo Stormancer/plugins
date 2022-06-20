@@ -224,6 +224,10 @@ namespace Stormancer.Server.Plugins.Party
                 else
                 {
                     var partySettings = new PartySettingsDto(_partyService.Settings);
+                    if(partySettings.PublicServerData == null)
+                    {
+                        partySettings.PublicServerData = new System.Collections.Generic.Dictionary<string, string>();
+                    }
                     partySettings.PublicServerData["stormancer.partyStatus"] = newStatus;
                     partySettings.PublicServerData["stormancer.partyStatus.details"] = details ?? String.Empty;
                     return partySettings;
