@@ -13,7 +13,7 @@ Unreleased
 ----------
 Changed
 *******
-- Update dependency to Stormancer.Abstraction.Server 6.0.0.1
+- Update dependency to Stormancer.Abstraction.Server 7.0.0
 Fixed
 *****
 - Create empty entries in GetProfiles for missing profiles.

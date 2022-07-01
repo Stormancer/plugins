@@ -14,6 +14,7 @@ Unreleased
 Changed
 *******
 - Specify CurrentPlatform when creating an user.
+- Update dependency to Stormancer.Abstraction.Server 7.0.0
 
 2.0.2.1
 -------
