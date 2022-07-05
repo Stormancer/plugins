@@ -971,7 +971,33 @@ namespace Stormancer
 			bool isJoinable = true;
 			std::unordered_map<std::string, std::string> publicServerData; // Not in MSGPACK_DEFINE because cannot be set by the client
 
-			MSGPACK_DEFINE(gameFinderName, customData, onlyLeaderCanInvite, isJoinable);
+			 /// <summary>
+			/// Json document used to search the party.
+			/// </summary>
+			/// <remarks>
+			/// Must be a valdi json object.
+			/// The party is not searchable if set to empty or an invalid json object.
+			/// The content of the document are indexed using the field paths as keys, with '.' as separator.
+			/// 
+			/// For example, the following document:
+			/// {
+			///    "maxPlayers":3,
+			///    "gamemode":{
+			///      "map":"level3-a",
+			///      "extraFooEnabled":true
+			///    }
+			/// }
+			/// 
+			/// will be indexed with the following keys:
+			/// - "numplayers": 3 (numeric)
+			/// - "gamemode.map":"level3-a" (string)
+			/// - "gamemode.extraFooEnabled":true (bool)
+			/// 
+			/// To enable search without filtering, set indexedDocument to an empty json object '{}'.
+			/// </remarks>
+			std::string indexedDocument;
+
+			MSGPACK_DEFINE(gameFinderName, customData, onlyLeaderCanInvite, isJoinable, indexedDocument);
 		};
 
 		struct PartyGameFinderFailure
@@ -2645,12 +2671,6 @@ namespace Stormancer
 					return rpc->rpc<std::string>("PartyManagement.CreateConnectionTokenFromInvitationCode", ct, invitationCode);
 				}
 
-				pplx::task<SearchResult>  searchParties(std::string jsonQuery, Stormancer::uint32 skip, Stormancer::uint32 size, pplx::cancellation_token cancellationToken)
-				{
-					auto rpc = _scene.lock()->dependencyResolver().resolve<RpcService>();
-					return rpc->rpc<SearchResult>("PartyManagement.SearchParties", cancellationToken, jsonQuery, skip, size);
-				}
-
 			private:
 
 				std::weak_ptr<Scene> _scene;
@@ -2975,7 +2995,7 @@ namespace Stormancer
 					auto party = tryGetParty();
 					if (party != nullptr)
 					{
-						auto serverData = party->settings().publicServerData;
+						auto& serverData = party->settings().publicServerData;
 						return serverData.find("gamesession") != serverData.end();
 					}
 					else
@@ -2997,15 +3017,6 @@ namespace Stormancer
 						STORM_RETURN_TASK_FROM_EXCEPTION_OPT(std::runtime_error(PartyError::Str::NotInParty), _dispatcher, std::string);
 					}
 					return party->partyService()->getCurrentGameSessionConnectionToken(ct);
-				}
-
-				pplx::task<SearchResult>  searchParties(std::string jsonQuery, Stormancer::uint32 skip, Stormancer::uint32 size, pplx::cancellation_token cancellationToken)
-				{
-					return getPartyManagementService(cancellationToken)
-						.then([jsonQuery, skip, size, cancellationToken](std::shared_ptr<Stormancer::Party::details::PartyManagementService> service)
-							{
-								return service->searchParties(jsonQuery, skip, size, cancellationToken);
-							});
 				}
 
 				bool isInParty() const noexcept override
@@ -3418,9 +3429,6 @@ namespace Stormancer
 
 					return pplx::when_all(tasks.begin(), tasks.end(), _dispatcher);
 				}
-
-
-
 
 				Subscription subscribeOnSentInvitationsListUpdated(std::function<void(std::vector<std::string>)> callback) override
 				{

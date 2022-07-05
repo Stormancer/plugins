@@ -6,6 +6,7 @@
     <ClCompile Include="TestDevServer.cpp" />
     <ClCompile Include="TestParty.cpp" />
     <ClCompile Include="TestDisableGameSessionDirectConnection.cpp" />
+    <ClCompile Include="TestBrowseParties.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
