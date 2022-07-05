@@ -87,7 +87,7 @@ namespace Stormancer.Server.Plugins.Party
 
                     scene.AddPartyManagement();
                 });
-
+                host.DependencyResolver.Resolve<PartyLuceneDocumentStore>().Initialize();
                 host.DependencyResolver.Resolve<InvitationCodeService>().Initialize();
             };
             ctx.SceneShuttingDown += (ISceneHost scene) =>
@@ -127,9 +127,10 @@ namespace Stormancer.Server.Plugins.Party
 
             ctx.HostStarted += (IHost host) =>
             {
-               
+
                 //Ensure PartyManagement scene exists.
                 host.EnsureSceneExists(PARTY_MANAGEMENT_SCENEID, PARTY_MANAGEMENT_SCENE_TYPE, false, true);
+                
             };
 
         }

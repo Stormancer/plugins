@@ -772,7 +772,7 @@ namespace Stormancer
 			virtual void setJoinPartyFromSystemHandler(std::function<pplx::task<bool>(JoinPartyFromSystemArgs)> handler) = 0;
 
 
-			virtual pplx::task<SearchResult>  SearchParties(std::string jsonQuery, Stormancer::uint32 skip, Stormancer::uint32 size, pplx::cancellation_token cancellationToken) = 0;
+			virtual pplx::task<SearchResult>  searchParties(std::string jsonQuery, Stormancer::uint32 skip, Stormancer::uint32 size, pplx::cancellation_token cancellationToken) = 0;
 		};
 
 		/// <summary>
@@ -2671,6 +2671,11 @@ namespace Stormancer
 					return rpc->rpc<std::string>("PartyManagement.CreateConnectionTokenFromInvitationCode", ct, invitationCode);
 				}
 
+				pplx::task<SearchResult>  searchParties(std::string jsonQuery, Stormancer::uint32 skip, Stormancer::uint32 size, pplx::cancellation_token cancellationToken)
+				{
+					auto rpc = _scene.lock()->dependencyResolver().resolve<RpcService>();
+					return rpc->rpc<SearchResult>("PartyManagement.SearchParties", cancellationToken, jsonQuery, skip, size);
+				}
 			private:
 
 				std::weak_ptr<Scene> _scene;
@@ -3136,6 +3141,15 @@ namespace Stormancer
 						.then([invitationCode, ct](std::shared_ptr<PartyManagementService> service)
 							{
 								return service->getConnectionTokenFromInvitationCode(invitationCode, ct);
+							});
+				}
+
+				pplx::task<SearchResult>  searchParties(std::string jsonQuery, Stormancer::uint32 skip, Stormancer::uint32 size, pplx::cancellation_token cancellationToken)
+				{
+					return getPartyManagementService(cancellationToken)
+						.then([jsonQuery, skip, size, cancellationToken](std::shared_ptr<PartyManagementService> service)
+							{
+								return service->searchParties(jsonQuery, skip, size, cancellationToken);
 							});
 				}
 

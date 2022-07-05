@@ -3,10 +3,8 @@
 #include "stormancer/Configuration.h"
 
 #include "users/Users.hpp"
+#include "gamefinder/GameFinder.hpp"
 #include "party/Party.hpp"
-#include "gameFinder/GameFinder.hpp"
-#include "gameSession/Gamesessions.hpp"
-#include "gameSession/ServerPools.hpp"
 
 #include "stormancer/IActionDispatcher.h"
 #include "stormancer/IClientFactory.h"
@@ -44,14 +42,17 @@ static pplx::task<bool> BrowseParty(int id)
 
 	auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
 
-	return party->searchParties("{}", 0, 10, pplx::cancellation_token::none())
-	.then([client](pplx::task<Stormancer::Party::SearchResult> t) 
+	return  users->login().then([party]() {return party->searchParties("{}", 0, 10, pplx::cancellation_token::none()); })
+	.then([client,party](Stormancer::Party::SearchResult t) {
+		return party->joinPartyBySceneId(t.hits.front().id);
+	})
+	.then([client](pplx::task<void> t)
 	{
 		try
 		{
-			auto result = t.get();
+			t.get();
 			
-			return result.total == 1;
+			return true;
 		}
 		catch (std::exception& ex)
 		{
@@ -77,20 +78,17 @@ static pplx::task<void> CreateParty(int id)
 		return pplx::task_from_result(authParameters);
 	};
 
-	auto gameFinder = client->dependencyResolver().resolve<Stormancer::GameFinder::GameFinderApi>();
+	
 	auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
 
-	//Create a task that will complete the next time a game is found.
-	auto gameFoundTask = gameFinder->waitGameFound();
-
-
+	
 
 	Stormancer::Party::PartyRequestDto request;
 	request.GameFinderName = "joingame-test";
 	//Name of the matchmaking, defined in Stormancer.Server.TestApp/TestPlugin.cs.
 	//>  host.AddGamefinder("matchmaking", "matchmaking");
 
-	return party->createPartyIfNotJoined(request)
+	return users->login().then([party,request]() {return party->createPartyIfNotJoined(request); })
 	.then([client,party]()
 	{
 		auto settings = party->getPartySettings();
@@ -131,6 +129,7 @@ TEST(Metagame, TestBrowseParty) {
 
 		//Add plugins required by the test.
 		config->addPlugin(new Stormancer::Users::UsersPlugin());
+		config->addPlugin(new Stormancer::GameFinder::GameFinderPlugin());
 		config->addPlugin(new Stormancer::Party::PartyPlugin());
 
 

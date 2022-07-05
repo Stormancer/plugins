@@ -20,6 +20,7 @@ Added
 *****
 - Add skip search request parameter to "skip" documents in the result.
 - Add Total property to search response 
+- Supports MatchAll filters
 
 0.1.0.11
 -------
