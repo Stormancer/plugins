@@ -19,6 +19,9 @@ Fixed
 Added
 *****
 - AuthenticationProvider can add metadata to login results.
+Changed
+*******
+- Target dotnet 6 and Stormancer.Abstractions.Server 7.0.0
 
 5.2.3.12
 --------

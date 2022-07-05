@@ -13,7 +13,7 @@ Unreleased
 ----------
 Changed
 *******
-- Update dependency to Stormancer.Abstraction.Server 6.0.0.1
+- Update dependency to Stormancer.Abstraction.Server 7.0.0
 - Allow Document to contain null Source to denote "not found".
 - Adds default json based mapper.
 Added
