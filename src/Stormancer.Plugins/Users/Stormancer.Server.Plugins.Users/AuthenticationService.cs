@@ -357,8 +357,7 @@ namespace Stormancer.Server.Plugins.Users
                 {
                     try
                     {
-                        using var packet = await peer.Rpc(RenewCredentialsRoute, s => peer.Serializer().Serialize(provider.Type, s));
-                        var parameters = peer.Serializer().Deserialize<RenewCredentialsParameters>(packet.Stream);
+                        var parameters = await peer.RpcTask<string, RenewCredentialsParameters>(RenewCredentialsRoute, provider.Type);
 
                         var ctx = new AuthenticationContext(parameters.Parameters, peer, session.CreateView());
                         var expiration = await provider.RenewCredentials(ctx);

@@ -16,6 +16,7 @@ Fixed
 - Calling ConfigureUsers several times doesn't reset the config between two calls.
 - Removed IUSerService.CreateUser() overload with only 2 arguments: Providers should always specify the current platform when creating users.
 - Fixed possible deadlock when using SendUserRequest.
+- Fixes an exception on credentials renewal
 Added
 *****
 - AuthenticationProvider can add metadata to login results.
