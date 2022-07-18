@@ -31,6 +31,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Api.S2SProxyGenerator
 {
@@ -60,6 +61,20 @@ namespace Stormancer.Server.Plugins.Api.S2SProxyGenerator
             return asm?.GetTypeByMetadataName(typeName);
         }
 
+        private INamedTypeSymbol? GetSymbol(GeneratorExecutionContext context, string typeName)
+        {
+            var asms = context.Compilation.References.Select(metadata => context.Compilation.GetAssemblyOrModuleSymbol(metadata)).OfType<IAssemblySymbol>().Select(m=>m.GetTypeByMetadataName(typeName)).Where(asm=>asm is not null);
+
+            return asms?.FirstOrDefault();
+        }
+
+        private INamedTypeSymbol? GetSymbol(GeneratorExecutionContext context, Type t)
+        {
+            var asm = context.Compilation.References.Select(metadata => context.Compilation.GetAssemblyOrModuleSymbol(metadata)).OfType<IAssemblySymbol>().FirstOrDefault(asm => asm.Identity.Name == t.Assembly.GetName().Name);
+
+            return asm?.GetTypeByMetadataName(t.Name);
+        }
+
         private INamedTypeSymbol? GetSymbol<T>(GeneratorExecutionContext context)
         {
             var apiAsm = context.Compilation.References.Select(metadata => context.Compilation.GetAssemblyOrModuleSymbol(metadata)).OfType<IAssemblySymbol>().FirstOrDefault(asm => asm.Identity.Name == typeof(T).Assembly.GetName().Name);
@@ -72,18 +87,18 @@ namespace Stormancer.Server.Plugins.Api.S2SProxyGenerator
         /// <param name="context"></param>
         public void Execute(GeneratorExecutionContext context)
         {
-            //Debugger.Launch();
+            Debugger.Launch();
 
             var s2sApiAttribute = GetSymbol<S2SApiAttribute>(context);
             var serviceAttributeSymbol = GetSymbol<ServiceAttribute>(context);
             var contextUsageSymbol = GetSymbol<S2SContextUsageAttribute>(context);
-            var iAsyncEnumerableSymbol = GetSymbol(context, "System.Runtime", "System.Collections.Generic.IAsyncEnumerable`1")?.ConstructUnboundGenericType();
-            var genericTaskSymbol = GetSymbol(context, "System.Runtime", "System.Threading.Tasks.Task`1")?.ConstructUnboundGenericType();
-            var taskSymbol = GetSymbol(context, "System.Runtime", "System.Threading.Tasks.Task");
+            var iAsyncEnumerableSymbol = GetSymbol(context,  "System.Collections.Generic.IAsyncEnumerable`1")?.ConstructUnboundGenericType();
+            var genericTaskSymbol = GetSymbol(context, "System.Threading.Tasks.Task`1")?.ConstructUnboundGenericType();
+            var taskSymbol = GetSymbol(context, "System.Threading.Tasks.Task");
             var s2sRequestContextSymbol = GetSymbol(context, "Stormancer.Abstractions.Server", "Stormancer.Core.IS2SRequestContext");
-            var cancellationTokenSymbol = GetSymbol(context, "System.Runtime", "System.Threading.CancellationToken");
+            var cancellationTokenSymbol = GetSymbol(context, "System.Threading.CancellationToken");
 
-            Debug.Assert(taskSymbol != null);
+            if(taskSymbol is null) return;
 
             if (s2sApiAttribute is null) return;
             if (serviceAttributeSymbol is null) return;
