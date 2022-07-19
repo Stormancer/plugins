@@ -108,6 +108,11 @@ namespace Stormancer.Server.Plugins.Database
         public bool Sniffing { get; set; } = true;
 
         /// <summary>
+        /// Should the client ignore certificate errors (for instance self signed cert).
+        /// </summary>
+        public bool IgnoreCertificateErrors { get; set; } = false;
+
+        /// <summary>
         /// Gets or sets ES credentials.
         /// </summary>
         public ESCredentials? Credentials { get; set; }
@@ -281,16 +286,18 @@ namespace Stormancer.Server.Plugins.Database
 
         private class ConnectionPool : IDisposable
         {
-            public ConnectionPool(Elasticsearch.Net.IConnectionPool pool, ESCredentials? credentials)
+            public ConnectionPool(Elasticsearch.Net.IConnectionPool pool, ESCredentials? credentials, bool ignoreCertErrors)
             {
                 Pool = pool;
                 Credentials = credentials;
+                IgnoreCertificateErrors = ignoreCertErrors;
             }
 
             public IConnectionPool Pool { get; }
 
             public ESCredentials? Credentials { get; }
 
+            public bool IgnoreCertificateErrors { get; }
             public void Dispose()
             {
                 Pool?.Dispose();
@@ -337,12 +344,12 @@ namespace Stormancer.Server.Plugins.Database
                 {
                     pool = new StaticConnectionPool(endpoints);
                 }
-                return new ConnectionPool(pool, c.Credentials);
+                return new ConnectionPool(pool, c.Credentials, c.IgnoreCertificateErrors);
             }) ?? new Dictionary<string, ConnectionPool>();
 
             if (!_connectionPools.ContainsKey("default"))
             {
-                _connectionPools.Add("default", new ConnectionPool(new StaticConnectionPool(new[] { new Uri("http://localhost:9200") }), null));
+                _connectionPools.Add("default", new ConnectionPool(new StaticConnectionPool(new[] { new Uri("http://localhost:9200") }), null, false));
             }
         }
 
@@ -417,7 +424,7 @@ namespace Stormancer.Server.Plugins.Database
 
         public IElasticClient CreateClient(ConnectionParameters p)
         {
-           
+
             if (!_connectionPools.TryGetValue(p.ConnectionPool, out var connectionPool))
             {
                 _logger.Log(Stormancer.Diagnostics.LogLevel.Trace, "es", "Failed to find connection Pool", new { });
@@ -433,7 +440,17 @@ namespace Stormancer.Server.Plugins.Database
                 var settings = new ConnectionSettings(connectionPool.Pool, s).DefaultIndex(p.IndexName.ToLowerInvariant()).MaximumRetries(p.maxRetries).MaxRetryTimeout(TimeSpan.FromSeconds(p.retryTimeout));
                 if (connectionPool?.Credentials?.Basic?.Login != null && connectionPool?.Credentials?.Basic?.Password != null)
                 {
-                    settings.BasicAuthentication(connectionPool?.Credentials?.Basic?.Login, connectionPool?.Credentials?.Basic?.Password);
+
+                    settings = settings.BasicAuthentication(connectionPool?.Credentials?.Basic?.Login, connectionPool?.Credentials?.Basic?.Password);
+                }
+
+                if(connectionPool?.IgnoreCertificateErrors?? false)
+                {
+                    settings = settings.ServerCertificateValidationCallback((_, cert, chain, policyErrors) =>
+                    {
+
+                        return true;
+                    });
                 }
                 return new Nest.ElasticClient(settings);
             });
@@ -451,7 +468,7 @@ namespace Stormancer.Server.Plugins.Database
 
         public IConnectionPool? GetConnectionPool(string id)
         {
-           
+
             if (_connectionPools.TryGetValue(id, out var connection))
             {
                 return connection.Pool;

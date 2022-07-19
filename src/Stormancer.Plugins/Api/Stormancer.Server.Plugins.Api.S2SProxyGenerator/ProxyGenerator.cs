@@ -87,7 +87,7 @@ namespace Stormancer.Server.Plugins.Api.S2SProxyGenerator
         /// <param name="context"></param>
         public void Execute(GeneratorExecutionContext context)
         {
-            Debugger.Launch();
+            //Debugger.Launch();
 
             var s2sApiAttribute = GetSymbol<S2SApiAttribute>(context);
             var serviceAttributeSymbol = GetSymbol<ServiceAttribute>(context);
