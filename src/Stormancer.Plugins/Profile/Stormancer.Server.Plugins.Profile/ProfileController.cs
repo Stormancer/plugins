@@ -28,6 +28,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Stormancer.Plugins;
 using System.Threading;
+using Newtonsoft.Json.Linq;
 
 namespace Stormancer.Server.Plugins.Profile
 {
@@ -49,17 +50,17 @@ namespace Stormancer.Server.Plugins.Profile
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<Dictionary<string, ProfileDto?>> GetProfilesBySessionIds(IEnumerable<string> sessionIds, Dictionary<string, string> displayOptions, RequestContext<IScenePeerClient> ctx)
+        public async Task<Dictionary<string, ProfileDto>> GetProfilesBySessionIds(IEnumerable<string> sessionIds, Dictionary<string, string> displayOptions, RequestContext<IScenePeerClient> ctx)
         {
 
             var sessions = await _sessions.GetSessions(sessionIds, ctx.CancellationToken);
 
             IEnumerable<string> userIds = sessions.Values.Select(s => s?.User?.Id).Where(id => id != null)!;
 
-            var profiles = userIds.Any() ? await GetProfiles(userIds, displayOptions, ctx.CancellationToken) : new Dictionary<string, ProfileDto?>();
+            var profiles = userIds.Any() ? await GetProfiles(userIds, displayOptions, ctx.CancellationToken) : new Dictionary<string, ProfileDto>();
 
 
-            var results = new Dictionary<string, ProfileDto?>();
+            var results = new Dictionary<string, ProfileDto>();
 
             foreach (var session in sessions)
             {
@@ -73,7 +74,7 @@ namespace Stormancer.Server.Plugins.Profile
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<Dictionary<string, ProfileDto?>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, RequestContext<IScenePeerClient> ctx)
+        public async Task<Dictionary<string, ProfileDto>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, RequestContext<IScenePeerClient> ctx)
         {
 
             var session = await _sessions.GetSession(ctx.RemotePeer, ctx.CancellationToken);
@@ -83,14 +84,48 @@ namespace Stormancer.Server.Plugins.Profile
             }
 
             var profiles = await _profiles.GetProfiles(userIds, displayOptions, session, ctx.CancellationToken);
-            return profiles.ToDictionary(kvp => kvp.Key, kvp => kvp.Value != null ? new ProfileDto { Data = kvp.Value.ToDictionary(kvp2 => kvp2.Key, kvp2 => kvp2.Value.ToString()) } : null);
+
+
+            return profiles.ToDictionary(kvp => kvp.Key, kvp =>
+            {
+                switch (kvp.Value)
+                {
+                    case null:
+                        return new();
+                    case Dictionary<string, JObject> profile:
+                        {
+                            var result = new ProfileDto { Found = true };
+                            foreach(var (key, value) in profile)
+                            {
+                                result.Data.Add(key, value.ToString());
+                            }
+                            return result;
+                        }
+                };
+            });
         }
 
         [S2SApi]
-        public async Task<Dictionary<string, ProfileDto?>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, CancellationToken cancellationToken)
+        public async Task<Dictionary<string, ProfileDto>> GetProfiles(IEnumerable<string> userIds, Dictionary<string, string> displayOptions, CancellationToken cancellationToken)
         {
             var profiles = await _profiles.GetProfiles(userIds, displayOptions, null, cancellationToken);
-            return profiles.ToDictionary(kvp => kvp.Key, kvp => kvp.Value != null ? new ProfileDto { Data = kvp.Value.ToDictionary(kvp2 => kvp2.Key, kvp2 => kvp2.Value.ToString()) } : null);
+            return profiles.ToDictionary(kvp => kvp.Key, kvp =>
+            {
+                switch (kvp.Value)
+                {
+                    case null:
+                        return new();
+                    case Dictionary<string, JObject> profile:
+                        {
+                            var result = new ProfileDto { Found = true };
+                            foreach (var (key, value) in profile)
+                            {
+                                result.Data.Add(key, value.ToString());
+                            }
+                            return result;
+                        }
+                };
+            });
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
@@ -118,7 +153,7 @@ namespace Stormancer.Server.Plugins.Profile
 
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<Dictionary<string, ProfileDto?>> QueryProfiles(string pseudoPrefix, int skip, int take, RequestContext<IScenePeerClient> ctx)
+        public async Task<Dictionary<string, ProfileDto>> QueryProfiles(string pseudoPrefix, int skip, int take, RequestContext<IScenePeerClient> ctx)
         {
             if (pseudoPrefix.Length < 3)
             {
@@ -126,7 +161,26 @@ namespace Stormancer.Server.Plugins.Profile
             }
             var users = await _users.QueryUserHandlePrefix(pseudoPrefix, take, skip);
             var profiles = await _profiles.GetProfiles(users.Select(u => u.Id), new Dictionary<string, string> { { "displayType", "summary" } }, await _sessions.GetSession(ctx.RemotePeer, ctx.CancellationToken), ctx.CancellationToken);
-            return profiles.ToDictionary(kvp => kvp.Key, kvp => kvp.Value != null ? new ProfileDto { Data = kvp.Value.ToDictionary(kvp2 => kvp2.Key, kvp2 => kvp2.Value.ToString()) }:null);
+
+            return profiles.ToDictionary(kvp => kvp.Key, kvp =>
+            {
+                switch (kvp.Value)
+                {
+                    case null:
+                        return new();
+                    case Dictionary<string, JObject> profile:
+                        {
+                            var result = new ProfileDto { Found = true };
+                            foreach (var (key, value) in profile)
+                            {
+                                result.Data.Add(key, value.ToString());
+                            }
+                            return result;
+                        }
+                };
+            });
+
+            //return profiles.ToDictionary(kvp => kvp.Key, kvp => kvp.Value != null ? new ProfileDto { Data = kvp.Value.ToDictionary(kvp2 => kvp2.Key, kvp2 => kvp2.Value.ToString()) } : null);
         }
 
         /// <summary>
@@ -188,6 +242,12 @@ namespace Stormancer.Server.Plugins.Profile
         /// Gets the dictionary of parts in the profile, represented as json.
         /// </summary>
         [MessagePackMember(0)]
-        public Dictionary<string, string> Data { get; set; } = default!;
+        public Dictionary<string, string> Data { get; } = new();
+
+        /// <summary>
+        /// Indicates whether the profile has been found
+        /// </summary>
+        [MessagePackMember(1)]
+        public bool Found { get; set; }
     }
 }
