@@ -17,6 +17,7 @@ Added
 Fixed
 *****
 - Fixed crash when running the quick queue gamefinder
+- Added QuickQueueGameSessionEventHandler registration
 Changed
 *******
 - Compatibility with updated Queries API.
