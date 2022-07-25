@@ -229,7 +229,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                                     var team = new Team(party);
                                     game.Teams.Add(team);
                                     results.Games.Add(game);
-                                    var data = new QuickQueueGameSessionData { CreatedOn = DateTime.UtcNow, TargetPlayerCount = (int)(teamSize * teamCount), TargetTeamCount = (int)teamCount };
+                                    var data = new QuickQueueGameSessionData { CreatedOn = DateTime.UtcNow, TargetTeamSize = (int)teamSize, TargetTeamCount = (int)teamCount };
                                     data.Teams = new List<QuickQueueGameSessionTeamData> { new QuickQueueGameSessionTeamData { PlayerCount = party.Players.Count, TeamId = team.TeamId } };
                                     sessions.Add(new Document<QuickQueueGameSessionData> { Id = game.Id, Source = data });
                                     p.Remove(party);
@@ -580,6 +580,6 @@ namespace Stormancer.Server.Plugins.GameFinder
         public List<QuickQueueGameSessionTeamData> Teams { get; set; }
 
         public int TargetTeamCount { get; set; }
-        public int TargetPlayerCount { get; set; }
+        public int TargetTeamSize { get; set; }
     }
 }

@@ -100,7 +100,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                     _gameSessionData = new QuickQueueGameSessionData()
                     {
                         CreatedOn = DateTime.UtcNow,
-                        TargetPlayerCount = config.TeamCount * config.TeamSize,
+                        TargetTeamSize = config.TeamSize,
                         TargetTeamCount = config.TeamCount,
                         Teams = new List<QuickQueueGameSessionTeamData>()
                     };
