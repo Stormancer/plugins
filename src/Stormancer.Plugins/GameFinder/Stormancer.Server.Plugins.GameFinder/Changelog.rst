@@ -18,6 +18,7 @@ Fixed
 *****
 - Fixed crash when running the quick queue gamefinder
 - Added QuickQueueGameSessionEventHandler registration
+- QuickQueueGameSessionEventHandler now use GameSessionStarting for its initial setup instead of GameSessionStarted
 Changed
 *******
 - Compatibility with updated Queries API.

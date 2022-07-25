@@ -86,7 +86,9 @@ namespace Stormancer.Server.Plugins.GameFinder
             this.repository = repository;
             this.gs = gs;
         }
-        public Task GameSessionStarted(GameSessionStartedCtx ctx)
+
+        
+        public Task GameSessionStarting(GameSessionContext ctx)
         {
             lock (_syncRoot)
             {
