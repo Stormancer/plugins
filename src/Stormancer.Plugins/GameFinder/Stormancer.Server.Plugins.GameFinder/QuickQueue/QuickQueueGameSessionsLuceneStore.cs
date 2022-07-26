@@ -47,8 +47,8 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         private IEnumerable<IIndexableField> GameSessionMapper(JObject doc)
         {
-            yield return new Int64Field("targetTeamCount", doc["targetTeamCount"].ToObject<int>(), Field.Store.NO);
-            yield return new Int64Field("targetTeamSize", doc["targetTeamSize"].ToObject<int>(), Field.Store.NO);
+            yield return new Int64Field("targetTeamCount", doc["TargetTeamCount"].ToObject<int>(), Field.Store.NO);
+            yield return new Int64Field("targetTeamSize", doc["TargetTeamSize"].ToObject<int>(), Field.Store.NO);
         }
 
         public IEnumerable<Document<JObject>> GetDocuments(IEnumerable<string> ids)
