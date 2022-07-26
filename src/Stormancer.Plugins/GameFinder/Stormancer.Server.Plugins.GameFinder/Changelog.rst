@@ -20,6 +20,7 @@ Fixed
 - Added QuickQueueGameSessionEventHandler registration
 - QuickQueueGameSessionEventHandler now use GameSessionStarting for its initial setup instead of GameSessionStarted
 - modified QuickQueueGameSessionData to match with the indexed properties in the Lucene store
+- fixed QuickQueue game finding algorithm
 Changed
 *******
 - Compatibility with updated Queries API.

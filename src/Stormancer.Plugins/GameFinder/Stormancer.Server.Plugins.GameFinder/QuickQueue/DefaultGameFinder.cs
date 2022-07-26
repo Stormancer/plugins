@@ -165,6 +165,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                                                 {
                                                     game = new ExistingGame(session.Id);
                                                     game.Teams.Add(new Team(party) { TeamId = team.TeamId });
+                                                    results.Games.Add(game);
                                                 }
                                                 p.Remove(party);
                                                 return sessions;
@@ -173,15 +174,13 @@ namespace Stormancer.Server.Plugins.GameFinder
                                             {
                                                 //We should have been able to do a reservation. As we didn't, we need to retry.
                                                 return (await QueryGameSessions(group.Key)).OrderBy(session => session.Source.CreatedOn).ToList();
-
-
                                             }
 
                                         }
                                     }
 
                                     //can I create new team ?
-                                    if(party.Players.Count < teamSize && session.Source.TargetTeamCount > session.Source.Teams.Count)
+                                    if(party.Players.Count <= teamSize && session.Source.TargetTeamCount > session.Source.Teams.Count)
                                     {
                                         var team = new Team(party);
                                         var reservation = await gameSessions.CreateReservation(session.Id,team  , new JObject(), CancellationToken.None);
@@ -208,6 +207,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                                             {
                                                 game = new ExistingGame(session.Id);
                                                 game.Teams.Add(new Team(party) { TeamId = team.TeamId });
+                                                results.Games.Add(game);
                                             }
                                             p.Remove(party);
                                             return sessions;
@@ -216,8 +216,6 @@ namespace Stormancer.Server.Plugins.GameFinder
                                         {
                                             //We should have been able to do a reservation. As we didn't, we need to retry.
                                             return (await QueryGameSessions(group.Key)).OrderBy(session => session.Source.CreatedOn).ToList();
-
-
                                         }
                                     }
 
