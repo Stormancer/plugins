@@ -624,6 +624,8 @@ namespace Stormancer.Server.Plugins.GameSession
                     await SendP2PToken(Enumerable.Repeat(peer, 1), false, _p2pToken, (await GetServerTcs().Task).SessionId);
                 }
 
+                var serverUpdate = new PlayerUpdate { IsHost = true, Status = (byte)PlayerStatus.Ready, UserId = "server" };
+                await _scene.Send(new MatchPeerFilter(peer), "player.update", s => _serializer.Serialize(serverUpdate, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
             }
 
             var playerConnectedCtx = new ClientConnectedContext(this, new PlayerPeer(peer, new Player(peer.SessionId, userId)), _config.HostUserId == userId);

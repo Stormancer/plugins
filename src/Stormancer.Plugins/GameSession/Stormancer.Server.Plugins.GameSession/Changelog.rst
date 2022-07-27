@@ -29,6 +29,7 @@ Changed
 Fixed
 *****
 - Don't poll docker status until a docker server gets started.
+- Send "ready" server status update when a player connects if the game has alreay started
 
 5.3.0
 -----
