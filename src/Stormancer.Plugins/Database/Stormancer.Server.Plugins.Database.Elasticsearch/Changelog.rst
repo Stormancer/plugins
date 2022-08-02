@@ -11,6 +11,8 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+- Update dependency to Stormancer.Abstraction.Server 7.1.0
+
 Fixed
 *****
 -NullreferenceException in intitialization

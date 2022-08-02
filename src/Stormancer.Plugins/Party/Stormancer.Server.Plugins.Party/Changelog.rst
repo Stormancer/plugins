@@ -14,7 +14,7 @@ Unreleased
 ----------
 Changed
 *******
-- Update dependency to Stormancer.Abstraction.Server 7.0.0
+- Update dependency to Stormancer.Abstraction.Server 7.1.0
 - Only generate numbers in invitation codes.
 - Only leader can create and cancel invitation codes.
 Added

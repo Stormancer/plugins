@@ -24,7 +24,7 @@ Fixed
 Changed
 *******
 - Compatibility with updated Queries API.
-- Update dependency to Stormancer.Abstraction.Server 7.0.0
+- Update dependency to Stormancer.Abstraction.Server 7.1.0
 
 7.3.0.1
 -------

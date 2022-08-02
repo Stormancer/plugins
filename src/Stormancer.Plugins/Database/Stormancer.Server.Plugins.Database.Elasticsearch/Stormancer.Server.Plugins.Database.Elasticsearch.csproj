@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net5.0</TargetFramework>
+		<TargetFramework>net6.0</TargetFramework>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>2.2.0</Version>
+		<Version>2.2.0.1</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -33,7 +33,7 @@
 		</PackageReference>
 		<PackageReference Include="NEST" Version="7.10.0" />
 		<PackageReference Include="SmartFormat.NET" Version="2.5.3" />
-		<PackageReference Include="Stormancer.Abstractions.Server" Version="6.0.0.1-pre" />
+		<PackageReference Include="Stormancer.Abstractions.Server" Version="7.1.0-pre" />
 	</ItemGroup>
 
 	<ItemGroup>

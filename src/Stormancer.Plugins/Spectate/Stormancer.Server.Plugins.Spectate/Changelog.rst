@@ -13,7 +13,7 @@ Unreleased
 ----------
 Changed
 *******
-- Update dependency to Stormancer.Abstraction.Server 7.0.0
+- Update dependency to Stormancer.Abstraction.Server 7.1.0
 
 0.2.2.2
 -------
