@@ -6,7 +6,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Stormancer.Abstractions.Server" Version="7.0.0" />
+		<PackageReference Include="Stormancer.Abstractions.Server" Version="7.1.0-pre" />
 		<PackageReference Include="Stormancer.Server.Plugins.DataProtection" Version="*-*" />
 		<PackageReference Include="Stormancer.Server.Plugins.Queries" Version="*-*" />
 		<PackageReference Include="Stormancer.Server.Plugins.GameFinder" Version="*-*" />
