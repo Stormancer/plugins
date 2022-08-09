@@ -14,6 +14,7 @@ Unreleased
 Changed
 *******
 - Update dependency to Stormancer.Abstraction.Server 7.0.0
+- Support '*' in required server string for to implment prefix matching. 1.0.* matches 1.0.1, 1.0.2, etc...
 
 2.0.3.3
 -------

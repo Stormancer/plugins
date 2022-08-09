@@ -45,7 +45,7 @@ namespace Stormancer.Server.Plugins.GameVersion
             {
                 if (version != null)
                 {
-                    await _userSessions.UpdateSessionData(ctx.Session.SessionId, "gameVersion.clientVersion", version,ctx.CancellationToken);
+                    await _userSessions.UpdateSessionData(ctx.Session.SessionId, "gameVersion.clientVersion", version, ctx.CancellationToken);
                 }
             }
 
@@ -63,11 +63,24 @@ namespace Stormancer.Server.Plugins.GameVersion
 
             if (authenticationCtx.AuthCtx.Parameters.TryGetValue("gameVersion.clientVersion", out var clientVersion))
             {
-                if (clientVersion != serverVersion)
+                if (serverVersion.EndsWith('*'))
                 {
-                    authenticationCtx.HasError = true;
-                    authenticationCtx.Reason = $"badGameVersion?mismatch&serverVersion={serverVersion}&clientVersion={clientVersion}";
-                    _logger.Log(LogLevel.Trace, "GameVersion", "Client tried to connect with an outdated game version.", new { clientVersion, serverVersion });
+                   
+                    if(!clientVersion.StartsWith(serverVersion.TrimEnd('*')))
+                    {
+                        authenticationCtx.HasError = true;
+                        authenticationCtx.Reason = $"badGameVersion?mismatch&serverVersion={serverVersion}&clientVersion={clientVersion}";
+                        _logger.Log(LogLevel.Trace, "GameVersion", "Client tried to connect with an outdated game version.", new { clientVersion, serverVersion });
+                    }
+                }
+                else
+                {
+                    if (clientVersion != serverVersion)
+                    {
+                        authenticationCtx.HasError = true;
+                        authenticationCtx.Reason = $"badGameVersion?mismatch&serverVersion={serverVersion}&clientVersion={clientVersion}";
+                        _logger.Log(LogLevel.Trace, "GameVersion", "Client tried to connect with an outdated game version.", new { clientVersion, serverVersion });
+                    }
                 }
             }
             else
