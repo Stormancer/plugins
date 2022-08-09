@@ -11,6 +11,8 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+- Update dependency to Stormancer.Abstraction.Server 7.1.0
+
 Added
 *****
 - Add support to IScenePeerClient as argument in controller actions.

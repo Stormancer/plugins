@@ -204,6 +204,7 @@ namespace Stormancer.Server.Plugins.Queries
             {
                 { Type: "match" } => ((TermFilterExpression)expression).ToLuceneQuery(),
                 { Type: "bool" } => ((BoolFilterExpression)expression).ToLuceneQuery(),
+                { Type: "match_all"}=> ((MatchAllFilterExpression)expression).ToLuceneQuery(),
                 _ => throw new NotSupportedException()
             };
         }
@@ -263,6 +264,11 @@ namespace Stormancer.Server.Plugins.Queries
             query.MinimumNumberShouldMatch = Math.Min(expression.MinimumShouldMatch, shouldClauses);
             return query;
 
+        }
+
+        public static Query ToLuceneQuery(this MatchAllFilterExpression expression)
+        {
+            return new MatchAllDocsQuery();
         }
     }
     public interface IFilterExpressionFactory
@@ -396,7 +402,7 @@ namespace Stormancer.Server.Plugins.Queries
 
         public int MinimumShouldMatch { get; }
     }
-
+   
     public class TermFilterExpression : IFilterExpression
     {
         public string Type => "match";

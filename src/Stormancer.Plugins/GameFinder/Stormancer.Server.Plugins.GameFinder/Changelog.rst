@@ -17,10 +17,14 @@ Added
 Fixed
 *****
 - Fixed crash when running the quick queue gamefinder
+- Added QuickQueueGameSessionEventHandler registration
+- QuickQueueGameSessionEventHandler now use GameSessionStarting for its initial setup instead of GameSessionStarted
+- modified QuickQueueGameSessionData to match with the indexed properties in the Lucene store
+- fixed QuickQueue game finding algorithm
 Changed
 *******
 - Compatibility with updated Queries API.
-- Update dependency to Stormancer.Abstraction.Server 7.0.0
+- Update dependency to Stormancer.Abstraction.Server 7.1.0
 
 7.3.0.1
 -------

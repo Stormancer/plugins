@@ -49,6 +49,7 @@
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="TestBrowseParties.cpp" />
     <ClCompile Include="TestDevServer.cpp" />
     <ClCompile Include="TestDisableGameSessionDirectConnection.cpp" />
     <ClCompile Include="TestParty.cpp" />

@@ -63,6 +63,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 builder.Register<QuickQueueGameSessionsLuceneStore>().AsSelf().As<ILuceneDocumentStore>().SingleInstance();
                 builder.Register<GameFinderData>().AsSelf().InstancePerScene();
                 builder.Register<ServiceLocationProvider>().As<IServiceLocatorProvider>();
+                builder.Register<QuickQueueGameSessionEventHandler>().As<GameSession.IGameSessionEventHandler>().InstancePerScene();
             };
             ctx.SceneCreated += SceneCreated;
 

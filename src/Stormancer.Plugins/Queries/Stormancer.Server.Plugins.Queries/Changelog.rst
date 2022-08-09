@@ -13,13 +13,14 @@ Unreleased
 ----------
 Changed
 *******
-- Update dependency to Stormancer.Abstraction.Server 7.0.0
+- Update dependency to Stormancer.Abstraction.Server 7.1.0
 - Allow Document to contain null Source to denote "not found".
 - Adds default json based mapper.
 Added
 *****
 - Add skip search request parameter to "skip" documents in the result.
 - Add Total property to search response 
+- Supports MatchAll filters
 
 0.1.0.11
 -------

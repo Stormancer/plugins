@@ -11,6 +11,8 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+- Update dependency to Stormancer.Abstraction.Server 7.1.0
+
 Added
 *****
 - Added Task.WaitAsync extension methods to enable "cancellation" of non cancellable tasks. In case of cancellation, the source task keeps running, but the resultant task faults.

@@ -47,8 +47,8 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         private IEnumerable<IIndexableField> GameSessionMapper(JObject doc)
         {
-            yield return new Int64Field("targetTeamCount", doc["targetTeamCount"].ToObject<int>(), Field.Store.NO);
-            yield return new Int64Field("targetTeamSize", doc["targetTeamSize"].ToObject<int>(), Field.Store.NO);
+            yield return new Int64Field("targetTeamCount", doc["TargetTeamCount"].ToObject<int>(), Field.Store.NO);
+            yield return new Int64Field("targetTeamSize", doc["TargetTeamSize"].ToObject<int>(), Field.Store.NO);
         }
 
         public IEnumerable<Document<JObject>> GetDocuments(IEnumerable<string> ids)
@@ -86,7 +86,9 @@ namespace Stormancer.Server.Plugins.GameFinder
             this.repository = repository;
             this.gs = gs;
         }
-        public Task GameSessionStarted(GameSessionStartedCtx ctx)
+
+        
+        public Task GameSessionStarting(GameSessionContext ctx)
         {
             lock (_syncRoot)
             {
@@ -98,7 +100,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                     _gameSessionData = new QuickQueueGameSessionData()
                     {
                         CreatedOn = DateTime.UtcNow,
-                        TargetPlayerCount = config.TeamCount * config.TeamSize,
+                        TargetTeamSize = config.TeamSize,
                         TargetTeamCount = config.TeamCount,
                         Teams = new List<QuickQueueGameSessionTeamData>()
                     };

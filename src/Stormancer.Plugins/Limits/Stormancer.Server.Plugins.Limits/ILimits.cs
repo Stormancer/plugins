@@ -139,7 +139,9 @@ namespace Stormancer.Server.Plugins.Limits
         {
             using var timer = new Timer(TimerCallback, null, 1000, 1000);
 
-            await cancellationToken.WaitHandle.WaitOneAsync();
+            var tcs = new TaskCompletionSource();
+            cancellationToken.Register(() => tcs.SetResult());
+            await tcs.Task;
         }
 
 

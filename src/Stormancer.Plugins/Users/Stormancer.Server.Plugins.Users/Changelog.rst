@@ -16,12 +16,13 @@ Fixed
 - Calling ConfigureUsers several times doesn't reset the config between two calls.
 - Removed IUSerService.CreateUser() overload with only 2 arguments: Providers should always specify the current platform when creating users.
 - Fixed possible deadlock when using SendUserRequest.
+- Fixes an exception on credentials renewal
 Added
 *****
 - AuthenticationProvider can add metadata to login results.
 Changed
 *******
-- Target dotnet 6 and Stormancer.Abstractions.Server 7.0.0
+- Target dotnet 6 and Stormancer.Abstractions.Server 7.1.0
 
 5.2.3.12
 --------

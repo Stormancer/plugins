@@ -11,6 +11,8 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+- Update dependency to Stormancer.Abstraction.Server 7.1.0
+
 Added
 *****
 - Added plugin. The SocketApi plugin contains systems enabling clients to benefit from an hybrid relay/P2P direct communication API between clients on top of scenes, that mimicks the socket "Send/receive" API model. The API is used by the Stormancer Unreal Engine plugin to power the StormancerSocketSubsystem.

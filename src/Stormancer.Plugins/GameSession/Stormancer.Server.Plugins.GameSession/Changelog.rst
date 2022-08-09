@@ -26,9 +26,12 @@ Changed
 - Use GameSessionController to register to OnConnecting/ed disconnecting events.
 - Call OnClientLeaving when peer disconnecting
 - If DirectConnectionEnabled is selected, we don't wait for the host to connect, and we don't send any p2p token
+- Update dependency to Stormancer.Abstraction.Server 7.1.0
+
 Fixed
 *****
 - Don't poll docker status until a docker server gets started.
+- Send "ready" server status update when a player connects if the game has alreay started
 
 5.3.0
 -----
