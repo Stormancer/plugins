@@ -1,0 +1,70 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+		<Company>Stormancer</Company>
+		<Authors>Stormancer</Authors>
+        <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <EmbedAllSources>true</EmbedAllSources>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Version>0.1.0</Version>
+        <Description>Provides Epic Games integration to Stormancer server applications.</Description>
+        <Deterministic>true</Deterministic>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+        <Version>$(Version)-pre</Version>
+    </PropertyGroup>
+
+	<PropertyGroup>
+		<PackageIcon>icon.png</PackageIcon>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
+		<Pdbs Include="$(TargetDir)*.pdb" />
+		<cpp Include="$(ProjectDir)../cpp/*" />
+	</ItemGroup>
+
+	<ItemGroup>
+        <Content Include="bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).pdb" PackagePath="contentFiles\any\net6.0\$(AssemblyName).pdb">
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Models\" />
+    </ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="MsgPack.Cli" Version="1.0.1" />
+		<PackageReference Include="jose-jwt" Version="4.0.0" />
+		<PackageReference Include="Stormancer.Abstractions.Server" Version="7.1.0-pre" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj" />
+		<ProjectReference Include="..\..\Friends\Stormancer.Server.Plugins.Friends\Stormancer.Server.Plugins.Friends.csproj" />
+		<ProjectReference Include="..\..\Party\Stormancer.Server.Plugins.Party\Stormancer.Server.Plugins.Party.csproj" />
+		<ProjectReference Include="..\..\Profile\Stormancer.Server.Plugins.Profile\Stormancer.Server.Plugins.Profile.csproj" />
+		<ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />
+		<ProjectReference Include="..\..\Utilities\Stormancer.Server.Plugins.Utilities\Stormancer.Server.Plugins.Utilities.csproj" />
+	</ItemGroup>
+
+	<Target Name="PostPack" AfterTargets="Pack">
+        <Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages/$(ConfigurationName)" />
+        <Copy SourceFiles="@(Pdbs)" DestinationFolder="$(ProjectDir)../../../../output/symbols/$(ConfigurationName)" />
+    </Target>
+
+</Project>
