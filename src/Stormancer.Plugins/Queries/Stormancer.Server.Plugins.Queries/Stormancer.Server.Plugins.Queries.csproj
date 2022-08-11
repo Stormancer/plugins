@@ -11,7 +11,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <Description>Provides authentication, user management and sessions features to a Stormancer server application.</Description>
+    <Description>Provides an in memory distributed query system for Stormancer server applications.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Deterministic>true</Deterministic>
   </PropertyGroup>

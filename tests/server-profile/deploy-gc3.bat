@@ -1,0 +1,1 @@
+stormancer manage app deploy --app ./gc3.profile.json --create --configure --deploy
