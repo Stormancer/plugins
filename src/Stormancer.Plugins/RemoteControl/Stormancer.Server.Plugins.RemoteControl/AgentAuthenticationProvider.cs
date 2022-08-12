@@ -69,7 +69,7 @@ namespace Stormancer.Server.Plugins.RemoteControl
             pId.PlatformUserId = agentId;
             var user = new User { Id = agentId };
             user.Auth[Type] = new JObject();
-            user.UserData["agent"] = JObject.Parse(metadata); 
+            user.UserData["agentMetadata"] = JObject.Parse(metadata); 
 
             return AuthenticationResult.CreateSuccess(user,pId, authenticationCtx.Parameters);
         }
