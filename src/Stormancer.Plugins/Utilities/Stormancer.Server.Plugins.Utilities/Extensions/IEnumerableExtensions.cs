@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Channels;
+using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Utilities.Extensions
 {
@@ -31,6 +34,45 @@ namespace Stormancer.Server.Plugins.Utilities.Extensions
         public static IEnumerable<T> ToEnumerable<T>(this T item)
         {
             yield return item;
+        }
+
+        public static async IAsyncEnumerable<T> SelectManyInterlaced<T>(this IEnumerable<IAsyncEnumerable<T>> sources, CancellationToken cancellationToken)
+        {
+            var channel = Channel.CreateUnbounded<T>();
+
+         
+            async Task WriteToChannel(IAsyncEnumerable<T> source, ChannelWriter<T> writer, CancellationToken cancellationToken)
+            {
+                try
+                {
+                    await foreach (var item in source.WithCancellation(cancellationToken))
+                    {
+                        await writer.WriteAsync(item, cancellationToken);
+                    }
+                }
+                catch(Exception ex)
+                {
+
+                    channel.Writer.TryComplete(ex);
+                }
+            }
+
+            
+            foreach(var source in sources)
+            {
+                _ = WriteToChannel(source, channel.Writer,cancellationToken);
+            }
+
+
+            while(await channel.Reader.WaitToReadAsync(cancellationToken))
+            {
+                while(channel.Reader.TryRead(out var item ))
+                {
+                    yield return item;
+                }
+            }
+
+           
         }
     }
 }
