@@ -14,4 +14,23 @@ namespace Stormancer.Plugins.RemoteControl
             };
         }
     }
+
+    public class RemoteControlClientPlugin : IClientPlugin
+    {
+        public void Build(PluginBuildContext ctx)
+        {
+            ctx.ClientCreated += (Client client) =>
+            {
+                client.DependencyResolver.Register(dr => new RemoteControlClientApi(dr.Resolve<UserApi>()), true);
+            };
+
+            ctx.RegisterSceneDependencies += (Scene scene, IDependencyResolver dr) =>
+            {
+                if(scene.Id == "agents")
+                {
+                    dr.Register(dr => new RemoteControlClientService(dr.Resolve<Scene>(),dr.Resolve<ISerializer>()), true);
+                }
+            };
+        }
+    }
 }

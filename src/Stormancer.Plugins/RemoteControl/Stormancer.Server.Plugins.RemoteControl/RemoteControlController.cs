@@ -40,11 +40,13 @@ namespace Stormancer.Server.Plugins.RemoteControl
             return Task.CompletedTask;
         }
 
+        [Api(ApiAccess.Public, ApiType.Rpc)]
         public IAsyncEnumerable<AgentCommandOutputEntry> RunCommand(string command, IEnumerable<SessionId> sessionIds, CancellationToken cancellationToken)
         {
             return service.RunCommandAsync(command, sessionIds, cancellationToken);
         }
 
+        [Api(ApiAccess.Public, ApiType.Rpc)]
         public SearchResult<Agent> SearchAgents(string query,uint size, uint skip)
         {
             return service.SearchAgents(JObject.FromObject(query), size, skip);

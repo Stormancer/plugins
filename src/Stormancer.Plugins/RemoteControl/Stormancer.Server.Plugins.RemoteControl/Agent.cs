@@ -33,7 +33,7 @@ namespace Stormancer.Server.Plugins.RemoteControl
         /// <summary>
         /// Metadata associated with the agent.
         /// </summary>
-        public Newtonsoft.Json.Linq.JObject Metadata { get; }
+        public JObject Metadata { get; }
 
         /// <summary>
         /// Name of the agent.
