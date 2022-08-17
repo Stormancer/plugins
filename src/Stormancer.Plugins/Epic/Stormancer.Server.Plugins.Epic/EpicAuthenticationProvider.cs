@@ -329,11 +329,11 @@ namespace Stormancer.Server.Plugins.Epic
                     {
                         var userId = Guid.NewGuid().ToString("N");
 
-                        var nintendoUserData = new JObject();
-                        nintendoUserData[EpicConstants.ACCOUNTID_CLAIMPATH] = accountId;
+                        var epicUserData = new JObject();
+                        epicUserData[EpicConstants.ACCOUNTID_CLAIMPATH] = accountId;
 
                         var userData = new JObject();
-                        userData[EpicConstants.PLATFORM_NAME] = nintendoUserData;
+                        userData[EpicConstants.PLATFORM_NAME] = epicUserData;
 
                         user = await _users.CreateUser(userId, userData, EpicConstants.PLATFORM_NAME);
                         user = await _users.AddAuthentication(user, EpicConstants.PLATFORM_NAME, claim => claim[EpicConstants.ACCOUNTID_CLAIMPATH] = accountId, new Dictionary<string, string> { { EpicConstants.ACCOUNTID_CLAIMPATH, accountId } });
@@ -348,18 +348,18 @@ namespace Stormancer.Server.Plugins.Epic
 
                         bool updateUserData = false;
 
-                        var nintendoUserData = user.UserData[EpicConstants.PLATFORM_NAME] ?? new JObject();
+                        var epicUserData = user.UserData[EpicConstants.PLATFORM_NAME] ?? new JObject();
 
-                        var userDataAccountId = nintendoUserData[EpicConstants.ACCOUNTID_CLAIMPATH];
+                        var userDataAccountId = epicUserData[EpicConstants.ACCOUNTID_CLAIMPATH];
                         if (userDataAccountId == null || userDataAccountId.ToString() != accountId)
                         {
-                            nintendoUserData[EpicConstants.ACCOUNTID_CLAIMPATH] = accountId;
+                            epicUserData[EpicConstants.ACCOUNTID_CLAIMPATH] = accountId;
                             updateUserData = true;
                         }
 
                         if (updateUserData)
                         {
-                            user.UserData[EpicConstants.PLATFORM_NAME] = nintendoUserData;
+                            user.UserData[EpicConstants.PLATFORM_NAME] = epicUserData;
                             await _users.UpdateUserData(user.Id, user.UserData);
                         }
                     }

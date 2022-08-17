@@ -13,6 +13,7 @@
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <Version>0.1.0</Version>
         <Description>Provides Epic Games integration to Stormancer server applications.</Description>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
         <Deterministic>true</Deterministic>
     </PropertyGroup>
 
@@ -23,6 +24,7 @@
 	<PropertyGroup>
 		<PackageIcon>icon.png</PackageIcon>
 	</PropertyGroup>
+	
 	<ItemGroup>
 		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
 	</ItemGroup>
@@ -65,6 +67,7 @@
 	<Target Name="PostPack" AfterTargets="Pack">
         <Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
         <Copy SourceFiles="@(Pdbs)" DestinationFolder="$(ProjectDir)../../../../output/symbols" />
+		<Copy SourceFiles="@(cpp)" DestinationFolder="$(ProjectDir)../../../../output/cpp/Epic" />
     </Target>
 
 </Project>

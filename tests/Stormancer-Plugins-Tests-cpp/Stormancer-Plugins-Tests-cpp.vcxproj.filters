@@ -31,13 +31,13 @@
     <ClInclude Include="..\..\src\Stormancer.Plugins\Users\cpp\Users.hpp">
       <Filter>users</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\SocketApi\cpp\socket.hpp">
+    <ClInclude Include="..\..\src\Stormancer.Plugins\SocketApi\cpp\Socket.hpp">
       <Filter>socket</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Gog\cpp\galaxy.hpp">
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Gog\cpp\Galaxy.hpp">
       <Filter>gog</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Analytics\cpp\analytics.hpp">
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Analytics\cpp\Analytics.hpp">
       <Filter>analytics</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Stormancer.Plugins\Replication\cpp\CommandLog.hpp">
@@ -46,7 +46,7 @@
     <ClInclude Include="..\..\src\Stormancer.Plugins\Friends\cpp\Friends.hpp">
       <Filter>friends</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Profile\cpp\Profiles.hpp">
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Profile\cpp\Profile.hpp">
       <Filter>profile</Filter>
     </ClInclude>
   </ItemGroup>
