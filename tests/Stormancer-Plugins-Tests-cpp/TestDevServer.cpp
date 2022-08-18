@@ -4,6 +4,7 @@
 
 #include "users/Users.hpp"
 #include "party/Party.hpp"
+#include "Profile/Profiles.hpp"
 #include "gameFinder/GameFinder.hpp"
 #include "gameSession/Gamesessions.hpp"
 #include "gameSession/ServerPools.hpp"

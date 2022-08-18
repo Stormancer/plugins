@@ -16,7 +16,10 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Queries
 {
-    internal class IndexState
+    /// <summary>
+    /// Represents a lucene index
+    /// </summary>
+    public class IndexState
     {
         public IndexState(BaseDirectory luceneDirectory, Func<JObject, IEnumerable<IIndexableField>> mapper)
         {

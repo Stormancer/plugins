@@ -1,0 +1,61 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Company>Stormancer</Company>
+		<Authors>Stormancer</Authors>
+		<Version>0.2.0.6</Version>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<Description>Enables remote control of automated Stormancer agents.</Description>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<Deterministic>true</Deterministic>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
+		<Version>$(Version)-pre</Version>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<PackageIcon>icon.png</PackageIcon>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
+
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="jose-jwt" Version="3.1.1" />
+		<PackageReference Include="Lucene.Net" Version="4.8.0-beta00014" />
+		<PackageReference Include="Lucene.Net.Analysis.Common" Version="4.8.0-beta00014" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Stormancer.Abstractions.Server" Version="7.1.0-pre" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+		<PackageReference Include="Stormancer.Filters" Version="0.2.0.1-pre" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
+		<Pdbs Include="$(TargetDir)*.pdb" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\Queries\Stormancer.Server.Plugins.Queries\Stormancer.Server.Plugins.Queries.csproj" />
+	  <ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />
+	  <ProjectReference Include="..\..\Utilities\Stormancer.Server.Plugins.Utilities\Stormancer.Server.Plugins.Utilities.csproj" />
+	</ItemGroup>
+
+	<Target Name="PostPack" AfterTargets="Pack">
+		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
+		<Copy SourceFiles="@(Pdbs)" DestinationFolder="$(ProjectDir)../../../../output/symbols/$(ConfigurationName)" />
+	</Target>
+
+</Project>
+
+
+

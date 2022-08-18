@@ -1,0 +1,54 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Company>Stormancer</Company>
+		<Authors>Stormancer</Authors>
+		<Version>0.1.0</Version>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<Description>Stormancer Client plugin to create remote controlled agents.</Description>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<Deterministic>true</Deterministic>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
+		<Version>$(Version)-pre</Version>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<PackageIcon>icon.png</PackageIcon>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
+
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Stormancer.Client" Version="3.4.4" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="System.Linq.Async" Version="6.0.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
+		<Pdbs Include="$(TargetDir)*.pdb" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Include="..\Stormancer.Server.Plugins.RemoteControl\Agent.cs" Link="Agent.cs" />
+	</ItemGroup>
+
+	
+
+	<Target Name="PostPack" AfterTargets="Pack">
+		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
+		<Copy SourceFiles="@(Pdbs)" DestinationFolder="$(ProjectDir)../../../../output/symbols/$(ConfigurationName)" />
+	</Target>
+</Project>

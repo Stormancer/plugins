@@ -31,7 +31,7 @@ namespace Stormancer
 			/// <param name="userIds"></param>
 			/// <param name="displayOptions"></param>
 			/// <returns></returns>
-			virtual pplx::task<std::unordered_map<std::string, Profile>> getProfilesByUserIds(const std::list<std::string>& userIds, const std::unordered_map<std::string, std::string>& displayOptions = defaultDisplayOptions()) = 0;
+			virtual pplx::task<std::unordered_map<std::string, Profile>> getProfilesByUserIds(const std::list<std::string>& userIds, const std::unordered_map<std::string, std::string>& displayOptions = defaultDisplayOptions(), pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) = 0;
 
 			/// <summary>
 			/// Gets profiles for a list of users.
@@ -40,7 +40,7 @@ namespace Stormancer
 			/// <param name="sessionIds"></param>
 			/// <param name="displayOptions"></param>
 			/// <returns></returns>
-			virtual pplx::task<std::unordered_map<std::string, Profile>> getProfilesBySessionIds(const std::list<std::string>& sessionIds, const std::unordered_map<std::string, std::string>& displayOptions = defaultDisplayOptions()) = 0;
+			virtual pplx::task<std::unordered_map<std::string, Profile>> getProfilesBySessionIds(const std::list<std::string>& sessionIds, const std::unordered_map<std::string, std::string>& displayOptions = defaultDisplayOptions(), pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) = 0;
 
 
 			/// <summary>
@@ -54,7 +54,7 @@ namespace Stormancer
 			/// By default, parts added using the CustomProfilePart attribute are queries by adding a key with the same part id in the display options.
 			/// </param>
 			/// <returns></returns>
-			virtual pplx::task<Profile> getProfile(const std::string& userId, const std::unordered_map<std::string, std::string>& displayOptions = defaultDisplayOptions()) = 0;
+			virtual pplx::task<Profile> getProfile(const std::string& userId, const std::unordered_map<std::string, std::string>& displayOptions = defaultDisplayOptions(), pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) = 0;
 
 			/// <summary>
 			/// Updates the pseudo stored in the user document.
@@ -65,7 +65,7 @@ namespace Stormancer
 			/// Pseudo generation can be customized on the server.
 			/// </remarks>
 			/// <returns>A task containing the updated pseudonym.</returns>
-			virtual pplx::task<std::string> updateUserHandle(const std::string& newPseudonym) = 0;
+			virtual pplx::task<std::string> updateUserHandle(const std::string& newPseudonym, pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) = 0;
 
 
 
@@ -82,7 +82,7 @@ namespace Stormancer
 			/// By default, parts added using the CustomProfilePart attribute are queries by adding a key with the same part id in the display options.
 			/// </param>
 			/// <returns></returns>
-			virtual pplx::task<std::unordered_map<std::string, Profile>> queryProfiles(const std::string& pseudoPrefix, const int& skip, const int& take, const std::unordered_map<std::string, std::string>& displayOptions = defaultDisplayOptions()) = 0;
+			virtual pplx::task<std::unordered_map<std::string, Profile>> queryProfiles(const std::string& pseudoPrefix, const int& skip, const int& take, const std::unordered_map<std::string, std::string>& displayOptions = defaultDisplayOptions(), pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) = 0;
 
 			static const std::unordered_map<std::string, std::string>& defaultDisplayOptions()
 			{
@@ -98,7 +98,7 @@ namespace Stormancer
 			/// <param name="version">Version of the part protocol. Version is made available to server side custom part handlers to enable data migration capabilities.</param>
 			/// <remarks></remarks>
 			/// <returns></returns>
-			virtual pplx::task<void> updateCustomProfilePart(const std::string& partId, const Stormancer::StreamWriter& profilePartWriter, const std::string& version) = 0;
+			virtual pplx::task<void> updateCustomProfilePart(const std::string& partId, const Stormancer::StreamWriter& profilePartWriter, const std::string& version, pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) = 0;
 
 			/// <summary>
 			/// Deletes a custom profile part associated with the user.
@@ -106,7 +106,7 @@ namespace Stormancer
 			/// <remarks>The operation is validated on the server and might be refused.</remarks>
 			/// <param name="partId"></param>
 			/// <returns></returns>
-			virtual pplx::task<void> deleteProfilePart(const std::string& partId) = 0;
+			virtual pplx::task<void> deleteProfilePart(const std::string& partId, pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) = 0;
 		};
 
 
@@ -138,9 +138,9 @@ namespace Stormancer
 				{
 				}
 
-				pplx::task<ProfilesResult> getProfilesByUserIds(const std::list<std::string>& userIds, const std::unordered_map<std::string, std::string>& displayOptions)
+				pplx::task<ProfilesResult> getProfilesByUserIds(const std::list<std::string>& userIds, const std::unordered_map<std::string, std::string>& displayOptions, pplx::cancellation_token cancellationToken)
 				{
-					return _rpcService->rpc<std::unordered_map<std::string, ProfileDto>>("Profile.GetProfiles", userIds, displayOptions)
+					return _rpcService->rpc<std::unordered_map<std::string, ProfileDto>>("Profile.GetProfiles", cancellationToken, userIds, displayOptions)
 						.then([](std::unordered_map<std::string, ProfileDto> result)
 							{
 								ProfilesResult r;
@@ -149,9 +149,9 @@ namespace Stormancer
 							});
 				}
 
-				pplx::task<ProfilesResult> getProfilesBySessionIds(const std::list<std::string>& userIds, const std::unordered_map<std::string, std::string>& displayOptions)
+				pplx::task<ProfilesResult> getProfilesBySessionIds(const std::list<std::string>& userIds, const std::unordered_map<std::string, std::string>& displayOptions, pplx::cancellation_token cancellationToken)
 				{
-					return _rpcService->rpc<std::unordered_map<std::string, ProfileDto>>("Profile.GetProfilesBySessionIds", userIds, displayOptions)
+					return _rpcService->rpc<std::unordered_map<std::string, ProfileDto>>("Profile.GetProfilesBySessionIds", cancellationToken, userIds, displayOptions)
 						.then([](std::unordered_map<std::string, ProfileDto> result)
 							{
 								ProfilesResult r;
@@ -160,9 +160,9 @@ namespace Stormancer
 							});
 				}
 
-				pplx::task<ProfileDto> getProfile(const std::string& userId, const std::unordered_map<std::string, std::string>& displayOptions)
+				pplx::task<ProfileDto> getProfile(const std::string& userId, const std::unordered_map<std::string, std::string>& displayOptions, pplx::cancellation_token cancellationToken)
 				{
-					return getProfilesByUserIds(std::list<std::string> { userId }, displayOptions)
+					return getProfilesByUserIds(std::list<std::string> { userId }, displayOptions, cancellationToken)
 						.then([userId](ProfilesResult profiles)
 							{
 								if (profiles.profiles.size() == 1)
@@ -176,14 +176,14 @@ namespace Stormancer
 							});
 				}
 
-				pplx::task<std::string> updateUserHandle(const std::string& newHandle)
+				pplx::task<std::string> updateUserHandle(const std::string& newHandle, pplx::cancellation_token cancellationToken)
 				{
-					return _rpcService->rpc<std::string, std::string>("Profile.UpdateUserHandle", newHandle);
+					return _rpcService->rpc<std::string, std::string>("Profile.UpdateUserHandle", cancellationToken, newHandle);
 				}
 
-				pplx::task<ProfilesResult> queryProfiles(const std::string& pseudoPrefix, const int& skip, const int& take, const std::unordered_map<std::string, std::string>& displayOptions)
+				pplx::task<ProfilesResult> queryProfiles(const std::string& pseudoPrefix, const int& skip, const int& take, const std::unordered_map<std::string, std::string>& displayOptions, pplx::cancellation_token cancellationToken)
 				{
-					return _rpcService->rpc<std::unordered_map<std::string, ProfileDto>>("Profile.QueryProfiles", pseudoPrefix, skip, take, displayOptions)
+					return _rpcService->rpc<std::unordered_map<std::string, ProfileDto>>("Profile.QueryProfiles", cancellationToken, pseudoPrefix, skip, take, displayOptions)
 						.then([](std::unordered_map<std::string, ProfileDto> result)
 							{
 								ProfilesResult r;
@@ -191,10 +191,10 @@ namespace Stormancer
 								return r;
 							});
 				}
-				pplx::task<void> updateCustomProfilePart(const std::string& partId, const Stormancer::StreamWriter& profilePartWriter, const std::string& version)
+				pplx::task<void> updateCustomProfilePart(const std::string& partId, const Stormancer::StreamWriter& profilePartWriter, const std::string& version, pplx::cancellation_token cancellationToken)
 				{
 					auto serializer = _serializer;
-					return _rpcService->rpc("Profile.UpdateCustomProfilePart", [serializer, partId, profilePartWriter, version](Stormancer::obytestream& s) {
+					return _rpcService->rpc("Profile.UpdateCustomProfilePart", cancellationToken, [serializer, partId, profilePartWriter, version](Stormancer::obytestream& s) {
 						serializer->serialize(s, partId);
 						serializer->serialize(s, version);
 						profilePartWriter(s);
@@ -221,12 +221,12 @@ namespace Stormancer
 				{
 				}
 
-				pplx::task<std::unordered_map<std::string, Profile>> getProfilesByUserIds(const std::list<std::string>& userIds, const std::unordered_map<std::string, std::string>& displayOptions) override
+				pplx::task<std::unordered_map<std::string, Profile>> getProfilesByUserIds(const std::list<std::string>& userIds, const std::unordered_map<std::string, std::string>& displayOptions, pplx::cancellation_token cancellationToken) override
 				{
-					return getProfileService()
-						.then([userIds, displayOptions](std::shared_ptr<ProfileService> gr)
+					return getProfileService(cancellationToken)
+						.then([userIds, displayOptions, cancellationToken](std::shared_ptr<ProfileService> gr)
 							{
-								return gr->getProfilesByUserIds(userIds, displayOptions);
+								return gr->getProfilesByUserIds(userIds, displayOptions, cancellationToken);
 							})
 						.then([](ProfilesResult profiles)
 							{
@@ -241,12 +241,12 @@ namespace Stormancer
 							});
 				}
 
-				pplx::task<std::unordered_map<std::string, Profile>> getProfilesBySessionIds(const std::list<std::string>& userIds, const std::unordered_map<std::string, std::string>& displayOptions) override
+				pplx::task<std::unordered_map<std::string, Profile>> getProfilesBySessionIds(const std::list<std::string>& userIds, const std::unordered_map<std::string, std::string>& displayOptions, pplx::cancellation_token cancellationToken) override
 				{
-					return getProfileService()
-						.then([userIds, displayOptions](std::shared_ptr<ProfileService> gr)
+					return getProfileService(cancellationToken)
+						.then([userIds, displayOptions, cancellationToken](std::shared_ptr<ProfileService> gr)
 							{
-								return gr->getProfilesBySessionIds(userIds, displayOptions);
+								return gr->getProfilesBySessionIds(userIds, displayOptions, cancellationToken);
 							})
 						.then([](ProfilesResult profiles)
 							{
@@ -261,12 +261,12 @@ namespace Stormancer
 							});
 				}
 
-				pplx::task<Profile> getProfile(const std::string& userId, const std::unordered_map<std::string, std::string>& displayOptions) override
+				pplx::task<Profile> getProfile(const std::string& userId, const std::unordered_map<std::string, std::string>& displayOptions, pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) override
 				{
-					return getProfileService()
-						.then([userId, displayOptions](std::shared_ptr<ProfileService> gr)
+					return getProfileService(cancellationToken)
+						.then([userId, displayOptions, cancellationToken](std::shared_ptr<ProfileService> gr)
 							{
-								return gr->getProfile(userId, displayOptions);
+								return gr->getProfile(userId, displayOptions, cancellationToken);
 							})
 						.then([](ProfileDto profile)
 							{
@@ -276,12 +276,12 @@ namespace Stormancer
 							});
 				}
 
-				pplx::task<std::string> updateUserHandle(const std::string& userIds) override
+				pplx::task<std::string> updateUserHandle(const std::string& userIds, pplx::cancellation_token cancellationToken) override
 				{
 					std::weak_ptr<Users::UsersApi> wUsers = this->_wUsers;
-					return getProfileService()
-						.then([userIds](std::shared_ptr<ProfileService> gr) {
-						return gr->updateUserHandle(userIds);
+					return getProfileService(cancellationToken)
+						.then([userIds, cancellationToken](std::shared_ptr<ProfileService> gr) {
+						return gr->updateUserHandle(userIds, cancellationToken);
 							})
 						.then([wUsers](pplx::task<std::string> t) {
 								auto users = wUsers.lock();
@@ -295,10 +295,10 @@ namespace Stormancer
 							});
 				}
 
-				pplx::task<std::unordered_map<std::string, Profile>> queryProfiles(const std::string& pseudoPrefix, const int& skip, const int& take, const std::unordered_map<std::string, std::string>& displayOptions) override
+				pplx::task<std::unordered_map<std::string, Profile>> queryProfiles(const std::string& pseudoPrefix, const int& skip, const int& take, const std::unordered_map<std::string, std::string>& displayOptions, pplx::cancellation_token cancellationToken) override
 				{
-					return getProfileService()
-						.then([pseudoPrefix, skip, take, displayOptions](std::shared_ptr<ProfileService> gr) {return gr->queryProfiles(pseudoPrefix, skip, take, displayOptions); })
+					return getProfileService(cancellationToken)
+						.then([pseudoPrefix, skip, take, displayOptions, cancellationToken](std::shared_ptr<ProfileService> gr) {return gr->queryProfiles(pseudoPrefix, skip, take, displayOptions, cancellationToken); })
 						.then([](ProfilesResult profiles) {
 						std::unordered_map<std::string, Profile> result;
 						for (auto& dto : profiles.profiles)
@@ -311,22 +311,22 @@ namespace Stormancer
 							});
 				}
 
-				pplx::task<void> updateCustomProfilePart(const std::string& partId, const Stormancer::StreamWriter& profilePartWriter, const std::string& version = "1.0.0") override
+				pplx::task<void> updateCustomProfilePart(const std::string& partId, const Stormancer::StreamWriter& profilePartWriter, const std::string& version = "1.0.0", pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) override
 				{
-					return getProfileService()
-						.then([partId, profilePartWriter, version](std::shared_ptr<ProfileService> gr) {return gr->updateCustomProfilePart(partId, profilePartWriter, version); });
+					return getProfileService(cancellationToken)
+						.then([partId, profilePartWriter, version, cancellationToken](std::shared_ptr<ProfileService> gr) {return gr->updateCustomProfilePart(partId, profilePartWriter, version, cancellationToken); });
 
 				}
 
-				pplx::task<void> deleteProfilePart(const std::string& partId)
+				pplx::task<void> deleteProfilePart(const std::string& partId, pplx::cancellation_token cancellationToken)
 				{
-					return getProfileService()
+					return getProfileService(cancellationToken)
 						.then([partId](std::shared_ptr<ProfileService> gr) {return gr->deleteProfilePart(partId); });
 				}
 			private:
-				pplx::task<std::shared_ptr<ProfileService>> getProfileService()
+				pplx::task<std::shared_ptr<ProfileService>> getProfileService(pplx::cancellation_token cancellationToken)
 				{
-					return this->getService();
+					return this->getService([](auto, auto, auto) {}, [](auto, auto) {}, cancellationToken);
 				}
 			};
 		}

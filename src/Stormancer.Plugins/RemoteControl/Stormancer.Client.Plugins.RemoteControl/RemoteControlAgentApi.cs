@@ -1,0 +1,66 @@
+﻿using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Stormancer.Plugins.RemoteControl
+{
+    public class RemoteControlAgentApi
+    {
+        private readonly Dictionary<string, Func<CommandExecutionContext, Task>> _commandHandlers = new Dictionary<string, Func<CommandExecutionContext, Task>>();
+        private readonly UserApi users;
+
+        internal RemoteControlAgentApi(Plugins.UserApi users)
+        {
+            this.users = users;
+        }
+
+        public void AddCommandHandler(string commandName, Func<CommandExecutionContext, Task> handler)
+        {
+            _commandHandlers[commandName] = handler;
+        }
+        public async Task Initialize()
+        {
+            await users.Login();
+
+            await users.ConnectToPrivateScene("agents", s =>
+            {
+                s.AddProcedure("runCommand", async ctx =>
+                {
+                    try
+                    {
+                        var cmd = ctx.ReadObject<string>();
+
+                        var segments = cmd.Split(' ');
+
+                        var name = segments[0];
+
+                        if(_commandHandlers.TryGetValue(name, out var handler))
+                        {
+                            var commandCtx = new CommandExecutionContext(segments,ctx);
+
+                            await handler(commandCtx);
+                        }
+                        else
+                        {
+                            ctx.SendValue(new AgentCommandOutputEntryDto { Type = "error", ResultJson = JObject.FromObject(new { error = $"Command '{name}' not supported." }).ToString() });
+                        }
+                    }
+                    catch(Exception ex)
+                    {
+                        ctx.SendValue(new AgentCommandOutputEntryDto { Type = "error", ResultJson = JObject.FromObject(new { error = ex.ToString()  }).ToString() });
+                    }
+                });
+            });
+        }
+    }
+
+    public class AgentCommandOutputEntryDto
+    {
+        public string Type { get; set; }
+        public string ResultJson { get; set; }
+    }
+
+}
