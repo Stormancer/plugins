@@ -14,9 +14,9 @@ using System.Threading.Tasks;
 namespace Stormancer.Server.Plugins.Galaxy
 {
     /// <summary>
-    /// Represents the Gog configuration sections.
+    /// Represents the Galaxy configuration sections.
     /// </summary>
-    public class GogConfiguration
+    public class GalaxyConfiguration
     {
         /// <summary>
         /// Id of the product.
@@ -37,16 +37,16 @@ namespace Stormancer.Server.Plugins.Galaxy
         public string? ServerKey { get; set; }
     }
     /// <summary>
-    /// Gog Galaxy integration constants.
+    /// Galaxy integration constants.
     /// </summary>
-    public class GogConstants
+    public class GalaxyConstants
     {
         /// <summary>
-        /// The Gog galaxy auth provider type.
+        /// The Galaxy auth provider type.
         /// </summary>
-        public const string PROVIDER_NAME = "gog-galaxy";
+        public const string PROVIDER_NAME = "galaxy";
     }
-    class GogGalaxyAuthenticationProvider : IAuthenticationProvider
+    class GalaxyAuthenticationProvider : IAuthenticationProvider
     {
 
         private const string CLAIM_PATH = "uid";
@@ -55,9 +55,9 @@ namespace Stormancer.Server.Plugins.Galaxy
         private readonly ILogger logger;
         private const int IV_SIZE = 16;
 
-        public string Type => GogConstants.PROVIDER_NAME;
+        public string Type => GalaxyConstants.PROVIDER_NAME;
 
-        public GogGalaxyAuthenticationProvider(IUserService users, IConfiguration config, ILogger logger)
+        public GalaxyAuthenticationProvider(IUserService users, IConfiguration config, ILogger logger)
         {
             this.users = users;
             this.config = config;
@@ -71,11 +71,11 @@ namespace Stormancer.Server.Plugins.Galaxy
 
         private string DecryptSessionTicket(byte[] ticket)
         {
-            var c = config.GetValue<GogConfiguration>("gog");
+            var c = config.GetValue<GalaxyConfiguration>("galaxy");
 
             if (c.ticketPrivateKey == null)
             {
-                throw new InvalidOperationException("Missing gog.ticketPrivateKey config value.");
+                throw new InvalidOperationException("Missing galaxy.ticketPrivateKey config value.");
             }
             var key = FromBase64Url(c.ticketPrivateKey);
 
@@ -107,10 +107,10 @@ namespace Stormancer.Server.Plugins.Galaxy
         {
 
 
-            var pId = new PlatformId { Platform = GogConstants.PROVIDER_NAME };
+            var pId = new PlatformId { Platform = GalaxyConstants.PROVIDER_NAME };
             if (!authenticationCtx.Parameters.TryGetValue("ticket", out var ticketB64) || string.IsNullOrWhiteSpace(ticketB64))
             {
-                return AuthenticationResult.CreateFailure("Gog galaxy session ticket must not be empty.", pId, authenticationCtx.Parameters);
+                return AuthenticationResult.CreateFailure("Galaxy session ticket must not be empty.", pId, authenticationCtx.Parameters);
             }
 
 
@@ -125,7 +125,7 @@ namespace Stormancer.Server.Plugins.Galaxy
 
                 if(!authenticationCtx.Parameters.TryGetValue("uid", out var id))
                 {
-                    return AuthenticationResult.CreateFailure("Gog galaxy uid must not be empty.", pId, authenticationCtx.Parameters);
+                    return AuthenticationResult.CreateFailure("Galaxy uid must not be empty.", pId, authenticationCtx.Parameters);
                 }
                 authenticationCtx.Parameters.TryGetValue("displayName", out var pseudo);
                 pId.PlatformUserId = id;
@@ -133,16 +133,16 @@ namespace Stormancer.Server.Plugins.Galaxy
 
 
 
-                var user = await users.GetUserByClaim(GogConstants.PROVIDER_NAME, CLAIM_PATH, id);
+                var user = await users.GetUserByClaim(GalaxyConstants.PROVIDER_NAME, CLAIM_PATH, id);
 
                 if (user == null)
                 {
                     var uid = Guid.NewGuid().ToString("N");
 
 
-                    user = await users.CreateUser(uid, JObject.FromObject(new { gogUserId = id, pseudo = pseudo ?? "unknown" }), GogConstants.PROVIDER_NAME);
+                    user = await users.CreateUser(uid, JObject.FromObject(new { galaxyUserId = id, pseudo = pseudo ?? "unknown" }), GalaxyConstants.PROVIDER_NAME);
 
-                    user = await users.AddAuthentication(user, GogConstants.PROVIDER_NAME, claim => claim[CLAIM_PATH] = id, new Dictionary<string, string> { { CLAIM_PATH, id } });
+                    user = await users.AddAuthentication(user, GalaxyConstants.PROVIDER_NAME, claim => claim[CLAIM_PATH] = id, new Dictionary<string, string> { { CLAIM_PATH, id } });
                 }
                 else
                 {
@@ -158,7 +158,7 @@ namespace Stormancer.Server.Plugins.Galaxy
             }
             catch (Exception ex)
             {
-                logger.Log(LogLevel.Debug, "authenticator.gog", $"Gog authentication failed. Ticket : {ticketB64}", ex);
+                logger.Log(LogLevel.Debug, "authenticator.galaxy, $"Galaxy authentication failed. Ticket : {ticketB64}", ex);
                 throw;
             }
         }
@@ -175,7 +175,7 @@ namespace Stormancer.Server.Plugins.Galaxy
 
         public Task Unlink(User user)
         {
-            return users.RemoveAuthentication(user, GogConstants.PROVIDER_NAME);
+            return users.RemoveAuthentication(user, GalaxyConstants.PROVIDER_NAME);
         }
 
 

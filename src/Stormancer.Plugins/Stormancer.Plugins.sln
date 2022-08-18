@@ -106,7 +106,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.D
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Galaxy", "Galaxy", "{81550A48-AC59-49E8-8B35-B5BDC1526D2C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Galaxy", "Gog\Stormancer.Server.Plugins.Galaxy\Stormancer.Server.Plugins.Galaxy.csproj", "{401BE992-6208-4B9B-87AE-17CF64B8637E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Galaxy", "Galaxy\Stormancer.Server.Plugins.Galaxy\Stormancer.Server.Plugins.Galaxy.csproj", "{401BE992-6208-4B9B-87AE-17CF64B8637E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "_build", "..\..\build\_build.csproj", "{8B769655-FFFD-49AF-A472-E48645FC3386}"
 EndProject

@@ -21,16 +21,16 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Analytics\cpp\analytics.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Analytics\cpp\Analytics.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Friends\cpp\Friends.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\GameFinder\cpp\GameFinder.hpp" />
-    <ClInclude Include="..\..\src\Stormancer.Plugins\GameSession\cpp\Gamesessions.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\GameSession\cpp\GameSession.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\GameSession\cpp\ServerPools.hpp" />
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Gog\cpp\galaxy.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Galaxy\cpp\Galaxy.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Party\cpp\Party.hpp" />
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Profile\cpp\Profiles.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Profile\cpp\Profile.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Replication\cpp\CommandLog.hpp" />
-    <ClInclude Include="..\..\src\Stormancer.Plugins\SocketApi\cpp\socket.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\SocketApi\cpp\Socket.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Steam\cpp\Steam.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Users\cpp\ClientAPI.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Users\cpp\Users.hpp" />
