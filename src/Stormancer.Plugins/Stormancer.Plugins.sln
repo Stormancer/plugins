@@ -146,6 +146,17 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.SocketApi", "SocketApi\Stormancer.Server.Plugins.SocketApi\Stormancer.Server.Plugins.SocketApi.csproj", "{0D7AE398-2CE3-4D9D-836D-ABB85B3D9C99}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Plugins.Tests.ServerApp", "..\..\tests\Stormancer.Plugins.Tests.ServerApp\Stormancer.Plugins.Tests.ServerApp.csproj", "{B6017E9C-8133-42E2-AAB5-2188FECF3A2C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{77DC1E3C-A228-4784-A502-2F868DCBAF81} = {77DC1E3C-A228-4784-A502-2F868DCBAF81}
+		{4CFE274A-8AAB-4243-A3CC-DDF2472A83E0} = {4CFE274A-8AAB-4243-A3CC-DDF2472A83E0}
+		{83965663-8871-4C88-BED0-A9F84653F6F9} = {83965663-8871-4C88-BED0-A9F84653F6F9}
+		{3E5E476D-447C-4D57-84F1-9378BE7BF147} = {3E5E476D-447C-4D57-84F1-9378BE7BF147}
+		{EF388E74-13B4-45F8-B7A3-A984A0CA2511} = {EF388E74-13B4-45F8-B7A3-A984A0CA2511}
+		{BF0C3998-90BC-48C1-A975-C9738F752AA3} = {BF0C3998-90BC-48C1-A975-C9738F752AA3}
+		{0D7AE398-2CE3-4D9D-836D-ABB85B3D9C99} = {0D7AE398-2CE3-4D9D-836D-ABB85B3D9C99}
+		{0A37FA9A-4F9E-4C23-A64C-E9597EAF15A9} = {0A37FA9A-4F9E-4C23-A64C-E9597EAF15A9}
+		{DCB40DCC-4CB7-470D-B919-FB580F7966F9} = {DCB40DCC-4CB7-470D-B919-FB580F7966F9}
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Epic", "Epic", "{937002A0-2FB6-4467-96F2-54EDF0A6DB93}"
 EndProject
@@ -160,9 +171,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RemoteControl", "RemoteCont
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.RemoteControl", "RemoteControl\Stormancer.Server.Plugins.RemoteControl\Stormancer.Server.Plugins.RemoteControl.csproj", "{DA0A284E-03BD-4180-8431-702D869C20D5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Plugins.RemoteControl", "RemoteControl\Stormancer.Client.Plugins.RemoteControl\Stormancer.Plugins.RemoteControl.csproj", "{96E35FBB-0C17-4212-8329-026F0106C122}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Plugins.RemoteControl", "RemoteControl\Stormancer.Client.Plugins.RemoteControl\Stormancer.Plugins.RemoteControl.csproj", "{96E35FBB-0C17-4212-8329-026F0106C122}"
 EndProject
-
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -322,18 +332,10 @@ Global
 		{DA0A284E-03BD-4180-8431-702D869C20D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DA0A284E-03BD-4180-8431-702D869C20D5}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{DA0A284E-03BD-4180-8431-702D869C20D5}.Debug|x64.Build.0 = Debug|Any CPU
-		{DA0A284E-03BD-4180-8431-702D869C20D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DA0A284E-03BD-4180-8431-702D869C20D5}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DA0A284E-03BD-4180-8431-702D869C20D5}.Release|x64.ActiveCfg = Release|Any CPU
-		{DA0A284E-03BD-4180-8431-702D869C20D5}.Release|x64.Build.0 = Release|Any CPU
 		{96E35FBB-0C17-4212-8329-026F0106C122}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{96E35FBB-0C17-4212-8329-026F0106C122}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{96E35FBB-0C17-4212-8329-026F0106C122}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{96E35FBB-0C17-4212-8329-026F0106C122}.Debug|x64.Build.0 = Debug|Any CPU
-		{96E35FBB-0C17-4212-8329-026F0106C122}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{96E35FBB-0C17-4212-8329-026F0106C122}.Release|Any CPU.Build.0 = Release|Any CPU
-		{96E35FBB-0C17-4212-8329-026F0106C122}.Release|x64.ActiveCfg = Release|Any CPU
-		{96E35FBB-0C17-4212-8329-026F0106C122}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
