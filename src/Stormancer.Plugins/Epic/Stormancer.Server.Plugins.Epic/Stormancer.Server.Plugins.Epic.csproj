@@ -36,13 +36,15 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Remove="Models\**" />
+	  <EmbeddedResource Remove="Models\**" />
+	  <None Remove="Models\**" />
+	</ItemGroup>
+
+	<ItemGroup>
         <Content Include="bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).pdb" PackagePath="contentFiles\any\net6.0\$(AssemblyName).pdb">
             <PackageCopyToOutput>true</PackageCopyToOutput>
         </Content>
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Models\" />
     </ItemGroup>
 
 	<ItemGroup>

@@ -475,24 +475,24 @@ namespace Stormancer
 
 			pplx::task<void> retrieveCredentials(const Users::CredentialsContext& context) override
 			{
-				return getEpicCredentials([context](std::string type, std::string provider, std::string epicTicketHex)
+				return getEpicCredentials([context](std::string type, std::string provider, std::string accessToken)
 				{
 					context.authParameters->type = type;
 					context.authParameters->parameters["provider"] = provider;
-					context.authParameters->parameters["ticket"] = epicTicketHex;
+					context.authParameters->parameters["accessToken"] = accessToken;
 				});
 			}
 
 			virtual pplx::task<void> renewCredentials(const Users::CredentialsRenewalContext& context) override
 			{
-				return getEpicCredentials([context](std::string type, std::string provider, std::string epicTicketHex)
+				return getEpicCredentials([context](std::string type, std::string provider, std::string accessToken)
 				{
 					context.response->parameters["provider"] = provider;
-					context.response->parameters["ticket"] = epicTicketHex;
+					context.response->parameters["accessToken"] = accessToken;
 				});
 			}
 
-			pplx::task<void> getEpicCredentials(std::function<void(std::string type, std::string provider, std::string epicTicketHex)> fulfillCredentialsCallback)
+			pplx::task<void> getEpicCredentials(std::function<void(std::string type, std::string provider, std::string accessToken)> fulfillCredentialsCallback)
 			{
 				if (!_epicConfiguration->getAuthenticationEnabled())
 				{
@@ -500,6 +500,19 @@ namespace Stormancer
 				}
 
 				std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+				if (_authTce)
+				{
+					_authTce->set_exception(pplx::task_canceled());
+				}
+
+				_authTce = std::make_shared<pplx::task_completion_event<std::string>>();
+
+				timeout(10s)
+					.register_callback([tce = _authTce]()
+				{
+					tce->set_exception(pplx::task_canceled());
+				});
 
 				EOS_HPlatform platformHandle = _epicApi->getOrCreatePlatformHandle();
 
@@ -540,42 +553,30 @@ namespace Stormancer
 
 				auto wEpicAuth = new std::weak_ptr<EpicAuthenticationEventHandler>(STORM_WEAK_FROM_THIS());
 
-				EOS_Auth_Login(authHandle, &loginOptions, this, loginCompleteCallbackFn);
-
-
-
-
-
-
-
-
-				if (_authTce)
-				{
-					_authTce->set_exception(pplx::task_canceled());
-				}
-
-				_authTce = std::make_shared<pplx::task_completion_event<void>>();
-
-				timeout(10s)
-					.register_callback([tce = _authTce]()
-				{
-					tce->set_exception(pplx::task_canceled());
-				});
-
-				std::shared_ptr<std::vector<byte>> epicTicket;
+				EOS_Auth_Login(authHandle, &loginOptions, &wEpicAuth, loginCompleteCallbackFn);
 
 				return pplx::create_task(*_authTce)
-					.then([fulfillCredentialsCallback, epicTicket]()
+					.then([fulfillCredentialsCallback, authHandle](std::string accountIdStr)
 				{
-					std::stringstream ss;
-					ss << std::uppercase << std::hex << std::setfill('0');
-					for (auto b : *epicTicket)
-					{
-						ss << std::setw(2) << static_cast<unsigned>(b);
-					}
-					auto epicTicketHex = ss.str();
+					assert(authHandle != nullptr);
 
-					fulfillCredentialsCallback(platformName, platformName, epicTicketHex);
+					EOS_Auth_CopyUserAuthTokenOptions authTokenOptions = { 0 };
+					authTokenOptions.ApiVersion = EOS_AUTH_COPYUSERAUTHTOKEN_API_LATEST;
+
+					EOS_EpicAccountId accountId = details::EpicPlatformUserId::toEpicAccountId(accountIdStr);
+
+					EOS_Auth_Token* authToken = nullptr;
+
+					EOS_EResult result = EOS_Auth_CopyUserAuthToken(authHandle, &authTokenOptions, accountId, &authToken);
+
+					if (result != EOS_EResult::EOS_Success)
+					{
+						throw std::runtime_error("EOS_Auth_CopyUserAuthToken failed with result " + std::to_string((int32_t)result));
+					}
+
+					std::string accessToken(authToken->AccessToken);
+
+					fulfillCredentialsCallback(platformName, platformName, accessToken);
 				});
 			}
 
@@ -613,16 +614,16 @@ namespace Stormancer
 						auto accountId2 = EOS_Auth_GetLoggedInAccountByIndex(authHandle, AccountIdx);
 
 						EOS_ELoginStatus LoginStatus;
-						LoginStatus = EOS_Auth_GetLoginStatus(authHandle, data->LocalUserId);
+						LoginStatus = EOS_Auth_GetLoginStatus(authHandle, accountId2);
 
-						std::string accountId2Str = details::EpicPlatformUserId::toString(data->LocalUserId);
+						std::string accountId2Str = details::EpicPlatformUserId::toString(accountId2);
 
 						_logger->log(LogLevel::Trace, "EOS SDK", "AccountId=" + accountId2Str + "; Status=" + std::to_string((int32_t)LoginStatus));
 					}
 
 					std::lock_guard<std::recursive_mutex> lg(_mutex);
 
-					_authTce->set();
+					_authTce->set(accountIdStr);
 				}
 				else
 				{
@@ -636,12 +637,15 @@ namespace Stormancer
 			{
 				assert(data != NULL);
 
-				auto wEpicAuth = *(std::weak_ptr<EpicAuthenticationEventHandler>*)(data->ClientData);
+				auto wEpicAuthPtr = (std::weak_ptr<EpicAuthenticationEventHandler>*)data->ClientData;
+				auto wEpicAuth = *wEpicAuthPtr;
 
 				if (auto epicAuth = wEpicAuth.lock())
 				{
 					epicAuth->loginCompleteCallback(data);
 				}
+
+				delete wEpicAuthPtr;
 			}
 
 #pragma endregion
@@ -652,7 +656,7 @@ namespace Stormancer
 			std::shared_ptr<details::EpicConfiguration> _epicConfiguration;
 			std::shared_ptr<IEpicApi> _epicApi;
 			std::shared_ptr<ILogger> _logger;
-			std::shared_ptr<pplx::task_completion_event<void>> _authTce; // shared_ptr used as an optional
+			std::shared_ptr<pplx::task_completion_event<std::string>> _authTce; // shared_ptr used as an optional
 
 #pragma endregion
 		};
