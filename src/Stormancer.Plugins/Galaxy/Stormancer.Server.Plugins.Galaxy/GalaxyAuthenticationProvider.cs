@@ -158,7 +158,7 @@ namespace Stormancer.Server.Plugins.Galaxy
             }
             catch (Exception ex)
             {
-                logger.Log(LogLevel.Debug, "authenticator.galaxy, $"Galaxy authentication failed. Ticket : {ticketB64}", ex);
+                logger.Log(LogLevel.Debug, "authenticator.galaxy", $"Galaxy authentication failed. Ticket : {ticketB64}", ex);
                 throw;
             }
         }
