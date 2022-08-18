@@ -15,6 +15,7 @@
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<Deterministic>true</Deterministic>
 	</PropertyGroup>
+	
 	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
 		<Version>$(Version)-pre</Version>
 	</PropertyGroup>
@@ -22,10 +23,11 @@
 	<PropertyGroup>
 		<PackageIcon>icon.png</PackageIcon>
 	</PropertyGroup>
+	
 	<ItemGroup>
 		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
-
 	</ItemGroup>
+	
 	<ItemGroup>
 		<PackageReference Include="jose-jwt" Version="3.1.1" />
 		<PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="2.2.0" />
@@ -68,7 +70,7 @@
 	<Target Name="PostPack" AfterTargets="Pack">
 		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
 		<Copy SourceFiles="@(Pdbs)" DestinationFolder="$(ProjectDir)../../../../output/symbols/$(ConfigurationName)" />
-		<Copy SourceFiles="@(cpp)" DestinationFolder="$(ProjectDir)../../../../output/cpp/users" />
+		<Copy SourceFiles="@(cpp)" DestinationFolder="$(ProjectDir)../../../../output/cpp/Users" />
 	</Target>
 
 </Project>

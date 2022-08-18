@@ -17,17 +17,17 @@ namespace Stormancer.Server.Plugins.Galaxy
         /// <param name="builder"></param>
         public void Run(IAppBuilder builder)
         {
-            builder.AddPlugin(new GogGalaxyPlugin());
+            builder.AddPlugin(new GalaxyPlugin());
         }
     }
 
-    internal class GogGalaxyPlugin : IHostPlugin
+    internal class GalaxyPlugin : IHostPlugin
     {
         public void Build(HostPluginBuildContext ctx)
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
               {
-                  builder.Register<GogGalaxyAuthenticationProvider>().As<IAuthenticationProvider>();
+                  builder.Register<GalaxyAuthenticationProvider>().As<IAuthenticationProvider>();
               };
         }
     }

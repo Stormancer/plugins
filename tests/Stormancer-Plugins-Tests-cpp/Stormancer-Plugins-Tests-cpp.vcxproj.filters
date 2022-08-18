@@ -11,77 +11,77 @@
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Steam\cpp\Steam.hpp">
-      <Filter>steam</Filter>
+      <Filter>Steam</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Stormancer.Plugins\GameSession\cpp\Gamesessions.hpp">
-      <Filter>gamesession</Filter>
+      <Filter>GameSession</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Stormancer.Plugins\GameSession\cpp\ServerPools.hpp">
-      <Filter>gamesession</Filter>
+      <Filter>GameSession</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Stormancer.Plugins\Party\cpp\Party.hpp">
-      <Filter>party</Filter>
+      <Filter>Party</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Stormancer.Plugins\GameFinder\cpp\GameFinder.hpp">
-      <Filter>gamefinder</Filter>
+      <Filter>Gamefinder</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Stormancer.Plugins\Users\cpp\ClientAPI.hpp">
-      <Filter>users</Filter>
+      <Filter>Users</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Stormancer.Plugins\Users\cpp\Users.hpp">
-      <Filter>users</Filter>
+      <Filter>Users</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\SocketApi\cpp\socket.hpp">
-      <Filter>socket</Filter>
+    <ClInclude Include="..\..\src\Stormancer.Plugins\SocketApi\cpp\Socket.hpp">
+      <Filter>Socket</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Gog\cpp\galaxy.hpp">
-      <Filter>gog</Filter>
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Galaxy\cpp\Galaxy.hpp">
+      <Filter>Galaxy</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Analytics\cpp\analytics.hpp">
-      <Filter>analytics</Filter>
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Analytics\cpp\Analytics.hpp">
+      <Filter>Analytics</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Stormancer.Plugins\Replication\cpp\CommandLog.hpp">
-      <Filter>replication</Filter>
+      <Filter>Replication</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Stormancer.Plugins\Friends\cpp\Friends.hpp">
-      <Filter>friends</Filter>
+      <Filter>Friends</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Profile\cpp\Profiles.hpp">
-      <Filter>profile</Filter>
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Profile\cpp\Profile.hpp">
+      <Filter>Profile</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="steam">
+    <Filter Include="Steam">
       <UniqueIdentifier>{fc334805-6bf7-4922-9a80-f4e1ced8e548}</UniqueIdentifier>
     </Filter>
-    <Filter Include="gamesession">
+    <Filter Include="GameSession">
       <UniqueIdentifier>{80ff9f9a-79cd-4611-a52e-f464cb24f19f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="party">
+    <Filter Include="Party">
       <UniqueIdentifier>{37476903-56ec-49df-b43e-45e846116751}</UniqueIdentifier>
     </Filter>
-    <Filter Include="gamefinder">
+    <Filter Include="GameFinder">
       <UniqueIdentifier>{3bb5cc69-6d27-4c59-8a6c-3056be010da0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="users">
+    <Filter Include="Users">
       <UniqueIdentifier>{dfd19114-6ba8-4adf-8342-51ec37c17db2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="socket">
+    <Filter Include="Socket">
       <UniqueIdentifier>{18af6ac7-cf0c-4cfe-9c8d-65eab0aed4eb}</UniqueIdentifier>
     </Filter>
-    <Filter Include="gog">
+    <Filter Include="Galaxy">
       <UniqueIdentifier>{4990681e-e3a1-4b0b-9804-4bfc32f643bd}</UniqueIdentifier>
     </Filter>
-    <Filter Include="analytics">
+    <Filter Include="Analytics">
       <UniqueIdentifier>{2fb6dace-491c-4217-954d-72d1dbdebb23}</UniqueIdentifier>
     </Filter>
-    <Filter Include="replication">
+    <Filter Include="Replication">
       <UniqueIdentifier>{d0b8e35b-2b49-40e7-8055-0488751f9b09}</UniqueIdentifier>
     </Filter>
-    <Filter Include="friends">
+    <Filter Include="Friends">
       <UniqueIdentifier>{a09716fe-039f-4827-a7fd-24a5c6e48a51}</UniqueIdentifier>
     </Filter>
-    <Filter Include="profile">
+    <Filter Include="Profile">
       <UniqueIdentifier>{443214e2-35b5-42a6-b6dd-3fc0812c7f70}</UniqueIdentifier>
     </Filter>
   </ItemGroup>

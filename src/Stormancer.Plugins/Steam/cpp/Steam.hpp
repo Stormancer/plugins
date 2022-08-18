@@ -1868,7 +1868,7 @@ namespace Stormancer
 
 			pplx::task<void> retrieveCredentials(const Users::CredentialsContext& context) override
 			{
-				return getSteamCredentials([context](std::string type, std::string provider, std::string steamTicketHex)
+				return getSteamCredentials([context](const std::string& type, const std::string& provider, const std::string& steamTicketHex)
 				{
 					context.authParameters->type = type;
 					context.authParameters->parameters["provider"] = provider;
@@ -1878,14 +1878,14 @@ namespace Stormancer
 
 			virtual pplx::task<void> renewCredentials(const Users::CredentialsRenewalContext& context) override
 			{
-				return getSteamCredentials([context](std::string type, std::string provider, std::string steamTicketHex)
+				return getSteamCredentials([context](const std::string& type, const std::string& provider, const std::string& steamTicketHex)
 				{
 					context.response->parameters["provider"] = provider;
 					context.response->parameters["ticket"] = steamTicketHex;
 				});
 			}
 
-			pplx::task<void> getSteamCredentials(std::function<void(std::string type, std::string provider, std::string steamTicketHex)> fulfillCredentialsCallback)
+			pplx::task<void> getSteamCredentials(std::function<void(const std::string& type, const std::string& provider, const std::string& steamTicketHex)> fulfillCredentialsCallback)
 			{
 				if (!_steamConfiguration->getAuthenticationEnabled())
 				{
