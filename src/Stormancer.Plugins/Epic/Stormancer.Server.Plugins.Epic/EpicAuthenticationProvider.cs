@@ -109,17 +109,27 @@ namespace Stormancer.Server.Plugins.Epic
     public class EpicConfigurationSection
     {
         /// <summary>
-        /// Application id.
+        /// Allowed Product ids.
         /// </summary>
-        public IEnumerable<string>? ApplicationIds { get; set; }
+        public IEnumerable<string>? productIds { get; set; }
 
         /// <summary>
-        /// Deployment Id.
+        /// Allowed Application ids.
         /// </summary>
-        public string? deploymentId { get; set; }
+        public IEnumerable<string>? applicationIds { get; set; }
 
         /// <summary>
-        /// Client Id.
+        /// Allowed Deployment ids.
+        /// </summary>
+        public IEnumerable<string>? deploymentIds { get; set; }
+
+        /// <summary>
+        /// Allowed Sandbox ids.
+        /// </summary>
+        public IEnumerable<string>? sandboxIds { get; set; }
+
+        /// <summary>
+        /// Client id.
         /// </summary>
         public string? clientId { get; set; }
 
@@ -271,9 +281,24 @@ namespace Stormancer.Server.Plugins.Epic
 
             _logger.Log(LogLevel.Trace, "authenticator.epic", "Epic auth request received", authParams);
 
-            if (config.ApplicationIds == null || !config.ApplicationIds.Any())
+            if (config.productIds == null || !config.productIds.Any())
+            {
+                return AuthenticationResult.CreateFailure($"Missing ProductIds in server config.", pId, authParams);
+            }
+
+            if (config.applicationIds == null || !config.applicationIds.Any())
             {
                 return AuthenticationResult.CreateFailure($"Missing ApplicationIds in server config.", pId, authParams);
+            }
+
+            if (config.sandboxIds == null || !config.sandboxIds.Any())
+            {
+                return AuthenticationResult.CreateFailure($"Missing SandboxIds in server config.", pId, authParams);
+            }
+
+            if (config.deploymentIds == null || !config.deploymentIds.Any())
+            {
+                return AuthenticationResult.CreateFailure($"Missing DeploymentIds in server config.", pId, authParams);
             }
 
             if (!authParams.TryGetValue(EpicConstants.ACCESSTOKEN_CLAIMPATH, out var accessToken) || string.IsNullOrWhiteSpace(accessToken))
@@ -309,9 +334,27 @@ namespace Stormancer.Server.Plugins.Epic
                         return AuthenticationResult.CreateFailure($"Invalid token (2).", pId, authParams);
                     }
 
-                    if (string.IsNullOrWhiteSpace(payload.appid) || !config.ApplicationIds.Contains(payload.appid))
+                    if (string.IsNullOrWhiteSpace(payload.pfpid) || !config.productIds.Contains(payload.pfpid))
                     {
-                        _logger.Log(LogLevel.Error, "EpicAuthenticationProvider.Authenticate", "Invalid application id", new { TokenApplicationId = payload.appid, ConfigApplicationIds = config.ApplicationIds });
+                        _logger.Log(LogLevel.Error, "EpicAuthenticationProvider.Authenticate", "Invalid product id", new { TokenApplicationId = payload.appid, ConfigProductIds = config.productIds });
+                        return AuthenticationResult.CreateFailure($"Invalid token (3).", pId, authParams);
+                    }
+
+                    if (string.IsNullOrWhiteSpace(payload.appid) || !config.applicationIds.Contains(payload.appid))
+                    {
+                        _logger.Log(LogLevel.Error, "EpicAuthenticationProvider.Authenticate", "Invalid application id", new { TokenApplicationId = payload.appid, ConfigApplicationIds = config.applicationIds });
+                        return AuthenticationResult.CreateFailure($"Invalid token (3).", pId, authParams);
+                    }
+
+                    if (string.IsNullOrWhiteSpace(payload.pfsid) || !config.sandboxIds.Contains(payload.pfsid))
+                    {
+                        _logger.Log(LogLevel.Error, "EpicAuthenticationProvider.Authenticate", "Invalid sandbox id", new { TokenApplicationId = payload.appid, ConfigSandboxIds = config.sandboxIds });
+                        return AuthenticationResult.CreateFailure($"Invalid token (3).", pId, authParams);
+                    }
+
+                    if (string.IsNullOrWhiteSpace(payload.pfdid) || !config.deploymentIds.Contains(payload.pfdid))
+                    {
+                        _logger.Log(LogLevel.Error, "EpicAuthenticationProvider.Authenticate", "Invalid deployment id", new { TokenApplicationId = payload.appid, ConfigDeploymentIds = config.deploymentIds });
                         return AuthenticationResult.CreateFailure($"Invalid token (3).", pId, authParams);
                     }
 

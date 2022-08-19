@@ -180,10 +180,10 @@ namespace Stormancer.Server.Plugins.Epic
         {
             var authResult = await _cache.Get("accessToken", async (_) =>
             {
-                var deploymentId = GetConfig().deploymentId;
-                if (deploymentId == null)
+                var deploymentIds = GetConfig().deploymentIds;
+                if (deploymentIds == null || !deploymentIds.Any())
                 {
-                    throw new InvalidOperationException("CeploymentId is not set in config.");
+                    throw new InvalidOperationException("DeploymentId is not set in config.");
                 }
 
                 var clientId = GetConfig().clientId;
@@ -205,7 +205,7 @@ namespace Stormancer.Server.Plugins.Epic
                     Content = new FormUrlEncodedContent(new Dictionary<string, string>
                     {
                         { "grant_type", "client_credentials" },
-                        { "deployment_id", deploymentId },
+                        { "deployment_id", deploymentIds.First() },
                         { "scope", "basic_profile friends_list presence" },
                         { "client_id", clientId },
                         { "client_secret", clientSecret }
