@@ -1,6 +1,7 @@
 #include "Users/ClientAPI.hpp"
 #include "Users/Users.hpp"
 #include "Party/Party.hpp"
+#include "GameFinder/GameFinder.hpp"
 
 #include <thread>
 
@@ -10,6 +11,8 @@ using namespace Stormancer;
 
 int main()
 {
+	std::shared_ptr<MainThreadActionDispatcher> actionDispatcher = std::make_shared<MainThreadActionDispatcher>();
+
 	auto config = Configuration::create("http://192.168.1.24", "vaus", "dev-server");
 	config->additionalParameters[Epic::ConfigurationKeys::AuthenticationEnabled] = "true";
 	config->additionalParameters[Epic::ConfigurationKeys::LoginMode] = "DevAuth";
@@ -20,21 +23,22 @@ int main()
 	config->additionalParameters[Epic::ConfigurationKeys::DeploymentId] = "3c1b33a8937a4be0ac46d700a64d4e25";
 	config->additionalParameters[Epic::ConfigurationKeys::ClientId] = "xyza7891JkSPExgoA1rutsjWjpmqkbjD";
 	config->additionalParameters[Epic::ConfigurationKeys::ClientSecret] = "6hsLV6Ftg5tutmRQ8t/ujS7RxcNkngT+yeI75JmtmuU";
+	config->actionDispatcher = actionDispatcher;
 	config->addPlugin(new Users::UsersPlugin());
+	config->addPlugin(new GameFinder::GameFinderPlugin());
 	config->addPlugin(new Party::PartyPlugin());
 	config->addPlugin(new Epic::EpicPlugin());
 	auto client = IClient::create(config);
 	auto usersApi = client->dependencyResolver().resolve<Users::UsersApi>();
 	auto logger = client->dependencyResolver().resolve<ILogger>();
-	auto mainThreadDispatcher = client->dependencyResolver().resolve<MainThreadActionDispatcher>();
 
 	bool disconnected = false;
 
-	std::thread mainLoop([mainThreadDispatcher, &disconnected]()
+	std::thread mainLoop([actionDispatcher, &disconnected]()
 	{
 		while (!disconnected)
 		{
-			mainThreadDispatcher->update(std::chrono::milliseconds(10));
+			actionDispatcher->update(std::chrono::milliseconds(10));
 		}
 	});
 
@@ -44,8 +48,15 @@ int main()
 		std::string userId = usersApi->userId();
 		std::string username = usersApi->username();
 		logger->log(LogLevel::Info, "SampleMain", "Login succeed!", "userId = " + userId + "; userName = " + username);
-		usersApi->logout();
-		client->disconnect();
+		usersApi->logout()
+			.then([client, &disconnected]()
+		{
+			client->disconnect()
+				.then([&disconnected]()
+			{
+				disconnected = true;
+			});
+		});
 	});
 
 	thread.join();
