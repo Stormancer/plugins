@@ -53,15 +53,13 @@ namespace Stormancer
 
 			constexpr const char* DevAuthCredentialsName = "epic.authentication.devAuth.credentialsName";
 
+			constexpr const char* ApplicationId = "epic.applicationId";
+
 			constexpr const char* ProductId = "epic.productId";
 
 			constexpr const char* SandboxId = "epic.sandboxId";
 
 			constexpr const char* DeploymentId = "epic.deploymentId";
-
-			constexpr const char* ClientId = "epic.clientId";
-
-			constexpr const char* ClientSecret = "epic.clientSecret";
 		}
 
 		constexpr const char* PARTY_TYPE_EPICGAMESIDLOBBY = "epicIDLobby";
@@ -175,8 +173,6 @@ namespace Stormancer
 					_productId = config->additionalParameters.find(ConfigurationKeys::ProductId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ProductId) : "";
 					_sandboxId = config->additionalParameters.find(ConfigurationKeys::SandboxId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::SandboxId) : "";
 					_deploymentId = config->additionalParameters.find(ConfigurationKeys::DeploymentId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::DeploymentId) : "";
-					_clientId = config->additionalParameters.find(ConfigurationKeys::ClientId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ClientId) : "";
-					_clientSecret = config->additionalParameters.find(ConfigurationKeys::ClientSecret) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ClientSecret) : "";
 				}
 
 				virtual ~EpicState()
@@ -235,20 +231,6 @@ namespace Stormancer
 					return _deploymentId;
 				}
 
-				std::string getClientId() const
-				{
-					std::lock_guard<std::recursive_mutex> lg(_mutex);
-
-					return _clientId;
-				}
-
-				std::string getClientSecret() const
-				{
-					std::lock_guard<std::recursive_mutex> lg(_mutex);
-
-					return _clientSecret;
-				}
-
 				void setPlatformHandle(EOS_HPlatform platformHandle)
 				{
 					std::lock_guard<std::recursive_mutex> lg(_mutex);
@@ -267,7 +249,7 @@ namespace Stormancer
 					return _platformHandle;
 				}
 
-			protected:
+			private:
 
 				void setPlatformHandleOwned(bool owned)
 				{
@@ -288,8 +270,6 @@ namespace Stormancer
 					}
 				}
 
-			private:
-
 				mutable std::recursive_mutex _mutex;
 				bool _authenticationEnabled = true;
 				std::string _loginMode;
@@ -298,8 +278,6 @@ namespace Stormancer
 				std::string _productId;
 				std::string _sandboxId;
 				std::string _deploymentId;
-				std::string _clientId;
-				std::string _clientSecret;
 				bool _platformHandleOwned = false;
 				EOS_HPlatform _platformHandle = nullptr;
 				std::shared_ptr<ILogger> _logger;
@@ -437,8 +415,6 @@ namespace Stormancer
 						PlatformOptions.ProductId = _epicState->getProductId().c_str();
 						PlatformOptions.SandboxId = _epicState->getSandboxId().c_str();
 						PlatformOptions.DeploymentId = _epicState->getDeploymentId().c_str();
-						PlatformOptions.ClientCredentials.ClientId = _epicState->getClientId().c_str();
-						PlatformOptions.ClientCredentials.ClientSecret = _epicState->getClientSecret().c_str();
 						PlatformOptions.Reserved = NULL;
 						platformHandle = EOS_Platform_Create(&PlatformOptions);
 						_epicState->setPlatformHandle(platformHandle);
@@ -590,14 +566,19 @@ namespace Stormancer
 				firstParam = _epicState->getDevAuthHost();
 				secondParam = _epicState->getDevAuthCredentialsName();
 
-				if (!firstParam.empty() && !secondParam.empty())
+				auto loginMode = _epicState->getLoginMode();
+
+				if (loginMode == "DevAuth") // Dev auth (DevAuth)
 				{
-					// Dev auth (DevAuth)
+					if (firstParam.empty() || secondParam.empty())
+					{
+						STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error("Missing host or credentials name for DevAuth login mode"), void);
+					}
+					
 					credentials.Type = EOS_ELoginCredentialType::EOS_LCT_Developer;
 				}
-				else
+				else // Default regular auth (AccountPortal)
 				{
-					// Regular auth (AccountPortal)
 					credentials.Type = EOS_ELoginCredentialType::EOS_LCT_AccountPortal;
 				}
 
