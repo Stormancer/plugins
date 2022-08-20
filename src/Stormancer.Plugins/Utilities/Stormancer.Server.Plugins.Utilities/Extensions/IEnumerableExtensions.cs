@@ -57,11 +57,25 @@ namespace Stormancer.Server.Plugins.Utilities.Extensions
                 }
             }
 
-            
+            async Task CompleteWriterOnAllCompleted(List<Task> tasks, ChannelWriter<T> writer)
+            {
+                try
+                {
+                    await Task.WhenAll(tasks);
+                    writer.TryComplete();
+                }
+                catch(Exception ex)
+                {
+                    writer.TryComplete(ex);
+                }
+            };
+            var list = new List<Task>();
             foreach(var source in sources)
             {
-                _ = WriteToChannel(source, channel.Writer,cancellationToken);
+                list.Add(WriteToChannel(source, channel.Writer,cancellationToken));
             }
+
+            _ = CompleteWriterOnAllCompleted(list, channel.Writer);
 
 
             while(await channel.Reader.WaitToReadAsync(cancellationToken))

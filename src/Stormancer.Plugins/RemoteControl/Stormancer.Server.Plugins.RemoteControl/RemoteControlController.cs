@@ -49,7 +49,7 @@ namespace Stormancer.Server.Plugins.RemoteControl
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public SearchResult<Agent> SearchAgents(string query,uint size, uint skip)
         {
-            return service.SearchAgents(JObject.FromObject(query), size, skip);
+            return service.SearchAgents(JObject.Parse(query), size, skip);
         }
 
     }

@@ -38,10 +38,10 @@ namespace Stormancer.Server.Plugins.RemoteControl
             var configSection = configuration.GetValue("remoteControl", new RemoteControlConfigSection());
             var pId = new PlatformId();
             var keyPath = configSection.AgentKeyPath;
-            if (keyPath == null)
-            {
-                return AuthenticationResult.CreateFailure($"'remoteControl.{nameof(RemoteControlConfigSection.AgentKeyPath)}' configuration value not set.", pId, authenticationCtx.Parameters);
-            }
+            //if (keyPath == null)
+            //{
+            //    return AuthenticationResult.CreateFailure($"'remoteControl.{nameof(RemoteControlConfigSection.AgentKeyPath)}' configuration value not set.", pId, authenticationCtx.Parameters);
+            //}
 
             if (!authenticationCtx.Parameters.TryGetValue(RemoteControlConstants.AUTHENTICATION_KEYS_AGENTID, out var agentId))
             {
@@ -58,16 +58,19 @@ namespace Stormancer.Server.Plugins.RemoteControl
                 return AuthenticationResult.CreateFailure($"'{RemoteControlConstants.AUTHENTICATION_KEYS_METADATA}' not set.", pId, authenticationCtx.Parameters);
             }
 
-            var passwordSecret = await secretsStore.GetSecret(keyPath);
-
-            if (passwordSecret == null || passwordSecret.Value == null)
+            if (keyPath != null)
             {
-                return AuthenticationResult.CreateFailure($"'{keyPath}' secret not found.", pId, authenticationCtx.Parameters);
-            }
+                var passwordSecret = await secretsStore.GetSecret(keyPath);
 
-            if (password != Encoding.UTF8.GetString(passwordSecret.Value))
-            {
-                return AuthenticationResult.CreateFailure("'Password incorrect.", pId, authenticationCtx.Parameters);
+                if (passwordSecret == null || passwordSecret.Value == null)
+                {
+                    return AuthenticationResult.CreateFailure($"'{keyPath}' secret not found.", pId, authenticationCtx.Parameters);
+                }
+
+                if (password != Encoding.UTF8.GetString(passwordSecret.Value))
+                {
+                    return AuthenticationResult.CreateFailure("'Password incorrect.", pId, authenticationCtx.Parameters);
+                }
             }
 
             pId.Platform = RemoteControlConstants.AUTHPROVIDER_TYPE;

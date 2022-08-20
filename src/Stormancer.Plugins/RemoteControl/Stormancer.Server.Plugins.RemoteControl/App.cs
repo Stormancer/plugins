@@ -25,7 +25,7 @@ namespace Stormancer.Server.Plugins.RemoteControl
                   builder.Register<RemoteControlController>();
                   builder.Register<RemoteControlService>().As<IRemoteControlService>().AsSelf();
                   builder.Register<AgentRepository>().InstancePerScene();
-                  builder.Register<RemoteControlApiServiceLocator>();
+                  builder.Register<RemoteControlApiServiceLocator>().As<IServiceLocatorProvider>();
 
               };
             ctx.HostStarting += (IHost host) =>

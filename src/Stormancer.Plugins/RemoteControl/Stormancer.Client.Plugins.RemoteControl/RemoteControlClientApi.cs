@@ -85,9 +85,9 @@ namespace Stormancer.Plugins.RemoteControl
         private readonly Scene scene;
         private readonly ISerializer serializer;
 
-        public RemoteControlClientService(Scene scene, ISerializer serializer)
+        public RemoteControlClientService(IScene scene, ISerializer serializer)
         {
-            this.scene = scene;
+            this.scene = (Scene)scene;
             this.serializer = serializer;
         }
 

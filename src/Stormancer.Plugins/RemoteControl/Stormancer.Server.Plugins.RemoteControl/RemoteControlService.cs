@@ -1,5 +1,6 @@
 ﻿using Lucene.Net.Search;
 using Lucene.Net.Store;
+using MsgPack;
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Plugins;
@@ -10,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -56,27 +58,38 @@ namespace Stormancer.Server.Plugins.RemoteControl
 
             async IAsyncEnumerable<AgentCommandOutputEntry> RunCommand(Agent agent, string command, CancellationToken cancellationToken)
             {
-                var rpc = sceneHost.DependencyResolver.Resolve<RpcService>();
-                var peer = sceneHost.RemotePeers.FirstOrDefault(p => p.SessionId == agent.SessionId.ToString());
-                if (peer != null)
+                try
                 {
-                    await foreach (var packet in rpc.Rpc("runCommand", peer, s => serializer.Serialize(command, s), PacketPriority.MEDIUM_PRIORITY, cancellationToken).ToAsyncEnumerable())
+                    agent.RunningCommand = new AgentRunningCommand(Guid.NewGuid().ToString(), command, DateTime.UtcNow);
+                    var rpc = sceneHost.DependencyResolver.Resolve<RpcService>();
+                    var peer = sceneHost.RemotePeers.FirstOrDefault(p => p.SessionId == agent.SessionId.ToString());
+                    if (peer != null)
                     {
-                        using (packet)
+                        await foreach (var dto in rpc.Rpc("runCommand", peer, s => serializer.Serialize(command, s), PacketPriority.MEDIUM_PRIORITY, cancellationToken).Select(p =>
                         {
-                            var dto = packet.ReadObject<AgentCommandOutputEntryDto>();
+                            using (p)
+                            {
+                                return p.ReadObject<AgentCommandOutputEntryDto>();
+                            }
+                        }).ToAsyncEnumerable())
+                        {
+
+
+
                             JObject? content = null;
                             string? error = null;
+
                             try
                             {
+
                                 content = JObject.Parse(dto.ResultJson);
                             }
-                            catch(Exception ex)
+                            catch (Exception ex)
                             {
                                 error = ex.ToString();
                             }
 
-                            if(content is not null)
+                            if (content is not null)
                             {
                                 yield return new AgentCommandOutputEntry
                                 {
@@ -92,12 +105,19 @@ namespace Stormancer.Server.Plugins.RemoteControl
                                 {
                                     SessionId = agent.SessionId,
                                     AgentName = agent.Name,
-                                    Result = JObject.FromObject(new { error = error, json =  dto.ResultJson }),
+                                    Result = JObject.FromObject(new { error = error, json = dto.ResultJson }),
                                     Type = "error"
                                 };
                             }
+
+
+
                         }
                     }
+                }
+                finally
+                {
+                    agent.RunningCommand = null;
                 }
             }
 
@@ -221,10 +241,10 @@ namespace Stormancer.Server.Plugins.RemoteControl
             {
                 Debug.Assert(id != null);
                 var sessionId = SessionId.From(id);
-                var agent = _agents.TryGetValue(sessionId, out var a) ? a : default(Agent);
+                var agent = _agents.TryGetValue(sessionId, out var a) ? a : default;
                 return (id, agent);
             })
-            .Select(tuple => new Document<Agent> { Id = tuple.id, Source = tuple.agent });
+            .Select(tuple => new Document<Agent> { Id = tuple.id, Source = tuple.agent }).ToList();
 
             return result;
 
