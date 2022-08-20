@@ -53,15 +53,13 @@ namespace Stormancer
 
 			constexpr const char* DevAuthCredentialsName = "epic.authentication.devAuth.credentialsName";
 
+			constexpr const char* ApplicationId = "epic.applicationId";
+
 			constexpr const char* ProductId = "epic.productId";
 
 			constexpr const char* SandboxId = "epic.sandboxId";
 
 			constexpr const char* DeploymentId = "epic.deploymentId";
-
-			constexpr const char* ClientId = "epic.clientId";
-
-			constexpr const char* ClientSecret = "epic.clientSecret";
 		}
 
 		constexpr const char* PARTY_TYPE_EPICGAMESIDLOBBY = "epicIDLobby";
@@ -81,11 +79,7 @@ namespace Stormancer
 
 			virtual void setPlatformHandle(EOS_HPlatform platformHandle) = 0;
 
-			virtual void setPlatformHandleOwned(bool owned) = 0;
-
-			virtual EOS_HPlatform getPlatformHandle() = 0;
-
-			virtual EOS_HPlatform getOrCreatePlatformHandle() = 0;
+			virtual EOS_HPlatform getPlatformHandle(bool createIfNotAvailable = false) = 0;
 		};
 
 		namespace details
@@ -161,12 +155,17 @@ namespace Stormancer
 				const AccountId _accountId;
 			};
 
-			class EpicConfiguration
+			class EpicState
 			{
 			public:
 
-				EpicConfiguration(std::shared_ptr<Configuration> config)
+				friend class IEpicApi;
+				friend class EpicApi;
+
+				EpicState(std::shared_ptr<Configuration> config, std::shared_ptr<ILogger> logger)
 				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
 					_authenticationEnabled = config->additionalParameters.find(ConfigurationKeys::AuthenticationEnabled) != config->additionalParameters.end() ? (config->additionalParameters.at(ConfigurationKeys::AuthenticationEnabled) != "false") : true;
 					_loginMode = config->additionalParameters.find(ConfigurationKeys::LoginMode) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::LoginMode) : "";
 					_devAuthHost = config->additionalParameters.find(ConfigurationKeys::DevAuthHost) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::DevAuthHost) : "";
@@ -174,57 +173,104 @@ namespace Stormancer
 					_productId = config->additionalParameters.find(ConfigurationKeys::ProductId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ProductId) : "";
 					_sandboxId = config->additionalParameters.find(ConfigurationKeys::SandboxId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::SandboxId) : "";
 					_deploymentId = config->additionalParameters.find(ConfigurationKeys::DeploymentId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::DeploymentId) : "";
-					_clientId = config->additionalParameters.find(ConfigurationKeys::ClientId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ClientId) : "";
-					_clientSecret = config->additionalParameters.find(ConfigurationKeys::ClientSecret) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ClientSecret) : "";
+				}
+
+				virtual ~EpicState()
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					clear();
 				}
 
 				bool getAuthenticationEnabled() const
 				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
 					return _authenticationEnabled;
 				}
 
 				std::string getLoginMode() const
 				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
 					return _loginMode;
 				}
 
 				std::string getDevAuthHost() const
 				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
 					return _devAuthHost;
 				}
 
 				std::string getDevAuthCredentialsName() const
 				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
 					return _devAuthCredentialsName;
 				}
 
 				std::string getProductId() const
 				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
 					return _productId;
 				}
 
 				std::string getSandboxId() const
 				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
 					return _sandboxId;
 				}
 
 				std::string getDeploymentId() const
 				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
 					return _deploymentId;
 				}
 
-				std::string getClientId() const
+				void setPlatformHandle(EOS_HPlatform platformHandle)
 				{
-					return _clientId;
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					if (platformHandle != _platformHandle)
+					{
+						clear();
+					}
+					_platformHandle = platformHandle;
 				}
 
-				std::string getClientSecret() const
+				EOS_HPlatform getPlatformHandle() const
 				{
-					return _clientSecret;
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					return _platformHandle;
 				}
 
 			private:
 
+				void setPlatformHandleOwned(bool owned)
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					_platformHandleOwned = owned;
+				}
+
+				void clear()
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					if (_platformHandleOwned)
+					{
+						_platformHandleOwned = false;
+						EOS_Platform_Release(_platformHandle);
+						_platformHandle = nullptr;
+					}
+				}
+
+				mutable std::recursive_mutex _mutex;
 				bool _authenticationEnabled = true;
 				std::string _loginMode;
 				std::string _devAuthHost;
@@ -232,8 +278,9 @@ namespace Stormancer
 				std::string _productId;
 				std::string _sandboxId;
 				std::string _deploymentId;
-				std::string _clientId;
-				std::string _clientSecret;
+				bool _platformHandleOwned = false;
+				EOS_HPlatform _platformHandle = nullptr;
+				std::shared_ptr<ILogger> _logger;
 			};
 
 			class EpicService : public std::enable_shared_from_this<EpicService>
@@ -313,9 +360,9 @@ namespace Stormancer
 
 #pragma region public_methods
 
-				EpicApi(std::shared_ptr<Users::UsersApi> usersApi, std::shared_ptr<EpicConfiguration> epicConfig, std::shared_ptr<Configuration> config, std::shared_ptr<IScheduler> scheduler, std::shared_ptr<ILogger> logger, std::shared_ptr<Party::PartyApi> partyApi)
+				EpicApi(std::shared_ptr<Users::UsersApi> usersApi, std::shared_ptr<EpicState> epicState, std::shared_ptr<Configuration> config, std::shared_ptr<IScheduler> scheduler, std::shared_ptr<ILogger> logger, std::shared_ptr<Party::PartyApi> partyApi)
 					: ClientAPI(usersApi, "stormancer.epic")
-					, _epicConfig(epicConfig)
+					, _epicState(epicState)
 					, _wScheduler(scheduler)
 					, _wActionDispatcher(config->actionDispatcher)
 					, _logger(logger)
@@ -326,12 +373,6 @@ namespace Stormancer
 
 				~EpicApi()
 				{
-					if (_platformHandleOwned)
-					{
-						_platformHandleOwned = false;
-						EOS_Platform_Release(_platformHandle);
-						_platformHandle = nullptr;
-					}
 				}
 
 				void initialize() override
@@ -340,22 +381,14 @@ namespace Stormancer
 
 				void setPlatformHandle(EOS_HPlatform platformHandle)
 				{
-					_platformHandle = platformHandle;
+					_epicState->setPlatformHandle(platformHandle);
 				}
 
-				void setPlatformHandleOwned(bool owned)
+				EOS_HPlatform getPlatformHandle(bool createIfNotAvailable = false)
 				{
-					_platformHandleOwned = owned;
-				}
+					auto platformHandle = _epicState->getPlatformHandle();
 
-				EOS_HPlatform getPlatformHandle()
-				{
-					return _platformHandle;
-				}
-
-				EOS_HPlatform getOrCreatePlatformHandle()
-				{
-					if (_platformHandle == nullptr)
+					if (createIfNotAvailable && platformHandle == nullptr)
 					{
 						EOS_Platform_Options PlatformOptions = {};
 						PlatformOptions.ApiVersion = EOS_PLATFORM_OPTIONS_API_LATEST;
@@ -379,17 +412,16 @@ namespace Stormancer
 //#endif
 //						EOS_Platform_RTCOptions RtcOptions = { 0 };
 //						PlatformOptions.RTCOptions = &RtcOptions;
-						PlatformOptions.ProductId = _epicConfig->getProductId().c_str();
-						PlatformOptions.SandboxId = _epicConfig->getSandboxId().c_str();
-						PlatformOptions.DeploymentId = _epicConfig->getDeploymentId().c_str();
-						PlatformOptions.ClientCredentials.ClientId = _epicConfig->getClientId().c_str();
-						PlatformOptions.ClientCredentials.ClientSecret = _epicConfig->getClientSecret().c_str();
+						PlatformOptions.ProductId = _epicState->getProductId().c_str();
+						PlatformOptions.SandboxId = _epicState->getSandboxId().c_str();
+						PlatformOptions.DeploymentId = _epicState->getDeploymentId().c_str();
 						PlatformOptions.Reserved = NULL;
-						_platformHandle = EOS_Platform_Create(&PlatformOptions);
-						_platformHandleOwned = true;
+						platformHandle = EOS_Platform_Create(&PlatformOptions);
+						_epicState->setPlatformHandle(platformHandle);
+						_epicState->setPlatformHandleOwned(true);
 					}
 
-					return _platformHandle;
+					return platformHandle;
 				}
 
 #pragma endregion
@@ -403,13 +435,11 @@ namespace Stormancer
 #pragma region private_members
 
 				std::shared_ptr<ILogger> _logger;
-				std::shared_ptr<EpicConfiguration> _epicConfig;
+				std::shared_ptr<EpicState> _epicState;
 				std::weak_ptr<IScheduler> _wScheduler;
 				std::weak_ptr<IActionDispatcher> _wActionDispatcher;
 				std::weak_ptr<Users::UsersApi> _wUsersApi;
 				std::weak_ptr<Party::PartyApi> _wPartyApi;
-				bool _platformHandleOwned = false;
-				EOS_HPlatform _platformHandle = nullptr;
 
 #pragma endregion
 			};
@@ -467,9 +497,9 @@ namespace Stormancer
 
 #pragma region public_methods
 
-			EpicAuthenticationEventHandler(std::shared_ptr<details::EpicConfiguration> epicConfig, std::shared_ptr<IEpicApi> epicApi, std::shared_ptr<ILogger> logger)
-				: _epicConfiguration(epicConfig)
-				, _epicApi(epicApi)
+			EpicAuthenticationEventHandler(std::shared_ptr<details::EpicState> epicState, std::shared_ptr<ILogger> logger)
+				: _epicState(epicState)
+				, _logger(logger)
 			{
 			}
 
@@ -494,7 +524,7 @@ namespace Stormancer
 
 			pplx::task<void> getEpicCredentials(std::function<void(std::string type, std::string provider, std::string accessToken)> fulfillCredentialsCallback)
 			{
-				if (!_epicConfiguration->getAuthenticationEnabled())
+				if (!_epicState->getAuthenticationEnabled())
 				{
 					return pplx::task_from_result();
 				}
@@ -514,7 +544,7 @@ namespace Stormancer
 					tce->set_exception(pplx::task_canceled());
 				});
 
-				EOS_HPlatform platformHandle = _epicApi->getOrCreatePlatformHandle();
+				EOS_HPlatform platformHandle = _epicApi->getPlatformHandle(true);
 
 				if (platformHandle == nullptr)
 				{
@@ -533,17 +563,22 @@ namespace Stormancer
 
 				std::string firstParam, secondParam;
 
-				firstParam = _epicConfiguration->getDevAuthHost();
-				secondParam = _epicConfiguration->getDevAuthCredentialsName();
+				firstParam = _epicState->getDevAuthHost();
+				secondParam = _epicState->getDevAuthCredentialsName();
 
-				if (!firstParam.empty() && !secondParam.empty())
+				auto loginMode = _epicState->getLoginMode();
+
+				if (loginMode == "DevAuth") // Dev auth (DevAuth)
 				{
-					// Dev auth (DevAuth)
+					if (firstParam.empty() || secondParam.empty())
+					{
+						STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error("Missing host or credentials name for DevAuth login mode"), void);
+					}
+					
 					credentials.Type = EOS_ELoginCredentialType::EOS_LCT_Developer;
 				}
-				else
+				else // Default regular auth (AccountPortal)
 				{
-					// Regular auth (AccountPortal)
 					credentials.Type = EOS_ELoginCredentialType::EOS_LCT_AccountPortal;
 				}
 
@@ -653,7 +688,7 @@ namespace Stormancer
 #pragma region private_members
 
 			std::recursive_mutex _mutex;
-			std::shared_ptr<details::EpicConfiguration> _epicConfiguration;
+			std::shared_ptr<details::EpicState> _epicState;
 			std::shared_ptr<IEpicApi> _epicApi;
 			std::shared_ptr<ILogger> _logger;
 			std::shared_ptr<pplx::task_completion_event<std::string>> _authTce; // shared_ptr used as an optional
@@ -677,10 +712,10 @@ namespace Stormancer
 
 			void registerClientDependencies(ContainerBuilder& builder) override
 			{
-				builder.registerDependency<details::EpicConfiguration, Configuration>().singleInstance();
-				builder.registerDependency<details::EpicApi, Users::UsersApi, details::EpicConfiguration, Configuration, IScheduler, ILogger, Party::PartyApi>().asSelf().as<IEpicApi>().singleInstance();
+				builder.registerDependency<details::EpicState, Configuration, ILogger>();
+				builder.registerDependency<details::EpicApi, Users::UsersApi, details::EpicState, Configuration, IScheduler, ILogger, Party::PartyApi>().asSelf().as<IEpicApi>();
 				builder.registerDependency<details::EpicPartyProvider, Party::Platform::InvitationMessenger, Users::UsersApi, details::EpicApi, ILogger, Party::PartyApi, IActionDispatcher>().as<Party::Platform::IPlatformSupportProvider>();
-				builder.registerDependency<EpicAuthenticationEventHandler, details::EpicConfiguration, IEpicApi, ILogger>().as<Users::IAuthenticationEventHandler>();
+				builder.registerDependency<EpicAuthenticationEventHandler, details::EpicState, ILogger>().as<Users::IAuthenticationEventHandler>();
 			}
 
 			void clientCreated(std::shared_ptr<IClient> client)
