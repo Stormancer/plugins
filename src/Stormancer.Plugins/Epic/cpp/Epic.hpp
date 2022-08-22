@@ -79,7 +79,7 @@ namespace Stormancer
 
 			virtual void setPlatformHandle(EOS_HPlatform platformHandle) = 0;
 
-			virtual EOS_HPlatform getPlatformHandle(bool createIfNotAvailable = false) = 0;
+			virtual EOS_HPlatform getPlatformHandle() = 0;
 		};
 
 		namespace details
@@ -158,9 +158,6 @@ namespace Stormancer
 			class EpicState
 			{
 			public:
-
-				friend class IEpicApi;
-				friend class EpicApi;
 
 				EpicState(std::shared_ptr<Configuration> config, std::shared_ptr<ILogger> logger)
 				{
@@ -249,14 +246,14 @@ namespace Stormancer
 					return _platformHandle;
 				}
 
-			private:
-
 				void setPlatformHandleOwned(bool owned)
 				{
 					std::lock_guard<std::recursive_mutex> lg(_mutex);
 
 					_platformHandleOwned = owned;
 				}
+
+			private:
 
 				void clear()
 				{
@@ -384,44 +381,9 @@ namespace Stormancer
 					_epicState->setPlatformHandle(platformHandle);
 				}
 
-				EOS_HPlatform getPlatformHandle(bool createIfNotAvailable = false)
+				EOS_HPlatform getPlatformHandle()
 				{
-					auto platformHandle = _epicState->getPlatformHandle();
-
-					if (createIfNotAvailable && platformHandle == nullptr)
-					{
-						EOS_Platform_Options PlatformOptions = {};
-						PlatformOptions.ApiVersion = EOS_PLATFORM_OPTIONS_API_LATEST;
-						PlatformOptions.bIsServer = false;
-//						static constexpr char EncryptionKey[] = "1111111111111111111111111111111111111111111111111111111111111111";
-//						PlatformOptions.EncryptionKey = EncryptionKey;
-//						PlatformOptions.OverrideCountryCode = nullptr;
-//						PlatformOptions.OverrideLocaleCode = nullptr;
-//						PlatformOptions.Flags = EOS_PF_WINDOWS_ENABLE_OVERLAY_D3D9 | EOS_PF_WINDOWS_ENABLE_OVERLAY_D3D10 | EOS_PF_WINDOWS_ENABLE_OVERLAY_OPENGL; // Enable overlay support for D3D9/10 and OpenGL. This sample uses D3D11 or SDL.
-//#ifdef _WIN32
-//						static char Buffer[1024] = { 0 };
-//						if (Buffer[0] == 0)
-//						{
-//							GetTempPathA(sizeof(Buffer), Buffer);
-//						}
-//						PlatformOptions.CacheDirectory = Buffer;
-//#elif defined(__APPLE__)
-//						PlatformOptions.CacheDirectory = "/private/var/tmp";
-//#else
-//						PlatformOptions.CacheDirectory = "/var/tmp";
-//#endif
-//						EOS_Platform_RTCOptions RtcOptions = { 0 };
-//						PlatformOptions.RTCOptions = &RtcOptions;
-						PlatformOptions.ProductId = _epicState->getProductId().c_str();
-						PlatformOptions.SandboxId = _epicState->getSandboxId().c_str();
-						PlatformOptions.DeploymentId = _epicState->getDeploymentId().c_str();
-						PlatformOptions.Reserved = NULL;
-						platformHandle = EOS_Platform_Create(&PlatformOptions);
-						_epicState->setPlatformHandle(platformHandle);
-						_epicState->setPlatformHandleOwned(true);
-					}
-
-					return platformHandle;
+					return _epicState->getPlatformHandle();
 				}
 
 #pragma endregion
@@ -544,11 +506,39 @@ namespace Stormancer
 					tce->set_exception(pplx::task_canceled());
 				});
 
-				EOS_HPlatform platformHandle = _epicApi->getPlatformHandle(true);
+				EOS_HPlatform platformHandle = _epicState->getPlatformHandle();
 
 				if (platformHandle == nullptr)
 				{
-					throw std::runtime_error("Epic platform handle not set or created");
+					EOS_Platform_Options PlatformOptions = {};
+					PlatformOptions.ApiVersion = EOS_PLATFORM_OPTIONS_API_LATEST;
+					PlatformOptions.bIsServer = false;
+					//						static constexpr char EncryptionKey[] = "1111111111111111111111111111111111111111111111111111111111111111";
+					//						PlatformOptions.EncryptionKey = EncryptionKey;
+					//						PlatformOptions.OverrideCountryCode = nullptr;
+					//						PlatformOptions.OverrideLocaleCode = nullptr;
+					//						PlatformOptions.Flags = EOS_PF_WINDOWS_ENABLE_OVERLAY_D3D9 | EOS_PF_WINDOWS_ENABLE_OVERLAY_D3D10 | EOS_PF_WINDOWS_ENABLE_OVERLAY_OPENGL; // Enable overlay support for D3D9/10 and OpenGL. This sample uses D3D11 or SDL.
+					//#ifdef _WIN32
+					//						static char Buffer[1024] = { 0 };
+					//						if (Buffer[0] == 0)
+					//						{
+					//							GetTempPathA(sizeof(Buffer), Buffer);
+					//						}
+					//						PlatformOptions.CacheDirectory = Buffer;
+					//#elif defined(__APPLE__)
+					//						PlatformOptions.CacheDirectory = "/private/var/tmp";
+					//#else
+					//						PlatformOptions.CacheDirectory = "/var/tmp";
+					//#endif
+					//						EOS_Platform_RTCOptions RtcOptions = { 0 };
+					//						PlatformOptions.RTCOptions = &RtcOptions;
+					PlatformOptions.ProductId = _epicState->getProductId().c_str();
+					PlatformOptions.SandboxId = _epicState->getSandboxId().c_str();
+					PlatformOptions.DeploymentId = _epicState->getDeploymentId().c_str();
+					PlatformOptions.Reserved = NULL;
+					platformHandle = EOS_Platform_Create(&PlatformOptions);
+					_epicState->setPlatformHandle(platformHandle);
+					_epicState->setPlatformHandleOwned(true);
 				}
 
 				EOS_HAuth authHandle = EOS_Platform_GetAuthInterface(platformHandle);
@@ -574,7 +564,7 @@ namespace Stormancer
 					{
 						STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error("Missing host or credentials name for DevAuth login mode"), void);
 					}
-					
+
 					credentials.Type = EOS_ELoginCredentialType::EOS_LCT_Developer;
 				}
 				else // Default regular auth (AccountPortal)
@@ -627,7 +617,7 @@ namespace Stormancer
 
 				_logger->log(LogLevel::Trace, "EOS SDK", "Login Complete", "User ID: " + accountIdStr);
 
-				auto platformHandle = _epicApi->getPlatformHandle();
+				auto platformHandle = _epicState->getPlatformHandle();
 
 				if (platformHandle == nullptr)
 				{
@@ -689,7 +679,6 @@ namespace Stormancer
 
 			std::recursive_mutex _mutex;
 			std::shared_ptr<details::EpicState> _epicState;
-			std::shared_ptr<IEpicApi> _epicApi;
 			std::shared_ptr<ILogger> _logger;
 			std::shared_ptr<pplx::task_completion_event<std::string>> _authTce; // shared_ptr used as an optional
 
