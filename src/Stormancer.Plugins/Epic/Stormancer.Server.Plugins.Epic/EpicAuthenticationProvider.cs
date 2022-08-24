@@ -252,11 +252,6 @@ namespace Stormancer.Server.Plugins.Epic
                 throw new InvalidOperationException($"Cannot decode access token: Key {kid} not found at {jwkEndpoint}.");
             }
 
-            if (key.alg != headers.alg)
-            {
-                throw new InvalidOperationException($"Cannot decode access token. Algorithm mismatch: {key.alg} vs {headers.alg}");
-            }
-
             return key;
         }
 
@@ -343,25 +338,25 @@ namespace Stormancer.Server.Plugins.Epic
                     if (string.IsNullOrWhiteSpace(payload.appid) || !config.applicationIds.Contains(payload.appid))
                     {
                         _logger.Log(LogLevel.Error, "EpicAuthenticationProvider.Authenticate", "Invalid application id", new { TokenApplicationId = payload.appid, ConfigApplicationIds = config.applicationIds });
-                        return AuthenticationResult.CreateFailure($"Invalid token (3).", pId, authParams);
+                        return AuthenticationResult.CreateFailure($"Invalid token (4).", pId, authParams);
                     }
 
                     if (string.IsNullOrWhiteSpace(payload.pfsid) || !config.sandboxIds.Contains(payload.pfsid))
                     {
                         _logger.Log(LogLevel.Error, "EpicAuthenticationProvider.Authenticate", "Invalid sandbox id", new { TokenApplicationId = payload.appid, ConfigSandboxIds = config.sandboxIds });
-                        return AuthenticationResult.CreateFailure($"Invalid token (3).", pId, authParams);
+                        return AuthenticationResult.CreateFailure($"Invalid token (5).", pId, authParams);
                     }
 
                     if (string.IsNullOrWhiteSpace(payload.pfdid) || !config.deploymentIds.Contains(payload.pfdid))
                     {
                         _logger.Log(LogLevel.Error, "EpicAuthenticationProvider.Authenticate", "Invalid deployment id", new { TokenApplicationId = payload.appid, ConfigDeploymentIds = config.deploymentIds });
-                        return AuthenticationResult.CreateFailure($"Invalid token (3).", pId, authParams);
+                        return AuthenticationResult.CreateFailure($"Invalid token (6).", pId, authParams);
                     }
 
                     if (payload.sub == null)
                     {
                         _logger.Log(LogLevel.Error, "EpicAuthenticationProvider.Authenticate", "Invalid Epic account id", new { AccountId = payload.sub });
-                        return AuthenticationResult.CreateFailure($"Invalid token (4).", pId, authParams);
+                        return AuthenticationResult.CreateFailure($"Invalid token (7).", pId, authParams);
                     }
 
                     var accountId = payload.sub;
@@ -419,8 +414,8 @@ namespace Stormancer.Server.Plugins.Epic
             }
             catch (Exception exception)
             {
-                _logger.Log(LogLevel.Error, "NXAuthenticationProvider.Authenticate", "Failed to decode token or to create/update user", new { exception });
-                return AuthenticationResult.CreateFailure("Invalid token (5).", pId, authParams);
+                _logger.Log(LogLevel.Error, "EpicAuthenticationProvider.Authenticate", "Failed to decode token or to create/update user", new { exception });
+                return AuthenticationResult.CreateFailure("Invalid token (8).", pId, authParams);
             }
         }
 

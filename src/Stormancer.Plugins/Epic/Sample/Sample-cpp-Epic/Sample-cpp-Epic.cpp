@@ -35,7 +35,7 @@ int main()
 	config->additionalParameters[Epic::ConfigurationKeys::ClientId] = STORM_EPIC_CLIENT_ID;
 	config->additionalParameters[Epic::ConfigurationKeys::ClientSecret] = STORM_EPIC_CLIENT_SECRET;
 	config->additionalParameters[Epic::ConfigurationKeys::Diagnostics] = "true";
-	config->additionalParameters[GameVersion::ConfigurationKeys::ClientVersion] = "1.0.0";
+	config->additionalParameters[GameVersion::ConfigurationKeys::ClientVersion] = "0.1.0";
 	config->addPlugin(new Users::UsersPlugin());
 	config->addPlugin(new GameFinder::GameFinderPlugin());
 	config->addPlugin(new Party::PartyPlugin());
@@ -67,8 +67,7 @@ int main()
 			return;
 		}
 		std::string userId = usersApi->userId();
-		std::string username = usersApi->username();
-		logger->log(LogLevel::Info, "SampleMain", "Login succeed!", "userId = " + userId + "; userName = " + username);
+		logger->log(LogLevel::Info, "SampleMain", "Login succeed!", "userId = " + userId);
 		usersApi->logout()
 			.then([client, &disconnected]()
 		{
