@@ -24,6 +24,7 @@ using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Profile;
 using Stormancer.Server.Plugins.Users;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -67,6 +68,24 @@ namespace Stormancer.Server.Plugins.Epic
 
             if (hasProfilePartEpic)
             {
+                Dictionary<string, Account> accounts = new();
+                if (ctx.DisplayOptions[EpicConstants.PLATFORM_NAME] == "details")
+                {
+                    List<string> accountIds = new();
+                    foreach (var user in users)
+                    {
+                        if (user != null)
+                        {
+                            var accountId = (string?)user.UserData[EpicConstants.PLATFORM_NAME]?[EpicConstants.ACCOUNTID_CLAIMPATH];
+                            if (accountId != null)
+                            {
+                                accountIds.Add(accountId);
+                            }
+                        }
+                    }
+                    accounts = await _epicService.GetAccounts(accountIds);
+                }
+
                 foreach (var user in users)
                 {
                     if (user != null)
@@ -74,7 +93,13 @@ namespace Stormancer.Server.Plugins.Epic
                         ctx.UpdateProfileData(user.Id, EpicConstants.PLATFORM_NAME, data =>
                         {
                             data[EpicConstants.ACCOUNTID_CLAIMPATH] = user.UserData[EpicConstants.PLATFORM_NAME]?[EpicConstants.ACCOUNTID_CLAIMPATH] ?? "";
-                            data[EpicConstants.DISPLAYNAME] = user.UserData[EpicConstants.PLATFORM_NAME]?[EpicConstants.DISPLAYNAME] ?? "";
+
+                            var accountId = (string?)user.UserData[EpicConstants.PLATFORM_NAME]?[EpicConstants.ACCOUNTID_CLAIMPATH];
+                            if (accountId != null && accounts.ContainsKey(accountId))
+                            {
+                                data[EpicConstants.DISPLAYNAME] = accounts[accountId].DisplayName;
+                            }
+
                             return data;
                         });
                     }

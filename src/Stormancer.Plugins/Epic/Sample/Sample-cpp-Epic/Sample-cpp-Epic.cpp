@@ -3,6 +3,8 @@
 #include "Party/Party.hpp"
 #include "GameFinder/GameFinder.hpp"
 #include "GameVersion/GameVersion.hpp"
+#include "Profile/Profile.hpp"
+
 #include "stormancer/Logger/ConsoleLogger.h"
 
 #include <thread>
@@ -41,9 +43,11 @@ int main()
 	config->addPlugin(new Party::PartyPlugin());
 	config->addPlugin(new Epic::EpicPlugin());
 	config->addPlugin(new GameVersion::GameVersionPlugin());
+	config->addPlugin(new GameVersion::GameVersionPlugin());
+	config->addPlugin(new Profile::ProfilePlugin());
 	auto client = IClient::create(config);
 	auto usersApi = client->dependencyResolver().resolve<Users::UsersApi>();
-	auto logger = client->dependencyResolver().resolve<ILogger>();
+	auto profileApi = client->dependencyResolver().resolve<Profile::ProfileApi>();
 
 	bool disconnected = false;
 
@@ -55,7 +59,7 @@ int main()
 		}
 	});
 
-	std::thread thread([usersApi, logger, &disconnected, client]()
+	std::thread thread([usersApi, profileApi, &disconnected, client]()
 	{
 		try
 		{
@@ -63,11 +67,23 @@ int main()
 		}
 		catch (const std::exception& ex)
 		{
-			s_logger->log(LogLevel::Error, "Sample-cpp-Epic", "An exception occured in login", ex.what());
+			s_logger->log(LogLevel::Error, "Sample-cpp-Epic", "Login failed", ex.what());
 			return;
 		}
+
 		std::string userId = usersApi->userId();
-		logger->log(LogLevel::Info, "SampleMain", "Login succeed!", "userId = " + userId);
+		s_logger->log(LogLevel::Info, "SampleMain", "Login succeed!", "userId = " + userId);
+
+		try
+		{
+			Profile::Profile profile = profileApi->getProfile(userId, { { "character", "details" }, { "epic", "details" } }).get();
+			s_logger->log(LogLevel::Info, "SampleMain", "Profile retrieved", "UserName=" + profile.data["displayName"]);
+		}
+		catch (const std::exception& ex)
+		{
+			s_logger->log(LogLevel::Error, "SampleMain", "Profile retrieve failed", ex.what());
+		}
+
 		usersApi->logout()
 			.then([client, &disconnected]()
 		{
