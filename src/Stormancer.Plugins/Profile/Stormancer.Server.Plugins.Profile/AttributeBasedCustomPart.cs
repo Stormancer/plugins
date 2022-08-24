@@ -78,7 +78,7 @@ namespace Stormancer.Server.Plugins.Profile
                             }
                             catch (Exception ex)
                             {
-                                logger.Log(Diagnostics.LogLevel.Error, "profiles.customParts", $"Failed to get exported types from {a}", ex);
+                                logger.Log(Diagnostics.LogLevel.Error, "profile.customParts", $"Failed to get exported types from {a}", ex);
                                 return Enumerable.Empty<Type>();
                             }
                         })

@@ -13,8 +13,9 @@ Unreleased
 ----------
 Changed
 *******
-- Update dependency to Stormancer.Abstraction.Server 7.1.0
-- Changed Profile dto to include a field stating if the profile was found or not
+- Update dependency to Stormancer.Abstraction.Server 7.1.0.
+- Changed Profile dto to include a field stating if the profile was found or not.
+- Fix Profiles to Profile in many places to have a better coherence.
 Fixed
 *****
 - Create empty entries in GetProfiles for missing profiles.

@@ -217,7 +217,7 @@ namespace Stormancer
 			{
 			public:
 				Profiles_Impl(std::weak_ptr<Users::UsersApi> users)
-					: ClientAPI(users, "stormancer.profiles")
+					: ClientAPI(users, "stormancer.profile")
 				{
 				}
 
@@ -349,7 +349,7 @@ namespace Stormancer
 			{
 				if (scene)
 				{
-					auto name = scene->getHostMetadata("stormancer.profiles");
+					auto name = scene->getHostMetadata("stormancer.profile");
 					if (!name.empty())
 					{
 						builder.registerDependency<details::ProfileService, Scene>().singleInstance();

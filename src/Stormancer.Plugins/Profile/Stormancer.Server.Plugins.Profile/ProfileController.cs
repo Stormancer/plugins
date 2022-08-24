@@ -157,7 +157,7 @@ namespace Stormancer.Server.Plugins.Profile
         {
             if (pseudoPrefix.Length < 3)
             {
-                throw new ClientException("profiles.query.notEnoughCharacters?minLength=3");
+                throw new ClientException("profile.query.notEnoughCharacters?minLength=3");
             }
             var users = await _users.QueryUserHandlePrefix(pseudoPrefix, take, skip);
             var profiles = await _profiles.GetProfiles(users.Select(u => u.Id), new Dictionary<string, string> { { "displayType", "summary" } }, await _sessions.GetSession(ctx.RemotePeer, ctx.CancellationToken), ctx.CancellationToken);

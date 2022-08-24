@@ -27,7 +27,7 @@ namespace Stormancer.Server.Plugins.Profile
 {
     class ProfilePlugin : IHostPlugin
     {
-        internal const string METADATA_KEY = "stormancer.profiles";
+        internal const string METADATA_KEY = "stormancer.profile";
 
         public void Build(HostPluginBuildContext ctx)
         {

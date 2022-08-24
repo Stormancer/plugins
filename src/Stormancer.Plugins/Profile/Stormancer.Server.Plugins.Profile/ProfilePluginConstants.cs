@@ -14,16 +14,16 @@ namespace Stormancer.Server.Plugins.Profile
         /// <summary>
         /// Id of the scene exposing profiles services.
         /// </summary>
-        public const string SCENE_ID = "profiles";
+        public const string SCENE_ID = "profile";
 
         /// <summary>
         /// Id of the template of the profiles scene.
         /// </summary>
-        public const string SCENE_TEMPLATE = "profiles";
+        public const string SCENE_TEMPLATE = "profile";
 
         /// <summary>
         /// Id of the profiles service.
         /// </summary>
-        public const string SERVICE_ID = "stormancer.profiles";
+        public const string SERVICE_ID = "stormancer.profile";
     }
 }
