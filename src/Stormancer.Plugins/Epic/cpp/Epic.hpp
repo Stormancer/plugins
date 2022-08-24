@@ -736,20 +736,22 @@ namespace Stormancer
 				memset(&loginOptions, 0, sizeof(loginOptions));
 				loginOptions.ApiVersion = EOS_AUTH_LOGIN_API_LATEST;
 
+				std::string firstParameter, secondParameter;
+
 				auto loginMode = _epicState->getLoginMode();
 
 				if (loginMode == "DevAuth") // Dev auth (DevAuth)
 				{
-					std::string host = _epicState->getDevAuthHost();
-					std::string credentialsName = _epicState->getDevAuthCredentialsName();
+					firstParameter = _epicState->getDevAuthHost();
+					secondParameter = _epicState->getDevAuthCredentialsName();
 
-					if (host.empty() || credentialsName.empty())
+					if (firstParameter.empty() || secondParameter.empty())
 					{
 						STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error("Missing host or credentials name for DevAuth login mode"), void);
 					}
 
-					credentials.Id = host.c_str();
-					credentials.Token = credentialsName.c_str();
+					credentials.Id = firstParameter.c_str();
+					credentials.Token = secondParameter.c_str();
 					credentials.Type = EOS_ELoginCredentialType::EOS_LCT_Developer;
 				}
 				else // Default regular auth (AccountPortal)
