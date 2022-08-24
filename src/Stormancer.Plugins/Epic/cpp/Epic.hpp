@@ -302,14 +302,14 @@ namespace Stormancer
 				{
 					std::lock_guard<std::recursive_mutex> lg(_mutex);
 
-					return _deploymentId;
+					return _clientId;
 				}
 
 				std::string getClientSecret() const
 				{
 					std::lock_guard<std::recursive_mutex> lg(_mutex);
 
-					return _deploymentId;
+					return _clientSecret;
 				}
 
 				void setPlatformHandle(EOS_HPlatform platformHandle)
@@ -377,7 +377,6 @@ namespace Stormancer
 					: _wActionDispatcher(config->actionDispatcher)
 				{
 					_platformHandle = epicState->getPlatformHandle();
-
 				}
 
 				void start()
@@ -675,6 +674,11 @@ namespace Stormancer
 			{
 			}
 
+			~EpicAuthenticationEventHandler()
+			{
+				std::rand();
+			}
+
 			pplx::task<void> retrieveCredentials(const Users::CredentialsContext& context) override
 			{
 				return getEpicCredentials([context](std::string type, std::string provider, std::string accessToken)
@@ -717,7 +721,7 @@ namespace Stormancer
 				});
 
 				EOS_HPlatform platformHandle = _epicState->getPlatformHandle();
-				if (platformHandle == nullptr)
+				if (!platformHandle)
 				{
 					throw std::runtime_error("Epic platform handle is null");
 				}
@@ -732,20 +736,20 @@ namespace Stormancer
 				memset(&loginOptions, 0, sizeof(loginOptions));
 				loginOptions.ApiVersion = EOS_AUTH_LOGIN_API_LATEST;
 
-				std::string firstParam, secondParam;
-
-				firstParam = _epicState->getDevAuthHost();
-				secondParam = _epicState->getDevAuthCredentialsName();
-
 				auto loginMode = _epicState->getLoginMode();
 
 				if (loginMode == "DevAuth") // Dev auth (DevAuth)
 				{
-					if (firstParam.empty() || secondParam.empty())
+					std::string host = _epicState->getDevAuthHost();
+					std::string credentialsName = _epicState->getDevAuthCredentialsName();
+
+					if (host.empty() || credentialsName.empty())
 					{
 						STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error("Missing host or credentials name for DevAuth login mode"), void);
 					}
 
+					credentials.Id = host.c_str();
+					credentials.Token = credentialsName.c_str();
 					credentials.Type = EOS_ELoginCredentialType::EOS_LCT_Developer;
 				}
 				else // Default regular auth (AccountPortal)
@@ -842,8 +846,9 @@ namespace Stormancer
 			static void EOS_CALL loginCompleteCallbackFn(const EOS_Auth_LoginCallbackInfo* data)
 			{
 				assert(data != NULL);
+				assert(data->ResultCode == EOS_EResult::EOS_Success);
 
-				auto wEpicAuthPtr = (std::weak_ptr<EpicAuthenticationEventHandler>*)data->ClientData;
+				auto wEpicAuthPtr = static_cast<std::weak_ptr<EpicAuthenticationEventHandler>*>(data->ClientData);
 				auto wEpicAuth = *wEpicAuthPtr;
 
 				if (auto epicAuth = wEpicAuth.lock())
@@ -882,7 +887,7 @@ namespace Stormancer
 
 			void registerClientDependencies(ContainerBuilder& builder) override
 			{
-				builder.registerDependency<details::EpicState, Configuration, ILogger>();
+				builder.registerDependency<details::EpicState, Configuration, ILogger>().singleInstance();
 				builder.registerDependency<details::EpicApi, Users::UsersApi, details::EpicState, Configuration, IScheduler, ILogger, Party::PartyApi>().asSelf().as<IEpicApi>();
 				builder.registerDependency<details::EpicPartyProvider, Party::Platform::InvitationMessenger, Users::UsersApi, details::EpicApi, ILogger, Party::PartyApi, IActionDispatcher>().as<Party::Platform::IPlatformSupportProvider>();
 				builder.registerDependency<EpicAuthenticationEventHandler, details::EpicState, ILogger>().as<Users::IAuthenticationEventHandler>();
