@@ -810,8 +810,6 @@ namespace Stormancer
 
 				auto wEpicAuth = new std::weak_ptr<EpicAuthenticationEventHandler>(STORM_WEAK_FROM_THIS());
 
-				std::cout << ("USER_DATA_PTR=" + std::to_string((intptr_t)wEpicAuth) + "\n");
-
 				EOS_Auth_Login(authHandle, &loginOptions, wEpicAuth, loginCompleteCallbackFn);
 
 				return pplx::create_task(*_authTce)
@@ -896,8 +894,6 @@ namespace Stormancer
 			{
 				assert(data != NULL);
 				assert(data->ResultCode == EOS_EResult::EOS_Success);
-
-				std::cout << ("USER_DATA_PTR=" + std::to_string((intptr_t)data->ClientData) + "\n");
 
 				auto wEpicAuthPtr = static_cast<std::weak_ptr<EpicAuthenticationEventHandler>*>(data->ClientData);
 				auto wEpicAuth = *wEpicAuthPtr;
