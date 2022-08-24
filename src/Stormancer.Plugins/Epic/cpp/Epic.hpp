@@ -17,6 +17,7 @@
 #include "eos_auth.h"
 #include "eos_auth_types.h"
 #include "eos_init.h"
+#include "eos_logging.h"
 #include "eos_sdk.h"
 #include "eos_types.h"
 
@@ -104,6 +105,13 @@ namespace Stormancer
 			/// Epic client Client Secret.
 			/// </summary>
 			constexpr const char* ClientSecret = "epic.clientSecret";
+
+			/// <summary>
+			/// Epic diagnostics (enable logs etc...).
+			/// Default is "false".
+			/// Use "true" to enable.
+			/// </summary>
+			constexpr const char* Diagnostics = "epic.diagnostics";
 		}
 
 		constexpr const char* PARTY_TYPE_EPICGAMESIDLOBBY = "epicIDLobby";
@@ -216,9 +224,10 @@ namespace Stormancer
 					_deploymentId = config->additionalParameters.find(ConfigurationKeys::DeploymentId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::DeploymentId) : "";
 					_clientId = config->additionalParameters.find(ConfigurationKeys::ClientId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ClientId) : "";
 					_clientSecret = config->additionalParameters.find(ConfigurationKeys::ClientSecret) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ClientSecret) : "";
-					_initPlatform = config->additionalParameters.find(ConfigurationKeys::InitPlatform) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::InitPlatform) == "true" : false;
+					_initPlatform = config->additionalParameters.find(ConfigurationKeys::InitPlatform) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::InitPlatform) != "false" : false;
 					_productName = config->additionalParameters.find(ConfigurationKeys::ProductName) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ProductName) : "";
 					_productVersion = config->additionalParameters.find(ConfigurationKeys::ProductVersion) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ProductVersion) : "";
+					_diagnostics = config->additionalParameters.find(ConfigurationKeys::Diagnostics) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::Diagnostics) != "false" : false;
 				}
 
 				virtual ~EpicState()
@@ -312,6 +321,13 @@ namespace Stormancer
 					return _clientSecret;
 				}
 
+				bool getDiagnostics() const
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					return _diagnostics;
+				}
+
 				void setPlatformHandle(EOS_HPlatform platformHandle)
 				{
 					std::lock_guard<std::recursive_mutex> lg(_mutex);
@@ -365,6 +381,7 @@ namespace Stormancer
 				std::string _clientId;
 				std::string _clientSecret;
 				bool _platformHandleOwned = false;
+				bool _diagnostics = false;
 				EOS_HPlatform _platformHandle = nullptr;
 				std::shared_ptr<ILogger> _logger;
 			};
@@ -581,6 +598,39 @@ namespace Stormancer
 							EOS_HPlatform platformHandle = EOS_Platform_Create(&platformOptions);
 							_epicState->setPlatformHandle(platformHandle);
 							_epicState->setPlatformHandleOwned(true);
+						}
+					}
+
+					if (_epicState->getDiagnostics())
+					{
+						EOS_EResult SetLogCallbackResult = EOS_Logging_SetCallback(&EOSSDKLoggingCallback);
+						if (SetLogCallbackResult != EOS_EResult::EOS_Success)
+						{
+							_logger->log(LogLevel::Warn, "EpicApi.initialize", "Set Logging Callback Failed!", std::to_string((int)SetLogCallbackResult));
+						}
+						else
+						{
+							_logger->log(LogLevel::Trace, "EpicApi.initialize", "Logging Callback Set");
+							EOS_Logging_SetLogLevel(EOS_ELogCategory::EOS_LC_ALL_CATEGORIES, EOS_ELogLevel::EOS_LOG_Verbose);
+						}
+					}
+				}
+
+				static void EOS_CALL EOSSDKLoggingCallback(const EOS_LogMessage* InMsg)
+				{
+					if (InMsg->Level != EOS_ELogLevel::EOS_LOG_Off)
+					{
+						if (InMsg->Level == EOS_ELogLevel::EOS_LOG_Error || InMsg->Level == EOS_ELogLevel::EOS_LOG_Fatal)
+						{
+							printf("[EOS SDK] %s: %s\n", InMsg->Category, InMsg->Message);
+						}
+						else if (InMsg->Level == EOS_ELogLevel::EOS_LOG_Warning)
+						{
+							printf("[EOS SDK] %s: %s\n", InMsg->Category, InMsg->Message);
+						}
+						else
+						{
+							printf("[EOS SDK] %s: %s\n", InMsg->Category, InMsg->Message);
 						}
 					}
 				}

@@ -33,6 +33,7 @@ int main()
 	config->additionalParameters[Epic::ConfigurationKeys::DeploymentId] = STORM_EPIC_DEPLOYMENT_ID;
 	config->additionalParameters[Epic::ConfigurationKeys::ClientId] = STORM_EPIC_CLIENT_ID;
 	config->additionalParameters[Epic::ConfigurationKeys::ClientSecret] = STORM_EPIC_CLIENT_SECRET;
+	config->additionalParameters[Epic::ConfigurationKeys::Diagnostics] = "true";
 	config->addPlugin(new Users::UsersPlugin());
 	config->addPlugin(new GameFinder::GameFinderPlugin());
 	config->addPlugin(new Party::PartyPlugin());
