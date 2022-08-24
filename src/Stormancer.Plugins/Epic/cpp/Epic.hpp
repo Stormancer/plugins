@@ -169,7 +169,7 @@ namespace Stormancer
 					{
 						throw std::runtime_error("EpicAccountId conversion to string failed (Error " + std::to_string((int32_t)result) + ")");
 					}
-					return std::string(bufData, bufSize);
+					return std::string(bufData, bufSize - 1);
 				}
 
 				static EOS_EpicAccountId toEpicAccountId(const std::string& accountIdStr)
@@ -724,11 +724,6 @@ namespace Stormancer
 			{
 			}
 
-			~EpicAuthenticationEventHandler()
-			{
-				std::rand();
-			}
-
 			pplx::task<void> retrieveCredentials(const Users::CredentialsContext& context) override
 			{
 				return getEpicCredentials([context](std::string type, std::string provider, std::string accessToken)
@@ -815,7 +810,9 @@ namespace Stormancer
 
 				auto wEpicAuth = new std::weak_ptr<EpicAuthenticationEventHandler>(STORM_WEAK_FROM_THIS());
 
-				EOS_Auth_Login(authHandle, &loginOptions, &wEpicAuth, loginCompleteCallbackFn);
+				std::cout << ("USER_DATA_PTR=" + std::to_string((intptr_t)wEpicAuth) + "\n");
+
+				EOS_Auth_Login(authHandle, &loginOptions, wEpicAuth, loginCompleteCallbackFn);
 
 				return pplx::create_task(*_authTce)
 					.then([fulfillCredentialsCallback, authHandle](std::string accountIdStr)
@@ -899,6 +896,8 @@ namespace Stormancer
 			{
 				assert(data != NULL);
 				assert(data->ResultCode == EOS_EResult::EOS_Success);
+
+				std::cout << ("USER_DATA_PTR=" + std::to_string((intptr_t)data->ClientData) + "\n");
 
 				auto wEpicAuthPtr = static_cast<std::weak_ptr<EpicAuthenticationEventHandler>*>(data->ClientData);
 				auto wEpicAuth = *wEpicAuthPtr;

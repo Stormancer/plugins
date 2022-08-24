@@ -2,6 +2,7 @@
 #include "Users/Users.hpp"
 #include "Party/Party.hpp"
 #include "GameFinder/GameFinder.hpp"
+#include "GameVersion/GameVersion.hpp"
 #include "stormancer/Logger/ConsoleLogger.h"
 
 #include <thread>
@@ -34,10 +35,12 @@ int main()
 	config->additionalParameters[Epic::ConfigurationKeys::ClientId] = STORM_EPIC_CLIENT_ID;
 	config->additionalParameters[Epic::ConfigurationKeys::ClientSecret] = STORM_EPIC_CLIENT_SECRET;
 	config->additionalParameters[Epic::ConfigurationKeys::Diagnostics] = "true";
+	config->additionalParameters[GameVersion::ConfigurationKeys::ClientVersion] = "1.0.0";
 	config->addPlugin(new Users::UsersPlugin());
 	config->addPlugin(new GameFinder::GameFinderPlugin());
 	config->addPlugin(new Party::PartyPlugin());
 	config->addPlugin(new Epic::EpicPlugin());
+	config->addPlugin(new GameVersion::GameVersionPlugin());
 	auto client = IClient::create(config);
 	auto usersApi = client->dependencyResolver().resolve<Users::UsersApi>();
 	auto logger = client->dependencyResolver().resolve<ILogger>();
