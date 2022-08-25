@@ -77,7 +77,18 @@ int main()
 		try
 		{
 			Profile::Profile profile = profileApi->getProfile(userId, { { "character", "details" }, { "epic", "details" } }).get();
-			s_logger->log(LogLevel::Info, "SampleMain", "Profile retrieved", "UserName=" + profile.data["displayName"]);
+			web::json::value jsonValue = web::json::value::parse(utility::conversions::to_string_t(profile.data["epic"]));
+			if (jsonValue.type() != web::json::value::value_type::Object)
+			{
+				throw std::runtime_error("Bad json type: not an object");
+			}
+			web::json::value& displayNameValue = jsonValue.as_object().at(utility::conversions::to_string_t("displayName"));
+			if (displayNameValue.type() != web::json::value::value_type::String)
+			{
+				throw std::runtime_error("Bad json type: not a string");
+			}
+			std::string displayName = utility::conversions::to_utf8string(displayNameValue.as_string());
+			s_logger->log(LogLevel::Info, "SampleMain", "Profile retrieved", "DisplayName=" + displayName);
 		}
 		catch (const std::exception& ex)
 		{
