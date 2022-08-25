@@ -126,30 +126,19 @@ namespace Stormancer.Server.Plugins.Epic
             var accountIdsCount = accountIds.Count();
             if (accountIdsCount < 1)
             {
-                throw new ArgumentException("Missing accountIds");
+                return new Dictionary<string, Account>();
             }
             else if (accountIdsCount > 50)
             {
                 throw new ArgumentException("Too many accountIds");
             }
 
-            var url = "https://api.epicgames.dev/epic/id/v1/accounts?";
-            bool first = true;
-            foreach (var accountId in accountIds)
-            {
-                if (!first)
-                {
-                    url += '&';
-                }
-                url += $"accountId={accountId}";
-                first = false;
-            }
+            var url = "https://api.epicgames.dev/epic/id/v1/accounts?accountId=";
+            url += string.Join("&accountId=", accountIds);
 
-            using var request = new HttpRequestMessage()
+            using var request = new HttpRequestMessage(HttpMethod.Get, url)
             {
-                Method = HttpMethod.Get,
                 Content = new FormUrlEncodedContent(new Dictionary<string, string>()),
-                RequestUri = new Uri(url)
             };
 
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await GetAccessToken());
@@ -171,8 +160,8 @@ namespace Stormancer.Server.Plugins.Epic
             }
             else
             {
-                _logger.Log(LogLevel.Warn, "EpicService.GetAccounts", "Http request failed.", new { StatusCode = response.StatusCode, ResponseContent = response.Content });
-                throw new InvalidOperationException("");
+                _logger.Log(LogLevel.Warn, "EpicService.GetAccounts", "HTTP request failed.", new { StatusCode = response.StatusCode, ResponseContent = response.Content });
+                throw new InvalidOperationException("HTTP request failed.");
             }
         }
 
@@ -212,7 +201,8 @@ namespace Stormancer.Server.Plugins.Epic
                     }),
                 };
 
-                //request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await GetAccessToken());
+                var authHeaderValue = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{clientId}:{clientSecret}"));
+                request.Headers.Authorization = new AuthenticationHeaderValue("Basic", authHeaderValue);
 
                 var httpClient = new HttpClient();
 
@@ -234,7 +224,7 @@ namespace Stormancer.Server.Plugins.Epic
                 else
                 {
                     _logger.Log(LogLevel.Warn, "EpicService.GetAccounts", "Http request failed.", new { StatusCode = response.StatusCode, ResponseContent = response.Content });
-                    throw new InvalidOperationException("");
+                    throw new InvalidOperationException("HTTP request failed.");
                 }
             });
 
@@ -250,13 +240,13 @@ namespace Stormancer.Server.Plugins.Epic
         {
             if (string.IsNullOrWhiteSpace(clientSecretPath))
             {
-                throw new InvalidOperationException("Client secret store key is null");
+                throw new InvalidOperationException("Client secret store key is null.");
             }
 
             var secret = await _secretsStore.GetSecret(clientSecretPath);
             if (secret == null || secret.Value == null)
             {
-                throw new InvalidOperationException($"Missing secret '{clientSecretPath}' in secrets store");
+                throw new InvalidOperationException($"Missing secret '{clientSecretPath}' in secrets store.");
             }
 
             return Encoding.UTF8.GetString(secret.Value) ?? "";
