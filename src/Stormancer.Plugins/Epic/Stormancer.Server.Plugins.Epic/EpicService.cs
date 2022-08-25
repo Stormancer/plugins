@@ -126,58 +126,6 @@ namespace Stormancer.Server.Plugins.Epic
         {
             var accountTasks = _accountsCache.GetMany(accountIds, (accountIds2) =>
             {
-                async Task<Dictionary<string, (Account?, TimeSpan)>> GetAccountsImpl(IEnumerable<string> accountIds)
-                {
-                    var accountIdsCount = accountIds.Count();
-                    if (accountIdsCount < 1)
-                    {
-                        return new Dictionary<string, (Account?, TimeSpan)>();
-                    }
-                    else if (accountIdsCount > 50)
-                    {
-                        throw new ArgumentException("Too many accountIds");
-                    }
-
-                    var url = "https://api.epicgames.dev/epic/id/v1/accounts?accountId=";
-                    url += string.Join("&accountId=", accountIds);
-
-                    using var request = new HttpRequestMessage(HttpMethod.Get, url)
-                    {
-                        Content = new FormUrlEncodedContent(new Dictionary<string, string>()),
-                    };
-
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await GetAccessToken());
-
-                    var httpClient = new HttpClient();
-
-                    using var response = await httpClient.SendAsync(request);
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        var accounts = await response.Content.ReadFromJsonAsync<IEnumerable<Account>>();
-
-                        if (accounts == null)
-                        {
-                            throw new InvalidOperationException("Accounts is null.");
-                        }
-
-                        var accountsResult = new Dictionary<string, (Account?, TimeSpan)>();
-
-                        foreach (var accountId in accountIds2)
-                        {
-                            var account = accounts.FirstOrDefault(i => i.AccountId == accountId);
-                            accountsResult[accountId] = (account, TimeSpan.FromSeconds(60));
-                        }
-
-                        return accountsResult;
-                    }
-                    else
-                    {
-                        _logger.Log(LogLevel.Warn, "EpicService.GetAccounts", "HTTP request failed.", new { StatusCode = response.StatusCode, ResponseContent = response.Content });
-                        throw new InvalidOperationException("HTTP request failed.");
-                    }
-                }
-
                 var result = new Dictionary<string, Task<(Account?, TimeSpan)>>();
                 var t = GetAccountsImpl(accountIds2);
                 foreach (var accountId in accountIds2)
@@ -189,6 +137,50 @@ namespace Stormancer.Server.Plugins.Epic
 
             await Task.WhenAll(accountTasks.Values);
             return accountTasks.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Result)!;
+        }
+
+        private async Task<Dictionary<string, (Account?, TimeSpan)>> GetAccountsImpl(IEnumerable<string> accountIds)
+        {
+            var accountIdsCount = accountIds.Count();
+            if (accountIdsCount < 1)
+            {
+                return new Dictionary<string, (Account?, TimeSpan)>();
+            }
+            else if (accountIdsCount > 50)
+            {
+                throw new ArgumentException("Too many accountIds");
+            }
+
+            var url = "https://api.epicgames.dev/epic/id/v1/accounts?accountId=";
+            url += string.Join("&accountId=", accountIds);
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, url)
+            {
+                Content = new FormUrlEncodedContent(new Dictionary<string, string>()),
+            };
+
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await GetAccessToken());
+
+            var httpClient = new HttpClient();
+
+            using var response = await httpClient.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var accounts = await response.Content.ReadFromJsonAsync<IEnumerable<Account>>();
+
+                if (accounts == null)
+                {
+                    throw new InvalidOperationException("Accounts is null.");
+                }
+
+                return accounts.Where(account => account != null).ToDictionary(account => account.AccountId, account => (account, TimeSpan.FromSeconds(60)))!;
+            }
+            else
+            {
+                _logger.Log(LogLevel.Warn, "EpicService.GetAccounts", "HTTP request failed.", new { StatusCode = response.StatusCode, ResponseContent = response.Content });
+                throw new InvalidOperationException("HTTP request failed.");
+            }
         }
 
         private async Task<string> GetAccessToken()
