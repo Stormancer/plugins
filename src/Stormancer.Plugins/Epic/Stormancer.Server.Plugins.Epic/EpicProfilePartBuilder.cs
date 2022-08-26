@@ -129,14 +129,12 @@ namespace Stormancer.Server.Plugins.Epic
                                 data["platforms"]![EpicConstants.PLATFORM_NAME] = new JObject();
                                 data["platforms"]![EpicConstants.PLATFORM_NAME]![EpicConstants.ACCOUNTID_CLAIMPATH] = accountId;
 
-                                if (accountId != null && accounts.ContainsKey(accountId))
-                                {
-                                    data[EpicConstants.DISPLAYNAME] = accounts[accountId].DisplayName;
-                                }
-
                                 if (!data.ContainsKey("pseudo") || string.IsNullOrWhiteSpace(data["pseudo"]?.ToString()))
                                 {
-                                    data["pseudo"] = user.UserData[EpicConstants.PLATFORM_NAME]?[EpicConstants.DISPLAYNAME] ?? "";
+                                    if (accounts.ContainsKey(accountId))
+                                    {
+                                        data["pseudo"] = accounts[accountId].DisplayName;
+                                    }
                                 }
 
                                 return data;

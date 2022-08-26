@@ -72,23 +72,33 @@ int main()
 		}
 
 		std::string userId = usersApi->userId();
-		s_logger->log(LogLevel::Info, "SampleMain", "Login succeed!", "userId = " + userId);
+		s_logger->log(LogLevel::Info, "SampleMain", "Login succeed!", "userId=" + userId);
 
 		try
 		{
-			Profile::Profile profile = profileApi->getProfile(userId, { { "character", "details" }, { "epic", "details" } }).get();
+			Profile::Profile profile = profileApi->getProfile(userId, { { "character", "details" }, { "user", "details" }, {"epic", "details"} }).get();
+
 			web::json::value jsonValue = web::json::value::parse(utility::conversions::to_string_t(profile.data["epic"]));
 			if (jsonValue.type() != web::json::value::value_type::Object)
 			{
 				throw std::runtime_error("Bad json type: not an object");
 			}
+
+			web::json::value& accountIdValue = jsonValue.as_object().at(utility::conversions::to_string_t("accountId"));
+			if (accountIdValue.type() != web::json::value::value_type::String)
+			{
+				throw std::runtime_error("Bad json type: not a string");
+			}
+			std::string accountId = utility::conversions::to_utf8string(accountIdValue.as_string());
+
 			web::json::value& displayNameValue = jsonValue.as_object().at(utility::conversions::to_string_t("displayName"));
 			if (displayNameValue.type() != web::json::value::value_type::String)
 			{
 				throw std::runtime_error("Bad json type: not a string");
 			}
 			std::string displayName = utility::conversions::to_utf8string(displayNameValue.as_string());
-			s_logger->log(LogLevel::Info, "SampleMain", "Profile retrieved", "DisplayName=" + displayName);
+
+			s_logger->log(LogLevel::Info, "SampleMain", "Profile retrieved", "AccountId=" + accountId + "; DisplayName=" + displayName);
 		}
 		catch (const std::exception& ex)
 		{
