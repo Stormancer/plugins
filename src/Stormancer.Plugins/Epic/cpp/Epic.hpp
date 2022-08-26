@@ -114,10 +114,7 @@ namespace Stormancer
 			constexpr const char* Diagnostics = "epic.diagnostics";
 		}
 
-		constexpr const char* PARTY_TYPE_EPICGAMESIDLOBBY = "epicIDLobby";
-
 		using AccountId = std::string;
-		using AppId = std::string;
 
 		class IEpicApi
 		{
@@ -172,13 +169,13 @@ namespace Stormancer
 					return std::string(bufData, bufSize - 1);
 				}
 
-				static EOS_EpicAccountId toEpicAccountId(const std::string& accountIdStr)
+				static EOS_EpicAccountId toEpicAccountId(const AccountId& accountId)
 				{
-					if (accountIdStr.size() != EOS_EPICACCOUNTID_MAX_LENGTH)
+					if (accountId.size() != EOS_EPICACCOUNTID_MAX_LENGTH)
 					{
-						throw std::runtime_error("EpicAccountId conversion from string failed (Size=" + std::to_string(accountIdStr.size()) + ")");
+						throw std::runtime_error("EpicAccountId conversion from string failed (Size=" + std::to_string(accountId.size()) + ")");
 					}
-					return EOS_EpicAccountId_FromString(accountIdStr.c_str());
+					return EOS_EpicAccountId_FromString(accountId.c_str());
 				}
 
 				AccountId getAccountId()
@@ -336,6 +333,7 @@ namespace Stormancer
 					{
 						clear();
 					}
+
 					_platformHandle = platformHandle;
 				}
 
@@ -363,8 +361,9 @@ namespace Stormancer
 					{
 						_platformHandleOwned = false;
 						EOS_Platform_Release(_platformHandle);
-						_platformHandle = nullptr;
 					}
+
+					_platformHandle = nullptr;
 				}
 
 				mutable std::recursive_mutex _mutex;
@@ -390,10 +389,14 @@ namespace Stormancer
 			{
 			public:
 
-				EpicTicker(std::shared_ptr<Configuration> config, std::shared_ptr<EpicState> epicState)
+				EpicTicker(std::shared_ptr<Configuration> config, std::shared_ptr<EpicState> epicState, std::shared_ptr<ILogger> logger)
 					: _wActionDispatcher(config->actionDispatcher)
 				{
 					_platformHandle = epicState->getPlatformHandle();
+					if (_platformHandle == nullptr)
+					{
+						logger->log(LogLevel::Warn, "EpicTicker", "Epic platform handle is null");
+					}
 				}
 
 				void start()
@@ -949,7 +952,8 @@ namespace Stormancer
 				if (epicState->getInitPlatform())
 				{
 					auto config = client->dependencyResolver().resolve<Configuration>();
-					_epicTicker = std::make_shared<details::EpicTicker>(config, epicState);
+					auto logger = client->dependencyResolver().resolve<ILogger>();
+					_epicTicker = std::make_shared<details::EpicTicker>(config, epicState, logger);
 					_epicTicker->start();
 				}
 			}
