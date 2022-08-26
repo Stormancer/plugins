@@ -44,7 +44,7 @@ namespace Stormancer.Server.Plugins.Epic
             _epicService = epicService;
             _logger = logger;
         }
-        
+
         public async Task GetProfiles(ProfileCtx ctx, CancellationToken ct)
         {
             var hasProfilePartEpic = ctx.DisplayOptions.ContainsKey(EpicConstants.PLATFORM_NAME);
@@ -66,42 +66,47 @@ namespace Stormancer.Server.Plugins.Epic
                 return;
             }
 
-            if (hasProfilePartEpic)
+            Dictionary<string, Account> accounts = new();
+            if (ctx.DisplayOptions["user"] == "details" || ctx.DisplayOptions[EpicConstants.PLATFORM_NAME] == "details")
             {
-                Dictionary<string, Account> accounts = new();
-                if (ctx.DisplayOptions[EpicConstants.PLATFORM_NAME] == "details")
-                {
-                    List<string> accountIds = new();
-                    foreach (var user in users)
-                    {
-                        if (user != null)
-                        {
-                            var accountId = (string?)user.UserData[EpicConstants.PLATFORM_NAME]?[EpicConstants.ACCOUNTID_CLAIMPATH];
-                            if (accountId != null)
-                            {
-                                accountIds.Add(accountId);
-                            }
-                        }
-                    }
-                    accounts = await _epicService.GetAccounts(accountIds);
-                }
-
+                List<string> accountIds = new();
                 foreach (var user in users)
                 {
                     if (user != null)
                     {
-                        ctx.UpdateProfileData(user.Id, EpicConstants.PLATFORM_NAME, data =>
+                        var accountId = user.GetAccountId();
+
+                        if (accountId != null)
                         {
-                            data[EpicConstants.ACCOUNTID_CLAIMPATH] = user.UserData[EpicConstants.PLATFORM_NAME]?[EpicConstants.ACCOUNTID_CLAIMPATH] ?? "";
+                            accountIds.Add(accountId);
+                        }
+                    }
+                }
+                accounts = await _epicService.GetAccounts(accountIds);
+            }
 
-                            var accountId = (string?)user.UserData[EpicConstants.PLATFORM_NAME]?[EpicConstants.ACCOUNTID_CLAIMPATH];
-                            if (accountId != null && accounts.ContainsKey(accountId))
+            if (hasProfilePartEpic)
+            {
+                foreach (var user in users)
+                {
+                    if (user != null)
+                    {
+                        var accountId = user.GetAccountId();
+
+                        if (!string.IsNullOrWhiteSpace(accountId))
+                        {
+                            ctx.UpdateProfileData(user.Id, EpicConstants.PLATFORM_NAME, data =>
                             {
-                                data[EpicConstants.DISPLAYNAME] = accounts[accountId].DisplayName;
-                            }
+                                data[EpicConstants.ACCOUNTID_CLAIMPATH] = accountId;
 
-                            return data;
-                        });
+                                if (accounts.ContainsKey(accountId))
+                                {
+                                    data[EpicConstants.DISPLAYNAME] = accounts[accountId].DisplayName;
+                                }
+
+                                return data;
+                            });
+                        }
                     }
                 }
             }
@@ -123,6 +128,11 @@ namespace Stormancer.Server.Plugins.Epic
                                 }
                                 data["platforms"]![EpicConstants.PLATFORM_NAME] = new JObject();
                                 data["platforms"]![EpicConstants.PLATFORM_NAME]![EpicConstants.ACCOUNTID_CLAIMPATH] = accountId;
+
+                                if (accountId != null && accounts.ContainsKey(accountId))
+                                {
+                                    data[EpicConstants.DISPLAYNAME] = accounts[accountId].DisplayName;
+                                }
 
                                 if (!data.ContainsKey("pseudo") || string.IsNullOrWhiteSpace(data["pseudo"]?.ToString()))
                                 {
