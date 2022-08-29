@@ -54,7 +54,7 @@ namespace Stormancer.Server.Plugins.Spectate
             return Task.FromResult(_spectateRepository.GetFrames(startTime, endTime));
         }
 
-        public async Task SubscribeToFrames(CancellationToken ct, string sessionId, RequestContext<IScenePeerClient> request)
+        public async Task SubscribeToFrames(CancellationToken ct, SessionId sessionId, RequestContext<IScenePeerClient> request)
         {
             _spectateRepository.SubscribeToFrames(sessionId, request);
             var tcs = new TaskCompletionSource<bool>();

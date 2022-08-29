@@ -29,6 +29,7 @@ using Stormancer.Server.Plugins.ServiceLocator;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
@@ -36,18 +37,21 @@ namespace Stormancer.Server.Plugins.GameFinder
     class GameFinderConfigController : ControllerBase
     {
         private readonly IGameFinderConfigService _gameFinderConfigService;
+        private readonly GameFinderProxy gameFinderProxy;
         private readonly RpcService rpc;
         private readonly ISerializer serializer;
         private readonly IServiceLocator locator;
 
         public GameFinderConfigController(
             IGameFinderConfigService gameFinderConfigService,
+            GameFinderProxy gameFinderProxy,
             RpcService rpc,
             ISerializer serializer,
             IServiceLocator locator
             )
         {
             _gameFinderConfigService = gameFinderConfigService;
+            this.gameFinderProxy = gameFinderProxy;
             this.rpc = rpc;
             this.serializer = serializer;
             this.locator = locator;
@@ -62,24 +66,13 @@ namespace Stormancer.Server.Plugins.GameFinder
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<List<Metrics>> GetMetrics(List<string> gameFinderIds)
+        public async Task<List<Metrics>> GetMetrics(List<string> gameFinderIds, CancellationToken cancellationToken)
         {
             var list = new List<Metrics>();
             foreach (var id in gameFinderIds)
             {
-                var sceneUri = await locator.GetSceneId("stormancer.plugins.gamefinder", id);
-                await foreach (var item in rpc.Rpc("GameFinder.GetMetrics", new MatchSceneFilter(sceneUri), s => { }, PacketPriority.MEDIUM_PRIORITY).Select(p =>
-                {
-                    using (p)
-                    {
-                        return serializer.Deserialize<Dictionary<string, int>>(p.Stream);
-                    }
-                }).ToAsyncEnumerable())
-                {
-                    list.Add(new Metrics { Values = item, GameFinderId = id });
-                }
-
-
+                var metric = await gameFinderProxy.GetMetrics(id, cancellationToken);
+                list.Add(new Metrics { Values = metric, GameFinderId = id });
             }
             return list;
         }

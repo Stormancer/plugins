@@ -31,14 +31,14 @@ namespace Stormancer.Server.Plugins.Friends
     {
         private struct UserContainer
         {
-            public string sessionId;
+            public SessionId sessionId;
             public FriendListConfigRecord config;
         }
         //[key=>{cid,config}]
         private readonly ConcurrentDictionary<string, UserContainer> _peers = new ConcurrentDictionary<string, UserContainer>();
 
         //[cId=>key]
-        private readonly ConcurrentDictionary<string, string> _keys = new ConcurrentDictionary<string, string>();
+        private readonly ConcurrentDictionary<SessionId, string> _keys = new ConcurrentDictionary<SessionId, string>();
 
         public FriendsRepository()
         {
@@ -78,7 +78,7 @@ namespace Stormancer.Server.Plugins.Friends
             return Task.FromResult(p.config);
         }
 
-        public Task<Tuple<FriendListConfigRecord,string>> RemovePeer(string sessionId)
+        public Task<Tuple<FriendListConfigRecord,string>> RemovePeer(SessionId sessionId)
         {
             UserContainer p = default(UserContainer);
             string key;

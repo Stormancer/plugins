@@ -206,18 +206,18 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         /// </summary>
         /// <param name="sessionId"></param>
         /// <returns></returns>
-        public Task OnGameServerDisconnected(string sessionId)
+        public Task OnGameServerDisconnected(string serverId)
         {
             lock (_syncRoot)
             {
                 foreach (var server in _waitingServers)
                 {
-                    if (server.Session?.SessionId == sessionId)
+                    if (server.Session?.platformId.PlatformUserId == serverId)
                     {
                         server.Session = null;
                     }
                 }
-                _connectedServers.Remove(sessionId);
+                _connectedServers.Remove(serverId);
             }
             return Task.CompletedTask;
         }
@@ -227,7 +227,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
             lock (_syncRoot)
             {
-                _connectedServers[session.SessionId] = client;
+                _connectedServers[session.platformId.PlatformUserId] = client;
                 while (_requests.TryDequeue(out var request))
                 {
                     if (request.GameSessionId is not null)
@@ -271,12 +271,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         }
 
-        public async Task CloseServer(string sessionId)
+        public async Task CloseServer(string serverId)
         {
             IScenePeerClient? client;
             lock (_syncRoot)
             {
-                _connectedServers.TryGetValue(sessionId, out client);
+                _connectedServers.TryGetValue(serverId, out client);
             }
             if(client!=null)
             {

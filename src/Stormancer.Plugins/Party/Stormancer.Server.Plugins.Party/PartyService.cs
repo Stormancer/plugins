@@ -35,6 +35,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
@@ -69,7 +70,7 @@ namespace Stormancer.Server.Plugins.Party
         private readonly InvitationCodeService invitationCodes;
         private readonly PartyLuceneDocumentStore partyDocumentsStore;
 
-        public IReadOnlyDictionary<string, PartyMember> PartyMembers => _partyState.PartyMembers;
+        public IReadOnlyDictionary<SessionId, PartyMember> PartyMembers => _partyState.PartyMembers;
 
         public PartyConfiguration Settings => _partyState.Settings;
 
@@ -134,9 +135,14 @@ namespace Stormancer.Server.Plugins.Party
             }
         }
 
-        private string NoSuchMemberError(string userId) => $"party.noSuchMember?userId={userId}";
+        [DoesNotReturn]
+        private static void ThrowNoSuchMemberError(SessionId sessionId) => throw new ClientException($"party.noSuchMember?sessionId={sessionId}");
 
-        private string NoSuchUserError(string userId) => $"party.noSuchUser?userId={userId}";
+        [DoesNotReturn]
+        private static void ThrowNoSuchMemberError(string userId) => throw new ClientException($"party.noSuchMember?userId={userId}");
+
+        [DoesNotReturn]
+        private static void ThrowNoSuchUserError(string userId) => throw new ClientException($"party.noSuchUser?userId={userId}");
 
         private bool TryGetMemberByUserId(string userId, out PartyMember member)
         {
@@ -233,7 +239,7 @@ namespace Stormancer.Server.Plugins.Party
                         var deniedCtx = new JoinDeniedContext(service, session);
                         await handlers.RunEventHandler(handler => handler.OnJoinDenied(deniedCtx), exception =>
                         {
-                            service.Log(LogLevel.Error, "OnConnectionRejected", "An exception was thrown by an OnJoinDenied event handler", new { exception }, peer.SessionId);
+                            service.Log(LogLevel.Error, "OnConnectionRejected", "An exception was thrown by an OnJoinDenied event handler", new { exception }, peer.SessionId.ToString());
                         });
                     }
                 });
@@ -274,16 +280,16 @@ namespace Stormancer.Server.Plugins.Party
                 var ctx = new JoinedPartyContext(this, session);
 
                 var ClientPluginVersion = peer.Metadata[PartyPlugin.CLIENT_METADATA_KEY];
-                Log(LogLevel.Trace, "OnConnected", "Connection complete", new { peer.SessionId, user.Id, ClientPluginVersion }, peer.SessionId, user.Id);
+                Log(LogLevel.Trace, "OnConnected", "Connection complete", new { peer.SessionId, user.Id, ClientPluginVersion }, peer.SessionId.ToString(), user.Id);
 
-                await BroadcastStateUpdateRpc(MemberConnectedRoute, new PartyMemberDto { PartyUserStatus = partyUser.StatusInParty, UserData = partyUser.UserData, UserId = partyUser.UserId, SessionId = SessionId.From(partyUser.Peer.SessionId) });
+                await BroadcastStateUpdateRpc(MemberConnectedRoute, new PartyMemberDto { PartyUserStatus = partyUser.StatusInParty, UserData = partyUser.UserData, UserId = partyUser.UserId, SessionId = partyUser.Peer.SessionId });
 
                 _ = RunOperationCompletedEventHandler((service, handlers, scope) =>
                 {
                     var joinedCtx = new JoinedPartyContext(service, session);
                     return handlers.RunEventHandler(handler => handler.OnJoined(joinedCtx), exception =>
                     {
-                        service.Log(LogLevel.Error, "OnConnected", "An exception was thrown by an OnJoined event handler", new { exception }, peer.SessionId, user.Id);
+                        service.Log(LogLevel.Error, "OnConnected", "An exception was thrown by an OnJoined event handler", new { exception }, peer.SessionId.ToString(), user.Id);
                     });
                 });
             });
@@ -332,7 +338,7 @@ namespace Stormancer.Server.Plugins.Party
                 _ = RunOperationCompletedEventHandler((service, handlers, scope) =>
                 {
                     var ctx = new QuitPartyContext(service, args);
-                    return handlers.RunEventHandler(handler => handler.OnQuit(ctx), exception => service.Log(LogLevel.Error, "OnDisconnected", "An exception was thrown by an OnQuit event handler", new { exception }, args.Peer.SessionId));
+                    return handlers.RunEventHandler(handler => handler.OnQuit(ctx), exception => service.Log(LogLevel.Error, "OnDisconnected", "An exception was thrown by an OnQuit event handler", new { exception }, args.Peer.SessionId.ToString()));
                 });
             });
         }
@@ -545,7 +551,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 if (!TryGetMemberByUserId(userId, out var user))
                 {
-                    throw new ClientException(NoSuchMemberError(userId));
+                   ThrowNoSuchMemberError(userId);
                 }
 
                 if (user.StatusInParty == partyUserStatus.DesiredStatus)
@@ -617,7 +623,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 if (!TryGetMemberByUserId(userId, out var partyUser))
                 {
-                    throw new ClientException(NoSuchMemberError(userId));
+                    ThrowNoSuchMemberError(userId);
                 }
 
                 partyUser.UserData = data;
@@ -639,7 +645,7 @@ namespace Stormancer.Server.Plugins.Party
                 PartyMember user;
                 if (!TryGetMemberByUserId(playerToPromote, out user))
                 {
-                    throw new ClientException(NoSuchMemberError(playerToPromote));
+                    ThrowNoSuchMemberError(playerToPromote);
                 }
 
                 if (_partyState.Settings.PartyLeaderId == playerToPromote)
@@ -702,7 +708,7 @@ namespace Stormancer.Server.Plugins.Party
             gameFinderRequest.PartyLeaderId = _partyState.Settings.PartyLeaderId;
             foreach (var partyUser in _partyState.PartyMembers.Values)
             {
-                gameFinderRequest.Players.Add(partyUser.UserId, new Models.Player(partyUser.Peer.SessionId, partyUser.UserId, partyUser.UserData));
+                gameFinderRequest.Players.Add(partyUser.UserId, new Models.Player(partyUser.Peer.SessionId.ToString(), partyUser.UserId, partyUser.UserData));
 
             }
 
@@ -818,7 +824,7 @@ namespace Stormancer.Server.Plugins.Party
                                     "BroadcastStateUpdateRpc",
                                     $"An error occurred during a client RPC (route: '{route}')",
                                     new { kvp.Key.UserId, kvp.Key.Peer.SessionId, task.Exception, Route = route },
-                                    kvp.Key.UserId, kvp.Key.Peer.SessionId
+                                    kvp.Key.UserId, kvp.Key.Peer.SessionId.ToString()
                                 );
                             }
                         })
@@ -859,7 +865,7 @@ namespace Stormancer.Server.Plugins.Party
                 PartyMember member;
                 if (!TryGetMemberByUserId(recipientUserId, out member))
                 {
-                    throw new ClientException(NoSuchMemberError(recipientUserId));
+                    ThrowNoSuchMemberError(recipientUserId);
                 }
 
                 var state = await MakePartyStateDto(member, handlers);
@@ -893,11 +899,12 @@ namespace Stormancer.Server.Plugins.Party
                 {
                     var dto = await MakePartyStateDto(member, handlers);
 
-                    return ctx.SendValue(dto);
+                    await ctx.SendValue(dto);
+                    return;
                 }
                 else
                 {
-                    throw new ClientException(NoSuchMemberError(ctx.RemotePeer.SessionId));
+                    ThrowNoSuchMemberError(ctx.RemotePeer.SessionId);
                 }
             });
         }
@@ -909,7 +916,7 @@ namespace Stormancer.Server.Plugins.Party
                 LeaderId = _partyState.Settings.PartyLeaderId,
                 Settings = new PartySettingsUpdateDto(_partyState),
                 PartyMembers = _partyState.PartyMembers.Values.Select(member =>
-                    new PartyMemberDto { PartyUserStatus = member.StatusInParty, UserData = member.UserData, UserId = member.UserId, SessionId = SessionId.From(member.Peer.SessionId) }).ToList(),
+                    new PartyMemberDto { PartyUserStatus = member.StatusInParty, UserData = member.UserData, UserId = member.UserId, SessionId =member.Peer.SessionId}).ToList(),
                 Version = _partyState.VersionNumber
             };
 
@@ -932,7 +939,7 @@ namespace Stormancer.Server.Plugins.Party
             PartyMember senderMember;
             if (!TryGetMemberByUserId(senderUserId, out senderMember))
             {
-                throw new ClientException(NoSuchMemberError(senderUserId));
+                ThrowNoSuchMemberError(senderUserId);
             }
 
             User? recipientUser = null;
@@ -942,7 +949,7 @@ namespace Stormancer.Server.Plugins.Party
                 recipientUser = await _users.GetUser(recipientUserId);
                 if (recipientUser == null)
                 {
-                    throw new ClientException(NoSuchUserError(recipientUserId));
+                    ThrowNoSuchUserError(recipientUserId);
                 }
             }
 
@@ -1000,7 +1007,7 @@ namespace Stormancer.Server.Plugins.Party
                     recipientPlatformId = recipientSession?.platformId.Platform ?? "<N.A.: recipient is not online>",
                     recipientAuth = recipientUser?.Auth.Properties().Select(prop => prop.Name),
                     recipientIsOnline = recipientSession != null
-                }, senderUserId, senderSession.SessionId, recipientUserId);
+                }, senderUserId, senderSession.SessionId.ToString(), recipientUserId);
                 throw new Exception("No suitable invitation platform found");
             }
 

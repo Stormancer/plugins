@@ -69,7 +69,7 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// <summary>
         /// Peers who have successfully connected to the party
         /// </summary>
-        public ConcurrentDictionary<string, PartyMember> PartyMembers { get; } = new ConcurrentDictionary<string, PartyMember>();
+        public ConcurrentDictionary<SessionId, PartyMember> PartyMembers { get; } = new ConcurrentDictionary<SessionId, PartyMember>();
 
         /// <summary>
         /// This queue is used to synchronize operations on the party state.

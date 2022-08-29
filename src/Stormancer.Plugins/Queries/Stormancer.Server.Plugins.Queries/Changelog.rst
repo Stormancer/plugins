@@ -21,6 +21,7 @@ Added
 - Add skip search request parameter to "skip" documents in the result.
 - Add Total property to search response 
 - Supports MatchAll filters
+- Addd Helper function to easily map json.
 
 0.1.0.11
 -------

@@ -11,7 +11,8 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.RemoteControl
 {
-    public class AgentAuthenticationConfigurationBuilder : AuthProviderConfigurationBuilderBase<AgentAuthenticationConfigurationBuilder>
+   
+    internal class AgentAuthenticationConfigurationBuilder : AuthProviderConfigurationBuilderBase<AgentAuthenticationConfigurationBuilder>
     {
 
     }

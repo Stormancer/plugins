@@ -69,11 +69,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             this.gamesessions = gamesessions;
         }
 
-        protected override Task OnDisconnected(DisconnectedArgs args)
+        protected override async Task OnDisconnected(DisconnectedArgs args)
         {
-
-            pools.RemoveGameServer(args.Peer.SessionId);
-            return Task.CompletedTask;
+            var session = await sessions.GetSessionById(args.Peer.SessionId, CancellationToken.None);
+            if (session != null)
+            {
+                pools.RemoveGameServer(session.platformId.PlatformUserId);
+            }
+           
         }
 
         /// <summary>
@@ -120,16 +123,17 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         }
 
         [S2SApi]
-        public Task CloseServer(string poolId, string sessionId)
+        public async Task CloseServer(string poolId, SessionId sessionId)
         {
             if (pools.TryGetPool(poolId, out var pool))
             {
-                return pool.CloseServer(sessionId);
+                var session = await sessions.GetSessionById(sessionId,CancellationToken.None);
+                if (session != null)
+                {
+                    await pool.CloseServer(session.platformId.PlatformUserId);
+                }
             }
-            else
-            {
-                return Task.CompletedTask;
-            }
+            
            
         }
     }

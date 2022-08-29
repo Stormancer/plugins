@@ -70,12 +70,12 @@ namespace Stormancer.Server.Plugins.Users
             return r.FirstOrDefault().Value;
         }
 
-        public Task<Session?> GetSessionById(string sessionId, CancellationToken cancellationToken)
+        public Task<Session?> GetSessionById(SessionId sessionId, CancellationToken cancellationToken)
         {
             return proxy.GetSessionById(sessionId, cancellationToken);
         }
 
-        public async Task<T?> GetSessionData<T>(string sessionId, string key, CancellationToken cancellationToken)
+        public async Task<T?> GetSessionData<T>(SessionId sessionId, string key, CancellationToken cancellationToken)
         {
             var buffer = await proxy.GetSessionData(sessionId, key, cancellationToken);
             if(buffer == null)
@@ -86,7 +86,7 @@ namespace Stormancer.Server.Plugins.Users
             return serializer.Deserialize<T>(stream);
         }
 
-        public Task<byte[]?> GetSessionData(string sessionId, string key, CancellationToken cancellationToken)
+        public Task<byte[]?> GetSessionData(SessionId sessionId, string key, CancellationToken cancellationToken)
         {
             return proxy.GetSessionData(sessionId, key, cancellationToken);
         }
@@ -96,7 +96,7 @@ namespace Stormancer.Server.Plugins.Users
             return proxy.GetSessionsByPlatformIds(platformIds, cancellationToken);
         }
 
-        public Task<Dictionary<string, Session?>> GetSessions(IEnumerable<string> sessionIds, CancellationToken cancellationToken)
+        public Task<Dictionary<SessionId, Session?>> GetSessions(IEnumerable<SessionId> sessionIds, CancellationToken cancellationToken)
         {
             return proxy.GetSessionsbySessionIds(sessionIds, cancellationToken);
         }
@@ -127,7 +127,7 @@ namespace Stormancer.Server.Plugins.Users
             return proxy.Query(query, take, skip, cancellationToken);
         }
 
-        public async Task UpdateSessionData(string sessionId, string key, byte[] data, CancellationToken cancellationToken)
+        public async Task UpdateSessionData(SessionId sessionId, string key, byte[] data, CancellationToken cancellationToken)
         {
             await using var rq =  proxy.UpdateSessionData(sessionId, key,cancellationToken);
 
@@ -136,7 +136,7 @@ namespace Stormancer.Server.Plugins.Users
             rq.Reader.Complete();
         }
 
-        public async Task UpdateSessionData<T>(string sessionId, string key, T data, CancellationToken cancellationToken)
+        public async Task UpdateSessionData<T>(SessionId sessionId, string key, T data, CancellationToken cancellationToken)
         {
             await using var rq = proxy.UpdateSessionData(sessionId, key, cancellationToken);
 

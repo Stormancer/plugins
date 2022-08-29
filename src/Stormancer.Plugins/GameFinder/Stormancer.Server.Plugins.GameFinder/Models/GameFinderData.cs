@@ -29,7 +29,7 @@ namespace Stormancer.Server.Plugins.GameFinder
     internal class GameFinderData
     {
         public ConcurrentDictionary<Party, GameFinderRequestState> waitingParties { get; } = new ConcurrentDictionary<Party, GameFinderRequestState>();
-        public ConcurrentDictionary<string, Party> peersToGroup { get; } = new ConcurrentDictionary<string, Party>();
+        public ConcurrentDictionary<SessionId, Party> peersToGroup { get; } = new ConcurrentDictionary<SessionId, Party>();
 
         public ConcurrentDictionary<string, OpenGameSession> openGameSessions { get; } = new ConcurrentDictionary<string, OpenGameSession>();
 

@@ -85,11 +85,11 @@ namespace Stormancer.Server.Plugins.Party
                 {
                     if (_data.TryGetValue(id, out var doc))
                     {
-                        yield return new Document<JObject> { Id = id, Source = doc };
+                        yield return new Document<JObject>(id, doc);
                     }
                     else
                     {
-                        yield return new Document<JObject> { Id = id, Source = null };
+                        yield return new Document<JObject>(id, default);
                     }
                 }
             }

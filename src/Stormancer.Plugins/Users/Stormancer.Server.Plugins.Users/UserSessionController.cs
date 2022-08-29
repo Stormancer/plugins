@@ -87,17 +87,17 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [S2SApi(GeneratePrivateImpl = true)]
-        public async Task<string?> GetPeer(string userId, CancellationToken cancellationToken)
+        public async Task<SessionId> GetPeer(string userId, CancellationToken cancellationToken)
         {
 
             var result = await _sessions.GetPeer(userId, cancellationToken);
 
-            return result?.SessionId;
+            return result?.SessionId??SessionId.Empty;
         }
 
 
         [S2SApi(GeneratePrivateImpl = true)]
-        public async Task<bool> IsAuthenticated(string sessionId, CancellationToken cancellationToken)
+        public async Task<bool> IsAuthenticated(SessionId sessionId, CancellationToken cancellationToken)
         {
 
             var peer = _scene.RemotePeers.FirstOrDefault(p => p.SessionId == sessionId);
@@ -111,7 +111,7 @@ namespace Stormancer.Server.Plugins.Users
         }
 
         [S2SApi]
-        public Task UpdateUserData(string sessionId, JObject data, CancellationToken cancellationToken)
+        public Task UpdateUserData(SessionId sessionId, JObject data, CancellationToken cancellationToken)
         {
 
             var peer = _scene.RemotePeers.FirstOrDefault(p => p.SessionId == sessionId);
@@ -137,7 +137,7 @@ namespace Stormancer.Server.Plugins.Users
         }
 
         [S2SApi]
-        public Task<Session?> GetSessionById(string sessionId, CancellationToken cancellationToken)
+        public Task<Session?> GetSessionById(SessionId sessionId, CancellationToken cancellationToken)
         {
             var session = _sessions.GetSessionById(sessionId, cancellationToken);
 #if DEBUG
@@ -156,13 +156,13 @@ namespace Stormancer.Server.Plugins.Users
         }
 
         [S2SApi]
-        public Task<Dictionary<string, Session?>> GetSessionsbySessionIds(IEnumerable<string> sessionIds, CancellationToken cancellationToken)
+        public Task<Dictionary<SessionId, Session?>> GetSessionsbySessionIds(IEnumerable<SessionId> sessionIds, CancellationToken cancellationToken)
         {
             return _sessions.GetSessions(sessionIds, cancellationToken);
         }
 
         [S2SApi(GeneratePrivateImpl = true)]
-        public Task UpdateSessionData(string sessionId, string key, [S2SContextUsage(S2SRequestContextUsage.Read)] IS2SRequestContext ctx)
+        public Task UpdateSessionData(SessionId sessionId, string key, [S2SContextUsage(S2SRequestContextUsage.Read)] IS2SRequestContext ctx)
         {
 
             using var memoryStream = new MemoryStream();
@@ -172,7 +172,7 @@ namespace Stormancer.Server.Plugins.Users
         }
 
         [S2SApi]
-        public Task<byte[]?> GetSessionData(string sessionId, string key, CancellationToken cancellationToken)
+        public Task<byte[]?> GetSessionData(SessionId sessionId, string key, CancellationToken cancellationToken)
         {
             return _sessions.GetSessionData(sessionId, key, cancellationToken);
 

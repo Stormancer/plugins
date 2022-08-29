@@ -39,22 +39,9 @@ namespace Stormancer.Server.Plugins.Spectate
 
         private ulong _cacheLastTime = 0;
 
-        private readonly Dictionary<string, RequestContext<IScenePeerClient>> _requests = new Dictionary<string, RequestContext<IScenePeerClient>>();
+        private readonly Dictionary<SessionId, RequestContext<IScenePeerClient>> _requests = new Dictionary<SessionId, RequestContext<IScenePeerClient>>();
 
-        //private class FrameComparer : IComparer<List<Frame>>
-        //{
-        //    public int Compare(Frame x, Frame y)
-        //    {
-        //        if (x.Time != y.Time)
-        //        {
-        //            return x.Time.CompareTo(y.Time);
-        //        }
-        //        else
-        //        {
-        //            return x.Type.CompareTo(y.Type);
-        //        }
-        //    }
-        //}
+       
 
         private class FrameListComparer : IComparer<FrameList>
         {
@@ -75,22 +62,6 @@ namespace Stormancer.Server.Plugins.Spectate
                 return x.Time.CompareTo(y.Time);
             }
         }
-
-        //public void AddFrames(IEnumerable<Frame> frames)
-        //{
-        //    lock (_frames)
-        //    {
-        //        _frames.UnionWith(frames);
-        //    }
-        //}
-
-        //public IEnumerable<Frame> GetFrames(ulong startTime, ulong endTime)
-        //{
-        //    lock (_frames)
-        //    {
-        //        return _frames.GetViewBetween(new Frame { Time = startTime }, new Frame { Time = endTime });
-        //    }
-        //}
 
         public void AddFrames(IEnumerable<Frame> frames)
         {
@@ -143,7 +114,7 @@ namespace Stormancer.Server.Plugins.Spectate
             }
         }
 
-        public bool SubscribeToFrames(string sessionId, RequestContext<IScenePeerClient> request)
+        public bool SubscribeToFrames(SessionId sessionId, RequestContext<IScenePeerClient> request)
         {
             lock (_requests)
             {
@@ -151,7 +122,7 @@ namespace Stormancer.Server.Plugins.Spectate
             }
         }
 
-        public void UnsubscribeFromFrames(string sessionId)
+        public void UnsubscribeFromFrames(SessionId sessionId)
         {
             lock (_requests)
             {

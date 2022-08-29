@@ -20,16 +20,27 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Jose;
+using Lucene.Net.Documents;
+using Lucene.Net.Index;
+using Lucene.Net.Search;
+using Lucene.Net.Store;
 using Microsoft.IO;
+using Newtonsoft.Json.Linq;
+using Stormancer.Cluster.Sessions;
 using Stormancer.Core;
 using Stormancer.Core.Helpers;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Database;
+using Stormancer.Server.Plugins.Queries;
+using Stormancer.Server.Plugins.Utilities.Extensions;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
@@ -65,15 +76,185 @@ namespace Stormancer.Server.Plugins.Users
         /// </summary>
         ServerRequest
     }
-    internal interface IUserPeerIndex : IIndex<string> { }
-    internal class UserPeerIndex : InMemoryIndex<string>, IUserPeerIndex { }
 
-    internal interface IPeerUserIndex : IIndex<SessionRecord> { }
-    internal class PeerUserIndex : InMemoryIndex<SessionRecord>, IPeerUserIndex { }
 
-    internal interface IHandleUserIndex : IIndex<string> { }
-    internal class HandleUserIndex : InMemoryIndex<string>, IHandleUserIndex { }
 
+
+    internal class SessionsRepository
+    {
+
+
+        private IndexState _index;
+
+        private Dictionary<SessionId, Document<SessionRecord>> _sessions = new Dictionary<SessionId, Document<SessionRecord>>();
+
+        private object _syncRoot = new object();
+        public SessionsRepository()
+        {
+            _index = new IndexState(new RAMDirectory(), DefaultMapper.JsonMapper);
+        }
+
+        private Filters _filtersEngine = new Filters(new IFilterExpressionFactory[] { new CommonFiltersExpressionFactory() });
+
+        public int Count
+        {
+            get
+            {
+                lock (_syncRoot)
+                {
+                    return _sessions.Count;
+                }
+            }
+        }
+        public IEnumerable<Document<SessionRecord>> All
+        {
+            get
+            {
+                lock (_syncRoot)
+                {
+                    return _sessions.Values.ToArray();
+                }
+            }
+        }
+        public bool AddOrUpdateSessionRecord(SessionRecord session, int? version)
+        {
+            var sessionId = session.SessionId;
+            var id = sessionId.ToString();
+            var success = false;
+            lock (_syncRoot)
+            {
+                if (version is int v)
+                {
+                    if (_sessions.TryGetValue(sessionId, out var document))
+                    {
+                        if (version == document.Version)
+                        {
+                            _sessions[sessionId] = new Document<SessionRecord>(id, session) { Version = (uint)(v + 1) };
+                            success = true;
+                        }
+                        else
+                        {
+                            success = false;
+                        }
+                    }
+                    else
+                    {
+                        if (version < 0)
+                        {
+                            _sessions[sessionId] = new Document<SessionRecord>(id, session);
+                            success = true;
+                        }
+                        else
+                        {
+                            success = false;
+                        }
+                    }
+                }
+                else
+                {
+                    _sessions[sessionId] = new Document<SessionRecord>(id, session);
+                    success = true;
+                }
+
+            }
+
+            if (success)
+            {
+                _index.Writer.UpdateDocument(new Lucene.Net.Index.Term("_id", id), MapSessionRecord(session));
+                _index.Writer.Flush(false, false);
+            }
+
+            return success;
+        }
+
+        private IEnumerable<IIndexableField> MapSessionRecord(SessionRecord record)
+        {
+            yield return new StringField("_id", record.SessionId.ToString(), Field.Store.YES);
+
+            var user = record.User;
+            if (user is not null)
+            {
+                yield return new StringField("user.id", user.Id, Field.Store.NO);
+                foreach (var field in DefaultMapper.JsonMapper("user.auth", user.Auth))
+                {
+                    yield return field;
+                }
+                foreach (var field in DefaultMapper.JsonMapper("user.data", user.UserData))
+                {
+                    yield return field;
+                }
+            }
+
+        }
+        public bool TryRemoveSession(SessionId sessionId, [NotNullWhen(true)] out SessionRecord? session)
+        {
+            bool success = false;
+            lock (_syncRoot)
+            {
+                success = _sessions.Remove(sessionId, out var doc);
+
+                session = doc?.Source;
+
+            }
+
+            if (success)
+            {
+                _index.Writer.DeleteDocuments(new Lucene.Net.Index.Term("_id", sessionId.ToString()));
+                _index.Writer.Flush(false, false);
+            }
+            return success;
+        }
+        public Document<SessionRecord>? GetSession(SessionId sessionId)
+        {
+            lock (_syncRoot)
+            {
+
+                return _sessions.TryGetValue(sessionId, out var document) ? document : null;
+
+            }
+        }
+        public Dictionary<SessionId, Document<SessionRecord>?> GetSessions(IEnumerable<SessionId> sessionIds)
+        {
+            lock (_syncRoot)
+            {
+                var dictionary = new Dictionary<SessionId, Document<SessionRecord>?>();
+
+                foreach (var sessionId in sessionIds)
+                {
+                    dictionary[sessionId] = _sessions.TryGetValue(sessionId, out var document) ? document : null;
+                }
+                return dictionary;
+
+            }
+        }
+
+        public SearchResult<SessionRecord> Filter(JObject query, uint size = 20, uint skip = 0)
+        {
+            var result = new SearchResult<SessionRecord>();
+
+
+            using var reader = _index.Writer.GetReader(true);
+            var searcher = new IndexSearcher(reader);
+
+            var filter = _filtersEngine.Parse(query);
+
+            var docs = searcher.Search(new ConstantScoreQuery(filter.ToLuceneQuery()), (int)(size + skip));
+            result.Hits = docs.ScoreDocs.Skip((int)skip).Select(hit => searcher.Doc(hit.Doc)?.Get("_id"))
+                .Where(id => id is not null)
+                .Select(id =>
+                {
+                    Debug.Assert(id != null);
+                    var sessionId = SessionId.From(id);
+                    var document = _sessions.TryGetValue(sessionId, out var a) ? a : default;
+                    return document;
+                })
+            .WhereNotNull().ToList();
+
+            return result;
+
+
+        }
+    }
     /// <summary>
     /// Stored object representing a session. 
     /// </summary>
@@ -95,7 +276,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <summary>
         /// Gets the id of the session.
         /// </summary>
-        public string SessionId { get; set; } = default!;
+        public SessionId SessionId { get; set; }
 
         /// <summary>
         /// Gets the identities associated with the session.
@@ -128,6 +309,11 @@ namespace Stormancer.Server.Plugins.Users
         public DateTimeOffset? MaxAge { get => AuthenticationExpirationDates.Count > 0 ? AuthenticationExpirationDates.Min().Value : (DateTimeOffset?)null; }
 
         /// <summary>
+        /// Version of the record
+        /// </summary>
+        public int Version { get; set; }
+
+        /// <summary>
         /// Creates a view of the session.
         /// </summary>
         /// <returns></returns>
@@ -144,6 +330,19 @@ namespace Stormancer.Server.Plugins.Users
                 AuthenticatorUrl = AuthenticatorUrl,
                 MaxAge = MaxAge
             };
+        }
+    }
+
+    public static class SessionDocExtensions
+    {
+        public static Session? CreateView(this Document<SessionRecord> record)
+        {
+            var s = record?.Source?.CreateView();
+            if (s != null && record != null)
+            {
+                s.Version = record.Version;
+            }
+            return s;
         }
     }
 
@@ -165,7 +364,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <summary>
         /// Gets the session id.
         /// </summary>
-        public string SessionId { get; set; } = default!;
+        public SessionId SessionId { get; set; }
 
         /// <summary>
         /// List of identities of the session.
@@ -191,13 +390,16 @@ namespace Stormancer.Server.Plugins.Users
         /// If the session is cached, the date at which it should expire
         /// </summary>
         public DateTimeOffset? MaxAge { get; internal set; }
+
+        /// <summary>
+        /// Version of the document.
+        /// </summary>
+        public uint Version { get; internal set; }
     }
 
     internal class UserSessions : IUserSessions
     {
-        private readonly IUserPeerIndex _userPeerIndex;
-        private readonly IUserService _userService;
-        private readonly IPeerUserIndex _peerUserIndex;
+        private readonly SessionsRepository repository;
         private readonly Func<IEnumerable<IUserSessionEventHandler>> _eventHandlers;
         private readonly IESClientFactory _esClientFactory;
         private readonly ISerializer serializer;
@@ -205,28 +407,24 @@ namespace Stormancer.Server.Plugins.Users
         private readonly ISceneHost _scene;
         private readonly ILogger logger;
         private readonly RpcService rpcService;
-        private readonly IHandleUserIndex _handleUserIndex;
+        private readonly IUserService _userService;
+
 
 
         public UserSessions(IUserService userService,
-            IPeerUserIndex peerUserIndex,
-            IUserPeerIndex userPeerIndex,
+            SessionsRepository repository,
             Func<IEnumerable<IUserSessionEventHandler>> eventHandlers,
             ISerializer serializer,
             IESClientFactory eSClientFactory,
             IEnvironment env,
             ISceneHost scene, ILogger logger,
-            RpcService rpcService,
-            IHandleUserIndex handleUserIndex)
+            RpcService rpcService)
         {
             _esClientFactory = eSClientFactory;
             _userService = userService;
-            _peerUserIndex = peerUserIndex;
-            _userPeerIndex = userPeerIndex;
+
             _eventHandlers = eventHandlers;
             _scene = scene;
-            _handleUserIndex = handleUserIndex;
-
             this.serializer = serializer;
             this.env = env;
             this.logger = logger;
@@ -250,25 +448,25 @@ namespace Stormancer.Server.Plugins.Users
             var sessionId = peer.SessionId;
             var id = peer.SessionId;
 
-            var result = await _peerUserIndex.TryRemove(sessionId);
-            if (result.Success)
+
+            if (repository.TryRemoveSession(sessionId, out var record))
             {
-                var session = result.Value.CreateView();
-                if (result.Value.User != null)
-                {
-                    await _userPeerIndex.TryRemove(result.Value.User.Id);
-                }
-                await _userPeerIndex.TryRemove(result.Value.platformId.ToString());
+                var session = record.CreateView();
+
                 var logoutContext = new LogoutContext { Session = session, ConnectedOn = session.ConnectedOn, Reason = reason };
                 await _eventHandlers().RunEventHandler(h => h.OnLoggedOut(logoutContext), ex => logger.Log(LogLevel.Error, "usersessions", "An error occured while running LoggedOut event handlers", ex));
-                if (result.Value.User != null)
+                if (session.User != null)
                 {
-                    await _userService.UpdateLastLoginDate(result.Value.User.Id);
+                    await _userService.UpdateLastLoginDate(session.User.Id);
                 }
-                //logger.Trace("usersessions", $"removed '{result.Value.Id}' (peer : '{peer.Id}') in scene '{_scene.Id}'.");
+                return true;
+            }
+            else
+            {
+                return false;
             }
 
-            return result.Success;
+
         }
 
 
@@ -280,29 +478,6 @@ namespace Stormancer.Server.Plugins.Users
                 throw new ArgumentNullException("peer");
             }
 
-
-            bool added = false;
-
-            while (!added && user != null)
-            {
-                var r = await _userPeerIndex.GetOrAdd(user.Id, peer.SessionId);
-                if (r.Value != peer.SessionId)
-                {
-                    if (!await LogOut(peer, DisconnectionReason.NewConnection))
-                    {
-                        logger.Warn("usersessions", $"user {user.Id} was found in _userPeerIndex but could not be logged out properly.", new { userId = user.Id, oldSessionId = r.Value, newSessionId = peer.SessionId });
-
-                        await _userPeerIndex.TryRemove(user.Id);
-                        await _userPeerIndex.TryRemove(onlineId.ToString().ToString());
-                    }
-                }
-                else
-                {
-                    added = true;
-                }
-            }
-
-            await _userPeerIndex.TryAdd(onlineId.ToString(), peer.SessionId);
             var session = new SessionRecord
             {
                 User = user,
@@ -310,14 +485,19 @@ namespace Stormancer.Server.Plugins.Users
                 SessionData = new ConcurrentDictionary<string, byte[]>(sessionData.AsEnumerable()),
                 SessionId = peer.SessionId,
                 ConnectedOn = DateTime.UtcNow,
-                AuthenticatorUrl = await GetAuthenticatorUrl()
+                AuthenticatorUrl = await GetAuthenticatorUrl(),
+                Version = 0
             };
+            if (repository.AddOrUpdateSessionRecord(session, -1))
+            {
 
-            await _peerUserIndex.AddOrUpdateWithRetries(peer.SessionId, session, s => { if (user != null) s.User = user; return s; });
-            var loginContext = new LoginContext { Session = session, Client = peer };
-            await _eventHandlers().RunEventHandler(h => h.OnLoggedIn(loginContext), ex => logger.Log(LogLevel.Error, "usersessions", "An error occured while running LoggedIn event handlers", ex));
-
-
+                var loginContext = new LoginContext { Session = session, Client = peer };
+                await _eventHandlers().RunEventHandler(h => h.OnLoggedIn(loginContext), ex => logger.Log(LogLevel.Error, "usersessions", "An error occured while running LoggedIn event handlers", ex));
+            }
+            else
+            {
+                throw new InvalidOperationException("Session already logged in.");
+            }
         }
 
         private async Task<string> GetAuthenticatorUrl()
@@ -331,9 +511,18 @@ namespace Stormancer.Server.Plugins.Users
             return $"scene:/{infos.ClusterId}/{infos.HostUrl}/{_scene.Id}#{_scene.ShardId}";
         }
 
-        internal Task UpdateSession(string id, Func<SessionRecord, Task<SessionRecord>> mutator)
+        internal async Task<bool> UpdateSession(SessionId id, Func<SessionRecord, Task<SessionRecord>> mutator)
         {
-            return _peerUserIndex.UpdateWithRetries(id, mutator);
+            var session = repository.GetSession(id);
+            if (session is not null && session.Source is not null)
+            {
+                var updatedSession = await mutator(session.Source);
+                return repository.AddOrUpdateSessionRecord(updatedSession, (int)session.Version);
+            }
+            else
+            {
+                return false;
+            }
         }
 
         public async Task UpdateUserData<T>(IScenePeerClient peer, T data, CancellationToken cancellationToken)
@@ -350,37 +539,45 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
-        public async Task<IScenePeerClient?> GetPeer(string userId, CancellationToken cancellationToken)
+        public Task<IScenePeerClient?> GetPeer(string userId, CancellationToken cancellationToken)
         {
-            var result = await _userPeerIndex.TryGet(userId);
-
-            if (result.Success)
+            var result = repository.Filter(JObject.FromObject(new
             {
-                var peer = _scene.RemotePeers.FirstOrDefault(p => p.SessionId == result.Value);
-                //logger.Trace("usersessions", $"found '{userId}' (peer : '{result.Value}', '{peer.Id}') in scene '{_scene.Id}'.");
-                if (peer == null)
+                match = new
                 {
-                    //logger.Trace("usersessions", $"didn't found '{userId}' (peer : '{result.Value}') in scene '{_scene.Id}'.");
+                    field = "user.id",
+                    value = userId
                 }
-                return peer;
+            }), 1, 0);
+
+            if (result.Total > 0)
+            {
+                return Task.FromResult(_scene.RemotePeers.FirstOrDefault(p => p.SessionId == result.Hits.First().Source!.SessionId));
             }
             else
             {
-                //logger.Trace("usersessions", $"didn't found '{userId}' in userpeer index.");
-                return null;
+                return Task.FromResult(default(IScenePeerClient));
             }
         }
-        public async Task<Session?> GetSession(string userId, CancellationToken cancellationToken)
+        public Task<Session?> GetSession(string userId, CancellationToken cancellationToken)
         {
-            var result = await _userPeerIndex.TryGet(userId);
-
-            if (result.Success)
+            var result = repository.Filter(JObject.FromObject(new
             {
-                return await GetSessionById(result.Value, cancellationToken);
+                match = new
+                {
+                    field = "user.id",
+                    value = userId
+                }
+            }), 1, 0);
+
+            if (result.Total > 0)
+            {
+
+                return Task.FromResult(result.Hits.First().Source?.CreateView());
             }
             else
             {
-                return null;
+                return Task.FromResult(default(Session));
             }
         }
 
@@ -406,20 +603,12 @@ namespace Stormancer.Server.Plugins.Users
             return peer != null ? await GetSessionById(peer.SessionId, cancellationToken) : null;
         }
 
-        public async Task<SessionRecord?> GetSessionRecordById(string sessionId)
+        public Task<SessionRecord?> GetSessionRecordById(SessionId sessionId)
         {
-            var result = await _peerUserIndex.TryGet(sessionId);
-            if (result.Success)
-            {
-                return result.Value;
-            }
-            else
-            {
-                return null;
-            }
+            return Task.FromResult(repository.GetSession(sessionId)?.Source);
         }
 
-        public async Task<Session?> GetSessionById(string sessionId, CancellationToken cancellationToken)
+        public async Task<Session?> GetSessionById(SessionId sessionId, CancellationToken cancellationToken)
         {
             var session = await GetSessionRecordById(sessionId);
             return session?.CreateView();
@@ -430,12 +619,12 @@ namespace Stormancer.Server.Plugins.Users
             return GetSession(userId, cancellationToken);
         }
 
-        public Task<Session?> GetSessionById(string sessionId, string authType, CancellationToken cancellationToken)
+        public Task<Session?> GetSessionById(SessionId sessionId, string authType, CancellationToken cancellationToken)
         {
             return GetSessionById(sessionId, cancellationToken);
         }
 
-        public async Task UpdateSessionData(string sessionId, string key, byte[] data, CancellationToken cancellationToken)
+        public async Task UpdateSessionData(SessionId sessionId, string key, byte[] data, CancellationToken cancellationToken)
         {
             var session = await GetSessionRecordById(sessionId);
             if (session == null)
@@ -445,14 +634,14 @@ namespace Stormancer.Server.Plugins.Users
             session.SessionData[key] = data;
         }
 
-        public Task UpdateSessionData<T>(string sessionId, string key, T data, CancellationToken cancellationToken)
+        public Task UpdateSessionData<T>(SessionId sessionId, string key, T data, CancellationToken cancellationToken)
         {
             var stream = new MemoryStream();
             serializer.Serialize(data, stream);
             return UpdateSessionData(sessionId, key, stream.ToArray(), cancellationToken);
         }
 
-        public async Task<byte[]?> GetSessionData(string sessionId, string key, CancellationToken cancellationToken)
+        public async Task<byte[]?> GetSessionData(SessionId sessionId, string key, CancellationToken cancellationToken)
         {
             var session = await GetSessionById(sessionId, cancellationToken);
             if (session == null)
@@ -469,7 +658,7 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
-        public async Task<T?> GetSessionData<T>(string sessionId, string key, CancellationToken cancellationToken)
+        public async Task<T?> GetSessionData<T>(SessionId sessionId, string key, CancellationToken cancellationToken)
         {
             var data = await GetSessionData(sessionId, key, cancellationToken);
             if (data != null)
@@ -595,29 +784,29 @@ namespace Stormancer.Server.Plugins.Users
                 await _userService.UpdateUserData(userId, newUserData);
             }
 
-            async Task UpdateHandleEphemeral()
-            {
-                var userData = session.User.UserData;
-                if (!appendHash)
-                {
-                    userData[UsersConstants.UserHandleKey] = newHandle;
-                }
-                else
-                {
-                    string newHandleWithSuffix;
-                    bool added = false;
-                    do
-                    {
-                        var suffix = _random.Value.Next(0, _handleSuffixUpperBound);
-                        newHandleWithSuffix = newHandle + "#" + suffix;
-                        // Check conflicts
-                        added = await _handleUserIndex.TryAdd(newHandleWithSuffix, userId);
-                    } while (!added);
+            //async Task UpdateHandleEphemeral()
+            //{
+            //    var userData = session.User.UserData;
+            //    if (!appendHash)
+            //    {
+            //        userData[UsersConstants.UserHandleKey] = newHandle;
+            //    }
+            //    else
+            //    {
+            //        string newHandleWithSuffix;
+            //        bool added = false;
+            //        do
+            //        {
+            //            var suffix = _random.Value.Next(0, _handleSuffixUpperBound);
+            //            newHandleWithSuffix = newHandle + "#" + suffix;
+            //            // Check conflicts
+            //            added = await _handleUserIndex.TryAdd(newHandleWithSuffix, userId);
+            //        } while (!added);
 
-                    userData[UsersConstants.UserHandleKey] = newHandleWithSuffix;
-                }
-                session.User.UserData = userData;
-            }
+            //        userData[UsersConstants.UserHandleKey] = newHandleWithSuffix;
+            //    }
+            //    session.User.UserData = userData;
+            //}
 
             if (session == null || session.User == null)
             {
@@ -626,7 +815,8 @@ namespace Stormancer.Server.Plugins.Users
 
             if (session.User.UserData.TryGetValue(EphemeralAuthenticationProvider.IsEphemeralKey, out var isEphemeral) && (bool)isEphemeral)
             {
-                await UpdateHandleEphemeral();
+                throw new NotSupportedException();
+                //await UpdateHandleEphemeral();
             }
             else
             {
@@ -681,7 +871,7 @@ namespace Stormancer.Server.Plugins.Users
                         finally
                         {
                             stream.Dispose();
-                           
+
                         }
 
                     }).ToAsyncEnumerable().WithCancellation(cancellationToken);
@@ -790,10 +980,10 @@ namespace Stormancer.Server.Plugins.Users
             return Task.FromResult(AuthenticatedUsersCount);
         }
 
-        public async Task<Dictionary<string, Session?>> GetSessions(IEnumerable<string> sessionIds, CancellationToken cancellationToken)
+        public async Task<Dictionary<SessionId, Session?>> GetSessions(IEnumerable<SessionId> sessionIds, CancellationToken cancellationToken)
         {
 
-            var sessions = new Dictionary<string, Session?>();
+            var sessions = new Dictionary<SessionId, Session?>();
 
             foreach (var id in sessionIds)
             {
@@ -874,14 +1064,14 @@ namespace Stormancer.Server.Plugins.Users
 
         public IAsyncEnumerable<Session> GetSessionsAsync(CancellationToken cancellationToken)
         {
-            return _peerUserIndex.GetAllLocal().Select(r => r.CreateView()).ToAsyncEnumerable();
+            return repository.All.Select(r => r.CreateView()).WhereNotNull().ToAsyncEnumerable();
         }
 
         public int AuthenticatedUsersCount
         {
             get
             {
-                return _peerUserIndex.Count;
+                return repository.Count;
             }
         }
     }

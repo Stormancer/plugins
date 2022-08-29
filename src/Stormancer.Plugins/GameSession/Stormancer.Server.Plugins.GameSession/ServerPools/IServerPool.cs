@@ -55,7 +55,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         /// <summary>
         /// Gets or sets the session id of the gameServer
         /// </summary>
-        public string GameServerSessionId { get; set; } = default!;
+        public SessionId GameServerSessionId { get; set; }
     }
 
     
@@ -84,7 +84,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         bool CanManage(Session session, IScenePeerClient peer);
         Task<GameServerStartupParameters?> WaitGameSessionAsync(Session session, IScenePeerClient client, CancellationToken cancellationToken);
-        Task OnGameServerDisconnected(string sessionId);
-        Task CloseServer(string sessionId);
+        Task OnGameServerDisconnected(string serverId);
+        Task CloseServer(string serverId);
     }
 }

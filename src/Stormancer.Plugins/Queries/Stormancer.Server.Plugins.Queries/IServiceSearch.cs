@@ -146,6 +146,11 @@ namespace Stormancer.Server.Plugins.Queries
     /// <typeparam name="T"></typeparam>
     public class Document<T>
     {
+        public Document(string  id, T? source)
+        {
+            Id = id;
+            Source = source;
+        }
         /// <summary>
         /// Gets or sets the id of the document.
         /// </summary>
@@ -155,6 +160,7 @@ namespace Stormancer.Server.Plugins.Queries
         /// Gets or sets the content of the document.
         /// </summary>
         public T? Source { get; set; }
+        public uint Version { get; set; }
     }
 
 

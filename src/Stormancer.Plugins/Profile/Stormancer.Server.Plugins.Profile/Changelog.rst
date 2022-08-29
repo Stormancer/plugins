@@ -13,7 +13,7 @@ Unreleased
 ----------
 Changed
 *******
-- Update dependency to Stormancer.Abstraction.Server 7.1.0
+- Remove dependency to Stormancer.Abstraction.Server
 - Changed Profile dto to include a field stating if the profile was found or not
 Fixed
 *****

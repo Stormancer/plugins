@@ -16,9 +16,9 @@ namespace Stormancer.Server.Plugins.RemoteControl
         /// </summary>
         public const string AUTHPROVIDER_TYPE = "remoteControl.agent";
 
-        public const string AUTHENTICATION_KEYS_AGENTID = "id";
-        public const string AUTHENTICATION_KEYS_PASSWORD = "password";
+        internal const string AUTHENTICATION_KEYS_AGENTID = "id";
+        internal const string AUTHENTICATION_KEYS_PASSWORD = "password";
 
-        public const string AUTHENTICATION_KEYS_METADATA = "metadata";
+        internal const string AUTHENTICATION_KEYS_METADATA = "metadata";
     }
 }

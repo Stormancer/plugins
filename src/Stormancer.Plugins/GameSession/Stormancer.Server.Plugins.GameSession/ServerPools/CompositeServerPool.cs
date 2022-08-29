@@ -142,19 +142,19 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             throw new NotSupportedException();
         }
 
-        public async Task OnGameServerDisconnected(string sessionId)
+        public async Task OnGameServerDisconnected(string serverId)
         {
            foreach(var pool in _subPools)
             {
-                await pool.OnGameServerDisconnected(sessionId);
+                await pool.OnGameServerDisconnected(serverId);
             }
         }
 
-        public async Task CloseServer(string sessionId)
+        public async Task CloseServer(string serverId)
         {
             foreach(var pool in _subPools)
             {
-                await pool.CloseServer(sessionId);
+                await pool.CloseServer(serverId);
             }
         }
     }

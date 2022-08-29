@@ -70,7 +70,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <param name="version">Version of the resulting token payload</param>
         /// <param name="cancellationToken"></param>
         /// <returns>The new connection token</returns>
-        Task<string> CreateConnectionToken(string id, string userSessionId, TokenVersion version = TokenVersion.V3, CancellationToken cancellationToken = default);
+        Task<string> CreateConnectionToken(string id, SessionId userSessionId, TokenVersion version = TokenVersion.V3, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Crates a connection token for servers.
@@ -124,7 +124,7 @@ namespace Stormancer.Server.Plugins.GameSession
             return management.CreateScene(id, template, false, false, JObject.FromObject(new { gameSession = config }));
         }
 
-        public async Task<string> CreateConnectionToken(string id, string userSessionId, TokenVersion version,CancellationToken cancellationToken)
+        public async Task<string> CreateConnectionToken(string id, SessionId userSessionId, TokenVersion version,CancellationToken cancellationToken)
         {
             using (var stream = new MemoryStream())
             {

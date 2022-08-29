@@ -39,7 +39,7 @@ namespace Stormancer.Server.Plugins.Steam
 {
     internal class SteamUserData
     {
-        public string? SessionId { get; set; }
+        public SessionId SessionId { get; set; }
 
         public ulong SteamId { get; set; }
     }
@@ -53,7 +53,7 @@ namespace Stormancer.Server.Plugins.Steam
         public int NumMembers { get => _numMembers; }
 
         // UserData[SessionId] => SteamUserData
-        public ConcurrentDictionary<string, SteamUserData> UserData { get; set; } = new();
+        public ConcurrentDictionary<SessionId, SteamUserData> UserData { get; set; } = new();
 
         public int IncrementNumMembers()
         {
@@ -317,7 +317,7 @@ namespace Stormancer.Server.Plugins.Steam
             return Task.CompletedTask;
         }
 
-        private async Task RemoveUserFromLobby(ConcurrentDictionary<string, object> serverData, string sessionId)
+        private async Task RemoveUserFromLobby(ConcurrentDictionary<string, object> serverData, SessionId sessionId)
         {
             if (serverData.TryGetValue(PartyLobbyKey, out var dataObject))
             {

@@ -87,7 +87,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [S2SApi]
-        public async Task<string?> JoinInParty(string partyId, string sessionId, CancellationToken cancellationToken)
+        public async Task<string?> JoinInParty(string partyId, SessionId sessionId, CancellationToken cancellationToken)
         {
             var config = gameSession.GetGameSessionConfig();
 
@@ -112,7 +112,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
             {
                 var team = new Team { TeamId = tuple.team.TeamId };
                 var partyArg = new Models.Party { PartyId = partyId };
-                partyArg.Players.Add(session.User.Id, new Player { SessionId = session.SessionId, UserId = session.User.Id });
+                partyArg.Players.Add(session.User.Id, new Player { SessionId = session.SessionId.ToString(), UserId = session.User.Id });
                 team.Parties.Add(partyArg);
                 await gameSession.CreateReservationAsync(team, new Newtonsoft.Json.Linq.JObject { }, cancellationToken);
 

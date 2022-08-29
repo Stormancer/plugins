@@ -43,7 +43,7 @@ namespace Stormancer.Server.Plugins.Spectate
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public Task SendFrames(IEnumerable<FrameDataDto> frames)
         {
-            var sessionId = SessionId.From(this.Request.RemotePeer.SessionId);
+            var sessionId = this.Request.RemotePeer.SessionId;
             var sessionIdStr = sessionId.ToString();
 
             var cfg = _gameSessionService.GetGameSessionConfig();

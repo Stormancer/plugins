@@ -146,7 +146,7 @@ namespace Stormancer.Server.Plugins.Users
 
                     await sessions.Login(peer, authResult.AuthenticatedUser, authResult.PlatformId, authResult.initialSessionData);
 
-                    await sessions.UpdateSession(peer.SessionId, s =>
+                    sessions.UpdateSession(peer.SessionId, s =>
                     {
                         s.Identities[provider.Type] = authResult.PlatformId.ToString();
                         if (authResult.ExpirationDate.HasValue)
@@ -348,7 +348,7 @@ namespace Stormancer.Server.Plugins.Users
                             Provider = kvp.Key,
                             SessionId = session.SessionId,
                             UserId = session.User?.Id
-                        }, session.SessionId, session.User?.Id ?? "", kvp.Key);
+                        }, session.SessionId.ToString(), session.User?.Id ?? "", kvp.Key);
                     await peer.DisconnectFromServer("ServerError");
                     return closestExpirationDate;
                 }
@@ -387,7 +387,7 @@ namespace Stormancer.Server.Plugins.Users
                                 Provider = provider.Type,
                                 SessionId = session.SessionId,
                                 UserId = session.User?.Id
-                            }, provider.Type, session.SessionId, session.User?.Id ?? ""
+                            }, provider.Type, session.SessionId.ToString(), session.User?.Id ?? ""
                         );
 
                         await peer.DisconnectFromServer($"authentication.renewCredentialsError?provider={provider.Type}");

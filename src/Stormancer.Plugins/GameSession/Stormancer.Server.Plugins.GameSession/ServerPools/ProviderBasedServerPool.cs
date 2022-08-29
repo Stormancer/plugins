@@ -247,21 +247,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             GameServerTimeout = ((int?)d.serverTimeout) ?? 60;
         }
 
-        public Task<GameServerStartupParameters> SetReady(string id, IScenePeerClient client)
-        {
-            if (_startingServers.TryRemove(id, out var server))
-            {
-                server.Peer = client;
-                server.RunTcs = new TaskCompletionSource<GameServerStartupParameters>();
-                _readyServers.TryAdd(id, server);
-                return server.RunTcs.Task;
-            }
-
-            throw new ClientException($"dedicatedServer.notInPool");
-
-
-        }
-
+      
         
         public bool CanManage(Session session, IScenePeerClient peer)
         {
@@ -285,20 +271,20 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             }
         }
 
-        public async Task OnGameServerDisconnected(string sessionId)
+        public async Task OnGameServerDisconnected(string serverId)
         {
            
-            if (_runningServers.TryRemove(sessionId, out var server))
+            if (_runningServers.TryRemove(serverId, out var server))
             {
                 await provider.StopServer(server.Id);
             }
         }
 
-        public async Task CloseServer(string sessionId)
+        public async Task CloseServer(string serverId)
         {
           
               
-            if (_runningServers.TryGetValue(sessionId, out var server))
+            if (_runningServers.TryGetValue(serverId, out var server))
             {
                 await server.Peer.Send("ServerPool.Shutdown", _ => { }, Core.PacketPriority.MEDIUM_PRIORITY, Core.PacketReliability.RELIABLE);
             }

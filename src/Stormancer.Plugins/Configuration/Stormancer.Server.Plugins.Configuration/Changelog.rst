@@ -11,7 +11,7 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
-- Update dependency to Stormancer.Abstraction.Server 6.0.0.1
+- Update dependency to Stormancer.Abstraction.Server 8.0.0
 
 2.1.2.2
 -------

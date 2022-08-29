@@ -112,9 +112,7 @@ namespace Stormancer.Server.Plugins.Users
             if (scene.Template == Constants.SCENE_TEMPLATE)
             {
                 b.Register<UserSessions>().As<IUserSessions>();
-                b.Register<UserPeerIndex>().As<IUserPeerIndex>().SingleInstance();
-                b.Register<PeerUserIndex>().As<IPeerUserIndex>().SingleInstance();
-                b.Register<HandleUserIndex>().As<IHandleUserIndex>().SingleInstance();
+                b.Register<SessionsRepository>().AsSelf().SingleInstance();
                 b.Register<DeviceIdentifierAuthenticationProvider>().As<IAuthenticationProvider>();
                 b.Register<LoginPasswordAuthenticationProvider>().As<IAuthenticationProvider>();
                 b.Register<AdminImpersonationAuthenticationProvider>().As<IAuthenticationProvider>();

@@ -210,7 +210,7 @@ namespace Stormancer.Server.Plugins.Limits
 
         }
 
-        internal void Logout(string sessionId, string? userId, DisconnectionReason disconnectionReason)
+        internal void Logout(SessionId sessionId, string? userId, DisconnectionReason disconnectionReason)
         {
             lock (syncRoot)
             {
@@ -230,7 +230,7 @@ namespace Stormancer.Server.Plugins.Limits
         private int _nextEntryTimeOffset = 0;
         private int _firstEntryTimesOffset = 0;
 
-        public void RemoveFromQueue(string sessionId)
+        public void RemoveFromQueue(SessionId sessionId)
         {
             lock (syncRoot)
             {

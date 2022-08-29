@@ -105,7 +105,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="sessionId"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<Session?> GetSessionById(string sessionId, CancellationToken cancellationToken);
+        Task<Session?> GetSessionById(SessionId sessionId, CancellationToken cancellationToken);
 
         /// <summary>
         /// Get the session of a connected user through their platform-specific Id.
@@ -129,7 +129,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="sessionIds"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<Dictionary<string, Session?>> GetSessions(IEnumerable<string> sessionIds, CancellationToken cancellationToken);
+        Task<Dictionary<SessionId, Session?>> GetSessions(IEnumerable<SessionId> sessionIds, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets all sessions connected.
@@ -147,7 +147,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="data">Raw data to be set for <paramref name="key"/></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task UpdateSessionData(string sessionId, string key, byte[] data, CancellationToken cancellationToken);
+        Task UpdateSessionData(SessionId sessionId, string key, byte[] data, CancellationToken cancellationToken);
         /// <summary>
         /// Retrieve a user's raw session data entry.
         /// </summary>
@@ -155,7 +155,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="key">Key of the data to be retrieved</param>
         /// <param name="cancellationToken"></param>
         /// <returns>The raw data for <paramref name="key"/>, or <c>null</c> if <paramref name="key"/> does not exist.</returns>
-        Task<byte[]?> GetSessionData(string sessionId, string key, CancellationToken cancellationToken);
+        Task<byte[]?> GetSessionData(SessionId sessionId, string key, CancellationToken cancellationToken);
         /// <summary>
         /// Update a user's session data entry with an object.
         /// </summary>
@@ -166,7 +166,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="data">Object to store as session data for <paramref name="key"/></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task UpdateSessionData<T>(string sessionId, string key, T data, CancellationToken cancellationToken);
+        Task UpdateSessionData<T>(SessionId sessionId, string key, T data, CancellationToken cancellationToken);
         /// <summary>
         /// Retrieve a user's session data entry, deserialized into a specific type.
         /// </summary>
@@ -175,7 +175,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="key">Key of the data to be retrieved</param>
         /// <param name="cancellationToken"></param>
         /// <returns>The deserialized object at <paramref name="key"/>, or the default value for <typeparamref name="T"/> of <paramref name="key"/> doesn't exist.</returns>
-        Task<T?> GetSessionData<T>(string sessionId, string key, CancellationToken cancellationToken);
+        Task<T?> GetSessionData<T>(SessionId sessionId, string key, CancellationToken cancellationToken);
 
 
         /// <summary>

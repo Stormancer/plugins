@@ -5,7 +5,8 @@ using System.Text;
 namespace Stormancer.Server
 {
     /// <summary>
-    /// Annotate an S2S request context argument in a S2S action to provide
+    /// Annotate an S2S request context argument in a S2S action to indicate to the 
+    /// source generator if it should provide the raw request to consumer.
     /// </summary>
     public class S2SContextUsageAttribute : Attribute
     {

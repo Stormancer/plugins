@@ -36,7 +36,7 @@ namespace Stormancer.Server.Plugins.Replication
             {
                 UpdateType = UpdateType.AddOrUpdate,
                 FilterData = Array.Empty<byte>(),
-                Owner = SessionId.From(peer.SessionId),
+                Owner = peer.SessionId,
                 ViewId = "authority", //Declares the peer authority filter.
                 IsAuthority = true,
                 ViewPolicyId = "authority",
@@ -56,7 +56,7 @@ namespace Stormancer.Server.Plugins.Replication
                 {
                     UpdateType = UpdateType.AddOrUpdate,
                     FilterData = Array.Empty<byte>(),
-                    Owner = SessionId.From(other.SessionId),
+                    Owner = other.SessionId,
                     ViewId = "authority", //create replication view as a candidate authority
                     IsAuthority = true,
                     ViewPolicyId = "authority",
@@ -71,7 +71,7 @@ namespace Stormancer.Server.Plugins.Replication
             {
                 UpdateType = UpdateType.AddOrUpdate,
                 FilterData = Array.Empty<byte>(),
-                Owner = SessionId.From(peer.SessionId),
+                Owner = peer.SessionId,
                 ViewId = "authority",  //create replication view as a candidate authority.
                 ViewPolicyId = "authority",
                 FilterType = "all",
@@ -95,7 +95,7 @@ namespace Stormancer.Server.Plugins.Replication
             dto.Updates.Add(new FilterUpdate
             {
                 UpdateType = UpdateType.Remove,
-                Owner = SessionId.From(args.Peer.SessionId),
+                Owner = args.Peer.SessionId,
                 ViewId = "authority",
                 ViewPolicyId = "authority",
                 FilterType = "all",
@@ -110,9 +110,9 @@ namespace Stormancer.Server.Plugins.Replication
         {
             var recipients = packet.ReadObject<IEnumerable<SessionId>>();
             var reliability = packet.ReadObject<PacketReliability>();
-            return scene.Send(new MatchArrayFilter(recipients.Select(s => s.ToString())), "Replication.EntityUpdate", s =>
+            return scene.Send(new MatchArrayFilter(recipients), "Replication.EntityUpdate", s =>
             {
-                packet.Serializer().Serialize(SessionId.From(packet.Connection.SessionId), s);
+                packet.Serializer().Serialize(packet.Connection.SessionId, s);
                 packet.Stream.CopyTo(s);
             }, PacketPriority.MEDIUM_PRIORITY, reliability);
         }
@@ -122,13 +122,13 @@ namespace Stormancer.Server.Plugins.Replication
         {
            
             return scene.Send(
-                new MatchArrayFilter(recipients.Select(s => s.ToString()))
+                new MatchArrayFilter(recipients)
                 , "Replication.BroadcastMessage"
                 , s =>
                 {
                     
                     var serializer = packet.Connection.Serializer();
-                    serializer.Serialize(SessionId.From(packet.Connection.SessionId), s);
+                    serializer.Serialize(packet.Connection.SessionId, s);
                     packet.Stream.CopyTo(s);
                 }
                 , PacketPriority.MEDIUM_PRIORITY
@@ -139,12 +139,12 @@ namespace Stormancer.Server.Plugins.Replication
         public Task SendMessageToAuthority(SessionId target, PacketReliability packetReliability, Packet<IScenePeerClient> packet)
         {
             return scene.Send(
-                new MatchPeerFilter(target.ToString())
+                new MatchPeerFilter(target)
                 , "Replication.BroadcastMessage"
                 , s =>
                 {
                     var serializer = packet.Connection.Serializer();
-                    serializer.Serialize(SessionId.From(packet.Connection.SessionId), s);
+                    serializer.Serialize(packet.Connection.SessionId, s);
                     packet.Stream.CopyTo(s);
                 }
                 , PacketPriority.MEDIUM_PRIORITY
@@ -154,7 +154,7 @@ namespace Stormancer.Server.Plugins.Replication
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task CallAuthority(SessionId target, RequestContext<IScenePeerClient> ctx)
         {
-            var peer = scene.RemotePeers.FirstOrDefault(p => p.SessionId == target.ToString());
+            var peer = scene.RemotePeers.FirstOrDefault(p => p.SessionId == target);
             if (peer == null)
             {
                 throw new ClientException("targetDisconnected");
@@ -164,7 +164,7 @@ namespace Stormancer.Server.Plugins.Replication
                 , s =>
                 {
                     var serializer = ctx.RemotePeer.Serializer();
-                    serializer.Serialize(SessionId.From(ctx.RemotePeer.SessionId), s);
+                    serializer.Serialize(ctx.RemotePeer.SessionId, s);
                     ctx.InputStream.CopyTo(s);
                 }
                 , PacketPriority.MEDIUM_PRIORITY).ToAsyncEnumerable())
@@ -195,7 +195,7 @@ namespace Stormancer.Server.Plugins.Replication
                             await ctx.SendValue(s =>
                             {
                                 var serializer = ctx.RemotePeer.Serializer();
-                                serializer.Serialize(SessionId.From(packet.Connection.SessionId), s);
+                                serializer.Serialize(packet.Connection.SessionId, s);
                                 serializer.Serialize(true, s);
                                 packet.Stream.CopyTo(s);
                             });
@@ -232,16 +232,16 @@ namespace Stormancer.Server.Plugins.Replication
                 }
                 catch(Exception ex)
                 {
-                    await writer.WriteAsync((default, (SessionId.From(peer.SessionId), ex)));
+                    await writer.WriteAsync((default,(peer.SessionId, ex)));
                 }
             }
 
             var memStream = new MemoryStream();
             ctx.InputStream.CopyTo(memStream);
 
-            var ops = recipients.Select(s =>
+            var ops = recipients.Select(sId =>
           {
-              var sId = s.ToString();
+             
               var peer = scene.RemotePeers.FirstOrDefault(s => s.SessionId == sId);
               if (peer == null)
               {
@@ -249,7 +249,7 @@ namespace Stormancer.Server.Plugins.Replication
               }
               else
               {
-                  return ProcessRequest(rpc, ctx.RemotePeer.Serializer(), channel.Writer, SessionId.From(ctx.RemotePeer.SessionId), peer, memStream.ToArray(), ctx.CancellationToken);
+                  return ProcessRequest(rpc, ctx.RemotePeer.Serializer(), channel.Writer, ctx.RemotePeer.SessionId, peer, memStream.ToArray(), ctx.CancellationToken);
               }
 
           });

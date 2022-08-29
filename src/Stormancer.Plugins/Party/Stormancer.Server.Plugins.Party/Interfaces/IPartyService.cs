@@ -157,7 +157,7 @@ namespace Stormancer.Server.Plugins.Party
         /// <remarks>
         /// This doesn't include the users that are currently in the connection process.
         /// </remarks>
-        IReadOnlyDictionary<string, PartyMember> PartyMembers { get; }
+        IReadOnlyDictionary<SessionId, PartyMember> PartyMembers { get; }
 
         /// <summary>
         /// Create an invitation code

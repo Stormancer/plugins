@@ -11,11 +11,16 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
-- Update dependency to Stormancer.Abstraction.Server 7.1.0
+Changed
+*******
+- Update dependency to Stormancer.Abstraction.Server 8.0.0
 
 Added
 *****
 - Add support to IScenePeerClient as argument in controller actions.
+Remove
+******
+- Remove Support for deprecated S2S API using RPCService
 
 2.3.1.2
 -------

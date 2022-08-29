@@ -47,6 +47,12 @@ namespace Stormancer.Server.Plugins.Notification
             this.scene = scene;
         }
 
+        /// <summary>
+        /// Send a notification
+        /// </summary>
+        /// <param name="notification"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         [HttpPost]
         [Route("send")]
         public async Task SendNotifications(NotificationArgs notification, CancellationToken cancellationToken)
@@ -75,22 +81,22 @@ namespace Stormancer.Server.Plugins.Notification
         /// <remarks>
         /// comma separated, or use * to notify all connected players.
         /// </remarks>
-        public string UserIds { get; set; }
+        public string UserIds { get; set; } = default!;
 
         /// <summary>
         /// Type of the notification (read in the client)
         /// </summary>
-        public string Type { get; set; }
-       
+        public string Type { get; set; } = default!;
+
         /// <summary>
         /// Notification message.
         /// </summary>
-        public string Message { get; set; }
+        public string Message { get; set; } = default!;
 
         /// <summary>
         /// Additional data sent with the notification.
         /// </summary>
-        public string Data { get; set; }
+        public string Data { get; set; } = default!;
     }
 
     

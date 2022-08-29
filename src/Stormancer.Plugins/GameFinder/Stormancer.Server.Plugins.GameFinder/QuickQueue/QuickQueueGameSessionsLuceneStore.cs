@@ -57,11 +57,11 @@ namespace Stormancer.Server.Plugins.GameFinder
             {
                 if (_data.TryGetValue(id, out var value))
                 {
-                    yield return new Document<JObject> { Id = id, Source = value };
+                    yield return new Document<JObject>(id,  value );
                 }
                 else
                 {
-                    yield return new Document<JObject> { Id = id, Source = null };
+                    yield return new Document<JObject> ( id,  null );
                 }
             }
         }

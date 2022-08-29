@@ -33,6 +33,6 @@ namespace Stormancer.Server.Plugins.Spectate
 
         Task<IEnumerable<FrameList>> GetFrames(ulong startTime, ulong endTime);
 
-        Task SubscribeToFrames(CancellationToken ct, string sessionId, RequestContext<IScenePeerClient> request);
+        Task SubscribeToFrames(CancellationToken ct, SessionId sessionId, RequestContext<IScenePeerClient> request);
     }
 }

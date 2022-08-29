@@ -11,7 +11,7 @@
         <EmbedAllSources>true</EmbedAllSources>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>0.1.0.1</Version>
+        <Version>0.1.0.2</Version>
         <Description>Provides Epic Games integration to Stormancer server applications.</Description>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
         <Deterministic>true</Deterministic>
@@ -52,9 +52,7 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="MsgPack.Cli" Version="1.0.1" />
 		<PackageReference Include="jose-jwt" Version="4.0.1" />
-		<PackageReference Include="Stormancer.Abstractions.Server" Version="7.1.0-pre" />
 	</ItemGroup>
 
 	<ItemGroup>

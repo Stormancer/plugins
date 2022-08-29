@@ -58,7 +58,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         private readonly Dictionary<string, IServerPool> _pools = new Dictionary<string, IServerPool>();
         private object _poolsSyncRoot = new object();
 
-        private record GameServerConnectionInfo(string sessionId, string poolId);
+        private record GameServerConnectionInfo(SessionId sessionId, string poolId);
         private object _gameServersSyncRoot = new object();
         private Dictionary<string, GameServerConnectionInfo> _gameServers = new Dictionary<string, GameServerConnectionInfo>();
 
@@ -142,7 +142,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                     if(pool.CanManage(session, peer))
                     {
                         selectedPool = pool;
-                        _gameServers[session.SessionId] = new GameServerConnectionInfo(session.SessionId, poolId);
+                        _gameServers[session.platformId.PlatformUserId] = new GameServerConnectionInfo(session.SessionId, poolId);
                     }
                 }
             }
@@ -161,15 +161,15 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         }
 
-        internal void RemoveGameServer(string sessionId)
+        internal void RemoveGameServer(string serverId)
         {
             lock(_poolsSyncRoot)
             {
-                if(_gameServers.Remove(sessionId,out var infos))
+                if(_gameServers.Remove(serverId,out var infos))
                 {
                     if(TryGetPool(infos.poolId,out var pool))
                     {
-                        pool.OnGameServerDisconnected(sessionId);
+                        pool.OnGameServerDisconnected(serverId);
                     }
                 }
             }

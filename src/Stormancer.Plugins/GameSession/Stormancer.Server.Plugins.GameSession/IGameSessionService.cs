@@ -76,7 +76,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         /// <param name="sessionId"></param>
         /// <returns></returns>
-        Task<HostInfosMessage> CreateP2PToken(string sessionId);
+        Task<HostInfosMessage> CreateP2PToken(SessionId sessionId);
 
         /// <summary>
         /// Performs an update action on the gamesession config.
@@ -138,7 +138,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         /// <param name="sessionId"></param>
         /// <returns></returns>
-        bool IsHost(string sessionId);
+        bool IsHost(SessionId sessionId);
 
 
         /// <summary>

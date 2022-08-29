@@ -88,7 +88,7 @@ namespace Stormancer.Server.PartyManagement
                     context = eventCtx,
                     userId = user.Id,
                     sessionId = ctx.RemotePeer.SessionId
-                }, user.Id, ctx.RemotePeer.SessionId);
+                }, user.Id, ctx.RemotePeer.SessionId.ToString());
 
                 throw new ClientException(eventCtx.ErrorMessage ?? "Bad request");
             }

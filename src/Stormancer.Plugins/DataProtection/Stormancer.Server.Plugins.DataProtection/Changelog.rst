@@ -14,7 +14,7 @@ Unreleased
 ----------
 Changed
 *******
-- Update dependency to Stormancer.Abstraction.Server 7.1.0
+- Remove dependency to Stormancer.Abstraction.Server
 Fixed
 *****
 - Nonce wasn't properly generated when missing from the configuration.

@@ -7,8 +7,15 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.RemoteControl
 {
+    /// <summary>
+    /// Entry point of the plugin
+    /// </summary>
     public class App
     {
+        /// <summary>
+        /// Entry point method.
+        /// </summary>
+        /// <param name="builder"></param>
         public void Run(IAppBuilder builder)
         {
             builder.AddPlugin(new RemoteControlPlugin());

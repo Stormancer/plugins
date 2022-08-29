@@ -127,7 +127,7 @@ namespace Stormancer.Server.Plugins.Notification
             }
             else if(notif.UserId == "*/authenticated")
             {
-                var sessionIds = new List<string>();
+                var sessionIds = new List<SessionId>();
                 foreach (var peer in _scene.RemotePeers)
                 {
                     var session = await _userSessions.GetSessionById(peer.SessionId, cancellationToken);
@@ -140,7 +140,7 @@ namespace Stormancer.Server.Plugins.Notification
             }
             else if(notif.UserId == "*/!authenticated")
             {
-                var sessionIds = new List<string>();
+                var sessionIds = new List<SessionId>();
                 foreach(var peer in _scene.RemotePeers)
                 {
                     var session = await _userSessions.GetSessionById(peer.SessionId, cancellationToken);
@@ -153,7 +153,7 @@ namespace Stormancer.Server.Plugins.Notification
             }
             else
             {
-                var list = new List<string>();
+                var list = new List<SessionId>();
                 foreach (var userId in notif.UserId.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
                 {
                     var session = await _userSessions.GetSessionByUserId(userId, cancellationToken);

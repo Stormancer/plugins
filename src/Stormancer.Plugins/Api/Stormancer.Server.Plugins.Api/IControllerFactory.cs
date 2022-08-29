@@ -59,13 +59,8 @@ namespace Stormancer.Server.Plugins.API
         /// <summary>
         /// The API can be called by scene clients.
         /// </summary>
-        Public,
+        Public
 
-        /// <summary>
-        /// The API can be called by scene hosts.
-        /// </summary>
-        [Obsolete("Using packet based messaging for S2S is deprecated. Decorate with S2SApiAttribute to use the new Pipeline based S2S communication API.")]
-        Scene2Scene
     }
 
     /// <summary>
@@ -467,49 +462,7 @@ namespace Stormancer.Server.Plugins.API
                         return next(initialApiCallCtx);
                     }, _ => _);
                 }
-                else if (IsRawRpc<IScenePeer>(method))
-                {
-                    var ctxParam = Expression.Parameter(typeof(RequestContext<IScenePeer>), "ctx");
-                    var controllerParam = Expression.Parameter(typeof(T), "controller");
-                    var callExpr = Expression.Call(controllerParam, method, ctxParam);
-
-                    var action = Expression.Lambda<Func<T, RequestContext<IScenePeer>, Task>>(callExpr, controllerParam, ctxParam).Compile();
-                    _scene.Starting.Add(async parameters =>
-                    {
-                        _scene.DependencyResolver.Resolve<RpcService>().AddInternalProcedure(procedureName, ctx =>
-                        {
-                            var initialApiCallCtx = new ApiCallContext<RequestContext<IScenePeer>>(ctx, method, procedureName);
-                            Func<ApiCallContext<RequestContext<IScenePeer>>, Task> next = apiCallContext => ExecuteRpcAction(initialApiCallCtx, (c, pctx, r) => action(c, pctx));
-                            foreach (var handler in _scene.DependencyResolver.Resolve<Func<IEnumerable<IApiHandler>>>()())
-                            {
-                                next = WrapWithHandler(handler.RunRpc, next);
-                            }
-
-                            return next(initialApiCallCtx);
-                        }, false);
-                        await Task.FromResult(true);
-                    });
-
-                }
-                else if (IsRawRoute<IScenePeer>(method))
-                {
-                    var ctxParam = Expression.Parameter(typeof(Packet<IScenePeer>), "ctx");
-                    var controllerParam = Expression.Parameter(typeof(T), "controller");
-                    var callExpr = Expression.Call(controllerParam, method, ctxParam);
-
-                    var action = Expression.Lambda<Func<T, Packet<IScenePeer>, Task>>(callExpr, controllerParam, ctxParam).Compile();
-                    _scene.AddInternalRoute(procedureName, packet =>
-                    {
-
-                        var initialApiCallCtx = new ApiCallContext<Packet<IScenePeer>>(packet, method, procedureName);
-                        Func<ApiCallContext<Packet<IScenePeer>>, Task> next = apiCallContext => ExecuteRouteAction(initialApiCallCtx, (c, pctx, r) => action(c, pctx));
-                        foreach (var handler in _scene.DependencyResolver.Resolve<Func<IEnumerable<IApiHandler>>>()())
-                        {
-                            next = WrapWithHandler(handler.RunFF, next);
-                        }
-                        return next(initialApiCallCtx);
-                    }, _ => _);
-                }
+                
             }
 
         }
@@ -604,43 +557,7 @@ namespace Stormancer.Server.Plugins.API
                 }
 
             }
-            else //S2S
-            {
-
-                if (attr.Type == ApiType.FireForget)
-                {
-                    var a = CreateExecuteActionFunction<Packet<IScenePeer>>(method);
-                    _scene.AddInternalRoute(route, packet =>
-                    {
-                        var initialApiCallCtx = new ApiCallContext<Packet<IScenePeer>>(packet, method, route);
-                        Func<ApiCallContext<Packet<IScenePeer>>, Task> next = apiCallContext => ExecuteRouteAction(initialApiCallCtx, (c, pctx, r) => a(c, pctx, r));
-                        foreach (var handler in _scene.DependencyResolver.Resolve<Func<IEnumerable<IApiHandler>>>()())
-                        {
-                            next = WrapWithHandler(handler.RunFF, next);
-                        }
-                        return next(initialApiCallCtx);
-                    }, _ => _);
-                }
-                else
-                {
-                    var a = CreateExecuteActionFunction<RequestContext<IScenePeer>>(method);
-                    _scene.Starting.Add(d =>
-                    {
-                        _scene.DependencyResolver.Resolve<RpcService>().AddInternalProcedure(route, packet =>
-                        {
-                            var initialApiCallCtx = new ApiCallContext<RequestContext<IScenePeer>>(packet, method, route);
-                            Func<ApiCallContext<RequestContext<IScenePeer>>, Task> next = apiCallContext => ExecuteRpcAction(initialApiCallCtx, (c, pctx, r) => a(c, pctx, r));
-                            foreach (var handler in _scene.DependencyResolver.Resolve<Func<IEnumerable<IApiHandler>>>()())
-                            {
-                                next = WrapWithHandler(handler.RunRpc, next);
-                            }
-
-                            return next(initialApiCallCtx);
-                        }, true);
-                        return Task.CompletedTask;
-                    });
-                }
-            }
+            
             return true;
         }
 

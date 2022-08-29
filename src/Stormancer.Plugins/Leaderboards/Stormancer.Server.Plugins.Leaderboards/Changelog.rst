@@ -15,7 +15,7 @@ Changed
 *******
 - When querying a leaderboard by id, if the id is not found, return an empty result instead of throwing an exception.
 - GetScores takes an IEnumerable<string> instead of a List<string> for its ids.
-- Update dependency to Stormancer.Abstraction.Server 7.1.0
+- Remove dependency to Stormancer.Abstraction.Server
 
 Fixed
 *****

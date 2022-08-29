@@ -229,7 +229,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                                     results.Games.Add(game);
                                     var data = new QuickQueueGameSessionData { CreatedOn = DateTime.UtcNow, TargetTeamSize = (int)teamSize, TargetTeamCount = (int)teamCount };
                                     data.Teams = new List<QuickQueueGameSessionTeamData> { new QuickQueueGameSessionTeamData { PlayerCount = party.Players.Count, TeamId = team.TeamId } };
-                                    sessions.Add(new Document<QuickQueueGameSessionData> { Id = game.Id, Source = data });
+                                    sessions.Add(new Document<QuickQueueGameSessionData>(game.Id,  data ));
                                     p.Remove(party);
                                     return sessions;
                                 }
