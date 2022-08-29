@@ -9,8 +9,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{8e4e2758-dfc2-46ed-a485-df01ef88b95f}</ProjectGuid>
-    <RootNamespace>SamplecppEpic</RootNamespace>
+    <ProjectGuid>{44e22f5a-72da-4b36-a2b8-7eabc79e383d}</ProjectGuid>
+    <RootNamespace>SamplecppGalaxy</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -35,23 +35,24 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(Stormancer-Epic-SdkPath)\Include;$(Stormancer-Cpp-LibPath)\include;$(Stormancer-cpp-pluginsPath);D:\DEV\Stormancer\plugins\output\cpp</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <AdditionalIncludeDirectories>$(Stormancer-Galaxy-SdkPath)\Include;$(Stormancer-Cpp-LibPath)\include;$(ProjectDir)..\..\..\..\output\cpp</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(Stormancer-Epic-SdkPath)\Lib;$(Stormancer-Cpp-LibPath)\libs\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Windows\libStormancer_$(Configuration)_Windows.lib;EOSSDK-Win64-Shipping.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(Stormancer-Galaxy-SdkPath)\Libraries;$(Stormancer-Cpp-LibPath)\libs\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Windows\libStormancer_$(Configuration)_Windows.lib;Galaxy64.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Sample-cpp-Epic.cpp" />
+    <ClCompile Include="Sample-cpp-Galaxy.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\cpp\Epic.hpp" />
+    <ClInclude Include="..\cpp\Galaxy.hpp" />
+    <ClInclude Include="GameProductConfig.h" />
+    <ClInclude Include="GameProductConfig.sample.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

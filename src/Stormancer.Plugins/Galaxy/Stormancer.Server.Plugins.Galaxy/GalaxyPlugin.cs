@@ -1,39 +1,30 @@
 ﻿using Stormancer.Core;
 using Stormancer.Plugins;
-using Stormancer.Server.Plugins.Epic;
+using Stormancer.Server.Plugins.Galaxy;
 using Stormancer.Server.Plugins.Profile;
 using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Users;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.Epic
+namespace Stormancer.Server.Plugins.Galaxy
 {
-    /// <summary>
-    /// Epic Plugin
-    /// </summary>
-    public class EpicPlugin : IHostPlugin
+    internal class GalaxyPlugin : IHostPlugin
     {
-        internal const string METADATA_KEY = "stormancer.plugins.epic";
+        internal const string METADATA_KEY = "stormancer.plugins.galaxy";
 
-        /// <summary>
-        /// IoC Registrations
-        /// </summary>
-        /// <param name="ctx"></param>
         public void Build(HostPluginBuildContext ctx)
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
-                builder.Register<EpicController>().InstancePerRequest();
-                builder.Register<EpicProfilePartBuilder>().As<IProfilePartBuilder>();
-                builder.Register<EpicService>().As<IEpicService>();
-                builder.Register<EpicServiceLocator>().As<IServiceLocatorProvider>();
+                builder.Register<GalaxyProfilePartBuilder>().As<IProfilePartBuilder>();
+                builder.Register<GalaxyService>().As<IGalaxyService>();
             };
 
             ctx.SceneDependenciesRegistration += (builder, scene) =>
             {
                 if (scene.Template == Constants.SCENE_TEMPLATE)
                 {
-                    builder.Register<EpicAuthenticationProvider>().As<IAuthenticationProvider>();
+                    builder.Register<GalaxyAuthenticationProvider>().As<IAuthenticationProvider>();
                 }
             };
 
@@ -41,7 +32,7 @@ namespace Stormancer.Server.Plugins.Epic
             {
                 if (scene.Template == Constants.SCENE_TEMPLATE)
                 {
-                    scene.AddEpic();
+                    scene.AddGalaxy();
                 }
             };
 
@@ -49,17 +40,16 @@ namespace Stormancer.Server.Plugins.Epic
             {
                 if (scene.Metadata.ContainsKey(METADATA_KEY))
                 {
-                    scene.AddController<EpicController>();
                 }
             };
         }
     }
 
-    internal class EpicServiceLocator : IServiceLocatorProvider
+    internal class GalaxyServiceLocator : IServiceLocatorProvider
     {
         public Task LocateService(ServiceLocationCtx ctx)
         {
-            if (ctx.ServiceType == "stormancer.epic")
+            if (ctx.ServiceType == "stormancer.galaxy")
             {
                 ctx.SceneId = Constants.GetSceneId();
             }
@@ -71,18 +61,18 @@ namespace Stormancer.Server.Plugins.Epic
 namespace Stormancer
 {
     /// <summary>
-    /// Epic plugin extension methods.
+    /// Galaxy plugin extension methods.
     /// </summary>
-    public static class EpicExtensions
+    public static class GalaxyExtensions
     {
         /// <summary>
-        /// Adds the Epic plugin on the scene.
+        /// Adds the Galaxy plugin on the scene.
         /// </summary>
         /// <param name="scene"></param>
         /// <returns></returns>
-        public static ISceneHost AddEpic(this ISceneHost scene)
+        public static ISceneHost AddGalaxy(this ISceneHost scene)
         {
-            scene.Metadata[EpicPlugin.METADATA_KEY] = "enabled";
+            scene.Metadata[GalaxyPlugin.METADATA_KEY] = "enabled";
             return scene;
         }
     }

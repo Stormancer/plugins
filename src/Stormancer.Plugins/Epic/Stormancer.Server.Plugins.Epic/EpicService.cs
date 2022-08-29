@@ -269,6 +269,5 @@ namespace Stormancer.Server.Plugins.Epic
 
             return Encoding.UTF8.GetString(secret.Value) ?? "";
         }
-
     }
 }

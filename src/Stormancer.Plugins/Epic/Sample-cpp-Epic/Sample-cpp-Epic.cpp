@@ -6,10 +6,11 @@
 #include "Profile/Profile.hpp"
 
 #include "stormancer/Logger/ConsoleLogger.h"
+#include "stormancer/cpprestsdk/cpprest/json.h"
 
 #include <thread>
 
-#include "../../cpp/Epic.hpp"
+#include "../cpp/Epic.hpp"
 
 // Copy GameProductConfig.sample.h to GameProductConfig.h with values corresponding to your Epic game product
 #include "GameProductConfig.h"
@@ -43,7 +44,6 @@ int main()
 	config->addPlugin(new Party::PartyPlugin());
 	config->addPlugin(new Epic::EpicPlugin());
 	config->addPlugin(new GameVersion::GameVersionPlugin());
-	config->addPlugin(new GameVersion::GameVersionPlugin());
 	config->addPlugin(new Profile::ProfilePlugin());
 	auto client = IClient::create(config);
 	auto usersApi = client->dependencyResolver().resolve<Users::UsersApi>();
@@ -59,64 +59,62 @@ int main()
 		}
 	});
 
-	std::thread thread([usersApi, profileApi, &disconnected, client]()
+	try
 	{
-		try
+		usersApi->login().get();
+	}
+	catch (const std::exception& ex)
+	{
+		s_logger->log(LogLevel::Error, "Sample-cpp-Epic", "Login failed", ex.what());
+		disconnected = true;
+		mainLoop.join();
+		return 1;
+	}
+
+	std::string stormancerUserId = usersApi->userId();
+	s_logger->log(LogLevel::Info, "SampleMain", "Login succeed!", "userId=" + stormancerUserId);
+
+	try
+	{
+		Profile::Profile profile = profileApi->getProfile(stormancerUserId, { { "character", "details" }, { "user", "details" }, {"epic", "details"} }).get();
+
+		web::json::value jsonValue = web::json::value::parse(utility::conversions::to_string_t(profile.data["epic"]));
+		if (jsonValue.type() != web::json::value::value_type::Object)
 		{
-			usersApi->login().get();
-		}
-		catch (const std::exception& ex)
-		{
-			s_logger->log(LogLevel::Error, "Sample-cpp-Epic", "Login failed", ex.what());
-			return;
-		}
-
-		std::string userId = usersApi->userId();
-		s_logger->log(LogLevel::Info, "SampleMain", "Login succeed!", "userId=" + userId);
-
-		try
-		{
-			Profile::Profile profile = profileApi->getProfile(userId, { { "character", "details" }, { "user", "details" }, {"epic", "details"} }).get();
-
-			web::json::value jsonValue = web::json::value::parse(utility::conversions::to_string_t(profile.data["epic"]));
-			if (jsonValue.type() != web::json::value::value_type::Object)
-			{
-				throw std::runtime_error("Bad json type: not an object");
-			}
-
-			web::json::value& accountIdValue = jsonValue.as_object().at(utility::conversions::to_string_t("accountId"));
-			if (accountIdValue.type() != web::json::value::value_type::String)
-			{
-				throw std::runtime_error("Bad json type: not a string");
-			}
-			std::string accountId = utility::conversions::to_utf8string(accountIdValue.as_string());
-
-			web::json::value& displayNameValue = jsonValue.as_object().at(utility::conversions::to_string_t("displayName"));
-			if (displayNameValue.type() != web::json::value::value_type::String)
-			{
-				throw std::runtime_error("Bad json type: not a string");
-			}
-			std::string displayName = utility::conversions::to_utf8string(displayNameValue.as_string());
-
-			s_logger->log(LogLevel::Info, "SampleMain", "Profile retrieved", "AccountId=" + accountId + "; DisplayName=" + displayName);
-		}
-		catch (const std::exception& ex)
-		{
-			s_logger->log(LogLevel::Error, "SampleMain", "Profile retrieve failed", ex.what());
+			throw std::runtime_error("Bad json type: not an object");
 		}
 
-		usersApi->logout()
-			.then([client, &disconnected]()
+		web::json::value& accountIdValue = jsonValue.as_object().at(utility::conversions::to_string_t("accountId"));
+		if (accountIdValue.type() != web::json::value::value_type::String)
 		{
-			client->disconnect()
-				.then([&disconnected]()
-			{
-				disconnected = true;
-			});
+			throw std::runtime_error("Bad json type: not a string");
+		}
+		std::string accountId = utility::conversions::to_utf8string(accountIdValue.as_string());
+
+		web::json::value& displayNameValue = jsonValue.as_object().at(utility::conversions::to_string_t("displayName"));
+		if (displayNameValue.type() != web::json::value::value_type::String)
+		{
+			throw std::runtime_error("Bad json type: not a string");
+		}
+		std::string displayName = utility::conversions::to_utf8string(displayNameValue.as_string());
+
+		s_logger->log(LogLevel::Info, "SampleMain", "Profile retrieved", "AccountId=" + accountId + "; DisplayName=" + displayName);
+	}
+	catch (const std::exception& ex)
+	{
+		s_logger->log(LogLevel::Error, "SampleMain", "Profile retrieve failed", ex.what());
+	}
+
+	usersApi->logout()
+		.then([client, &disconnected]()
+	{
+		client->disconnect()
+			.then([&disconnected]()
+		{
+			disconnected = true;
 		});
 	});
 
-	thread.join();
 	mainLoop.join();
 
 	return 0;

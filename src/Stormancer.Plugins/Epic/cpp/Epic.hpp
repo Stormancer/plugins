@@ -10,9 +10,6 @@
 #include "stormancer/StormancerTypes.h"
 #include "stormancer/Utilities/PointerUtilities.h"
 #include "stormancer/Utilities/TaskUtilities.h"
-#include "stormancer/cpprestsdk/cpprest/asyncrt_utils.h"
-#include "stormancer/cpprestsdk/cpprest/json.h"
-#include "stormancer/cpprestsdk/cpprest/http_client.h"
 
 #include "eos_auth.h"
 #include "eos_auth_types.h"
@@ -221,7 +218,7 @@ namespace Stormancer
 					_deploymentId = config->additionalParameters.find(ConfigurationKeys::DeploymentId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::DeploymentId) : "";
 					_clientId = config->additionalParameters.find(ConfigurationKeys::ClientId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ClientId) : "";
 					_clientSecret = config->additionalParameters.find(ConfigurationKeys::ClientSecret) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ClientSecret) : "";
-					_initPlatform = config->additionalParameters.find(ConfigurationKeys::InitPlatform) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::InitPlatform) != "false" : false;
+					_initPlatform = config->additionalParameters.find(ConfigurationKeys::InitPlatform) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::InitPlatform) != "false" : true;
 					_productName = config->additionalParameters.find(ConfigurationKeys::ProductName) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ProductName) : "";
 					_productVersion = config->additionalParameters.find(ConfigurationKeys::ProductVersion) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ProductVersion) : "";
 					_diagnostics = config->additionalParameters.find(ConfigurationKeys::Diagnostics) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::Diagnostics) != "false" : false;
@@ -367,7 +364,7 @@ namespace Stormancer
 				}
 
 				mutable std::recursive_mutex _mutex;
-				bool _initPlatform;
+				bool _initPlatform = true;
 				std::string _productName;
 				std::string _productVersion;
 				bool _authenticationEnabled = true;
@@ -407,7 +404,17 @@ namespace Stormancer
 					{
 						_stoppedTicker = false;
 
-						scheduleTick();
+						if (auto actionDispatcher = _wActionDispatcher.lock())
+						{
+							auto wEpicTicker = STORM_WEAK_FROM_THIS();
+							actionDispatcher->post([wEpicTicker]()
+							{
+								if (auto epicTicker = wEpicTicker.lock())
+								{
+									epicTicker->scheduleTick();
+								}
+							});
+						}
 					}
 				}
 
@@ -423,6 +430,11 @@ namespace Stormancer
 					if (_platformHandle)
 					{
 						EOS_Platform_Tick(_platformHandle);
+					}
+					else
+					{
+						_stoppedTicker = true;
+						return;
 					}
 
 					if (auto actionDispatcher = _wActionDispatcher.lock())
@@ -737,7 +749,7 @@ namespace Stormancer
 				});
 			}
 
-			virtual pplx::task<void> renewCredentials(const Users::CredentialsRenewalContext& context) override
+			pplx::task<void> renewCredentials(const Users::CredentialsRenewalContext& context) override
 			{
 				return getEpicCredentials([context](std::string type, std::string provider, std::string accessToken)
 				{
