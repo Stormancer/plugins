@@ -65,7 +65,7 @@ namespace Arnath.StandaloneHttpClientFactory
             {
                 if(!frameworkSpecificFactories.TryGetValue(name,out var factory))
                 {
-                    factory = new StandaloneHttpClientFactory(connectionLifetime, delegatingHandlers);
+                    factory = new DotNetCoreHttpClientFactory(connectionLifetime, delegatingHandlers);
                     frameworkSpecificFactories.Add(name, factory);
                 }
                 return factory.CreateClient(name);
