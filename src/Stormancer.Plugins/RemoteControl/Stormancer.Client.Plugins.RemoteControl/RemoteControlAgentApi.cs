@@ -44,9 +44,10 @@ namespace Stormancer.Plugins.RemoteControl
             {
                 s.AddProcedure("runCommand", async ctx =>
                 {
+                    var cmd = ctx.ReadObject<string>();
                     try
                     {
-                        var cmd = ctx.ReadObject<string>();
+                        
 
                         var segments = cmd.Split(' ');
 
@@ -69,7 +70,8 @@ namespace Stormancer.Plugins.RemoteControl
                     {
                         ctx.SendValue(new AgentCommandOutputEntryDto { Type = "error", ResultJson = JObject.FromObject(new { error = ex.ToString()  }).ToString() });
                     }
-                   
+                    logger.Log(LogLevel.Info, "remoteControl.agent", $"completed command '{cmd}'");
+
                 });
             });
 

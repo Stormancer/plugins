@@ -10,19 +10,18 @@
 
 namespace Stormancer
 {
-	namespace Profiles
+	namespace Profile
 	{
-
 		struct Profile
 		{
 			std::unordered_map<std::string, std::string> data;
 		};
 
-		class ProfilesApi
+		class ProfileApi
 		{
 		public:
 
-			virtual ~ProfilesApi() = default;
+			virtual ~ProfileApi() = default;
 
 			/// <summary>
 			/// Gets profiles for a list of users.
@@ -213,11 +212,11 @@ namespace Stormancer
 				std::string _logCategory = "Profile";
 			};
 
-			class Profiles_Impl : public ClientAPI<Profiles_Impl, ProfileService>, public ProfilesApi
+			class Profiles_Impl : public ClientAPI<Profiles_Impl, ProfileService>, public ProfileApi
 			{
 			public:
 				Profiles_Impl(std::weak_ptr<Users::UsersApi> users)
-					: ClientAPI(users, "stormancer.profiles")
+					: ClientAPI(users, "stormancer.profile")
 				{
 				}
 
@@ -349,7 +348,7 @@ namespace Stormancer
 			{
 				if (scene)
 				{
-					auto name = scene->getHostMetadata("stormancer.profiles");
+					auto name = scene->getHostMetadata("stormancer.profile");
 					if (!name.empty())
 					{
 						builder.registerDependency<details::ProfileService, Scene>().singleInstance();
@@ -359,7 +358,7 @@ namespace Stormancer
 
 			void registerClientDependencies(ContainerBuilder& builder) override
 			{
-				builder.registerDependency<details::Profiles_Impl, Users::UsersApi>().as<ProfilesApi>().singleInstance();
+				builder.registerDependency<details::Profiles_Impl, Users::UsersApi>().as<ProfileApi>().singleInstance();
 			}
 		};
 	}

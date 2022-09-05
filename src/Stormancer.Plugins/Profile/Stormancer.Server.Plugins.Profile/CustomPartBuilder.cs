@@ -44,7 +44,7 @@ namespace Stormancer.Server.Plugins.Profile
 
         public Task GetProfiles(ProfileCtx ctx, CancellationToken cancellationToken)
         {
-            return parts.RunEventHandler(p => p.GetAsync(ctx), ex => logger.Log(LogLevel.Error, "profiles.customParts", "An error occured while processing custom part builders.", ex));
+            return parts.RunEventHandler(p => p.GetAsync(ctx), ex => logger.Log(LogLevel.Error, "profile.customParts", "An error occured while processing custom part builders.", ex));
         }
     }
 }

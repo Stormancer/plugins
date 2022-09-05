@@ -39,7 +39,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         public List<Team> Teams { get; }
     }
 
-    static class IGameCandidateExtensions
+    public static class IGameCandidateExtensions
     {
         public static IEnumerable<Party> AllParties(this IGameCandidate game) => game.Teams.SelectMany(team => team.Parties);
 

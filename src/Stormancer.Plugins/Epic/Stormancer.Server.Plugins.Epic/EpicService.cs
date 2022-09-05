@@ -80,7 +80,8 @@ namespace Stormancer.Server.Plugins.Epic
         private readonly ISerializer _serializer;
         private readonly ILogger _logger;
         private readonly ISecretsStore _secretsStore;
-        private readonly MemoryCache<AuthResult> _cache = new();
+        private static readonly MemoryCache<AuthResult> _accessTokenCache = new();
+        private static readonly MemoryCache<Account> _accountsCache = new();
 
         /// <summary>
         /// Epic service constructor
@@ -123,33 +124,39 @@ namespace Stormancer.Server.Plugins.Epic
         /// <returns>Epic accounts</returns>
         public async Task<Dictionary<string, Account>> GetAccounts(IEnumerable<string> accountIds)
         {
+            var accountTasks = _accountsCache.GetMany(accountIds, (accountIds2) =>
+            {
+                var result = new Dictionary<string, Task<(Account?, TimeSpan)>>();
+                var t = GetAccountsImpl(accountIds2);
+                foreach (var accountId in accountIds2)
+                {
+                    result[accountId] = t.ContinueWith(t => t.Result[accountId]);
+                }
+                return result;
+            });
+
+            await Task.WhenAll(accountTasks.Values);
+            return accountTasks.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Result)!;
+        }
+
+        private async Task<Dictionary<string, (Account?, TimeSpan)>> GetAccountsImpl(IEnumerable<string> accountIds)
+        {
             var accountIdsCount = accountIds.Count();
             if (accountIdsCount < 1)
             {
-                throw new ArgumentException("Missing accountIds");
+                return new Dictionary<string, (Account?, TimeSpan)>();
             }
             else if (accountIdsCount > 50)
             {
                 throw new ArgumentException("Too many accountIds");
             }
 
-            var url = "https://api.epicgames.dev/epic/id/v1/accounts?";
-            bool first = true;
-            foreach (var accountId in accountIds)
-            {
-                if (!first)
-                {
-                    url += '&';
-                }
-                url += $"accountId={accountId}";
-                first = false;
-            }
+            var url = "https://api.epicgames.dev/epic/id/v1/accounts?accountId=";
+            url += string.Join("&accountId=", accountIds);
 
-            using var request = new HttpRequestMessage()
+            using var request = new HttpRequestMessage(HttpMethod.Get, url)
             {
-                Method = HttpMethod.Get,
                 Content = new FormUrlEncodedContent(new Dictionary<string, string>()),
-                RequestUri = new Uri(url)
             };
 
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await GetAccessToken());
@@ -167,18 +174,18 @@ namespace Stormancer.Server.Plugins.Epic
                     throw new InvalidOperationException("Accounts is null.");
                 }
 
-                return accounts.ToDictionary(v => v.AccountId, v => v);
+                return accounts.Where(account => account != null).ToDictionary(account => account.AccountId, account => (account, TimeSpan.FromSeconds(60)))!;
             }
             else
             {
-                _logger.Log(LogLevel.Warn, "EpicService.GetAccounts", "Http request failed.", new { StatusCode = response.StatusCode, ResponseContent = response.Content });
-                throw new InvalidOperationException("");
+                _logger.Log(LogLevel.Warn, "EpicService.GetAccounts", "HTTP request failed.", new { StatusCode = response.StatusCode, ResponseContent = response.Content });
+                throw new InvalidOperationException("HTTP request failed.");
             }
         }
 
         private async Task<string> GetAccessToken()
         {
-            var authResult = await _cache.Get("accessToken", async (_) =>
+            var authResult = await _accessTokenCache.Get("accessToken", async (_) =>
             {
                 var deploymentIds = GetConfig().deploymentIds;
                 if (deploymentIds == null || !deploymentIds.Any())
@@ -212,7 +219,8 @@ namespace Stormancer.Server.Plugins.Epic
                     }),
                 };
 
-                //request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await GetAccessToken());
+                var authHeaderValue = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{clientId}:{clientSecret}"));
+                request.Headers.Authorization = new AuthenticationHeaderValue("Basic", authHeaderValue);
 
                 var httpClient = new HttpClient();
 
@@ -234,7 +242,7 @@ namespace Stormancer.Server.Plugins.Epic
                 else
                 {
                     _logger.Log(LogLevel.Warn, "EpicService.GetAccounts", "Http request failed.", new { StatusCode = response.StatusCode, ResponseContent = response.Content });
-                    throw new InvalidOperationException("");
+                    throw new InvalidOperationException("HTTP request failed.");
                 }
             });
 
@@ -250,13 +258,13 @@ namespace Stormancer.Server.Plugins.Epic
         {
             if (string.IsNullOrWhiteSpace(clientSecretPath))
             {
-                throw new InvalidOperationException("Client secret store key is null");
+                throw new InvalidOperationException("Client secret store key is null.");
             }
 
             var secret = await _secretsStore.GetSecret(clientSecretPath);
             if (secret == null || secret.Value == null)
             {
-                throw new InvalidOperationException($"Missing secret '{clientSecretPath}' in secrets store");
+                throw new InvalidOperationException($"Missing secret '{clientSecretPath}' in secrets store.");
             }
 
             return Encoding.UTF8.GetString(secret.Value) ?? "";

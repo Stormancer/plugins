@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using Stormancer.Core;
+using System.Threading;
 
 namespace Stormancer.Plugins.RemoteControl
 {
@@ -29,5 +30,10 @@ namespace Stormancer.Plugins.RemoteControl
         {
             ctx.SendValue(new AgentCommandOutputEntryDto { Type = type, ResultJson = json});
         }
+
+        /// <summary>
+        /// Gets the request's associated cancellation token.
+        /// </summary>
+        public CancellationToken CancellationToken => ctx.CancellationToken;
     }
 }

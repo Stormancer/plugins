@@ -17,6 +17,7 @@
 #include "eos_auth.h"
 #include "eos_auth_types.h"
 #include "eos_init.h"
+#include "eos_logging.h"
 #include "eos_sdk.h"
 #include "eos_types.h"
 
@@ -34,6 +35,25 @@ namespace Stormancer
 		namespace ConfigurationKeys
 		{
 			/// <summary>
+			/// Should Stormancer initialize the Epic platform and call periodically EOS_Platform_Tick().
+			/// Default is "false".
+			/// Use "true" to enable, and set the ProuctName and ProductVersion.
+			/// </summary>
+			constexpr const char* InitPlatform = "epic.initPlatform";
+
+			/// <summary>
+			/// Epic product name.
+			/// Mandatory if Stormancer initializes the Epic platform.
+			/// </summary>
+			constexpr const char* ProductName = "epic.productName";
+
+			/// <summary>
+			/// Epic product version.
+			/// Mandatory if Stormancer initializes the Epic platform.
+			/// </summary>
+			constexpr const char* ProductVersion = "epic.productVersion";
+
+			/// <summary>
 			/// Enable the Epic authentication.
 			/// If disabled, the Epic plugin will not initiate any authentications.
 			/// Default is "true".
@@ -49,23 +69,52 @@ namespace Stormancer
 			/// </summary>
 			constexpr const char* LoginMode = "epic.authentication.loginMode";
 
+			/// <summary>
+			/// Dev Auth Host.
+			/// The dev auth binary is in the Epic SDK package (/SDK/Tools/EOS_DevAuthTool-win32-x64-X.Y.Z.zip).
+			/// </summary>
 			constexpr const char* DevAuthHost = "epic.authentication.devAuth.host";
 
+			/// <summary>
+			/// Dev Auth name.
+			/// The Name you entered in the Dev Auth tool.
+			/// </summary>
 			constexpr const char* DevAuthCredentialsName = "epic.authentication.devAuth.credentialsName";
 
-			constexpr const char* ApplicationId = "epic.applicationId";
-
+			/// <summary>
+			/// Epic Product Id.
+			/// </summary>
 			constexpr const char* ProductId = "epic.productId";
 
+			/// <summary>
+			/// Epic Sandbox Id.
+			/// </summary>
 			constexpr const char* SandboxId = "epic.sandboxId";
 
+			/// <summary>
+			/// Epic Deployment Id.
+			/// </summary>
 			constexpr const char* DeploymentId = "epic.deploymentId";
+
+			/// <summary>
+			/// Epic client Client Id.
+			/// </summary>
+			constexpr const char* ClientId = "epic.clientId";
+
+			/// <summary>
+			/// Epic client Client Secret.
+			/// </summary>
+			constexpr const char* ClientSecret = "epic.clientSecret";
+
+			/// <summary>
+			/// Epic diagnostics (enable logs etc...).
+			/// Default is "false".
+			/// Use "true" to enable.
+			/// </summary>
+			constexpr const char* Diagnostics = "epic.diagnostics";
 		}
 
-		constexpr const char* PARTY_TYPE_EPICGAMESIDLOBBY = "epicIDLobby";
-
 		using AccountId = std::string;
-		using AppId = std::string;
 
 		class IEpicApi
 		{
@@ -79,7 +128,7 @@ namespace Stormancer
 
 			virtual void setPlatformHandle(EOS_HPlatform platformHandle) = 0;
 
-			virtual EOS_HPlatform getPlatformHandle(bool createIfNotAvailable = false) = 0;
+			virtual EOS_HPlatform getPlatformHandle() = 0;
 		};
 
 		namespace details
@@ -117,16 +166,16 @@ namespace Stormancer
 					{
 						throw std::runtime_error("EpicAccountId conversion to string failed (Error " + std::to_string((int32_t)result) + ")");
 					}
-					return std::string(bufData, bufSize);
+					return std::string(bufData, bufSize - 1);
 				}
 
-				static EOS_EpicAccountId toEpicAccountId(const std::string& accountIdStr)
+				static EOS_EpicAccountId toEpicAccountId(const AccountId& accountId)
 				{
-					if (accountIdStr.size() != EOS_EPICACCOUNTID_MAX_LENGTH)
+					if (accountId.size() != EOS_EPICACCOUNTID_MAX_LENGTH)
 					{
-						throw std::runtime_error("EpicAccountId conversion from string failed (Size=" + std::to_string(accountIdStr.size()) + ")");
+						throw std::runtime_error("EpicAccountId conversion from string failed (Size=" + std::to_string(accountId.size()) + ")");
 					}
-					return EOS_EpicAccountId_FromString(accountIdStr.c_str());
+					return EOS_EpicAccountId_FromString(accountId.c_str());
 				}
 
 				AccountId getAccountId()
@@ -159,9 +208,6 @@ namespace Stormancer
 			{
 			public:
 
-				friend class IEpicApi;
-				friend class EpicApi;
-
 				EpicState(std::shared_ptr<Configuration> config, std::shared_ptr<ILogger> logger)
 				{
 					std::lock_guard<std::recursive_mutex> lg(_mutex);
@@ -173,6 +219,12 @@ namespace Stormancer
 					_productId = config->additionalParameters.find(ConfigurationKeys::ProductId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ProductId) : "";
 					_sandboxId = config->additionalParameters.find(ConfigurationKeys::SandboxId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::SandboxId) : "";
 					_deploymentId = config->additionalParameters.find(ConfigurationKeys::DeploymentId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::DeploymentId) : "";
+					_clientId = config->additionalParameters.find(ConfigurationKeys::ClientId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ClientId) : "";
+					_clientSecret = config->additionalParameters.find(ConfigurationKeys::ClientSecret) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ClientSecret) : "";
+					_initPlatform = config->additionalParameters.find(ConfigurationKeys::InitPlatform) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::InitPlatform) != "false" : false;
+					_productName = config->additionalParameters.find(ConfigurationKeys::ProductName) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ProductName) : "";
+					_productVersion = config->additionalParameters.find(ConfigurationKeys::ProductVersion) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ProductVersion) : "";
+					_diagnostics = config->additionalParameters.find(ConfigurationKeys::Diagnostics) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::Diagnostics) != "false" : false;
 				}
 
 				virtual ~EpicState()
@@ -180,6 +232,27 @@ namespace Stormancer
 					std::lock_guard<std::recursive_mutex> lg(_mutex);
 
 					clear();
+				}
+
+				bool getInitPlatform() const
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					return _initPlatform;
+				}
+
+				std::string getProductName() const
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					return _productName;
+				}
+
+				std::string getProductVersion() const
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					return _productVersion;
 				}
 
 				bool getAuthenticationEnabled() const
@@ -231,6 +304,27 @@ namespace Stormancer
 					return _deploymentId;
 				}
 
+				std::string getClientId() const
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					return _clientId;
+				}
+
+				std::string getClientSecret() const
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					return _clientSecret;
+				}
+
+				bool getDiagnostics() const
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					return _diagnostics;
+				}
+
 				void setPlatformHandle(EOS_HPlatform platformHandle)
 				{
 					std::lock_guard<std::recursive_mutex> lg(_mutex);
@@ -239,6 +333,7 @@ namespace Stormancer
 					{
 						clear();
 					}
+
 					_platformHandle = platformHandle;
 				}
 
@@ -249,14 +344,14 @@ namespace Stormancer
 					return _platformHandle;
 				}
 
-			private:
-
 				void setPlatformHandleOwned(bool owned)
 				{
 					std::lock_guard<std::recursive_mutex> lg(_mutex);
 
 					_platformHandleOwned = owned;
 				}
+
+			private:
 
 				void clear()
 				{
@@ -266,11 +361,15 @@ namespace Stormancer
 					{
 						_platformHandleOwned = false;
 						EOS_Platform_Release(_platformHandle);
-						_platformHandle = nullptr;
 					}
+
+					_platformHandle = nullptr;
 				}
 
 				mutable std::recursive_mutex _mutex;
+				bool _initPlatform;
+				std::string _productName;
+				std::string _productVersion;
 				bool _authenticationEnabled = true;
 				std::string _loginMode;
 				std::string _devAuthHost;
@@ -278,9 +377,84 @@ namespace Stormancer
 				std::string _productId;
 				std::string _sandboxId;
 				std::string _deploymentId;
+				std::string _clientId;
+				std::string _clientSecret;
 				bool _platformHandleOwned = false;
+				bool _diagnostics = false;
 				EOS_HPlatform _platformHandle = nullptr;
 				std::shared_ptr<ILogger> _logger;
+			};
+
+			class EpicTicker : public std::enable_shared_from_this<EpicTicker>
+			{
+			public:
+
+				EpicTicker(std::shared_ptr<Configuration> config, std::shared_ptr<EpicState> epicState, std::shared_ptr<ILogger> logger)
+					: _wActionDispatcher(config->actionDispatcher)
+				{
+					_platformHandle = epicState->getPlatformHandle();
+					if (_platformHandle == nullptr)
+					{
+						logger->log(LogLevel::Warn, "EpicTicker", "Epic platform handle is null");
+					}
+				}
+
+				void start()
+				{
+					_stopTicker = false;
+
+					if (_stoppedTicker)
+					{
+						_stoppedTicker = false;
+
+						scheduleTick();
+					}
+				}
+
+				void stop()
+				{
+					_stopTicker = true;
+				}
+
+			private:
+
+				void scheduleTick()
+				{
+					if (_platformHandle)
+					{
+						EOS_Platform_Tick(_platformHandle);
+					}
+
+					if (auto actionDispatcher = _wActionDispatcher.lock())
+					{
+						auto wEpicTicker = STORM_WEAK_FROM_THIS();
+						actionDispatcher->post([wEpicTicker]()
+						{
+							if (auto epicTicker = wEpicTicker.lock())
+							{
+								if (epicTicker->_stopTicker)
+								{
+									epicTicker->_stoppedTicker = true;
+								}
+								else
+								{
+									epicTicker->scheduleTick();
+								}
+							}
+						});
+					}
+					else
+					{
+						_stoppedTicker = true;
+					}
+				}
+
+				std::weak_ptr<IActionDispatcher> _wActionDispatcher;
+
+				EOS_HPlatform _platformHandle = nullptr;
+
+				bool _stopTicker = false;
+				bool _stoppedTicker = true;
 			};
 
 			class EpicService : public std::enable_shared_from_this<EpicService>
@@ -377,6 +551,91 @@ namespace Stormancer
 
 				void initialize() override
 				{
+					if (_epicState->getInitPlatform())
+					{
+						std::string productName = _epicState->getProductName();
+						if (productName.empty())
+						{
+							_logger->log(LogLevel::Warn, "Epic", "Epic product name is empty");
+						}
+
+						std::string productVersion = _epicState->getProductVersion();
+						if (productVersion.empty())
+						{
+							_logger->log(LogLevel::Warn, "Epic", "Epic product version is empty");
+						}
+
+						// Init EOS SDK
+						EOS_InitializeOptions SDKOptions = {};
+						SDKOptions.ApiVersion = EOS_INITIALIZE_API_LATEST;
+						SDKOptions.AllocateMemoryFunction = nullptr;
+						SDKOptions.ReallocateMemoryFunction = nullptr;
+						SDKOptions.ReleaseMemoryFunction = nullptr;
+						SDKOptions.ProductName = productName.c_str();
+						SDKOptions.ProductVersion = productVersion.c_str();
+						SDKOptions.Reserved = nullptr;
+						SDKOptions.SystemInitializeOptions = nullptr;
+						SDKOptions.OverrideThreadAffinity = nullptr;
+
+						EOS_EResult InitResult = EOS_Initialize(&SDKOptions);
+						if (InitResult != EOS_EResult::EOS_Success)
+						{
+							_logger->log(LogLevel::Error, "Epic", "EOS_Initialize failed", "Result=" + std::to_string((int)InitResult));
+						}
+
+						if (_epicState->getPlatformHandle() == nullptr)
+						{
+							EOS_Platform_Options platformOptions = {};
+							platformOptions.ApiVersion = EOS_PLATFORM_OPTIONS_API_LATEST;
+							platformOptions.bIsServer = false;
+							std::string productId = _epicState->getProductId();
+							platformOptions.ProductId = productId.c_str();
+							std::string sandboxId = _epicState->getSandboxId();
+							platformOptions.SandboxId = sandboxId.c_str();
+							std::string deploymentId = _epicState->getDeploymentId();
+							platformOptions.DeploymentId = deploymentId.c_str();
+							std::string clientId = _epicState->getClientId();
+							platformOptions.ClientCredentials.ClientId = clientId.c_str();
+							std::string clientSecret = _epicState->getClientSecret();
+							platformOptions.ClientCredentials.ClientSecret = clientSecret.c_str();
+							EOS_HPlatform platformHandle = EOS_Platform_Create(&platformOptions);
+							_epicState->setPlatformHandle(platformHandle);
+							_epicState->setPlatformHandleOwned(true);
+						}
+					}
+
+					if (_epicState->getDiagnostics())
+					{
+						EOS_EResult SetLogCallbackResult = EOS_Logging_SetCallback(&EOSSDKLoggingCallback);
+						if (SetLogCallbackResult != EOS_EResult::EOS_Success)
+						{
+							_logger->log(LogLevel::Warn, "EpicApi.initialize", "Set Logging Callback Failed!", std::to_string((int)SetLogCallbackResult));
+						}
+						else
+						{
+							_logger->log(LogLevel::Trace, "EpicApi.initialize", "Logging Callback Set");
+							EOS_Logging_SetLogLevel(EOS_ELogCategory::EOS_LC_ALL_CATEGORIES, EOS_ELogLevel::EOS_LOG_Verbose);
+						}
+					}
+				}
+
+				static void EOS_CALL EOSSDKLoggingCallback(const EOS_LogMessage* InMsg)
+				{
+					if (InMsg->Level != EOS_ELogLevel::EOS_LOG_Off)
+					{
+						if (InMsg->Level == EOS_ELogLevel::EOS_LOG_Error || InMsg->Level == EOS_ELogLevel::EOS_LOG_Fatal)
+						{
+							printf("[EOS SDK] %s: %s\n", InMsg->Category, InMsg->Message);
+						}
+						else if (InMsg->Level == EOS_ELogLevel::EOS_LOG_Warning)
+						{
+							printf("[EOS SDK] %s: %s\n", InMsg->Category, InMsg->Message);
+						}
+						else
+						{
+							printf("[EOS SDK] %s: %s\n", InMsg->Category, InMsg->Message);
+						}
+					}
 				}
 
 				void setPlatformHandle(EOS_HPlatform platformHandle)
@@ -384,44 +643,9 @@ namespace Stormancer
 					_epicState->setPlatformHandle(platformHandle);
 				}
 
-				EOS_HPlatform getPlatformHandle(bool createIfNotAvailable = false)
+				EOS_HPlatform getPlatformHandle()
 				{
-					auto platformHandle = _epicState->getPlatformHandle();
-
-					if (createIfNotAvailable && platformHandle == nullptr)
-					{
-						EOS_Platform_Options PlatformOptions = {};
-						PlatformOptions.ApiVersion = EOS_PLATFORM_OPTIONS_API_LATEST;
-						PlatformOptions.bIsServer = false;
-//						static constexpr char EncryptionKey[] = "1111111111111111111111111111111111111111111111111111111111111111";
-//						PlatformOptions.EncryptionKey = EncryptionKey;
-//						PlatformOptions.OverrideCountryCode = nullptr;
-//						PlatformOptions.OverrideLocaleCode = nullptr;
-//						PlatformOptions.Flags = EOS_PF_WINDOWS_ENABLE_OVERLAY_D3D9 | EOS_PF_WINDOWS_ENABLE_OVERLAY_D3D10 | EOS_PF_WINDOWS_ENABLE_OVERLAY_OPENGL; // Enable overlay support for D3D9/10 and OpenGL. This sample uses D3D11 or SDL.
-//#ifdef _WIN32
-//						static char Buffer[1024] = { 0 };
-//						if (Buffer[0] == 0)
-//						{
-//							GetTempPathA(sizeof(Buffer), Buffer);
-//						}
-//						PlatformOptions.CacheDirectory = Buffer;
-//#elif defined(__APPLE__)
-//						PlatformOptions.CacheDirectory = "/private/var/tmp";
-//#else
-//						PlatformOptions.CacheDirectory = "/var/tmp";
-//#endif
-//						EOS_Platform_RTCOptions RtcOptions = { 0 };
-//						PlatformOptions.RTCOptions = &RtcOptions;
-						PlatformOptions.ProductId = _epicState->getProductId().c_str();
-						PlatformOptions.SandboxId = _epicState->getSandboxId().c_str();
-						PlatformOptions.DeploymentId = _epicState->getDeploymentId().c_str();
-						PlatformOptions.Reserved = NULL;
-						platformHandle = EOS_Platform_Create(&PlatformOptions);
-						_epicState->setPlatformHandle(platformHandle);
-						_epicState->setPlatformHandleOwned(true);
-					}
-
-					return platformHandle;
+					return _epicState->getPlatformHandle();
 				}
 
 #pragma endregion
@@ -544,11 +768,10 @@ namespace Stormancer
 					tce->set_exception(pplx::task_canceled());
 				});
 
-				EOS_HPlatform platformHandle = _epicApi->getPlatformHandle(true);
-
-				if (platformHandle == nullptr)
+				EOS_HPlatform platformHandle = _epicState->getPlatformHandle();
+				if (!platformHandle)
 				{
-					throw std::runtime_error("Epic platform handle not set or created");
+					throw std::runtime_error("Epic platform handle is null");
 				}
 
 				EOS_HAuth authHandle = EOS_Platform_GetAuthInterface(platformHandle);
@@ -561,20 +784,22 @@ namespace Stormancer
 				memset(&loginOptions, 0, sizeof(loginOptions));
 				loginOptions.ApiVersion = EOS_AUTH_LOGIN_API_LATEST;
 
-				std::string firstParam, secondParam;
-
-				firstParam = _epicState->getDevAuthHost();
-				secondParam = _epicState->getDevAuthCredentialsName();
+				std::string firstParameter, secondParameter;
 
 				auto loginMode = _epicState->getLoginMode();
 
 				if (loginMode == "DevAuth") // Dev auth (DevAuth)
 				{
-					if (firstParam.empty() || secondParam.empty())
+					firstParameter = _epicState->getDevAuthHost();
+					secondParameter = _epicState->getDevAuthCredentialsName();
+
+					if (firstParameter.empty() || secondParameter.empty())
 					{
 						STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error("Missing host or credentials name for DevAuth login mode"), void);
 					}
-					
+
+					credentials.Id = firstParameter.c_str();
+					credentials.Token = secondParameter.c_str();
 					credentials.Type = EOS_ELoginCredentialType::EOS_LCT_Developer;
 				}
 				else // Default regular auth (AccountPortal)
@@ -588,7 +813,7 @@ namespace Stormancer
 
 				auto wEpicAuth = new std::weak_ptr<EpicAuthenticationEventHandler>(STORM_WEAK_FROM_THIS());
 
-				EOS_Auth_Login(authHandle, &loginOptions, &wEpicAuth, loginCompleteCallbackFn);
+				EOS_Auth_Login(authHandle, &loginOptions, wEpicAuth, loginCompleteCallbackFn);
 
 				return pplx::create_task(*_authTce)
 					.then([fulfillCredentialsCallback, authHandle](std::string accountIdStr)
@@ -627,7 +852,7 @@ namespace Stormancer
 
 				_logger->log(LogLevel::Trace, "EOS SDK", "Login Complete", "User ID: " + accountIdStr);
 
-				auto platformHandle = _epicApi->getPlatformHandle();
+				auto platformHandle = _epicState->getPlatformHandle();
 
 				if (platformHandle == nullptr)
 				{
@@ -671,8 +896,9 @@ namespace Stormancer
 			static void EOS_CALL loginCompleteCallbackFn(const EOS_Auth_LoginCallbackInfo* data)
 			{
 				assert(data != NULL);
+				assert(data->ResultCode == EOS_EResult::EOS_Success);
 
-				auto wEpicAuthPtr = (std::weak_ptr<EpicAuthenticationEventHandler>*)data->ClientData;
+				auto wEpicAuthPtr = static_cast<std::weak_ptr<EpicAuthenticationEventHandler>*>(data->ClientData);
 				auto wEpicAuth = *wEpicAuthPtr;
 
 				if (auto epicAuth = wEpicAuth.lock())
@@ -689,7 +915,6 @@ namespace Stormancer
 
 			std::recursive_mutex _mutex;
 			std::shared_ptr<details::EpicState> _epicState;
-			std::shared_ptr<IEpicApi> _epicApi;
 			std::shared_ptr<ILogger> _logger;
 			std::shared_ptr<pplx::task_completion_event<std::string>> _authTce; // shared_ptr used as an optional
 
@@ -712,16 +937,30 @@ namespace Stormancer
 
 			void registerClientDependencies(ContainerBuilder& builder) override
 			{
-				builder.registerDependency<details::EpicState, Configuration, ILogger>();
+				builder.registerDependency<details::EpicState, Configuration, ILogger>().singleInstance();
 				builder.registerDependency<details::EpicApi, Users::UsersApi, details::EpicState, Configuration, IScheduler, ILogger, Party::PartyApi>().asSelf().as<IEpicApi>();
 				builder.registerDependency<details::EpicPartyProvider, Party::Platform::InvitationMessenger, Users::UsersApi, details::EpicApi, ILogger, Party::PartyApi, IActionDispatcher>().as<Party::Platform::IPlatformSupportProvider>();
 				builder.registerDependency<EpicAuthenticationEventHandler, details::EpicState, ILogger>().as<Users::IAuthenticationEventHandler>();
 			}
 
-			void clientCreated(std::shared_ptr<IClient> client)
+			void clientCreated(std::shared_ptr<IClient> client) override
 			{
 				auto epicApi = client->dependencyResolver().resolve<IEpicApi>();
 				epicApi->initialize();
+
+				auto epicState = client->dependencyResolver().resolve<details::EpicState>();
+				if (epicState->getInitPlatform())
+				{
+					auto config = client->dependencyResolver().resolve<Configuration>();
+					auto logger = client->dependencyResolver().resolve<ILogger>();
+					_epicTicker = std::make_shared<details::EpicTicker>(config, epicState, logger);
+					_epicTicker->start();
+				}
+			}
+
+			void clientDisconnecting(std::shared_ptr<IClient>) override
+			{
+				_epicTicker->stop();
 			}
 
 			void registerSceneDependencies(ContainerBuilder& builder, std::shared_ptr<Scene> scene) override
@@ -736,6 +975,8 @@ namespace Stormancer
 					builder.registerDependency<details::EpicPartyService, Scene>();
 				}
 			}
+
+			std::shared_ptr<details::EpicTicker> _epicTicker;
 		};
 	}
 }

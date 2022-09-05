@@ -58,7 +58,7 @@ namespace Stormancer.Server.Plugins.Profile
            
             var ctx = new ProfileCtx(userIds, dic, displayOptions, requestingUser);
 
-            await _handlers.RunEventHandler(h => h.GetProfiles(ctx, cancellationToken), ex => _logger.Log(LogLevel.Error, "profiles", "An error occured while getting profiles.", ex));
+            await _handlers.RunEventHandler(h => h.GetProfiles(ctx, cancellationToken), ex => _logger.Log(LogLevel.Error, "profile", "An error occured while getting profiles.", ex));
 
             var result = new Dictionary<string, Dictionary<string, JObject>?>();
             foreach(var id in userIds)
@@ -77,12 +77,12 @@ namespace Stormancer.Server.Plugins.Profile
 
         public Task DeleteCustomProfilePart(string userId, string partId, bool fromClient)
         {
-            return customProfileParts.RunEventHandler(p => p.DeleteAsync(userId, partId, fromClient), ex => _logger.Log(LogLevel.Error, "profiles", "An error occured while deleting a custom part.", ex));
+            return customProfileParts.RunEventHandler(p => p.DeleteAsync(userId, partId, fromClient), ex => _logger.Log(LogLevel.Error, "profile", "An error occured while deleting a custom part.", ex));
         }
 
         public Task UpdateCustomProfilePart(string userId, string partId, string version, bool fromClient, Stream inputStream)
         {
-            return customProfileParts.RunEventHandler(p => p.UpdateAsync(userId, partId, version, fromClient, inputStream), ex => _logger.Log(LogLevel.Error, "profiles", "An error occured while updating a custom profile part.", ex));
+            return customProfileParts.RunEventHandler(p => p.UpdateAsync(userId, partId, version, fromClient, inputStream), ex => _logger.Log(LogLevel.Error, "profile", "An error occured while updating a custom profile part.", ex));
         }
 
         public Task<string> UpdateUserHandle(string userId, string newHandle, CancellationToken cancellationToken)

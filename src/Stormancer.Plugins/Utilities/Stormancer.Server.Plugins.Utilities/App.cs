@@ -27,7 +27,7 @@ namespace Stormancer.Server.Plugins.Utilities
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
               {
-                  builder.Register<DefaultHttpClientFactory>().As<IHttpClientFactory>().SingleInstance();
+                  builder.Register<Arnath.StandaloneHttpClientFactory.StandaloneHttpClientFactory>().As<IHttpClientFactory>().SingleInstance();
               };
         }
     }

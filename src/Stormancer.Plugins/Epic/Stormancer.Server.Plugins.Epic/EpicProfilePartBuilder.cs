@@ -24,6 +24,7 @@ using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Profile;
 using Stormancer.Server.Plugins.Users;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -43,7 +44,7 @@ namespace Stormancer.Server.Plugins.Epic
             _epicService = epicService;
             _logger = logger;
         }
-        
+
         public async Task GetProfiles(ProfileCtx ctx, CancellationToken ct)
         {
             var hasProfilePartEpic = ctx.DisplayOptions.ContainsKey(EpicConstants.PLATFORM_NAME);
@@ -65,18 +66,47 @@ namespace Stormancer.Server.Plugins.Epic
                 return;
             }
 
+            Dictionary<string, Account> accounts = new();
+            if (ctx.DisplayOptions["user"] == "details" || ctx.DisplayOptions[EpicConstants.PLATFORM_NAME] == "details")
+            {
+                List<string> accountIds = new();
+                foreach (var user in users)
+                {
+                    if (user != null)
+                    {
+                        var accountId = user.GetAccountId();
+
+                        if (accountId != null)
+                        {
+                            accountIds.Add(accountId);
+                        }
+                    }
+                }
+                accounts = await _epicService.GetAccounts(accountIds);
+            }
+
             if (hasProfilePartEpic)
             {
                 foreach (var user in users)
                 {
                     if (user != null)
                     {
-                        ctx.UpdateProfileData(user.Id, EpicConstants.PLATFORM_NAME, data =>
+                        var accountId = user.GetAccountId();
+
+                        if (!string.IsNullOrWhiteSpace(accountId))
                         {
-                            data[EpicConstants.ACCOUNTID_CLAIMPATH] = user.UserData[EpicConstants.PLATFORM_NAME]?[EpicConstants.ACCOUNTID_CLAIMPATH] ?? "";
-                            data[EpicConstants.DISPLAYNAME] = user.UserData[EpicConstants.PLATFORM_NAME]?[EpicConstants.DISPLAYNAME] ?? "";
-                            return data;
-                        });
+                            ctx.UpdateProfileData(user.Id, EpicConstants.PLATFORM_NAME, data =>
+                            {
+                                data[EpicConstants.ACCOUNTID_CLAIMPATH] = accountId;
+
+                                if (accounts.ContainsKey(accountId))
+                                {
+                                    data[EpicConstants.DISPLAYNAME] = accounts[accountId].DisplayName;
+                                }
+
+                                return data;
+                            });
+                        }
                     }
                 }
             }
@@ -101,7 +131,10 @@ namespace Stormancer.Server.Plugins.Epic
 
                                 if (!data.ContainsKey("pseudo") || string.IsNullOrWhiteSpace(data["pseudo"]?.ToString()))
                                 {
-                                    data["pseudo"] = user.UserData[EpicConstants.PLATFORM_NAME]?[EpicConstants.DISPLAYNAME] ?? "";
+                                    if (accounts.ContainsKey(accountId))
+                                    {
+                                        data["pseudo"] = accounts[accountId].DisplayName;
+                                    }
                                 }
 
                                 return data;
