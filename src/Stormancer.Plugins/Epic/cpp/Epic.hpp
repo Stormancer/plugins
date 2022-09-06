@@ -860,6 +860,15 @@ namespace Stormancer
 
 			void loginCompleteCallback(const EOS_Auth_LoginCallbackInfo* data)
 			{
+				if (data->ResultCode != EOS_EResult::EOS_Success)
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					_authTce->set_exception(std::runtime_error("Epic login failed : EOS_EResult = " + std::to_string((int32_t)data->ResultCode)));
+					
+					return;
+				}
+
 				std::string accountIdStr = details::EpicPlatformUserId::toString(data->LocalUserId);
 
 				_logger->log(LogLevel::Trace, "EOS SDK", "Login Complete", "User ID: " + accountIdStr);
@@ -878,37 +887,27 @@ namespace Stormancer
 					throw std::runtime_error("Epic auth handle not found");
 				}
 
-				if (data->ResultCode == EOS_EResult::EOS_Success)
+				const int32_t AccountsCount = EOS_Auth_GetLoggedInAccountsCount(authHandle);
+				for (int32_t AccountIdx = 0; AccountIdx < AccountsCount; ++AccountIdx)
 				{
-					const int32_t AccountsCount = EOS_Auth_GetLoggedInAccountsCount(authHandle);
-					for (int32_t AccountIdx = 0; AccountIdx < AccountsCount; ++AccountIdx)
-					{
-						auto accountId2 = EOS_Auth_GetLoggedInAccountByIndex(authHandle, AccountIdx);
+					auto accountId2 = EOS_Auth_GetLoggedInAccountByIndex(authHandle, AccountIdx);
 
-						EOS_ELoginStatus LoginStatus;
-						LoginStatus = EOS_Auth_GetLoginStatus(authHandle, accountId2);
+					EOS_ELoginStatus LoginStatus;
+					LoginStatus = EOS_Auth_GetLoginStatus(authHandle, accountId2);
 
-						std::string accountId2Str = details::EpicPlatformUserId::toString(accountId2);
+					std::string accountId2Str = details::EpicPlatformUserId::toString(accountId2);
 
-						_logger->log(LogLevel::Trace, "EOS SDK", "AccountId=" + accountId2Str + "; Status=" + std::to_string((int32_t)LoginStatus));
-					}
-
-					std::lock_guard<std::recursive_mutex> lg(_mutex);
-
-					_authTce->set(accountIdStr);
+					_logger->log(LogLevel::Trace, "EOS SDK", "AccountId=" + accountId2Str + "; Status=" + std::to_string((int32_t)LoginStatus));
 				}
-				else
-				{
-					std::lock_guard<std::recursive_mutex> lg(_mutex);
 
-					_authTce->set_exception(std::runtime_error("Epic login failed : Result = " + std::to_string((int32_t)data->ResultCode)));
-				}
+				std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+				_authTce->set(accountIdStr);
 			}
 
 			static void EOS_CALL loginCompleteCallbackFn(const EOS_Auth_LoginCallbackInfo* data)
 			{
-				assert(data != NULL);
-				assert(data->ResultCode == EOS_EResult::EOS_Success);
+				assert(data != NULL && data->ClientData != NULL);
 
 				auto wEpicAuthPtr = static_cast<std::weak_ptr<EpicAuthenticationEventHandler>*>(data->ClientData);
 				auto wEpicAuth = *wEpicAuthPtr;

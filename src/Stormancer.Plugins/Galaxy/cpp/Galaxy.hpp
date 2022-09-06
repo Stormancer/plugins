@@ -415,7 +415,7 @@ namespace Stormancer
 			{
 				std::lock_guard<std::recursive_mutex> lg(_mutex);
 
-				_authTce->set_exception(std::runtime_error("Galaxy auth failed : failureReason = " + std::to_string((int32_t)failureReason)));
+				_authTce->set_exception(std::runtime_error("Galaxy auth failed : " + toString(failureReason)));
 			}
 
 			void OnAuthLost() override
@@ -447,7 +447,43 @@ namespace Stormancer
 			{
 				std::lock_guard<std::recursive_mutex> lg(_mutex);
 
-				_ticketTce->set_exception(std::runtime_error("Galaxy ticket retrieve failed : failureReason = " + std::to_string((int32_t)failureReason)));
+				_ticketTce->set_exception(std::runtime_error("Galaxy ticket retrieve failed : " + toString(failureReason)));
+			}
+
+			std::string toString(galaxy::api::IAuthListener::FailureReason failureReason)
+			{
+				switch (failureReason)
+				{
+				case galaxy::api::IAuthListener::FailureReason::FAILURE_REASON_GALAXY_SERVICE_NOT_AVAILABLE:
+					return "Galaxy Service is not installed properly or fails to start";
+				case galaxy::api::IAuthListener::FailureReason::FAILURE_REASON_GALAXY_SERVICE_NOT_SIGNED_IN:
+					return "Galaxy Service is not signed in properly";
+				case galaxy::api::IAuthListener::FailureReason::FAILURE_REASON_CONNECTION_FAILURE:
+					return "Unable to communicate with backend services";
+				case galaxy::api::IAuthListener::FailureReason::FAILURE_REASON_NO_LICENSE:
+					return "User that is being signed in has no license for this application";
+				case galaxy::api::IAuthListener::FailureReason::FAILURE_REASON_INVALID_CREDENTIALS:
+					return "Unable to match client credentials (ID, secret) or user credentials (username, password)";
+				case galaxy::api::IAuthListener::FailureReason::FAILURE_REASON_GALAXY_NOT_INITIALIZED:
+					return "Galaxy has not been initialized";
+				case galaxy::api::IAuthListener::FailureReason::FAILURE_REASON_EXTERNAL_SERVICE_FAILURE:
+					return "Unable to communicate with external service";
+				case galaxy::api::IAuthListener::FailureReason::FAILURE_REASON_UNDEFINED:
+				default:
+					return "Undefined error";
+				}
+			}
+
+			std::string toString(galaxy::api::IEncryptedAppTicketListener::FailureReason failureReason)
+			{
+				switch (failureReason)
+				{
+				case galaxy::api::IEncryptedAppTicketListener::FailureReason::FAILURE_REASON_CONNECTION_FAILURE:
+					return "Unable to communicate with backend services";
+				case galaxy::api::IEncryptedAppTicketListener::FailureReason::FAILURE_REASON_UNDEFINED:
+				default:
+					return "Unspecified error";
+				}
 			}
 
 			std::recursive_mutex _mutex;
