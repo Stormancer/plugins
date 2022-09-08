@@ -22,6 +22,7 @@
 
 using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
+using Stormancer.Management.Models;
 using Stormancer.Server.Plugins.Profile;
 using Stormancer.Server.Plugins.Users;
 using System.Collections.Generic;
@@ -29,35 +30,35 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.Epic
+namespace Stormancer.Server.Plugins.Galaxy
 {
-    class EpicProfilePartBuilder : IProfilePartBuilder
+    class GalaxyProfilePartBuilder : IProfilePartBuilder
     {
-        private const string LOG_CATEGORY = "EpicProfilePartBuilder";
+        private const string LOG_CATEGORY = "GalaxyProfilePartBuilder";
         private readonly IUserService _users;
-        private readonly IEpicService _epicService;
+        private readonly IGalaxyService _galaxyService;
         private readonly ILogger _logger;
 
-        public EpicProfilePartBuilder(IUserService users, IEpicService epicService, ILogger logger)
+        public GalaxyProfilePartBuilder(IUserService users, IGalaxyService galaxyService, ILogger logger)
         {
             _users = users;
-            _epicService = epicService;
+            _galaxyService = galaxyService;
             _logger = logger;
         }
 
         public async Task GetProfiles(ProfileCtx ctx, CancellationToken ct)
         {
-            var hasProfilePartEpic = ctx.DisplayOptions.ContainsKey(EpicConstants.PLATFORM_NAME);
+            var hasProfilePartGalaxy = ctx.DisplayOptions.ContainsKey(GalaxyConstants.PLATFORM_NAME);
             var hasProfilePartUser = ctx.DisplayOptions.ContainsKey("user");
 
-            if (!hasProfilePartEpic && !hasProfilePartUser)
+            if (!hasProfilePartGalaxy && !hasProfilePartUser)
             {
                 return;
             }
 
             var allUsers = await _users.GetUsers(ctx.Users.ToArray(), ct);
             var users = allUsers
-                .Where(kvp => kvp.Value != null && kvp.Value.UserData.ContainsKey(EpicConstants.PLATFORM_NAME))
+                .Where(kvp => kvp.Value != null && kvp.Value.UserData.ContainsKey(GalaxyConstants.PLATFORM_NAME))
                 .Select(kvp => kvp.Value)
                 .ToList();
 
@@ -66,43 +67,43 @@ namespace Stormancer.Server.Plugins.Epic
                 return;
             }
 
-            Dictionary<string, Account> accounts = new();
+            Dictionary<string, UserInfo> userInfos = new();
             if ((hasProfilePartUser && ctx.DisplayOptions["user"] == "details")
-                || (hasProfilePartEpic && ctx.DisplayOptions[EpicConstants.PLATFORM_NAME] == "details"))
+                || (hasProfilePartGalaxy && ctx.DisplayOptions[GalaxyConstants.PLATFORM_NAME] == "details"))
             {
-                List<string> accountIds = new();
+                List<string> galaxyIds = new();
                 foreach (var user in users)
                 {
                     if (user != null)
                     {
-                        var accountId = user.GetAccountId();
+                        var galaxyId = user.GetGalaxyId();
 
-                        if (accountId != null)
+                        if (galaxyId != null)
                         {
-                            accountIds.Add(accountId);
+                            galaxyIds.Add(galaxyId);
                         }
                     }
                 }
-                accounts = await _epicService.GetAccounts(accountIds);
+                userInfos = await _galaxyService.GetUserInfos(galaxyIds);
             }
 
-            if (hasProfilePartEpic)
+            if (hasProfilePartGalaxy)
             {
                 foreach (var user in users)
                 {
                     if (user != null)
                     {
-                        var accountId = user.GetAccountId();
+                        var galaxyId = user.GetGalaxyId();
 
-                        if (!string.IsNullOrWhiteSpace(accountId))
+                        if (!string.IsNullOrWhiteSpace(galaxyId))
                         {
-                            ctx.UpdateProfileData(user.Id, EpicConstants.PLATFORM_NAME, data =>
+                            ctx.UpdateProfileData(user.Id, GalaxyConstants.PLATFORM_NAME, data =>
                             {
-                                data[EpicConstants.ACCOUNTID_CLAIMPATH] = accountId;
+                                data[GalaxyConstants.GALAXYID_CLAIMPATH] = galaxyId;
 
-                                if (accounts.ContainsKey(accountId))
+                                if (userInfos.ContainsKey(galaxyId))
                                 {
-                                    data[EpicConstants.DISPLAYNAME] = accounts[accountId].DisplayName;
+                                    data[GalaxyConstants.USERNAME] = userInfos[galaxyId].username;
                                 }
 
                                 return data;
@@ -118,8 +119,8 @@ namespace Stormancer.Server.Plugins.Epic
                 {
                     if (user != null)
                     {
-                        var accountId = user.GetAccountId();
-                        if (!string.IsNullOrWhiteSpace(accountId))
+                        var galaxyId = user.GetGalaxyId();
+                        if (!string.IsNullOrWhiteSpace(galaxyId))
                         {
                             ctx.UpdateProfileData(user.Id, "user", data =>
                             {
@@ -127,14 +128,14 @@ namespace Stormancer.Server.Plugins.Epic
                                 {
                                     data["platforms"] = new JObject();
                                 }
-                                data["platforms"]![EpicConstants.PLATFORM_NAME] = new JObject();
-                                data["platforms"]![EpicConstants.PLATFORM_NAME]![EpicConstants.ACCOUNTID_CLAIMPATH] = accountId;
+                                data["platforms"]![GalaxyConstants.PLATFORM_NAME] = new JObject();
+                                data["platforms"]![GalaxyConstants.PLATFORM_NAME]![GalaxyConstants.GALAXYID_CLAIMPATH] = galaxyId;
 
                                 if (!data.ContainsKey("pseudo") || string.IsNullOrWhiteSpace(data["pseudo"]?.ToString()))
                                 {
-                                    if (accounts.ContainsKey(accountId))
+                                    if (userInfos.ContainsKey(galaxyId))
                                     {
-                                        data["pseudo"] = accounts[accountId].DisplayName;
+                                        data["pseudo"] = userInfos[galaxyId].username;
                                     }
                                 }
 

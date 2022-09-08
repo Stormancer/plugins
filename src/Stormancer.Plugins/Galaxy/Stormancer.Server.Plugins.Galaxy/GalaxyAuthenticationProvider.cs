@@ -1,13 +1,16 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Jose;
+using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Users;
+using Stormancer.Server.Secrets;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -21,7 +24,7 @@ namespace Stormancer.Server.Plugins.Galaxy
         /// <summary>
         /// Id of the product.
         /// </summary>
-        public string? ProductId { get; set; }
+        public string? productId { get; set; }
 
         /// <summary>
         /// Ticket encryption key
@@ -34,123 +37,181 @@ namespace Stormancer.Server.Plugins.Galaxy
         /// <summary>
         /// Server key.
         /// </summary>
-        public string? ServerKey { get; set; }
+        public string? serverKey { get; set; }
     }
-    /// <summary>
-    /// Galaxy integration constants.
-    /// </summary>
-    public class GalaxyConstants
-    {
-        /// <summary>
-        /// The Galaxy auth provider type.
-        /// </summary>
-        public const string PROVIDER_NAME = "galaxy";
-    }
+
     class GalaxyAuthenticationProvider : IAuthenticationProvider
     {
-
-        private const string CLAIM_PATH = "uid";
-        private readonly IUserService users;
-        private readonly IConfiguration config;
-        private readonly ILogger logger;
+        private readonly IUserService _userService;
+        private readonly IConfiguration _config;
+        private readonly ISecretsStore _secretsStore;
+        private readonly ILogger _logger;
         private const int IV_SIZE = 16;
 
-        public string Type => GalaxyConstants.PROVIDER_NAME;
+        public string Type => GalaxyConstants.PLATFORM_NAME;
 
-        public GalaxyAuthenticationProvider(IUserService users, IConfiguration config, ILogger logger)
+        public GalaxyAuthenticationProvider(IUserService users, IConfiguration config, ILogger logger, ISecretsStore secretsStore)
         {
-            this.users = users;
-            this.config = config;
-            this.logger = logger;
+            _userService = users;
+            _config = config;
+            _logger = logger;
+            _secretsStore = secretsStore;
         }
 
         public void AddMetadata(Dictionary<string, string> result)
         {
-
         }
 
-        private string DecryptSessionTicket(byte[] ticket)
+        private async Task<string> DecryptSessionTicket(byte[] ticket)
         {
-            var c = config.GetValue<GalaxyConfiguration>("galaxy");
-
-            if (c.ticketPrivateKey == null)
-            {
-                throw new InvalidOperationException("Missing galaxy.ticketPrivateKey config value.");
-            }
-            var key = FromBase64Url(c.ticketPrivateKey);
-
-            //Cypher mode is AES 256 CBC
+            // Cypher mode is AES 256 CBC
             // See : https://github.com/gogcom/galaxy-session-tickets-php/blob/master/src/GOG/SessionTickets/OpenSSLSessionTicketDecoder.php
-            using (RijndaelManaged alg = new RijndaelManaged())
+            // https://docs.microsoft.com/fr-fr/dotnet/api/system.security.cryptography.aes?view=net-6.0
+
+            if (ticket == null || ticket.Length <= 0)
             {
-
-                var iv = ticket.AsSpan(0, IV_SIZE).ToArray();
-                alg.IV = iv;
-                alg.KeySize = 256;
-                alg.Key = key;
-                alg.Mode = CipherMode.CBC;
-                alg.Padding = PaddingMode.Zeros;
-
-
-
-                using (var decryptor = alg.CreateDecryptor())
-                using (MemoryStream msDecrypt = new MemoryStream(ticket, IV_SIZE, ticket.Length - IV_SIZE))
-                using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
-                using (StreamReader srDecrypt = new StreamReader(csDecrypt))
-                {
-                    return srDecrypt.ReadToEnd();
-                }
+                throw new ArgumentNullException("ticket");
             }
+
+            var c = _config.GetValue<GalaxyConfiguration>("galaxy");
+            var ticketPrivateKeyPath = c.ticketPrivateKey;
+            if (string.IsNullOrWhiteSpace(ticketPrivateKeyPath))
+            {
+                throw new InvalidOperationException("TicketPrivateKeyPath is not set in config.");
+            }
+            var ticketPrivateKey = await GetTicketPrivateKey(ticketPrivateKeyPath);
+
+            var key = FromBase64Url(ticketPrivateKey);
+            if (key == null || key.Length <= 0)
+            {
+                throw new InvalidOperationException("key is invalid.");
+            }
+
+            var IV = ticket.AsSpan(0, IV_SIZE).ToArray();
+
+            if (IV == null || IV.Length <= 0)
+            {
+                throw new ArgumentNullException("IV is invalid.");
+            }
+
+            var cipherPayload = ticket.AsSpan(IV_SIZE).ToArray();
+
+            if (cipherPayload == null || cipherPayload.Length <= 0)
+            {
+                throw new ArgumentNullException("cipher payload is invalid.");
+            }
+
+            using Aes aesAlg = Aes.Create();
+            aesAlg.Key = key;
+            aesAlg.IV = IV;
+            aesAlg.Padding = PaddingMode.Zeros;
+
+            // Create a decryptor to perform the stream transform.
+            ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
+
+            // Create the streams used for decryption.
+            using var msDecrypt = new MemoryStream(cipherPayload);
+            using var csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read);
+            using var srDecrypt = new StreamReader(csDecrypt);
+            // Read the decrypted bytes from the decrypting stream
+            // and place them in a string.
+            string decodedData = srDecrypt.ReadToEnd().TrimEnd('\0');
+
+            if (string.IsNullOrWhiteSpace(decodedData))
+            {
+                throw new InvalidOperationException("Empty decoded data.");
+            }
+
+            return decodedData;
+        }
+
+        private async Task<string> GetTicketPrivateKey(string? ticketPrivateKeyPath)
+        {
+            if (string.IsNullOrWhiteSpace(ticketPrivateKeyPath))
+            {
+                throw new InvalidOperationException("Ticket private key store key is null.");
+            }
+
+            var secret = await _secretsStore.GetSecret(ticketPrivateKeyPath);
+            if (secret == null || secret.Value == null)
+            {
+                throw new InvalidOperationException($"Missing secret '{ticketPrivateKeyPath}' in secrets store.");
+            }
+
+            return Encoding.UTF8.GetString(secret.Value) ?? "";
         }
 
         public async Task<AuthenticationResult> Authenticate(AuthenticationContext authenticationCtx, CancellationToken ct)
         {
+            var pId = new PlatformId { Platform = GalaxyConstants.PLATFORM_NAME };
 
-
-            var pId = new PlatformId { Platform = GalaxyConstants.PROVIDER_NAME };
             if (!authenticationCtx.Parameters.TryGetValue("ticket", out var ticketB64) || string.IsNullOrWhiteSpace(ticketB64))
             {
                 return AuthenticationResult.CreateFailure("Galaxy session ticket must not be empty.", pId, authenticationCtx.Parameters);
             }
 
-
-
-
-
             try
             {
                 var ticketData = FromBase64Url(ticketB64);
-                var plainText = DecryptSessionTicket(ticketData);
+                var decodedData = await DecryptSessionTicket(ticketData);
 
-
-                if(!authenticationCtx.Parameters.TryGetValue("uid", out var id))
+                if (string.IsNullOrWhiteSpace(decodedData))
                 {
-                    return AuthenticationResult.CreateFailure("Galaxy uid must not be empty.", pId, authenticationCtx.Parameters);
+                    throw new InvalidOperationException("Decoded data is null");
                 }
-                authenticationCtx.Parameters.TryGetValue("displayName", out var pseudo);
-                pId.PlatformUserId = id;
 
+                var obj = JsonSerializer.Deserialize<List<object>>(decodedData);
+                if (obj == null)
+                {
+                    throw new InvalidOperationException("Decoded data format.");
+                }
 
+                var galaxyId = obj[0].ToString();
+                if (string.IsNullOrWhiteSpace(galaxyId))
+                {
+                    throw new InvalidOperationException("Can't retrieve galaxyId.");
+                }
 
+                pId.PlatformUserId = galaxyId;
 
-                var user = await users.GetUserByClaim(GalaxyConstants.PROVIDER_NAME, CLAIM_PATH, id);
+                var user = await _userService.GetUserByClaim(GalaxyConstants.PLATFORM_NAME, GalaxyConstants.GALAXYID_CLAIMPATH, galaxyId);
 
                 if (user == null)
                 {
-                    var uid = Guid.NewGuid().ToString("N");
+                    var userId = Guid.NewGuid().ToString("N");
 
+                    var galaxyUserData = new JObject();
+                    galaxyUserData[GalaxyConstants.GALAXYID_CLAIMPATH] = galaxyId;
 
-                    user = await users.CreateUser(uid, JObject.FromObject(new { galaxyUserId = id, pseudo = pseudo ?? "unknown" }), GalaxyConstants.PROVIDER_NAME);
+                    var userData = new JObject();
+                    userData[GalaxyConstants.PLATFORM_NAME] = galaxyUserData;
 
-                    user = await users.AddAuthentication(user, GalaxyConstants.PROVIDER_NAME, claim => claim[CLAIM_PATH] = id, new Dictionary<string, string> { { CLAIM_PATH, id } });
+                    user = await _userService.CreateUser(userId, userData, GalaxyConstants.PLATFORM_NAME);
+                    user = await _userService.AddAuthentication(user, GalaxyConstants.PLATFORM_NAME, claim => claim[GalaxyConstants.GALAXYID_CLAIMPATH] = galaxyId, new Dictionary<string, string> { { GalaxyConstants.GALAXYID_CLAIMPATH, galaxyId } });
                 }
                 else
                 {
-                    var currentPseudo = user.UserData["pseudo"]?.ToObject<string>();
-                    if (currentPseudo == null || currentPseudo != pseudo)
+                    if (user.LastPlatform != GalaxyConstants.PLATFORM_NAME)
                     {
-                        user.UserData["pseudo"] = pseudo;
-                        await users.UpdateUserData(user.Id, user.UserData);
+                        user.LastPlatform = GalaxyConstants.PLATFORM_NAME;
+                        await _userService.UpdateLastPlatform(user.Id, GalaxyConstants.PLATFORM_NAME);
+                    }
+
+                    bool updateUserData = false;
+
+                    var galaxyUserData = user.UserData[GalaxyConstants.PLATFORM_NAME] ?? new JObject();
+
+                    var userDataAccountId = galaxyUserData[GalaxyConstants.GALAXYID_CLAIMPATH];
+                    if (userDataAccountId == null || userDataAccountId.ToString() != galaxyId)
+                    {
+                        galaxyUserData[GalaxyConstants.GALAXYID_CLAIMPATH] = galaxyId;
+                        updateUserData = true;
+                    }
+
+                    if (updateUserData)
+                    {
+                        user.UserData[GalaxyConstants.PLATFORM_NAME] = galaxyUserData;
+                        await _userService.UpdateUserData(user.Id, user.UserData);
                     }
                 }
 
@@ -158,7 +219,7 @@ namespace Stormancer.Server.Plugins.Galaxy
             }
             catch (Exception ex)
             {
-                logger.Log(LogLevel.Debug, "authenticator.galaxy", $"Galaxy authentication failed. Ticket : {ticketB64}", ex);
+                _logger.Log(LogLevel.Debug, "authenticator.galaxy", $"Galaxy authentication failed. Ticket : {ticketB64}", ex);
                 throw;
             }
         }
@@ -175,10 +236,8 @@ namespace Stormancer.Server.Plugins.Galaxy
 
         public Task Unlink(User user)
         {
-            return users.RemoveAuthentication(user, GalaxyConstants.PROVIDER_NAME);
+            return _userService.RemoveAuthentication(user, GalaxyConstants.PLATFORM_NAME);
         }
-
-
 
         internal static byte[] FromBase64Url(string toBeDecoded)
         {
@@ -189,8 +248,7 @@ namespace Stormancer.Server.Plugins.Galaxy
             toBeDecoded = toBeDecoded.Replace('-', '+').Replace('_', '/');
 
             // Base 64 decode
-            byte[] raw = Convert.FromBase64String(toBeDecoded);
-            return raw;
+            return Convert.FromBase64String(toBeDecoded);
         }
 
         internal static string ToBase64Url(byte[] arg)
@@ -206,8 +264,9 @@ namespace Stormancer.Server.Plugins.Galaxy
 
             return s;
         }
+
         private const char Base64PadCharacter = '=';
-        private static string DoubleBase64PadCharacter = String.Format(CultureInfo.InvariantCulture, "{0}{0}", Base64PadCharacter);
+        private static string DoubleBase64PadCharacter = string.Format(CultureInfo.InvariantCulture, "{0}{0}", Base64PadCharacter);
         private const char Base64Character62 = '+';
         private const char Base64Character63 = '/';
         private const char Base64UrlCharacter62 = '-';

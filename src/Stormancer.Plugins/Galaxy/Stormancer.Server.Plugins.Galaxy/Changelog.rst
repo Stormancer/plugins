@@ -15,6 +15,7 @@ Changed
 *******
 - Specify CurrentPlatform when creating an user.
 - Update dependency to Stormancer.Abstraction.Server 7.1.0
+- Implement Auth and profile part builder.
 
 2.0.2.1
 -------

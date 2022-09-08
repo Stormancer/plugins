@@ -10,9 +10,6 @@
 #include "stormancer/StormancerTypes.h"
 #include "stormancer/Utilities/PointerUtilities.h"
 #include "stormancer/Utilities/TaskUtilities.h"
-#include "stormancer/cpprestsdk/cpprest/asyncrt_utils.h"
-#include "stormancer/cpprestsdk/cpprest/json.h"
-#include "stormancer/cpprestsdk/cpprest/http_client.h"
 
 #include "eos_auth.h"
 #include "eos_auth_types.h"
@@ -221,7 +218,7 @@ namespace Stormancer
 					_deploymentId = config->additionalParameters.find(ConfigurationKeys::DeploymentId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::DeploymentId) : "";
 					_clientId = config->additionalParameters.find(ConfigurationKeys::ClientId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ClientId) : "";
 					_clientSecret = config->additionalParameters.find(ConfigurationKeys::ClientSecret) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ClientSecret) : "";
-					_initPlatform = config->additionalParameters.find(ConfigurationKeys::InitPlatform) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::InitPlatform) != "false" : false;
+					_initPlatform = config->additionalParameters.find(ConfigurationKeys::InitPlatform) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::InitPlatform) != "false" : true;
 					_productName = config->additionalParameters.find(ConfigurationKeys::ProductName) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ProductName) : "";
 					_productVersion = config->additionalParameters.find(ConfigurationKeys::ProductVersion) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ProductVersion) : "";
 					_diagnostics = config->additionalParameters.find(ConfigurationKeys::Diagnostics) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::Diagnostics) != "false" : false;
@@ -367,7 +364,7 @@ namespace Stormancer
 				}
 
 				mutable std::recursive_mutex _mutex;
-				bool _initPlatform;
+				bool _initPlatform = true;
 				std::string _productName;
 				std::string _productVersion;
 				bool _authenticationEnabled = true;
@@ -407,7 +404,17 @@ namespace Stormancer
 					{
 						_stoppedTicker = false;
 
-						scheduleTick();
+						if (auto actionDispatcher = _wActionDispatcher.lock())
+						{
+							auto wEpicTicker = STORM_WEAK_FROM_THIS();
+							actionDispatcher->post([wEpicTicker]()
+							{
+								if (auto epicTicker = wEpicTicker.lock())
+								{
+									epicTicker->scheduleTick();
+								}
+							});
+						}
 					}
 				}
 
@@ -423,6 +430,11 @@ namespace Stormancer
 					if (_platformHandle)
 					{
 						EOS_Platform_Tick(_platformHandle);
+					}
+					else
+					{
+						_stoppedTicker = true;
+						return;
 					}
 
 					if (auto actionDispatcher = _wActionDispatcher.lock())
@@ -737,7 +749,7 @@ namespace Stormancer
 				});
 			}
 
-			virtual pplx::task<void> renewCredentials(const Users::CredentialsRenewalContext& context) override
+			pplx::task<void> renewCredentials(const Users::CredentialsRenewalContext& context) override
 			{
 				return getEpicCredentials([context](std::string type, std::string provider, std::string accessToken)
 				{
@@ -848,6 +860,15 @@ namespace Stormancer
 
 			void loginCompleteCallback(const EOS_Auth_LoginCallbackInfo* data)
 			{
+				if (data->ResultCode != EOS_EResult::EOS_Success)
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					_authTce->set_exception(std::runtime_error("Epic login failed : EOS_EResult = " + std::to_string((int32_t)data->ResultCode)));
+					
+					return;
+				}
+
 				std::string accountIdStr = details::EpicPlatformUserId::toString(data->LocalUserId);
 
 				_logger->log(LogLevel::Trace, "EOS SDK", "Login Complete", "User ID: " + accountIdStr);
@@ -866,37 +887,27 @@ namespace Stormancer
 					throw std::runtime_error("Epic auth handle not found");
 				}
 
-				if (data->ResultCode == EOS_EResult::EOS_Success)
+				const int32_t AccountsCount = EOS_Auth_GetLoggedInAccountsCount(authHandle);
+				for (int32_t AccountIdx = 0; AccountIdx < AccountsCount; ++AccountIdx)
 				{
-					const int32_t AccountsCount = EOS_Auth_GetLoggedInAccountsCount(authHandle);
-					for (int32_t AccountIdx = 0; AccountIdx < AccountsCount; ++AccountIdx)
-					{
-						auto accountId2 = EOS_Auth_GetLoggedInAccountByIndex(authHandle, AccountIdx);
+					auto accountId2 = EOS_Auth_GetLoggedInAccountByIndex(authHandle, AccountIdx);
 
-						EOS_ELoginStatus LoginStatus;
-						LoginStatus = EOS_Auth_GetLoginStatus(authHandle, accountId2);
+					EOS_ELoginStatus LoginStatus;
+					LoginStatus = EOS_Auth_GetLoginStatus(authHandle, accountId2);
 
-						std::string accountId2Str = details::EpicPlatformUserId::toString(accountId2);
+					std::string accountId2Str = details::EpicPlatformUserId::toString(accountId2);
 
-						_logger->log(LogLevel::Trace, "EOS SDK", "AccountId=" + accountId2Str + "; Status=" + std::to_string((int32_t)LoginStatus));
-					}
-
-					std::lock_guard<std::recursive_mutex> lg(_mutex);
-
-					_authTce->set(accountIdStr);
+					_logger->log(LogLevel::Trace, "EOS SDK", "AccountId=" + accountId2Str + "; Status=" + std::to_string((int32_t)LoginStatus));
 				}
-				else
-				{
-					std::lock_guard<std::recursive_mutex> lg(_mutex);
 
-					_authTce->set_exception(std::runtime_error("Epic login failed : Result = " + std::to_string((int32_t)data->ResultCode)));
-				}
+				std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+				_authTce->set(accountIdStr);
 			}
 
 			static void EOS_CALL loginCompleteCallbackFn(const EOS_Auth_LoginCallbackInfo* data)
 			{
-				assert(data != NULL);
-				assert(data->ResultCode == EOS_EResult::EOS_Success);
+				assert(data != NULL && data->ClientData != NULL);
 
 				auto wEpicAuthPtr = static_cast<std::weak_ptr<EpicAuthenticationEventHandler>*>(data->ClientData);
 				auto wEpicAuth = *wEpicAuthPtr;

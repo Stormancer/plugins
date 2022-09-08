@@ -33,7 +33,7 @@ namespace Stormancer.Server.Plugins.Profile
     {
         public Task LocateService(ServiceLocationCtx ctx)
         {
-            if(ctx.ServiceType == ProfilePluginConstants.SERVICE_ID)
+            if (ctx.ServiceType == ProfilePluginConstants.SERVICE_ID || ctx.ServiceType == ProfilePluginConstants.SERVICE_ID_DEPRECATED)
             {
                 ctx.SceneId = ProfilePluginConstants.SCENE_ID;
             }

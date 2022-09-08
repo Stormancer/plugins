@@ -25,5 +25,10 @@ namespace Stormancer.Server.Plugins.Profile
         /// Id of the profiles service.
         /// </summary>
         public const string SERVICE_ID = "stormancer.profile";
+
+        /// <summary>
+        /// Id of the profiles service.
+        /// </summary>
+        public const string SERVICE_ID_DEPRECATED = "stormancer.profiles";
     }
 }

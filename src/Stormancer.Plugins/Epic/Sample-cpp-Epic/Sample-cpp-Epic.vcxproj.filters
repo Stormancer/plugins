@@ -20,7 +20,13 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\cpp\Epic.hpp">
+    <ClInclude Include="GameProductConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GameProductConfig.sample.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cpp\Epic.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

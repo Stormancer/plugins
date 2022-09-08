@@ -28,6 +28,7 @@ namespace Stormancer.Server.Plugins.Profile
     class ProfilePlugin : IHostPlugin
     {
         internal const string METADATA_KEY = "stormancer.profile";
+        internal const string METADATA_KEY_DEPRECATED = "stormancer.profiles";
 
         public void Build(HostPluginBuildContext ctx)
         {
@@ -81,6 +82,7 @@ namespace Stormancer
         public static ISceneHost AddProfiles(this ISceneHost scene)
         {
             scene.Metadata[Stormancer.Server.Plugins.Profile.ProfilePlugin.METADATA_KEY] = "enabled";
+            scene.Metadata[Stormancer.Server.Plugins.Profile.ProfilePlugin.METADATA_KEY_DEPRECATED] = "enabled";
             return scene;
         }
     }

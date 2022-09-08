@@ -1,10 +1,4 @@
-﻿using Stormancer.Plugins;
-using Stormancer.Server.Plugins.Users;
-using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Stormancer.Server.Plugins.Galaxy
+﻿namespace Stormancer.Server.Plugins.Galaxy
 {
     /// <summary>
     /// Plugin initialization class.
@@ -18,17 +12,6 @@ namespace Stormancer.Server.Plugins.Galaxy
         public void Run(IAppBuilder builder)
         {
             builder.AddPlugin(new GalaxyPlugin());
-        }
-    }
-
-    internal class GalaxyPlugin : IHostPlugin
-    {
-        public void Build(HostPluginBuildContext ctx)
-        {
-            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
-              {
-                  builder.Register<GalaxyAuthenticationProvider>().As<IAuthenticationProvider>();
-              };
         }
     }
 }
