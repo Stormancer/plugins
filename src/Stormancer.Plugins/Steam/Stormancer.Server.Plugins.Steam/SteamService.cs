@@ -72,6 +72,86 @@ namespace Stormancer.Server.Plugins.Steam
         }
     }
 
+    internal class SteamKeyStore : IConfigurationChangedEventHandler
+    {
+        private readonly IConfiguration configuration;
+        private readonly ISecretsStore secretsStore;
+        private readonly ILogger _logger;
+        private Task<string> _apiKeyTask = Task.FromResult("");
+        private Task<string> _lobbyMetadataBearerTokenKeyTask = Task.FromResult("");
+
+        public Task<string> GetApiKeyAsync()
+        {
+            return _apiKeyTask;
+        }
+
+        public Task<string> GetLobbyMetadataBearerTokenKey()
+        {
+            return _lobbyMetadataBearerTokenKeyTask;
+        }
+
+        private async Task<string> RetrieveApiKey(string? apiKeyPath)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(apiKeyPath))
+                {
+                    throw new InvalidOperationException("Missing 'steam.apiKey' secrets store path in config");
+                }
+
+                var secret = await secretsStore.GetSecret(apiKeyPath);
+                if (secret == null || secret.Value == null)
+                {
+                    throw new InvalidOperationException($"Missing Steam ApiKey in secrets store path '{apiKeyPath}'");
+                }
+
+                return Encoding.UTF8.GetString(secret.Value) ?? "";
+            }
+            catch (Exception ex)
+            {
+                _logger.Log(LogLevel.Error, "steam", $"Calls to Steam Web API will fail : {ex.Message}", new { });
+                return "";
+            }
+        }
+
+        private async Task<string> GetLobbyMetadataBearerTokenKey(string? lobbyMetadataBearerTokenKeyPath)
+        {
+            if (string.IsNullOrWhiteSpace(lobbyMetadataBearerTokenKeyPath))
+            {
+                throw new InvalidOperationException("Missing 'steam.lobbyMetadataBearerTokenKey' secrets store path in config");
+            }
+
+            var secret = await secretsStore.GetSecret(lobbyMetadataBearerTokenKeyPath);
+            if (secret == null || secret.Value == null)
+            {
+                var key = new byte[32];
+                RandomNumberGenerator.Fill(key);
+                secret = await secretsStore.SetSecret(lobbyMetadataBearerTokenKeyPath, key);
+            }
+
+            return Encoding.UTF8.GetString(secret.Value!) ?? "";
+        }
+
+        public SteamKeyStore(IConfiguration configuration, ISecretsStore secretsStore, ILogger logger)
+        {
+            this.configuration = configuration;
+            this.secretsStore = secretsStore;
+            this._logger = logger;
+            OnConfigurationChanged();
+        }
+        public void OnConfigurationChanged()
+        {
+            var config = configuration.Settings;
+            if (!string.IsNullOrWhiteSpace((string?)config?.steam?.apiKey))
+            {
+                _apiKeyTask = RetrieveApiKey((string?)config?.steam?.apiKey);
+            }
+            if (!string.IsNullOrWhiteSpace((string?)config?.steam?.lobbyMetadataBearerTokenKey))
+            {
+                _lobbyMetadataBearerTokenKeyTask = GetLobbyMetadataBearerTokenKey((string?)config?.steam?.lobbyMetadataBearerTokenKey);
+            }
+        }
+    }
     internal class SteamService : ISteamService
     {
         private const string ApiRoot = "https://partner.steam-api.com";
@@ -80,12 +160,11 @@ namespace Stormancer.Server.Plugins.Steam
 
         private bool _usemockup;
         private uint _appId;
-        private Task<string> _apiKeyTask = Task.FromResult("");
-        private Task<string> _lobbyMetadataBearerTokenKeyTask = Task.FromResult("");
+        
 
         private readonly ILogger _logger;
         private readonly IUserSessions _userSessions;
-        private readonly ISecretsStore _secretsStore;
+        private readonly SteamKeyStore keyStore;
         private static Random random = new Random();
 
         public static HttpClient client = new HttpClient();
@@ -96,12 +175,13 @@ namespace Stormancer.Server.Plugins.Steam
         /// <param name="configuration"></param>
         /// <param name="logger"></param>
         /// <param name="userSessions"></param>
-        /// <param name="secretsStore"></param>
-        public SteamService(IConfiguration configuration, ILogger logger, IUserSessions userSessions, ISecretsStore secretsStore)
+        /// <param name="keyStore"></param>
+        public SteamService(IConfiguration configuration, ILogger logger, IUserSessions userSessions,SteamKeyStore keyStore)
         {
             _logger = logger;
             _userSessions = userSessions;
-            _secretsStore = secretsStore;
+            this.keyStore = keyStore;
+           
 
             ApplyConfig(configuration.Settings);
         }
@@ -110,49 +190,10 @@ namespace Stormancer.Server.Plugins.Steam
         {
             _usemockup = (bool?)config?.steam?.usemockup ?? false;
             _appId = (uint?)config?.steam?.appId ?? (uint)0;
-            if (!string.IsNullOrWhiteSpace((string?)config?.steam?.apiKey))
-            {
-                _apiKeyTask = GetApiKey((string?)config?.steam?.apiKey);
-            }
-            if (!string.IsNullOrWhiteSpace((string?)config?.steam?.lobbyMetadataBearerTokenKey))
-            {
-                _lobbyMetadataBearerTokenKeyTask = GetLobbyMetadataBearerTokenKey((string?)config?.steam?.lobbyMetadataBearerTokenKey);
-            }
+           
         }
 
-        private async Task<string> GetApiKey(string? apiKeyPath)
-        {
-            if (string.IsNullOrWhiteSpace(apiKeyPath))
-            {
-                throw new InvalidOperationException("Missing 'steam.apiKey' secrets store path in config");
-            }
-
-            var secret = await _secretsStore.GetSecret(apiKeyPath);
-            if (secret == null || secret.Value == null)
-            {
-                throw new InvalidOperationException($"Missing Steam ApiKey in secrets store '{apiKeyPath}'");
-            }
-
-            return Encoding.UTF8.GetString(secret.Value) ?? "";
-        }
-
-        private async Task<string> GetLobbyMetadataBearerTokenKey(string? lobbyMetadataBearerTokenKeyPath)
-        {
-            if (string.IsNullOrWhiteSpace(lobbyMetadataBearerTokenKeyPath))
-            {
-                throw new InvalidOperationException("Missing 'steam.lobbyMetadataBearerTokenKey' secrets store path in config");
-            }
-
-            var secret = await _secretsStore.GetSecret(lobbyMetadataBearerTokenKeyPath);
-            if (secret == null || secret.Value == null)
-            {
-                var key = new byte[32];
-                RandomNumberGenerator.Fill(key);
-                secret = await _secretsStore.SetSecret(lobbyMetadataBearerTokenKeyPath, key);
-            }
-
-            return Encoding.UTF8.GetString(secret.Value!) ?? "";
-        }
+        
 
         public async Task<ulong?> AuthenticateUserTicket(string ticket)
         {
@@ -163,7 +204,7 @@ namespace Stormancer.Server.Plugins.Steam
 
             const string AuthenticateUri = "ISteamUserAuth/AuthenticateUserTicket/v0001/";
 
-            var apiKey = await _apiKeyTask;
+            var apiKey = await keyStore.GetApiKeyAsync();
             if (string.IsNullOrWhiteSpace(apiKey))
             {
                 throw new InvalidOperationException("Steam Api Key is invalid");
@@ -208,7 +249,7 @@ namespace Stormancer.Server.Plugins.Steam
 
         public async Task<string> OpenVACSession(string steamId)
         {
-            var apiKey = await _apiKeyTask;
+            var apiKey = await keyStore.GetApiKeyAsync();
             if (string.IsNullOrWhiteSpace(apiKey))
             {
                 throw new InvalidOperationException("Steam Api Key is invalid");
@@ -239,7 +280,7 @@ namespace Stormancer.Server.Plugins.Steam
 
         public async Task CloseVACSession(string steamId, string sessionId)
         {
-            var apiKey = await _apiKeyTask;
+            var apiKey = await keyStore.GetApiKeyAsync();
             if (string.IsNullOrWhiteSpace(apiKey))
             {
                 throw new InvalidOperationException("Steam Api Key is invalid");
@@ -268,7 +309,7 @@ namespace Stormancer.Server.Plugins.Steam
 
         public async Task<bool> RequestVACStatusForUser(string steamId, string sessionId)
         {
-            var apiKey = await _apiKeyTask;
+            var apiKey = await keyStore.GetApiKeyAsync();
             if (string.IsNullOrWhiteSpace(apiKey))
             {
                 throw new InvalidOperationException("Steam Api Key is invalid");
@@ -310,7 +351,7 @@ namespace Stormancer.Server.Plugins.Steam
             var steamIdsWithoutRepeat = steamIds.Distinct().ToList();
             Dictionary<ulong, SteamPlayerSummary> result = new Dictionary<ulong, SteamPlayerSummary>();
 
-            var apiKey = await _apiKeyTask;
+            var apiKey = await keyStore.GetApiKeyAsync();
             if (string.IsNullOrWhiteSpace(apiKey))
             {
                 throw new InvalidOperationException("Steam Api Key is invalid");
@@ -345,7 +386,7 @@ namespace Stormancer.Server.Plugins.Steam
 
         public async Task<IEnumerable<SteamFriend>> GetFriendListFromWebApi(ulong steamId, uint maxFriendsCount = uint.MaxValue)
         {
-            var apiKey = await _apiKeyTask;
+            var apiKey = await keyStore.GetApiKeyAsync();
             if (string.IsNullOrWhiteSpace(apiKey))
             {
                 throw new InvalidOperationException("Steam Api Key is invalid");
@@ -418,7 +459,7 @@ namespace Stormancer.Server.Plugins.Steam
             };
             var input_json = JsonConvert.SerializeObject(createLobbyInputJson, Formatting.None, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
 
-            var apiKey = await _apiKeyTask;
+            var apiKey = await keyStore.GetApiKeyAsync();
             if (string.IsNullOrWhiteSpace(apiKey))
             {
                 throw new InvalidOperationException("Steam Api Key is invalid");
@@ -465,7 +506,7 @@ namespace Stormancer.Server.Plugins.Steam
             };
             var input_json = JsonConvert.SerializeObject(removeUserFromLobbyInputJson, Formatting.None, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
 
-            var apiKey = await _apiKeyTask;
+            var apiKey = await keyStore.GetApiKeyAsync();
             if (string.IsNullOrWhiteSpace(apiKey))
             {
                 throw new InvalidOperationException("Steam Api Key is invalid");
@@ -483,13 +524,13 @@ namespace Stormancer.Server.Plugins.Steam
 
         public async Task<Dictionary<string, PartyDataDto>> DecodePartyDataBearerTokens(Dictionary<string, string> tokens)
         {
-            var lobbyMetadataBearerTokenKey = await _lobbyMetadataBearerTokenKeyTask;
+            var lobbyMetadataBearerTokenKey = await keyStore.GetLobbyMetadataBearerTokenKey();
             return tokens.ToDictionary(kvp => kvp.Key, kvp => TokenGenerator.DecodeToken<PartyDataDto>(kvp.Value, lobbyMetadataBearerTokenKey));
         }
 
         public async Task<string> CreatePartyDataBearerToken(string partyId, string leaderUserId, ulong leaderSteamId)
         {
-            var lobbyMetadataBearerTokenKey = await _lobbyMetadataBearerTokenKeyTask;
+            var lobbyMetadataBearerTokenKey = await keyStore.GetLobbyMetadataBearerTokenKey();
             return TokenGenerator.CreateToken(new PartyDataDto { PartyId = partyId, LeaderUserId = leaderUserId, LeaderSteamId = leaderSteamId }, lobbyMetadataBearerTokenKey);
         }
 

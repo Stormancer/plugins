@@ -87,6 +87,11 @@ namespace Stormancer.Server.Plugins.Api.S2SProxyGenerator
         /// <param name="context"></param>
         public void Execute(GeneratorExecutionContext context)
         {
+            if (!context.AnalyzerConfigOptions.GlobalOptions.TryGetValue("build_property.RootNamespace", out var rootNamespace))
+            {
+                return;
+            }
+
             //Debugger.Launch();
 
             var s2sApiAttribute = GetSymbol<S2SApiAttribute>(context);
@@ -126,8 +131,10 @@ namespace Stormancer.Server.Plugins.Api.S2SProxyGenerator
 
             buffer.Clear();
             buffer.Append(@"using Stormancer.Plugins;
-
-namespace Stormancer.Server.Codegen
+using Stormancer;
+");
+            buffer.Append($"namespace {rootNamespace}");
+            buffer.Append(@"
 {
     /// <summary>
     /// Entry point class for code generated S2S proxy classes.

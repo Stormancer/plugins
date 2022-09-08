@@ -406,7 +406,6 @@ namespace Stormancer.Server.Plugins.Users
         private readonly IEnvironment env;
         private readonly ISceneHost _scene;
         private readonly ILogger logger;
-        private readonly RpcService rpcService;
         private readonly IUserService _userService;
 
 
@@ -417,18 +416,18 @@ namespace Stormancer.Server.Plugins.Users
             ISerializer serializer,
             IESClientFactory eSClientFactory,
             IEnvironment env,
-            ISceneHost scene, ILogger logger,
-            RpcService rpcService)
+            ISceneHost scene,
+            ILogger logger)
         {
             _esClientFactory = eSClientFactory;
             _userService = userService;
-
+            this.repository = repository;
             _eventHandlers = eventHandlers;
             _scene = scene;
             this.serializer = serializer;
             this.env = env;
             this.logger = logger;
-            this.rpcService = rpcService;
+
         }
 
         public async Task<User?> GetUser(IScenePeerClient peer, CancellationToken cancellationToken)
@@ -488,7 +487,7 @@ namespace Stormancer.Server.Plugins.Users
                 AuthenticatorUrl = await GetAuthenticatorUrl(),
                 Version = 0
             };
-            if (repository.AddOrUpdateSessionRecord(session, -1))
+            if (repository.AddOrUpdateSessionRecord(session, null))
             {
 
                 var loginContext = new LoginContext { Session = session, Client = peer };

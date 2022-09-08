@@ -44,7 +44,7 @@ namespace Stormancer.Server.Plugins.Queries
                             yield return new DoubleField($"{prefix}.{fieldName}", field.ToObject<double>(), Field.Store.NO);
                             break;
                         case JTokenType.Object:
-                            foreach (var indexedField in JsonMapper($"{prefix}.{fieldName}", (JObject)document))
+                            foreach (var indexedField in JsonMapper($"{prefix}.{fieldName}", (JObject)field))
                             {
                                 yield return indexedField;
                             }

@@ -14,7 +14,7 @@ namespace Stormancer
 	{
 		struct Profile
 		{
-			std::unordered_map<std::string, std::string> data;
+			std::unordered_map < std::string, std::shared_ptr<std::string>> data;
 		};
 
 		class ProfileApi
@@ -113,7 +113,7 @@ namespace Stormancer
 		{
 			struct ProfileDto
 			{
-				std::unordered_map<std::string, std::string> data;
+				std::unordered_map<std::string, std::shared_ptr<std::string>> data;
 				MSGPACK_DEFINE(data);
 			};
 
