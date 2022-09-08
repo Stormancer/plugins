@@ -466,11 +466,13 @@ namespace Stormancer.Server.Plugins.GameSession
                 return;
             }
 
-
-
-            if (!_config.Public && !_config.UserIds.Contains(user))
+            lock (syncRoot)
             {
-                throw new ClientException("You are not authorized to join this game.");
+
+                if (!_config.Public && !_config.UserIds.Any(u => u == user))
+                {
+                    throw new ClientException("You are not authorized to join this game.");
+                }
             }
 
             var client = new Client(peer);
@@ -993,6 +995,9 @@ namespace Stormancer.Server.Plugins.GameSession
 
             gameSessionConfigUpdater(_config);
         }
+
+        private object syncRoot = new object();
+
         #region Reservations
         public async Task<GameSessionReservation?> CreateReservationAsync(Team team, JObject args, CancellationToken cancellationToken)
         {
@@ -1022,35 +1027,37 @@ namespace Stormancer.Server.Plugins.GameSession
 
             if (ctx.Accept)
             {
-
-                var currentTeam = _config.Teams.FirstOrDefault(t => t.TeamId == team.TeamId);
-
-                if (currentTeam != null)
+                lock (syncRoot)
                 {
-                    foreach (var party in team.Parties)
+                    var currentTeam = _config.Teams.FirstOrDefault(t => t.TeamId == team.TeamId);
+
+                    if (currentTeam != null)
                     {
-                        var currentParty = currentTeam.Parties.FirstOrDefault(p => p.PartyId == party.PartyId);
-                        if (currentParty != null)
+                        foreach (var party in team.Parties)
                         {
-                            foreach (var player in party.Players)
+                            var currentParty = currentTeam.Parties.FirstOrDefault(p => p.PartyId == party.PartyId);
+                            if (currentParty != null)
                             {
-                                currentParty.Players.TryAdd(player.Key, player.Value);
-                                reservationState.UserIds.Add(player.Key);
+                                foreach (var player in party.Players)
+                                {
+                                    currentParty.Players.TryAdd(player.Key, player.Value);
+                                    reservationState.UserIds.Add(player.Key);
+                                }
+                            }
+                            else
+                            {
+                                currentTeam.Parties.Add(party);
+                                reservationState.UserIds.AddRange(party.Players.Keys);
                             }
                         }
-                        else
-                        {
-                            currentTeam.Parties.Add(party);
-                            reservationState.UserIds.AddRange(party.Players.Keys);
-                        }
                     }
+                    else
+                    {
+                        _config.Teams.Add(team);
+                        reservationState.UserIds.AddRange(team.AllPlayers.Select(p => p.UserId));
+                    }
+                    _reservationStates.TryAdd(reservationState.ReservationId, reservationState);
                 }
-                else
-                {
-                    _config.Teams.Add(team);
-                    reservationState.UserIds.AddRange(team.AllPlayers.Select(p => p.UserId));
-                }
-                _reservationStates.TryAdd(reservationState.ReservationId, reservationState);
                 var createdCtx = new CreatedReservationContext(team, args, reservationState.ReservationId);
 
                 await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
@@ -1070,12 +1077,15 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             if (_reservationStates.TryRemove(Guid.Parse(id), out var reservationState))
             {
-                var ids = new List<(string, string)>();
-                foreach (var userId in reservationState.UserIds)
+                lock (syncRoot)
                 {
-                    if (TryRemoveUserFromConfig(userId, out var teamId))
+                    var ids = new List<(string, string)>();
+                    foreach (var userId in reservationState.UserIds)
                     {
-                        ids.Add((teamId, userId));
+                        if (TryRemoveUserFromConfig(userId, out var teamId))
+                        {
+                            ids.Add((teamId, userId));
+                        }
                     }
                 }
 
