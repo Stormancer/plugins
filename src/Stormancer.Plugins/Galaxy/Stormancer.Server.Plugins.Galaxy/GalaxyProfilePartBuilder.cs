@@ -68,7 +68,8 @@ namespace Stormancer.Server.Plugins.Galaxy
             }
 
             Dictionary<string, UserInfo> userInfos = new();
-            if (ctx.DisplayOptions["user"] == "details" || ctx.DisplayOptions[GalaxyConstants.PLATFORM_NAME] == "details")
+            if ((hasProfilePartUser && ctx.DisplayOptions["user"] == "details")
+                || (hasProfilePartGalaxy && ctx.DisplayOptions[GalaxyConstants.PLATFORM_NAME] == "details"))
             {
                 List<string> galaxyIds = new();
                 foreach (var user in users)

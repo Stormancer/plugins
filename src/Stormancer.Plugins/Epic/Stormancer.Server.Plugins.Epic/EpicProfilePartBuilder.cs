@@ -67,7 +67,8 @@ namespace Stormancer.Server.Plugins.Epic
             }
 
             Dictionary<string, Account> accounts = new();
-            if (ctx.DisplayOptions["user"] == "details" || ctx.DisplayOptions[EpicConstants.PLATFORM_NAME] == "details")
+            if ((hasProfilePartUser && ctx.DisplayOptions["user"] == "details")
+                || (hasProfilePartEpic && ctx.DisplayOptions[EpicConstants.PLATFORM_NAME] == "details"))
             {
                 List<string> accountIds = new();
                 foreach (var user in users)
