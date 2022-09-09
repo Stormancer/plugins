@@ -249,7 +249,7 @@ namespace Stormancer.Server.Plugins.Users
                     return document;
                 })
             .WhereNotNull().ToList();
-
+            result.Total = (uint)docs.TotalHits;
             return result;
 
 
