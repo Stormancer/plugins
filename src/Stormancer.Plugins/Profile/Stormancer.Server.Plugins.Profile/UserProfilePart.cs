@@ -63,14 +63,18 @@ namespace Stormancer.Server.Plugins.Profile
                             j["platforms"] = new JObject();
                         }
 
-                        if (!j.ContainsKey("handle") && user.UserData.ContainsKey("handle"))
+                        if (!j.ContainsKey("pseudo"))
                         {
-                            j["userhandle"] = user.UserData["handle"];
-                        }
-
-                        if (!j.ContainsKey("pseudo") && user.UserData.ContainsKey("pseudo"))
-                        {
-                            j["pseudo"] = user.UserData["pseudo"];
+                            if (user.UserData.ContainsKey("pseudo"))
+                            {
+                                j["pseudo"] = user.UserData["pseudo"];
+                            }
+                            else if (user.UserData.ContainsKey("handle"))
+                            {
+                                j["pseudo"] = user.UserData["handle"];
+                                j["platforms"]![DeviceIdentifierConstants.PROVIDER_NAME] = new JObject();
+                                j["platforms"]![DeviceIdentifierConstants.PROVIDER_NAME]![DeviceIdentifierConstants.ClaimPath] = user.UserData["handle"];
+                            }
                         }
                     }
                     return j;
