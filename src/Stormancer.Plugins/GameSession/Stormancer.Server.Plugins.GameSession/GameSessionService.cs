@@ -1077,9 +1077,10 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             if (_reservationStates.TryRemove(Guid.Parse(id), out var reservationState))
             {
+                var ids = new List<(string, string)>();
                 lock (syncRoot)
                 {
-                    var ids = new List<(string, string)>();
+                   
                     foreach (var userId in reservationState.UserIds)
                     {
                         if (TryRemoveUserFromConfig(userId, out var teamId))
