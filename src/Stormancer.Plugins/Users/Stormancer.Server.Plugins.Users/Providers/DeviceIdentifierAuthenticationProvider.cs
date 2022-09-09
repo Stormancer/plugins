@@ -20,16 +20,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json.Linq;
+using Stormancer.Diagnostics;
+using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Stormancer.Core;
-using Stormancer.Diagnostics;
-using Newtonsoft.Json.Linq;
 using System.Threading;
-using Stormancer.Server.Plugins.Users;
+using System.Threading.Tasks;
 
 namespace Stormancer
 {
@@ -54,12 +51,10 @@ namespace Stormancer
             var b = new DeviceIdentifierConfigurationBuilder();
 
             b = builder(b);
-            config.Settings[DeviceIdentifierAuthenticationProvider.PROVIDER_NAME] = JObject.FromObject(b);
+            config.Settings[DeviceIdentifierConstants.PROVIDER_NAME] = JObject.FromObject(b);
             return config;
         }
-       
     }
-
 }
 
 namespace Stormancer.Server.Plugins.Users
@@ -69,18 +64,30 @@ namespace Stormancer.Server.Plugins.Users
     /// </summary>
     public class DeviceIdentifierConfigurationBuilder : AuthProviderConfigurationBuilderBase<DeviceIdentifierConfigurationBuilder>
     {
-        
     }
 
+    /// <summary>
+    /// Device identifier constants.
+    /// </summary>
+    public static class DeviceIdentifierConstants
+    {
+        /// <summary>
+        /// Provider name.
+        /// </summary>
+        public const string PROVIDER_NAME = "deviceidentifier";
+
+        /// <summary>
+        /// Claim path.
+        /// </summary>
+        public const string ClaimPath = "deviceid";
+    }
 
     internal class DeviceIdentifierAuthenticationProvider : IAuthenticationProvider
     {
-        public const string PROVIDER_NAME = "deviceidentifier";
-        private const string ClaimPath = "deviceid";
         private readonly ILogger _logger;
         private readonly IUserService _users;
 
-        public string Type => PROVIDER_NAME;
+        public string Type => DeviceIdentifierConstants.PROVIDER_NAME;
 
         public DeviceIdentifierAuthenticationProvider(IUserService users, ILogger logger)
         {
@@ -95,14 +102,14 @@ namespace Stormancer.Server.Plugins.Users
 
         public async Task<AuthenticationResult> Authenticate(AuthenticationContext authenticationCtx, CancellationToken ct)
         {
-            var pId = new PlatformId { Platform = PROVIDER_NAME };
+            var pId = new PlatformId { Platform = DeviceIdentifierConstants.PROVIDER_NAME };
 
             if (!authenticationCtx.Parameters.TryGetValue("deviceidentifier", out var identifier))
             {
                 return AuthenticationResult.CreateFailure("Device identifier must not be empty.", pId, authenticationCtx.Parameters);
             }
 
-            var user = await _users.GetUserByClaim(PROVIDER_NAME, ClaimPath, identifier);
+            var user = await _users.GetUserByClaim(DeviceIdentifierConstants.PROVIDER_NAME, DeviceIdentifierConstants.ClaimPath, identifier);
 
             if (user != null && authenticationCtx.CurrentSession?.User != null && authenticationCtx.CurrentSession.User.Id != user.Id)
             {
@@ -112,17 +119,22 @@ namespace Stormancer.Server.Plugins.Users
             if (user == null)
             {
                 var uid = Guid.NewGuid().ToString("N");
-                user = await _users.CreateUser(uid, JObject.FromObject(new { deviceidentifier = identifier }), PROVIDER_NAME);
+                user = await _users.CreateUser(uid, JObject.FromObject(new { deviceidentifier = identifier }), DeviceIdentifierConstants.PROVIDER_NAME);
 
-
-                user = await _users.AddAuthentication(user, PROVIDER_NAME, claim => claim[ClaimPath] = identifier, new Dictionary<string, string> { { ClaimPath, identifier } });
+                user = await _users.AddAuthentication(user, DeviceIdentifierConstants.PROVIDER_NAME, claim => claim[DeviceIdentifierConstants.ClaimPath] = identifier, new Dictionary<string, string> { { DeviceIdentifierConstants.ClaimPath, identifier } });
             }
-
+            else
+            {
+                if (user.LastPlatform != DeviceIdentifierConstants.PROVIDER_NAME)
+                {
+                    await _users.UpdateLastPlatform(user.Id, DeviceIdentifierConstants.PROVIDER_NAME);
+                    user.LastPlatform = DeviceIdentifierConstants.PROVIDER_NAME;
+                }
+            }
 
             pId.PlatformUserId = user.Id;
 
             return AuthenticationResult.CreateSuccess(user, pId, authenticationCtx.Parameters);
-
         }
 
         public Task Setup(Dictionary<string, string> parameters, Session? session)
@@ -137,7 +149,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public Task Unlink(User user)
         {
-            return _users.RemoveAuthentication(user, PROVIDER_NAME);
+            return _users.RemoveAuthentication(user, DeviceIdentifierConstants.PROVIDER_NAME);
         }
 
         public Task<DateTime?> RenewCredentials(AuthenticationContext authenticationContext)
