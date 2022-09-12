@@ -572,7 +572,12 @@ namespace Stormancer.Server.Plugins.GameSession
 
             var userId = client.Key;
 
-            _analytics.Push("gamesession", "playerJoined", JObject.FromObject(new { userId, gameSessionId = this._scene.Id, sessionId = peer.SessionId }));
+            _analytics.Push("gamesession", "playerJoined", JObject.FromObject(new
+            {
+                userId,
+                gameSessionId = this._scene.Id,
+                sessionId = peer.SessionId.ToString()
+            }));
             //Check if the gameSession is Dedicated or listen-server            
 
             // If the host is not defined a P2P was sent with "" to notify client is host.
@@ -719,7 +724,11 @@ namespace Stormancer.Server.Plugins.GameSession
                 throw new ArgumentNullException(nameof(peer));
             }
 
-            _analytics.Push("gamesession", "playerLeft", JObject.FromObject(new { sessionId = peer.SessionId, gameSessionId = this._scene.Id }));
+            _analytics.Push("gamesession", "playerLeft", JObject.FromObject(new
+            {
+                sessionId = peer.SessionId.ToString(),
+                gameSessionId = this._scene.Id
+            }));
 
             Client? client = null;
             string? userId = null;
@@ -1080,7 +1089,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 var ids = new List<(string, string)>();
                 lock (syncRoot)
                 {
-                   
+
                     foreach (var userId in reservationState.UserIds)
                     {
                         if (TryRemoveUserFromConfig(userId, out var teamId))
