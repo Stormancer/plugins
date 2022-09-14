@@ -12,19 +12,41 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.RemoteControl
 {
+    /// <summary>
+    /// Provides API to interact with remote agents.
+    /// </summary>
     public interface IRemoteControlService
     {
-        IAsyncEnumerable<AgentCommandOutputEntry> RunCommandAsync(string command, IEnumerable<SessionId> agents, CancellationToken cancellationToken);
+        /// <summary>
+        /// Runs commands on a set of agents.
+        /// </summary>
+        /// <param name="command"></param>
+        /// <param name="agents"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        IAsyncEnumerable<IEnumerable<AgentCommandOutputEntry>> RunCommandAsync(string command, IEnumerable<SessionId> agents, CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Searches for agents.
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="size"></param>
+        /// <param name="skip"></param>
+        /// <returns></returns>
         SearchResult<Agent> SearchAgents(JObject query, uint size = 20, uint skip = 0);
 
-
+        /// <summary>
+        /// Gets agents.
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <returns></returns>
         Dictionary<SessionId, Agent?> GetAgents(IEnumerable<SessionId> ids);
     }
     internal class RemoteControlService : IRemoteControlService
@@ -43,7 +65,7 @@ namespace Stormancer.Server.Plugins.RemoteControl
         public Dictionary<SessionId, Agent?> GetAgents(IEnumerable<SessionId> ids) => _agents.GetAgents(ids);
 
 
-        public async IAsyncEnumerable<AgentCommandOutputEntry> RunCommandAsync(string command, IEnumerable<SessionId> agentIds, CancellationToken cancellationToken)
+        public async IAsyncEnumerable<IEnumerable<AgentCommandOutputEntry>> RunCommandAsync(string command, IEnumerable<SessionId> agentIds,[EnumeratorCancellation] CancellationToken cancellationToken)
         {
             var agents = _agents.GetAgents(agentIds);
 
@@ -56,60 +78,60 @@ namespace Stormancer.Server.Plugins.RemoteControl
             }
 
 
-            async IAsyncEnumerable<AgentCommandOutputEntry> RunCommand(Agent agent, string command, CancellationToken cancellationToken)
+            async IAsyncEnumerable<IEnumerable<AgentCommandOutputEntry>> RunCommand(Agent agent, string command,[EnumeratorCancellation] CancellationToken cancellationToken)
             {
                 try
                 {
                     agent.RunningCommand = new AgentRunningCommand(Guid.NewGuid().ToString(), command, DateTime.UtcNow);
                     var rpc = sceneHost.DependencyResolver.Resolve<RpcService>();
-                    var peer = sceneHost.RemotePeers.FirstOrDefault(p => p.SessionId == agent.SessionId.ToString());
+                    var peer = sceneHost.RemotePeers.FirstOrDefault(p => p.SessionId == agent.SessionId);
                     if (peer != null)
                     {
-                        await foreach (var dto in rpc.Rpc("runCommand", peer, s => serializer.Serialize(command, s), PacketPriority.MEDIUM_PRIORITY, cancellationToken).Select(p =>
+                        await foreach (var block in rpc.Rpc("runCommand", peer, s => serializer.Serialize(command, s), PacketPriority.MEDIUM_PRIORITY, cancellationToken).Select(p =>
                         {
                             using (p)
                             {
-                                return p.ReadObject<AgentCommandOutputEntryDto>();
+                                return p.ReadObject<IEnumerable<AgentCommandOutputEntryDto>>();
                             }
                         }).ToAsyncEnumerable())
                         {
 
-
-
-                            JObject? content = null;
-                            string? error = null;
-
-                            try
+                            yield return block.Select(dto =>
                             {
+                                JObject? content = null;
+                                string? error = null;
 
-                                content = JObject.Parse(dto.ResultJson);
-                            }
-                            catch (Exception ex)
-                            {
-                                error = ex.ToString();
-                            }
-
-                            if (content is not null)
-                            {
-                                yield return new AgentCommandOutputEntry
+                                try
                                 {
-                                    SessionId = agent.SessionId,
-                                    AgentName = agent.Name,
-                                    Result = JObject.Parse(dto.ResultJson),
-                                    Type = dto.Type
-                                };
-                            }
-                            else
-                            {
-                                yield return new AgentCommandOutputEntry
-                                {
-                                    SessionId = agent.SessionId,
-                                    AgentName = agent.Name,
-                                    Result = JObject.FromObject(new { error = error, json = dto.ResultJson }),
-                                    Type = "error"
-                                };
-                            }
 
+                                    content = JObject.Parse(dto.ResultJson);
+                                }
+                                catch (Exception ex)
+                                {
+                                    error = ex.ToString();
+                                }
+
+                                if (content is not null)
+                                {
+                                    return new AgentCommandOutputEntry
+                                    {
+                                        SessionId = agent.SessionId,
+                                        AgentName = agent.Name,
+                                        Result = JObject.Parse(dto.ResultJson),
+                                        Type = dto.Type
+                                    };
+                                }
+                                else
+                                {
+                                    return new AgentCommandOutputEntry
+                                    {
+                                        SessionId = agent.SessionId,
+                                        AgentName = agent.Name,
+                                        Result = JObject.FromObject(new { error = error, json = dto.ResultJson }),
+                                        Type = "error"
+                                    };
+                                }
+                            });
 
 
                         }
@@ -139,32 +161,50 @@ namespace Stormancer.Server.Plugins.RemoteControl
             {
                 return;
             }
-            var agent = new Agent(SessionId.From(session.SessionId), session.platformId.PlatformUserId, (JObject?)session.User.UserData["agentMetadata"] ?? new JObject());
+            var agent = new Agent(session.SessionId, session.platformId.PlatformUserId, (JObject?)session.User.UserData["agentMetadata"] ?? new JObject());
 
             _agents.AddOrUpdateAgent(agent);
         }
 
 
-        internal void DisconnectAgent(string sessionId)
+        internal void DisconnectAgent(SessionId sessionId)
         {
-            _agents.RemoveAgent(SessionId.From(sessionId));
+            _agents.RemoveAgent(sessionId);
         }
 
     }
 
     public class AgentCommandOutputEntryDto
     {
-        public string Type { get; set; }
-        public string ResultJson { get; set; }
+        public string Type { get; set; } = default!;
+        public string ResultJson { get; set; } = default!;
     }
 
+
+    /// <summary>
+    /// Output generated by an agent running a command.
+    /// </summary>
     public class AgentCommandOutputEntry
     {
+        /// <summary>
+        /// Id of the agent.
+        /// </summary>
         public SessionId SessionId { get; set; }
-        public string AgentName { get; set; }
 
-        public string Type { get; set; }
-        public JObject Result { get; set; }
+        /// <summary>
+        /// Name of the agent.
+        /// </summary>
+        public string AgentName { get; set; } = default!;
+
+        /// <summary>
+        /// Type of the message.
+        /// </summary>
+        public string Type { get; set; } = default!;
+
+        /// <summary>
+        /// Data payload of the message.
+        /// </summary>
+        public JObject Result { get; set; } = default!;
     }
 
 
@@ -244,7 +284,7 @@ namespace Stormancer.Server.Plugins.RemoteControl
                 var agent = _agents.TryGetValue(sessionId, out var a) ? a : default;
                 return (id, agent);
             })
-            .Select(tuple => new Document<Agent> { Id = tuple.id, Source = tuple.agent }).ToList();
+            .Select(tuple => new Document<Agent>(tuple.id, tuple.agent)).ToList();
 
             return result;
 

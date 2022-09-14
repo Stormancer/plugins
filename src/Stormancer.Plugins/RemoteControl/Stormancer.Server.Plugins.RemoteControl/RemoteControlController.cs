@@ -41,7 +41,7 @@ namespace Stormancer.Server.Plugins.RemoteControl
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public IAsyncEnumerable<AgentCommandOutputEntry> RunCommand(string command, IEnumerable<SessionId> sessionIds, CancellationToken cancellationToken)
+        public IAsyncEnumerable<IEnumerable<AgentCommandOutputEntry>> RunCommand(string command, IEnumerable<SessionId> sessionIds, CancellationToken cancellationToken)
         {
             return service.RunCommandAsync(command, sessionIds, cancellationToken);
         }
