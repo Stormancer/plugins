@@ -113,12 +113,12 @@ namespace Stormancer.Plugins.RemoteControl
                         }
                         else
                         {
-                            ctx.SendValue(new AgentCommandOutputEntryDto { Type = "error", ResultJson = JObject.FromObject(new { error = $"Command '{name}' not supported." }).ToString() });
+                            AddOutput(new AgentCommandOutputEntryDto { Type = "error", ResultJson = JObject.FromObject(new { error = $"Command '{name}' not supported." }).ToString() });
                         }
                     }
                     catch (Exception ex)
                     {
-                        ctx.SendValue(new AgentCommandOutputEntryDto { Type = "error", ResultJson = JObject.FromObject(new { error = ex.ToString() }).ToString() });
+                        AddOutput(new AgentCommandOutputEntryDto { Type = "error", ResultJson = JObject.FromObject(new { error = ex.ToString() }).ToString() });
                     }
 
                     bool waitForLogs = true;
