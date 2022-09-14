@@ -560,7 +560,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
         public Task UpdateScore(string id, string leaderboardName, Func<ScoreRecord?, Task<ScoreRecord>> updater)
         {
-            return UpdateScores(Enumerable.Repeat(new LeaderboardEntryId(leaderboardName, id),1) }, (i, old) => updater(old));
+            return UpdateScores(Enumerable.Repeat(new LeaderboardEntryId(leaderboardName, id),1) , (i, old) => updater(old));
         }
 
         private Random random = new Random();
