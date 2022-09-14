@@ -438,6 +438,8 @@ namespace Stormancer.Server.Plugins.Database
                 ConnectionSettings.SourceSerializerFactory s = (IElasticsearchSerializer s, IConnectionSettingsValues v) => new JsonNetSerializer(s, v);
 
                 var settings = new ConnectionSettings(connectionPool.Pool, s).DefaultIndex(p.IndexName.ToLowerInvariant()).MaximumRetries(p.maxRetries).MaxRetryTimeout(TimeSpan.FromSeconds(p.retryTimeout));
+                settings = settings.EnableApiVersioningHeader();
+                
                 if (connectionPool?.Credentials?.Basic?.Login != null && connectionPool?.Credentials?.Basic?.Password != null)
                 {
 

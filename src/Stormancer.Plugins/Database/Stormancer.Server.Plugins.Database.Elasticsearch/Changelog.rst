@@ -12,6 +12,7 @@ This project adheres to semantic versioning.
 Unreleased
 ----------
 - Remove dependency to Stormancer.Abstraction.Server
+- updated NEST
 
 Fixed
 *****
