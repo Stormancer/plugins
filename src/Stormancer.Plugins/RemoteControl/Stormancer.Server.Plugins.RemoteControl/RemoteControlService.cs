@@ -31,7 +31,7 @@ namespace Stormancer.Server.Plugins.RemoteControl
         /// <param name="agents"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        IAsyncEnumerable<AgentCommandOutputEntry> RunCommandAsync(string command, IEnumerable<SessionId> agents, CancellationToken cancellationToken);
+        IAsyncEnumerable<IEnumerable<AgentCommandOutputEntry>> RunCommandAsync(string command, IEnumerable<SessionId> agents, CancellationToken cancellationToken);
 
         /// <summary>
         /// Searches for agents.
@@ -65,7 +65,7 @@ namespace Stormancer.Server.Plugins.RemoteControl
         public Dictionary<SessionId, Agent?> GetAgents(IEnumerable<SessionId> ids) => _agents.GetAgents(ids);
 
 
-        public async IAsyncEnumerable<AgentCommandOutputEntry> RunCommandAsync(string command, IEnumerable<SessionId> agentIds,[EnumeratorCancellation] CancellationToken cancellationToken)
+        public async IAsyncEnumerable<IEnumerable<AgentCommandOutputEntry>> RunCommandAsync(string command, IEnumerable<SessionId> agentIds,[EnumeratorCancellation] CancellationToken cancellationToken)
         {
             var agents = _agents.GetAgents(agentIds);
 
@@ -78,7 +78,7 @@ namespace Stormancer.Server.Plugins.RemoteControl
             }
 
 
-            async IAsyncEnumerable<AgentCommandOutputEntry> RunCommand(Agent agent, string command,[EnumeratorCancellation] CancellationToken cancellationToken)
+            async IAsyncEnumerable<IEnumerable<AgentCommandOutputEntry>> RunCommand(Agent agent, string command,[EnumeratorCancellation] CancellationToken cancellationToken)
             {
                 try
                 {
@@ -87,51 +87,51 @@ namespace Stormancer.Server.Plugins.RemoteControl
                     var peer = sceneHost.RemotePeers.FirstOrDefault(p => p.SessionId == agent.SessionId);
                     if (peer != null)
                     {
-                        await foreach (var dto in rpc.Rpc("runCommand", peer, s => serializer.Serialize(command, s), PacketPriority.MEDIUM_PRIORITY, cancellationToken).Select(p =>
+                        await foreach (var block in rpc.Rpc("runCommand", peer, s => serializer.Serialize(command, s), PacketPriority.MEDIUM_PRIORITY, cancellationToken).Select(p =>
                         {
                             using (p)
                             {
-                                return p.ReadObject<AgentCommandOutputEntryDto>();
+                                return p.ReadObject<IEnumerable<AgentCommandOutputEntryDto>>();
                             }
                         }).ToAsyncEnumerable())
                         {
 
-
-
-                            JObject? content = null;
-                            string? error = null;
-
-                            try
+                            yield return block.Select(dto =>
                             {
+                                JObject? content = null;
+                                string? error = null;
 
-                                content = JObject.Parse(dto.ResultJson);
-                            }
-                            catch (Exception ex)
-                            {
-                                error = ex.ToString();
-                            }
-
-                            if (content is not null)
-                            {
-                                yield return new AgentCommandOutputEntry
+                                try
                                 {
-                                    SessionId = agent.SessionId,
-                                    AgentName = agent.Name,
-                                    Result = JObject.Parse(dto.ResultJson),
-                                    Type = dto.Type
-                                };
-                            }
-                            else
-                            {
-                                yield return new AgentCommandOutputEntry
-                                {
-                                    SessionId = agent.SessionId,
-                                    AgentName = agent.Name,
-                                    Result = JObject.FromObject(new { error = error, json = dto.ResultJson }),
-                                    Type = "error"
-                                };
-                            }
 
+                                    content = JObject.Parse(dto.ResultJson);
+                                }
+                                catch (Exception ex)
+                                {
+                                    error = ex.ToString();
+                                }
+
+                                if (content is not null)
+                                {
+                                    return new AgentCommandOutputEntry
+                                    {
+                                        SessionId = agent.SessionId,
+                                        AgentName = agent.Name,
+                                        Result = JObject.Parse(dto.ResultJson),
+                                        Type = dto.Type
+                                    };
+                                }
+                                else
+                                {
+                                    return new AgentCommandOutputEntry
+                                    {
+                                        SessionId = agent.SessionId,
+                                        AgentName = agent.Name,
+                                        Result = JObject.FromObject(new { error = error, json = dto.ResultJson }),
+                                        Type = "error"
+                                    };
+                                }
+                            });
 
 
                         }

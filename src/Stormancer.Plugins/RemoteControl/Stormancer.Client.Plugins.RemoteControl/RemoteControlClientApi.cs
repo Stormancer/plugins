@@ -102,7 +102,11 @@ namespace Stormancer.Plugins.RemoteControl
 
             await foreach(var packet in results)
             {
-                yield return serializer.Deserialize<AgentCommandOutputEntry>(packet.Stream);
+                var outputs =  serializer.Deserialize<IEnumerable<AgentCommandOutputEntry>>(packet.Stream);
+                foreach(var output in outputs)
+                {
+                    yield return output;
+                }
             }
         }
 
