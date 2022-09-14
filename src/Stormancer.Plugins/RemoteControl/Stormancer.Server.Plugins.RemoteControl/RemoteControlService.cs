@@ -84,7 +84,7 @@ namespace Stormancer.Server.Plugins.RemoteControl
                 {
                     agent.RunningCommand = new AgentRunningCommand(Guid.NewGuid().ToString(), command, DateTime.UtcNow);
                     var rpc = sceneHost.DependencyResolver.Resolve<RpcService>();
-                    var peer = sceneHost.RemotePeers.FirstOrDefault(p => p.SessionId == agent.SessionId);
+                    var peer = sceneHost.RemotePeers.FirstOrDefault(p => p.SessionId == agent.SessionId.ToString());
                     if (peer != null)
                     {
                         await foreach (var block in rpc.Rpc("runCommand", peer, s => serializer.Serialize(command, s), PacketPriority.MEDIUM_PRIORITY, cancellationToken).Select(p =>
@@ -161,7 +161,7 @@ namespace Stormancer.Server.Plugins.RemoteControl
             {
                 return;
             }
-            var agent = new Agent(session.SessionId, session.platformId.PlatformUserId, (JObject?)session.User.UserData["agentMetadata"] ?? new JObject());
+            var agent = new Agent(SessionId.From(session.SessionId), session.platformId.PlatformUserId, (JObject?)session.User.UserData["agentMetadata"] ?? new JObject());
 
             _agents.AddOrUpdateAgent(agent);
         }
@@ -284,7 +284,7 @@ namespace Stormancer.Server.Plugins.RemoteControl
                 var agent = _agents.TryGetValue(sessionId, out var a) ? a : default;
                 return (id, agent);
             })
-            .Select(tuple => new Document<Agent>(tuple.id, tuple.agent)).ToList();
+            .Select(tuple => new Document<Agent> { Id = tuple.id, Source = tuple.agent }).ToList();
 
             return result;
 
