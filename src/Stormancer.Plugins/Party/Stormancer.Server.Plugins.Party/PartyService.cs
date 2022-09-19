@@ -439,7 +439,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 await BroadcastStateUpdateRpc(PartySettingsUpdateDto.Route, updates);
 
-                partyDocumentsStore.UpdateDocument(_partyState.Settings.PartyId, _partyState.SearchDocument);
+                partyDocumentsStore.UpdateDocument(_partyState.Settings.PartyId, _partyState.SearchDocument,_partyState.Settings.CustomData);
             });
         }
 
@@ -519,7 +519,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 await BroadcastStateUpdateRpc(PartySettingsUpdateDto.Route, updates);
 
-                partyDocumentsStore.UpdateDocument(_partyState.Settings.PartyId, _partyState.SearchDocument);
+                partyDocumentsStore.UpdateDocument(_partyState.Settings.PartyId, _partyState.SearchDocument, _partyState.Settings.CustomData);
             });
         }
 

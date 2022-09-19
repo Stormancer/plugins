@@ -23,7 +23,7 @@ Added
 - Added Party status to PublicServerData to track if the party is currently in a gamesession.
 - Added configuration system.
 - Added Party search system and API.
-- Added 
+- PartySearch now returns both SearchDocument and party custom data.
 
 4.1.4.2
 -------
