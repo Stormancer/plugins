@@ -55,6 +55,11 @@ namespace Stormancer.Server.Plugins.Epic
                 return;
             }
 
+            if (ctx.Users.Count() == 0)
+            {
+                return;
+            }
+
             var allUsers = await _users.GetUsers(ctx.Users.ToArray(), ct);
             var users = allUsers
                 .Where(kvp => kvp.Value != null && kvp.Value.UserData.ContainsKey(EpicConstants.PLATFORM_NAME))
@@ -67,8 +72,7 @@ namespace Stormancer.Server.Plugins.Epic
             }
 
             Dictionary<string, Account> accounts = new();
-            if ((hasProfilePartUser && ctx.DisplayOptions["user"] == "details")
-                || (hasProfilePartEpic && ctx.DisplayOptions[EpicConstants.PLATFORM_NAME] == "details"))
+            if (hasProfilePartUser || hasProfilePartEpic)
             {
                 List<string> accountIds = new();
                 foreach (var user in users)
@@ -100,9 +104,9 @@ namespace Stormancer.Server.Plugins.Epic
                             {
                                 data[EpicConstants.ACCOUNTID_CLAIMPATH] = accountId;
 
-                                if (accounts.ContainsKey(accountId))
+                                if (accounts.TryGetValue(accountId, out var value))
                                 {
-                                    data[EpicConstants.DISPLAYNAME] = accounts[accountId].DisplayName;
+                                    data[EpicConstants.DISPLAYNAME] = value.DisplayName;
                                 }
 
                                 return data;
@@ -130,11 +134,11 @@ namespace Stormancer.Server.Plugins.Epic
                                 data["platforms"]![EpicConstants.PLATFORM_NAME] = new JObject();
                                 data["platforms"]![EpicConstants.PLATFORM_NAME]![EpicConstants.ACCOUNTID_CLAIMPATH] = accountId;
 
-                                if (!data.ContainsKey("pseudo") || string.IsNullOrWhiteSpace(data["pseudo"]?.ToString()))
+                                if (user.LastPlatform == EpicConstants.PLATFORM_NAME)
                                 {
-                                    if (accounts.ContainsKey(accountId))
+                                    if (accounts.TryGetValue(accountId, out var value))
                                     {
-                                        data["pseudo"] = accounts[accountId].DisplayName;
+                                        data["pseudo"] = value.DisplayName;
                                     }
                                 }
 
