@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using Newtonsoft.Json.Linq;
+using Org.BouncyCastle.Bcpg.OpenPgp;
 using Stormancer.Server.Plugins.Queries;
 using System;
 using System.Collections.Concurrent;
@@ -70,7 +71,7 @@ namespace Stormancer.Server.Plugins.Party
         public const string PARTY_LUCENE_INDEX = "stormancer.party";
 
         private readonly ILucene lucene;
-        private Dictionary<string, JObject> _data = new Dictionary<string, JObject>();
+        private Dictionary<string, (JObject, string)> _data = new Dictionary<string, (JObject, string)>();
         private object syncRoot = new object();
         public PartyLuceneDocumentStore(ILucene lucene)
         {
@@ -85,7 +86,7 @@ namespace Stormancer.Server.Plugins.Party
                 {
                     if (_data.TryGetValue(id, out var doc))
                     {
-                        yield return new Document<JObject> { Id = id, Source = doc };
+                        yield return new Document<JObject> { Id = id, Source = JObject.FromObject(new { customData = doc.Item2, indexedData = doc.Item1 })};
                     }
                     else
                     {
@@ -105,18 +106,19 @@ namespace Stormancer.Server.Plugins.Party
             lucene.TryCreateIndex(PARTY_LUCENE_INDEX, DefaultMapper.JsonMapper);
         }
 
-        public void UpdateDocument(string id, JObject? document)
+        public void UpdateDocument(string id, JObject? document, string customData)
         {
             if (document != null)
             {
                 lock (syncRoot)
                 {
 
-                    if (!_data.TryGetValue(id, out var current) || !JToken.DeepEquals(document, current))
+                    if (!_data.TryGetValue(id, out var current) || !JToken.DeepEquals(document, current.Item1))
                     {
-                        _data[id] = document;
+
                         lucene.IndexDocument(PARTY_LUCENE_INDEX, id, document);
                     }
+                    _data[id] = (document, customData);
                 }
             }
             else
