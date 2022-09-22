@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Nest;
+using Stormancer.Core;
 using Stormancer.Plugins;
 using System;
 using System.Collections.Generic;
@@ -39,36 +41,29 @@ namespace Stormancer.Server.Plugins.Spectate
 
         private ulong _cacheLastTime = 0;
 
-        private readonly Dictionary<string, RequestContext<IScenePeerClient>> _requests = new Dictionary<string, RequestContext<IScenePeerClient>>();
+        private readonly HashSet<string> _requests = new HashSet<string>();
 
-        //private class FrameComparer : IComparer<List<Frame>>
-        //{
-        //    public int Compare(Frame x, Frame y)
-        //    {
-        //        if (x.Time != y.Time)
-        //        {
-        //            return x.Time.CompareTo(y.Time);
-        //        }
-        //        else
-        //        {
-        //            return x.Type.CompareTo(y.Type);
-        //        }
-        //    }
-        //}
+        public FrameList? LastFrame
+        {
+            get
+            {
+                lock (_frames) { return _frames.Max; }
+            }
+        }
 
         private class FrameListComparer : IComparer<FrameList>
         {
             public int Compare(FrameList? x, FrameList? y)
             {
-                if(x == null && y == null)
+                if (x == null && y == null)
                 {
                     return 0;
                 }
-                if(x == null)
+                if (x == null)
                 {
                     return -1;
                 }
-                if( y == null)
+                if (y == null)
                 {
                     return 1;
                 }
@@ -143,11 +138,19 @@ namespace Stormancer.Server.Plugins.Spectate
             }
         }
 
-        public bool SubscribeToFrames(string sessionId, RequestContext<IScenePeerClient> request)
+        public bool SubscribeToFrames(RequestContext<IScenePeerClient> request)
         {
+            string sessionId = request.RemotePeer.SessionId;
             lock (_requests)
             {
-                return _requests.TryAdd(sessionId, request);
+               
+                var result = _requests.Add(sessionId);
+                if (result)
+                {
+                    _filter = new MatchArrayFilter(_requests);
+                }
+                return result;
+
             }
         }
 
@@ -155,16 +158,20 @@ namespace Stormancer.Server.Plugins.Spectate
         {
             lock (_requests)
             {
-                _requests.Remove(sessionId);
+                if(_requests.Remove(sessionId))
+                {
+                    _filter = new MatchArrayFilter(_requests);
+                }
+             
             }
         }
 
-        public IEnumerable<RequestContext<IScenePeerClient>> GetSubscribers()
+        private MatchArrayFilter? _filter;
+        public MatchArrayFilter? GetSubscribers()
         {
-            lock (_requests)
-            {
-                return _requests.Select(kvp => kvp.Value);
-            }
+
+            return _filter;
+
         }
     }
 }

@@ -161,19 +161,31 @@ namespace Stormancer
 			MSGPACK_DEFINE(time, frames);
 		};
 
-		class SpectateService
+		class SpectateService: public std::enable_shared_from_this<SpectateService>
 		{
 		public:
 
-			SpectateService(std::shared_ptr<Scene> scene, std::shared_ptr<ILogger> logger, std::shared_ptr<IActionDispatcher> dispatcher, std::shared_ptr<Serializer> serializer)
-				: _scene(scene)
-				, _rpcService(scene->dependencyResolver().resolve<RpcService>())
+			SpectateService(std::shared_ptr<RpcService> rpcService, std::shared_ptr<ILogger> logger, std::shared_ptr<IActionDispatcher> dispatcher, std::shared_ptr<Serializer> serializer)
+				: _rpcService(rpcService)
 				, _logger(logger)
 				, _dispatcher(dispatcher)
 				, _serializer(serializer)
 			{
 			}
 
+			void initialize(std::shared_ptr<Scene> scene)
+			{
+				std::weak_ptr<SpectateService> wThat;
+				scene->addRoute("Specate.SendFrames", [wThat](Stormancer::Packetisp_ptr packet)
+				{
+					if(auto that = wThat.lock())
+					{
+						auto frames = packet->readObject<std::vector<Frame>>();
+						that->_onFramesReceived(frames);
+					}
+				});
+
+			}
 			pplx::task<void> sendFrames(std::vector<FrameDataDto> frames)
 			{
 				return _rpcService->rpc("Spectate.SendFrames", frames);
@@ -184,72 +196,29 @@ namespace Stormancer
 				return _rpcService->rpc<std::vector<FrameList>>("Spectate.GetFrames", startTime, endTime);
 			}
 
-			pplx::task<void> subscribeToFrames(std::function<void(std::vector<Frame> frames)> callback, pplx::cancellation_token ct = pplx::cancellation_token::none())
+			pplx::task<uint64> startReceiveFrames(pplx::cancellation_token ct = pplx::cancellation_token::none())
 			{
-				if (_subscription && _subscription->is_subscribed())
-				{
-					STORM_RETURN_TASK_FROM_EXCEPTION_OPT(std::runtime_error("Already subscribe"), _dispatcher, void);
-				}
-
-				RpcService::ClientRpcOptions options;
-				options.dispatchMethod = DispatchMethod::ActionDispatcher;
-				options.priority = PacketPriority::MEDIUM_PRIORITY;
-
-				std::string route = "Spectate.SubscribeToFrames";
-
-				auto observable = _rpcService->rpcObservable(route, StreamWriter(), options);
-
-				pplx::cancellation_token_registration ctr;
-
-				if (ct.is_cancelable())
-				{
-					ctr = ct.register_callback([this]()
-					{
-						if (this->_subscription && this->_subscription->is_subscribed())
-						{
-							this->_subscription->unsubscribe();
-							this->_subscription = nullptr;
-						}
-					});
-				}
-
-				pplx::task_completion_event<void> tce;
-
-				auto onNext = [logger = _logger, callback, ctr](Packetisp_ptr packet)
-				{
-					auto frames = packet->readObject<std::vector<Frame>>();
-					logger->log(LogLevel::Debug, "Spectate", "Frames received", std::to_string(frames.size()));
-					if (callback)
-					{
-						callback(frames);
-					}
-				};
-
-				auto onComplete = [tce, ctr]()
-				{
-					tce.set();
-				};
-
-				auto onError = [route, logger = _logger, tce, ctr](std::exception_ptr error)
-				{
-					logger->log(LogLevel::Trace, "Rpc", "An exception occurred during the rpc '" + route + "'");
-					tce.set_exception(error);
-				};
-
-				_subscription = std::make_shared<rxcpp::composite_subscription>(observable.subscribe(onNext, onError, onComplete));
-
-				return pplx::create_task(tce, _dispatcher);
+				return _rpcService->rpc<uint64>("Spectate.SubscribeToFrames", StreamWriter());
 			}
 
+			pplx::task<void> stopReceiveFrames()
+			{
+				return _rpcService->rpc("Spectate.Stop", StreamWriter());
+			}
+
+
+			Stormancer::Subscription SubscribeToFrames(std::function<void(std::vector<Frame>)> callback)
+			{
+				return _onFramesReceived.subscribe(callback);
+			}
 		private:
 
-			std::shared_ptr<Scene> _scene;
+
 			std::shared_ptr<RpcService> _rpcService;
 			std::shared_ptr<ILogger> _logger;
 			std::shared_ptr<IActionDispatcher> _dispatcher;
 			std::shared_ptr<Serializer> _serializer;
-
-			std::shared_ptr<rxcpp::composite_subscription> _subscription;
+			Stormancer::Event<std::vector<Frame>> _onFramesReceived;
 		};
 
 		class SpectatePlugin : public Stormancer::IPlugin
@@ -271,7 +240,7 @@ namespace Stormancer
 				auto name = scene->getHostMetadata("stormancer.spectate");
 				if (name.length() > 0)
 				{
-					builder.registerDependency<SpectateService, Scene, ILogger, IActionDispatcher, Serializer>().singleInstance();
+					builder.registerDependency<SpectateService, RpcService, ILogger, IActionDispatcher, Serializer>().singleInstance();
 				}
 			}
 		};

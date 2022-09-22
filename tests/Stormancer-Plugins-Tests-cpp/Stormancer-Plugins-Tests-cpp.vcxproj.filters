@@ -48,6 +48,7 @@
     <ClInclude Include="..\..\src\Stormancer.Plugins\Profile\cpp\Profiles.hpp">
       <Filter>profile</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\Stormancer.Plugins\GameSession\cpp\GameSession.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="steam">
