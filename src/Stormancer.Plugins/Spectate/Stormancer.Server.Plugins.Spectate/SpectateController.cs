@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Stormancer.Core;
 using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.GameSession;
 using System;
@@ -38,6 +39,13 @@ namespace Stormancer.Server.Plugins.Spectate
         {
             _spectateService = spectateService;
             _gameSessionService = gameSessionService;
+        }
+
+        protected override Task OnDisconnected(DisconnectedArgs args)
+        {
+            _spectateService.Unsubscribe(args.Peer.SessionId);
+
+            return Task.CompletedTask;
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
@@ -62,9 +70,9 @@ namespace Stormancer.Server.Plugins.Spectate
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public Task SubscribeToFrames()
+        public ulong SubscribeToFrames()
         {
-            return _spectateService.SubscribeToFrames(this.Request.CancellationToken, this.Request.RemotePeer.SessionId, this.Request);
+            return _spectateService.SubscribeToFrames(this.Request);
         }
     }
 }

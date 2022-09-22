@@ -13,9 +13,6 @@
     <ClInclude Include="..\..\src\Stormancer.Plugins\Steam\cpp\Steam.hpp">
       <Filter>Steam</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\GameSession\cpp\Gamesessions.hpp">
-      <Filter>GameSession</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\Stormancer.Plugins\GameSession\cpp\ServerPools.hpp">
       <Filter>GameSession</Filter>
     </ClInclude>
@@ -49,6 +46,7 @@
     <ClInclude Include="..\..\src\Stormancer.Plugins\Profile\cpp\Profile.hpp">
       <Filter>Profile</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\Stormancer.Plugins\GameSession\cpp\GameSession.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Steam">

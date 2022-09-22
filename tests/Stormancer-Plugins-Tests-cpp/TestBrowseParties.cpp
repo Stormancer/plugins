@@ -10,7 +10,7 @@
 #include "stormancer/IClientFactory.h"
 #include "stormancer/Logger/VisualStudioLogger.h"
 
-static constexpr const char* ServerEndpoint = "http://localhost";//"http://gc3.stormancer.com";
+static constexpr const char* ServerEndpoint = "http://localhost:8080";//"http://gc3.stormancer.com";
 constexpr  char* Account = "tests";
 constexpr  char* Application = "test-app";
 
@@ -44,15 +44,18 @@ static pplx::task<bool> BrowseParty(int id)
 
 	return  users->login().then([party]() {return party->searchParties("{}", 0, 10, pplx::cancellation_token::none()); })
 	.then([client,party](Stormancer::Party::SearchResult t) {
-		return party->joinPartyBySceneId(t.hits.front().id);
+		if (t.total != 1)
+		{
+			return pplx::task_from_result(false);
+		}
+		return party->joinPartyBySceneId(t.hits.front().id).then([]() {return true; });
 	})
-	.then([client](pplx::task<void> t)
+	.then([client](pplx::task<bool> t)
 	{
 		try
 		{
-			t.get();
-			
-			return true;
+		
+			return t.get();
 		}
 		catch (std::exception& ex)
 		{
@@ -89,10 +92,10 @@ static pplx::task<void> CreateParty(int id)
 	//>  host.AddGamefinder("matchmaking", "matchmaking");
 
 	return users->login().then([party,request]() {return party->createPartyIfNotJoined(request); })
-	.then([client,party]()
+	.then([client,party,id]()
 	{
 		auto settings = party->getPartySettings();
-		settings.indexedDocument = "{}";
+		settings.indexedDocument = "{ \"test\":\"" + std::to_string(id)+ "\"}";
 		party->updatePartySettings(settings);
 	})
 	.then([client](pplx::task<void> t)

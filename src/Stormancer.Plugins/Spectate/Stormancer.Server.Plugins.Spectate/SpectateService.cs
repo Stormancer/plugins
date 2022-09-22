@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Microsoft.IO;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Users;
 using System.Collections.Generic;
@@ -49,43 +50,53 @@ namespace Stormancer.Server.Plugins.Spectate
             return Task.CompletedTask;
         }
 
+
         public Task<IEnumerable<FrameList>> GetFrames(ulong startTime, ulong endTime)
         {
             return Task.FromResult(_spectateRepository.GetFrames(startTime, endTime));
         }
 
-        public async Task SubscribeToFrames(CancellationToken ct, SessionId sessionId, RequestContext<IScenePeerClient> request)
+        public ulong SubscribeToFrames(RequestContext<IScenePeerClient> request)
         {
-            _spectateRepository.SubscribeToFrames(sessionId, request);
-            var tcs = new TaskCompletionSource<bool>();
-            using var registration = ct.Register(() =>
+            
+            _spectateRepository.SubscribeToFrames( request);
+            var frame = _spectateRepository.LastFrame;
+            if (frame != null)
             {
-                _spectateRepository.UnsubscribeFromFrames(sessionId);
-                tcs.SetResult(true);
-            });
-            await tcs.Task;
+                return frame.Time;
+            }
+            else
+            {
+                return 0;
+            }
+
         }
+        private static readonly RecyclableMemoryStreamManager manager = new RecyclableMemoryStreamManager();
+
 
         private Task BroadcastFrames(IEnumerable<Frame> frames)
         {
-            using (var stream = new MemoryStream())
+            using (var memStream = manager.GetStream())
             {
-                _serializer.Serialize(frames, stream);
-                var data = stream.ToArray();
+                _serializer.Serialize(frames, memStream);
+                memStream.Seek(0, SeekOrigin.Begin);
 
                 var tasks = new List<Task>();
                 var requests = _spectateRepository.GetSubscribers();
                 foreach (var request in requests)
                 {
-                    var task = request.SendValue(stream =>
-                    {
-                        stream.Write(data);
-                    });
+                    var task = request.SendValue(memStream.CopyTo);
                     tasks.Add(task);
                 }
 
                 return Task.WhenAll(tasks);
             }
         }
+
+        public void Unsubscribe(SessionId sessionId)
+        {
+            _spectateRepository.UnsubscribeFromFrames(sessionId);
+        }
+
     }
 }

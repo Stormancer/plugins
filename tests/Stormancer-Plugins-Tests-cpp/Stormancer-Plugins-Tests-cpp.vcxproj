@@ -69,7 +69,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>Stormancer_$(Configuration)_$(Platform).lib;$(MSBuildThisFileDirectory)..\..\src\Stormancer.Plugins\packages\Microsoft.googletest.v140.windesktop.msvcstl.static.rt-dyn.1.8.1.5\lib\native\v140\windesktop\msvcstl\static\rt-dyn\x64\Debug\gtest_maind.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libStormancer_$(Configuration)_Windows.lib;$(MSBuildThisFileDirectory)..\..\src\Stormancer.Plugins\packages\Microsoft.googletest.v140.windesktop.msvcstl.static.rt-dyn.1.8.1.5\lib\native\v140\windesktop\msvcstl\static\rt-dyn\x64\Debug\gtest_maind.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(Stormancer-Cpp-LibPath)\libs\Windows\</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>

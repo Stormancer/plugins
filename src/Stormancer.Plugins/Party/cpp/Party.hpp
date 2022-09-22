@@ -1444,6 +1444,7 @@ namespace Stormancer
 				bool onlyLeaderCanInvite = true;
 				bool isJoinable = true;
 				std::unordered_map<std::string, std::string> publicServerData;
+				std::string indexedDocument;
 
 				operator PartySettings() const
 				{
@@ -1453,6 +1454,7 @@ namespace Stormancer
 					settings.onlyLeaderCanInvite = onlyLeaderCanInvite;
 					settings.isJoinable = isJoinable;
 					settings.publicServerData = publicServerData;
+					settings.indexedDocument = indexedDocument;
 					return settings;
 				}
 
@@ -1464,10 +1466,11 @@ namespace Stormancer
 					settingsInternal.onlyLeaderCanInvite = settings.onlyLeaderCanInvite;
 					settingsInternal.isJoinable = settings.isJoinable;
 					settingsInternal.publicServerData = settings.publicServerData;
+					settingsInternal.indexedDocument = settings.indexedDocument;
 					return settingsInternal;
 				}
 
-				MSGPACK_DEFINE(gameFinderName, customData, settingsVersionNumber, onlyLeaderCanInvite, isJoinable, publicServerData);
+				MSGPACK_DEFINE(gameFinderName, customData, settingsVersionNumber, onlyLeaderCanInvite, isJoinable, publicServerData,indexedDocument);
 			};
 
 			struct InvitationRequest

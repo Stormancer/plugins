@@ -335,6 +335,12 @@ namespace Stormancer.Server.Plugins.Party
                     await BroadcastStateUpdateRpc(PartyMemberDisconnection.Route, new PartyMemberDisconnection { UserId = partyUser.UserId, Reason = ParseDisconnectionReason(args.Reason) });
                 }
 
+                if (_partyState.PartyMembers.IsEmpty)
+                {
+                    partyDocumentsStore.UpdateDocument(_partyState.Settings.PartyId, null, _partyState.Settings.CustomData);
+                    _ = _scene.KeepAlive(TimeSpan.Zero);
+                }
+
                 _ = RunOperationCompletedEventHandler((service, handlers, scope) =>
                 {
                     var ctx = new QuitPartyContext(service, args);
@@ -362,7 +368,7 @@ namespace Stormancer.Server.Plugins.Party
             {
                 var partySettingsDto = partySettingsUpdater(this.Settings);
 
-                if(partySettingsDto == null)
+                if (partySettingsDto == null)
                 {
                     return;
                 }
@@ -439,7 +445,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 await BroadcastStateUpdateRpc(PartySettingsUpdateDto.Route, updates);
 
-                partyDocumentsStore.UpdateDocument(_partyState.Settings.PartyId, _partyState.SearchDocument,_partyState.Settings.CustomData);
+                partyDocumentsStore.UpdateDocument(_partyState.Settings.PartyId, _partyState.SearchDocument, _partyState.Settings.CustomData);
             });
         }
 
@@ -486,14 +492,14 @@ namespace Stormancer.Server.Plugins.Party
                 _partyState.Settings.CustomData = partySettingsDto.CustomData;
                 _partyState.Settings.OnlyLeaderCanInvite = partySettingsDto.OnlyLeaderCanInvite;
                 _partyState.Settings.IsJoinable = partySettingsDto.IsJoinable;
-                
-                if(!string.IsNullOrEmpty(partySettingsDto.IndexedDocument))
+
+                if (!string.IsNullOrEmpty(partySettingsDto.IndexedDocument))
                 {
                     try
                     {
                         _partyState.SearchDocument = JObject.Parse(partySettingsDto.IndexedDocument);
                     }
-                    catch (Exception) 
+                    catch (Exception)
                     {
                         _partyState.SearchDocument = null;
                         //Ignore parse errors.
@@ -503,7 +509,7 @@ namespace Stormancer.Server.Plugins.Party
                 {
                     _partyState.SearchDocument = null;
                 }
-              
+
                 if (partySettingsDto.PublicServerData != null)
                 {
                     _partyState.Settings.PublicServerData = partySettingsDto.PublicServerData;
@@ -551,7 +557,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 if (!TryGetMemberByUserId(userId, out var user))
                 {
-                   ThrowNoSuchMemberError(userId);
+                    ThrowNoSuchMemberError(userId);
                 }
 
                 if (user.StatusInParty == partyUserStatus.DesiredStatus)
@@ -916,7 +922,7 @@ namespace Stormancer.Server.Plugins.Party
                 LeaderId = _partyState.Settings.PartyLeaderId,
                 Settings = new PartySettingsUpdateDto(_partyState),
                 PartyMembers = _partyState.PartyMembers.Values.Select(member =>
-                    new PartyMemberDto { PartyUserStatus = member.StatusInParty, UserData = member.UserData, UserId = member.UserId, SessionId =member.Peer.SessionId}).ToList(),
+                    new PartyMemberDto { PartyUserStatus = member.StatusInParty, UserData = member.UserData, UserId = member.UserId, SessionId = member.Peer.SessionId }).ToList(),
                 Version = _partyState.VersionNumber
             };
 
@@ -1089,6 +1095,6 @@ namespace Stormancer.Server.Plugins.Party
             invitationCodes.CancelCode(this._scene);
         }
 
-      
+
     }
 }

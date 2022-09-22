@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Nest;
 using Stormancer.Plugins;
 using System;
 using System.Collections.Generic;
@@ -41,21 +42,27 @@ namespace Stormancer.Server.Plugins.Spectate
 
         private readonly Dictionary<SessionId, RequestContext<IScenePeerClient>> _requests = new Dictionary<SessionId, RequestContext<IScenePeerClient>>();
 
-       
+        public FrameList? LastFrame
+        {
+            get
+            {
+                lock(_frames) { return _frames.Max; }
+            }
+        }
 
         private class FrameListComparer : IComparer<FrameList>
         {
             public int Compare(FrameList? x, FrameList? y)
             {
-                if(x == null && y == null)
+                if (x == null && y == null)
                 {
                     return 0;
                 }
-                if(x == null)
+                if (x == null)
                 {
                     return -1;
                 }
-                if( y == null)
+                if (y == null)
                 {
                     return 1;
                 }
@@ -114,8 +121,9 @@ namespace Stormancer.Server.Plugins.Spectate
             }
         }
 
-        public bool SubscribeToFrames(SessionId sessionId, RequestContext<IScenePeerClient> request)
+        public bool SubscribeToFrames(RequestContext<IScenePeerClient> request)
         {
+            SessionId sessionId = request.RemotePeer.SessionId;
             lock (_requests)
             {
                 return _requests.TryAdd(sessionId, request);
