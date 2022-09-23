@@ -51,15 +51,8 @@ namespace Stormancer.Server.Plugins.Spectate
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public Task SendFrames(IEnumerable<FrameDataDto> frames)
         {
-            var sessionId = SessionId.From(this.Request.RemotePeer.SessionId);
-            var sessionIdStr = sessionId.ToString();
-
-            var cfg = _gameSessionService.GetGameSessionConfig();
-            if (!cfg.Teams.Any(t => t.AllPlayers.Any(p => p.SessionId == sessionIdStr)))
-            {
-                throw new InvalidOperationException("User not found in GameSession");
-            }
-
+            var sessionId = Request.RemotePeer.SessionId;
+            
             return _spectateService.SendFrames(frames.Select(f => new Frame { Type = f.Type, Time = f.Time, data = f.data, Origin = sessionId }));
         }
 

@@ -34,7 +34,7 @@ namespace Stormancer.Server.Plugins.Spectate
 
         bool SubscribeToFrames(RequestContext<IScenePeerClient> request);
 
-        void UnsubscribeFromFrames(string sessionId);
+        void UnsubscribeFromFrames(SessionId sessionId);
 
         MatchArrayFilter GetSubscribers();
 

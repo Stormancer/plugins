@@ -31,6 +31,7 @@
     <ClInclude Include="..\..\src\Stormancer.Plugins\Profile\cpp\Profile.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Replication\cpp\CommandLog.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\SocketApi\cpp\Socket.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Spectate\cpp\Spectate.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Steam\cpp\Steam.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Users\cpp\ClientAPI.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Users\cpp\Users.hpp" />

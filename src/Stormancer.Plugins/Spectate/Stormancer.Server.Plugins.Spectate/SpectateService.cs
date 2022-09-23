@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using Microsoft.IO;
+using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Users;
 using System.Collections.Generic;
@@ -35,12 +36,14 @@ namespace Stormancer.Server.Plugins.Spectate
         private readonly ISpectateRepository _spectateRepository;
         public readonly IUserSessions _userSessions;
         private readonly ISerializer _serializer;
+        private readonly ISceneHost scene;
 
-        public SpectateService(ISpectateRepository spectateRepository, IUserSessions userSessions, ISerializer serializer)
+        public SpectateService(ISpectateRepository spectateRepository, IUserSessions userSessions, ISerializer serializer, ISceneHost scene)
         {
             _spectateRepository = spectateRepository;
             _userSessions = userSessions;
             _serializer = serializer;
+            this.scene = scene;
         }
 
         public Task SendFrames(IEnumerable<Frame> frames)
@@ -83,13 +86,9 @@ namespace Stormancer.Server.Plugins.Spectate
 
                 var tasks = new List<Task>();
                 var requests = _spectateRepository.GetSubscribers();
-                foreach (var request in requests)
-                {
-                    var task = request.SendValue(memStream.CopyTo);
-                    tasks.Add(task);
-                }
-
-                return Task.WhenAll(tasks);
+                return scene.Send(requests, "Spectate.SendFrames", s => memStream.CopyTo(s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
+               
+            
             }
         }
 

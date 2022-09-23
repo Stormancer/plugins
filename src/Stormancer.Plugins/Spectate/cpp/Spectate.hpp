@@ -165,18 +165,17 @@ namespace Stormancer
 		{
 		public:
 
-			SpectateService(std::shared_ptr<RpcService> rpcService, std::shared_ptr<ILogger> logger, std::shared_ptr<IActionDispatcher> dispatcher, std::shared_ptr<Serializer> serializer)
+			SpectateService(std::shared_ptr<RpcService> rpcService, std::shared_ptr<ILogger> logger)
 				: _rpcService(rpcService)
 				, _logger(logger)
-				, _dispatcher(dispatcher)
-				, _serializer(serializer)
+				
 			{
 			}
 
 			void initialize(std::shared_ptr<Scene> scene)
 			{
 				std::weak_ptr<SpectateService> wThat;
-				scene->addRoute("Specate.SendFrames", [wThat](Stormancer::Packetisp_ptr packet)
+				scene->addRoute("Spectate.SendFrames", [wThat](Stormancer::Packetisp_ptr packet)
 				{
 					if(auto that = wThat.lock())
 					{
@@ -216,8 +215,6 @@ namespace Stormancer
 
 			std::shared_ptr<RpcService> _rpcService;
 			std::shared_ptr<ILogger> _logger;
-			std::shared_ptr<IActionDispatcher> _dispatcher;
-			std::shared_ptr<Serializer> _serializer;
 			Stormancer::Event<std::vector<Frame>> _onFramesReceived;
 		};
 
@@ -234,13 +231,19 @@ namespace Stormancer
 			}
 
 		private:
-
+			void sceneCreated(std::shared_ptr<Scene> scene) override
+			{
+				if (!scene->getHostMetadata("stormancer.spectate").empty())
+				{
+					scene->dependencyResolver().resolve<SpectateService>()->initialize(scene);
+				}
+			}
 			void registerSceneDependencies(Stormancer::ContainerBuilder& builder, std::shared_ptr<Stormancer::Scene> scene) override
 			{
 				auto name = scene->getHostMetadata("stormancer.spectate");
 				if (name.length() > 0)
 				{
-					builder.registerDependency<SpectateService, RpcService, ILogger, IActionDispatcher, Serializer>().singleInstance();
+					builder.registerDependency<SpectateService, RpcService, ILogger>().singleInstance();
 				}
 			}
 		};

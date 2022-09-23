@@ -47,6 +47,9 @@
       <Filter>Profile</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Stormancer.Plugins\GameSession\cpp\GameSession.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Spectate\cpp\Spectate.hpp">
+      <Filter>Spectate</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Steam">
@@ -81,6 +84,9 @@
     </Filter>
     <Filter Include="Profile">
       <UniqueIdentifier>{443214e2-35b5-42a6-b6dd-3fc0812c7f70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Spectate">
+      <UniqueIdentifier>{df81b003-a2dd-4b01-9e5c-86b60ee1d952}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

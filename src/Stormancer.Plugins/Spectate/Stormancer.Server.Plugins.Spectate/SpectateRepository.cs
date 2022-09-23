@@ -41,7 +41,7 @@ namespace Stormancer.Server.Plugins.Spectate
 
         private ulong _cacheLastTime = 0;
 
-        private readonly HashSet<string> _requests = new HashSet<string>();
+        private readonly HashSet<SessionId> _requests = new HashSet<SessionId>();
 
         public FrameList? LastFrame
         {
@@ -140,7 +140,7 @@ namespace Stormancer.Server.Plugins.Spectate
 
         public bool SubscribeToFrames(RequestContext<IScenePeerClient> request)
         {
-            string sessionId = request.RemotePeer.SessionId;
+            var sessionId = request.RemotePeer.SessionId;
             lock (_requests)
             {
                
@@ -154,7 +154,7 @@ namespace Stormancer.Server.Plugins.Spectate
             }
         }
 
-        public void UnsubscribeFromFrames(string sessionId)
+        public void UnsubscribeFromFrames(SessionId sessionId)
         {
             lock (_requests)
             {
