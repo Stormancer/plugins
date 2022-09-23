@@ -182,12 +182,12 @@ namespace Stormancer.Server.Plugins.Party
                 //Todo jojo later
                 // Quand un utilisateur essais de ce connecter au party.
                 // Il faut : 
-                //  1. Vérfier via une requête S2S si il n'est pas déjà connecter à un party
-                //      1. Récupérer en S2S les informations de session dans les UserSessionData
-                //      1. Vérifier si un party est présent
-                //      1. Si il y a un party demande à celui-ci (S2S) si l'utilisateur et bien connecter dessus.
+                //  1. Vï¿½rfier via une requï¿½te S2S si il n'est pas dï¿½jï¿½ connecter ï¿½ un party
+                //      1. Rï¿½cupï¿½rer en S2S les informations de session dans les UserSessionData
+                //      1. Vï¿½rifier si un party est prï¿½sent
+                //      1. Si il y a un party demande ï¿½ celui-ci (S2S) si l'utilisateur et bien connecter dessus.
                 //  2. Si il ne l'est pas alors on continue le pipeline normal
-                //  3. Si il l'est alors on selon la config on change du SA on bloque ou on déconnect depuis l'autre scene et on la co à la nouvelle.
+                //  3. Si il l'est alors on selon la config on change du SA on bloque ou on dï¿½connect depuis l'autre scene et on la co ï¿½ la nouvelle.
 
                 if (_partyState.PartyMembers.Count >= _partyState.Settings.ServerSettings.MaxMembers())
                 {

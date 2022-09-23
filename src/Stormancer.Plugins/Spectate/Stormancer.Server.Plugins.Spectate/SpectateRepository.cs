@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using Nest;
+using Stormancer.Core;
 using Stormancer.Plugins;
 using System;
 using System.Collections.Generic;
@@ -40,13 +41,13 @@ namespace Stormancer.Server.Plugins.Spectate
 
         private ulong _cacheLastTime = 0;
 
-        private readonly Dictionary<SessionId, RequestContext<IScenePeerClient>> _requests = new Dictionary<SessionId, RequestContext<IScenePeerClient>>();
+        private readonly HashSet<string> _requests = new HashSet<string>();
 
         public FrameList? LastFrame
         {
             get
             {
-                lock(_frames) { return _frames.Max; }
+                lock (_frames) { return _frames.Max; }
             }
         }
 
@@ -69,6 +70,22 @@ namespace Stormancer.Server.Plugins.Spectate
                 return x.Time.CompareTo(y.Time);
             }
         }
+
+        //public void AddFrames(IEnumerable<Frame> frames)
+        //{
+        //    lock (_frames)
+        //    {
+        //        _frames.UnionWith(frames);
+        //    }
+        //}
+
+        //public IEnumerable<Frame> GetFrames(ulong startTime, ulong endTime)
+        //{
+        //    lock (_frames)
+        //    {
+        //        return _frames.GetViewBetween(new Frame { Time = startTime }, new Frame { Time = endTime });
+        //    }
+        //}
 
         public void AddFrames(IEnumerable<Frame> frames)
         {
@@ -123,27 +140,38 @@ namespace Stormancer.Server.Plugins.Spectate
 
         public bool SubscribeToFrames(RequestContext<IScenePeerClient> request)
         {
-            SessionId sessionId = request.RemotePeer.SessionId;
+            string sessionId = request.RemotePeer.SessionId;
             lock (_requests)
             {
-                return _requests.TryAdd(sessionId, request);
+               
+                var result = _requests.Add(sessionId);
+                if (result)
+                {
+                    _filter = new MatchArrayFilter(_requests);
+                }
+                return result;
+
             }
         }
 
-        public void UnsubscribeFromFrames(SessionId sessionId)
+        public void UnsubscribeFromFrames(string sessionId)
         {
             lock (_requests)
             {
-                _requests.Remove(sessionId);
+                if(_requests.Remove(sessionId))
+                {
+                    _filter = new MatchArrayFilter(_requests);
+                }
+             
             }
         }
 
-        public IEnumerable<RequestContext<IScenePeerClient>> GetSubscribers()
+        private MatchArrayFilter? _filter;
+        public MatchArrayFilter? GetSubscribers()
         {
-            lock (_requests)
-            {
-                return _requests.Select(kvp => kvp.Value);
-            }
+
+            return _filter;
+
         }
     }
 }

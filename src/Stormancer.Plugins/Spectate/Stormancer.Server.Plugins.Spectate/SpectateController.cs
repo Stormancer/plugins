@@ -51,7 +51,7 @@ namespace Stormancer.Server.Plugins.Spectate
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public Task SendFrames(IEnumerable<FrameDataDto> frames)
         {
-            var sessionId = this.Request.RemotePeer.SessionId;
+            var sessionId = SessionId.From(this.Request.RemotePeer.SessionId);
             var sessionIdStr = sessionId.ToString();
 
             var cfg = _gameSessionService.GetGameSessionConfig();
@@ -73,6 +73,13 @@ namespace Stormancer.Server.Plugins.Spectate
         public ulong SubscribeToFrames()
         {
             return _spectateService.SubscribeToFrames(this.Request);
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public void Stop()
+        {
+            _spectateService.Unsubscribe(this.Request.RemotePeer.SessionId);
+
         }
     }
 }

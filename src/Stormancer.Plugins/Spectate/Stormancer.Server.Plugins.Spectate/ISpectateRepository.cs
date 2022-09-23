@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Stormancer.Core;
 using Stormancer.Plugins;
 using System.Collections.Generic;
 
@@ -33,9 +34,9 @@ namespace Stormancer.Server.Plugins.Spectate
 
         bool SubscribeToFrames(RequestContext<IScenePeerClient> request);
 
-        void UnsubscribeFromFrames(SessionId sessionId);
+        void UnsubscribeFromFrames(string sessionId);
 
-        IEnumerable<RequestContext<IScenePeerClient>> GetSubscribers();
+        MatchArrayFilter GetSubscribers();
 
         FrameList? LastFrame { get; }
     }
