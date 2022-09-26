@@ -12,3 +12,5 @@
 #define STORM_EPIC_LOGIN_MODE "DevAuth" // POSSIBLE VALUES : "DevAuth" or "AccountPortal"
 #define STORM_EPIC_DEVAUTH_CREDENTIALS_HOST "localhost:4567"
 #define STORM_EPIC_DEVAUTH_CREDENTIALS_NAME "devAccount1"
+
+#define STORM_CLIENT_VERSION "0.1.0"
