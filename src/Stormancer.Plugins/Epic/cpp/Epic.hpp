@@ -366,21 +366,29 @@ namespace Stormancer
 
 				void setEpicAccountId(EOS_EpicAccountId epicAccountId)
 				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
 					_epicAccountId = epicAccountId;
 				}
 
 				EOS_EpicAccountId getEpicAccountId()
 				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
 					return _epicAccountId;
 				}
 
 				void setEpicProductUserId(EOS_ProductUserId productUserId)
 				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
 					_productUserId = productUserId;
 				}
 
 				EOS_ProductUserId getProductUserId()
 				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
 					return _productUserId;
 				}
 
@@ -912,6 +920,11 @@ namespace Stormancer
 
 					fulfillCredentialsCallback(platformName, platformName, accessToken);
 				});
+			}
+
+			pplx::task<void> OnLoggingOut() override
+			{
+				_epicState->setEpicAccountId(nullptr);
 			}
 
 #pragma endregion

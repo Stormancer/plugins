@@ -72,6 +72,7 @@ namespace Stormancer.Server.Plugins.Epic
             }
 
             Dictionary<string, Account> accounts = new();
+            Dictionary<string, string> productUserIds = new();
             if (hasProfilePartUser || hasProfilePartEpic)
             {
                 List<string> accountIds = new();
@@ -88,6 +89,11 @@ namespace Stormancer.Server.Plugins.Epic
                     }
                 }
                 accounts = await _epicService.GetAccounts(accountIds);
+
+                if (ctx.Origin != null && ctx.Origin.User != null)
+                {
+                    productUserIds = await _epicService.GetExternalAccounts(ctx.Origin.User.Id, accountIds, "epicgames");
+                }
             }
 
             if (hasProfilePartEpic)
@@ -104,9 +110,14 @@ namespace Stormancer.Server.Plugins.Epic
                             {
                                 data[EpicConstants.ACCOUNTID_CLAIMPATH] = accountId;
 
-                                if (accounts.TryGetValue(accountId, out var value))
+                                if (productUserIds.TryGetValue(accountId, out var productUserId) && !string.IsNullOrWhiteSpace(productUserId))
                                 {
-                                    data[EpicConstants.DISPLAYNAME] = value.DisplayName;
+                                    data[EpicConstants.PRODUCTUSERID] = productUserId;
+                                }
+
+                                if (accounts.TryGetValue(accountId, out var account) && account != null && !string.IsNullOrWhiteSpace(account.DisplayName))
+                                {
+                                    data[EpicConstants.DISPLAYNAME] = account.DisplayName;
                                 }
 
                                 return data;
@@ -134,11 +145,16 @@ namespace Stormancer.Server.Plugins.Epic
                                 data["platforms"]![EpicConstants.PLATFORM_NAME] = new JObject();
                                 data["platforms"]![EpicConstants.PLATFORM_NAME]![EpicConstants.ACCOUNTID_CLAIMPATH] = accountId;
 
+                                if (productUserIds.TryGetValue(accountId, out var productUserId) && !string.IsNullOrWhiteSpace(productUserId))
+                                {
+                                    data["platforms"]![EpicConstants.PLATFORM_NAME]![EpicConstants.PRODUCTUSERID] = productUserId;
+                                }
+
                                 if (user.LastPlatform == EpicConstants.PLATFORM_NAME)
                                 {
-                                    if (accounts.TryGetValue(accountId, out var value))
+                                    if (accounts.TryGetValue(accountId, out var account) && account != null && !string.IsNullOrWhiteSpace(account.DisplayName))
                                     {
-                                        data["pseudo"] = value.DisplayName;
+                                        data["pseudo"] = account.DisplayName;
                                     }
                                 }
 

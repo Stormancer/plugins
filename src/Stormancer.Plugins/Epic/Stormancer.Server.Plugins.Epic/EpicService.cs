@@ -459,12 +459,12 @@ namespace Stormancer.Server.Plugins.Epic
                 throw new InvalidOperationException("Session not found");
             }
 
-            if (!session.SessionData.TryGetValue("EpicAccessToken", out var accessTokenBytes))
+            var epicgamesAccessToken = session.GetAccessToken();
+
+            if (string.IsNullOrWhiteSpace(epicgamesAccessToken))
             {
                 throw new InvalidOperationException("EpicAccessToken not found in SessionData");
             }
-
-            var epicgamesAccessToken = Encoding.UTF8.GetString(accessTokenBytes);
 
             if (string.IsNullOrWhiteSpace(epicgamesAccessToken))
             {
