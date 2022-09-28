@@ -134,7 +134,7 @@ TEST(Metagame, TestBrowseParty) {
 		config->addPlugin(new Stormancer::Users::UsersPlugin());
 		config->addPlugin(new Stormancer::GameFinder::GameFinderPlugin());
 		config->addPlugin(new Stormancer::Party::PartyPlugin());
-
+		config->encryptionEnabled = true;
 
 
 		//Use the dispatcher we created earlier to ensure all callbacks are run on the test main thread.
