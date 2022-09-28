@@ -9,7 +9,7 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
+6.0.0.2
 ----------
 Added
 *****
@@ -26,7 +26,7 @@ Changed
 - Use GameSessionController to register to OnConnecting/ed disconnecting events.
 - Call OnClientLeaving when peer disconnecting
 - If DirectConnectionEnabled is selected, we don't wait for the host to connect, and we don't send any p2p token
-- Update dependency to Stormancer.Abstraction.Server 7.1.0
+- Update dependency to Stormancer.Abstraction.Server 9.0.0
 
 Fixed
 *****

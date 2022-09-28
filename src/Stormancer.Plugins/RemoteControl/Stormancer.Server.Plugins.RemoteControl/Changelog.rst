@@ -9,6 +9,6 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
+0.2.0.21
 ----------
 - Initial release: This plugins enables Stormancer servers to control agents installed on remote computers, issue commands and gather results.

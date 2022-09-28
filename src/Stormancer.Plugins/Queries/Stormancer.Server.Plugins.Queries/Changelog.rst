@@ -9,11 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
+0.5.0.2
 ----------
 Changed
 *******
-- Update dependency to Stormancer.Abstraction.Server 7.1.0
+- Update dependency to Stormancer.Abstraction.Server 9.0.0
 - Allow Document to contain null Source to denote "not found".
 - Adds default json based mapper.
 Added

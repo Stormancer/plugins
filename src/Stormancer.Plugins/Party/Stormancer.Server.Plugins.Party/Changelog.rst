@@ -10,11 +10,11 @@ Please use only reStructuredText in this file, no Markdown!
 This project adheres to semantic versioning.
 
 
-Unreleased
+4.3.1.12
 ----------
 Changed
 *******
-- Update dependency to Stormancer.Abstraction.Server 7.1.0
+- Update dependency to Stormancer.Abstraction.Server 9.0.0
 - Only generate numbers in invitation codes.
 - Only leader can create and cancel invitation codes.
 Added

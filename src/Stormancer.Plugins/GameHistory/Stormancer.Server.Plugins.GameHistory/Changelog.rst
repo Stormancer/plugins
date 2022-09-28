@@ -10,7 +10,7 @@ Please use only reStructuredText in this file, no Markdown!
 This project adheres to semantic versioning.
 
 
-Unreleased
+2.0.3.7
 ----------
 - Remove dependency to Stormancer.Abstraction.Server
 
