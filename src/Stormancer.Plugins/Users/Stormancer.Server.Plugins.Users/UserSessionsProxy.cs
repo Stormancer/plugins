@@ -36,12 +36,15 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
-    internal class UserSessionImpl :IUserSessions
+    internal class UserSessionImpl : IUserSessions
     {
         private readonly UserSessionProxy proxy;
         private readonly ISerializer serializer;
         private readonly ISceneHost scene;
 
+
+        private static MemoryCache<Session> sessionCache = new MemoryCache<Session>();
+        private int CACHE_DURATION_SECONDS = 30;
         public UserSessionImpl(UserSessionProxy proxy, ISerializer serializer, ISceneHost scene)
         {
             this.proxy = proxy;
@@ -66,19 +69,26 @@ namespace Stormancer.Server.Plugins.Users
 
         public async Task<Session?> GetSession(PlatformId platformId, CancellationToken cancellationToken)
         {
+
             var r = await GetSessions(Enumerable.Repeat(platformId, 1), cancellationToken);
             return r.FirstOrDefault().Value;
         }
 
         public Task<Session?> GetSessionById(SessionId sessionId, CancellationToken cancellationToken)
         {
-            return proxy.GetSessionById(sessionId, cancellationToken);
+            return sessionCache.Get(sessionId.ToString(), async (id) =>
+            {
+                var session = await proxy.GetSessionById(sessionId, cancellationToken);
+
+                return (session, TimeSpan.FromSeconds(CACHE_DURATION_SECONDS));
+            });
+
         }
 
         public async Task<T?> GetSessionData<T>(SessionId sessionId, string key, CancellationToken cancellationToken)
         {
             var buffer = await proxy.GetSessionData(sessionId, key, cancellationToken);
-            if(buffer == null)
+            if (buffer == null)
             {
                 return default;
             }
@@ -93,12 +103,36 @@ namespace Stormancer.Server.Plugins.Users
 
         public Task<Dictionary<PlatformId, Session?>> GetSessions(IEnumerable<PlatformId> platformIds, CancellationToken cancellationToken)
         {
+
             return proxy.GetSessionsByPlatformIds(platformIds, cancellationToken);
         }
 
-        public Task<Dictionary<SessionId, Session?>> GetSessions(IEnumerable<SessionId> sessionIds, CancellationToken cancellationToken)
+        public async Task<Dictionary<SessionId, Session?>> GetSessions(IEnumerable<SessionId> sessionIds, CancellationToken cancellationToken)
         {
-            return proxy.GetSessionsbySessionIds(sessionIds, cancellationToken);
+            var entries = sessionCache.GetMany(sessionIds.Select(id => id.ToString()), (ids) =>
+            {
+                Dictionary<string, Task<(Session?, TimeSpan)>> result = new();
+
+                var task = proxy.GetSessionsbySessionIds(sessionIds, cancellationToken);
+
+                async Task<(Session?, TimeSpan)> GetEntryAsync(SessionId id, Task<Dictionary<SessionId, Session?>> t)
+                {
+                    var r = await t;
+                    return (r[id], TimeSpan.FromSeconds(CACHE_DURATION_SECONDS));
+
+                }
+                foreach (var sessionId in ids)
+                {
+                    result[sessionId] = GetEntryAsync(SessionId.From(sessionId), task);
+                }
+
+
+                return result;
+            });
+
+            await Task.WhenAll(entries.Values);
+            return entries.ToDictionary(kvp => SessionId.From(kvp.Key), kvp => kvp.Value.Result);
+
         }
 
         public async Task<User?> GetUser(IScenePeerClient peer, CancellationToken cancellationToken)
@@ -129,7 +163,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public async Task UpdateSessionData(SessionId sessionId, string key, byte[] data, CancellationToken cancellationToken)
         {
-            await using var rq =  proxy.UpdateSessionData(sessionId, key,cancellationToken);
+            await using var rq = proxy.UpdateSessionData(sessionId, key, cancellationToken);
 
             await rq.Writer.WriteAsync(data, cancellationToken);
             rq.Writer.Complete();
@@ -149,18 +183,18 @@ namespace Stormancer.Server.Plugins.Users
         {
             return proxy.UpdateUserData(peer.SessionId, JObject.FromObject(data!), cancellationToken);
 
-           
+
         }
 
         public async Task<IScenePeerClient?> GetPeer(string userId, CancellationToken cancellationToken)
         {
             var session = await GetSessionByUserId(userId, cancellationToken);
-            if(session == null)
+            if (session == null)
             {
                 return default;
             }
 
-            return scene.RemotePeers.FirstOrDefault(p=>p.SessionId == session.SessionId);
+            return scene.RemotePeers.FirstOrDefault(p => p.SessionId == session.SessionId);
 
         }
 
@@ -169,10 +203,10 @@ namespace Stormancer.Server.Plugins.Users
             return proxy.GetSessionByUserId(userId, cancellationToken);
         }
 
-        
+
         public IRemotePipe SendRequest(string operationName, string senderUserId, string recipientUserId, CancellationToken cancellationToken)
         {
-          
+
             return proxy.SendRequest(operationName, senderUserId, recipientUserId, cancellationToken);
         }
 
@@ -198,5 +232,5 @@ namespace Stormancer.Server.Plugins.Users
         }
     }
 
-   
+
 }
