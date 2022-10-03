@@ -20,37 +20,68 @@ namespace Stormancer.Server.Plugins.Queries
         /// <returns></returns>
         public static IEnumerable<Lucene.Net.Index.IIndexableField> JsonMapper(JObject document)
         {
-            return JsonMapper(String.Empty, document);
+            return JsonMapper(null, document);
         }
 
-        public static IEnumerable<Lucene.Net.Index.IIndexableField> JsonMapper(string prefix, JObject document)
+        public static IEnumerable<Lucene.Net.Index.IIndexableField> JsonMapper(string? prefix, JObject document)
         {
             foreach (var (fieldName, field) in document)
             {
                 if (field is not null)
                 {
-                    switch (field.Type)
+                    if (prefix != null)
                     {
-                        case JTokenType.String:
-                            yield return new StringField($"{prefix}.{fieldName}", field.ToObject<string>(), Field.Store.NO);
-                            break;
-                        case JTokenType.Boolean:
-                            yield return new Int32Field($"{prefix}.{fieldName}", field.ToObject<bool>() ? 1 : 0, Field.Store.NO);
-                            break;
-                        case JTokenType.Integer:
-                            yield return new Int64Field($"{prefix}.{fieldName}", field.ToObject<long>(), Field.Store.NO);
-                            break;
-                        case JTokenType.Float:
-                            yield return new DoubleField($"{prefix}.{fieldName}", field.ToObject<double>(), Field.Store.NO);
-                            break;
-                        case JTokenType.Object:
-                            foreach (var indexedField in JsonMapper($"{prefix}.{fieldName}", (JObject)field))
-                            {
-                                yield return indexedField;
-                            }
-                            break;
-                        default:
-                            break;
+                        switch (field.Type)
+                        {
+                            case JTokenType.String:
+                                yield return new StringField($"{prefix}.{fieldName}", field.ToObject<string>(), Field.Store.NO);
+                                break;
+                            case JTokenType.Boolean:
+
+                                yield return new Int32Field($"{prefix}.{fieldName}", field.ToObject<bool>() ? 1 : 0, Field.Store.NO);
+                                break;
+                            case JTokenType.Integer:
+                                yield return new Int64Field($"{prefix}.{fieldName}", field.ToObject<long>(), Field.Store.NO);
+                                break;
+                            case JTokenType.Float:
+                                yield return new DoubleField($"{prefix}.{fieldName}", field.ToObject<double>(), Field.Store.NO);
+                                break;
+                            case JTokenType.Object:
+                                foreach (var indexedField in JsonMapper($"{prefix}.{fieldName}", (JObject)field))
+                                {
+                                    yield return indexedField;
+                                }
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        switch (field.Type)
+                        {
+                            case JTokenType.String:
+                                yield return new StringField($"{fieldName}", field.ToObject<string>(), Field.Store.NO);
+                                break;
+                            case JTokenType.Boolean:
+
+                                yield return new Int32Field($"{fieldName}", field.ToObject<bool>() ? 1 : 0, Field.Store.NO);
+                                break;
+                            case JTokenType.Integer:
+                                yield return new Int64Field($"{fieldName}", field.ToObject<long>(), Field.Store.NO);
+                                break;
+                            case JTokenType.Float:
+                                yield return new DoubleField($"{fieldName}", field.ToObject<double>(), Field.Store.NO);
+                                break;
+                            case JTokenType.Object:
+                                foreach (var indexedField in JsonMapper($"{prefix}.{fieldName}", (JObject)field))
+                                {
+                                    yield return indexedField;
+                                }
+                                break;
+                            default:
+                                break;
+                        }
                     }
                 }
             }

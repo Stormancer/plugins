@@ -9,12 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
+3.1.0
 ----------
 Changed
 *******
 - Specify CurrentPlatform when creating an user.
-- Update dependency to Stormancer.Abstraction.Server 7.1.0
+- Update dependency to Stormancer.Abstraction.Server 9.0.0
 - Implement Auth and profile part builder.
 
 2.0.2.1

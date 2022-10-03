@@ -42,7 +42,7 @@ static pplx::task<bool> BrowseParty(int id)
 
 	auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
 
-	return  users->login().then([party]() {return party->searchParties("{}", 0, 10, pplx::cancellation_token::none()); })
+	return  users->login().then([party]() {return party->searchParties("{\"bool\":{\"must\":[{\"match\":{\"field\":\"state_full\",\"value\":false}},{\"match\":{\"field\":\"state_private\",\"value\":false}}]}}", 0, 10, pplx::cancellation_token::none()); })
 	.then([client,party](Stormancer::Party::SearchResult t) {
 		if (t.total != 1)
 		{
@@ -95,7 +95,7 @@ static pplx::task<void> CreateParty(int id)
 	.then([client,party,id]()
 	{
 		auto settings = party->getPartySettings();
-		settings.indexedDocument = "{ \"test\":\"" + std::to_string(id)+ "\"}";
+		settings.indexedDocument = "{\"state_full\":false,\"state_private\":false}";
 		party->updatePartySettings(settings);
 	})
 	.then([client](pplx::task<void> t)
@@ -134,7 +134,7 @@ TEST(Metagame, TestBrowseParty) {
 		config->addPlugin(new Stormancer::Users::UsersPlugin());
 		config->addPlugin(new Stormancer::GameFinder::GameFinderPlugin());
 		config->addPlugin(new Stormancer::Party::PartyPlugin());
-
+		config->encryptionEnabled = true;
 
 
 		//Use the dispatcher we created earlier to ensure all callbacks are run on the test main thread.

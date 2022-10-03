@@ -9,6 +9,6 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
+0.1.0.12
 ----------
 - Initial plugin release. This dotnet Client plugins simplifies creating agents and control servers for the Stormancer RemoteControl plugin (Stormancer.Server.Plugins.RemoteControl).

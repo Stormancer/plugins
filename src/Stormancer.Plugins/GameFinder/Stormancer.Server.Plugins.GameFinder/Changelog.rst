@@ -9,7 +9,7 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
+8.0.0.3
 ----------
 Added
 *****
@@ -24,7 +24,7 @@ Fixed
 Changed
 *******
 - Compatibility with updated Queries API.
-- Update dependency to Stormancer.Abstraction.Server 7.1.0
+- Update dependency to Stormancer.Abstraction.Server 9.0.0
 
 7.3.0.1
 -------

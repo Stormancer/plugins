@@ -13,6 +13,12 @@ Unreleased
 ----------
 Added
 *****
+- Add CreateP2PToken API to get a P2P token for any player in the gamesession
+
+6.0.0.2
+----------
+Added
+*****
 - GameFinder name has been added to gamesession's initialization configuration.
 - Rework of server pools
 - Add back game server support in gamesession.
@@ -20,13 +26,14 @@ Added
 - Add EnableDirectConnection configuration value to disable P2P connection.
 - Add new ServerReady event handler triggered when using a gamesession with a server.
 
+
 Changed
 *******
 - Fix GameSessionService.PeerConnectionRejected
 - Use GameSessionController to register to OnConnecting/ed disconnecting events.
 - Call OnClientLeaving when peer disconnecting
 - If DirectConnectionEnabled is selected, we don't wait for the host to connect, and we don't send any p2p token
-- Update dependency to Stormancer.Abstraction.Server 7.1.0
+- Update dependency to Stormancer.Abstraction.Server 9.0.0
 
 Fixed
 *****

@@ -12,7 +12,7 @@
 #include "stormancer/IClientFactory.h"
 #include "stormancer/Logger/VisualStudioLogger.h"
 
-static constexpr const char* ServerEndpoint = "http://localhost";//"http://gc3.stormancer.com";
+static constexpr const char* ServerEndpoint = "http://localhost:8080";//"http://gc3.stormancer.com";
 constexpr  char* Account = "tests";
 constexpr  char* Application = "test-app";
 
@@ -43,7 +43,9 @@ static pplx::task<bool> JoinGameImpl(int id, const std::string& invitationCode)
 
 	auto gameFinder = client->dependencyResolver().resolve<Stormancer::GameFinder::GameFinderApi>();
 	auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
-	return party->joinPartyByInvitationCode(invitationCode)
+	return users->login().then([party,invitationCode]() {
+		return party->joinPartyByInvitationCode(invitationCode);
+		})
 		.then([client]()
 		{
 			auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
@@ -95,12 +97,15 @@ static pplx::task<std::string> CreateGameImpl(int id)
 
 
 
-	Stormancer::Party::PartyRequestDto request;
-	request.GameFinderName = "joingame-test";
+	
 	//Name of the matchmaking, defined in Stormancer.Server.TestApp/TestPlugin.cs.
 	//>  host.AddGamefinder("matchmaking", "matchmaking");
 
-	return party->createPartyIfNotJoined(request)
+	return users->login().then([party]() {
+		Stormancer::Party::PartyRequestDto request;
+		request.GameFinderName = "joingame-test";
+		return party->createPartyIfNotJoined(request);
+		})
 		.then([client]()
 			{
 				log(client, Stormancer::LogLevel::Debug, "connected to party");

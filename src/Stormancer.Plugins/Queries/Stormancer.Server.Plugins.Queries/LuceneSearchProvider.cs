@@ -207,7 +207,7 @@ namespace Stormancer.Server.Plugins.Queries
             {
                 { Type: "match" } => ((TermFilterExpression)expression).ToLuceneQuery(),
                 { Type: "bool" } => ((BoolFilterExpression)expression).ToLuceneQuery(),
-                { Type: "match_all"}=> ((MatchAllFilterExpression)expression).ToLuceneQuery(),
+                { Type: "match_all" } => ((MatchAllFilterExpression)expression).ToLuceneQuery(),
                 _ => throw new NotSupportedException()
             };
         }
@@ -238,6 +238,11 @@ namespace Stormancer.Server.Plugins.Queries
 
                 case JTokenType.String:
                     return new TermQuery(new Term(expression.Field, expression.Value.ToObject<string>()));
+                case JTokenType.Boolean:
+                    {
+                        var value = ((JValue)expression.Value).ToObject<bool>() ? 1 : 0;
+                        return NumericRangeQuery.NewInt32Range(expression.Field, value, value, true, true);
+                    }
                 default:
                     throw new NotSupportedException($"'{expression.Value}' not supported as a match field value.");
             }
@@ -405,7 +410,7 @@ namespace Stormancer.Server.Plugins.Queries
 
         public int MinimumShouldMatch { get; }
     }
-   
+
     public class TermFilterExpression : IFilterExpression
     {
         public string Type => "match";
