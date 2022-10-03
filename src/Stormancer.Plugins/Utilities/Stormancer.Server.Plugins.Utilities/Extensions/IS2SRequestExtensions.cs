@@ -26,20 +26,28 @@ namespace Stormancer
         /// <returns></returns>
         public async static IAsyncEnumerable<T> ReadObjectsSequence<T>(this PipeReader reader, ISerializer serializer,[EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            ISerializer.DeserializationResult<T> result;
-            while(true)
+            try
             {
-                result = await serializer.TryDeserializeAsync<T>(reader, cancellationToken);
-                if (result.Success)
+                while (true)
                 {
-                    yield return result.Value;
-                }
-                else
-                {
-                    await reader.CompleteAsync();
-                    yield break;
-                }
+                    var readResult = await reader.ReadAtLeastAsync(1);
+                    if (readResult.IsCanceled)
+                    {
+                        yield break;
+                    }
 
+                    reader.AdvanceTo(readResult.Buffer.Start);
+                    if (readResult.IsCompleted && readResult.Buffer.IsEmpty)
+                    {
+                        yield break;
+                    }
+
+                    yield return await serializer.DeserializeAsync<T>(reader, cancellationToken);
+                }
+            }
+            finally
+            {
+                reader.Complete();
             }
         }
 
