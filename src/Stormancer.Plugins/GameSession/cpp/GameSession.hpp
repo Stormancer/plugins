@@ -112,6 +112,7 @@ namespace Stormancer
 			virtual pplx::task<GameSessionConnectionParameters> connectToGameSession(std::string token, std::string mapName = "", bool openTunnel = true, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
 
 			virtual pplx::task<void> setPlayerReady(const std::string& data = "", pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
+			virtual pplx::task<std::shared_ptr<Stormancer::IP2PScenePeer>> connectP2P(Stormancer::SessionId target, pplx::cancellation_token ct) = 0;
 
 			virtual pplx::task<std::vector<Team>> getTeams(pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) = 0;
 			template<typename TServerResult, typename TClientResult>
@@ -469,7 +470,17 @@ namespace Stormancer
 							msgpack::pack(stream, data);
 						});
 				}
+				pplx::task<std::string> connectP2P(Stormancer::SessionId target)
+				{
+					auto scene = _scene.lock();
+					if (!scene)
+					{
+						STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("Scene"), std::string);
+					}
 
+					auto rpc = scene->dependencyResolver().resolve<RpcService>();
+					return rpc->rpc<std::string>("GamesSssion.CreateP2PToken", target);
+				}
 				pplx::task<Packetisp_ptr> sendGameResults(const StreamWriter& streamWriter, pplx::cancellation_token ct)
 				{
 					auto scene = _scene.lock();
@@ -816,6 +827,33 @@ namespace Stormancer
 								}
 								return task;
 							}, dispatcher);
+				}
+
+				pplx::task<std::shared_ptr<Stormancer::IP2PScenePeer>> connectP2P(Stormancer::SessionId target, pplx::cancellation_token ct) override
+				{
+					if (auto dispatcher = _wDispatcher.lock())
+					{
+						return getCurrentGameSession(ct)
+							.then([target](std::shared_ptr<Scene> scene)
+								{
+									if (scene)
+									{
+										auto gameSessionService = scene->dependencyResolver().resolve<GameSessionService>();
+										return gameSessionService->connectP2P(target).then([scene](std::string token) {return std::make_tuple(scene, token); });
+									}
+									else
+									{
+										throw std::runtime_error("Not connected to a game session");
+									}
+								})
+							.then([](std::tuple<std::shared_ptr<Scene>,std::string> tuple) {
+									return std::get<0>(tuple)->openP2PConnection(std::get<1>(tuple));
+							}, dispatcher);
+					}
+					else
+					{
+						STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("IActionDispatcher"), std::shared_ptr<Stormancer::IP2PScenePeer>);
+					}
 				}
 
 				pplx::task<void> setPlayerReady(const std::string& data, pplx::cancellation_token ct = pplx::cancellation_token::none())

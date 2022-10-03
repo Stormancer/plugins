@@ -169,6 +169,12 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             return _service.SetPeerFaulted(packet.Connection);
         }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public Task<string> CreateP2PToken(SessionId remotePeerSessionId)
+        {
+            return _service.CreateP2PToken(Request.RemotePeer.SessionId, remotePeerSessionId);
+        }
     }
 
     public class GameSessionReservation

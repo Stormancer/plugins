@@ -163,5 +163,13 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         Task CancelReservationAsync(string id, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Creates a P2P token to connect 2 players of the gamesession together.
+        /// </summary>
+        /// <param name="callerSessionId"></param>
+        /// <param name="remotePeerSessionId"></param>
+        /// <returns></returns>
+        Task<string> CreateP2PToken(SessionId callerSessionId, SessionId remotePeerSessionId);
     }
 }

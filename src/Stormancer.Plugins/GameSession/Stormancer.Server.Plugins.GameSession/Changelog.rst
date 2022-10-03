@@ -19,6 +19,7 @@ Added
 - Add support for game servers running on local docker.
 - Add EnableDirectConnection configuration value to disable P2P connection.
 - Add new ServerReady event handler triggered when using a gamesession with a server.
+- Add CreateP2PToken API to get a P2P token for any player in the gamesession
 
 Changed
 *******

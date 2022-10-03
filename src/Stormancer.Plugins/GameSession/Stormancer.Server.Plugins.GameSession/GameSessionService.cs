@@ -1197,6 +1197,11 @@ namespace Stormancer.Server.Plugins.GameSession
             }
             return _config.Teams.FirstOrDefault(t => t.AllPlayers.Any(p => p.UserId == userId));
         }
+
+        public Task<string> CreateP2PToken(SessionId callerSessionId, SessionId remotePeerSessionId)
+        {
+            return _scene.DependencyResolver.Resolve<IPeerInfosService>().CreateP2pToken(remotePeerSessionId, _scene.Id);
+        }
         #endregion
 
     }
