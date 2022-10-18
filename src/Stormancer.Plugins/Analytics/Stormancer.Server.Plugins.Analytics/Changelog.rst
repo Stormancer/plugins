@@ -9,8 +9,9 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
--------
+2.0.5
+-----
+- Separates instrumentation for S2S and instrumentation for client APIs in configuration
 - Stringifies session ids in metrics
 
 2.0.4.5
