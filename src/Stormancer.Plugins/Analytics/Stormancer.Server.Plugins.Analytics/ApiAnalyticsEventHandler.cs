@@ -117,7 +117,7 @@ namespace Stormancer.Server.Plugins.Analytics
                     inputSize = ctx.Context.InputStream.Length,
                     route = ctx.Route,
                     duration = _watch.ElapsedMilliseconds - start,
-                    SessionId = ctx.Context.RemotePeer.SessionId
+                    SessionId = ctx.Context.RemotePeer.SessionId.ToString()
                 }));
             }
             else
@@ -187,7 +187,7 @@ namespace Stormancer.Server.Plugins.Analytics
                     inputSize = ctx.Context.Stream.Length,
                     route = ctx.Route,
                     duration = _watch.ElapsedMilliseconds - start,
-                    SessionId = ctx.Context.Connection.SessionId
+                    SessionId = ctx.Context.Connection.SessionId.ToString()
                 }));
 
             }
@@ -218,7 +218,7 @@ namespace Stormancer.Server.Plugins.Analytics
             {
                 var start = _watch.ElapsedMilliseconds;
                 await next(ctx);
-                _analytics.Push("api", "ff.cs", JObject.FromObject(new
+                _analytics.Push("api", "ff.s2s", JObject.FromObject(new
                 {
                     type = "Request",
                     scope = "S2S",

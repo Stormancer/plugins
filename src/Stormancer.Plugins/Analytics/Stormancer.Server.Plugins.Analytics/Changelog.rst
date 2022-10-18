@@ -9,6 +9,10 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+-------
+- Stringifies session ids in metrics
+
 2.0.4.5
 ----------
 - Remove dependency to Stormancer.Abstraction.Server 
