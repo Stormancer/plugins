@@ -8,7 +8,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -407,6 +409,7 @@ namespace Stormancer.Server.Plugins.Epic
                     _serializer.Serialize(payload, memStream);
                     authResult.OnSessionUpdated += (SessionRecord sessionRecord) =>
                     {
+                        sessionRecord.SessionData["EpicAccessToken"] = Encoding.UTF8.GetBytes(accessToken);
                         sessionRecord.SessionData["EpicAccessTokenPayload"] = memStream.ToArray();
                     };
                     return authResult;

@@ -56,6 +56,11 @@ namespace Stormancer.Server.Plugins.Galaxy
                 return;
             }
 
+            if (ctx.Users.Count() == 0)
+            {
+                return;
+            }
+
             var allUsers = await _users.GetUsers(ctx.Users.ToArray(), ct);
             var users = allUsers
                 .Where(kvp => kvp.Value != null && kvp.Value.UserData.ContainsKey(GalaxyConstants.PLATFORM_NAME))
@@ -68,8 +73,7 @@ namespace Stormancer.Server.Plugins.Galaxy
             }
 
             Dictionary<string, UserInfo> userInfos = new();
-            if ((hasProfilePartUser && ctx.DisplayOptions["user"] == "details")
-                || (hasProfilePartGalaxy && ctx.DisplayOptions[GalaxyConstants.PLATFORM_NAME] == "details"))
+            if (hasProfilePartUser || hasProfilePartGalaxy)
             {
                 List<string> galaxyIds = new();
                 foreach (var user in users)
@@ -101,9 +105,9 @@ namespace Stormancer.Server.Plugins.Galaxy
                             {
                                 data[GalaxyConstants.GALAXYID_CLAIMPATH] = galaxyId;
 
-                                if (userInfos.ContainsKey(galaxyId))
+                                if (userInfos.TryGetValue(galaxyId, out var value))
                                 {
-                                    data[GalaxyConstants.USERNAME] = userInfos[galaxyId].username;
+                                    data[GalaxyConstants.USERNAME] = value.username;
                                 }
 
                                 return data;
@@ -131,11 +135,11 @@ namespace Stormancer.Server.Plugins.Galaxy
                                 data["platforms"]![GalaxyConstants.PLATFORM_NAME] = new JObject();
                                 data["platforms"]![GalaxyConstants.PLATFORM_NAME]![GalaxyConstants.GALAXYID_CLAIMPATH] = galaxyId;
 
-                                if (!data.ContainsKey("pseudo") || string.IsNullOrWhiteSpace(data["pseudo"]?.ToString()))
+                                if (user.LastPlatform == GalaxyConstants.PLATFORM_NAME)
                                 {
-                                    if (userInfos.ContainsKey(galaxyId))
+                                    if (userInfos.TryGetValue(galaxyId, out var value))
                                     {
-                                        data["pseudo"] = userInfos[galaxyId].username;
+                                        data["pseudo"] = value.username;
                                     }
                                 }
 
