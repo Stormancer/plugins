@@ -1,5 +1,6 @@
 ﻿using Stormancer.Server.Plugins.Epic;
 using Stormancer.Server.Plugins.Users;
+using System.Text;
 
 namespace Stormancer
 {
@@ -36,6 +37,17 @@ namespace Stormancer
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// GetAccessToken
+        /// </summary>
+        /// <param name="session"></param>
+        /// <returns></returns>
+        public static string? GetAccessToken(this Session session)
+        {
+            var epicAccessTokenData = session.SessionData["EpicAccessToken"];
+            return epicAccessTokenData != null ? Encoding.UTF8.GetString(epicAccessTokenData) : null;
         }
     }
 }

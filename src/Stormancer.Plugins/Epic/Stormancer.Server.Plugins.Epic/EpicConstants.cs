@@ -29,5 +29,10 @@ namespace Stormancer.Server.Plugins.Epic
         /// Epic account display name.
         /// </summary>
         public const string DISPLAYNAME = "displayName";
+
+        /// <summary>
+        /// Epic account display name.
+        /// </summary>
+        public const string PRODUCTUSERID = "productUserId";
     }
 }
