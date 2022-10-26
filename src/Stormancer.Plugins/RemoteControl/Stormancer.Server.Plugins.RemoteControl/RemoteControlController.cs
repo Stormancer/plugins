@@ -36,7 +36,7 @@ namespace Stormancer.Server.Plugins.RemoteControl
 
         protected override Task OnDisconnected(DisconnectedArgs args)
         {
-            service.DisconnectAgent(SessionId.From(args.Peer.SessionId));
+            service.DisconnectAgent(args.Peer.SessionId);
             return Task.CompletedTask;
         }
 
