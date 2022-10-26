@@ -9,14 +9,20 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+3.1.1.1
+-------
+Changed
+*******
+- Fix profile part
+
 3.1.1
-----------
+-----
 Added
 *****
 - profile part
 
 3.1.0
-----------
+-----
 Changed
 *******
 - Specify CurrentPlatform when creating an user.

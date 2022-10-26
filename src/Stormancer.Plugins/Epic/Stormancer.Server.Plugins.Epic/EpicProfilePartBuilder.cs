@@ -150,12 +150,9 @@ namespace Stormancer.Server.Plugins.Epic
                                     data["platforms"]![EpicConstants.PLATFORM_NAME]![EpicConstants.PRODUCTUSERID] = productUserId;
                                 }
 
-                                if (user.LastPlatform == EpicConstants.PLATFORM_NAME)
+                                if (accounts.TryGetValue(accountId, out var account) && account != null && !string.IsNullOrWhiteSpace(account.DisplayName))
                                 {
-                                    if (accounts.TryGetValue(accountId, out var account) && account != null && !string.IsNullOrWhiteSpace(account.DisplayName))
-                                    {
-                                        data["pseudo"] = account.DisplayName;
-                                    }
+                                    data["pseudo"] = account.DisplayName;
                                 }
 
                                 return data;
