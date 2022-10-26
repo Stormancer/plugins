@@ -9,11 +9,15 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-1.1.1.1
+1.1.2
 -------
 Changed
 *******
 - Fix profile part
+
+Fixed
+*****
+- Cache should be static in AuthenticationProvider
 
 1.1.1
 -----

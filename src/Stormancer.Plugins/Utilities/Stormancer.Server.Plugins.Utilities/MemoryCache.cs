@@ -26,6 +26,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins
@@ -111,8 +112,8 @@ namespace Stormancer.Server.Plugins
         private object _syncRoot = new object();
 
         Dictionary<string, CacheEntry> cache = new Dictionary<string, CacheEntry>();
-        private bool _running = true;
-
+      
+        private PeriodicTimer _timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
 
         /// <summary>
         /// Creates the memory cache.
@@ -122,7 +123,7 @@ namespace Stormancer.Server.Plugins
             Task.Run(async () =>
             {
 
-                while (_running)
+                while (await _timer.WaitForNextTickAsync())
                 {
 
 
@@ -130,7 +131,7 @@ namespace Stormancer.Server.Plugins
                     {
                         entry.Value.OnInvalidated(entry.Key);
                     }
-                    await Task.Delay(60000);
+                   ;
 
                 }
             });
@@ -264,7 +265,7 @@ namespace Stormancer.Server.Plugins
         /// </summary>
         public void Dispose()
         {
-            _running = false;
+            _timer.Dispose();
         }
     }
 }

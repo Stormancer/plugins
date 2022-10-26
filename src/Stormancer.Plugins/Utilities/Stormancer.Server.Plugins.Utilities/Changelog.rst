@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+3.1.2
+-----
+Changed
+*******
+- Use PeriodicTimer to manage invalidation of cache entries.
+
 3.1.1.1
 ----------
 - Update dependency to Stormancer.Abstraction.Server 9.0.0
