@@ -55,6 +55,11 @@ namespace Stormancer.Server.Plugins.Epic
                 return;
             }
 
+            if (ctx.Users.Count() == 0)
+            {
+                return;
+            }
+
             var allUsers = await _users.GetUsers(ctx.Users.ToArray(), ct);
             var users = allUsers
                 .Where(kvp => kvp.Value != null && kvp.Value.UserData.ContainsKey(EpicConstants.PLATFORM_NAME))
@@ -67,8 +72,8 @@ namespace Stormancer.Server.Plugins.Epic
             }
 
             Dictionary<string, Account> accounts = new();
-            if ((hasProfilePartUser && ctx.DisplayOptions["user"] == "details")
-                || (hasProfilePartEpic && ctx.DisplayOptions[EpicConstants.PLATFORM_NAME] == "details"))
+            Dictionary<string, string> productUserIds = new();
+            if (hasProfilePartUser || hasProfilePartEpic)
             {
                 List<string> accountIds = new();
                 foreach (var user in users)
@@ -84,6 +89,11 @@ namespace Stormancer.Server.Plugins.Epic
                     }
                 }
                 accounts = await _epicService.GetAccounts(accountIds);
+
+                if (ctx.Origin != null && ctx.Origin.User != null)
+                {
+                    productUserIds = await _epicService.GetExternalAccounts(ctx.Origin.User.Id, accountIds, "epicgames");
+                }
             }
 
             if (hasProfilePartEpic)
@@ -100,9 +110,14 @@ namespace Stormancer.Server.Plugins.Epic
                             {
                                 data[EpicConstants.ACCOUNTID_CLAIMPATH] = accountId;
 
-                                if (accounts.ContainsKey(accountId))
+                                if (productUserIds.TryGetValue(accountId, out var productUserId) && !string.IsNullOrWhiteSpace(productUserId))
                                 {
-                                    data[EpicConstants.DISPLAYNAME] = accounts[accountId].DisplayName;
+                                    data[EpicConstants.PRODUCTUSERID] = productUserId;
+                                }
+
+                                if (accounts.TryGetValue(accountId, out var account) && account != null && !string.IsNullOrWhiteSpace(account.DisplayName))
+                                {
+                                    data[EpicConstants.DISPLAYNAME] = account.DisplayName;
                                 }
 
                                 return data;
@@ -130,11 +145,16 @@ namespace Stormancer.Server.Plugins.Epic
                                 data["platforms"]![EpicConstants.PLATFORM_NAME] = new JObject();
                                 data["platforms"]![EpicConstants.PLATFORM_NAME]![EpicConstants.ACCOUNTID_CLAIMPATH] = accountId;
 
-                                if (!data.ContainsKey("pseudo") || string.IsNullOrWhiteSpace(data["pseudo"]?.ToString()))
+                                if (productUserIds.TryGetValue(accountId, out var productUserId) && !string.IsNullOrWhiteSpace(productUserId))
                                 {
-                                    if (accounts.ContainsKey(accountId))
+                                    data["platforms"]![EpicConstants.PLATFORM_NAME]![EpicConstants.PRODUCTUSERID] = productUserId;
+                                }
+
+                                if (user.LastPlatform == EpicConstants.PLATFORM_NAME)
+                                {
+                                    if (accounts.TryGetValue(accountId, out var account) && account != null && !string.IsNullOrWhiteSpace(account.DisplayName))
                                     {
-                                        data["pseudo"] = accounts[accountId].DisplayName;
+                                        data["pseudo"] = account.DisplayName;
                                     }
                                 }
 

@@ -38,7 +38,7 @@ int main()
 	config->additionalParameters[Epic::ConfigurationKeys::ClientId] = STORM_EPIC_CLIENT_ID;
 	config->additionalParameters[Epic::ConfigurationKeys::ClientSecret] = STORM_EPIC_CLIENT_SECRET;
 	config->additionalParameters[Epic::ConfigurationKeys::Diagnostics] = "true";
-	config->additionalParameters[GameVersion::ConfigurationKeys::ClientVersion] = "0.1.0";
+	config->additionalParameters[GameVersion::ConfigurationKeys::ClientVersion] = STORM_CLIENT_VERSION;
 	config->addPlugin(new Users::UsersPlugin());
 	config->addPlugin(new GameFinder::GameFinderPlugin());
 	config->addPlugin(new Party::PartyPlugin());
@@ -91,6 +91,13 @@ int main()
 		}
 		std::string accountId = utility::conversions::to_utf8string(accountIdValue.as_string());
 
+		web::json::value& productUserIdValue = jsonValue.as_object().at(utility::conversions::to_string_t("productUserId"));
+		if (productUserIdValue.type() != web::json::value::value_type::String)
+		{
+			throw std::runtime_error("Bad json type: not a string");
+		}
+		std::string productUserId = utility::conversions::to_utf8string(productUserIdValue.as_string());
+
 		web::json::value& displayNameValue = jsonValue.as_object().at(utility::conversions::to_string_t("displayName"));
 		if (displayNameValue.type() != web::json::value::value_type::String)
 		{
@@ -98,7 +105,7 @@ int main()
 		}
 		std::string displayName = utility::conversions::to_utf8string(displayNameValue.as_string());
 
-		s_logger->log(LogLevel::Info, "SampleMain", "Profile retrieved", "AccountId=" + accountId + "; DisplayName=" + displayName);
+		s_logger->log(LogLevel::Info, "SampleMain", "Profile retrieved", "AccountId=" + accountId + "; ProductUserId=" + productUserId + "; DisplayName=" + displayName);
 	}
 	catch (const std::exception& ex)
 	{

@@ -44,6 +44,10 @@ To auth with a dev account :
 	configuration->addPlugin(new Stormancer::Epic::EpicPlugin());
 ```
 
+## ProductUserId
+
+To use product user id provided by stormancer profile part, you should use the connect API before using it client side : https://dev.epicgames.com/docs/api-ref/functions/eos-connect-login
+
 # Server configuration
 
 ```json

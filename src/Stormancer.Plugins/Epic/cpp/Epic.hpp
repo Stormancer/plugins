@@ -61,7 +61,7 @@ namespace Stormancer
 			/// <summary>
 			/// Login mode.
 			/// Available options :
-			/// - "AccountPortal"
+			/// - "ExchangeCode"
 			/// - "DevAuth"
 			/// </summary>
 			constexpr const char* LoginMode = "epic.authentication.loginMode";
@@ -77,6 +77,12 @@ namespace Stormancer
 			/// The Name you entered in the Dev Auth tool.
 			/// </summary>
 			constexpr const char* DevAuthCredentialsName = "epic.authentication.devAuth.credentialsName";
+
+			/// <summary>
+			/// Exchange code.
+			/// The exchange code to authenticate the user.
+			/// </summary>
+			constexpr const char* ExchangeCode = "epic.authentication.exchangeCode";
 
 			/// <summary>
 			/// Epic Product Id.
@@ -126,6 +132,8 @@ namespace Stormancer
 			virtual void setPlatformHandle(EOS_HPlatform platformHandle) = 0;
 
 			virtual EOS_HPlatform getPlatformHandle() = 0;
+
+			virtual EOS_EpicAccountId getEpicAccountId() = 0;
 		};
 
 		namespace details
@@ -213,6 +221,7 @@ namespace Stormancer
 					_loginMode = config->additionalParameters.find(ConfigurationKeys::LoginMode) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::LoginMode) : "";
 					_devAuthHost = config->additionalParameters.find(ConfigurationKeys::DevAuthHost) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::DevAuthHost) : "";
 					_devAuthCredentialsName = config->additionalParameters.find(ConfigurationKeys::DevAuthCredentialsName) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::DevAuthCredentialsName) : "";
+					_exchangeCode = config->additionalParameters.find(ConfigurationKeys::ExchangeCode) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ExchangeCode) : "";
 					_productId = config->additionalParameters.find(ConfigurationKeys::ProductId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ProductId) : "";
 					_sandboxId = config->additionalParameters.find(ConfigurationKeys::SandboxId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::SandboxId) : "";
 					_deploymentId = config->additionalParameters.find(ConfigurationKeys::DeploymentId) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::DeploymentId) : "";
@@ -278,6 +287,13 @@ namespace Stormancer
 					std::lock_guard<std::recursive_mutex> lg(_mutex);
 
 					return _devAuthCredentialsName;
+				}
+
+				std::string getExchangeCode() const
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					return _exchangeCode;
 				}
 
 				std::string getProductId() const
@@ -348,6 +364,34 @@ namespace Stormancer
 					_platformHandleOwned = owned;
 				}
 
+				void setEpicAccountId(EOS_EpicAccountId epicAccountId)
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					_epicAccountId = epicAccountId;
+				}
+
+				EOS_EpicAccountId getEpicAccountId()
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					return _epicAccountId;
+				}
+
+				void setEpicProductUserId(EOS_ProductUserId productUserId)
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					_productUserId = productUserId;
+				}
+
+				EOS_ProductUserId getProductUserId()
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					return _productUserId;
+				}
+
 			private:
 
 				void clear()
@@ -371,6 +415,7 @@ namespace Stormancer
 				std::string _loginMode;
 				std::string _devAuthHost;
 				std::string _devAuthCredentialsName;
+				std::string _exchangeCode;
 				std::string _productId;
 				std::string _sandboxId;
 				std::string _deploymentId;
@@ -380,6 +425,8 @@ namespace Stormancer
 				bool _diagnostics = false;
 				EOS_HPlatform _platformHandle = nullptr;
 				std::shared_ptr<ILogger> _logger;
+				EOS_EpicAccountId _epicAccountId;
+				EOS_ProductUserId _productUserId;
 			};
 
 			class EpicTicker : public std::enable_shared_from_this<EpicTicker>
@@ -660,6 +707,11 @@ namespace Stormancer
 					return _epicState->getPlatformHandle();
 				}
 
+				EOS_EpicAccountId getEpicAccountId()
+				{
+					return _epicState->getEpicAccountId();
+				}
+
 #pragma endregion
 
 			private:
@@ -796,27 +848,35 @@ namespace Stormancer
 				memset(&loginOptions, 0, sizeof(loginOptions));
 				loginOptions.ApiVersion = EOS_AUTH_LOGIN_API_LATEST;
 
-				std::string firstParameter, secondParameter;
-
 				auto loginMode = _epicState->getLoginMode();
+
+				std::string id, token;
 
 				if (loginMode == "DevAuth") // Dev auth (DevAuth)
 				{
-					firstParameter = _epicState->getDevAuthHost();
-					secondParameter = _epicState->getDevAuthCredentialsName();
+					id = _epicState->getDevAuthHost();
+					token = _epicState->getDevAuthCredentialsName();
 
-					if (firstParameter.empty() || secondParameter.empty())
+					if (id.empty() || token.empty())
 					{
 						STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error("Missing host or credentials name for DevAuth login mode"), void);
 					}
 
-					credentials.Id = firstParameter.c_str();
-					credentials.Token = secondParameter.c_str();
+					credentials.Id = id.c_str();
+					credentials.Token = token.c_str();
 					credentials.Type = EOS_ELoginCredentialType::EOS_LCT_Developer;
 				}
-				else // Default regular auth (AccountPortal)
+				else // Default regular auth (ExchangeCode)
 				{
-					credentials.Type = EOS_ELoginCredentialType::EOS_LCT_AccountPortal;
+					token = _epicState->getExchangeCode();
+
+					if (token.empty())
+					{
+						STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error("Missing exchange code for ExchangeCode login mode"), void);
+					}
+
+					credentials.Token = token.c_str();
+					credentials.Type = EOS_ELoginCredentialType::EOS_LCT_ExchangeCode;
 				}
 
 				loginOptions.ScopeFlags = EOS_EAuthScopeFlags::EOS_AS_BasicProfile | EOS_EAuthScopeFlags::EOS_AS_FriendsList | EOS_EAuthScopeFlags::EOS_AS_Presence;
@@ -827,8 +887,10 @@ namespace Stormancer
 
 				EOS_Auth_Login(authHandle, &loginOptions, wEpicAuth, loginCompleteCallbackFn);
 
+				auto wEpicAuthEvtHandler = STORM_WEAK_FROM_THIS();
+
 				return pplx::create_task(*_authTce)
-					.then([fulfillCredentialsCallback, authHandle](std::string accountIdStr)
+					.then([fulfillCredentialsCallback, authHandle, wEpicAuthEvtHandler](std::string accountIdStr)
 				{
 					assert(authHandle != nullptr);
 
@@ -848,8 +910,21 @@ namespace Stormancer
 
 					std::string accessToken(authToken->AccessToken);
 
+					auto epicAuthEvtHandler = wEpicAuthEvtHandler.lock();
+					if (!epicAuthEvtHandler)
+					{
+						throw ObjectDeletedException("EpicAuthenticationEventHandler");
+					}
+
+					epicAuthEvtHandler->_epicState->setEpicAccountId(accountId);
+
 					fulfillCredentialsCallback(platformName, platformName, accessToken);
 				});
+			}
+
+			pplx::task<void> OnLoggingOut() override
+			{
+				_epicState->setEpicAccountId(nullptr);
 			}
 
 #pragma endregion
