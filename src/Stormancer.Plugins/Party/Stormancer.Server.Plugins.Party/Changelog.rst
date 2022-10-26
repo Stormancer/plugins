@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+4.3.1.12
+--------
 Added
 *****
 - Added 'party.enableGameSessionPartyStatus' to app configuration to disable gamesession party status (it disables joining party gamesession too). Defaults to true (enabled) by default.

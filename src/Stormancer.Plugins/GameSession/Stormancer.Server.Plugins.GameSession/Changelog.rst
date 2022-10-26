@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+6.0.1.1
+-------
 Added
 *****
 - Add CreateP2PToken API to get a P2P token for any player in the gamesession.

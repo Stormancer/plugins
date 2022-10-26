@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+7.0.1.1
+-------
 Changed
 *******
 - Don't retry AddAuthentication. It caused very long failure time on authentication if the DB was not running.
