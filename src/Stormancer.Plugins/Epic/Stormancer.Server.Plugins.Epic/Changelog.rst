@@ -9,8 +9,14 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+1.1.1.1
+-------
+Changed
+*******
+- Fix profile part
+
 1.1.1
-----------
+-----
 Added
 *****
 - Profile part
@@ -19,7 +25,7 @@ Changed
 - Auth Exchange code
 
 1.1.0
-----------
+-----
 Added
 *****
 - First pre-version
