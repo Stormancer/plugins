@@ -49,6 +49,14 @@ namespace Stormancer.Server.Plugins.Analytics
         /// Disabled by default.
         /// </remarks>
         public bool EnableApiInstrumentation { get; set; } = false;
+
+        /// <summary>
+        /// Enables S2S instrumentation.
+        /// </summary>
+        /// <remarks>
+        /// Disabled by default.
+        /// </remarks>
+        public bool EnableS2SInstrumentation { get; set; } = false;
     }
     internal class ApiAnalyticsEventHandler :  IApiHandler, IConfigurationChangedEventHandler
     {
@@ -117,7 +125,7 @@ namespace Stormancer.Server.Plugins.Analytics
                     inputSize = ctx.Context.InputStream.Length,
                     route = ctx.Route,
                     duration = _watch.ElapsedMilliseconds - start,
-                    SessionId = ctx.Context.RemotePeer.SessionId
+                    SessionId = ctx.Context.RemotePeer.SessionId.ToString()
                 }));
             }
             else
@@ -130,7 +138,7 @@ namespace Stormancer.Server.Plugins.Analytics
 
         public async Task RunRpc(ApiCallContext<RequestContext<IScenePeer>> ctx, Func<ApiCallContext<RequestContext<IScenePeer>>, Task> next)
         {
-            if (_config.EnableApiInstrumentation)
+            if (_config.EnableS2SInstrumentation)
             {
                 var start = _watch.ElapsedMilliseconds;
                 await next(ctx);
@@ -153,7 +161,7 @@ namespace Stormancer.Server.Plugins.Analytics
 
         public async Task RunFF(ApiCallContext<Packet<IScenePeer>> ctx, Func<ApiCallContext<Packet<IScenePeer>>, Task> next)
         {
-            if (_config.EnableApiInstrumentation)
+            if (_config.EnableS2SInstrumentation)
             {
                 var start = _watch.ElapsedMilliseconds;
                 await next(ctx);
@@ -187,7 +195,7 @@ namespace Stormancer.Server.Plugins.Analytics
                     inputSize = ctx.Context.Stream.Length,
                     route = ctx.Route,
                     duration = _watch.ElapsedMilliseconds - start,
-                    SessionId = ctx.Context.Connection.SessionId
+                    SessionId = ctx.Context.Connection.SessionId.ToString()
                 }));
 
             }
@@ -214,11 +222,11 @@ namespace Stormancer.Server.Plugins.Analytics
 
         public async Task RunS2S(ApiCallContext<IS2SRequestContext> ctx, Func<ApiCallContext<IS2SRequestContext>, Task> next)
         {
-            if (_config.EnableApiInstrumentation)
+            if (_config.EnableS2SInstrumentation)
             {
                 var start = _watch.ElapsedMilliseconds;
                 await next(ctx);
-                _analytics.Push("api", "ff.cs", JObject.FromObject(new
+                _analytics.Push("api", "ff.req", JObject.FromObject(new
                 {
                     type = "Request",
                     scope = "S2S",

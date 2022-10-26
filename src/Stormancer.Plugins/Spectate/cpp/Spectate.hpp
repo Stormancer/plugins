@@ -16,113 +16,11 @@
 #include "stormancer/Utilities/TaskUtilities.h"
 #include "stormancer/Utilities/Macros.h"
 #include "stormancer/cpprestsdk/cpprest/asyncrt_utils.h"
-
 #include <bitset>
 #include <string>
 #include <unordered_map>
 
-namespace Stormancer
-{
-	class SessionId
-	{
-	public:
 
-		SessionId() = default;
-
-		SessionId(const std::vector<byte>& byteArray)
-			: _data(byteArray)
-		{
-		}
-
-		SessionId(const byte* data, const std::size_t size)
-		{
-			if (size > 0)
-			{
-				_data.assign(data, data + size);
-			}
-		}
-
-		SessionId(const std::string& base64Str)
-			: _data(utility::conversions::from_base64(utility::conversions::to_string_t(base64Str)))
-		{
-		}
-
-		std::vector<byte> toByteArray() const
-		{
-			return _data;
-		}
-
-		std::string toString()
-		{
-			return utility::conversions::to_utf8string(utility::conversions::to_base64(_data));
-		}
-
-		bool isEmpty()
-		{
-			return (_data.size() == 0);
-		}
-
-		bool operator==(const SessionId& other)
-		{
-			return (_data == other._data);
-		}
-
-	private:
-
-		std::vector<byte> _data;
-	};
-}
-
-namespace msgpack
-{
-	MSGPACK_API_VERSION_NAMESPACE(MSGPACK_DEFAULT_API_NS)
-	{
-		namespace adaptor
-		{
-			// MsgPack Serialization support for GVector
-
-			template<>
-			struct convert<Stormancer::SessionId>
-			{
-				msgpack::object const& operator()(msgpack::object const& o, Stormancer::SessionId& v) const
-				{
-					if (o.type != msgpack::type::STR)
-					{
-						throw msgpack::type_error();
-					}
-
-					if (o.via.bin.size == 0)
-					{
-						v = Stormancer::SessionId();
-					}
-					else
-					{
-						v = Stormancer::SessionId(reinterpret_cast<const Stormancer::byte*>(o.via.bin.ptr), o.via.bin.size);
-					}
-
-					return o;
-				}
-			};
-
-			template<>
-			struct pack<Stormancer::SessionId>
-			{
-				template <typename Stream>
-				packer<Stream>& operator()(msgpack::packer<Stream>& o, Stormancer::SessionId const& v) const
-				{
-					auto data = v.toByteArray();
-					auto size = data.size();
-					o.pack_bin(size);
-					if (size > 0)
-					{
-						o.pack_bin_body(data.data(), size);
-					}
-					return o;
-				}
-			};
-		}
-	}
-}
 
 namespace Stormancer
 {
@@ -161,14 +59,14 @@ namespace Stormancer
 			MSGPACK_DEFINE(time, frames);
 		};
 
-		class SpectateService: public std::enable_shared_from_this<SpectateService>
+		class SpectateService : public std::enable_shared_from_this<SpectateService>
 		{
 		public:
 
 			SpectateService(std::shared_ptr<RpcService> rpcService, std::shared_ptr<ILogger> logger)
 				: _rpcService(rpcService)
 				, _logger(logger)
-				
+
 			{
 			}
 
@@ -176,13 +74,13 @@ namespace Stormancer
 			{
 				std::weak_ptr<SpectateService> wThat;
 				scene->addRoute("Spectate.SendFrames", [wThat](Stormancer::Packetisp_ptr packet)
-				{
-					if(auto that = wThat.lock())
 					{
-						auto frames = packet->readObject<std::vector<Frame>>();
-						that->_onFramesReceived(frames);
-					}
-				});
+						if (auto that = wThat.lock())
+						{
+							auto frames = packet->readObject<std::vector<Frame>>();
+							that->_onFramesReceived(frames);
+						}
+					});
 
 			}
 			pplx::task<void> sendFrames(std::vector<FrameDataDto> frames)
@@ -206,7 +104,7 @@ namespace Stormancer
 			}
 
 
-			Stormancer::Subscription SubscribeToFrames(std::function<void(std::vector<Frame>)> callback)
+			Stormancer::Subscription subscribeToFrames(std::function<void(std::vector<Frame>)> callback)
 			{
 				return _onFramesReceived.subscribe(callback);
 			}
