@@ -64,6 +64,14 @@ namespace Stormancer.Server.Plugins.Party
         /// </summary>
         public bool? EnablePlatformInvitation { get; set; }
 
+        /// <summary>
+        /// Enables updating the party status when joining a gamesession.
+        /// </summary>
+        /// <remarks>
+        /// defaults to true.
+        /// </remarks>
+        public bool? EnableGameSessionPartyStatus { get; set; }
+
     }
 
 

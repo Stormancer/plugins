@@ -39,15 +39,13 @@ namespace Stormancer.Server.Plugins.Users
         private readonly IAuthenticationService _auth;
         private readonly IUserSessions sessions;
         private readonly RpcService rpc;
-        private readonly ILogger logger;
 
-        public AuthenticationController(IAuthenticationService auth, IUserSessions sessions, RpcService rpc, ILogger logger)
+        public AuthenticationController(IAuthenticationService auth, IUserSessions sessions, RpcService rpc)
         {
 
             _auth = auth;
             this.sessions = sessions;
             this.rpc = rpc;
-            this.logger = logger;
         }
         protected override async Task OnDisconnected(DisconnectedArgs args)
         {

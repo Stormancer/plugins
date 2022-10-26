@@ -13,7 +13,10 @@ Unreleased
 ----------
 Added
 *****
-- Add CreateP2PToken API to get a P2P token for any player in the gamesession
+- Add CreateP2PToken API to get a P2P token for any player in the gamesession.
+Fixed
+*****
+- Fixed concurrency issue in OnConnected
 
 6.0.0.2
 ----------

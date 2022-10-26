@@ -59,7 +59,7 @@ namespace Stormancer.Server.Plugins.Users
         public const string SERVICE_TYPE = "stormancer.authenticator";
     }
 
-  
+
 
     class UsersManagementPlugin : Stormancer.Plugins.IHostPlugin
     {
@@ -111,7 +111,15 @@ namespace Stormancer.Server.Plugins.Users
         {
             if (scene.Template == Constants.SCENE_TEMPLATE)
             {
-                b.Register<UserSessions>().As<IUserSessions>();
+                b.Register(dr => new UserSessions(
+                    dr.Resolve<IUserService>(),
+                    dr.Resolve<SessionsRepository>(),
+                    dr.Resolve<Func<IEnumerable<IUserSessionEventHandler>>>(),
+                    dr.Resolve<ISerializer>(),
+                    dr.Resolve<Database.IESClientFactory>(),
+                    dr.Resolve<IEnvironment>(), scene,
+                    dr.Resolve<ILogger>())
+                ).As<IUserSessions>();
                 b.Register<SessionsRepository>().AsSelf().SingleInstance();
                 b.Register<DeviceIdentifierAuthenticationProvider>().As<IAuthenticationProvider>();
                 b.Register<LoginPasswordAuthenticationProvider>().As<IAuthenticationProvider>();
@@ -121,7 +129,7 @@ namespace Stormancer.Server.Plugins.Users
             }
             else
             {
-                b.Register<UserSessionImpl>(dr=>new UserSessionImpl(dr.Resolve<UserSessionProxy>(), dr.Resolve<ISerializer>(), dr.Resolve<ISceneHost>())).As<IUserSessions>().InstancePerRequest();
+                b.Register(dr => new UserSessionImpl(dr.Resolve<UserSessionProxy>(), dr.Resolve<ISerializer>(), dr.Resolve<ISceneHost>())).As<IUserSessions>().InstancePerRequest();
             }
         }
 
@@ -139,19 +147,35 @@ namespace Stormancer.Server.Plugins.Users
             //Indices
 
             b.Register<SceneAuthorizationController>();
-            b.Register<UserSessionController>();
-            b.Register<AuthenticationController>().InstancePerRequest();
-            b.Register<AuthenticationService>().As<IAuthenticationService>().InstancePerRequest();
-            b.Register<LocatorProvider>().As<IServiceLocatorProvider>();
-            b.Register<UserService>().As<IUserService>();
+            b.Register(dr=> new UserSessionController(dr.Resolve<IUserSessions>(),dr.Resolve<ISerializer>(),dr.Resolve<ISceneHost>(),dr.Resolve<IEnvironment>(),dr.Resolve<ILogger>(),dr.Resolve<IConfiguration>()));
+            b.Register(dr => new AuthenticationController(
+                dr.Resolve<IAuthenticationService>(), 
+                dr.Resolve<IUserSessions>(), 
+                dr.Resolve<RpcService>())
+            ).InstancePerRequest();
+            b.Register(dr=>new AuthenticationService(
+                dr.Resolve < Func < IEnumerable < IAuthenticationEventHandler >>>(),
+                dr.Resolve<IEnumerable<IAuthenticationProvider>>(),
+                dr.Resolve<IConfiguration>(),
+                dr.Resolve<IUserService>(),
+                dr.Resolve<IUserSessions>(),
+                dr.Resolve<ILogger>(),
+                dr.Resolve<ISceneHost>()
+                
+            )).As<IAuthenticationService>().InstancePerRequest();
 
-           
+            b.Register<LocatorProvider>().As<IServiceLocatorProvider>();
+            b.Register(dr=>new UserService(dr.Resolve<Database.IESClientFactory>(),dr.Resolve<IEnvironment>(),dr.Resolve<ILogger>(), dr.Resolve<Func<IEnumerable<IUserEventHandler>>>())).As<IUserService>();
+
+
             b.Register<UsersAdminController>();
             b.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
 
             //b.Register<UserSessionCache>(dr => new UserSessionCache(dr.Resolve<ISceneHost>(), dr.Resolve<ISerializer>(), dr.Resolve<ILogger>())).AsSelf().InstancePerScene();
-            b.Register<PlatformSpecificServices>().As<IPlatformSpecificServices>();
-            b.Register<Analytics.AnalyticsEventHandler>().As<IUserSessionEventHandler>();
+            b.Register(dr=>new PlatformSpecificServices(dr.Resolve<IEnumerable<IPlatformSpecificServiceImpl>>())
+            ).As<IPlatformSpecificServices>();
+
+            b.Register(dr=>new Analytics.AnalyticsEventHandler(dr.Resolve<IAnalyticsService>())).As<IUserSessionEventHandler>();
         }
 
         private void HostStarting(IHost host)

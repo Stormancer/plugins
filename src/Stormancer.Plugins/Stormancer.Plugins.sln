@@ -182,6 +182,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sample-cpp-Galaxy", "Galaxy
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sample-cpp-Epic", "Epic\Sample-cpp-Epic\Sample-cpp-Epic.vcxproj", "{8E4E2758-DFC2-46ED-A485-DF01EF88B95F}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gamesession-p2p-sample", "GameSession\samples\gamesession-p2p-sample\gamesession-p2p-sample.vcxproj", "{B71458A9-D397-4E2A-8E9B-5DA41AADC43B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -507,6 +509,13 @@ Global
 		{8E4E2758-DFC2-46ED-A485-DF01EF88B95F}.Release|Any CPU.ActiveCfg = Debug|x64
 		{8E4E2758-DFC2-46ED-A485-DF01EF88B95F}.Release|x64.ActiveCfg = Debug|x64
 		{8E4E2758-DFC2-46ED-A485-DF01EF88B95F}.Release|x64.Build.0 = Debug|x64
+		{B71458A9-D397-4E2A-8E9B-5DA41AADC43B}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{B71458A9-D397-4E2A-8E9B-5DA41AADC43B}.Debug|x64.ActiveCfg = Debug|x64
+		{B71458A9-D397-4E2A-8E9B-5DA41AADC43B}.Debug|x64.Build.0 = Debug|x64
+		{B71458A9-D397-4E2A-8E9B-5DA41AADC43B}.Release|Any CPU.ActiveCfg = Release|x64
+		{B71458A9-D397-4E2A-8E9B-5DA41AADC43B}.Release|Any CPU.Build.0 = Release|x64
+		{B71458A9-D397-4E2A-8E9B-5DA41AADC43B}.Release|x64.ActiveCfg = Release|x64
+		{B71458A9-D397-4E2A-8E9B-5DA41AADC43B}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -585,6 +594,7 @@ Global
 		{96E35FBB-0C17-4212-8329-026F0106C122} = {CC9AAD2E-9A59-4E3E-8A6A-7E70D4E91EE1}
 		{44E22F5A-72DA-4B36-A2B8-7EABC79E383D} = {81550A48-AC59-49E8-8B35-B5BDC1526D2C}
 		{8E4E2758-DFC2-46ED-A485-DF01EF88B95F} = {937002A0-2FB6-4467-96F2-54EDF0A6DB93}
+		{B71458A9-D397-4E2A-8E9B-5DA41AADC43B} = {27B34EA5-8608-49FA-96F0-DEC4C3A5A7B3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}

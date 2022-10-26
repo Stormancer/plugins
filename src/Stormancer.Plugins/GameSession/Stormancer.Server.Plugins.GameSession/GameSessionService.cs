@@ -602,11 +602,13 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 if (uId != userId)
                 {
-                    var currentClient = _clients[uId];
-                    var isHost = GetServerTcs().Task.IsCompleted && GetServerTcs().Task.Result.SessionId == currentClient.Peer?.SessionId;
-                    peer.Send("player.update",
-                        new PlayerUpdate { UserId = uId, IsHost = isHost, Status = (byte)currentClient.Status, Data = currentClient.FaultReason ?? "" },
-                        PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
+                    if (_clients.TryGetValue(uId, out var currentClient))
+                    {
+                        var isHost = GetServerTcs().Task.IsCompleted && GetServerTcs().Task.Result.SessionId == currentClient.Peer?.SessionId;
+                        peer.Send("player.update",
+                            new PlayerUpdate { UserId = uId, IsHost = isHost, Status = (byte)currentClient.Status, Data = currentClient.FaultReason ?? "" },
+                            PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
+                    }
                 }
             }
             if (_status == ServerStatus.Started)

@@ -1,4 +1,5 @@
-﻿using Stormancer.Server.Plugins.GameSession;
+﻿using Microsoft.Extensions.Configuration;
+using Stormancer.Server.Plugins.GameSession;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,70 +13,93 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
     /// </summary>
     internal class JoinGameSessionState
     {
-        public Dictionary<string,string> UserIdToPartyId = new Dictionary<string,string>();
+        public Dictionary<string, string> UserIdToPartyId = new Dictionary<string, string>();
         internal object syncRoot = new object();
     }
     internal class JoinGameSessionEventHandler : IGameSessionEventHandler
     {
         private readonly PartyProxy party;
-        private readonly IGameSessionService gameSession;
         private readonly JoinGameSessionState state;
+        private readonly IConfiguration configuration;
 
-        public JoinGameSessionEventHandler(PartyProxy party, IGameSessionService gameSession, JoinGameSessionState state)
+        public JoinGameSessionEventHandler(PartyProxy party, JoinGameSessionState state, IConfiguration configuration)
         {
             this.party = party;
-            this.gameSession = gameSession;
             this.state = state;
+            this.configuration = configuration;
         }
-       
+        private bool IsEnabled
+        {
+            get
+            {
+                var configSection = configuration.GetValue<PartyConfigurationSection>("party");
+                if (configSection != null && configSection.EnableGameSessionPartyStatus != null)
+                {
+                    return configSection.EnableGameSessionPartyStatus.Value;
+                }
+                else
+                {
+                    return true;
+                }
+            }
+        }
+
+
         public async Task OnClientConnected(ClientConnectedContext ctx)
         {
-            string? partyId = null;
-            lock (state.syncRoot)
+            if (IsEnabled)
             {
-                var party = ctx.GameSession.GetGameSessionConfig().Teams.SelectMany(t => t.Parties).FirstOrDefault(p => p.Players.ContainsKey(ctx.Player.Player.UserId));
-
-                if (party != null)
+                string? partyId = null;
+                lock (state.syncRoot)
                 {
-                    if(!state.UserIdToPartyId.Values.Contains(party.PartyId))
+                    var party = ctx.GameSession.GetGameSessionConfig().Teams.SelectMany(t => t.Parties).FirstOrDefault(p => p.Players.ContainsKey(ctx.Player.Player.UserId));
+
+                    if (party != null)
                     {
+                        if (!state.UserIdToPartyId.Values.Contains(party.PartyId))
+                        {
+                            partyId = party.PartyId;
+                        }
+                        state.UserIdToPartyId[ctx.Player.Player.UserId] = party.PartyId;
+
                         partyId = party.PartyId;
                     }
-                    state.UserIdToPartyId[ctx.Player.Player.UserId] = party.PartyId;
-                    
-                    partyId = party.PartyId;
                 }
-            }
 
-            if(partyId !=null)
-            {
-                await party.UpdatePartyStatusAsync(partyId, null, "gamesession", ctx.GameSession.GameSessionId, default);
-            }
+                if (partyId != null)
+                {
+                    await party.UpdatePartyStatusAsync(partyId, null, "gamesession", ctx.GameSession.GameSessionId, default);
+                }
 
+            }
         }
 
 
-     
+
         public async Task OnClientLeaving(ClientLeavingContext ctx)
         {
-            string? partyId = null;
-            lock (state.syncRoot)
+            if (IsEnabled)
             {
-                var party = ctx.GameSession.GetGameSessionConfig().Teams.SelectMany(t => t.Parties).FirstOrDefault(p => p.Players.ContainsKey(ctx.Player.Player.UserId));
-                if (party != null)
+
+                string? partyId = null;
+                lock (state.syncRoot)
                 {
-                    
-                    state.UserIdToPartyId.Remove(ctx.Player.Player.UserId);
-                    if (!state.UserIdToPartyId.Values.Contains(party.PartyId))
+                    var party = ctx.GameSession.GetGameSessionConfig().Teams.SelectMany(t => t.Parties).FirstOrDefault(p => p.Players.ContainsKey(ctx.Player.Player.UserId));
+                    if (party != null)
                     {
-                        partyId = party.PartyId;
+
+                        state.UserIdToPartyId.Remove(ctx.Player.Player.UserId);
+                        if (!state.UserIdToPartyId.Values.Contains(party.PartyId))
+                        {
+                            partyId = party.PartyId;
+                        }
                     }
                 }
-            }
 
-            if(partyId !=null)
-            {
-                await party.UpdatePartyStatusAsync(partyId, "gamesession","", null, default);
+                if (partyId != null)
+                {
+                    await party.UpdatePartyStatusAsync(partyId, "gamesession", "", null, default);
+                }
             }
         }
 

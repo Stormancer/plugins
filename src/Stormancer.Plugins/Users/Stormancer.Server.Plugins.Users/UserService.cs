@@ -147,17 +147,13 @@ namespace Stormancer.Server.Plugins.Users
             }
             try
             {
-                await TaskHelper.Retry(async (_, _) =>
+
+                var response = await c.IndexAsync(user, s => s.Index(GetIndex<User>()).Refresh(Elasticsearch.Net.Refresh.WaitFor));
+                if (!response.IsValid)
                 {
+                    throw new InvalidOperationException(response.DebugInformation);
+                }
 
-                    var response = await c.IndexAsync(user, s => s.Index(GetIndex<User>()).Refresh(Elasticsearch.Net.Refresh.WaitFor));
-                    if (!response.IsValid)
-                    {
-                        throw new InvalidOperationException(response.DebugInformation);
-                    }
-                    return response;
-
-                }, RetryPolicies.IncrementalDelay(5, TimeSpan.FromSeconds(1)), CancellationToken.None, ex => true);
 
                 var ctx = new AuthenticationChangedCtx { Type = provider, User = user };
                 await _handlers().RunEventHandler(h => h.OnAuthenticationChanged(ctx), ex => _logger.Log(LogLevel.Error, "user.addAuth", "An error occured while running OnAuthenticationChanged event handler", ex));
@@ -196,7 +192,7 @@ namespace Stormancer.Server.Plugins.Users
             return user;
         }
 
-        
+
 
         public class UserLastLoginUpdate
         {
