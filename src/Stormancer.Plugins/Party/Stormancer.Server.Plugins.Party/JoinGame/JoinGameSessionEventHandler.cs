@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.GameSession;
 using System;
 using System.Collections.Generic;

@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+2.0.6
+-----
+Changed
+*******
+- Improve performance by removing async state machine if instrumentation is disabled.
+
 2.0.5
 -----
 - Separates instrumentation for S2S and instrumentation for client APIs in configuration

@@ -1,5 +1,5 @@
 ﻿Invitation codes
-================
+----------------
 
 Customizing invitation codes:
 
@@ -11,3 +11,9 @@ Customizing invitation codes:
 	}
 }
 ```
+
+Joining the gamesession your party is in
+----------------------------------------
+
+When joining a party, it's possible to know if it is currently in a gamession, and join this gamesession. 
+If not used by the application, this behavior can be disabled by setting to application configuration value `party.enableGameSessionPartyStatus` to false.

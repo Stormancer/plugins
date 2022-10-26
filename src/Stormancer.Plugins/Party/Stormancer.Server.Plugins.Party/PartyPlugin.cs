@@ -21,14 +21,22 @@
 // SOFTWARE.
 
 using Stormancer.Core;
+using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.PartyManagement;
+using Stormancer.Server.Plugins.Configuration;
+using Stormancer.Server.Plugins.GameFinder;
 using Stormancer.Server.Plugins.GameSession;
+using Stormancer.Server.Plugins.Management;
 using Stormancer.Server.Plugins.Party.Interfaces;
 using Stormancer.Server.Plugins.Party.JoinGame;
 using Stormancer.Server.Plugins.Party.Model;
 using Stormancer.Server.Plugins.Queries;
 using Stormancer.Server.Plugins.ServiceLocator;
+using Stormancer.Server.Plugins.Users;
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Party
@@ -62,21 +70,89 @@ namespace Stormancer.Server.Plugins.Party
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
-                builder.Register<PartyService>().As<IPartyService>().InstancePerRequest();
-                builder.Register<PartyController>().InstancePerRequest();
-                builder.Register<PartyManagementService>().As<IPartyManagementService>().InstancePerRequest();
-                builder.Register<PartyManagementController>().InstancePerRequest();
-                builder.Register<PartyState>().InstancePerScene();
-                builder.Register<StormancerPartyPlatformSupport>().As<IPartyPlatformSupport>().AsSelf().InstancePerRequest();
-                builder.Register<PartySceneLocator>().As<IServiceLocatorProvider>();
-                builder.Register<InvitationCodeService>().AsSelf().SingleInstance();
+                builder.Register<PartyService>(r=>new PartyService(
+                    r.Resolve<ISceneHost>(), 
+                    r.Resolve<ILogger>(), 
+                    r.Resolve<IUserSessions>(),
+                    r.Resolve<GameFinderProxy>(),
+                    r.Resolve<IServiceLocator>(),
+                    r.Resolve<Func<IEnumerable<IPartyEventHandler>>>(),
+                    r.Resolve<PartyState>(),
+                    r.Resolve<RpcService>(),
+                    r.Resolve<IConfiguration>(),
+                    r.Resolve<IUserService>(),
+                    r.Resolve<IEnumerable<IPartyPlatformSupport>>(),
+                    r.Resolve<StormancerPartyPlatformSupport>(),
+                    r.Resolve<InvitationCodeService>(),
+                    r.Resolve<PartyLuceneDocumentStore>())
+                ).As<IPartyService>().InstancePerRequest();
+                
+                builder.Register<PartyController>(r=>new PartyController(
+                    r.Resolve<IUserSessions>(),
+                    r.Resolve<IPartyService>(),
+                    r.Resolve<ISerializer>())
+                ).InstancePerRequest();
+                
+                builder.Register<PartyManagementService>(r=> new PartyManagementService(
+                    r.Resolve<InvitationCodeService>(),
+                    r.Resolve<ManagementClientProvider>(),
+                    r.Resolve<ISceneHost>(),
+                    r.Resolve<IServiceLocator>())
+                ).As<IPartyManagementService>().InstancePerRequest();
+
+                builder.Register<PartyManagementController>(r=>new PartyManagementController(
+                    r.Resolve<IPartyManagementService>(),
+                    r.Resolve<IUserSessions>(),
+                    r.Resolve<ILogger>(),
+                    r.Resolve<IEnumerable<IPartyEventHandler>>(),
+                    r.Resolve<PartyConfigurationService>(),
+                    r.Resolve<PartySearchService>()
+                    )
+                ).InstancePerRequest();
+
+                builder.Register<PartyState>(r=>new PartyState()).InstancePerScene();
+
+                builder.Register<StormancerPartyPlatformSupport>(r=>new StormancerPartyPlatformSupport(
+                    r.Resolve<IUserSessions>(),
+                    r.Resolve<ISerializer>())
+                ).As<IPartyPlatformSupport>().AsSelf().InstancePerRequest();
+
+                builder.Register<PartySceneLocator>(r=>new PartySceneLocator()).As<IServiceLocatorProvider>();
+
+                builder.Register<InvitationCodeService>(r=>new InvitationCodeService(
+                    r.Resolve<IHost>(),
+                    r.Resolve<ISerializer>(),
+                    r.Resolve<ManagementClientProvider>(),
+                    r.Resolve<PartyConfigurationService>())
+                ).AsSelf().SingleInstance();
+
                 builder.Register<JoinGamePartyController>().InstancePerRequest();
-                builder.Register<JoinGamesessionController>().InstancePerRequest();
-                builder.Register<JoinGameSessionEventHandler>().As<IGameSessionEventHandler>().InstancePerRequest();
-                builder.Register<JoinGameSessionState>().InstancePerScene();
-                builder.Register<PartyConfigurationService>().SingleInstance();
-                builder.Register<PartyLuceneDocumentStore>().As<ILuceneDocumentStore>().AsSelf().SingleInstance();
-                builder.Register<PartySearchService>();
+
+                builder.Register<JoinGamesessionController>(r=> new JoinGamesessionController(
+                    r.Resolve<IGameSessionService>(),
+                    r.Resolve<IUserSessions>(),
+                    r.Resolve<IGameSessions>())
+                ).InstancePerRequest();
+
+                builder.Register<JoinGameSessionEventHandler>(r=>new JoinGameSessionEventHandler(
+                    r.Resolve<PartyProxy>(),
+                    r.Resolve<JoinGameSessionState>(),
+                    r.Resolve<IConfiguration>())
+                ).As<IGameSessionEventHandler>().InstancePerRequest();
+                
+                builder.Register<JoinGameSessionState>(r=>new JoinGameSessionState()
+                ).InstancePerScene();
+
+                builder.Register<PartyConfigurationService>(r=>new PartyConfigurationService(r.Resolve<IConfiguration>())
+                ).SingleInstance();
+
+                builder.Register<PartyLuceneDocumentStore>(r=>new PartyLuceneDocumentStore(
+                    r.Resolve<ILucene>())
+                ).As<ILuceneDocumentStore>().AsSelf().SingleInstance();
+
+                builder.Register<PartySearchService>(r=>new PartySearchService(
+                    r.Resolve<SearchEngine>())
+                );
             };
 
             ctx.HostStarting += (IHost host) => {

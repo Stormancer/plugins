@@ -21,9 +21,15 @@
 // SOFTWARE.
 
 using Stormancer.Core;
+using Stormancer.Diagnostics;
 using Stormancer.Plugins;
+using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.API;
+using Stormancer.Server.Plugins.Configuration;
+using Stormancer.Server.Plugins.Management;
 using Stormancer.Server.Plugins.Users;
+using System;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace Stormancer.Server.Plugins.ServiceLocator
@@ -40,6 +46,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
                     var serializer = ctx.Resolver.Resolve<ISerializer>();
                     var serviceType = await serializer.DeserializeAsync<string>(ctx.Input, CancellationToken.None);
                     var instanceId = await serializer.DeserializeAsync<string>(ctx.Input, CancellationToken.None);
+
                     host.TryGetScene(serviceType, instanceId, out var scene);
                     await serializer.SerializeAsync(scene?.Id, ctx.Output, CancellationToken.None);
                     
@@ -49,16 +56,34 @@ namespace Stormancer.Server.Plugins.ServiceLocator
               {
                   if (scene.Template == Users.Constants.SCENE_TEMPLATE)
                   {
-                      builder.Register<LocatorController>().InstancePerRequest();
+                      builder.Register<LocatorController>(r=>new LocatorController(
+                          r.Resolve<IServiceLocator>(),
+                          r.Resolve<IUserSessions>(),
+                          r.Resolve<ILogger>())
+                      ).InstancePerRequest();
 
 
                   }
               };
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
               {
-                  builder.Register<ServiceLocator>().As<IServiceLocator>().InstancePerRequest();
-                  builder.Register<ServiceLocatorDbApiHandler>().As<IApiHandler>();
-                  builder.Register<ServiceLocatorHostDatabase>().SingleInstance();
+                  builder.Register<ServiceLocator>(r=>new ServiceLocator(
+                      r.Resolve<Func<IEnumerable<IServiceLocatorProvider>>>(),
+                      r.Resolve<ManagementClientProvider>(),
+                      r.Resolve<IEnvironment>(),
+                      r.Resolve<IConfiguration>(),
+                      r.Resolve<ISerializer>(),
+                      r.Resolve<ISceneHost>(),
+                      r.Resolve<IHost>(),
+                      r.Resolve<ServiceLocatorHostDatabase>(),
+                      r.Resolve<ILogger>())
+                  ).As<IServiceLocator>().InstancePerRequest();
+                  
+                  builder.Register<ServiceLocatorDbApiHandler>(r=> new ServiceLocatorDbApiHandler(
+                      r.Resolve<ServiceLocatorHostDatabase>())
+                  ).As<IApiHandler>();
+
+                  builder.Register<ServiceLocatorHostDatabase>(r=>new ServiceLocatorHostDatabase()).SingleInstance();
               };
             ctx.SceneCreated += (ISceneHost scene) =>
             {

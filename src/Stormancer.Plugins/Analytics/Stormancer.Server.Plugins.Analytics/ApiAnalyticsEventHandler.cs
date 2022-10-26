@@ -58,7 +58,7 @@ namespace Stormancer.Server.Plugins.Analytics
         /// </remarks>
         public bool EnableS2SInstrumentation { get; set; } = false;
     }
-    internal class ApiAnalyticsEventHandler :  IApiHandler, IConfigurationChangedEventHandler
+    internal class ApiAnalyticsEventHandler : IApiHandler, IConfigurationChangedEventHandler
     {
         private readonly IAnalyticsService _analytics;
         private readonly ILogger _logger;
@@ -79,14 +79,14 @@ namespace Stormancer.Server.Plugins.Analytics
         {
             _analytics = analytics;
             _watch.Start();
-           
-          
+
+
             _logger = logger;
             this.configuration = configuration;
             ApplySettings();
         }
 
-       
+
 
         //public Task OnStart(SearchStartContext searchStartCtx)
         //{
@@ -112,96 +112,109 @@ namespace Stormancer.Server.Plugins.Analytics
         //    return Task.CompletedTask;
         //}
 
-        public async Task RunRpc(ApiCallContext<RequestContext<IScenePeerClient>> ctx, Func<ApiCallContext<RequestContext<IScenePeerClient>>, Task> next)
+        public Task RunRpc(ApiCallContext<RequestContext<IScenePeerClient>> ctx, Func<ApiCallContext<RequestContext<IScenePeerClient>>, Task> next)
         {
             if (_config.EnableApiInstrumentation)
             {
-                var start = _watch.ElapsedMilliseconds;
-                await next(ctx);
-                _analytics.Push("api", "rpc.cs", JObject.FromObject(new
+                static async Task RunThenNext(Stopwatch watch, IAnalyticsService analytics, Func<ApiCallContext<RequestContext<IScenePeerClient>>, Task> next, ApiCallContext<RequestContext<IScenePeerClient>> ctx)
                 {
-                    type = "RPC",
-                    scope = "ClientServer",
-                    inputSize = ctx.Context.InputStream.Length,
-                    route = ctx.Route,
-                    duration = _watch.ElapsedMilliseconds - start,
-                    SessionId = ctx.Context.RemotePeer.SessionId.ToString()
-                }));
+                    var start = watch.ElapsedMilliseconds;
+                    await next(ctx);
+                    analytics.Push("api", "rpc.cs", JObject.FromObject(new
+                    {
+                        type = "RPC",
+                        scope = "ClientServer",
+                        inputSize = ctx.Context.InputStream.Length,
+                        route = ctx.Route,
+                        duration = watch.ElapsedMilliseconds - start,
+                        SessionId = ctx.Context.RemotePeer.SessionId.ToString()
+                    }));
+                }
+                return RunThenNext(_watch, _analytics, next, ctx);
             }
             else
             {
-                await next(ctx);
+                return next(ctx);
             }
 
 
         }
 
-        public async Task RunRpc(ApiCallContext<RequestContext<IScenePeer>> ctx, Func<ApiCallContext<RequestContext<IScenePeer>>, Task> next)
+        public Task RunRpc(ApiCallContext<RequestContext<IScenePeer>> ctx, Func<ApiCallContext<RequestContext<IScenePeer>>, Task> next)
         {
             if (_config.EnableS2SInstrumentation)
             {
-                var start = _watch.ElapsedMilliseconds;
-                await next(ctx);
-                _analytics.Push("api", "rpc.s2s", JObject.FromObject(new
+                static async Task RunThenNext(Stopwatch watch, IAnalyticsService analytics, Func<ApiCallContext<RequestContext<IScenePeer>>, Task> next, ApiCallContext<RequestContext<IScenePeer>> ctx)
                 {
-                    type = "RPC",
-                    scope = "S2S",
-                    inputSize = ctx.Context.InputStream.Length,
-                    route = ctx.Route,
-                    duration = _watch.ElapsedMilliseconds - start,
-                    SessionId = ctx.Context.RemotePeer.SceneId
-                }));
-
+                    var start = watch.ElapsedMilliseconds;
+                    await next(ctx);
+                    analytics.Push("api", "rpc.s2s", JObject.FromObject(new
+                    {
+                        type = "RPC",
+                        scope = "S2S",
+                        inputSize = ctx.Context.InputStream.Length,
+                        route = ctx.Route,
+                        duration = watch.ElapsedMilliseconds - start,
+                        SessionId = ctx.Context.RemotePeer.SceneId
+                    }));
+                }
+                return RunThenNext(_watch, _analytics, next, ctx);
             }
             else
             {
-                await next(ctx);
+                return next(ctx);
             }
         }
 
-        public async Task RunFF(ApiCallContext<Packet<IScenePeer>> ctx, Func<ApiCallContext<Packet<IScenePeer>>, Task> next)
+        public Task RunFF(ApiCallContext<Packet<IScenePeer>> ctx, Func<ApiCallContext<Packet<IScenePeer>>, Task> next)
         {
             if (_config.EnableS2SInstrumentation)
             {
-                var start = _watch.ElapsedMilliseconds;
-                await next(ctx);
-                _analytics.Push("api", "ff.s2s", JObject.FromObject(new
+                static async Task RunThenNext(Stopwatch watch, IAnalyticsService analytics, Func<ApiCallContext<Packet<IScenePeer>>, Task> next, ApiCallContext<Packet<IScenePeer>> ctx)
                 {
-                    type = "FireForget",
-                    scope = "S2S",
-                    inputSize = ctx.Context.Stream.Length,
-                    route = ctx.Route,
-                    duration = _watch.ElapsedMilliseconds - start,
-                    SessionId = ctx.Context.Connection.SceneId
-                }));
-
+                    var start = watch.ElapsedMilliseconds;
+                    await next(ctx);
+                    analytics.Push("api", "ff.s2s", JObject.FromObject(new
+                    {
+                        type = "FireForget",
+                        scope = "S2S",
+                        inputSize = ctx.Context.Stream.Length,
+                        route = ctx.Route,
+                        duration = watch.ElapsedMilliseconds - start,
+                        SessionId = ctx.Context.Connection.SceneId
+                    }));
+                }
+                return RunThenNext(_watch, _analytics, next, ctx);
             }
             else
             {
-                await next(ctx);
+                return next(ctx);
             }
         }
 
-        public async Task RunFF(ApiCallContext<Packet<IScenePeerClient>> ctx, Func<ApiCallContext<Packet<IScenePeerClient>>, Task> next)
+        public Task RunFF(ApiCallContext<Packet<IScenePeerClient>> ctx, Func<ApiCallContext<Packet<IScenePeerClient>>, Task> next)
         {
             if (_config.EnableApiInstrumentation)
             {
-                var start = _watch.ElapsedMilliseconds;
-                await next(ctx);
-                _analytics.Push("api", "ff.cs", JObject.FromObject(new
+                static async Task RunThenNext(Stopwatch watch, IAnalyticsService analytics, Func<ApiCallContext<Packet<IScenePeerClient>>, Task> next, ApiCallContext<Packet<IScenePeerClient>> ctx)
                 {
-                    type = "FireForget",
-                    scope = "ClientServer",
-                    inputSize = ctx.Context.Stream.Length,
-                    route = ctx.Route,
-                    duration = _watch.ElapsedMilliseconds - start,
-                    SessionId = ctx.Context.Connection.SessionId.ToString()
-                }));
-
+                    var start = watch.ElapsedMilliseconds;
+                    await next(ctx);
+                    analytics.Push("api", "ff.cs", JObject.FromObject(new
+                    {
+                        type = "FireForget",
+                        scope = "ClientServer",
+                        inputSize = ctx.Context.Stream.Length,
+                        route = ctx.Route,
+                        duration = watch.ElapsedMilliseconds - start,
+                        SessionId = ctx.Context.Connection.SessionId.ToString()
+                    }));
+                }
+                return RunThenNext(_watch, _analytics, next, ctx);
             }
             else
             {
-                await next(ctx);
+                return next(ctx);
             }
         }
 

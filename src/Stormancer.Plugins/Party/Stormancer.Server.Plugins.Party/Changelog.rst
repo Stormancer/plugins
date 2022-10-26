@@ -9,11 +9,14 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-4.3.1.12
+4.3.1.13
 --------
 Added
 *****
 - Added 'party.enableGameSessionPartyStatus' to app configuration to disable gamesession party status (it disables joining party gamesession too). Defaults to true (enabled) by default.
+Changed
+*******
+- Created factory lambda for Autofac dependencies to improve resolution speed.
 
 4.3.1.12
 ----------
