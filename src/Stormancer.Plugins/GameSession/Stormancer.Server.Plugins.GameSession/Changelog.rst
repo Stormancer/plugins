@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+6.0.2
+-----
+Added
+*****
+- Added a new Analytics event (type 'gamessesion', category 'started') to gamesessions.
+
 6.0.1.1
 -------
 Added

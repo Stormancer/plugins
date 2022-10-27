@@ -650,6 +650,7 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             lock (this._lock)
             {
+                
                 if (_serverStartTask == null)
                 {
                     _serverStartTask = Start();
