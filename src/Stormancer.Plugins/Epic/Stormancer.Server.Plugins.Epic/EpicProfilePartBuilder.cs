@@ -72,7 +72,7 @@ namespace Stormancer.Server.Plugins.Epic
             }
 
             Dictionary<string, Account> accounts = new();
-            Dictionary<string, string> productUserIds = new();
+            Dictionary<string, string?> productUserIds = new();
             if (hasProfilePartUser || hasProfilePartEpic)
             {
                 List<string> accountIds = new();
