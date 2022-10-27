@@ -288,7 +288,7 @@ namespace Stormancer.Server.Plugins.Epic
         /// <param name="identityProviderId">identityProviderId</param>
         /// <param name="environment">environment</param>
         /// <returns>Epic accounts</returns>
-        public async Task<Dictionary<string, string>> GetExternalAccounts(string requestorUserId, IEnumerable<string> externalAccountIds, string identityProviderId = "epicgames", string? environment = null)
+        public async Task<Dictionary<string, string?>> GetExternalAccounts(string requestorUserId, IEnumerable<string> externalAccountIds, string identityProviderId = "epicgames", string? environment = null)
         {
             var tasks = _externalAccountsCache.GetMany(externalAccountIds, (externalAccountIds) =>
             {
@@ -305,7 +305,14 @@ namespace Stormancer.Server.Plugins.Epic
                     static async Task<(string? productUserId, TimeSpan cacheDuration)> GetResult(string externalAccountId, Task<Dictionary<string, (string? productUserId, TimeSpan cacheDuration)>> resultsTask)
                     {
                         var results = await resultsTask;
-                        return results[externalAccountId];
+                        if (results.TryGetValue(externalAccountId,out var v))
+                        {
+                            return v;
+                        }
+                        else
+                        {
+                            return (null,TimeSpan.Zero);
+                        }
                     }
 
                     result[id] = GetResult(id, task);

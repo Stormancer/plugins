@@ -276,7 +276,7 @@ namespace Stormancer.Server.Plugins.Epic
 
             var config = GetConfig();
 
-            _logger.Log(LogLevel.Trace, "authenticator.epic", "Epic auth request received", authParams);
+            _logger.Log(LogLevel.Info, "authenticator.epic", "Epic auth request received", authParams);
 
             if (config.productIds == null || !config.productIds.Any())
             {
