@@ -9,11 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+1.1.3
+-----
 Fixed
 *****
 - Profile part
+- Fix errors handling
 
 1.1.2.3
 -------
