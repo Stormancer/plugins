@@ -92,7 +92,7 @@ namespace Stormancer.Server.Plugins.Epic
 
                 if (ctx.Origin != null && ctx.Origin.User != null)
                 {
-                    productUserIds = await _epicService.GetExternalAccounts(ctx.Origin.User.Id, accountIds, "epicgames");
+                    productUserIds = await _epicService.GetExternalAccounts(accountIds, "epicgames");
                 }
             }
 

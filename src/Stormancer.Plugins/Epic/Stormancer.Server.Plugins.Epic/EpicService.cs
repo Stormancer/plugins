@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -203,6 +204,7 @@ namespace Stormancer.Server.Plugins.Epic
 
         /// <summary>
         /// Get Epic accounts.
+        /// https://dev.epicgames.com/docs/web-api-ref/authentication#fetching-accounts
         /// </summary>
         /// <param name="accountIds">Epic accounts ids</param>
         /// <returns>Epic accounts</returns>
@@ -236,6 +238,13 @@ namespace Stormancer.Server.Plugins.Epic
             return tasks.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Result)!;
         }
 
+        /// <summary>
+        /// https://dev.epicgames.com/docs/web-api-ref/authentication#fetching-accounts
+        /// </summary>
+        /// <param name="accountIds"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
+        /// <exception cref="InvalidOperationException"></exception>
         private async Task<Dictionary<string, (Account? account, TimeSpan cacheDuration)>> GetAccountsImpl(IEnumerable<string> accountIds)
         {
             var accountIdsCount = accountIds.Count();
@@ -275,20 +284,21 @@ namespace Stormancer.Server.Plugins.Epic
             }
             else
             {
-                _logger.Log(LogLevel.Warn, "EpicService.GetAccountsImpl", "HTTP request failed.", new { StatusCode = response.StatusCode, ResponseContent = response.Content });
+                var responseContent = await response.Content.ReadAsStringAsync();
+                _logger.Log(LogLevel.Error, "EpicService.GetAccountsImpl", "HTTP request failed.", new { StatusCode = response.StatusCode, ResponseContent = responseContent });
                 throw new InvalidOperationException("HTTP request failed.");
             }
         }
 
         /// <summary>
         /// Get Epic accounts.
+        /// https://dev.epicgames.com/docs/web-api-ref/connect-web-api#query-external-accounts
         /// </summary>
-        /// <param name="requestorUserId"></param>
         /// <param name="externalAccountIds">Epic accounts ids</param>
         /// <param name="identityProviderId">identityProviderId</param>
         /// <param name="environment">environment</param>
         /// <returns>Epic accounts</returns>
-        public async Task<Dictionary<string, string?>> GetExternalAccounts(string requestorUserId, IEnumerable<string> externalAccountIds, string identityProviderId = "epicgames", string? environment = null)
+        public async Task<Dictionary<string, string?>> GetExternalAccounts(IEnumerable<string> externalAccountIds, string identityProviderId = "epicgames", string? environment = null)
         {
             var tasks = _externalAccountsCache.GetMany(externalAccountIds, (externalAccountIds) =>
             {
@@ -296,7 +306,7 @@ namespace Stormancer.Server.Plugins.Epic
 
                 var batch = Chunk(externalAccountIds, 16).SelectMany(chunk =>
                 {
-                    var t = GetExternalAccountsImpl(requestorUserId, chunk, identityProviderId, environment);
+                    var t = GetExternalAccountsImpl(chunk, identityProviderId, environment);
                     return chunk.Select(id => (id, t));
                 });
 
@@ -325,7 +335,17 @@ namespace Stormancer.Server.Plugins.Epic
             return tasks.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Result)!;
         }
 
-        private async Task<Dictionary<string, (string? productUserId, TimeSpan cacheDuration)>> GetExternalAccountsImpl(string requestorUserId, IEnumerable<string> accountIds, string identityProviderId = "epicgames", string? environment = null)
+        /// <summary>
+        /// https://dev.epicgames.com/docs/web-api-ref/connect-web-api#query-external-accounts
+        /// </summary>
+        /// <param name="accountIds"></param>
+        /// <param name="identityProviderId"></param>
+        /// <param name="environment"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ArgumentException"></exception>
+        /// <exception cref="InvalidOperationException"></exception>
+        private async Task<Dictionary<string, (string? productUserId, TimeSpan cacheDuration)>> GetExternalAccountsImpl(IEnumerable<string> accountIds, string identityProviderId = "epicgames", string? environment = null)
         {
             if (string.IsNullOrWhiteSpace(identityProviderId))
             {
@@ -342,7 +362,7 @@ namespace Stormancer.Server.Plugins.Epic
                 throw new ArgumentException("Too many accountIds");
             }
 
-            var eosAccessToken = await GetEOSAccessToken(requestorUserId);
+            var eosAccessToken = await GetEOSAccessToken();
 
             if (string.IsNullOrWhiteSpace(eosAccessToken))
             {
@@ -382,11 +402,17 @@ namespace Stormancer.Server.Plugins.Epic
             }
             else
             {
-                _logger.Log(LogLevel.Warn, "EpicService.GetExternalAccountsImpl", "HTTP request failed.", new { StatusCode = response.StatusCode, ResponseContent = response.Content });
+                var responseContent = await response.Content.ReadAsStringAsync();
+                _logger.Log(LogLevel.Error, "EpicService.GetExternalAccountsImpl", "HTTP request failed.", new { StatusCode = response.StatusCode, ResponseContent = responseContent });
                 throw new InvalidOperationException("HTTP request failed.");
             }
         }
 
+        /// <summary>
+        /// https://dev.epicgames.com/docs/web-api-ref/authentication#requesting-an-access-token
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
         private async Task<string> GetAccessToken()
         {
             var authResult = await _accessTokenCache.Get("accessToken", async (_) =>
@@ -445,7 +471,8 @@ namespace Stormancer.Server.Plugins.Epic
                 }
                 else
                 {
-                    _logger.Log(LogLevel.Warn, "EpicService.GetAccessToken", "Http request failed.", new { StatusCode = response.StatusCode, ResponseContent = response.Content });
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    _logger.Log(LogLevel.Error, "EpicService.GetAccessToken", "Http request failed.", new { StatusCode = response.StatusCode, ResponseContent = responseContent });
                     throw new InvalidOperationException("HTTP request failed.");
                 }
             });
@@ -458,31 +485,14 @@ namespace Stormancer.Server.Plugins.Epic
             return authResult.access_token;
         }
 
-        private async Task<string> GetEOSAccessToken(string requestorUserId)
+        /// <summary>
+        /// https://dev.epicgames.com/docs/web-api-ref/connect-web-api#request-an-eos-access-token
+        /// </summary>
+        /// <param name="requestorUserId">For user access only.</param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        private async Task<string> GetEOSAccessToken(string? requestorUserId = null)
         {
-            var session = await _userSessions.GetSessionByUserId(requestorUserId, CancellationToken.None);
-            if (session == null)
-            {
-                throw new InvalidOperationException("Session not found");
-            }
-
-            var epicgamesAccessToken = session.GetAccessToken();
-
-            if (string.IsNullOrWhiteSpace(epicgamesAccessToken))
-            {
-                throw new InvalidOperationException("EpicAccessToken not found in SessionData");
-            }
-
-            if (string.IsNullOrWhiteSpace(epicgamesAccessToken))
-            {
-                throw new InvalidOperationException("EpicAccessToken is invalid in SessionData");
-            }
-
-            if (string.IsNullOrWhiteSpace(epicgamesAccessToken))
-            {
-                throw new ArgumentNullException("externalAuthToken");
-            }
-
             var deploymentIds = GetConfig().deploymentIds;
             if (deploymentIds == null || !deploymentIds.Any())
             {
@@ -502,19 +512,51 @@ namespace Stormancer.Server.Plugins.Epic
             }
             var clientSecret = await GetClientSecret(clientSecretPath);
 
+            FormUrlEncodedContent? formUrlEncodedContent = null;
+
+            string? nonce = null;
+
+            if (requestorUserId != null)
+            {
+                var session = await _userSessions.GetSessionByUserId(requestorUserId, CancellationToken.None);
+                if (session == null)
+                {
+                    throw new InvalidOperationException("Session not found");
+                }
+
+                var epicgamesAccessToken = session.GetAccessToken();
+
+                if (string.IsNullOrWhiteSpace(epicgamesAccessToken))
+                {
+                    throw new InvalidOperationException("EpicAccessToken is invalid in SessionData");
+                }
+
+                nonce = generateNonce();
+
+                formUrlEncodedContent = new FormUrlEncodedContent(new Dictionary<string, string>
+                {
+                    { "grant_type", "external_auth" },
+                    { "nonce", nonce },
+                    { "deployment_id", deploymentIds.First() },
+                    { "external_auth_token", epicgamesAccessToken },
+                    { "external_auth_type", "epicgames_access_token" }
+                });
+            }
+            else
+            {
+                formUrlEncodedContent = new FormUrlEncodedContent(new Dictionary<string, string>
+                {
+                    { "grant_type", "client_credentials" },
+                    { "client_id", clientId },
+                    { "client_secret", clientSecret },
+                    { "deployment_id", deploymentIds.First() }
+                });
+            }
+
             var url = "https://api.epicgames.dev/auth/v1/oauth/token";
             using var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
-                Content = new FormUrlEncodedContent(new Dictionary<string, string>
-                    {
-                        { "grant_type", "client_credentials" },
-                        { "deployment_id", deploymentIds.First() },
-                        { "nonce", "stormancer" },
-                        { "client_id", clientId },
-                        { "client_secret", clientSecret },
-                        { "external_auth_token", epicgamesAccessToken },
-                        { "external_auth_type", "epicgames_access_token" }
-                    }),
+                Content = formUrlEncodedContent
             };
 
             var authHeaderValue = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{clientId}:{clientSecret}"));
@@ -533,6 +575,11 @@ namespace Stormancer.Server.Plugins.Epic
                     throw new InvalidOperationException("EOSAuthResult is null.");
                 }
 
+                if (nonce != null && authResult.nonce != nonce)
+                {
+                    throw new InvalidOperationException("Invalid access token nonce.");
+                }
+
                 if (authResult.access_token == null)
                 {
                     throw new InvalidOperationException("EOSAuthResult.access_token is null.");
@@ -542,9 +589,18 @@ namespace Stormancer.Server.Plugins.Epic
             }
             else
             {
-                _logger.Log(LogLevel.Warn, "EpicService.GetEOSAccessToken", "Http request failed.", new { StatusCode = response.StatusCode, ResponseContent = response.Content });
+                var responseContent = await response.Content.ReadAsStringAsync();
+                _logger.Log(LogLevel.Error, "EpicService.GetEOSAccessToken", "Http request failed.", new { StatusCode = response.StatusCode, ResponseContent = responseContent });
                 throw new InvalidOperationException("HTTP request failed.");
             }
+        }
+
+        static private string generateNonce()
+        {
+            var ByteArray = new byte[18];
+            using var Rnd = RandomNumberGenerator.Create();
+            Rnd.GetBytes(ByteArray);
+            return Convert.ToBase64String(ByteArray);
         }
 
         private async Task<string> GetClientSecret(string? clientSecretPath)
