@@ -3,6 +3,7 @@
 #include "Users/ClientAPI.hpp"
 #include "Users/Users.hpp"
 
+#include "stormancer/Configuration.h"
 #include "stormancer/Scene.h"
 #include "stormancer/IPlugin.h"
 
