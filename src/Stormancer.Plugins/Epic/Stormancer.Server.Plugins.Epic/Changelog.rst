@@ -9,6 +9,19 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+1.1.3
+-----
+Fixed
+*****
+- Profile part
+- Fix errors handling
+
+1.1.2.3
+-------
+Changed
+*******
+- Revert fix profile part
+
 1.1.2.1
 -------
 Changed

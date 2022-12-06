@@ -92,7 +92,7 @@ namespace Stormancer.Server.Plugins.Epic
 
                 if (ctx.Origin != null && ctx.Origin.User != null)
                 {
-                    productUserIds = await _epicService.GetExternalAccounts(ctx.Origin.User.Id, accountIds, "epicgames");
+                    productUserIds = await _epicService.GetExternalAccounts(accountIds, "epicgames");
                 }
             }
 
@@ -150,9 +150,12 @@ namespace Stormancer.Server.Plugins.Epic
                                     data["platforms"]![EpicConstants.PLATFORM_NAME]![EpicConstants.PRODUCTUSERID] = productUserId;
                                 }
 
-                                if (accounts.TryGetValue(accountId, out var account) && account != null && !string.IsNullOrWhiteSpace(account.DisplayName))
+                                if (user.LastPlatform == EpicConstants.PLATFORM_NAME)
                                 {
-                                    data["pseudo"] = account.DisplayName;
+                                    if (accounts.TryGetValue(accountId, out var account) && account != null && !string.IsNullOrWhiteSpace(account.DisplayName))
+                                    {
+                                        data["pseudo"] = account.DisplayName;
+                                    }
                                 }
 
                                 return data;

@@ -771,8 +771,7 @@ namespace Stormancer
 			/// </param>
 			virtual void setJoinPartyFromSystemHandler(std::function<pplx::task<bool>(JoinPartyFromSystemArgs)> handler) = 0;
 
-
-			virtual pplx::task<SearchResult>  searchParties(std::string jsonQuery, Stormancer::uint32 skip, Stormancer::uint32 size, pplx::cancellation_token cancellationToken) = 0;
+			virtual pplx::task<SearchResult> searchParties(std::string jsonQuery, Stormancer::uint32 skip, Stormancer::uint32 size, pplx::cancellation_token cancellationToken) = 0;
 		};
 
 		/// <summary>
@@ -3147,7 +3146,7 @@ namespace Stormancer
 							});
 				}
 
-				pplx::task<SearchResult>  searchParties(std::string jsonQuery, Stormancer::uint32 skip, Stormancer::uint32 size, pplx::cancellation_token cancellationToken)
+				pplx::task<SearchResult> searchParties(std::string jsonQuery, Stormancer::uint32 skip, Stormancer::uint32 size, pplx::cancellation_token cancellationToken) override
 				{
 					return getPartyManagementService(cancellationToken)
 						.then([jsonQuery, skip, size, cancellationToken](std::shared_ptr<PartyManagementService> service)

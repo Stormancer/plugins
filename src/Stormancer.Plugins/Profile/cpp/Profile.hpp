@@ -41,7 +41,6 @@ namespace Stormancer
 			/// <returns></returns>
 			virtual pplx::task<std::unordered_map<std::string, Profile>> getProfilesBySessionIds(const std::list<std::string>& sessionIds, const std::unordered_map<std::string, std::string>& displayOptions = defaultDisplayOptions(), pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) = 0;
 
-
 			/// <summary>
 			/// Gets the user's profile.
 			/// </summary>
@@ -65,8 +64,6 @@ namespace Stormancer
 			/// </remarks>
 			/// <returns>A task containing the updated pseudonym.</returns>
 			virtual pplx::task<std::string> updateUserHandle(const std::string& newPseudonym, pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) = 0;
-
-
 
 			/// <summary>
 			/// Queries user profiles.
@@ -108,7 +105,6 @@ namespace Stormancer
 			virtual pplx::task<void> deleteProfilePart(const std::string& partId, pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) = 0;
 		};
 
-
 		namespace details
 		{
 			struct ProfileDto
@@ -128,8 +124,8 @@ namespace Stormancer
 				ProfileService(std::shared_ptr<Scene> scene)
 					: _scene(scene)
 					, _rpcService(scene->dependencyResolver().resolve<RpcService>())
-					, _logger(scene->dependencyResolver().resolve<ILogger>())
 					, _serializer(scene->dependencyResolver().resolve<Serializer>())
+					, _logger(scene->dependencyResolver().resolve<ILogger>())
 				{
 				}
 
@@ -317,12 +313,14 @@ namespace Stormancer
 
 				}
 
-				pplx::task<void> deleteProfilePart(const std::string& partId, pplx::cancellation_token cancellationToken)
+				pplx::task<void> deleteProfilePart(const std::string& partId, pplx::cancellation_token cancellationToken) override
 				{
 					return getProfileService(cancellationToken)
 						.then([partId](std::shared_ptr<ProfileService> gr) {return gr->deleteProfilePart(partId); });
 				}
+
 			private:
+
 				pplx::task<std::shared_ptr<ProfileService>> getProfileService(pplx::cancellation_token cancellationToken)
 				{
 					return this->getService([](auto, auto, auto) {}, [](auto, auto) {}, cancellationToken);
