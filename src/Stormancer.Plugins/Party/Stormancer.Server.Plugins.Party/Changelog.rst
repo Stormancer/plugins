@@ -14,6 +14,7 @@ Unreleased
 Changed
 *******
 - Remove Dependency to Stormancer.Abstractions.Server because it's implicit.
+- Send IndexedDocument as part of party updated events.
 
 4.3.1.13
 --------

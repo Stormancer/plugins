@@ -188,6 +188,13 @@ namespace Stormancer.Server.Plugins.Party.Dto
         [MessagePackMember(5)]
         public Dictionary<string, string> PublicServerData { get; set; } = new Dictionary<string, string>();
 
+
+        /// <summary>
+        /// Json document used as a source to index the party in the in memory database for querying.
+        /// </summary>
+        [MessagePackMember(6)]
+        public string IndexedDocument { get; set; }
+
         internal PartySettingsUpdateDto(PartyState state)
         {
             GameFinderName = state.Settings.GameFinderName;
@@ -196,6 +203,7 @@ namespace Stormancer.Server.Plugins.Party.Dto
             OnlyLeaderCanInvite = state.Settings.OnlyLeaderCanInvite;
             IsJoinable = state.Settings.IsJoinable;
             PublicServerData = state.Settings.PublicServerData;
+            IndexedDocument = state.SearchDocument?.ToString()??string.Empty;
         }
 
         public PartySettingsUpdateDto()
