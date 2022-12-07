@@ -172,8 +172,8 @@ namespace Stormancer.Server.Plugins.GameSession
             var arguments = string.Join(" ", config.arguments ?? Enumerable.Empty<string>());
 
             var udpTransports = node.Transports.First(t => t.Item1 == "raknet");
-            var server = await LeaseServerPort(c);
 
+            var server = await LeaseServerPort(c);
             try
             {
 
@@ -182,17 +182,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 var authenticationToken = await dataProtector.ProtectBase64Url(Encoding.UTF8.GetBytes(id), "gameServer");
 
                 var endpoints = string.Join(',', fed.current.endpoints.Select(e => TransformEndpoint(e)));
-                var environmentVariables = new Dictionary<string, string>();
-                //startInfo.EnvironmentVariables.Add("connectionToken", token);
-                environmentVariables.Add("Stormancer_Server_Port", server.ServerPort.ToString());
-                environmentVariables.Add("Stormancer_Server_ClusterEndpoints", endpoints);
-                environmentVariables.Add("Stormancer_Server_PublishedAddresses", server.PublicIp);
-                environmentVariables.Add("Stormancer_Server_PublishedPort", server.ServerPort.ToString());
-                environmentVariables.Add("Stormancer_Server_AuthenticationToken", authenticationToken);
-                environmentVariables.Add("Stormancer_Server_Account", applicationInfo.AccountId);
-                environmentVariables.Add("Stormancer_Server_Application", applicationInfo.ApplicationName);
-                environmentVariables.Add("Stormancer_Server_Arguments", arguments);
-                environmentVariables.Add("Stormancer_Server_TransportEndpoint", TransformEndpoint(udpTransports.Item2.First()));
+
 
                 _logger.Log(LogLevel.Info, "docker", "creating docker container.", new { image = config.image });
                 var images = await _docker.Images.ListImagesAsync(new ImagesListParameters { All = true });
@@ -200,6 +190,21 @@ namespace Stormancer.Server.Plugins.GameSession
                 {
                     await _docker.Images.CreateImageAsync(new ImagesCreateParameters { FromImage = config.image }, new AuthConfig { }, NullDockerJsonMessageProgress.Instance);
                 }
+
+                var environmentVariables = new Dictionary<string, string>
+                {
+                    //startInfo.EnvironmentVariables.Add("connectionToken", token);
+                    { "Stormancer_Server_Port", server.ServerPort.ToString() },
+                    { "Stormancer_Server_ClusterEndpoints", endpoints },
+                    { "Stormancer_Server_PublishedAddresses", server.PublicIp },
+                    { "Stormancer_Server_PublishedPort", server.ServerPort.ToString() },
+                    { "Stormancer_Server_AuthenticationToken", authenticationToken },
+                    { "Stormancer_Server_Account", applicationInfo.AccountId },
+                    { "Stormancer_Server_Application", applicationInfo.ApplicationName },
+                    { "Stormancer_Server_Arguments", arguments },
+                    { "Stormancer_Server_TransportEndpoint", TransformEndpoint(udpTransports.Item2.First().Replace(":","|")) }
+                };
+
                 var response = await _docker.Containers.CreateContainerAsync(new CreateContainerParameters()
                 {
                     Image = config.image,
