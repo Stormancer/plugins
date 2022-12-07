@@ -688,7 +688,7 @@ namespace Stormancer
 
 #pragma region public_methods
 
-				pplx::task<GameSessionConnectionParameters> connectToGameSession(std::string token, std::string mapName, bool openTunnel, pplx::cancellation_token ct)
+				pplx::task<GameSessionConnectionParameters> connectToGameSession(std::string token, std::string mapName, bool openTunnel, pplx::cancellation_token ct) override
 				{
 					std::lock_guard<std::mutex> lg(_lock);
 
@@ -856,7 +856,7 @@ namespace Stormancer
 					}
 				}
 
-				pplx::task<void> setPlayerReady(const std::string& data, pplx::cancellation_token ct = pplx::cancellation_token::none())
+				pplx::task<void> setPlayerReady(const std::string& data, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
 				{
 					if (auto dispatcher = _wDispatcher.lock())
 					{
@@ -880,7 +880,7 @@ namespace Stormancer
 					}
 				}
 
-				pplx::task<std::vector<Team>> getTeams(pplx::cancellation_token cancellationToken = pplx::cancellation_token::none())
+				pplx::task<std::vector<Team>> getTeams(pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) override
 				{
 					if (auto dispatcher = _wDispatcher.lock())
 					{
@@ -904,7 +904,7 @@ namespace Stormancer
 					}
 				}
 
-				pplx::task<Packetisp_ptr> postResult(const StreamWriter& streamWriter, pplx::cancellation_token ct = pplx::cancellation_token::none())
+				pplx::task<Packetisp_ptr> postResult(const StreamWriter& streamWriter, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
 				{
 					auto dispatcher = _wDispatcher.lock();
 					auto taskOptions = dispatcher ? pplx::task_options(dispatcher) : pplx::task_options();
@@ -924,7 +924,7 @@ namespace Stormancer
 							}, taskOptions);
 				}
 
-				pplx::task<std::string> getUserFromBearerToken(const std::string& token, pplx::cancellation_token ct = pplx::cancellation_token::none())
+				pplx::task<std::string> getUserFromBearerToken(const std::string& token, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
 				{
 					return getCurrentGameSession(ct)
 						.then([token, ct](std::shared_ptr<Scene> scene)
@@ -941,7 +941,7 @@ namespace Stormancer
 							});
 				}
 
-				pplx::task<void> disconnectFromGameSession(pplx::cancellation_token ct = pplx::cancellation_token::none())
+				pplx::task<void> disconnectFromGameSession(pplx::cancellation_token ct = pplx::cancellation_token::none()) override
 				{
 					auto dispatcher = _wDispatcher.lock();
 					auto taskOptions = dispatcher ? pplx::task_options(dispatcher) : pplx::task_options();
@@ -983,7 +983,7 @@ namespace Stormancer
 							}, taskOptions);
 				}
 
-				std::shared_ptr<Scene> scene()
+				std::shared_ptr<Scene> scene() override
 				{
 					if (this->_currentGameSession && this->_currentGameSession->scene.is_done())
 					{
@@ -1002,7 +1002,7 @@ namespace Stormancer
 					}
 				}
 
-				std::shared_ptr<IP2PScenePeer> getSessionHost() const
+				std::shared_ptr<IP2PScenePeer> getSessionHost() const override
 				{
 					// Copy the task to avoid a possible race condition with it being reassigned while we are inside this method
 					auto container = _currentGameSession;
@@ -1014,7 +1014,7 @@ namespace Stormancer
 					return container->p2pHost;
 				}
 
-				bool isSessionHost() const
+				bool isSessionHost() const override
 				{
 					try
 					{
