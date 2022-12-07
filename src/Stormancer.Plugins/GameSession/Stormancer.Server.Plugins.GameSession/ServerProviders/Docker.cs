@@ -39,7 +39,15 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
+    class NullDockerJsonMessageProgress : IProgress<JSONMessage>
+    {
+        public void Report(JSONMessage value)
+        {
 
+        }
+
+        public static NullDockerJsonMessageProgress Instance { get; } = new NullDockerJsonMessageProgress();
+    }
     class DockerGameServerProvider : IGameServerProvider, IDisposable, IProgress<Message>
     {
         private readonly ILogger _logger;
@@ -187,6 +195,11 @@ namespace Stormancer.Server.Plugins.GameSession
                 environmentVariables.Add("Stormancer_Server_TransportEndpoint", TransformEndpoint(udpTransports.Item2.First()));
 
                 _logger.Log(LogLevel.Info, "docker", "creating docker container.", new { image = config.image });
+                var images = await _docker.Images.ListImagesAsync(new ImagesListParameters { All = true });
+                if (!images.Any(i => i.RepoTags.Contains(config.image)))
+                {
+                    await _docker.Images.CreateImageAsync(new ImagesCreateParameters { FromImage = config.image }, new AuthConfig { }, NullDockerJsonMessageProgress.Instance);
+                }
                 var response = await _docker.Containers.CreateContainerAsync(new CreateContainerParameters()
                 {
                     Image = config.image,
@@ -207,6 +220,7 @@ namespace Stormancer.Server.Plugins.GameSession
                         }
 
                     },
+
                     ExposedPorts = new Dictionary<string, EmptyStruct> { { server.ServerPort + "/udp", new EmptyStruct() } },
                     Env = environmentVariables.Select(kvp => $"{kvp.Key}={kvp.Value}").ToList(),
 

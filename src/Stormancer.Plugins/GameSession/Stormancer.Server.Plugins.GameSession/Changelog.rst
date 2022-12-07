@@ -14,6 +14,8 @@ Unreleased
 Changed
 ********
 - Updated dependency to Stormancer.Abstractions.Server to 9.1.2.1
+- Support pulling from dockerHub
+
 6.0.2
 -----
 Added
