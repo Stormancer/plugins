@@ -272,11 +272,14 @@ namespace Stormancer.Server.Plugins.GameSession
 
             if (_servers.TryRemove(id, out var server))
             {
-                _logger.Log(LogLevel.Info, "docker", "stopping docker container.", new { container = server.ContainerId });
-
-                if (await _docker.Containers.StopContainerAsync(server.ContainerId, new ContainerStopParameters { WaitBeforeKillSeconds = 10 }))
+                using (server)
                 {
-                    await _docker.Containers.RemoveContainerAsync(server.ContainerId, new ContainerRemoveParameters { Force = true });
+                    _logger.Log(LogLevel.Info, "docker", "stopping docker container.", new { container = server.ContainerId });
+
+                    if (await _docker.Containers.StopContainerAsync(server.ContainerId, new ContainerStopParameters { WaitBeforeKillSeconds = 10 }))
+                    {
+                        await _docker.Containers.RemoveContainerAsync(server.ContainerId, new ContainerRemoveParameters { Force = true });
+                    }
                 }
 
             }
