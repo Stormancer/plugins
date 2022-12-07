@@ -14,7 +14,8 @@ Unreleased
 Changed
 ********
 - Updated dependency to Stormancer.Abstractions.Server to 9.1.2.1
-- Support pulling from dockerHub
+- Docker: Support pulling from dockerHub
+- Docker: Use host network mode on Linux
 
 6.0.2
 -----

@@ -211,6 +211,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     Name = id.Substring(id.IndexOf('/') + 1),
                     HostConfig = new HostConfig()
                     {
+                        NetworkMode = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "bridge" : "host",
                         DNS = new[] { "8.8.8.8", "8.8.4.4" },
                         PortBindings = new Dictionary<string, IList<PortBinding>>
                         {
