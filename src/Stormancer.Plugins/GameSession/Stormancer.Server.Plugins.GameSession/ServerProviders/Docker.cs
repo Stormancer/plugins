@@ -118,13 +118,18 @@ namespace Stormancer.Server.Plugins.GameSession
                 var server = _servers.Values.FirstOrDefault(s => s.ContainerId == value.ID);
                 if (server != null)
                 {
-                    try
+                    using (server)
                     {
-                        server.Instance.OnClosed?.Invoke();
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Log(LogLevel.Error, "docker", "an error occured while calling Instance.OnClosed.", ex);
+                        try
+                        {
+                            _logger.Log(LogLevel.Info, "docker", $"Docker container {value.ID} stopped.", new { container = server.ContainerId });
+
+                            server.Instance.OnClosed?.Invoke();
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Log(LogLevel.Error, "docker", "an error occured while calling Instance.OnClosed.", ex);
+                        }
                     }
                 }
             }
@@ -205,13 +210,14 @@ namespace Stormancer.Server.Plugins.GameSession
                     { "Stormancer_Server_TransportEndpoint", TransformEndpoint(udpTransports.Item2.First().Replace(":","|")) }
                 };
 
-                var response = await _docker.Containers.CreateContainerAsync(new CreateContainerParameters()
+                CreateContainerParameters parameters = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? new CreateContainerParameters()
                 {
                     Image = config.image,
                     Name = id.Substring(id.IndexOf('/') + 1),
+                    Labels = new Dictionary<string, string> { ["host"] = applicationInfo.HostUrl },
                     HostConfig = new HostConfig()
                     {
-                        NetworkMode = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "bridge" : "host",
+
                         DNS = new[] { "8.8.8.8", "8.8.4.4" },
                         PortBindings = new Dictionary<string, IList<PortBinding>>
                         {
@@ -230,7 +236,25 @@ namespace Stormancer.Server.Plugins.GameSession
                     ExposedPorts = new Dictionary<string, EmptyStruct> { { server.ServerPort + "/udp", new EmptyStruct() } },
                     Env = environmentVariables.Select(kvp => $"{kvp.Key}={kvp.Value}").ToList(),
 
-                });
+                } :
+                new CreateContainerParameters()
+                {
+                    Image = config.image,
+                    NetworkDisabled = false,
+
+                    Labels = new Dictionary<string, string> { ["host"] = applicationInfo.HostUrl },
+                    Name = id.Substring(id.IndexOf('/') + 1),
+                    HostConfig = new HostConfig()
+                    {
+                        NetworkMode = "host",
+                        DNS = new[] { "8.8.8.8", "8.8.4.4" },
+
+                    },
+                    Env = environmentVariables.Select(kvp => $"{kvp.Key}={kvp.Value}").ToList(),
+
+                };
+
+                var response = await _docker.Containers.CreateContainerAsync(parameters);
 
 
                 server.ContainerId = response.ID;
@@ -273,15 +297,14 @@ namespace Stormancer.Server.Plugins.GameSession
 
             if (_servers.TryRemove(id, out var server))
             {
-                using (server)
-                {
-                    _logger.Log(LogLevel.Info, "docker", "stopping docker container.", new { container = server.ContainerId });
 
-                    if (await _docker.Containers.StopContainerAsync(server.ContainerId, new ContainerStopParameters { WaitBeforeKillSeconds = 10 }))
-                    {
-                        await _docker.Containers.RemoveContainerAsync(server.ContainerId, new ContainerRemoveParameters { Force = true });
-                    }
+                _logger.Log(LogLevel.Info, "docker", "stopping docker container.", new { container = server.ContainerId });
+
+                if (await _docker.Containers.StopContainerAsync(server.ContainerId, new ContainerStopParameters { WaitBeforeKillSeconds = 10 }))
+                {
+                    await _docker.Containers.RemoveContainerAsync(server.ContainerId, new ContainerRemoveParameters { Force = true });
                 }
+
 
             }
         }
