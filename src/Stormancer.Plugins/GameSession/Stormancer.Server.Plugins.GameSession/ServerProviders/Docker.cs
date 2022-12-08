@@ -210,7 +210,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     { "Stormancer_Server_TransportEndpoint", TransformEndpoint(udpTransports.Item2.First().Replace(":","|")) }
                 };
 
-                CreateContainerParameters parameters = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? new CreateContainerParameters()
+                CreateContainerParameters parameters = /*RuntimeInformation.IsOSPlatform(OSPlatform.Windows)*/true ? new CreateContainerParameters()
                 {
                     Image = config.image,
                     Name = id.Substring(id.IndexOf('/') + 1),
