@@ -178,6 +178,7 @@ namespace Stormancer.Server.Plugins.Party
         /// Set to false to refuse the ready state update.
         /// </summary>
         public bool Accept { get; set; } = true;
+        public string ErrorId { get; set; } = string.Empty;
 
         internal UpdatingPlayerReadyStateContext(IPartyService party, PartyMember user, ISceneHost scene)
         {

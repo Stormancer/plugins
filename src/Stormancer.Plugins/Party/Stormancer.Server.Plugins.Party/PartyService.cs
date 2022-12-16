@@ -574,6 +574,10 @@ namespace Stormancer.Server.Plugins.Party
 
                 await handlers.RunEventHandler(h => h.OnUpdatingPlayerReadyState(updatingCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running 'OnUpdatingPlayerReadyState'", ex));
 
+                if (!updatingCtx.Accept)
+                {
+                    throw new ClientException(string.IsNullOrEmpty(updatingCtx.ErrorId) ? "party.ready.updateDenied" : updatingCtx.ErrorId);
+                }
 
                 user.StatusInParty = partyUserStatus.DesiredStatus;
                 Log(LogLevel.Trace, "UpdateGameFinderPlayerStatus", $"Updated user status, new value: {partyUserStatus}", user.Peer.SessionId, user.UserId);
@@ -582,7 +586,7 @@ namespace Stormancer.Server.Plugins.Party
                 update.UserStatus.Add(new PartyMemberStatusUpdate { UserId = userId, Status = user.StatusInParty });
                 await BroadcastStateUpdateRpc(BatchStatusUpdate.Route, update);
 
-                var eventHandlerCtx = new PlayerReadyStateContext(this, user,_scene);
+                var eventHandlerCtx = new PlayerReadyStateContext(this, user, _scene);
                 await handlers.RunEventHandler(h => h.OnPlayerReadyStateChanged(eventHandlerCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnPlayerReadyStateChanged", ex));
 
                 bool shouldLaunchGameFinderRequest = false;
