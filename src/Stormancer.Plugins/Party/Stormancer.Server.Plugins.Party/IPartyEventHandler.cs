@@ -153,14 +153,37 @@ namespace Stormancer.Server.Plugins.Party
 
     public class PlayerReadyStateContext
     {
+        public ISceneHost PartyScene { get; }
         public IPartyService Party { get; }
         public PartyMember Member { get; }
         public GameFinderRequestPolicy GameFinderPolicy { get; set; } = GameFinderRequestPolicy.StartWhenAllMembersReady;
 
-        internal PlayerReadyStateContext(IPartyService party, PartyMember user)
+        internal PlayerReadyStateContext(IPartyService party, PartyMember user, ISceneHost scene)
         {
             Party = party;
             Member = user;
+            PartyScene = scene;
+        }
+    }
+
+    public class UpdatingPlayerReadyStateContext
+    {
+        public ISceneHost PartyScene { get; }
+        public IPartyService Party { get; }
+        public PartyMember Member { get; }
+        public GameFinderRequestPolicy GameFinderPolicy { get; set; } = GameFinderRequestPolicy.StartWhenAllMembersReady;
+
+
+        /// <summary>
+        /// Set to false to refuse the ready state update.
+        /// </summary>
+        public bool Accept { get; set; } = true;
+
+        internal UpdatingPlayerReadyStateContext(IPartyService party, PartyMember user, ISceneHost scene)
+        {
+            Party = party;
+            Member = user;
+            PartyScene = scene;
         }
     }
 
@@ -270,6 +293,9 @@ namespace Stormancer.Server.Plugins.Party
         /// <returns></returns>
         Task OnQuit(QuitPartyContext ctx);
 
+
+        Task OnUpdatingPlayerReadyState(UpdatingPlayerReadyStateContext ctx) => Task.CompletedTask;
+       
         /// <summary>
         /// Fired when a member updates their party status (ready/not ready).
         /// </summary>

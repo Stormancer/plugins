@@ -570,6 +570,11 @@ namespace Stormancer.Server.Plugins.Party
                     throw new ClientException(SettingsOutdatedError);
                 }
 
+                var updatingCtx = new UpdatingPlayerReadyStateContext(this, user, _scene);
+
+                await handlers.RunEventHandler(h => h.OnUpdatingPlayerReadyState(updatingCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running 'OnUpdatingPlayerReadyState'", ex));
+
+
                 user.StatusInParty = partyUserStatus.DesiredStatus;
                 Log(LogLevel.Trace, "UpdateGameFinderPlayerStatus", $"Updated user status, new value: {partyUserStatus}", user.Peer.SessionId, user.UserId);
 
@@ -577,7 +582,7 @@ namespace Stormancer.Server.Plugins.Party
                 update.UserStatus.Add(new PartyMemberStatusUpdate { UserId = userId, Status = user.StatusInParty });
                 await BroadcastStateUpdateRpc(BatchStatusUpdate.Route, update);
 
-                var eventHandlerCtx = new PlayerReadyStateContext(this, user);
+                var eventHandlerCtx = new PlayerReadyStateContext(this, user,_scene);
                 await handlers.RunEventHandler(h => h.OnPlayerReadyStateChanged(eventHandlerCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnPlayerReadyStateChanged", ex));
 
                 bool shouldLaunchGameFinderRequest = false;
