@@ -1,4 +1,5 @@
-﻿using Stormancer.Server.Plugins.Configuration;
+﻿using Microsoft.Extensions.Logging;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.GameSession;
 using System;
 using System.Collections.Generic;
@@ -21,12 +22,18 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
         private readonly PartyProxy party;
         private readonly JoinGameSessionState state;
         private readonly IConfiguration configuration;
+        private readonly ILogger logger;
 
-        public JoinGameSessionEventHandler(PartyProxy party, JoinGameSessionState state, IConfiguration configuration)
+        public JoinGameSessionEventHandler(
+            PartyProxy party, 
+            JoinGameSessionState state, 
+            IConfiguration configuration,
+            ILogger logger)
         {
             this.party = party;
             this.state = state;
             this.configuration = configuration;
+            this.logger = logger;
         }
         private bool IsEnabled
         {
@@ -68,7 +75,15 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
 
                 if (partyId != null)
                 {
-                    await party.UpdatePartyStatusAsync(partyId, null, "gamesession", ctx.GameSession.GameSessionId, default);
+                    try
+                    {
+                        await party.UpdatePartyStatusAsync(partyId, null, "gamesession", ctx.GameSession.GameSessionId, default);
+                    }
+                    catch(Exception ex)
+                    {
+                        logger.Log(LogLevel.Error, $"Failed to update the party status (id='{partyId}') with gamesesion related informations :", ex);
+                        throw;
+                    }
                 }
 
             }
