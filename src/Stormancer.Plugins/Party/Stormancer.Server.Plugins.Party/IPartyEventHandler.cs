@@ -42,11 +42,67 @@ namespace Stormancer.Server.Plugins.Party
         public bool Accept { get; set; }
         public string ErrorMessage { get; set; }
 
-        public PartyCreationContext(PartyRequestDto partyRequest)
+        internal PartyCreationContext(PartyRequestDto partyRequest)
         {
             PartyRequest = partyRequest;
             Accept = true;
         }
+    }
+
+    /// <summary>
+    /// List of circonstances that can trigger a status reset
+    /// </summary>
+    public enum PartyMemberReadyStateResetEventType
+    {
+        /// <summary>
+        /// The party settings were updated by the party leader.
+        /// </summary>
+        PartySettingsUpdated = 1,
+
+        /// <summary>
+        /// The data associated with a party member were updated.
+        /// </summary>
+        PartyMemberDataUpdated = 2,
+
+        /// <summary>
+        /// The member list in the party was updated.
+        /// </summary>
+        PartyMembersListUpdated = 4,
+
+    }
+
+    /// <summary>
+    /// Context for <see cref="IPartyEventHandler.OnPlayerReadyStateReset(PartyMemberReadyStateResetContext)"/>
+    /// </summary>
+    public class PartyMemberReadyStateResetContext
+    {
+
+        internal PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType eventType, ISceneHost scene)
+        {
+            PartyScene = scene;
+            EventType = eventType;
+            ShouldReset = true;
+        }
+
+        /// <summary>
+        /// Circonstance that triggered the event.
+        /// </summary>
+        public PartyMemberReadyStateResetEventType EventType { get; set; }
+
+        /// <summary>
+        /// Gets or sets a boolean value indicating whether the ready status should be reset.
+        /// </summary>
+        public bool ShouldReset { get; set; } = true;
+
+        /// <summary>
+        /// Party scene that triggered the event.
+        /// </summary>
+        public ISceneHost PartyScene { get; set; }
+
+        /// <summary>
+        /// Party the event
+        /// </summary>
+        public IPartyService Party => PartyScene.DependencyResolver.Resolve<IPartyService>();
     }
 
     public class PartySettingsUpdateCtx
@@ -308,6 +364,14 @@ namespace Stormancer.Server.Plugins.Party
         /// </remarks>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        Task OnPlayerReadyStateChanged(PlayerReadyStateContext ctx);
+        Task OnPlayerReadyStateChanged(PlayerReadyStateContext ctx) => Task.CompletedTask;
+
+        /// <summary>
+        /// Event fired when the ready status of a player could be automatically reset to NotReady. The 
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task OnPlayerReadyStateReset(PartyMemberReadyStateResetContext ctx) => Task.CompletedTask;
+        
     }
 }
