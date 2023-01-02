@@ -250,6 +250,7 @@ namespace Stormancer.Server.Plugins.GameSession
                         DNS = new[] { "8.8.8.8", "8.8.4.4" },
 
                     },
+                    ExposedPorts = new Dictionary<string, EmptyStruct> { { server.ServerPort + "/udp", new EmptyStruct() } },
                     Env = environmentVariables.Select(kvp => $"{kvp.Key}={kvp.Value}").ToList(),
 
                 };

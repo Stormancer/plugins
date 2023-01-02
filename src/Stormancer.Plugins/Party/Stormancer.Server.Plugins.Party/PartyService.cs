@@ -323,7 +323,15 @@ namespace Stormancer.Server.Plugins.Party
                 if (_partyState.PartyMembers.TryRemove(args.Peer.SessionId, out var partyUser))
                 {
                     Log(LogLevel.Trace, "OnDisconnected", $"Member left the party, reason: {args.Reason}", args.Peer.SessionId, partyUser.UserId);
-                    await TryCancelPendingGameFinder();
+
+                    var handlers = _handlers();
+                    var ctx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene);
+                    await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while processing an 'OnPlayerReadyStateRest' event.", ex));
+
+                    if (ctx.ShouldReset)
+                    {
+                        await TryCancelPendingGameFinder();
+                    }
 
                     if (_partyState.Settings.PartyLeaderId == partyUser.UserId && _partyState.PartyMembers.Count != 0)
                     {
@@ -436,7 +444,14 @@ namespace Stormancer.Server.Plugins.Party
                 }
                 _partyState.SettingsVersionNumber = newSettingsVersion;
 
-                await TryCancelPendingGameFinder();
+
+                var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartySettingsUpdated, _scene);
+                await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while processing an 'OnPlayerReadyStateRest' event.", ex));
+
+                if (partyResetCtx.ShouldReset)
+                {
+                    await TryCancelPendingGameFinder();
+                }
 
                 Dictionary<PartyMember, PartySettingsUpdateDto> updates = _partyState.PartyMembers.Values.ToDictionary(m => m, _ => new PartySettingsUpdateDto(_partyState));
 
@@ -516,7 +531,13 @@ namespace Stormancer.Server.Plugins.Party
                 }
                 _partyState.SettingsVersionNumber = newSettingsVersion;
 
-                await TryCancelPendingGameFinder();
+            var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartySettingsUpdated, _scene);
+            await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while processing an 'OnPlayerReadyStateRest' event.", ex));
+
+                if (partyResetCtx.ShouldReset)
+                {
+                    await TryCancelPendingGameFinder();
+                }
 
                 Dictionary<PartyMember, PartySettingsUpdateDto> updates = _partyState.PartyMembers.Values.ToDictionary(m => m, _ => new PartySettingsUpdateDto(_partyState));
 
