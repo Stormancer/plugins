@@ -1,6 +1,6 @@
 ﻿#Parties
 
-This plugin adds player parties related features to a Stormancer application. It contains a Server plugin, that can be installed using Nuget, and a C++ client plugin (Party.hpp).
+This plugin adds player parties related features to a Stormancer application. It contains a Server application plugin (the [Nuget package](https://www.nuget.org/packages/Stormancer.Server.Plugins.Party)), and a C++ client plugin ([Party.hpp](https://raw.githubusercontent.com/Stormancer/plugins/develop/src/Stormancer.Plugins/Party/cpp/Party.hpp)).
 
 A player party is a group any player can create, which can be joined by other players afterward. A gamefinder is set as part of the party creation parameters and can be changed afterwards. 
 When all members of a party are in the ready state (set by calling `PartyApi::updatePlayerStatus`), the selected gamefinder is executed, with the current party data (including party settings, member list and member data) as argument.
