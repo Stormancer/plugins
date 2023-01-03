@@ -1,6 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
-using Stormancer.Server.Plugins.Configuration;
+﻿using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.GameSession;
+using Stormancer.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -81,7 +81,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                     }
                     catch(Exception ex)
                     {
-                        logger.Log(LogLevel.Error, $"Failed to update the party status (id='{partyId}') with gamesesion related informations :", ex);
+                        logger.Log(LogLevel.Error,"party", $"Failed to update the party status (id='{partyId}') with gamesesion related informations :", ex);
                         throw;
                     }
                 }

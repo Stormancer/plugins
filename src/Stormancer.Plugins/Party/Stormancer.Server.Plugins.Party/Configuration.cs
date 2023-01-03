@@ -79,7 +79,7 @@ namespace Stormancer.Server.Plugins.Party
     {
         private readonly IConfiguration configuration;
 
-        public PartyConfigurationService(IConfiguration configuration)
+        internal PartyConfigurationService(IConfiguration configuration)
         {
             this.configuration = configuration;
         }
@@ -123,6 +123,11 @@ namespace Stormancer.Server.Plugins.Party
                 return length.Value;
             }
         }
+
+        internal void ShouldResetPartyMembersReadyState(PartyMemberReadyStateResetContext ctx)
+        { 
+            ResetPlayerReadyStateFunc?.Invoke(ctx);
+        }
         internal void OnPartyCreating(PartyCreationContext ctx)
         {
             var enablePlatformInvitation = GetConfigSection().EnablePlatformInvitation;
@@ -141,7 +146,7 @@ namespace Stormancer.Server.Plugins.Party
 
         internal Action<PartyCreationContext>? ShouldEnablePlatformLobbiesFunc { get; set; }
 
-        internal Action<PartyMemberReadyStateResetContext> ResetPlayerReadyStateFunc { get; set; }
+        internal Action<PartyMemberReadyStateResetContext>? ResetPlayerReadyStateFunc { get; set; }
     }
 
     /// <summary>
@@ -232,7 +237,7 @@ namespace Stormancer.Server.Plugins.Party
         /// <summary>
         /// Changes the policy used to decide when to reset the ready state of a a party member.
         /// </summary>
-        /// <param name="value"></param>
+        /// <param name="func"></param>
         /// <returns></returns>
         public PartyConfigurationBuilder ResetPlayerReadyStateOn(Action<PartyMemberReadyStateResetContext> func)
         {

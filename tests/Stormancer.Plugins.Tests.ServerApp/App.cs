@@ -1,5 +1,6 @@
 ﻿using Stormancer.Server;
 using Stormancer.Server.Plugins.GameFinder;
+using Stormancer.Server.Plugins.Party;
 using System;
 
 namespace Stormancer.Plugins.Tests.ServerApp
@@ -18,6 +19,7 @@ namespace Stormancer.Plugins.Tests.ServerApp
         {
             ctx.HostStarting += (IHost host) =>
             {
+                host.ConfigurePlayerParty(p => p.ResetPlayerReadyStateOn(ResetPlayerReadyStateMode.PartySettingsUpdated | ResetPlayerReadyStateMode.PartyMemberDataUpdated | ResetPlayerReadyStateMode.PartyMembersListUpdated));
                 host.ConfigureUsers(u => u.ConfigureEphemeral(b => b.Enabled()));
 
                 host.ConfigureGamefinderTemplate("server-test", c => c
@@ -98,6 +100,9 @@ namespace Stormancer.Plugins.Tests.ServerApp
                         .TeamSize(1)
                     )
                 );
+
+
+              
 
             };
             ctx.HostStarted += (IHost host) =>

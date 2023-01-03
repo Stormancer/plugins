@@ -970,11 +970,11 @@ namespace Stormancer
 			bool isJoinable = true;
 			std::unordered_map<std::string, std::string> publicServerData; // Not in MSGPACK_DEFINE because cannot be set by the client
 
-			 /// <summary>
+			/// <summary>
 			/// Json document used to search the party.
 			/// </summary>
 			/// <remarks>
-			/// Must be a valdi json object.
+			/// Must be a valid json object.
 			/// The party is not searchable if set to empty or an invalid json object.
 			/// The content of the document are indexed using the field paths as keys, with '.' as separator.
 			/// 

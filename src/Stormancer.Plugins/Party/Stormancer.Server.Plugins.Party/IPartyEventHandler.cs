@@ -39,8 +39,16 @@ namespace Stormancer.Server.Plugins.Party
         /// The party creation request parameters.
         /// </summary>
         public PartyRequestDto PartyRequest { get; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether party creation must succeed or fail.
+        /// </summary>
         public bool Accept { get; set; }
-        public string ErrorMessage { get; set; }
+
+        /// <summary>
+        /// Custom error message to use of party creation is denied.
+        /// </summary>
+        public string? ErrorMessage { get; set; }
 
         internal PartyCreationContext(PartyRequestDto partyRequest)
         {
@@ -265,6 +273,51 @@ namespace Stormancer.Server.Plugins.Party
         }
     }
 
+    /// <summary>
+    /// Context object used by <see cref="IPartyEventHandler.OnUpdatingPartyMemberData(UpdatingPartyMemberDataContext)"/>
+    /// </summary>
+    public class UpdatingPartyMemberDataContext
+    {
+        internal UpdatingPartyMemberDataContext(PartyMember member, byte[] newData, ISceneHost scene)
+        {
+            PartyScene = scene;
+            PartyMember = member;
+            NewUserData = newData;
+        }
+        /// <summary>
+        /// The current party member to update.
+        /// </summary>
+        public PartyMember PartyMember { get; }
+
+        /// <summary>
+        /// Gets or sets the new content that should replace the current party member data.
+        /// </summary>
+        public byte[] NewUserData { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating wether the update should happen or be denied.
+        /// </summary>
+        public bool IsUpdateValid { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets an optional error message to use if the update is denied.
+        /// </summary>
+        public string? Error { get; set; }
+
+        /// <summary>
+        /// Gets the scene of the party.
+        /// </summary>
+        public ISceneHost PartyScene { get; }
+
+        /// <summary>
+        /// Gets the party service.
+        /// </summary>
+        public IPartyService Party => PartyScene.DependencyResolver.Resolve<IPartyService>();
+    }
+
+    /// <summary>
+    /// Extensibility contract for parties
+    /// </summary>
     public interface IPartyEventHandler
     {
         /// <summary>
@@ -350,7 +403,22 @@ namespace Stormancer.Server.Plugins.Party
         /// <returns></returns>
         Task OnQuit(QuitPartyContext ctx);
 
+        /// <summary>
+        /// Event fired when the custom data associated with a member are updating
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <remarks>
+        /// This event enables validating the data an denying the change.
+        /// </remarks>
+        /// <returns></returns>
+        Task OnUpdatingPartyMemberData(UpdatingPartyMemberDataContext ctx) => Task.CompletedTask;
 
+
+        /// <summary>
+        /// Fired before setting a player as ready (or NotReady) from the client. This can be used to validate player custom data before setting them as ready.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
         Task OnUpdatingPlayerReadyState(UpdatingPlayerReadyStateContext ctx) => Task.CompletedTask;
        
         /// <summary>
@@ -367,9 +435,10 @@ namespace Stormancer.Server.Plugins.Party
         Task OnPlayerReadyStateChanged(PlayerReadyStateContext ctx) => Task.CompletedTask;
 
         /// <summary>
-        /// Event fired when the ready status of a player could be automatically reset to NotReady. The 
+        /// Event fired when the ready status of a player will be automatically reset to NotReady. 
         /// </summary>
         /// <param name="ctx"></param>
+        /// <remarks>An handler code can prevent the reset from occuring by setting <see cref="PartyMemberReadyStateResetContext.ShouldReset"/> to false.</remarks>
         /// <returns></returns>
         Task OnPlayerReadyStateReset(PartyMemberReadyStateResetContext ctx) => Task.CompletedTask;
         
