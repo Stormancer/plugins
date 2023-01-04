@@ -681,7 +681,7 @@ namespace Stormancer.Server.Plugins.Party
                 partyUser.UserData = data;
                 Log(LogLevel.Trace, "UpdatePartyUserData", "Updated user data", new { partyUser.Peer.SessionId, partyUser.UserId, UserData = data });
 
-                var partyResetctx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene);
+                var partyResetctx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMemberDataUpdated, _scene);
                 partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetctx);
                 await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while processing an 'OnPlayerReadyStateRest' event.", ex));
 
