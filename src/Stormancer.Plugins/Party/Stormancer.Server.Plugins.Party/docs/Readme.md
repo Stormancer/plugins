@@ -1,6 +1,4 @@
-﻿#Parties
-
-This plugin adds player parties related features to a Stormancer application. It contains a Server application plugin (the [Nuget package](https://www.nuget.org/packages/Stormancer.Server.Plugins.Party)), and a C++ client plugin ([Party.hpp](https://raw.githubusercontent.com/Stormancer/plugins/develop/src/Stormancer.Plugins/Party/cpp/Party.hpp)).
+﻿This module adds player parties related features to a Stormancer application. It contains a Server application plugin (the [Nuget package](https://www.nuget.org/packages/Stormancer.Server.Plugins.Party)), and a C++ client plugin ([Party.hpp](https://raw.githubusercontent.com/Stormancer/plugins/develop/src/Stormancer.Plugins/Party/cpp/Party.hpp)).
 
 A player party is a group any player can create, which can be joined by other players afterward. A gamefinder is set as part of the party creation parameters and can be changed afterwards. 
 When all members of a party are in the ready state (set by calling `PartyApi::updatePlayerStatus`), the selected gamefinder is executed, with the current party data (including party settings, member list and member data) as argument.
@@ -17,6 +15,14 @@ The party:
 - Provides search and filtering capabilities based on Lucene.
 
 The party system uses Stormancer scenes as its core abstraction (a party is a component of a scene). This makes the party system highly scalable and extensible as developers can easily add additional behaviors to a party scene.
+
+
+## Creating a party
+
+    client->DependencyResolver.resolve<Stormancer::PartyApi>()->createIfNotJoined().then([]()
+	{
+		...
+	});
 
 ## Invitation codes
 

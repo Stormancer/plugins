@@ -12,25 +12,24 @@
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
 		<Description>Provides P2P and client/server gamesession features to a Stormancer server application.</Description>
+		<PackageReadmeFile>Readme.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<Deterministic>true</Deterministic>
-  </PropertyGroup>
+	</PropertyGroup>
 
-  <PropertyGroup>
-    <PackageIcon>icon.png</PackageIcon>
-  </PropertyGroup>
-  <ItemGroup>
-    <None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
-  </ItemGroup>
+	<PropertyGroup>
+		<PackageIcon>icon.png</PackageIcon>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
+	</ItemGroup>
+	<ItemGroup>
+		<None Include="docs\Readme.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
+		<Version>$(Version)-pre</Version>
+	</PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-    <Version>$(Version)-pre</Version>
-  </PropertyGroup>
-  <ItemGroup>
-    <Compile Remove="providers\**" />
-    <EmbeddedResource Remove="providers\**" />
-    <None Remove="providers\**" />
-  </ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Docker.DotNet" Version="3.125.12" />
@@ -44,31 +43,31 @@
 		<PackageReference Include="System.Linq.Async" Version="6.0.1" />
 	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api.S2SProxyGenerator\Stormancer.Server.Plugins.Api.S2SProxyGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj" />
+	<ItemGroup>
+		<ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api.S2SProxyGenerator\Stormancer.Server.Plugins.Api.S2SProxyGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj" />
 		<ProjectReference Include="..\..\DataProtection\Stormancer.Server.Plugins.DataProtection\Stormancer.Server.Plugins.DataProtection.csproj" />
-    <ProjectReference Include="..\..\Management\Stormancer.Server.Plugins.Management\Stormancer.Server.Plugins.Management.csproj" />
-    <ProjectReference Include="..\..\Models\Stormancer.Server.Plugins.Models\Stormancer.Server.Plugins.Models.csproj" />
-    <ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />
-  </ItemGroup>
+		<ProjectReference Include="..\..\Management\Stormancer.Server.Plugins.Management\Stormancer.Server.Plugins.Management.csproj" />
+		<ProjectReference Include="..\..\Models\Stormancer.Server.Plugins.Models\Stormancer.Server.Plugins.Models.csproj" />
+		<ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
+	<ItemGroup>
+		<NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
 		<cpp Include="$(ProjectDir)../cpp/*" />
-  </ItemGroup>
+	</ItemGroup>
 
-  <ItemGroup>
-    <None Remove="readme.md" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Remove="readme.md" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <Content Include="Readme.md" />
-  </ItemGroup>
+	<ItemGroup>
+		<Content Include="Readme.md" />
+	</ItemGroup>
 
-  <Target Name="PostPack" AfterTargets="Pack">
-    <Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
+	<Target Name="PostPack" AfterTargets="Pack">
+		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
 		<Copy SourceFiles="@(cpp)" DestinationFolder="$(ProjectDir)../../../../output/cpp/GameSession" />
-  </Target>
+	</Target>
 
 </Project>
