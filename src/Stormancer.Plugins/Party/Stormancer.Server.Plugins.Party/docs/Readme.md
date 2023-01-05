@@ -1,14 +1,14 @@
-﻿This module adds player parties related features to a Stormancer application. It contains a Server application plugin (the [Nuget package](https://www.nuget.org/packages/Stormancer.Server.Plugins.Party)), and a C++ client plugin ([Party.hpp](https://raw.githubusercontent.com/Stormancer/plugins/develop/src/Stormancer.Plugins/Party/cpp/Party.hpp)).
+﻿# OverView
+This module adds player parties related features to a Stormancer application. It contains a Server application plugin (the [Nuget package](https://www.nuget.org/packages/Stormancer.Server.Plugins.Party)), and a C++ client plugin ([Party.hpp](https://raw.githubusercontent.com/Stormancer/plugins/develop/src/Stormancer.Plugins/Party/cpp/Party.hpp)).
 
-A player party is a group any player can create, which can be joined by other players afterward. A gamefinder is set as part of the party creation parameters and can be changed afterwards. 
+A player party is a group any player can create, which can be joined by other players afterward. A gamefinder is set as part of the party creation settings and can be changed afterwards. 
 When all members of a party are in the ready state (set by calling `PartyApi::updatePlayerStatus`), the selected gamefinder is executed, with the current party data (including party settings, member list and member data) as argument.
 
-The party:
-
+Main features:
 - Maintains on all party members as well as on the server an updated list of the party members
-- Maintain a party leader, with leadership automatically passed to another player in case of leader disconnection
+- Maintains a party leader, with leadership automatically passed to another player in case of leader disconnection
 - Synchronizes custom party settings (expressed as a string). Only the leader can update the party settings.
-- Synchronizes custom data (as a string) for all members. Only the corresponding member can updates its data.
+- Synchronizes custom data (as a string) for all members. Each party member can only update its own data.
 - Generates invitation codes to enable players to join in a crossplay game.
 - Synchronizes an extensible state, for instance filled by the Gamesession system so that players joining a party already in a gamesession can detect that and join the gamesession.
 - Integrates with the invitation systems of gaming platforms like Steam, PSN, XBoxLive, Nintendo Online and Epic Store to provide a seamless experience for players running the game on the same platform, while retaining crossplay capabilities in the same party.
@@ -17,14 +17,14 @@ The party:
 The party system uses Stormancer scenes as its core abstraction (a party is a component of a scene). This makes the party system highly scalable and extensible as developers can easily add additional behaviors to a party scene.
 
 
-## Creating a party
+# Creating a party
 
     client->DependencyResolver.resolve<Stormancer::PartyApi>()->createIfNotJoined().then([]()
 	{
 		...
 	});
 
-## Invitation codes
+# Invitation codes
 
 Customizing invitation codes:
 
@@ -37,7 +37,7 @@ Customizing invitation codes:
 	}
 
 
-## Joining the gamesession your party is in
+# Joining the gamesession your party is in
 
 When joining a party, it's possible to know if it is currently in a gamession, and join this gamesession. 
 If not used by the application, this behavior can be disabled by setting to application configuration value `party.enableGameSessionPartyStatus` to false.
@@ -58,9 +58,9 @@ The following methods of `PartyApi` enables clients to determine if their party 
 	virtual pplx::task<std::string> getCurrentGameSessionConnectionToken(pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
 
 
-## Party Search
+# Party Search
 
-Once a party is created, the party leader can index it into an a distributed in memory database on the server using Lucene for search. To do that, call `UpdatePartySettings` and provide a valid json document in the `indexedDocument` field.
+Once a party is created, the party leader can index it into a scalable Lucene server-side index for search. To do that, call `UpdatePartySettings` and provide a valid json document in the `indexedDocument` field.
 
 	struct PartySettings
 	{
@@ -114,31 +114,31 @@ Parties can be searched by calling `PartyApi::Search()` with a json Stormancer f
 				}]
 		}
 
-## Validating party settings and party member data
+# Validating party settings and party member data
 
-Party settings and party member data can be validated by creating a class implementing `IPartyEventHandler` and the methods `OnUpdatingSettings` and `OnUpdatingPartyMemberData`. Both APIs support denying the update and providing an error string sent back to 
+Party settings and party member data can be validated by creating a class implementing `IPartyEventHandler` and the methods `OnUpdatingSettings` and `OnUpdatingPartyMemberData`. Both APIs support denying the update and providing an error string sent back to the caller.
 
-## Customizing ready state changes
+# Customizing ready state changes
 
-### Validating setting the player state as ready
+## Validating setting the player state as ready
 
 The state of a player can be validated when they try setting themselves as ready by implementing `IPartyEventHandler.OnUpdatingPlayerReadyState`. This method can perform validation and set a custom error string to be sent back to the client in case of failure.
 
-### Customizing ready reset.
+## Customizing ready reset.
 
 By default, the ready state resets to `NotReady` if any of the following conditions are met:
 - The list of players in the party changes.
 - Party settings are updated.
-- The custom data of any party members are updated.
+- The custom data of any party members is updated.
 
 This behavior can be customized through two mechanisms:
 - Party configuration
 - The Party `IPartyEventHandler` extensibility point.
 
-Note that preventing reset of the ready state also disable automated matchmaking cancellation in all the situations that would have reset it, for instance if a player in the party disconnects while matchmaking is in progress. However as data about the parties are sent to the
-matchmaker only when matchmaking starts, they may become out of date. Manually resetting the ready state still cancels matchmaking as only automated reset is disabled.
+Note that preventing resetting the ready state also disables automated matchmaking cancellation in all the situations that would have reset it, for instance if a player in the party disconnects while matchmaking is in progress. Be carefult, as data about the parties are sent to the
+matchmaker only when matchmaking starts, they may become out of synch in this case. Manually resetting the ready state still cancels matchmaking as only automated reset is disabled. You may use a custom validator to reject data modification while in matchmaking.
 
-#### Party Configuration
+### Party Configuration
 
 The list of events the ready state should reset in can be set in the party configuration. `ResetPlayerReadyStateMode.None` and `ResetPlayerReadyStateMode.All` are convenient shortcuts. By default, the option is set as `ResetPlayerReadyStateMode.All
 
@@ -191,6 +191,6 @@ It's also possible to provide a custom lambda to drive the reset logic. For inst
 		}
 	}
 
-#### A IPartyEventHandler implementation.
+### A IPartyEventHandler implementation.
 
 Implement `IPartyEventHandler.OnPlayerReadyStateReset` in an event handler to control when the the ready state should be reset depending on custom logic.
