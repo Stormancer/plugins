@@ -40,11 +40,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Changelog.rst" />
+    <None Remove="Readme.md" />
   </ItemGroup>
 
   <ItemGroup>
     <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
     <Pdbs Include="$(TargetDir)*.pdb" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Changelog.rst" />
+    <Content Include="Readme.md" />
   </ItemGroup>
 
   <Target Name="PostPack" AfterTargets="Pack">

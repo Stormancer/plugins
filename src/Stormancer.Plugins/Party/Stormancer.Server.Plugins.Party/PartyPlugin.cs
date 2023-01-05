@@ -84,7 +84,8 @@ namespace Stormancer.Server.Plugins.Party
                     r.Resolve<IEnumerable<IPartyPlatformSupport>>(),
                     r.Resolve<StormancerPartyPlatformSupport>(),
                     r.Resolve<InvitationCodeService>(),
-                    r.Resolve<PartyLuceneDocumentStore>())
+                    r.Resolve<PartyLuceneDocumentStore>(),
+                    r.Resolve<PartyConfigurationService>())
                 ).As<IPartyService>().InstancePerRequest();
                 
                 builder.Register<PartyController>(r=>new PartyController(
@@ -137,7 +138,8 @@ namespace Stormancer.Server.Plugins.Party
                 builder.Register<JoinGameSessionEventHandler>(r=>new JoinGameSessionEventHandler(
                     r.Resolve<PartyProxy>(),
                     r.Resolve<JoinGameSessionState>(),
-                    r.Resolve<IConfiguration>())
+                    r.Resolve<IConfiguration>(),
+                    r.Resolve<ILogger>())
                 ).As<IGameSessionEventHandler>().InstancePerRequest();
                 
                 builder.Register<JoinGameSessionState>(r=>new JoinGameSessionState()

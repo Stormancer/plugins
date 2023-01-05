@@ -22,7 +22,7 @@ namespace Stormancer.Server.Plugins.Party
         public static IHost ConfigurePlayerParty(this IHost host, Func<PartyConfigurationBuilder, PartyConfigurationBuilder> builderFct)
         {
             var config = host.DependencyResolver.Resolve<PartyConfigurationService>();
-          
+
             PartyConfigurationBuilder builder = new(config);
 
             builder = builderFct(builder);
@@ -42,7 +42,7 @@ namespace Stormancer.Server.Plugins.Party
         /// Default authorized invitation code character list.
         /// </summary>
         public const string DEFAULT_AUTHORIZED_INVITATION_CODE_CHARACTERS = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
-        
+
         /// <summary>
         /// Default invitation code length;
         /// </summary>
@@ -52,7 +52,7 @@ namespace Stormancer.Server.Plugins.Party
         /// <summary>
         /// List of characters authorized to create invitation codes
         /// </summary>
-        public string? authorizedInvitationCodeCharacters { get; set; } 
+        public string? authorizedInvitationCodeCharacters { get; set; }
 
         /// <summary>
         /// Length of invitation codes.
@@ -79,7 +79,7 @@ namespace Stormancer.Server.Plugins.Party
     {
         private readonly IConfiguration configuration;
 
-        public PartyConfigurationService(IConfiguration configuration)
+        internal PartyConfigurationService(IConfiguration configuration)
         {
             this.configuration = configuration;
         }
@@ -91,7 +91,7 @@ namespace Stormancer.Server.Plugins.Party
         internal string GetAuthorizedInvitationCodeCharacters(ISceneHost partyScene)
         {
             var configValue = GetConfigSection().authorizedInvitationCodeCharacters;
-            if(configValue !=null)
+            if (configValue != null)
             {
                 return configValue;
             }
@@ -109,7 +109,7 @@ namespace Stormancer.Server.Plugins.Party
         internal int GetInvitationCodeLength(ISceneHost partyScene)
         {
             var configValue = GetConfigSection().invitationCodeLength;
-            if(configValue!=null)
+            if (configValue != null)
             {
                 return configValue.Value;
             }
@@ -123,15 +123,20 @@ namespace Stormancer.Server.Plugins.Party
                 return length.Value;
             }
         }
+
+        internal void ShouldResetPartyMembersReadyState(PartyMemberReadyStateResetContext ctx)
+        { 
+            ResetPlayerReadyStateFunc?.Invoke(ctx);
+        }
         internal void OnPartyCreating(PartyCreationContext ctx)
         {
             var enablePlatformInvitation = GetConfigSection().EnablePlatformInvitation;
-            if(enablePlatformInvitation !=null)
+            if (enablePlatformInvitation != null)
             {
                 ctx.PartyRequest.ServerSettings.ShouldCreatePlatformLobby(true);
             }
 
-            if(ShouldEnablePlatformLobbiesFunc is not null)
+            if (ShouldEnablePlatformLobbiesFunc is not null)
             {
                 ShouldEnablePlatformLobbiesFunc(ctx);
             }
@@ -140,6 +145,8 @@ namespace Stormancer.Server.Plugins.Party
         internal Func<ISceneHost, int?>? GetInvitationLengthFunc { get; set; }
 
         internal Action<PartyCreationContext>? ShouldEnablePlatformLobbiesFunc { get; set; }
+
+        internal Action<PartyMemberReadyStateResetContext>? ResetPlayerReadyStateFunc { get; set; }
     }
 
     /// <summary>
@@ -191,5 +198,84 @@ namespace Stormancer.Server.Plugins.Party
             Configuration.ShouldEnablePlatformLobbiesFunc = ctx => ctx.PartyRequest.ServerSettings.ShouldCreatePlatformLobby(value);
             return this;
         }
+        
+        /// <summary>
+        /// Changes the policy used to decide when to reset the ready state of a a party member.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public PartyConfigurationBuilder ResetPlayerReadyStateOn(ResetPlayerReadyStateMode value = ResetPlayerReadyStateMode.All)
+        {
+            ResetPlayerReadyStateOn(ctx =>
+            {
+                switch (ctx.EventType)
+                {
+                    case PartyMemberReadyStateResetEventType.PartySettingsUpdated:
+                        if ((value & ResetPlayerReadyStateMode.PartySettingsUpdated) != 0)
+                        {
+                            ctx.ShouldReset = true;
+                        }
+                        break;
+                    case PartyMemberReadyStateResetEventType.PartyMemberDataUpdated:
+                        if ((value & ResetPlayerReadyStateMode.PartyMemberDataUpdated) !=0)
+                        {
+                            ctx.ShouldReset = true;
+                        }
+                        break;
+                    case PartyMemberReadyStateResetEventType.PartyMembersListUpdated:
+                        if ((value & ResetPlayerReadyStateMode.PartyMembersListUpdated) != 0)
+                        {
+                            ctx.ShouldReset = true;
+                        }
+                        break;
+                }
+            });
+
+            return this;
+        }
+
+        /// <summary>
+        /// Changes the policy used to decide when to reset the ready state of a a party member.
+        /// </summary>
+        /// <param name="func"></param>
+        /// <returns></returns>
+        public PartyConfigurationBuilder ResetPlayerReadyStateOn(Action<PartyMemberReadyStateResetContext> func)
+        {
+            Configuration.ResetPlayerReadyStateFunc = func;
+            return this;
+        }
     }
+
+    /// <summary>
+    /// Customizes when the player ready status is reset in the party.
+    /// </summary>
+    public enum ResetPlayerReadyStateMode : byte
+    {
+        /// <summary>
+        /// The player ready status of members is only reset when a game is found.
+        /// </summary>
+        None = 0,
+
+        /// <summary>
+        /// The Player ready status is reset whenever party settings are updated.
+        /// </summary>
+        PartySettingsUpdated = 1,
+
+        /// <summary>
+        /// The player ready status is reset whenever the custom data of any players in the party are updated.
+        /// </summary>
+        PartyMemberDataUpdated = 2,
+
+        /// <summary>
+        /// The player ready status is reset whenever the list of members in the party changes.
+        /// </summary>
+        PartyMembersListUpdated = 4,
+
+        /// <summary>
+        /// The player ready status is always reset
+        /// </summary>
+        All = 0xff,
+    }
+
+
 }

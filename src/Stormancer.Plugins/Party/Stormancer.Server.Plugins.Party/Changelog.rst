@@ -15,6 +15,7 @@ Changed
 *******
 - Remove Dependency to Stormancer.Abstractions.Server because it's implicit.
 - Send IndexedDocument as part of party updated events.
+- Add configuration and event handler extensibility points to control when ready state is reset, validate ready state changes and user data updates.
 
 4.3.1.13
 --------
