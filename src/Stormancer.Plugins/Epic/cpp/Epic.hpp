@@ -17,6 +17,7 @@
 #include "eos_logging.h"
 #include "eos_sdk.h"
 #include "eos_types.h"
+#include "eos_custominvites.h"
 
 // https://dev.epicgames.com/docs/services/en-US/index.html
 
@@ -741,6 +742,7 @@ namespace Stormancer
 				EpicPartyProvider(
 					std::shared_ptr<Party::Platform::InvitationMessenger> messenger,
 					std::shared_ptr<Users::UsersApi> usersApi,
+					std::shared_ptr<EpicState> epicState,
 					std::shared_ptr<details::EpicApi> epicApi,
 					std::shared_ptr<ILogger> logger,
 					std::shared_ptr<Party::PartyApi> partyApi,
@@ -748,6 +750,7 @@ namespace Stormancer
 				)
 					: IPlatformSupportProvider(messenger)
 					, _wUsersApi(usersApi)
+					, _epicState(epicState)
 					, _wEpicApi(epicApi)
 					, _logger(logger)
 					, _wPartyApi(partyApi)
@@ -760,6 +763,47 @@ namespace Stormancer
 					return platformName;
 				}
 
+				bool tryShowSystemInvitationUI(std::shared_ptr<Party::PartyApi> partyApi) override
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					if (! partyApi->isInParty())
+					{
+						_logger->log(LogLevel::Error, "Steam", "Not in a party");
+						return false;
+					}
+
+					auto partyScene = partyApi->getPartyScene();
+
+					if (! partyScene)
+					{
+						_logger->log(LogLevel::Error, "Steam", "Party scene is empty");
+						return false;
+					}
+
+					std::string partySceneId = partyScene->id();
+
+					if (partySceneId.empty())
+					{
+						_logger->log(LogLevel::Error, "Steam", "Party scene id is invalid");
+						return false;
+					}
+
+					if (partySceneId.size() > EOS_CUSTOMINVITES_MAX_PAYLOAD_LENGTH)
+					{
+						_logger->log(LogLevel::Error, "Steam", "Party scene id too long to be sent in a EOS_CustomInvite");
+						return false;
+					}
+
+					EOS_CustomInvites_SetCustomInviteOptions customInviteOptions;
+
+					EOS_CustomInvites_SetCustomInvite();
+
+					EOS_CustomInvites_SendCustomInvite();
+
+					return true;
+				}
+
 #pragma endregion
 
 #pragma region private_members
@@ -768,6 +812,7 @@ namespace Stormancer
 
 				std::recursive_mutex _mutex;
 				std::shared_ptr<ILogger> _logger;
+				std::shared_ptr<EpicState> _epicState;
 				std::weak_ptr<Users::UsersApi> _wUsersApi;
 				std::weak_ptr<details::EpicApi> _wEpicApi;
 				std::weak_ptr<Party::PartyApi> _wPartyApi;
