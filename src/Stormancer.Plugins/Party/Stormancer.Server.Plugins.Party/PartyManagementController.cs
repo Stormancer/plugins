@@ -99,7 +99,7 @@ namespace Stormancer.Server.PartyManagement
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<string> CreateConnectionTokenFromInvitationCode(string invitationCode, RequestContext<IScenePeerClient> ctx)
+        public async Task<string> CreateConnectionTokenFromInvitationCode(string invitationCode, byte[] userData, RequestContext<IScenePeerClient> ctx)
         {
             var session = await _sessions.GetSession(ctx.RemotePeer, ctx.CancellationToken);
             if (session == null)
@@ -107,7 +107,7 @@ namespace Stormancer.Server.PartyManagement
                 throw new ClientException("notAuthenticated");
             }
 
-            var token = await _partyService.CreateConnectionTokenFromInvitationCodeAsync(invitationCode, ctx.CancellationToken);
+            var token = await _partyService.CreateConnectionTokenFromInvitationCodeAsync(invitationCode,userData, ctx.CancellationToken);
             if (token == null)
             {
                 throw new ClientException("codeNotFound");
@@ -115,6 +115,13 @@ namespace Stormancer.Server.PartyManagement
 
             return token;
         }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public Task CreateConnectionTokenFromPartyId(string partyId, byte[] userData, RequestContext<IScenePeerClient> ctx)
+        {
+            return _partyService.CreateConnectionTokenFromPartyId(partyId, userData,ctx.CancellationToken);
+        }
+
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task<PartySearchResultDto> SearchParties(string jsonQuery, uint skip, uint size, CancellationToken cancellationToken)
         {

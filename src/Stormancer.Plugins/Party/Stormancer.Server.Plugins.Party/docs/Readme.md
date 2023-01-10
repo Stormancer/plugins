@@ -1,4 +1,4 @@
-﻿# OverView
+﻿# Overview
 This module adds player parties related features to a Stormancer application. It contains a Server application plugin (the [Nuget package](https://www.nuget.org/packages/Stormancer.Server.Plugins.Party)), and a C++ client plugin ([Party.hpp](https://raw.githubusercontent.com/Stormancer/plugins/develop/src/Stormancer.Plugins/Party/cpp/Party.hpp)).
 
 A player party is a group any player can create, which can be joined by other players afterward. A gamefinder is set as part of the party creation settings and can be changed afterwards. 
@@ -24,9 +24,11 @@ The party system uses Stormancer scenes as its core abstraction (a party is a co
 		...
 	});
 
-# Invitation codes
+# Joining a party
+## Invitation codes
 
-Customizing invitation codes:
+Parties can be joined in a cross platform way by using invitation codes
+Invitation codes can be customized in the server configuration, or code:
 
 
 	{
@@ -36,6 +38,20 @@ Customizing invitation codes:
 		}
 	}
 
+To generate an invitation code, the party leader calls `pplx::task<std::string> PartyApi::createInvitationCode(pplx::cancellation_token ct)`. Calling the method again invalidates the previous code. 
+The current invitation code can be disabled without generating a new one by calling `pplx::task<void> PartyApi::cancelInvitationCode(pplx::cancellation_token ct = pplx::cancellation_token::none())`
+
+To join a party using a code, users call `pplx::task<void> joinPartyByInvitationCode(const std::string& invitationCode)` and can optionally provide custom member data.
+
+## Platform integration
+
+The party integrates with the platform plugins (steam.hpp, epic.hpp, etc...) to process player invitations. Each platform requires specific setup described in the relevant documentation. 
+Additionnally, the game must register a callback to the `OnInvitationReceived` event by calling `Subscription PartyApi::subscribeOnInvitationReceived(std::function<void(PartyInvitation)> callback)` and storing the `Subscription` object returned by the method
+for as long as the game should listen to the event (Most of the time as long as the game is running).
+
+When an invitation is received, the game should either cancel it, or process it by calling `PartyInvitation::acceptAndJoinParty()` optionally providing custom memberData or `PartyInvitation::decline()`
+
+Furthermore, a list or currently pending invitations can be retrieved by calling `PartyApi::getPendingInvitations()`
 
 # Joining the gamesession your party is in
 

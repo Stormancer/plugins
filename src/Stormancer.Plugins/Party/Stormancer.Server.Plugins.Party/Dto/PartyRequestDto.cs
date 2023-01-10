@@ -75,5 +75,11 @@ namespace Stormancer.Server.Plugins.Party
         /// </remarks>
         [MessagePackMember(6)]
         public bool IsPublic { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets member data to associate the party leader with on party join.
+        /// </summary>
+        [MessagePackMember(7)]
+        public byte[] UserData { get; set; } = new byte[0];
     }
 }

@@ -52,7 +52,7 @@ namespace Stormancer.Server.Plugins.Party
             }
         }
 
-        public async Task<string> CreateCode(ISceneHost scene,CancellationToken cancellationToken)
+        public async Task<string> CreateCode(ISceneHost scene, CancellationToken cancellationToken)
         {
             string? code;
             do
@@ -64,12 +64,12 @@ namespace Stormancer.Server.Plugins.Party
             return code;
         }
 
-        public async Task<string?> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode, CancellationToken cancellationToken)
+        public async Task<string?> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode, byte[] userData, CancellationToken cancellationToken)
         {
             var sceneId = await GetSceneIdForInvitationCode(invitationCode, cancellationToken);
-            if(sceneId != null)
+            if (sceneId != null)
             {
-                return await management.CreateConnectionToken(sceneId);
+                return await management.CreateConnectionToken(sceneId, userData, "party/userdata");
             }
             else
             {
@@ -88,10 +88,10 @@ namespace Stormancer.Server.Plugins.Party
             {
                 if (result.IsSuccess)
                 {
-                    
+
                     var r = await serializer.DeserializeAsync<string?>(result.Output, cancellationToken);
                     result.Output.Complete();
-                    if(r!=null && sceneId == null)
+                    if (r != null && sceneId == null)
                     {
                         sceneId = r;
                     }
@@ -148,34 +148,36 @@ namespace Stormancer.Server.Plugins.Party
 
         internal void Initialize()
         {
-            host.RegisterAppFunction("party.getSceneIdForInvitationCode",async ctx=> {
+            host.RegisterAppFunction("party.getSceneIdForInvitationCode", async ctx =>
+            {
                 var code = await serializer.DeserializeAsync<string>(ctx.Input, CancellationToken.None);
 
                 string? sceneId = null;
-                lock(syncRoot)
+                lock (syncRoot)
                 {
-                    if(codes.TryGetValue(code,out var state) && state.Active)
+                    if (codes.TryGetValue(code, out var state) && state.Active)
                     {
-                        sceneId = state.Scene.Id; 
+                        sceneId = state.Scene.Id;
                     }
                 }
 
                 await serializer.SerializeAsync(sceneId, ctx.Output, CancellationToken.None);
             });
-            host.RegisterAppFunction("party.isInvitationCodeAvailable",async ctx=> {
+            host.RegisterAppFunction("party.isInvitationCodeAvailable", async ctx =>
+            {
 
-                var code = await serializer.DeserializeAsync<string>(ctx.Input,CancellationToken.None);
+                var code = await serializer.DeserializeAsync<string>(ctx.Input, CancellationToken.None);
                 var uid = new Guid(await serializer.DeserializeAsync<byte[]>(ctx.Input, CancellationToken.None));
                 bool found;
-                lock(syncRoot)
+                lock (syncRoot)
                 {
-                    if(!codes.TryGetValue(code,out var state))
+                    if (!codes.TryGetValue(code, out var state))
                     {
                         found = false;
                     }
                     else
                     {
-                        if(state.Uid == uid)// It's the entry we just created. So no concurrent entry was found.
+                        if (state.Uid == uid)// It's the entry we just created. So no concurrent entry was found.
                         {
                             found = false;
                         }
@@ -186,7 +188,7 @@ namespace Stormancer.Server.Plugins.Party
                     }
                 }
 
-                await serializer.SerializeAsync(found, ctx.Output,CancellationToken.None);
+                await serializer.SerializeAsync(found, ctx.Output, CancellationToken.None);
 
             });
         }

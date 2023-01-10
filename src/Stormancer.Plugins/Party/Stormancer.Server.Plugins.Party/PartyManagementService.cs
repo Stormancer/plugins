@@ -88,13 +88,24 @@ namespace Stormancer.Server.PartyManagement
                 metadata
             );
 
-            return await _management.CreateConnectionToken(sceneUri);
+            return await _management.CreateConnectionToken(sceneUri,partyRequest.UserData, "party/userdata");
         }
 
 
-        public Task<string?> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode, CancellationToken cancellationToken)
+        public Task<string?> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode,byte[] userData, CancellationToken cancellationToken)
         {
-            return invitationCodes.CreateConnectionTokenFromInvitationCodeAsync(invitationCode, cancellationToken);
+            return invitationCodes.CreateConnectionTokenFromInvitationCodeAsync(invitationCode,userData, cancellationToken);
+        }
+
+        public async Task<string?> CreateConnectionTokenFromPartyId(string partyId, byte[] userData, CancellationToken cancellationToken)
+        {
+            var sceneUri = await _serviceLocator.GetSceneId(PartyPlugin.PARTY_SERVICEID, partyId);
+
+            if(sceneUri == null)
+            {
+                return null;
+            }
+            return await _management.CreateConnectionToken(sceneUri, userData, "party/userdata");
         }
     }
 }
