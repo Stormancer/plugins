@@ -209,8 +209,8 @@ namespace Stormancer.Server.Plugins.Party
                 {
                     throw new ClientException(JoinDeniedError + "?reason=notAuthenticated");
                 }
-
-                var ctx = new JoiningPartyContext(this, session, _partyState.PendingAcceptedPeers.Count + _partyState.PartyMembers.Count);
+                var userData = peer.ContentType == "party/userdata" ? peer.UserData : new byte[0];
+                var ctx = new JoiningPartyContext(this, session, _partyState.PendingAcceptedPeers.Count + _partyState.PartyMembers.Count, userData);
                 await handlers.RunEventHandler(h => h.OnJoining(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnJoining", ex));
                 if (!ctx.Accept)
                 {
@@ -264,8 +264,8 @@ namespace Stormancer.Server.Plugins.Party
                 }
                 var user = session.User;
 
-
-                var partyUser = new PartyMember { UserId = user.Id, StatusInParty = PartyMemberStatus.NotReady, Peer = peer };
+                var userData = peer.ContentType == "party/userdata" ? peer.UserData : new byte[0];
+                var partyUser = new PartyMember { UserId = user.Id, StatusInParty = PartyMemberStatus.NotReady, Peer = peer, UserData = userData};
                 _partyState.PartyMembers.TryAdd(peer.SessionId, partyUser);
                 // Complete existing invtations for the new user. These invitations should all have been completed by now, but this is hard to guarantee.
                 if (_partyState.PendingInvitations.TryGetValue(user.Id, out var invitations))
@@ -280,8 +280,7 @@ namespace Stormancer.Server.Plugins.Party
 
 
 
-                var ctx = new JoinedPartyContext(this, session);
-
+               
                 var ClientPluginVersion = peer.Metadata[PartyPlugin.CLIENT_METADATA_KEY];
                 Log(LogLevel.Trace, "OnConnected", "Connection complete", new { peer.SessionId, user.Id, ClientPluginVersion }, peer.SessionId.ToString(), user.Id);
 
@@ -289,7 +288,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 _ = RunOperationCompletedEventHandler((service, handlers, scope) =>
                 {
-                    var joinedCtx = new JoinedPartyContext(service, session);
+                    var joinedCtx = new JoinedPartyContext(service, session,partyUser.UserData);
                     return handlers.RunEventHandler(handler => handler.OnJoined(joinedCtx), exception =>
                     {
                         service.Log(LogLevel.Error, "OnConnected", "An exception was thrown by an OnJoined event handler", new { exception }, peer.SessionId.ToString(), user.Id);

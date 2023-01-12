@@ -45,11 +45,11 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// </summary>
         public string UserId { get; set; } = default!;
 
-     
+
         /// <summary>
         /// The client peer corresponding to this user
         /// </summary>
-        public IScenePeerClient Peer { get; set; }
+        public IScenePeerClient Peer { get; set; } = default!;
 
         /// <summary>
         /// Set to true when a player are ready to find match
@@ -59,6 +59,6 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// <summary>
         /// Custom user data populate by developer
         /// </summary>
-        public byte[] UserData { get; set; }
+        public byte[] UserData { get; set; } = default!;
     }
 }

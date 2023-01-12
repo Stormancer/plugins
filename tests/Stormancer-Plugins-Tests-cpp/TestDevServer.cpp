@@ -85,7 +85,7 @@ static pplx::task<bool> JoinGameImpl(int id)
 
 
 
-	Stormancer::Party::PartyRequestDto request;
+	Stormancer::Party::PartyCreationOptions request;
 	request.GameFinderName = "server-test";
 	//Name of the matchmaking, defined in Stormancer.Server.TestApp/TestPlugin.cs.
 	//>  host.AddGamefinder("matchmaking", "matchmaking");

@@ -28,6 +28,7 @@ namespace Stormancer.Server.Plugins.Party
     interface IPartyManagementService
     {
         Task<string> CreateParty(PartyRequestDto partyRequest, string leaderUserIdserId);
-        Task<string?> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode, CancellationToken cancellationToken);
+        Task<string?> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode,byte[] userData, CancellationToken cancellationToken);
+        Task<string?> CreateConnectionTokenFromPartyId(string partyId, byte[] userData, CancellationToken cancellationToken);
     }
 }

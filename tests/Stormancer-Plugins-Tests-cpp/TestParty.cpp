@@ -102,7 +102,7 @@ static pplx::task<std::string> CreateGameImpl(int id)
 	//>  host.AddGamefinder("matchmaking", "matchmaking");
 
 	return users->login().then([party]() {
-		Stormancer::Party::PartyRequestDto request;
+		Stormancer::Party::PartyCreationOptions request;
 		request.GameFinderName = "joingame-test";
 		return party->createPartyIfNotJoined(request);
 		})

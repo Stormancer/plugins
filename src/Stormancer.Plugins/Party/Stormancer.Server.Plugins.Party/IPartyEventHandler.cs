@@ -163,14 +163,22 @@ namespace Stormancer.Server.Plugins.Party
         /// </summary>
         public string? Reason { get; set; }
 
-        internal JoiningPartyContext(IPartyService party, Session session, int slots)
+        /// <summary>
+        /// Gets the user data provided by the client.
+        /// </summary>
+        public byte[] UserData { get; }
+        internal JoiningPartyContext(IPartyService party, Session session, int slots, byte[] userData)
         {
             Party = party;
             Session = session;
             TotalOccupiedSlots = slots;
+            UserData = userData;
         }
     }
 
+    /// <summary>
+    /// Context object for the <see cref="IPartyEventHandler.OnJoinDenied(JoinDeniedContext)"/> event.
+    /// </summary>
     public class JoinDeniedContext
     {
         public IPartyService Party { get; }
@@ -184,15 +192,30 @@ namespace Stormancer.Server.Plugins.Party
         }
     }
 
+    /// <summary>
+    /// Context object for the <see cref="IPartyEventHandler.OnJoined(JoinedPartyContext)"/> event.
+    /// </summary>
     public class JoinedPartyContext
     {
+        /// <summary>
+        /// Gets the party the event originates from.
+        /// </summary>
         public IPartyService Party { get; }
+
+        /// <summary>
+        /// Gets the Session object of the user who joined the party.
+        /// </summary>
         public Session Session { get; }
 
-        internal JoinedPartyContext(IPartyService party, Session session)
+        /// <summary>
+        /// Gets or sets user data stored with the member.
+        /// </summary>
+        public byte[] UserData { get; set; }
+        internal JoinedPartyContext(IPartyService party, Session session, byte[] userData)
         {
             Party = party;
             Session = session;
+            UserData = userData;
         }
     }
 

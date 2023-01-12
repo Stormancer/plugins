@@ -48,7 +48,7 @@ static pplx::task<bool> BrowseParty(int id)
 		{
 			return pplx::task_from_result(false);
 		}
-		return party->joinPartyBySceneId(t.hits.front().id).then([]() {return true; });
+	return party->joinPartyBySceneId(t.hits.front().id, {}).then([]() {return true; });
 	})
 	.then([client](pplx::task<bool> t)
 	{
@@ -86,7 +86,7 @@ static pplx::task<void> CreateParty(int id)
 
 	
 
-	Stormancer::Party::PartyRequestDto request;
+	Stormancer::Party::PartyCreationOptions request;
 	request.GameFinderName = "joingame-test";
 	//Name of the matchmaking, defined in Stormancer.Server.TestApp/TestPlugin.cs.
 	//>  host.AddGamefinder("matchmaking", "matchmaking");

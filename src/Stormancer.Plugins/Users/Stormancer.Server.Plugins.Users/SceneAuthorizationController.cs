@@ -28,6 +28,7 @@ using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Management;
 using System;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace Stormancer.Server.Plugins.Users
 {
@@ -58,8 +59,9 @@ namespace Stormancer.Server.Plugins.Users
                 throw new ClientException("userDisconnected");
             }
             var sceneId = ctx.ReadObject<string>();
-
-            var token = await _accessor.CreateConnectionToken(sceneId, new byte[0], "application/octet-stream");
+            var customData = new byte[ctx.InputStream.Length - ctx.InputStream.Position];
+            ctx.InputStream.Read(customData,0, customData.Length);
+            var token = await _accessor.CreateConnectionToken(sceneId, customData, "application/octet-stream");
 
             await ctx.SendValue(token);
         }
