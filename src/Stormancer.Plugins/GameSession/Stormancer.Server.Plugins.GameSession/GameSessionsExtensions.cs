@@ -112,6 +112,8 @@ namespace Stormancer
 
         internal Func<ISceneHost, TimeSpan> serverStartTimeoutGetter { get; set; } = _ => TimeSpan.FromSeconds(60);
 
+        internal Func<ISceneHost, bool> isServerPersistentGetter { get; set; } = _ => false;
+
         /// <summary>
         /// Sets the timeout before gameserver startup is considered to have failed.
         /// </summary>
@@ -153,6 +155,24 @@ namespace Stormancer
         /// <param name="poolId"></param>
         /// <returns></returns>
         public GameSessionServerTemplateConfiguration PoolId(string? poolId) => PoolId(_ => poolId);
+
+        /// <summary>
+        /// Sets a value indicating wether the game server associated with the gamesession should be stopped when the last player leaves the session.
+        /// </summary>
+        /// <param name="func"></param>
+        /// <returns></returns>
+        public GameSessionServerTemplateConfiguration IsServerPersistent(Func<ISceneHost, bool> func)
+        {
+            isServerPersistentGetter = func;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets a value indicating wether the game server associated with the gamesession should be stopped when the last player leaves the session.
+        /// </summary>
+        /// <param name="func"></param>
+        /// <returns></returns>
+        public GameSessionServerTemplateConfiguration IsServerPersistent(bool value) => IsServerPersistent(_ => value);
 
 
     }

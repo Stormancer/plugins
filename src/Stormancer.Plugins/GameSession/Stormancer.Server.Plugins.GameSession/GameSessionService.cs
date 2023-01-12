@@ -67,7 +67,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public bool UseGameServer() => GetTemplateConfiguration().GameServerConfig.useGameServerGetter(scene);
         public string? GameServerPool() => GetTemplateConfiguration().GameServerConfig.gameServerPoolIdGetter(scene);
-
+        public bool IsServerPersistent() => GetTemplateConfiguration().GameServerConfig.isServerPersistentGetter(scene);
         public TimeSpan GameServerStartTimeout() => GetTemplateConfiguration().GameServerConfig.serverStartTimeoutGetter(scene);
     }
     /// <summary>
@@ -215,6 +215,8 @@ namespace Stormancer.Server.Plugins.GameSession
         // A source that is canceled when the game session is complete
         private readonly CancellationTokenSource _gameCompleteCts = new();
 
+        //set to true to indicate a player connected to the session at least once.
+        private bool _playerConnectedOnce = false;
 
         private string? _p2pToken;
 
@@ -559,6 +561,8 @@ namespace Stormancer.Server.Plugins.GameSession
                 return;
             }
 
+            _playerConnectedOnce = true;
+
             var client = _clients.First(client => client.Value.Peer == peer);
             client.Value.Status = PlayerStatus.Connected;
             if (!_config.Public)
@@ -650,7 +654,7 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             lock (this._lock)
             {
-                
+
                 if (_serverStartTask == null)
                 {
                     _serverStartTask = Start();
@@ -678,8 +682,33 @@ namespace Stormancer.Server.Plugins.GameSession
                 await using var scope = _scene.CreateRequestScope();
                 var pools = scope.Resolve<ServerPoolProxy>();
                 var server = await pools.WaitGameServer(poolId, GameSessionId, _config, _gameCompleteCts.Token);
+
+                if (!state.IsServerPersistent())
+                {
+                    _scene.Disconnected.Add(async (args) =>
+                    {
+                        //If the only peer remaining is the server, close it and destroy the gamesession.
+                        if (!_scene.RemotePeers.Any(p => p.SessionId != server.GameServerSessionId))
+                        {
+                            await pools.CloseServer(poolId, server.GameServerSessionId, CancellationToken.None);
+                            _scene.Shutdown("gamesession.empty");
+                        }
+
+                    });
+                    _ = _scene.RunTask(async ct => {
+                        await Task.Delay(1000 * 60 * 5);
+                        if(!_playerConnectedOnce)
+                        {
+                            await pools.CloseServer(poolId, server.GameServerSessionId, CancellationToken.None);
+                            _scene.Shutdown("gamesession.empty");
+                        }
+                    });
+                }
                 using var cts = new CancellationTokenSource(state.GameServerStartTimeout());
                 var peer = await GetServerTcs().Task.WaitAsync(cts.Token);
+
+
+
 
                 var serverCtx = new ServerReadyContext(peer, server);
 

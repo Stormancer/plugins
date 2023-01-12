@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Stormancer.Abstractions.Server;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
@@ -178,6 +179,7 @@ namespace Stormancer.Server.Plugins.Party
                 {
                     scene.AddController<PartyController>();
                     scene.AddController<JoinGamePartyController>();
+                    scene.DestroyWhenLastPlayerLeft();
 
                     scene.Starting.Add(async metadata =>
                     {

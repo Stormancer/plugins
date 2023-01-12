@@ -13,9 +13,12 @@ Unreleased
 ----------
 Changed
 ********
-- Updated dependency to Stormancer.Abstractions.Server to 9.1.2.1
+- Updated dependency to Stormancer.Abstractions.Server to 9.2
 - Docker: Support pulling from dockerHub
 - Docker: Use host network mode on Linux
+Added
+*****
+- Added IsPersistentServer configuration to set wether the server of a gamesession should be stopped and the scene destroyed when the last player disconnects.
 
 6.0.2
 -----
