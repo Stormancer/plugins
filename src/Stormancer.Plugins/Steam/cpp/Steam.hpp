@@ -32,21 +32,22 @@ namespace Stormancer
 		namespace ConfigurationKeys
 		{
 			/// <summary>
-			/// Enable the Steam authentication.
-			/// If disabled, the Steam plugin will not initiate any authentications.
+			/// Enable Steam authentication.
+			/// If disabled, the Steam plugin will not be considered for authentication.
 			/// Default is "true".
 			/// Use "false" to disable.
 			/// </summary>
 			constexpr const char* AuthenticationEnabled = "steam.authentication.enabled";
 
 			/// <summary>
-			/// Automatic connexion to a Steam lobby on successful authentication when the game has been launched by a lobby invitation.
+			/// The lobbyID the client should connect on authentication. 
+			/// Automatic connection to a Steam lobby on successful authentication should occur when the game has been launched by a lobby invitation.
 			/// You can get the LobbyID by searching the "+connect_lobby" parameter in the command line arguments (argv).
 			/// </summary>
 			constexpr const char* ConnectLobby = "steam.connectLobby";
 
 			/// <summary>
-			/// Should Stormancer initialize Steam Api.
+			/// Should Stormancer initialize the Steam API library.
 			/// Default is "true".
 			/// Use "false" to disable.
 			/// </summary>

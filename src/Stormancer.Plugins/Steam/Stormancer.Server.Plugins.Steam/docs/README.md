@@ -46,9 +46,9 @@ Invoke-RestMethod -Method Put -Uri "$baseUri/_secrets/[GameOrPublisherAccount]/s
 
 <span style="color:red">**BE CAREFUL, The key will be created randomly and overwritten by the script if it doesn't exist, so don't forget to backup it on first setup!**</span>
 
-# Party
+## Party configuration
 
-Setup the party on creation event :
+Setup the party using a party creation event handler :
 
 ```cs
 public class PartyEventHandler : IPartyEventHandler
@@ -65,7 +65,52 @@ public class PartyEventHandler : IPartyEventHandler
 }
 ```
 
-# Enable steam invitations on game launch
+# C++ client
+
+## Plugin configuration
+
+By default steam.hpp includes `steam_api.h`. This behavior can be disabled by setting `STORM_NOINCLUDE_STEAM`.
+
+Configuration keys:
+
+```c++
+	/// <summary>
+    /// Keys to use in Configuration::additionalParameters map to customize the Steam plugin behavior.
+    /// </summary>
+    namespace ConfigurationKeys
+    {
+        /// <summary>
+        /// Enable Steam authentication.
+        /// If disabled, the Steam plugin will not be considered for authentication.
+        /// Default is "true".
+        /// Use "false" to disable.
+        /// </summary>
+        constexpr const char* AuthenticationEnabled = "steam.authentication.enabled";
+
+        /// <summary>
+        /// The lobbyID the client should connect on authentication. 
+        /// Automatic connection to a Steam lobby on successful authentication should occur when the game has been launched by a lobby invitation.
+        /// You can get the LobbyID by searching the "+connect_lobby" parameter in the command line arguments (argv).
+        /// </summary>
+        constexpr const char* ConnectLobby = "steam.connectLobby";
+
+        /// <summary>
+        /// Should Stormancer initialize the Steam API library.
+        /// Default is "true".
+        /// Use "false" to disable.
+        /// </summary>
+        constexpr const char* SteamApiInitialize = "steam.steamApi.initialize";
+
+        /// <summary>
+        /// Should Stormancer run Steam Api callbacks.
+        /// Default is "true".
+        /// Use "false" to disable.
+        /// </summary>
+        constexpr const char* SteamApiRunCallbacks = "steam.steamApi.runCallbacks";
+    }
+```
+
+## Enable steam invitations on game launch
 
 ```c++
 int main(int argc, char* argv[])
@@ -80,3 +125,5 @@ int main(int argc, char* argv[])
     }
 }
 ```
+
+
