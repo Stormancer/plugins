@@ -78,7 +78,12 @@ int main()
 	{
 		Profile::Profile profile = profileApi->getProfile(stormancerUserId, { { "character", "details" }, { "user", "details" }, {"epic", "details"} }).get();
 
-		web::json::value jsonValue = web::json::value::parse(utility::conversions::to_string_t(profile.data["epic"]));
+		auto epicPart = profile.data["epic"];
+		if (! epicPart)
+		{
+			throw std::runtime_error("epic part missing");
+		}
+		web::json::value jsonValue = web::json::value::parse(utility::conversions::to_string_t(*epicPart));
 		if (jsonValue.type() != web::json::value::value_type::Object)
 		{
 			throw std::runtime_error("Bad json type: not an object");
@@ -112,15 +117,15 @@ int main()
 		s_logger->log(LogLevel::Error, "SampleMain", "Profile retrieve failed", ex.what());
 	}
 
-	usersApi->logout()
-		.then([client, &disconnected]()
-	{
-		client->disconnect()
-			.then([&disconnected]()
-		{
-			disconnected = true;
-		});
-	});
+	//usersApi->logout()
+	//	.then([client, &disconnected]()
+	//{
+	//	client->disconnect()
+	//		.then([&disconnected]()
+	//	{
+	//		disconnected = true;
+	//	});
+	//});
 
 	mainLoop.join();
 
