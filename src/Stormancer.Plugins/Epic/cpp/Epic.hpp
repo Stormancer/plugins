@@ -17,6 +17,7 @@
 #include "eos_logging.h"
 #include "eos_sdk.h"
 #include "eos_types.h"
+#include "eos_custominvites.h"
 
 // https://dev.epicgames.com/docs/services/en-US/index.html
 
@@ -741,6 +742,7 @@ namespace Stormancer
 				EpicPartyProvider(
 					std::shared_ptr<Party::Platform::InvitationMessenger> messenger,
 					std::shared_ptr<Users::UsersApi> usersApi,
+					std::shared_ptr<EpicState> epicState,
 					std::shared_ptr<details::EpicApi> epicApi,
 					std::shared_ptr<ILogger> logger,
 					std::shared_ptr<Party::PartyApi> partyApi,
@@ -748,6 +750,7 @@ namespace Stormancer
 				)
 					: IPlatformSupportProvider(messenger)
 					, _wUsersApi(usersApi)
+					, _epicState(epicState)
 					, _wEpicApi(epicApi)
 					, _logger(logger)
 					, _wPartyApi(partyApi)
@@ -760,6 +763,12 @@ namespace Stormancer
 					return platformName;
 				}
 
+				bool tryShowSystemInvitationUI(std::shared_ptr<Party::PartyApi> partyApi) override
+				{
+					_logger->log(LogLevel::Error, "Epic", "tryShowSystemInvitationUI not implemented");
+					return false;
+				}
+
 #pragma endregion
 
 #pragma region private_members
@@ -768,12 +777,94 @@ namespace Stormancer
 
 				std::recursive_mutex _mutex;
 				std::shared_ptr<ILogger> _logger;
+				std::shared_ptr<EpicState> _epicState;
 				std::weak_ptr<Users::UsersApi> _wUsersApi;
 				std::weak_ptr<details::EpicApi> _wEpicApi;
 				std::weak_ptr<Party::PartyApi> _wPartyApi;
 				std::weak_ptr<IActionDispatcher> _wActionDispatcher;
 
 #pragma endregion
+			};
+
+			class EpicPartyEventHandler : public Party::IPartyEventHandler
+			{
+			public:
+
+				EpicPartyEventHandler(std::shared_ptr<ILogger> logger, std::shared_ptr<EpicState> epicState)
+					: _logger(logger)
+					, _epicState(epicState)
+				{
+				}
+
+				~EpicPartyEventHandler()
+				{
+				}
+
+				void onJoinedParty(std::shared_ptr<Party::PartyApi>, std::string partySceneId) override
+				{
+					// We need to set the custom invite payload to allow users to invite their friends though the Epic Games UI (clic on a friend -> invite)
+
+					if (partySceneId.empty())
+					{
+						_logger->log(LogLevel::Error, "Steam", "Party scene id is invalid");
+						return;
+					}
+
+					if (partySceneId.size() > EOS_CUSTOMINVITES_MAX_PAYLOAD_LENGTH)
+					{
+						_logger->log(LogLevel::Error, "Steam", "Party scene id too long to be sent in a EOS_CustomInvite");
+						return;
+					}
+
+					EOS_HPlatform platformHandle = _epicState->getPlatformHandle();
+					if (!platformHandle)
+					{
+						throw std::runtime_error("Epic platform handle is null");
+					}
+
+					EOS_HCustomInvites customInvitesHandle = EOS_Platform_GetCustomInvitesInterface(platformHandle);
+					assert(customInvitesHandle != nullptr);
+
+					EOS_ProductUserId productUserId = _epicState->getProductUserId();
+
+					EOS_CustomInvites_SetCustomInviteOptions setCustomInviteOptions;
+					setCustomInviteOptions.ApiVersion = EOS_CUSTOMINVITES_SETCUSTOMINVITE_API_LATEST;
+					setCustomInviteOptions.LocalUserId = productUserId;
+					setCustomInviteOptions.Payload = partySceneId.c_str();
+					EOS_CustomInvites_SetCustomInvite(customInvitesHandle, &setCustomInviteOptions);
+					// Whenever a Custom Invite Payload has been set, the Social Overlay will allow the local player to use the "Invite" button to send an invite with the currently set Custom Invite Payload to their friends.
+
+					_logger->log(LogLevel::Info, "Epic", "Custom invite payload has been set");
+					return;
+				}
+
+				pplx::task<void> onLeavingParty(std::shared_ptr<Party::PartyApi>, std::string)
+				{
+					// We reset the custom invite payload
+
+					EOS_HPlatform platformHandle = _epicState->getPlatformHandle();
+					if (!platformHandle)
+					{
+						throw std::runtime_error("Epic platform handle is null");
+					}
+
+					EOS_HCustomInvites customInvitesHandle = EOS_Platform_GetCustomInvitesInterface(platformHandle);
+					assert(customInvitesHandle != nullptr);
+
+					EOS_ProductUserId productUserId = _epicState->getProductUserId();
+
+					EOS_CustomInvites_SetCustomInviteOptions setCustomInviteOptions;
+					setCustomInviteOptions.ApiVersion = EOS_CUSTOMINVITES_SETCUSTOMINVITE_API_LATEST;
+					setCustomInviteOptions.LocalUserId = productUserId;
+					setCustomInviteOptions.Payload = "";
+					EOS_CustomInvites_SetCustomInvite(customInvitesHandle, &setCustomInviteOptions);
+					return pplx::task_from_result();
+				}
+
+			private:
+
+				std::shared_ptr<ILogger> _logger;
+				std::shared_ptr<EpicState> _epicState;
 			};
 		}
 
@@ -925,6 +1016,7 @@ namespace Stormancer
 			pplx::task<void> OnLoggingOut() override
 			{
 				_epicState->setEpicAccountId(nullptr);
+				return pplx::task_from_result();
 			}
 
 #pragma endregion
@@ -1025,7 +1117,7 @@ namespace Stormancer
 			{
 				builder.registerDependency<details::EpicState, Configuration, ILogger>().singleInstance();
 				builder.registerDependency<details::EpicApi, Users::UsersApi, details::EpicState, Configuration, IScheduler, ILogger, Party::PartyApi>().asSelf().as<IEpicApi>();
-				builder.registerDependency<details::EpicPartyProvider, Party::Platform::InvitationMessenger, Users::UsersApi, details::EpicApi, ILogger, Party::PartyApi, IActionDispatcher>().as<Party::Platform::IPlatformSupportProvider>();
+				builder.registerDependency<details::EpicPartyProvider, Party::Platform::InvitationMessenger, Users::UsersApi, details::EpicState, details::EpicApi, ILogger, Party::PartyApi, IActionDispatcher>().as<Party::Platform::IPlatformSupportProvider>();
 				builder.registerDependency<EpicAuthenticationEventHandler, details::EpicState, ILogger>().as<Users::IAuthenticationEventHandler>();
 			}
 

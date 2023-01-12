@@ -1442,14 +1442,14 @@ namespace Stormancer
 			/// This event is fired when the local player joins a party.
 			/// </summary>
 			/// <param name="party"></param>
-			virtual void onJoinedParty(std::shared_ptr<PartyApi>) {}
+			virtual void onJoinedParty(std::shared_ptr<PartyApi>, std::string /*partySceneId*/) {}
 
 			/// <summary>
 			/// This event is fired when the local player leaves the party.
 			/// </summary>
 			/// <param name="party"></param>
 			/// <param name="reason">The cause of the player leaving.</param>
-			virtual void onLeftParty(std::shared_ptr<PartyApi>, MemberDisconnectionReason /*reason*/) {}
+			virtual void onLeftParty(std::shared_ptr<PartyApi>, std::string /*partySceneId*/, MemberDisconnectionReason /*reason*/) {}
 		};
 
 		namespace details
@@ -3767,7 +3767,9 @@ namespace Stormancer
 					{
 						try
 						{
-							handler->onJoinedParty(this->shared_from_this());
+							auto scene = getPartyScene();
+							std::string partySceneId = (scene ? scene->id() : "");
+							handler->onJoinedParty(this->shared_from_this(), partySceneId);
 						}
 						catch (const std::exception& ex)
 						{
@@ -3784,7 +3786,9 @@ namespace Stormancer
 					{
 						try
 						{
-							handler->onLeftParty(this->shared_from_this(), reason);
+							auto scene = getPartyScene();
+							std::string partySceneId = scene ? scene->id() : "";
+							handler->onLeftParty(this->shared_from_this(), partySceneId, reason);
 						}
 						catch (const std::exception& ex)
 						{

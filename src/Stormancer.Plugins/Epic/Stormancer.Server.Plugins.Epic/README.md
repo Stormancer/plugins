@@ -19,6 +19,9 @@ To auth with a dev account :
 - Set the Stormancer client configuration key `DevAuthHost` to `localhost:4567`
 - Set the Stormancer client configuration key `DevAuthCredentialsName` to `dev1`
 
+In the final game, you must get an exchange code from the game process launch argument `AUTH_PASSWORD` (argv).  
+Format : `-AUTH_LOGIN=unused -AUTH_PASSWORD=<password> -AUTH_TYPE=exchangecode -epicapp=<appid> -epicenv=Prod -EpicPortal  -epicusername=<username> -epicuserid=<userid> -epiclocale=en-US`
+
 # Client configuration
 
 ```cpp
@@ -35,7 +38,7 @@ To auth with a dev account :
 	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::DevAuthCredentialsName] = "dev1";
 #else
 	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::LoginMode] = "ExchangeCode";
-	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::ExchangeCode] = m_epicExchangeCode;
+	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::ExchangeCode] = exchangeCode;
 #endif
 	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::ProductId] = "UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU";
 	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::SandboxId] = "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW";
