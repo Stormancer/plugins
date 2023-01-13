@@ -53,7 +53,94 @@ When an invitation is received, the game should either cancel it, or process it 
 
 Furthermore, a list or currently pending invitations can be retrieved by calling `PartyApi::getPendingInvitations()`
 
-# Joining the gamesession your party is in
+# Gamefinder integration
+
+Gamefinders take player parties as arguments for matchmaking. A gamefinder id is associated with the party on party creation by setting `PartyCreationOptions::gameFinder` and is stored in the party settings. 
+After party creation the party leader can change it by updating the party settings.
+
+Once all player have set their state as ready by calling  `updatePlayerStatus(PartyUserStatus playerStatus)` with playerStatus set as `PartyUserStatus::Ready`, the party automatically invokes the configured gamefinder. 
+
+## Customizing ready state changes
+The party system supports various ways in which gamefinder integration can be customized.
+
+### Validating party state before setting the player state as ready
+
+The state of a player can be validated when they try setting themselves as ready by implementing `IPartyEventHandler.OnUpdatingPlayerReadyState`. This method can perform validation and set a custom error string to be sent back to the client in case of failure.
+
+### Customizing ready reset behavior
+
+By default, the ready state resets to `NotReady` if any of the following conditions are met:
+- The list of players in the party changes.
+- Party settings are updated.
+- The custom data of any party members is updated.
+- Matchmaking is in progress
+
+This behavior can be customized through two mechanisms:
+- Party configuration
+- The Party `IPartyEventHandler` extensibility point.
+
+Note that preventing resetting the ready state also disables automated matchmaking cancellation in all the situations that would have reset it, for instance if a player in the party disconnects while matchmaking is in progress. Be carefult, as data about the parties are sent to the
+matchmaker only when matchmaking starts, they may become out of synch in this case. Manually resetting the ready state still cancels matchmaking as only automated reset is disabled. You may use a custom validator to reject data modification while in matchmaking.
+
+#### Party Configuration
+
+The list of events the ready state should reset in can be set in the party configuration. `ResetPlayerReadyStateMode.None` and `ResetPlayerReadyStateMode.All` are convenient shortcuts. By default, the option is set as `ResetPlayerReadyStateMode.All
+
+	public class TestPlugin : IHostPlugin
+    {
+        public void Build(HostPluginBuildContext ctx)
+        {
+            ctx.HostStarting += (IHost host) =>
+            {
+                host.ConfigurePlayerParty(p => p.ResetPlayerReadyStateOn(ResetPlayerReadyStateMode.PartySettingsUpdated | ResetPlayerReadyStateMode.PartyMemberDataUpdated | ResetPlayerReadyStateMode.PartyMembersListUpdated));
+			}
+		}
+	}
+
+
+It's also possible to provide a custom lambda to drive the reset logic. For instance :
+
+	public class TestPlugin : IHostPlugin
+    {
+        public void Build(HostPluginBuildContext ctx)
+        {
+            ctx.HostStarting += (IHost host) =>
+            {
+                var value = ResetPlayerReadyStateMode.All; //Always reset
+                host.ConfigurePlayerParty(p => p.ResetPlayerReadyStateOn(ctx =>
+                {
+                    switch (ctx.EventType)
+                    {
+                        case PartyMemberReadyStateResetEventType.PartySettingsUpdated:
+                            if ((value & ResetPlayerReadyStateMode.PartySettingsUpdated) != 0)
+                            {
+                                ctx.ShouldReset = true;
+                            }
+                            break;
+                        case PartyMemberReadyStateResetEventType.PartyMemberDataUpdated:
+                            if ((value & ResetPlayerReadyStateMode.PartyMemberDataUpdated) != 0)
+                            {
+                                ctx.ShouldReset = true;
+                            }
+                            break;
+                        case PartyMemberReadyStateResetEventType.PartyMembersListUpdated:
+                            if ((value & ResetPlayerReadyStateMode.PartyMembersListUpdated) != 0)
+                            {
+                                ctx.ShouldReset = true;
+                            }
+                            break;
+                    }
+                }));
+			}
+		}
+	}
+
+#### IPartyEventHandler implementation.
+
+Implement `IPartyEventHandler.OnPlayerReadyStateReset` in an event handler to control when the the ready state should be reset depending on custom logic.
+
+
+# Joining the current gamesession
 
 When joining a party, it's possible to know if it is currently in a gamession, and join this gamesession. 
 If not used by the application, this behavior can be disabled by setting to application configuration value `party.enableGameSessionPartyStatus` to false.
@@ -134,79 +221,3 @@ Parties can be searched by calling `PartyApi::Search()` with a json Stormancer f
 
 Party settings and party member data can be validated by creating a class implementing `IPartyEventHandler` and the methods `OnUpdatingSettings` and `OnUpdatingPartyMemberData`. Both APIs support denying the update and providing an error string sent back to the caller.
 
-# Customizing ready state changes
-
-## Validating setting the player state as ready
-
-The state of a player can be validated when they try setting themselves as ready by implementing `IPartyEventHandler.OnUpdatingPlayerReadyState`. This method can perform validation and set a custom error string to be sent back to the client in case of failure.
-
-## Customizing ready reset.
-
-By default, the ready state resets to `NotReady` if any of the following conditions are met:
-- The list of players in the party changes.
-- Party settings are updated.
-- The custom data of any party members is updated.
-
-This behavior can be customized through two mechanisms:
-- Party configuration
-- The Party `IPartyEventHandler` extensibility point.
-
-Note that preventing resetting the ready state also disables automated matchmaking cancellation in all the situations that would have reset it, for instance if a player in the party disconnects while matchmaking is in progress. Be carefult, as data about the parties are sent to the
-matchmaker only when matchmaking starts, they may become out of synch in this case. Manually resetting the ready state still cancels matchmaking as only automated reset is disabled. You may use a custom validator to reject data modification while in matchmaking.
-
-### Party Configuration
-
-The list of events the ready state should reset in can be set in the party configuration. `ResetPlayerReadyStateMode.None` and `ResetPlayerReadyStateMode.All` are convenient shortcuts. By default, the option is set as `ResetPlayerReadyStateMode.All
-
-	public class TestPlugin : IHostPlugin
-    {
-        public void Build(HostPluginBuildContext ctx)
-        {
-            ctx.HostStarting += (IHost host) =>
-            {
-                host.ConfigurePlayerParty(p => p.ResetPlayerReadyStateOn(ResetPlayerReadyStateMode.PartySettingsUpdated | ResetPlayerReadyStateMode.PartyMemberDataUpdated | ResetPlayerReadyStateMode.PartyMembersListUpdated));
-			}
-		}
-	}
-
-
-It's also possible to provide a custom lambda to drive the reset logic. For instance :
-
-	public class TestPlugin : IHostPlugin
-    {
-        public void Build(HostPluginBuildContext ctx)
-        {
-            ctx.HostStarting += (IHost host) =>
-            {
-                var value = ResetPlayerReadyStateMode.All; //Always reset
-                host.ConfigurePlayerParty(p => p.ResetPlayerReadyStateOn(ctx =>
-                {
-                    switch (ctx.EventType)
-                    {
-                        case PartyMemberReadyStateResetEventType.PartySettingsUpdated:
-                            if ((value & ResetPlayerReadyStateMode.PartySettingsUpdated) != 0)
-                            {
-                                ctx.ShouldReset = true;
-                            }
-                            break;
-                        case PartyMemberReadyStateResetEventType.PartyMemberDataUpdated:
-                            if ((value & ResetPlayerReadyStateMode.PartyMemberDataUpdated) != 0)
-                            {
-                                ctx.ShouldReset = true;
-                            }
-                            break;
-                        case PartyMemberReadyStateResetEventType.PartyMembersListUpdated:
-                            if ((value & ResetPlayerReadyStateMode.PartyMembersListUpdated) != 0)
-                            {
-                                ctx.ShouldReset = true;
-                            }
-                            break;
-                    }
-                }));
-			}
-		}
-	}
-
-### A IPartyEventHandler implementation.
-
-Implement `IPartyEventHandler.OnPlayerReadyStateReset` in an event handler to control when the the ready state should be reset depending on custom logic.
