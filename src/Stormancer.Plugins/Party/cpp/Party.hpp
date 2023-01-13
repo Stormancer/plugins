@@ -348,20 +348,11 @@ namespace Stormancer
 			virtual pplx::task<void> joinParty(const PartyId& partyId, const std::vector<byte>& userData, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
 
 			/// <summary>
-			/// Join an existing party that you were invited to.
-			/// </summary>
-			/// <param name="invitation">The invitation that you want to accept.</param>
-			/// <returns>A task that completes once the party has been joined.</returns>
-			STORM_DEPRECATED("Use PartyInvitation::acceptAndJoinParty() instead.")
-				virtual pplx::task<void> joinParty(const PartyInvitation& invitation, const std::vector<byte>& userData, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
-
-			/// <summary>
 			/// Join an existing party using its unique scene Id.
 			/// </summary>
 			/// <param name="sceneId">Id of the party scene.</param>
 			/// <returns>A task that completes once the party has been joined.</returns>
 			virtual pplx::task<void> joinPartyBySceneId(const std::string& sceneId, const std::vector<byte>& userData, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
-
 
 			/// <summary>
 			/// Join an existing party using an invitationCode.
@@ -512,32 +503,6 @@ namespace Stormancer
 			/// <returns>A task that completes when the underlying RPC (remote procedure call) has returned.</returns>
 			/// <exception cref="std::exception">If you are not in a party.</exception>
 			virtual pplx::task<void> kickPlayer(std::string userId) = 0;
-
-			/// <summary>
-			/// Invite a player to join the party.
-			/// </summary>
-			/// <param name="userId">The stormancer id of the player to invite.</param>
-			/// <param name="ct">A token that can be used to cancel the invitation.</param>
-			/// <returns>
-			/// A task that completes when the recipient has either:
-			/// - accepted the invitation
-			/// - declined the invitation
-			/// - quit the game.
-			/// </returns>
-			/// <exception cref="std::exception">If you are not in a party.</exception>
-			STORM_DEPRECATED("Use sendInvitation() instead")
-				virtual pplx::task<void> invitePlayer(const std::string& userId, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
-
-			/// <summary>
-			/// Cancels an invitation to join the party
-			/// </summary>
-			/// <param name="userId">The stormancer id of the player that was invited.</param>
-			/// <returns>
-			/// A task that completes when the cancellation has been acknowledged.
-			/// </returns>
-			/// <exception cref="std::exception">If you are not in a party.</exception>
-			STORM_DEPRECATED("Use cancelInvitation() instead")
-				virtual pplx::task<void> cancelPartyInvitation(std::string recipient) = 0;
 
 			/// <summary>
 			/// Creates an invitation code that can be used by users to join the party.
@@ -893,15 +858,8 @@ namespace Stormancer
 
 		struct PartyInvitation
 		{
-			STORM_DEPRECATED("Use getSenderId() instead")
-				std::string UserId;
-
-			STORM_DEPRECATED("This member is not set anymore")
-				std::string SceneId;
-
 			PartyInvitation(std::shared_ptr<details::IPartyInvitationInternal> invite)
-				: UserId(invite->getSenderId())
-				, _internal(invite)
+				: _internal(invite)
 			{
 			}
 
