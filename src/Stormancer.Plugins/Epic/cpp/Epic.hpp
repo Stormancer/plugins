@@ -475,7 +475,7 @@ namespace Stormancer
 
 				void scheduleTick()
 				{
-					if (_platformHandle)
+					if (! _stopTicker && _platformHandle)
 					{
 						EOS_Platform_Tick(_platformHandle);
 					}
@@ -549,19 +549,28 @@ namespace Stormancer
 			{
 			public:
 
-				EpicPartyInvitation(const std::string& senderId)
+				EpicPartyInvitation(const std::string& senderId, const std::string& partySceneId)
 					: _senderId(senderId)
+					, _partySceneId(partySceneId)
 				{
 				}
 
-				pplx::task<Party::PartyId> accept(std::shared_ptr<Party::PartyApi>) override
+				pplx::task<Party::PartyId> accept(std::shared_ptr<Party::PartyApi> partyApi) override
 				{
-					throw std::runtime_error("Not implemented");
+					return partyApi->joinPartyBySceneId(_partySceneId, {})
+						.then([partySceneId = _partySceneId]()
+					{
+						Party::PartyId partyId;
+						partyId.platform = "epic";
+						partyId.type = Party::PartyId::TYPE_SCENE_ID;
+						partyId.id = partySceneId;
+						return partyId;
+					});
 				}
 
 				pplx::task<void> decline(std::shared_ptr<Party::PartyApi>) override
 				{
-					throw std::runtime_error("Not implemented");
+					return pplx::task_from_result();
 				}
 
 				std::string getSenderId() override
@@ -571,7 +580,7 @@ namespace Stormancer
 
 				std::string getSenderPlatformId() override
 				{
-					throw std::runtime_error("Not implemented");
+					return "Epic";
 				}
 
 				std::string getSenderUsername() override
@@ -579,9 +588,15 @@ namespace Stormancer
 					throw std::runtime_error("Not implemented");
 				}
 
+				std::string getPartySceneId()
+				{
+					return _partySceneId;
+				}
+
 			private:
 
 				std::string _senderId;
+				std::string _partySceneId;
 			};
 
 			class EpicPartyProvider;
@@ -594,8 +609,9 @@ namespace Stormancer
 
 #pragma region public_methods
 
-				EpicApi(std::shared_ptr<Users::UsersApi> usersApi, std::shared_ptr<EpicState> epicState, std::shared_ptr<Configuration> config, std::shared_ptr<IScheduler> scheduler, std::shared_ptr<ILogger> logger, std::shared_ptr<Party::PartyApi> partyApi)
+				EpicApi(std::shared_ptr<IClient> client, std::shared_ptr<Users::UsersApi> usersApi, std::shared_ptr<EpicState> epicState, std::shared_ptr<Configuration> config, std::shared_ptr<IScheduler> scheduler, std::shared_ptr<ILogger> logger, std::shared_ptr<Party::PartyApi> partyApi)
 					: ClientAPI(usersApi, "stormancer.epic")
+					, _wClient(client)
 					, _epicState(epicState)
 					, _wScheduler(scheduler)
 					, _wActionDispatcher(config->actionDispatcher)
@@ -677,6 +693,50 @@ namespace Stormancer
 							EOS_Logging_SetLogLevel(EOS_ELogCategory::EOS_LC_ALL_CATEGORIES, EOS_ELogLevel::EOS_LOG_Verbose);
 						}
 					}
+
+					// Custom invitates
+					EOS_HPlatform platformHandle = _epicState->getPlatformHandle();
+					if (!platformHandle)
+					{
+						_logger->log(LogLevel::Error, "EpicApi.initialize", "Epic platform handle is null");
+					}
+					else
+					{
+						EOS_HCustomInvites customInvitesHandle = EOS_Platform_GetCustomInvitesInterface(platformHandle);
+						assert(customInvitesHandle != nullptr);
+
+						void* wClientPtr = new std::weak_ptr<IClient>(_wClient);
+
+						// subscribe to notifications for when we receive a custom invite
+						EOS_CustomInvites_AddNotifyCustomInviteReceivedOptions AddNotifyInviteReceivedOptions = {};
+						AddNotifyInviteReceivedOptions.ApiVersion = EOS_CUSTOMINVITES_ADDNOTIFYCUSTOMINVITERECEIVED_API_LATEST;
+						EOS_CustomInvites_AddNotifyCustomInviteReceived(customInvitesHandle, &AddNotifyInviteReceivedOptions, wClientPtr, onNotifyCustomInviteReceived);
+
+						// subscribe to notifications for when we accept a custom invite externally (e.g. via the Overlay)
+						EOS_CustomInvites_AddNotifyCustomInviteAcceptedOptions AddNotifyInviteAcceptedOptions = {};
+						AddNotifyInviteAcceptedOptions.ApiVersion = EOS_CUSTOMINVITES_ADDNOTIFYCUSTOMINVITEACCEPTED_API_LATEST;
+						EOS_CustomInvites_AddNotifyCustomInviteAccepted(customInvitesHandle, &AddNotifyInviteAcceptedOptions, wClientPtr, onNotifyCustomInviteAccepted);
+
+						// subscribe to notifications for when we reject a custom invite externally (e.g. via the Overlay)
+						EOS_CustomInvites_AddNotifyCustomInviteRejectedOptions AddNotifyInviteRejectedOptions = {};
+						AddNotifyInviteRejectedOptions.ApiVersion = EOS_CUSTOMINVITES_ADDNOTIFYCUSTOMINVITEREJECTED_API_LATEST;
+						EOS_CustomInvites_AddNotifyCustomInviteRejected(customInvitesHandle, &AddNotifyInviteRejectedOptions, wClientPtr, onNotifyCustomInviteRejected);
+					}
+				}
+
+				void setPlatformHandle(EOS_HPlatform platformHandle)
+				{
+					_epicState->setPlatformHandle(platformHandle);
+				}
+
+				EOS_HPlatform getPlatformHandle()
+				{
+					return _epicState->getPlatformHandle();
+				}
+
+				EOS_EpicAccountId getEpicAccountId()
+				{
+					return _epicState->getEpicAccountId();
 				}
 
 				static void EOS_CALL EOSSDKLoggingCallback(const EOS_LogMessage* InMsg)
@@ -698,19 +758,67 @@ namespace Stormancer
 					}
 				}
 
-				void setPlatformHandle(EOS_HPlatform platformHandle)
+				static void EOS_CALL onNotifyCustomInviteReceived(const EOS_CustomInvites_OnCustomInviteReceivedCallbackInfo* data)
 				{
-					_epicState->setPlatformHandle(platformHandle);
+					if (data != nullptr && data->ClientData != nullptr)
+					{
+						auto wClient = (std::weak_ptr<IClient>*)data->ClientData;
+						auto client = wClient->lock();
+						if (client)
+						{
+							auto logger = client->dependencyResolver().resolve<ILogger>();
+							logger->log(LogLevel::Trace, "onNotifyCustomInviteReceived", "CustomInvites (OnNotifyCustomInviteReceived): invite received.");
+							//FGame::Get().GetCustomInvites()->HandleCustomInviteReceived(data->Payload, data->CustomInviteId, data->TargetUserId);
+						}
+					}
+					else
+					{
+						printf("[EOS SDK] %s: %s\n", "onNotifyCustomInviteReceived", "CustomInvites (OnNotifyCustomInviteReceived): EOS_CustomInvites_OnCustomInviteReceivedCallbackInfo is null");
+					}
 				}
 
-				EOS_HPlatform getPlatformHandle()
+				static void EOS_CALL onNotifyCustomInviteAccepted(const EOS_CustomInvites_OnCustomInviteAcceptedCallbackInfo* data)
 				{
-					return _epicState->getPlatformHandle();
+					if (data != nullptr && data->ClientData != nullptr)
+					{
+						auto wClient = (std::weak_ptr<IClient>*)data->ClientData;
+						auto client = wClient->lock();
+						if (client)
+						{
+							auto logger = client->dependencyResolver().resolve<ILogger>();
+							logger->log(LogLevel::Trace, "onNotifyCustomInviteAccepted", "CustomInvites (OnNotifyCustomInviteAccepted): invite accepted from Overlay.");
+							auto invitationMessenger = client->dependencyResolver().resolve<Party::Platform::InvitationMessenger>();
+							char senderId[EOS_PRODUCTUSERID_MAX_LENGTH];
+							int32_t senderIdBufferLength = EOS_PRODUCTUSERID_MAX_LENGTH;
+							EOS_ProductUserId_ToString(data->TargetUserId, senderId, &senderIdBufferLength);
+							auto epicInvitation = std::make_shared<EpicPartyInvitation>(senderId, data->Payload);
+							invitationMessenger->notifyInvitationReceived(epicInvitation);
+							//FGame::Get().GetCustomInvites()->HandleCustomInviteAccepted(Data->Payload, Data->CustomInviteId, Data->TargetUserId);
+						}
+					}
+					else
+					{
+						printf("[EOS SDK] %s: %s\n", "onNotifyCustomInviteAccepted", "CustomInvites (OnNotifyCustomInviteAccepted): EOS_CustomInvites_OnCustomInviteAcceptedCallbackInfo is null");
+					}
 				}
 
-				EOS_EpicAccountId getEpicAccountId()
+				static void EOS_CALL onNotifyCustomInviteRejected(const EOS_CustomInvites_CustomInviteRejectedCallbackInfo* data)
 				{
-					return _epicState->getEpicAccountId();
+					if (data != nullptr && data->ClientData != nullptr)
+					{
+						auto wClient = (std::weak_ptr<IClient>*)data->ClientData;
+						auto client = wClient->lock();
+						if (client)
+						{
+							auto logger = client->dependencyResolver().resolve<ILogger>();
+							logger->log(LogLevel::Trace, "onNotifyCustomInviteRejected", "CustomInvites (OnNotifyCustomInviteRejected): invite rejected from Overlay.");
+							//FGame::Get().GetCustomInvites()->HandleCustomInviteRejected(Data->Payload, Data->CustomInviteId, Data->TargetUserId);
+						}
+					}
+					else
+					{
+						printf("[EOS SDK] %s: %s\n", "onNotifyCustomInviteRejected", "CustomInvites (OnNotifyCustomInviteRejected): EOS_CustomInvites_CustomInviteRejectedCallbackInfo is null");
+					}
 				}
 
 #pragma endregion
@@ -723,6 +831,7 @@ namespace Stormancer
 
 #pragma region private_members
 
+				std::weak_ptr<IClient> _wClient;
 				std::shared_ptr<ILogger> _logger;
 				std::shared_ptr<EpicState> _epicState;
 				std::weak_ptr<IScheduler> _wScheduler;
@@ -1116,7 +1225,8 @@ namespace Stormancer
 			void registerClientDependencies(ContainerBuilder& builder) override
 			{
 				builder.registerDependency<details::EpicState, Configuration, ILogger>().singleInstance();
-				builder.registerDependency<details::EpicApi, Users::UsersApi, details::EpicState, Configuration, IScheduler, ILogger, Party::PartyApi>().asSelf().as<IEpicApi>();
+				builder.registerDependency<details::EpicTicker, Configuration, details::EpicState, ILogger>().asSelf().singleInstance();
+				builder.registerDependency<details::EpicApi, IClient, Users::UsersApi, details::EpicState, Configuration, IScheduler, ILogger, Party::PartyApi>().asSelf().as<IEpicApi>();
 				builder.registerDependency<details::EpicPartyProvider, Party::Platform::InvitationMessenger, Users::UsersApi, details::EpicState, details::EpicApi, ILogger, Party::PartyApi, IActionDispatcher>().as<Party::Platform::IPlatformSupportProvider>();
 				builder.registerDependency<EpicAuthenticationEventHandler, details::EpicState, ILogger>().as<Users::IAuthenticationEventHandler>();
 			}
@@ -1129,16 +1239,19 @@ namespace Stormancer
 				auto epicState = client->dependencyResolver().resolve<details::EpicState>();
 				if (epicState->getInitPlatform())
 				{
-					auto config = client->dependencyResolver().resolve<Configuration>();
-					auto logger = client->dependencyResolver().resolve<ILogger>();
-					_epicTicker = std::make_shared<details::EpicTicker>(config, epicState, logger);
-					_epicTicker->start();
+					auto epicTicker = client->dependencyResolver().resolve<details::EpicTicker>();
+					epicTicker->start();
 				}
 			}
 
-			void clientDisconnecting(std::shared_ptr<IClient>) override
+			void clientDisconnecting(std::shared_ptr<IClient> client) override
 			{
-				_epicTicker->stop();
+				auto epicState = client->dependencyResolver().resolve<details::EpicState>();
+				if (epicState->getInitPlatform())
+				{
+					auto epicTicker = client->dependencyResolver().resolve<details::EpicTicker>();
+					epicTicker->stop();
+				}
 			}
 
 			void registerSceneDependencies(ContainerBuilder& builder, std::shared_ptr<Scene> scene) override
@@ -1153,8 +1266,6 @@ namespace Stormancer
 					builder.registerDependency<details::EpicPartyService, Scene>();
 				}
 			}
-
-			std::shared_ptr<details::EpicTicker> _epicTicker;
 		};
 	}
 }

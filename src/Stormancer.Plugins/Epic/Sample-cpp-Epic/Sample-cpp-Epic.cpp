@@ -48,6 +48,8 @@ int main()
 	auto client = IClient::create(config);
 	auto usersApi = client->dependencyResolver().resolve<Users::UsersApi>();
 	auto profileApi = client->dependencyResolver().resolve<Profile::ProfileApi>();
+	auto partyApi = client->dependencyResolver().resolve<Party::PartyApi>();
+	auto partyApi = client->dependencyResolver().resolve<Party::PartyApi>();
 
 	bool disconnected = false;
 
@@ -56,6 +58,31 @@ int main()
 		while (!disconnected)
 		{
 			actionDispatcher->update(std::chrono::milliseconds(10));
+		}
+	});
+
+	auto onvitationReceivedSubscription = partyApi->subscribeOnInvitationReceived([](Party::PartyInvitation partyInvitation)
+	{
+		if (partyInvitation.isValid())
+		{
+			s_logger->log(LogLevel::Info, "EpicSample", "Party invitation received", partyInvitation.getSenderId());
+			partyInvitation.acceptAndJoinParty()
+				.then([](pplx::task<void> task)
+			{
+				try
+				{
+					task.get();
+					s_logger->log(LogLevel::Info, "EpicSample", "Party invitation accepted and party joined");
+				}
+				catch (const std::exception& ex)
+				{
+					s_logger->log(LogLevel::Error, "EpicSample", "Fail to join a party after accepting the invitation", ex.what());
+				}
+			});
+		}
+		else
+		{
+			s_logger->log(LogLevel::Error, "EpicSample", "Invalid party invitation received", partyInvitation.getSenderId());
 		}
 	});
 
