@@ -3031,8 +3031,9 @@ namespace Stormancer
 					auto party = tryGetParty();
 					if (party != nullptr)
 					{
-						auto serverData = party->settings().publicServerData;
-						return serverData.find("gamesession") != serverData.end();
+						const auto& serverData = party->settings().publicServerData;
+						auto it = serverData.find("stormancer.partyStatus");
+						return it != serverData.end() && it->second == "gamesession";
 					}
 					else
 					{

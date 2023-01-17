@@ -43,11 +43,14 @@ The current invitation code can be disabled without generating a new one by call
 
 To join a party using a code, users call `pplx::task<void> joinPartyByInvitationCode(const std::string& invitationCode)` and can optionally provide custom member data.
 
+## Invitations
 ## Platform integration
 
 The party integrates with the platform plugins (steam.hpp, epic.hpp, etc...) to process player invitations. Each platform requires specific setup described in the relevant documentation. 
 Additionnally, the game must register a callback to the `OnInvitationReceived` event by calling `Subscription PartyApi::subscribeOnInvitationReceived(std::function<void(PartyInvitation)> callback)` and storing the `Subscription` object returned by the method
 for as long as the game should listen to the event (Most of the time as long as the game is running).
+
+Additionally, a list of currently pending invitations can also be retrieved by calling `PartyApi::getPendingInvitations()`.
 
 When an invitation is received, the game should either cancel it, or process it by calling `PartyInvitation::acceptAndJoinParty()` optionally providing custom memberData or `PartyInvitation::decline()`
 

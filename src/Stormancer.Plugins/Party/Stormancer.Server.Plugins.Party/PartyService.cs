@@ -74,7 +74,7 @@ namespace Stormancer.Server.Plugins.Party
         public IReadOnlyDictionary<SessionId, PartyMember> PartyMembers => _partyState.PartyMembers;
 
         public PartyConfiguration Settings => _partyState.Settings;
-
+        public PartyState State => _partyState;
         private TimeSpan _clientRpcTimeout = TimeSpan.FromSeconds(2);
 
         public PartyService(
@@ -265,7 +265,7 @@ namespace Stormancer.Server.Plugins.Party
                 var user = session.User;
 
                 var userData = peer.ContentType == "party/userdata" ? peer.UserData : new byte[0];
-                var partyUser = new PartyMember { UserId = user.Id, StatusInParty = PartyMemberStatus.NotReady, Peer = peer, UserData = userData};
+                var partyUser = new PartyMember { UserId = user.Id, StatusInParty = PartyMemberStatus.NotReady, Peer = peer, UserData = userData };
                 _partyState.PartyMembers.TryAdd(peer.SessionId, partyUser);
                 // Complete existing invtations for the new user. These invitations should all have been completed by now, but this is hard to guarantee.
                 if (_partyState.PendingInvitations.TryGetValue(user.Id, out var invitations))
@@ -280,7 +280,7 @@ namespace Stormancer.Server.Plugins.Party
 
 
 
-               
+
                 var ClientPluginVersion = peer.Metadata[PartyPlugin.CLIENT_METADATA_KEY];
                 Log(LogLevel.Trace, "OnConnected", "Connection complete", new { peer.SessionId, user.Id, ClientPluginVersion }, peer.SessionId.ToString(), user.Id);
 
@@ -288,7 +288,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 _ = RunOperationCompletedEventHandler((service, handlers, scope) =>
                 {
-                    var joinedCtx = new JoinedPartyContext(service, session,partyUser.UserData);
+                    var joinedCtx = new JoinedPartyContext(service, session, partyUser.UserData);
                     return handlers.RunEventHandler(handler => handler.OnJoined(joinedCtx), exception =>
                     {
                         service.Log(LogLevel.Error, "OnConnected", "An exception was thrown by an OnJoined event handler", new { exception }, peer.SessionId.ToString(), user.Id);
@@ -373,11 +373,11 @@ namespace Stormancer.Server.Plugins.Party
                 throw new InvalidOperationException("Scene metadata has no 'party' field");
             }
         }
-        public Task UpdateSettings(Func<PartyConfiguration, PartySettingsDto?> partySettingsUpdater, CancellationToken ct)
+        public Task UpdateSettings(Func<PartyState, PartySettingsDto?> partySettingsUpdater, CancellationToken ct)
         {
             return _partyState.TaskQueue.PushWork(async () =>
             {
-                var partySettingsDto = partySettingsUpdater(this.Settings);
+                var partySettingsDto = partySettingsUpdater( _partyState);
 
                 if (partySettingsDto == null)
                 {

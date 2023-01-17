@@ -215,15 +215,16 @@ namespace Stormancer.Server.Plugins.Party
         [S2SApi]
         public Task UpdatePartyStatusAsync(string? expectedStatus, string newStatus, string? details, CancellationToken cancellationToken)
         {
-            return _partyService.UpdateSettings(cfg =>
+            return _partyService.UpdateSettings(state =>
             {
+                var cfg = state.Settings;
                 if (expectedStatus != null && (!_partyService.Settings.PublicServerData.TryGetValue("stormancer.partyStatus", out var status) || status != expectedStatus))
                 {
                     return null;
                 }
                 else
                 {
-                    var partySettings = new PartySettingsDto(_partyService.Settings);
+                    var partySettings = new PartySettingsDto(state);
                     if(partySettings.PublicServerData == null)
                     {
                         partySettings.PublicServerData = new System.Collections.Generic.Dictionary<string, string>();

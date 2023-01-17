@@ -58,7 +58,7 @@ int main()
 	
 	users->login().then([party]() 
 	{
-		Stormancer::Party::PartyRequestDto request;
+		Stormancer::Party::PartyCreationOptions request;
 		request.GameFinderName = "joingame-test";
 		return party->createPartyIfNotJoined(request);
 	}).then([gamefinder]()
