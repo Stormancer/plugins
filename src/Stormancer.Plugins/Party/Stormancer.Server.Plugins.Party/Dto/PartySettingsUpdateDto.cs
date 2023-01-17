@@ -112,7 +112,7 @@ namespace Stormancer.Server.Plugins.Party.Dto
             OnlyLeaderCanInvite = config.OnlyLeaderCanInvite;
             IsJoinable = config.IsJoinable;
             PublicServerData = config.PublicServerData.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-            IndexedDocument = partyState.SearchDocument.ToString();
+            IndexedDocument = partyState.SearchDocument?.ToString()??string.Empty;
         }
 
         /// <summary>
