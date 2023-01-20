@@ -2938,13 +2938,6 @@ namespace Stormancer
 					}
 				}
 
-				pplx::task<void> joinParty(const PartyInvitation& invitation, const std::vector<byte>& userData, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
-				{
-					// Need to make a copy here to not break the API by changing parameter to non-const
-					auto copy = invitation;
-					return copy.acceptAndJoinParty(userData, userMetadata, ct);
-				}
-
 				pplx::task<void> leaveParty(pplx::cancellation_token ct = pplx::cancellation_token::none()) override
 				{
 					std::lock_guard<std::recursive_mutex> lg(_partyMutex);
@@ -3289,40 +3282,6 @@ namespace Stormancer
 									}
 								}
 							}, _dispatcher);
-				}
-
-				pplx::task<void> invitePlayer(const std::string& recipient, pplx::cancellation_token ct) override
-				{
-					auto party = tryGetParty();
-					if (!party)
-					{
-						throw std::runtime_error(PartyError::Str::NotInParty);
-					}
-
-					if (ct.is_cancelable())
-					{
-						std::weak_ptr<Party_Impl> wThat(this->shared_from_this());
-						ct.register_callback([recipient, wThat]
-							{
-								if (auto that = wThat.lock())
-								{
-									that->cancelInvitation(recipient);
-								}
-							});
-					}
-
-					return party->partyService()->sendInvitation(recipient, true).then([](bool) {});
-				}
-
-				pplx::task<void> cancelPartyInvitation(std::string recipient) override
-				{
-					auto party = tryGetParty();
-					if (!party)
-					{
-						return pplx::task_from_result();
-					}
-
-					return party->partyService()->cancelInvitation(recipient);
 				}
 
 				bool canSendInvitations() const override
