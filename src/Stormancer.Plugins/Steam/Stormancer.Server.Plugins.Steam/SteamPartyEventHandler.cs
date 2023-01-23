@@ -216,7 +216,7 @@ namespace Stormancer.Server.Plugins.Steam
                                         ctx.Session.SessionId
                                     });
 
-                                    var partySettingsDto = new PartySettingsDto(ctx.Party.Settings);
+                                    var partySettingsDto = new PartySettingsDto(ctx.Party.State);
                                     if (partySettingsDto.PublicServerData == null)
                                     {
                                         partySettingsDto.PublicServerData = new();

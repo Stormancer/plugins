@@ -17,6 +17,9 @@ Changed
 - Send IndexedDocument as part of party updated events.
 - Add configuration and event handler extensibility points to control when ready state is reset, validate ready state changes and user data updates.
 - Parties are now destroyed immediatly after the last player left to prevent players from joining afterwards.
+- UpdateSettings method now takes a PartyState object as lambda argument.
+- PartyUpdateDto new takes a PartyState object as lambda argument.
+
 Added
 *****
 - Add arguments to set member data on party creation or on joining.

@@ -103,13 +103,16 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// Creates a <see cref="PartySettingsDto"/> object.
         /// </summary>
         /// <param name="config"></param>
-        public PartySettingsDto(PartyConfiguration config)
+        /// <param name="partyState"></param>
+        public PartySettingsDto(PartyState partyState)
         {
+            var config = partyState.Settings;
             GameFinderName = config.GameFinderName;
             CustomData = config.CustomData;
             OnlyLeaderCanInvite = config.OnlyLeaderCanInvite;
             IsJoinable = config.IsJoinable;
             PublicServerData = config.PublicServerData.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            IndexedDocument = partyState.SearchDocument?.ToString()??string.Empty;
         }
 
         /// <summary>
