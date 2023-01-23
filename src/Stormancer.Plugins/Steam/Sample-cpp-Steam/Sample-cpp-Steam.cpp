@@ -15,15 +15,18 @@
 // Copy GameProductConfig.sample.h to GameProductConfig.h with values corresponding to your Steam game product
 #include "GameProductConfig.h"
 
-int main()
+int main(int argc, char* argv[])
 {
-
 	static std::shared_ptr<Stormancer::ILogger> s_logger = std::make_shared<Stormancer::ConsoleLogger>();
 	std::shared_ptr<Stormancer::MainThreadActionDispatcher> actionDispatcher = std::make_shared<Stormancer::MainThreadActionDispatcher>();
 
 	auto config = Stormancer::Configuration::create(STORM_ENDPOINT, STORM_ACCOUNT, STORM_APPLICATION);
 	config->logger = s_logger;
 	config->actionDispatcher = actionDispatcher;
+	for (int argi = 0; argi < argc; argi++)
+	{
+		config->processLaunchArguments.push_back(argv[argi]);
+	}
 	config->additionalParameters[Stormancer::Steam::ConfigurationKeys::AuthenticationEnabled] = "true";
 	config->additionalParameters[Stormancer::Steam::ConfigurationKeys::SteamApiInitialize] = "true";
 	config->additionalParameters[Stormancer::Steam::ConfigurationKeys::SteamApiRunCallbacks] = "true";

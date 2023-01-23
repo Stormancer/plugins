@@ -212,16 +212,28 @@ namespace Stormancer
 				const SteamID _steamID;
 			};
 
-			class SteamConfiguration
+			class SteamState
 			{
 			public:
 
-				SteamConfiguration(std::shared_ptr<Configuration> config)
+				SteamState(std::shared_ptr<Configuration> config)
 				{
 					_authenticationEnabled = config->additionalParameters.find(ConfigurationKeys::AuthenticationEnabled) != config->additionalParameters.end() ? (config->additionalParameters.at(ConfigurationKeys::AuthenticationEnabled) != "false") : true;
 					_connectLobby = config->additionalParameters.find(ConfigurationKeys::ConnectLobby) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ConnectLobby) : "";
 					_steamApiInitialize = config->additionalParameters.find(ConfigurationKeys::SteamApiInitialize) != config->additionalParameters.end() ? (config->additionalParameters.at(ConfigurationKeys::SteamApiInitialize) != "false") : true;
 					_steamApiRunCallbacks = config->additionalParameters.find(ConfigurationKeys::SteamApiRunCallbacks) != config->additionalParameters.end() ? (config->additionalParameters.at(ConfigurationKeys::SteamApiRunCallbacks) != "false") : true;
+
+					if (_connectLobby.empty() && config->processLaunchArguments.size() > 0)
+					{
+						for (auto argi = 0; argi < config->processLaunchArguments.size(); argi++)
+						{
+							if (config->processLaunchArguments[argi] == "+connect_lobby" && (argi + 1) < config->processLaunchArguments.size())
+							{
+								std::string steamIDLobby = config->processLaunchArguments[argi + 1];
+								_connectLobby = steamIDLobby;
+							}
+						}
+					}
 				}
 
 				bool getAuthenticationEnabled() const
@@ -378,7 +390,7 @@ namespace Stormancer
 
 #pragma region public_methods
 
-				SteamImpl(std::shared_ptr<Users::UsersApi> usersApi, std::shared_ptr<SteamConfiguration> steamConfig, std::shared_ptr<Configuration> config, std::shared_ptr<IScheduler> scheduler, std::shared_ptr<ILogger> logger, std::shared_ptr<Party::PartyApi> partyApi, std::shared_ptr<Party::Platform::InvitationMessenger> invitationMessenger)
+				SteamImpl(std::shared_ptr<Users::UsersApi> usersApi, std::shared_ptr<SteamState> steamConfig, std::shared_ptr<Configuration> config, std::shared_ptr<IScheduler> scheduler, std::shared_ptr<ILogger> logger, std::shared_ptr<Party::PartyApi> partyApi, std::shared_ptr<Party::Platform::InvitationMessenger> invitationMessenger)
 					: ClientAPI(usersApi, "stormancer.steam")
 					, _wSteamConfig(steamConfig)
 					, _wScheduler(scheduler)
@@ -1186,7 +1198,7 @@ namespace Stormancer
 				std::shared_ptr<pplx::task_completion_event<SteamIDLobby>> _lobbyCreatedTce; // shared_ptr is used as an optional
 
 				std::shared_ptr<ILogger> _logger;
-				std::weak_ptr<SteamConfiguration> _wSteamConfig;
+				std::weak_ptr<SteamState> _wSteamConfig;
 				std::weak_ptr<IScheduler> _wScheduler;
 				std::weak_ptr<IActionDispatcher> _wActionDispatcher;
 				std::weak_ptr<Users::UsersApi> _wUsersApi;
@@ -1790,8 +1802,8 @@ namespace Stormancer
 
 #pragma region public_methods
 
-			SteamAuthenticationEventHandler(std::shared_ptr<details::SteamConfiguration> steamConfig)
-				: _steamConfiguration(steamConfig)
+			SteamAuthenticationEventHandler(std::shared_ptr<details::SteamState> steamConfig)
+				: _steamState(steamConfig)
 			{
 			}
 
@@ -1816,7 +1828,7 @@ namespace Stormancer
 
 			pplx::task<void> getSteamCredentials(std::function<void(const std::string& type, const std::string& provider, const std::string& steamTicketHex)> fulfillCredentialsCallback)
 			{
-				if (!_steamConfiguration->getAuthenticationEnabled())
+				if (!_steamState->getAuthenticationEnabled())
 				{
 					return pplx::task_from_result();
 				}
@@ -1889,7 +1901,7 @@ namespace Stormancer
 #pragma region private_members
 
 			std::recursive_mutex _mutex;
-			std::shared_ptr<details::SteamConfiguration> _steamConfiguration;
+			std::shared_ptr<details::SteamState> _steamState;
 			std::shared_ptr<pplx::task_completion_event<void>> _authTce; // shared_ptr used as an optional
 
 #pragma endregion
@@ -1928,10 +1940,10 @@ namespace Stormancer
 
 			void registerClientDependencies(ContainerBuilder& builder) override
 			{
-				builder.registerDependency<details::SteamConfiguration, Configuration>().singleInstance();
-				builder.registerDependency<details::SteamImpl, Users::UsersApi, details::SteamConfiguration, Configuration, IScheduler, ILogger, Party::PartyApi, Party::Platform::InvitationMessenger>().asSelf().as<SteamApi>().singleInstance();
+				builder.registerDependency<details::SteamState, Configuration>().singleInstance();
+				builder.registerDependency<details::SteamImpl, Users::UsersApi, details::SteamState, Configuration, IScheduler, ILogger, Party::PartyApi, Party::Platform::InvitationMessenger>().asSelf().as<SteamApi>().singleInstance();
 				builder.registerDependency<details::SteamPartyProvider, Party::Platform::InvitationMessenger, Users::UsersApi, details::SteamImpl, ILogger, Party::PartyApi, IActionDispatcher>().as<Party::Platform::IPlatformSupportProvider>();
-				builder.registerDependency<SteamAuthenticationEventHandler, details::SteamConfiguration>().as<Users::IAuthenticationEventHandler>();
+				builder.registerDependency<SteamAuthenticationEventHandler, details::SteamState>().as<Users::IAuthenticationEventHandler>();
 			}
 
 			void clientCreated(std::shared_ptr<IClient> client)
