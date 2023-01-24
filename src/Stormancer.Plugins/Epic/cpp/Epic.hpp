@@ -232,6 +232,33 @@ namespace Stormancer
 					_productName = config->additionalParameters.find(ConfigurationKeys::ProductName) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ProductName) : "";
 					_productVersion = config->additionalParameters.find(ConfigurationKeys::ProductVersion) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ProductVersion) : "";
 					_diagnostics = config->additionalParameters.find(ConfigurationKeys::Diagnostics) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::Diagnostics) != "false" : false;
+
+					if (_loginMode.empty() && _exchangeCode.empty() && config->processLaunchArguments.size() > 1)
+					{
+						bool authTypeExchangecode = false;
+						bool exchangeCodeRetrieved = false;
+						std::string exchangeCode;
+						for (auto& arg : config->processLaunchArguments)
+						{
+							if (!authTypeExchangecode && arg == "-AUTH_TYPE=exchangecode")
+							{
+								authTypeExchangecode = true;
+							}
+							
+							if (!exchangeCodeRetrieved && arg.compare(0, 15, "-AUTH_PASSWORD=<password>", 15) == 0)
+							{
+								exchangeCode = arg.substr(15, arg.size() - 15);
+								exchangeCodeRetrieved = true;
+							}
+
+							if (authTypeExchangecode && exchangeCodeRetrieved)
+							{
+								_loginMode = "ExchangeCode";
+								_exchangeCode = exchangeCode;
+								break;
+							}
+						}
+					}
 				}
 
 				virtual ~EpicState()
