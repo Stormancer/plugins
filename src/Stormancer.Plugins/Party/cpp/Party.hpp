@@ -846,8 +846,6 @@ namespace Stormancer
 
 				virtual std::string getSenderPlatformId() = 0;
 
-				virtual std::string getSenderUsername() = 0;
-
 				virtual pplx::task<void> acceptAndJoinParty(const std::vector<byte>& userData, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
 
 				virtual void decline() = 0;
@@ -880,8 +878,6 @@ namespace Stormancer
 			std::string getSenderId() const { return _internal->getSenderId(); }
 
 			std::string getSenderPlatformId() const { return _internal->getSenderPlatformId(); }
-
-			std::string getSenderUsername() const { return _internal->getSenderUsername(); }
 
 			/// <summary>
 			/// Accept the invitation and join the corresponding party.
@@ -1102,12 +1098,6 @@ namespace Stormancer
 				/// </summary>
 				/// <returns>The platform-specific user Id of the sender.</returns>
 				virtual std::string getSenderPlatformId() = 0;
-
-				/// <summary>
-				/// Get the username of the sender.
-				/// </summary>
-				/// <returns>The username of the sender.</returns>
-				virtual std::string getSenderUsername() = 0;
 
 				// Called by PartyApi 
 				Subscription subscribeOnInvitationCanceled(std::function<void()> callback)
@@ -1349,7 +1339,7 @@ namespace Stormancer
 			/// A task that should complete when your custom operation is done.
 			/// If this task is faulted or canceled, the user will be disconnected from the party immediately.
 			/// </returns>
-			virtual pplx::task<void> onJoiningParty(std::shared_ptr<JoiningPartyContext> ctx)
+			virtual pplx::task<void> onJoiningParty(std::shared_ptr<JoiningPartyContext> /*ctx*/)
 			{
 				return pplx::task_from_result();
 			}
@@ -3773,16 +3763,6 @@ namespace Stormancer
 						return _impl->getSenderPlatformId();
 					}
 
-					std::string getSenderUsername() override
-					{
-						if (!_impl)
-						{
-							throw std::runtime_error(PartyError::Str::InvalidInvitation);
-						}
-
-						return _impl->getSenderUsername();
-					}
-
 					pplx::task<void> acceptAndJoinParty(const std::vector<byte>& userData, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
 					{
 						auto party = _party.lock();
@@ -4343,11 +4323,6 @@ namespace Stormancer
 					std::string getSenderPlatformId() override
 					{
 						return senderId;
-					}
-
-					std::string getSenderUsername() override
-					{
-						return std::string();
 					}
 
 					std::string senderId;
