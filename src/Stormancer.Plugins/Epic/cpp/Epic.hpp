@@ -610,11 +610,6 @@ namespace Stormancer
 					return "Epic";
 				}
 
-				std::string getSenderUsername() override
-				{
-					throw std::runtime_error("Not implemented");
-				}
-
 				std::string getPartySceneId()
 				{
 					return _partySceneId;
