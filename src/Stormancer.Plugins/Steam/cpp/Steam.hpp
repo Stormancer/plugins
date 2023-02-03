@@ -363,11 +363,6 @@ namespace Stormancer
 					return platformName;
 				}
 
-				std::string getSenderUsername() override
-				{
-					throw std::runtime_error("Not implemented");
-				}
-
 				Party::PartyId getPartyId()
 				{
 					return _partyId;
@@ -376,7 +371,6 @@ namespace Stormancer
 			private:
 
 				std::string _senderId;
-				std::string _senderUsername;
 				Party::PartyId _partyId;
 			};
 
