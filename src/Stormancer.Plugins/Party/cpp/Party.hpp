@@ -1133,17 +1133,31 @@ namespace Stormancer
 
 				void notifyInvitationReceived(std::shared_ptr<IPlatformInvitation> invitation)
 				{
-					_invitationReceivedEvent(invitation);
+					if (_invitationReceivedEvent.hasSubscribers())
+					{
+						_invitationReceivedEvent(invitation);
+					}
+					else
+					{
+						_pendingInvitation = invitation;
+					}
 				}
 
 				Subscription subscribeOnInvitationReceived(std::function<void(std::shared_ptr<IPlatformInvitation>)> callback)
 				{
-					return _invitationReceivedEvent.subscribe(callback);
+					auto subscription = _invitationReceivedEvent.subscribe(callback);
+					if (_pendingInvitation)
+					{
+						_invitationReceivedEvent(_pendingInvitation);
+						_pendingInvitation.reset();
+					}
+					return subscription;
 				}
 
 			private:
 
 				Event<std::shared_ptr<IPlatformInvitation>> _invitationReceivedEvent;
+				std::shared_ptr<IPlatformInvitation> _pendingInvitation;
 			};
 
 			/// <summary>
@@ -1307,7 +1321,7 @@ namespace Stormancer
 			std::string partySceneId;
 			void* customContext;
 			std::shared_ptr<PartyApi> partyApi;
-
+			std::unordered_map<std::string, std::string> metadata;
 		};
 		class IPartyEventHandler
 		{
@@ -2811,11 +2825,11 @@ namespace Stormancer
 										if (auto that = wThat.lock())
 										{
 											return that->obtainConnectionToken(partyId, userData, ct)
-												.then([wThat, userMetadata, ct](std::string connectionToken)
+												.then([wThat, partyId, userMetadata, ct](std::string connectionToken)
 													{
 														if (auto that = wThat.lock())
 														{
-															return that->getPartySceneByToken(connectionToken, userMetadata, ct);
+															return that->getPartySceneByToken(connectionToken, partyId, userMetadata, ct);
 														}
 											throw std::runtime_error(PartyError::Str::StormancerClientDestroyed);
 													});
@@ -3897,12 +3911,22 @@ namespace Stormancer
 					}
 				}
 
-				pplx::task<std::shared_ptr<PartyContainer>> getPartySceneByToken(const std::string& token, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none())
+				pplx::task<std::shared_ptr<PartyContainer>> getPartySceneByToken(const std::string& token, const PartyId& partyId, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none())
 				{
 					auto users = _wUsers.lock();
 					if (!users)
 					{
 						STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("UsersApi"), std::shared_ptr<PartyContainer>);
+					}
+
+					auto joiningPartyContext = std::make_shared<JoiningPartyContext>();
+					joiningPartyContext->metadata = userMetadata;
+					joiningPartyContext->partySceneId = (partyId.type == PartyId::TYPE_SCENE_ID ? partyId.id : "");
+
+					auto eventHandlers = getEventHandlers();
+					for (auto& eventHandler : eventHandlers)
+					{
+						eventHandler->onJoiningParty(joiningPartyContext);
 					}
 
 					auto wThat = STORM_WEAK_FROM_THIS();
