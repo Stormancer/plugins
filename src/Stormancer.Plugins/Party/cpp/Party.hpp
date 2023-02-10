@@ -3923,21 +3923,26 @@ namespace Stormancer
 					joiningPartyContext->metadata = userMetadata;
 					joiningPartyContext->partySceneId = (partyId.type == PartyId::TYPE_SCENE_ID ? partyId.id : "");
 
-					auto eventHandlers = getEventHandlers();
-					for (auto& eventHandler : eventHandlers)
-					{
-						eventHandler->onJoiningParty(joiningPartyContext);
-					}
-
 					auto wThat = STORM_WEAK_FROM_THIS();
 
-					return users->connectToPrivateSceneByToken(token, [wThat](std::shared_ptr<Scene> scene)
+					return runEventHandlers(getEventHandlers(), [joiningPartyContext](std::shared_ptr<IPartyEventHandler> eventHandler)
+					{
+						return eventHandler->onJoiningParty(joiningPartyContext);
+					}, [logger = _logger](const std::exception& ex)
+					{
+						logger->log(LogLevel::Error, "Party_Impl.getPartySceneByToken", "Party onJoiningParty event handler failed", ex.what());
+						throw;
+					})
+						.then([users, token, wThat, ct]()
+					{
+						return users->connectToPrivateSceneByToken(token, [wThat](std::shared_ptr<Scene> scene)
 						{
 							if (auto that = wThat.lock())
 							{
 								that->runSceneInitEventHandlers(scene);
 							}
-						}, ct)
+						}, ct);
+					})
 						.then([ct, wThat](std::shared_ptr<Scene> scene)
 							{
 								auto that = wThat.lock();
