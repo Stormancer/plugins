@@ -24,6 +24,7 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="MsgPack.Cli" Version="1.0.1" />
+		<PackageReference Include="Stormancer.Abstractions.Server" Version="9.3.0-pre" />
 	</ItemGroup>
 
 	<PropertyGroup>
@@ -51,6 +52,7 @@
 		<ProjectReference Include="..\..\Management\Stormancer.Server.Plugins.Management\Stormancer.Server.Plugins.Management.csproj" />
 		<ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />
 		<ProjectReference Include="..\..\Utilities\Stormancer.Server.Plugins.Utilities\Stormancer.Server.Plugins.Utilities.csproj" />
+		
 	</ItemGroup>
 	<Target Name="PostPack" AfterTargets="Pack">
 		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
