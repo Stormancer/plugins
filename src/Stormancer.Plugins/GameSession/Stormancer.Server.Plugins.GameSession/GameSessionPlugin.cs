@@ -32,6 +32,7 @@ using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Metrics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -57,6 +58,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 builder.Register<DevServerPoolProvider>().As<IServerPoolProvider>().SingleInstance();
                 builder.Register<ProviderBasedServerPoolProvider>().As<IServerPoolProvider>().InstancePerScene();
                 builder.Register<DockerGameServerProvider>().As<IGameServerProvider>().SingleInstance();
+                builder.Register<GameSessionAnalyticsWorker>().SingleInstance();
             };
 
             ctx.HostStarting += (IHost host) =>
@@ -72,6 +74,8 @@ namespace Stormancer.Server.Plugins.GameSession
             ctx.HostStarted += (IHost host) =>
             {
                 host.EnsureSceneExists(POOL_SCENEID, POOL_SCENEID, false, true);
+
+                _ = host.DependencyResolver.Resolve<GameSessionAnalyticsWorker>().Run();
             };
 
             ctx.SceneCreated += (ISceneHost scene) =>
@@ -100,12 +104,12 @@ namespace Stormancer.Server.Plugins.GameSession
                     builder.Register(d =>
                         new GameSessionService(
                             d.Resolve<GameSessionState>(),
+                            d.Resolve<GameSessionAnalyticsWorker>(),
                             scene,
                             d.Resolve<IConfiguration>(),
                             d.Resolve<IEnvironment>(),
                             d.Resolve<Management.ManagementClientProvider>(),
                             d.Resolve<ILogger>(),
-                            d.Resolve<IAnalyticsService>(),
                             d.Resolve<RpcService>(),
                             d.Resolve<ISerializer>())
                     )

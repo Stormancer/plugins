@@ -199,6 +199,7 @@ namespace Stormancer.Server.Plugins.GameSession
         private readonly IConfiguration _configuration;
         private readonly ILogger _logger;
         private readonly GameSessionState state;
+        private readonly GameSessionAnalyticsWorker _analytics;
         private readonly ISceneHost _scene;
         private readonly IEnvironment _environment;
         private readonly RpcService _rpc;
@@ -222,7 +223,6 @@ namespace Stormancer.Server.Plugins.GameSession
 
 
         private readonly object _lock = new();
-        private readonly IAnalyticsService _analytics;
         private readonly ManagementClientProvider _management;
         private TaskCompletionSource<IScenePeerClient>? _serverPeer = null;
         private ShutdownMode _shutdownMode;
@@ -230,18 +230,18 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public GameSessionService(
             GameSessionState state,
+            GameSessionAnalyticsWorker analyticsWorker,
             ISceneHost scene,
             IConfiguration configuration,
             IEnvironment environment,
             ManagementClientProvider management,
             ILogger logger,
-            IAnalyticsService analytics,
             RpcService rpc,
             ISerializer serializer)
         {
-            _analytics = analytics;
             _management = management;
             this.state = state;
+            _analytics = analyticsWorker;
             _scene = scene;
             _configuration = configuration;
             _logger = logger;
@@ -253,9 +253,10 @@ namespace Stormancer.Server.Plugins.GameSession
 
 
             ApplySettings();
-
+            analyticsWorker.AddGameSession(this);
             scene.Shuttingdown.Add(args =>
             {
+                analyticsWorker.RemoveGameSession(this);
                 _sceneCts.Cancel();
                 return Task.CompletedTask;
             });
@@ -576,12 +577,10 @@ namespace Stormancer.Server.Plugins.GameSession
 
             var userId = client.Key;
 
-            _analytics.Push("gamesession", "playerJoined", JObject.FromObject(new
-            {
-                userId,
-                gameSessionId = this._scene.Id,
-                sessionId = peer.SessionId.ToString()
-            }));
+            _analytics.PlayerJoined(userId,peer.SessionId.ToString(), _scene.Id);
+            
+            
+
             //Check if the gameSession is Dedicated or listen-server            
 
             // If the host is not defined a P2P was sent with "" to notify client is host.
@@ -756,11 +755,8 @@ namespace Stormancer.Server.Plugins.GameSession
                 throw new ArgumentNullException(nameof(peer));
             }
 
-            _analytics.Push("gamesession", "playerLeft", JObject.FromObject(new
-            {
-                sessionId = peer.SessionId.ToString(),
-                gameSessionId = this._scene.Id
-            }));
+            _analytics.PlayerLeft(peer.SessionId.ToString(), this._scene.Id);
+            
 
             Client? client = null;
             string? userId = null;
@@ -918,6 +914,8 @@ namespace Stormancer.Server.Plugins.GameSession
 
 
         public string GameSessionId => _scene.Id;
+
+        public DateTime CreatedOn { get; } = DateTime.UtcNow;
 
         private bool _gameCompleteExecuted = false;
 
