@@ -28,6 +28,7 @@ using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Analytics;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.GameSession.ServerPool;
+using Stormancer.Server.Plugins.GameSession.ServerProviders;
 using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Users;
 using System;
@@ -50,6 +51,8 @@ namespace Stormancer.Server.Plugins.GameSession
                 builder.Register<GameSessionController>().InstancePerRequest();
                 builder.Register<ServerPoolController>().InstancePerRequest();
                 builder.Register<DedicatedServerAuthProvider>().As<IAuthenticationProvider>();
+                builder.Register<GameServerAgentAuthenticationProvider>().As<IAuthenticationProvider>();
+                builder.Register<GameServerAgentConfiguration>().As<IConfigurationChangedEventHandler>().AsSelf().SingleInstance();
                 builder.Register<DevDedicatedServerAuthProvider>().As<IAuthenticationProvider>();
                 builder.Register<GameSessions>().As<IGameSessions>();
                 builder.Register<ServerPools>().As<IServerPools>().AsSelf().As<IConfigurationChangedEventHandler>().InstancePerScene();
@@ -57,6 +60,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 builder.Register<DevServerPoolProvider>().As<IServerPoolProvider>().SingleInstance();
                 builder.Register<ProviderBasedServerPoolProvider>().As<IServerPoolProvider>().InstancePerScene();
                 builder.Register<DockerGameServerProvider>().As<IGameServerProvider>().SingleInstance();
+                builder.Register<AgentBasedGameServerProvider>().As<IGameServerProvider>().SingleInstance();
             };
 
             ctx.HostStarting += (IHost host) =>

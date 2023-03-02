@@ -287,6 +287,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             if (_runningServers.TryGetValue(serverId, out var server))
             {
                 await server.Peer.Send("ServerPool.Shutdown", _ => { }, Core.PacketPriority.MEDIUM_PRIORITY, Core.PacketReliability.RELIABLE);
+                await provider.StopServer(server.Id);
             }
         }
     }

@@ -102,7 +102,7 @@ namespace Stormancer.Server.Plugins.Limits
                     RetryPolicies.ConstantDelay(4, TimeSpan.FromMilliseconds(500)), 
                     cancellationToken, 
                     ex => true)
-            , TimeSpan.FromSeconds(1));
+            , TimeSpan.FromSeconds(1))!;
 
         }
     }

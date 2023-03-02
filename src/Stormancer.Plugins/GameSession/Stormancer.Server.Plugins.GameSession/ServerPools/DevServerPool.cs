@@ -281,6 +281,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             if(client!=null)
             {
                 await client.Send("ServerPool.Shutdown", _ => { }, Core.PacketPriority.MEDIUM_PRIORITY, Core.PacketReliability.RELIABLE);
+                await client.DisconnectFromServer("server.shutdown");
             }
         }
     }
