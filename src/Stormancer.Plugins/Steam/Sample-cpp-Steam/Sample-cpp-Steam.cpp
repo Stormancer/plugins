@@ -10,12 +10,12 @@
 
 #include <thread>
 
-#include "../cpp/Epic.hpp"
+#include "../cpp/Steam.hpp"
 
-// Copy GameProductConfig.sample.h to GameProductConfig.h with values corresponding to your Epic game product
+// Copy GameProductConfig.sample.h to GameProductConfig.h with values corresponding to your Steam game product
 #include "GameProductConfig.h"
 
-int main()
+int main(int argc, char* argv[])
 {
 	static std::shared_ptr<Stormancer::ILogger> s_logger = std::make_shared<Stormancer::ConsoleLogger>();
 	std::shared_ptr<Stormancer::MainThreadActionDispatcher> actionDispatcher = std::make_shared<Stormancer::MainThreadActionDispatcher>();
@@ -23,24 +23,18 @@ int main()
 	auto config = Stormancer::Configuration::create(STORM_ENDPOINT, STORM_ACCOUNT, STORM_APPLICATION);
 	config->logger = s_logger;
 	config->actionDispatcher = actionDispatcher;
-	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::InitPlatform] = "true";
-	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::ProductName] = "Sample-cpp-Epic";
-	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::ProductVersion] = "0.1";
-	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::AuthenticationEnabled] = "true";
-	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::LoginMode] = STORM_EPIC_LOGIN_MODE;
-	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::DevAuthHost] = STORM_EPIC_DEVAUTH_CREDENTIALS_HOST;
-	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::DevAuthCredentialsName] = STORM_EPIC_DEVAUTH_CREDENTIALS_NAME;
-	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::ProductId] = STORM_EPIC_PRODUCT_ID;
-	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::SandboxId] = STORM_EPIC_SANDBOX_ID;
-	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::DeploymentId] = STORM_EPIC_DEPLOYMENT_ID;
-	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::ClientId] = STORM_EPIC_CLIENT_ID;
-	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::ClientSecret] = STORM_EPIC_CLIENT_SECRET;
-	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::Diagnostics] = "true";
+	for (int argi = 0; argi < argc; argi++)
+	{
+		config->processLaunchArguments.push_back(argv[argi]);
+	}
+	config->additionalParameters[Stormancer::Steam::ConfigurationKeys::AuthenticationEnabled] = "true";
+	config->additionalParameters[Stormancer::Steam::ConfigurationKeys::SteamApiInitialize] = "true";
+	config->additionalParameters[Stormancer::Steam::ConfigurationKeys::SteamApiRunCallbacks] = "true";
 	config->additionalParameters[Stormancer::GameVersion::ConfigurationKeys::ClientVersion] = STORM_CLIENT_VERSION;
 	config->addPlugin(new Stormancer::Users::UsersPlugin());
 	config->addPlugin(new Stormancer::GameFinder::GameFinderPlugin());
 	config->addPlugin(new Stormancer::Party::PartyPlugin());
-	config->addPlugin(new Stormancer::Epic::EpicPlugin());
+	config->addPlugin(new Stormancer::Steam::SteamPlugin());
 	config->addPlugin(new Stormancer::GameVersion::GameVersionPlugin());
 	config->addPlugin(new Stormancer::Profile::ProfilePlugin());
 	auto client = Stormancer::IClient::create(config);
@@ -62,24 +56,24 @@ int main()
 	{
 		if (partyInvitation.isValid())
 		{
-			s_logger->log(Stormancer::LogLevel::Info, "EpicSample", "Party invitation received", partyInvitation.getSenderId());
+			s_logger->log(Stormancer::LogLevel::Info, "SteamSample", "Party invitation received", partyInvitation.getSenderId());
 			partyInvitation.acceptAndJoinParty()
 				.then([](pplx::task<void> task)
 			{
 				try
 			{
 				task.get();
-				s_logger->log(Stormancer::LogLevel::Info, "EpicSample", "Party invitation accepted and party joined");
+				s_logger->log(Stormancer::LogLevel::Info, "SteamSample", "Party invitation accepted and party joined");
 			}
 			catch (const std::exception& ex)
 			{
-				s_logger->log(Stormancer::LogLevel::Error, "EpicSample", "Fail to join a party after accepting the invitation", ex.what());
+				s_logger->log(Stormancer::LogLevel::Error, "SteamSample", "Fail to join a party after accepting the invitation", ex.what());
 			}
 			});
 		}
 		else
 		{
-			s_logger->log(Stormancer::LogLevel::Error, "EpicSample", "Invalid party invitation received", partyInvitation.getSenderId());
+			s_logger->log(Stormancer::LogLevel::Error, "SteamSample", "Invalid party invitation received", partyInvitation.getSenderId());
 		}
 	});
 
@@ -89,7 +83,7 @@ int main()
 	}
 	catch (const std::exception& ex)
 	{
-		s_logger->log(Stormancer::LogLevel::Error, "Sample-cpp-Epic", "Login failed", ex.what());
+		s_logger->log(Stormancer::LogLevel::Error, "Sample-cpp-Steam", "Login failed", ex.what());
 		disconnected = true;
 		mainLoop.join();
 		return 1;
@@ -100,14 +94,14 @@ int main()
 
 	try
 	{
-		Stormancer::Profile::Profile profile = profileApi->getProfile(stormancerUserId, { { "character", "details" }, { "user", "details" }, {"epic", "details"} }).get();
+		Stormancer::Profile::Profile profile = profileApi->getProfile(stormancerUserId, { { "character", "details" }, { "user", "details" }, {"steam", "details"} }).get();
 
-		auto epicPart = profile.data["epic"];
-		if (!epicPart)
+		auto steamPart = profile.data["steam"];
+		if (!steamPart)
 		{
-			throw std::runtime_error("epic part missing");
+			throw std::runtime_error("Steam part missing");
 		}
-		Stormancer::web::json::value jsonValue = Stormancer::web::json::value::parse(Stormancer::utility::conversions::to_string_t(*epicPart));
+		Stormancer::web::json::value jsonValue = Stormancer::web::json::value::parse(Stormancer::utility::conversions::to_string_t(*steamPart));
 		if (jsonValue.type() != Stormancer::web::json::value::value_type::Object)
 		{
 			throw std::runtime_error("Bad json type: not an object");
@@ -138,7 +132,7 @@ int main()
 	}
 	catch (const std::exception& ex)
 	{
-		s_logger->log(Stormancer::LogLevel::Error, "EpicSampleMain", "Profile retrieve failed", ex.what());
+		s_logger->log(Stormancer::LogLevel::Error, "SteamSampleMain", "Profile retrieve failed", ex.what());
 	}
 
 	Stormancer::Party::PartyCreationOptions partyCreationOptions;
@@ -148,13 +142,13 @@ int main()
 		.then([](pplx::task<void> task)
 	{
 		try
-		{
-			task.get();
-		}
-		catch (const std::exception& ex)
-		{
-			s_logger->log(Stormancer::LogLevel::Error, "EpicSampleMain", "Create party failed", ex.what());
-		}
+	{
+		task.get();
+	}
+	catch (const std::exception& ex)
+	{
+		s_logger->log(Stormancer::LogLevel::Error, "SteamSampleMain", "Create party failed", ex.what());
+	}
 	})
 		.get();
 

@@ -115,15 +115,10 @@ Configuration keys:
 ```c++
 int main(int argc, char* argv[])
 {
-    if (argc > 2)
-    {
-        if (strcmp(argv[1], "+connect_lobby") == 0 && strlen(argv[2]) > 0)
-        {
-            const char* steamIDLobby = argv[2];
-            config->additionalParameters[Steam::ConfigurationKeys::ConnectLobby] = steamIDLobby;
-        }
-    }
+	auto config = Stormancer::Configuration::create(STORM_ENDPOINT, STORM_ACCOUNT, STORM_APPLICATION);
+	for (int argi = 0; argi < argc; argi++)
+	{
+		config->processLaunchArguments.push_back(argv[argi]);
+	}
 }
 ```
-
-

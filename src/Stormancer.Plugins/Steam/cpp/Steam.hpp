@@ -135,8 +135,6 @@ namespace Stormancer
 
 			virtual pplx::task<std::vector<SteamFriend>> getFriends(int friendsFlag = k_EFriendFlagImmediate, uint32 maxFriendsCount = UINT32_MAX, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
 
-			virtual Event<SteamIDLobby>& getJoinLobbyEvent() = 0;
-
 			// Steam Api
 
 			virtual SteamID getSteamID() = 0;
@@ -214,16 +212,28 @@ namespace Stormancer
 				const SteamID _steamID;
 			};
 
-			class SteamConfiguration
+			class SteamState
 			{
 			public:
 
-				SteamConfiguration(std::shared_ptr<Configuration> config)
+				SteamState(std::shared_ptr<Configuration> config)
 				{
 					_authenticationEnabled = config->additionalParameters.find(ConfigurationKeys::AuthenticationEnabled) != config->additionalParameters.end() ? (config->additionalParameters.at(ConfigurationKeys::AuthenticationEnabled) != "false") : true;
 					_connectLobby = config->additionalParameters.find(ConfigurationKeys::ConnectLobby) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ConnectLobby) : "";
 					_steamApiInitialize = config->additionalParameters.find(ConfigurationKeys::SteamApiInitialize) != config->additionalParameters.end() ? (config->additionalParameters.at(ConfigurationKeys::SteamApiInitialize) != "false") : true;
 					_steamApiRunCallbacks = config->additionalParameters.find(ConfigurationKeys::SteamApiRunCallbacks) != config->additionalParameters.end() ? (config->additionalParameters.at(ConfigurationKeys::SteamApiRunCallbacks) != "false") : true;
+
+					if (_connectLobby.empty() && config->processLaunchArguments.size() > 0)
+					{
+						for (auto argi = 0; argi < config->processLaunchArguments.size(); argi++)
+						{
+							if (config->processLaunchArguments[argi] == "+connect_lobby" && (argi + 1) < config->processLaunchArguments.size())
+							{
+								std::string steamIDLobby = config->processLaunchArguments[argi + 1];
+								_connectLobby = steamIDLobby;
+							}
+						}
+					}
 				}
 
 				bool getAuthenticationEnabled() const
@@ -323,19 +333,24 @@ namespace Stormancer
 			{
 			public:
 
-				SteamPartyInvitation(const std::string& senderId)
+				SteamPartyInvitation(const std::string& senderId, const Party::PartyId& partyId)
 					: _senderId(senderId)
+					, _partyId(partyId)
 				{
 				}
 
-				pplx::task<Party::PartyId> accept(std::shared_ptr<Party::PartyApi>) override
+				pplx::task<Party::PartyId> accept(std::shared_ptr<Party::PartyApi> partyApi) override
 				{
-					throw std::runtime_error("Not implemented");
+					return partyApi->joinParty(_partyId, {})
+						.then([partyId = _partyId]()
+					{
+						return partyId;
+					});
 				}
 
 				pplx::task<void> decline(std::shared_ptr<Party::PartyApi>) override
 				{
-					throw std::runtime_error("Not implemented");
+					return pplx::task_from_result();
 				}
 
 				std::string getSenderId() override
@@ -345,17 +360,18 @@ namespace Stormancer
 
 				std::string getSenderPlatformId() override
 				{
-					throw std::runtime_error("Not implemented");
+					return platformName;
 				}
 
-				std::string getSenderUsername() override
+				Party::PartyId getPartyId()
 				{
-					throw std::runtime_error("Not implemented");
+					return _partyId;
 				}
 
 			private:
 
 				std::string _senderId;
+				Party::PartyId _partyId;
 			};
 
 			class SteamPartyProvider;
@@ -368,7 +384,7 @@ namespace Stormancer
 
 #pragma region public_methods
 
-				SteamImpl(std::shared_ptr<Users::UsersApi> usersApi, std::shared_ptr<SteamConfiguration> steamConfig, std::shared_ptr<Configuration> config, std::shared_ptr<IScheduler> scheduler, std::shared_ptr<ILogger> logger, std::shared_ptr<Party::PartyApi> partyApi)
+				SteamImpl(std::shared_ptr<Users::UsersApi> usersApi, std::shared_ptr<SteamState> steamConfig, std::shared_ptr<Configuration> config, std::shared_ptr<IScheduler> scheduler, std::shared_ptr<ILogger> logger, std::shared_ptr<Party::PartyApi> partyApi, std::shared_ptr<Party::Platform::InvitationMessenger> invitationMessenger)
 					: ClientAPI(usersApi, "stormancer.steam")
 					, _wSteamConfig(steamConfig)
 					, _wScheduler(scheduler)
@@ -376,6 +392,7 @@ namespace Stormancer
 					, _logger(logger)
 					, _wUsersApi(usersApi)
 					, _wPartyApi(partyApi)
+					, _wInvitationMessenger(invitationMessenger)
 				{
 				}
 
@@ -1030,11 +1047,6 @@ namespace Stormancer
 					return waitForTask<std::vector<SteamFriend>>(task, taskOptions);
 				}
 
-				Event<SteamIDLobby>& getJoinLobbyEvent() override
-				{
-					return _joinLobbyEvent;
-				}
-
 #pragma endregion
 
 			private:
@@ -1160,28 +1172,6 @@ namespace Stormancer
 					}
 				}
 
-				Subscription subscribeToJoinLobbyEvent(std::function<void(SteamIDLobby)> callback)
-				{
-					auto subscription = _joinLobbyEvent.subscribe(callback);
-					// If there was an early join lobby event before the stormancer client was created
-					// (typically when the game is launched because of the user joining a lobby)
-					// the lobby Id of the event is cached, and the stormancer client is notified when it is ready.
-					if (auto steamConfig = _wSteamConfig.lock())
-					{
-						auto connectLobby = steamConfig->getConnectLobby();
-						if (!connectLobby.empty())
-						{
-							steamConfig->resetConnectLobby();
-							auto steamIDLobby = std::stoull(connectLobby);
-							if (steamIDLobby != 0)
-							{
-								_joinLobbyEvent(steamIDLobby);
-							}
-						}
-					}
-					return subscription;
-				}
-
 #pragma endregion
 
 #pragma region private_members
@@ -1200,15 +1190,14 @@ namespace Stormancer
 				std::shared_ptr<pplx::task_completion_event<std::vector<Lobby>>> _requestLobbyListTce; // shared_ptr is used as an optional
 				std::unordered_map<SteamIDLobby, LobbyEnterEventData> _lobbyEnterEventData;
 				std::shared_ptr<pplx::task_completion_event<SteamIDLobby>> _lobbyCreatedTce; // shared_ptr is used as an optional
-				Event<SteamIDLobby> _joinLobbyEvent;
 
 				std::shared_ptr<ILogger> _logger;
-				std::weak_ptr<SteamConfiguration> _wSteamConfig;
+				std::weak_ptr<SteamState> _wSteamConfig;
 				std::weak_ptr<IScheduler> _wScheduler;
 				std::weak_ptr<IActionDispatcher> _wActionDispatcher;
 				std::weak_ptr<Users::UsersApi> _wUsersApi;
 				std::weak_ptr<Party::PartyApi> _wPartyApi;
-
+				std::weak_ptr<Party::Platform::InvitationMessenger> _wInvitationMessenger;
 
 #pragma endregion
 			};
@@ -1323,7 +1312,22 @@ namespace Stormancer
 
 				_logger->log(LogLevel::Trace, "Steam", "Game lobby join requested", std::to_string(steamIDLobby));
 
-				_joinLobbyEvent(steamIDLobby);
+				SteamID senderId = callback->m_steamIDFriend.ConvertToUint64();
+
+				Party::PartyId partyId;
+				partyId.platform = platformName;
+				partyId.type = PARTY_TYPE_STEAMIDLOBBY;
+				partyId.id = std::to_string(steamIDLobby);
+
+				auto invitationMessenger = _wInvitationMessenger.lock();
+				if (!invitationMessenger)
+				{
+					_logger->log(LogLevel::Warn, "Steam", "onGameLobbyJoinRequestedCallback skipped", "Invitation messenger deleted");
+					return;
+				}
+
+				auto steamPartyInvitation = std::make_shared<SteamPartyInvitation>(std::to_string(senderId), partyId);
+				invitationMessenger->notifyInvitationReceived(steamPartyInvitation);
 			}
 
 			inline void SteamImpl::onLobbyCreatedCallResult(LobbyCreated_t* callback, bool failure)
@@ -1728,76 +1732,6 @@ namespace Stormancer
 					});
 				}
 
-				Subscription subscribeOnJoinPartyRequestedByPlatform(std::function<void(const Party::Platform::PlatformInvitationRequestContext&)> callback) override
-				{
-					auto steamApi = _wSteamApi.lock();
-					if (!steamApi)
-					{
-						_logger->log(LogLevel::Warn, "SteamPartyProvider", "subscribeOnJoinPartyRequestedByPlatform failed", "Steam API deleted");
-						return Subscription();
-					}
-
-					return steamApi->subscribeToJoinLobbyEvent([callback, logger = _logger, wSteamApi = _wSteamApi](SteamIDLobby steamIDLobby)
-					{
-						if (auto steamApi = wSteamApi.lock())
-						{
-							// Get lobby data
-							steamApi->requestLobbyData(steamIDLobby, timeout(10s))
-								.then([wSteamApi, logger, callback, steamIDLobby](Lobby lobby)
-							{
-								auto steamApi = wSteamApi.lock();
-
-								if (!steamApi)
-								{
-									throw ObjectDeletedException("SteamApi");
-								}
-
-								auto it = lobby.data.find("partyDataToken");
-								if (it == lobby.data.end())
-								{
-									throw std::runtime_error("partyDataToken not found in Steam lobby metadata");
-								}
-
-								Party::PartyId partyId;
-								partyId.platform = platformName;
-								partyId.type = PARTY_TYPE_STEAMIDLOBBY;
-								partyId.id = std::to_string(steamIDLobby);
-
-								SteamID steamID = steamApi->getSteamID();
-
-								Party::Platform::PlatformInvitationRequestContext ctx;
-								ctx.partyId = partyId;
-								ctx.invitedUser = SteamPlatformUserId::create(steamID);
-
-								callback(ctx);
-							})
-								.then([logger, wSteamApi, callback](pplx::task<void> task)
-							{
-								try
-								{
-									task.get();
-								}
-								catch (const std::exception& ex)
-								{
-									logger->log(LogLevel::Warn, "SteamPartyProvider", "Game invitation ignored", ex.what());
-
-									Party::Platform::PlatformInvitationRequestContext ctx;
-
-									ctx.error = Party::PartyError::Str::InvalidInvitation;
-
-									if (auto steamApi = wSteamApi.lock())
-									{
-										SteamID steamID = steamApi->getSteamID();
-										ctx.invitedUser = SteamPlatformUserId::create(steamID);
-									}
-
-									callback(ctx);
-								}
-							});
-						}
-					});
-				}
-
 				bool tryShowSystemInvitationUI(std::shared_ptr<Party::PartyApi> partyApi) override
 				{
 					std::lock_guard<std::recursive_mutex> lg(_mutex);
@@ -1862,8 +1796,8 @@ namespace Stormancer
 
 #pragma region public_methods
 
-			SteamAuthenticationEventHandler(std::shared_ptr<details::SteamConfiguration> steamConfig)
-				: _steamConfiguration(steamConfig)
+			SteamAuthenticationEventHandler(std::shared_ptr<details::SteamState> steamConfig)
+				: _steamState(steamConfig)
 			{
 			}
 
@@ -1879,7 +1813,7 @@ namespace Stormancer
 
 			virtual pplx::task<void> renewCredentials(const Users::CredentialsRenewalContext& context) override
 			{
-				return getSteamCredentials([context](const std::string& type, const std::string& provider, const std::string& steamTicketHex)
+				return getSteamCredentials([context](const std::string& /*type*/, const std::string& provider, const std::string& steamTicketHex)
 				{
 					context.response->parameters["provider"] = provider;
 					context.response->parameters["ticket"] = steamTicketHex;
@@ -1888,7 +1822,7 @@ namespace Stormancer
 
 			pplx::task<void> getSteamCredentials(std::function<void(const std::string& type, const std::string& provider, const std::string& steamTicketHex)> fulfillCredentialsCallback)
 			{
-				if (!_steamConfiguration->getAuthenticationEnabled())
+				if (!_steamState->getAuthenticationEnabled())
 				{
 					return pplx::task_from_result();
 				}
@@ -1961,7 +1895,7 @@ namespace Stormancer
 #pragma region private_members
 
 			std::recursive_mutex _mutex;
-			std::shared_ptr<details::SteamConfiguration> _steamConfiguration;
+			std::shared_ptr<details::SteamState> _steamState;
 			std::shared_ptr<pplx::task_completion_event<void>> _authTce; // shared_ptr used as an optional
 
 #pragma endregion
@@ -2000,10 +1934,10 @@ namespace Stormancer
 
 			void registerClientDependencies(ContainerBuilder& builder) override
 			{
-				builder.registerDependency<details::SteamConfiguration, Configuration>().singleInstance();
-				builder.registerDependency<details::SteamImpl, Users::UsersApi, details::SteamConfiguration, Configuration, IScheduler, ILogger, Party::PartyApi>().asSelf().as<SteamApi>().singleInstance();
+				builder.registerDependency<details::SteamState, Configuration>().singleInstance();
+				builder.registerDependency<details::SteamImpl, Users::UsersApi, details::SteamState, Configuration, IScheduler, ILogger, Party::PartyApi, Party::Platform::InvitationMessenger>().asSelf().as<SteamApi>().singleInstance();
 				builder.registerDependency<details::SteamPartyProvider, Party::Platform::InvitationMessenger, Users::UsersApi, details::SteamImpl, ILogger, Party::PartyApi, IActionDispatcher>().as<Party::Platform::IPlatformSupportProvider>();
-				builder.registerDependency<SteamAuthenticationEventHandler, details::SteamConfiguration>().as<Users::IAuthenticationEventHandler>();
+				builder.registerDependency<SteamAuthenticationEventHandler, details::SteamState>().as<Users::IAuthenticationEventHandler>();
 			}
 
 			void clientCreated(std::shared_ptr<IClient> client)

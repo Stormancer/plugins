@@ -232,6 +232,33 @@ namespace Stormancer
 					_productName = config->additionalParameters.find(ConfigurationKeys::ProductName) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ProductName) : "";
 					_productVersion = config->additionalParameters.find(ConfigurationKeys::ProductVersion) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ProductVersion) : "";
 					_diagnostics = config->additionalParameters.find(ConfigurationKeys::Diagnostics) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::Diagnostics) != "false" : false;
+
+					if (_loginMode.empty() && _exchangeCode.empty() && config->processLaunchArguments.size() > 1)
+					{
+						bool authTypeExchangecode = false;
+						bool exchangeCodeRetrieved = false;
+						std::string exchangeCode;
+						for (auto& arg : config->processLaunchArguments)
+						{
+							if (!authTypeExchangecode && arg == "-AUTH_TYPE=exchangecode")
+							{
+								authTypeExchangecode = true;
+							}
+							
+							if (!exchangeCodeRetrieved && arg.compare(0, 15, "-AUTH_PASSWORD=<password>", 15) == 0)
+							{
+								exchangeCode = arg.substr(15, arg.size() - 15);
+								exchangeCodeRetrieved = true;
+							}
+
+							if (authTypeExchangecode && exchangeCodeRetrieved)
+							{
+								_loginMode = "ExchangeCode";
+								_exchangeCode = exchangeCode;
+								break;
+							}
+						}
+					}
 				}
 
 				virtual ~EpicState()
@@ -583,11 +610,6 @@ namespace Stormancer
 					return "Epic";
 				}
 
-				std::string getSenderUsername() override
-				{
-					throw std::runtime_error("Not implemented");
-				}
-
 				std::string getPartySceneId()
 				{
 					return _partySceneId;
@@ -609,9 +631,8 @@ namespace Stormancer
 
 #pragma region public_methods
 
-				EpicApi(std::shared_ptr<IClient> client, std::shared_ptr<Users::UsersApi> usersApi, std::shared_ptr<EpicState> epicState, std::shared_ptr<Configuration> config, std::shared_ptr<IScheduler> scheduler, std::shared_ptr<ILogger> logger, std::shared_ptr<Party::PartyApi> partyApi)
+				EpicApi(std::shared_ptr<Users::UsersApi> usersApi, std::shared_ptr<EpicState> epicState, std::shared_ptr<Configuration> config, std::shared_ptr<IScheduler> scheduler, std::shared_ptr<ILogger> logger, std::shared_ptr<Party::PartyApi> partyApi)
 					: ClientAPI(usersApi, "stormancer.epic")
-					, _wClient(client)
 					, _epicState(epicState)
 					, _wScheduler(scheduler)
 					, _wActionDispatcher(config->actionDispatcher)
@@ -679,7 +700,52 @@ namespace Stormancer
 							_epicState->setPlatformHandleOwned(true);
 						}
 					}
+				}
 
+				void setPlatformHandle(EOS_HPlatform platformHandle)
+				{
+					_epicState->setPlatformHandle(platformHandle);
+				}
+
+				EOS_HPlatform getPlatformHandle()
+				{
+					return _epicState->getPlatformHandle();
+				}
+
+				EOS_EpicAccountId getEpicAccountId()
+				{
+					return _epicState->getEpicAccountId();
+				}
+
+#pragma endregion
+
+			private:
+
+#pragma region private_methods
+
+#pragma endregion
+
+#pragma region private_members
+
+				std::shared_ptr<ILogger> _logger;
+				std::shared_ptr<EpicState> _epicState;
+				std::weak_ptr<IScheduler> _wScheduler;
+				std::weak_ptr<IActionDispatcher> _wActionDispatcher;
+				std::weak_ptr<Users::UsersApi> _wUsersApi;
+				std::weak_ptr<Party::PartyApi> _wPartyApi;
+
+#pragma endregion
+			};
+
+			class EpicEventsManager
+			{
+			public:
+
+				EpicEventsManager(std::shared_ptr<IClient> client, std::shared_ptr<EpicState> epicState, std::shared_ptr<ILogger> logger)
+					: _wClient(client)
+					, _epicState(epicState)
+					, _logger(logger)
+				{
 					if (_epicState->getDiagnostics())
 					{
 						EOS_EResult SetLogCallbackResult = EOS_Logging_SetCallback(&EOSSDKLoggingCallback);
@@ -724,37 +790,11 @@ namespace Stormancer
 					}
 				}
 
-				void setPlatformHandle(EOS_HPlatform platformHandle)
-				{
-					_epicState->setPlatformHandle(platformHandle);
-				}
-
-				EOS_HPlatform getPlatformHandle()
-				{
-					return _epicState->getPlatformHandle();
-				}
-
-				EOS_EpicAccountId getEpicAccountId()
-				{
-					return _epicState->getEpicAccountId();
-				}
-
 				static void EOS_CALL EOSSDKLoggingCallback(const EOS_LogMessage* InMsg)
 				{
 					if (InMsg->Level != EOS_ELogLevel::EOS_LOG_Off)
 					{
-						if (InMsg->Level == EOS_ELogLevel::EOS_LOG_Error || InMsg->Level == EOS_ELogLevel::EOS_LOG_Fatal)
-						{
-							printf("[EOS SDK] %s: %s\n", InMsg->Category, InMsg->Message);
-						}
-						else if (InMsg->Level == EOS_ELogLevel::EOS_LOG_Warning)
-						{
-							printf("[EOS SDK] %s: %s\n", InMsg->Category, InMsg->Message);
-						}
-						else
-						{
-							printf("[EOS SDK] %s: %s\n", InMsg->Category, InMsg->Message);
-						}
+						printf("[EOS SDK] %s: %s\n", InMsg->Category, InMsg->Message);
 					}
 				}
 
@@ -791,8 +831,8 @@ namespace Stormancer
 							char senderId[EOS_PRODUCTUSERID_MAX_LENGTH];
 							int32_t senderIdBufferLength = EOS_PRODUCTUSERID_MAX_LENGTH;
 							EOS_ProductUserId_ToString(data->TargetUserId, senderId, &senderIdBufferLength);
-							auto epicInvitation = std::make_shared<EpicPartyInvitation>(senderId, data->Payload);
-							invitationMessenger->notifyInvitationReceived(epicInvitation);
+							auto epicPartyInvitation = std::make_shared<EpicPartyInvitation>(senderId, data->Payload);
+							invitationMessenger->notifyInvitationReceived(epicPartyInvitation);
 							//FGame::Get().GetCustomInvites()->HandleCustomInviteAccepted(Data->Payload, Data->CustomInviteId, Data->TargetUserId);
 						}
 					}
@@ -821,25 +861,11 @@ namespace Stormancer
 					}
 				}
 
-#pragma endregion
-
 			private:
-
-#pragma region private_methods
-
-#pragma endregion
-
-#pragma region private_members
 
 				std::weak_ptr<IClient> _wClient;
 				std::shared_ptr<ILogger> _logger;
 				std::shared_ptr<EpicState> _epicState;
-				std::weak_ptr<IScheduler> _wScheduler;
-				std::weak_ptr<IActionDispatcher> _wActionDispatcher;
-				std::weak_ptr<Users::UsersApi> _wUsersApi;
-				std::weak_ptr<Party::PartyApi> _wPartyApi;
-
-#pragma endregion
 			};
 
 			class EpicPartyProvider : public Party::Platform::IPlatformSupportProvider
@@ -894,7 +920,7 @@ namespace Stormancer
 
 #pragma endregion
 			};
-
+			
 			class EpicPartyEventHandler : public Party::IPartyEventHandler
 			{
 			public:
@@ -1226,8 +1252,10 @@ namespace Stormancer
 			{
 				builder.registerDependency<details::EpicState, Configuration, ILogger>().singleInstance();
 				builder.registerDependency<details::EpicTicker, Configuration, details::EpicState, ILogger>().asSelf().singleInstance();
-				builder.registerDependency<details::EpicApi, IClient, Users::UsersApi, details::EpicState, Configuration, IScheduler, ILogger, Party::PartyApi>().asSelf().as<IEpicApi>();
+				builder.registerDependency<details::EpicEventsManager, IClient, details::EpicState, ILogger>().asSelf().singleInstance();
+				builder.registerDependency<details::EpicApi, Users::UsersApi, details::EpicState, Configuration, IScheduler, ILogger, Party::PartyApi>().asSelf().as<IEpicApi>();
 				builder.registerDependency<details::EpicPartyProvider, Party::Platform::InvitationMessenger, Users::UsersApi, details::EpicState, details::EpicApi, ILogger, Party::PartyApi, IActionDispatcher>().as<Party::Platform::IPlatformSupportProvider>();
+				builder.registerDependency<details::EpicPartyEventHandler, ILogger, details::EpicState>().as<Party::IPartyEventHandler>();
 				builder.registerDependency<EpicAuthenticationEventHandler, details::EpicState, ILogger>().as<Users::IAuthenticationEventHandler>();
 			}
 
@@ -1235,6 +1263,8 @@ namespace Stormancer
 			{
 				auto epicApi = client->dependencyResolver().resolve<IEpicApi>();
 				epicApi->initialize();
+
+				auto epicEventsManager = client->dependencyResolver().resolve<details::EpicEventsManager>();
 
 				auto epicState = client->dependencyResolver().resolve<details::EpicState>();
 				if (epicState->getInitPlatform())

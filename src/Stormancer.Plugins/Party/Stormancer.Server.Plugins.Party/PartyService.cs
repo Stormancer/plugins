@@ -92,7 +92,8 @@ namespace Stormancer.Server.Plugins.Party
             StormancerPartyPlatformSupport stormancerPartyPlatformSupport,
             InvitationCodeService invitationCodes,
             PartyLuceneDocumentStore partyDocumentsStore,
-            PartyConfigurationService partyConfigurationService
+            PartyConfigurationService partyConfigurationService,
+            PartyAnalyticsWorker analyticsWorker
         )
         {
             _handlers = handlers;

@@ -137,7 +137,18 @@ class Build : NukeBuild
             var changeLog = Stormancer.Build.ChangeLog.ReadFrom(changelogFile);
             if (changeLog == null)
             {
-                await _channel.SendMessageAsync($"*[{BuildType} {Configuration}]* Publish skipped for `{project.Name}`. No changelog found.");
+                for (var i = 0; i < 2; i++)
+                {
+                    try
+                    {
+                        await _channel.SendMessageAsync($"*[{BuildType} {Configuration}]* Publish skipped for `{project.Name}`. No changelog found.");
+                        continue;
+                    }
+                    catch (Exception)
+                    {
+                        await Task.Delay(500);
+                    }
+                }
                 continue;
             }
 

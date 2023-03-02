@@ -19,6 +19,7 @@ Changed
 Added
 *****
 - Added IsPersistentServer configuration to set wether the server of a gamesession should be stopped and the scene destroyed when the last player disconnects.
+- Added More analytics
 
 6.0.2
 -----
