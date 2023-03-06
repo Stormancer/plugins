@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -23,9 +24,9 @@ namespace Stormancer.GameServers.Agent
         private readonly DockerAgentConfigurationOptions _options;
 
         public DockerService(
-            ILogger<DockerService> logger, 
-            IConfiguration configuration, 
-            PortsManager portsManager, 
+            ILogger<DockerService> logger,
+            IConfiguration configuration,
+            PortsManager portsManager,
             Messager messager)
         {
             var dockerConfig = new DockerClientConfiguration();
@@ -143,6 +144,33 @@ namespace Stormancer.GameServers.Agent
             }
         }
 
+
+
+        internal async Task<> GetContainerLogsAsync(string containerId, DateTime? since, DateTime? until, uint size, CancellationToken cancellationToken)
+        {
+            var args = new ContainerLogsParameters { Follow = false, ShowStderr = true, ShowStdout = true, Timestamps = true };
+            if (size > 0)
+            {
+                args.Tail = size.ToString();
+            }
+            if (since != null)
+            {
+                args.Since = since.ToString();
+
+            }
+            if (until != null)
+            {
+                args.Until = until.ToString();
+            }
+
+            var stream = await _docker.Containers.GetContainerLogsAsync(containerId, false, args, cancellationToken);
+
+            var (stdout, stderr) = await stream.ReadOutputToEndAsync(cancellationToken);
+
+
+
+        }
+
         private bool _shouldMonitorDocker = true;
         private DateTime _monitorSince;
         private async Task StartMonitorDocker()
@@ -193,6 +221,8 @@ namespace Stormancer.GameServers.Agent
                 }
             }
         }
+
+
     }
 
     public class ServerContainer : IDisposable
@@ -233,5 +263,11 @@ namespace Stormancer.GameServers.Agent
     public class ServerContainerStateChange
     {
         public ServerContainer Container { get; set; }
+    }
+
+    public class GetLogsResult
+    {
+        public string StdOut { get; set; }
+        public string StdErr { get; set; }
     }
 }

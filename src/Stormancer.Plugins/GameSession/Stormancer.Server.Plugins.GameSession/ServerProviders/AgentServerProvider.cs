@@ -1,4 +1,5 @@
 ﻿using Docker.DotNet.Models;
+using MsgPack.Serialization;
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Users;
@@ -6,10 +7,12 @@ using Stormancer.Server.Secrets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 {
@@ -139,20 +142,48 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public const string TYPE = "stormancer.gameserver.agent";
     }
 
-    internal class AgentBasedGameServerProvider : IGameServerProvider
+    public class DockerAgent
+    {
+        public DockerAgent(IScenePeerClient peer, Session session)
+        {
+            Id = session.User.Id;
+            Peer = peer;
+            Session = session;
+
+
+            Description = new AgentDescription
+            {
+                Id = session.User.Id,
+                Claims = session.User.UserData["claims"].ToObject<Dictionary<string, string>>()
+            };
+            if (Description.Claims.TryGetValue("fault", out var fault))
+            {
+                Fault = fault;
+            }
+        }
+
+        public string Id { get; }
+        public IScenePeerClient Peer { get; }
+        public Session Session { get; }
+        public string? Fault { get; }
+        public bool Faulted => Fault != null;
+
+        public AgentDescription Description { get; }
+    }
+    public class AgentBasedGameServerProvider : IGameServerProvider
     {
         private object _syncRoot = new object();
-        private Dictionary<string, (IScenePeerClient, Session)> _agents = new();
+        private Dictionary<string, DockerAgent> _agents = new();
 
         public void AgentConnected(IScenePeerClient peer, Session agentSession)
         {
             lock (_syncRoot)
             {
-                _agents.Add(agentSession.User.Id, (peer, agentSession));
+                _agents.Add(agentSession.User.Id, new DockerAgent(peer, agentSession));
             }
         }
 
-        public void AgentDisconnected(IScenePeerClient, Session agentSession)
+        public void AgentDisconnected(IScenePeerClient _, Session agentSession)
         {
             lock (_syncRoot)
             {
@@ -160,29 +191,25 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             }
         }
 
-        private IEnumerable<AgentDescription> GetAgents()
+        public IEnumerable<DockerAgent> GetAgents()
         {
             lock (_syncRoot)
             {
-                foreach (var (id, (peer, session)) in _agents)
+                foreach (var (id, agent) in _agents)
                 {
-                    yield return new AgentDescription
-                    {
-                        Id = id,
-                        Claims = session.User.UserData["claims"].ToObject<Dictionary<string, string>>()
-                    }
+                    yield return agent;
                 }
             }
         }
 
         public async IAsyncEnumerable<ContainerDescription> GetRunningContainers()
         {
-            List<Task<IEnumerable<ContainerDescription>>> tasks = new List<Task<IEnumerable<ContainerDescription>>>
+            List<Task<IEnumerable<ContainerDescription>>> tasks = new List<Task<IEnumerable<ContainerDescription>>>();
             lock (_syncRoot)
             {
-                foreach (var (id, (peer, session)) in _agents)
+                foreach (var (id, agent) in _agents)
                 {
-                    tasks.Add(GetRunningContainers(peer));
+                    tasks.Add(GetRunningContainers(agent.Peer));
                 }
             }
 
@@ -213,21 +240,48 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             return peer.RpcTask<bool, IEnumerable<ContainerDescription>>("agent.getRunningContainers", true);
         }
 
-        public Task StartContainer(string agentId, string image, string containerId, float cpuQuota, int memoryQuota)
+        public Task<ContainerStartResponse> StartContainer(string agentId, string image, string containerId, float cpuQuota, int memoryQuota)
         {
-            IScenePeerClient
-            return peer.RpcT("agent.getRunningContainers", true);
+            DockerAgent? agent;
+            lock(_syncRoot)
+            {
+                if(!_agents.TryGetValue(agentId,out agent))
+                {
+                    throw new InvalidOperationException("Agent not found");
+                }
+            }
+
+            return agent.Peer.RpcTask<ContainerStartParameters,ContainerStartResponse>("agent.tryStartContainer", new ContainerStartParameters { containerId = containerId, cpuQuota = cpuQuota, Image = image, MemoryQuota = memoryQuota  });
         }
 
-        public Task StopContainer(string agentId, string containerId)
+        public Task<ContainerStopResponse> StopContainer(string agentId, string containerId)
         {
+            DockerAgent? agent;
+            lock (_syncRoot)
+            {
+                if (!_agents.TryGetValue(agentId, out agent))
+                {
+                    throw new InvalidOperationException("Agent not found");
+                }
+            }
 
+            return agent.Peer.RpcTask<ContainerStopParameters, ContainerStopResponse>("agent.stopContainer", new ContainerStopParameters {ContainerId = containerId });
         }
 
-        public Task<IEnumerable<string>> GetLogs(string agentId, )
+        public Task<GetContainerLogsResponse> GetLogs(string agentId,string containerId )
+        {
+            DockerAgent? agent;
+            lock (_syncRoot)
+            {
+                if (!_agents.TryGetValue(agentId, out agent))
+                {
+                    throw new InvalidOperationException("Agent not found");
+                }
+            }
 
+            return agent.Peer.RpcTask<GetContainerLogsParameters, GetContainerLogsResponse>("agent.getLogs", new GetContainerLogsParameters { ContainerId = containerId });
+        }
 
-        private IAsyncEnumerable<>
 
         public string Type => GameServerAgentConstants.TYPE;
 
@@ -250,19 +304,6 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
     }
 
 
-    public class ContainerDescription
-    {
-        public string Id { get; set; }
 
-        public string Image { get; set; }
-        public DateTime CreatedOn { get; set; }
-
-        public string AgentId { get; set; }
-
-        public float CpuQuota { get; set; }
-        public float CpuUsage { get; set; }
-        public int MemoryQuota { get; set; }
-        public int MemoryUsage { get; set; }
-    }
 
 }

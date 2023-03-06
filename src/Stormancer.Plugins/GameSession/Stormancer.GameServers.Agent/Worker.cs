@@ -1,3 +1,5 @@
+using RakNet;
+
 namespace Stormancer.GameServers.Agent
 {
     public class Worker : BackgroundService
@@ -5,7 +7,7 @@ namespace Stormancer.GameServers.Agent
         private readonly ILogger<Worker> _logger;
         private readonly DockerAgentConfigurationOptions _options;
 
-        public Worker(ILogger<Worker> logger, IConfiguration configuration)
+        public Worker(ILogger<Worker> logger, IConfiguration configuration, IAgentController controller)
         {
             _logger = logger;
 
@@ -14,7 +16,7 @@ namespace Stormancer.GameServers.Agent
             ClientFactory.SetConfigFactory(() =>
             {
                 var config = Stormancer.ClientConfiguration.Create(_options.StormancerEndpoint, _options.StormancerAccount, _options.StormancerApplication);
-                config.Plugins.Add(new GameServerAgentPlugin(config));
+                config.Plugins.Add(new GameServerAgentPlugin(_options,controller));
                 return config;
             });
         }

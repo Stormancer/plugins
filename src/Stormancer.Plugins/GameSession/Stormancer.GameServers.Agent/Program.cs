@@ -7,6 +7,7 @@ IHost host = Host.CreateDefaultBuilder(args)
         services.AddSingleton<Messager>();
         services.AddSingleton<DockerService>();
         services.AddSingleton<PortsManager>();
+        services.AddSingleton<AgentController>();
         
     })
     .Build();
