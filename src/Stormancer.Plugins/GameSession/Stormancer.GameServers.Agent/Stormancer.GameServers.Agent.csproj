@@ -8,9 +8,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\Stormancer.Server.Plugins.GameSession\Dto\HostingAgentDtos.cs" Link="HostingAgentDtos.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Docker.DotNet" Version="3.125.12" />
     <PackageReference Include="jose-jwt" Version="4.1.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
     <PackageReference Include="Stormancer.Client" Version="3.4.4.3" />
+    <PackageReference Include="System.Linq.Async" Version="6.0.1" />
   </ItemGroup>
 </Project>

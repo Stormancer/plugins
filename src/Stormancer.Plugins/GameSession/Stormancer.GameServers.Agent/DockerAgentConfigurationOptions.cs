@@ -23,7 +23,7 @@ namespace Stormancer.GameServers.Agent
         public Dictionary<string, string> Attributes { get; set; } = new Dictionary<string, string>();
 
         public uint MaxMemory { get; set; }
-        public uint MaxCpu { get; set; }
+        public float MaxCpu { get; set; }
         public string Id { get; set; } = Environment.MachineName;
 
         public ConfigurationValidationModel Validate()

@@ -39,23 +39,23 @@ namespace Stormancer.GameServers.Agent
                     scene.AddProcedure("agent.getRunningContainers",async ctx => {
                         var args = ctx.ReadObject<GetRunningContainersParameters>();
 
-                        ctx.SendValue<GetRunningContainersResponse>(await controller.GetRunningContainers(args));
+                        ctx.SendValue(await controller.GetRunningContainers(args));
 
                     });
                     scene.AddProcedure("agent.tryStartContainer", async ctx => {
                         var args = ctx.ReadObject<ContainerStartParameters>();
 
-                        ctx.SendValue<ContainerStartResponse>(await controller.TryStartContainer(args));
+                        ctx.SendValue(await controller.TryStartContainer(args));
                     });
                     scene.AddProcedure("agent.stopContainer", async ctx => {
                         var args = ctx.ReadObject<ContainerStopParameters>();
 
-                        ctx.SendValue<ContainerStopResponse>(await controller.StopContainer(args));
+                        ctx.SendValue(await controller.StopContainer(args));
                     });
                     scene.AddProcedure("agent.getLogs",async ctx => {
                         var args = ctx.ReadObject<GetContainerLogsParameters>();
 
-                        ctx.SendValue(await controller.GetContainerLogs(args));
+                        ctx.SendValue(await controller.GetContainerLogs(args,ctx.CancellationToken));
                     });
                 }
             };

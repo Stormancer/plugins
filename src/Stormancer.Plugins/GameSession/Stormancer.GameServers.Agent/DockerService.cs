@@ -2,16 +2,24 @@
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using Microsoft.Extensions.Configuration;
+using RakNet;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Reactive;
+using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.GameServers.Agent
 {
+    public class ContainerInfos
+    {
+
+    }
     internal class DockerService : IDisposable, IProgress<Message>
     {
         private object _lock = new object();
@@ -22,6 +30,7 @@ namespace Stormancer.GameServers.Agent
         private readonly PortsManager _portsManager;
         private readonly Messager _messager;
         private readonly DockerAgentConfigurationOptions _options;
+
 
         public DockerService(
             ILogger<DockerService> logger,
@@ -57,6 +66,31 @@ namespace Stormancer.GameServers.Agent
 
         private Dictionary<string, ServerContainer> _trackedContainers = new Dictionary<string, ServerContainer>();
 
+        public long TotalMemory => _options.MaxMemory;
+        public float TotalCpu => _options.MaxCpu;
+
+        public long UsedMemory
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    return _trackedContainers.Sum(kvp => kvp.Value.Memory);
+                }
+            }
+        }
+
+        public float UsedCpu
+        {
+            get
+            {
+                lock(_lock)
+                {
+                    return _trackedContainers.Sum(kvp => kvp.Value.CpuQuota);
+                }
+            }
+
+        }
         public Action<ServerContainerStateChange>? OnContainerStateChanged { get; set; }
 
         public async Task<ServerContainer> StartContainer(
@@ -65,7 +99,7 @@ namespace Stormancer.GameServers.Agent
             Dictionary<string, string> labels,
             Dictionary<string, string> environmentVariables,
             long memory,
-            long cpuCount)
+            float cpuQuota)
         {
             _logger.Log(LogLevel.Information, "Starting docker container {name} from image '{image}'.", name, image);
             var images = await _docker.Images.ListImagesAsync(new ImagesListParameters { All = true });
@@ -99,8 +133,10 @@ namespace Stormancer.GameServers.Agent
                             }
                         }
                     },
+                    
                     Memory = memory,
-                    CPUCount = cpuCount
+                    CPUPeriod = 100000,
+                    CPUQuota =  (long)(100000*cpuQuota)
 
                 },
 
@@ -115,7 +151,7 @@ namespace Stormancer.GameServers.Agent
 
             _logger.Log(LogLevel.Information, "Starting docker container {id} from image {image}.", response.ID, image);
 
-            var container = new ServerContainer(response.ID, new List<string> { name }, image, DateTime.UtcNow);
+            var container = new ServerContainer(response.ID, new List<string> { name }, image, DateTime.UtcNow, memory, cpuQuota);
 
 
 
@@ -138,15 +174,61 @@ namespace Stormancer.GameServers.Agent
         {
             var response = await _docker.Containers.ListContainersAsync(new Docker.DotNet.Models.ContainersListParameters { All = true });
 
+
             foreach (var container in response)
             {
-                yield return new ServerContainer(container.ID, container.Names, container.Image, container.Created);
+                if (_trackedContainers.TryGetValue(container.ID, out var server))
+                {
+                    yield return server;
+                }
+
             }
+        }
+
+        private class ContainerStatsResponseSource : IProgress<ContainerStatsResponse>
+        {
+            private Subject<ContainerStatsResponse> _completed = new Subject<ContainerStatsResponse>();
+
+
+            public ContainerStatsResponseSource(DockerClient docker, string id, ContainerStatsParameters containerStatsParameters, CancellationToken cancellationToken)
+            {
+                _ = RunRequest(docker, id, containerStatsParameters, cancellationToken);
+            }
+
+            public void Report(ContainerStatsResponse value)
+            {
+                _completed.OnNext(value);
+            }
+
+
+            private async Task RunRequest(DockerClient docker, string id, ContainerStatsParameters containerStatsParameters, CancellationToken cancellationToken)
+            {
+                try
+                {
+                    await docker.Containers.GetContainerStatsAsync(id, containerStatsParameters, this, cancellationToken);
+                    _completed.OnCompleted();
+                }
+                catch (Exception ex)
+                {
+                    _completed.OnError(ex);
+                }
+            }
+            public IAsyncEnumerable<ContainerStatsResponse> GetResponses()
+            {
+
+                return _completed.ToAsyncEnumerable();
+            }
+
+        }
+        public IAsyncEnumerable<ContainerStatsResponse> GetContainerStatsAsync(string id, bool stream, bool oneShot, CancellationToken cancellationToken)
+        {
+            var source = new ContainerStatsResponseSource(_docker, id, new ContainerStatsParameters { Stream = false, OneShot = true }, cancellationToken);
+            return source.GetResponses();
         }
 
 
 
-        internal async Task<> GetContainerLogsAsync(string containerId, DateTime? since, DateTime? until, uint size, CancellationToken cancellationToken)
+        internal async Task<GetLogsResult> GetContainerLogsAsync(string containerId, DateTime? since, DateTime? until, uint size, CancellationToken cancellationToken)
         {
             var args = new ContainerLogsParameters { Follow = false, ShowStderr = true, ShowStdout = true, Timestamps = true };
             if (size > 0)
@@ -167,7 +249,7 @@ namespace Stormancer.GameServers.Agent
 
             var (stdout, stderr) = await stream.ReadOutputToEndAsync(cancellationToken);
 
-
+            return new GetLogsResult { StdErr = stderr, StdOut = stdout };
 
         }
 
@@ -227,18 +309,22 @@ namespace Stormancer.GameServers.Agent
 
     public class ServerContainer : IDisposable
     {
-        internal ServerContainer(string id, IList<string> names, string image, DateTime created)
+        internal ServerContainer(string id, IList<string> names, string image, DateTime created, long memory, float cpuCount)
         {
             Id = id;
             Names = names;
             Image = image;
             Created = created;
+            Memory = memory;
+            CpuQuota = cpuCount;
         }
 
         public string Id { get; }
         public IList<string> Names { get; }
         public string Image { get; }
         public DateTime Created { get; }
+        public long Memory { get; }
+        public float CpuQuota { get; }
 
         public void AddResource(IDisposable resource)
         {

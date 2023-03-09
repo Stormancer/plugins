@@ -1,8 +1,11 @@
-﻿using Stormancer.Server.Plugins.GameSession.ServerProviders;
+﻿using Stormancer.Plugins;
+using Stormancer.Server.Plugins.GameSession.ServerProviders;
+using System.Diagnostics;
+using System.Linq;
 
 namespace Stormancer.GameServers.Agent
 {
-    public class AgentController
+    internal class AgentController
     {
         private readonly DockerService _docker;
 
@@ -11,24 +14,34 @@ namespace Stormancer.GameServers.Agent
             _docker = docker;
         }
 
-        internal Task<GetContainerLogsResponse> GetContainerLogs(GetContainerLogsParameters args)
+        public UserApi? UserApi { get; set; }
+
+        internal async Task<GetContainerLogsResponse> GetContainerLogs(GetContainerLogsParameters args, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var result = await _docker.GetContainerLogsAsync(args.ContainerId,args.Since,args.Until, args.Size,cancellationToken);
+
+
+            var response = new GetContainerLogsResponse { StdOut = result.StdOut.Split(Environment.NewLine), StdErr = result.StdErr.Split(Environment.NewLine) };
+            return response;
         }
 
-        internal Task<GetRunningContainersResponse> GetRunningContainers(GetRunningContainersParameters args)
+        internal async Task<GetRunningContainersResponse> GetRunningContainers(GetRunningContainersParameters args)
         {
-            throw new NotImplementedException();
+            Debug.Assert(UserApi!=null);
+            var containers = await _docker.ListContainers().ToListAsync();
+            var response = new GetRunningContainersResponse { Containers = containers.Select(c=>new ContainerDescription { AgentId  = UserApi.UserId, Id = c.Id, Image = c.Image, CreatedOn = c.Created,  }) };
         }
 
-        internal Task<ContainerStopResponse> StopContainer(ContainerStopParameters args)
+        internal async Task<ContainerStopResponse> StopContainer(ContainerStopParameters args)
         {
-            throw new NotImplementedException();
+             await _docker.StopContainer(args.ContainerId, args.WaitBeforeKillSeconds);
+
+            return new ContainerStopResponse {  };
         }
 
-        internal Task<ContainerStartResponse> TryStartContainer(ContainerStartParameters args)
+        internal async Task<ContainerStartResponse> TryStartContainer(ContainerStartParameters args)
         {
-            throw new NotImplementedException();
+            await _docker.StartContainer(args.Image, args.containerId,new Dictionary<string, string>(),args.EnvironmentVariables,args.MemoryQuota,args.cpuQuota)
         }
     }
 }

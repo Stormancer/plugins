@@ -8,6 +8,10 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 {
+    public class GetRunningContainersParameters
+    {
+
+    }
     public class GetRunningContainersResponse
     {
         [MessagePackMember(0)]
@@ -40,7 +44,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public string AgentId { get; set; }
 
         [MessagePackMember(4)]
-        public float CpuQuota { get; set; }
+        public long CpuQuota { get; set; }
 
         [MessagePackMember(5)]
         public float CpuUsage { get; set; }
@@ -61,10 +65,13 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public string containerId { get; set; }
 
         [MessagePackMember(2)]
-        public float cpuQuota { get; set; }
+        public long cpuQuota { get; set; }
 
         [MessagePackMember(3)]
         public int MemoryQuota { get; set; }
+
+        [MessagePackMember(4)]
+        public Dictionary<string, string> EnvironmentVariables { get; internal set; }
     }
 
     public class ContainerStartResponse
@@ -89,6 +96,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
     {
         [MessagePackMember(0)]
         public string ContainerId { get; set; }
+
+        [MessagePackMember(1)]
+        public uint WaitBeforeKillSeconds { get; internal set; }
     }
     public class ContainerStopResponse
     {
@@ -109,11 +119,23 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
     {
         [MessagePackMember(0)]
         public string ContainerId { get; set; }
+
+        [MessagePackMember(1)]
+        public DateTime? Since { get; internal set; }
+
+        [MessagePackMember(2)]
+        public DateTime? Until { get; internal set; }
+
+        [MessagePackMember(3)]
+        public uint Size { get; internal set; }
     }
 
     public class GetContainerLogsResponse
     {
         [MessagePackMember(0)]
-        public IEnumerable<string> Logs { get; set; }
+        public IEnumerable<string> StdOut { get; set; }
+
+        [MessagePackMember(1)]
+        public IEnumerable<string> StdErr { get; internal set; }
     }
 }
