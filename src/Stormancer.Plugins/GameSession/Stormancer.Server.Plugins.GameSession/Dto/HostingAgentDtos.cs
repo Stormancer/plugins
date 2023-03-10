@@ -1,7 +1,9 @@
 ﻿using MsgPack.Serialization;
+using Stormancer.GameServers.Agent;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -32,37 +34,37 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
     public class ContainerDescription
     {
         [MessagePackMember(0)]
-        public string Id { get; set; }
+        public string? ContainerId { get; set; } = default!;
+
 
         [MessagePackMember(1)]
-        public string Image { get; set; }
+        public string Image { get; set; } = default!;
 
         [MessagePackMember(2)]
         public DateTime CreatedOn { get; set; }
 
         [MessagePackMember(3)]
-        public string AgentId { get; set; }
+        public string AgentId { get; set; } = default!;
 
         [MessagePackMember(4)]
-        public long CpuQuota { get; set; }
+        public float CpuQuota { get; set; }
 
         [MessagePackMember(5)]
-        public float CpuUsage { get; set; }
+        public long MemoryQuota { get; set; }
 
         [MessagePackMember(6)]
-        public int MemoryQuota { get; set; }
+        public string Name { get; set; } = default!;
 
-        [MessagePackMember(7)]
-        public int MemoryUsage { get; set; }
+      
     }
 
     public class ContainerStartParameters
     {
         [MessagePackMember(0)]
-        public string Image { get; set; }
+        public string Image { get; set; } = default!;
 
         [MessagePackMember(1)]
-        public string containerId { get; set; }
+        public string containerId { get; set; } = default!;
 
         [MessagePackMember(2)]
         public long cpuQuota { get; set; }
@@ -71,7 +73,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public int MemoryQuota { get; set; }
 
         [MessagePackMember(4)]
-        public Dictionary<string, string> EnvironmentVariables { get; internal set; }
+        public Dictionary<string, string> EnvironmentVariables { get; internal set; } = default!;
     }
 
     public class ContainerStartResponse
@@ -86,16 +88,19 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public float CurrentCpuQuotaUsed { get; set; }
 
         [MessagePackMember(3)]
-        public int TotalMemoryQuotaAvailable { get; set; }
+        public long TotalMemoryQuotaAvailable { get; set; }
 
         [MessagePackMember(4)]
-        public int CurrentMemoryQuotaUsed { get; set; }
+        public long CurrentMemoryQuotaUsed { get; set; }
+
+        [MessagePackMember(5)]
+        public ContainerDescription? Container { get; set; }
     }
 
     public class ContainerStopParameters
     {
         [MessagePackMember(0)]
-        public string ContainerId { get; set; }
+        public string ContainerId { get; set; } = default!;
 
         [MessagePackMember(1)]
         public uint WaitBeforeKillSeconds { get; internal set; }
@@ -109,33 +114,73 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public float CurrentCpuQuotaUsed { get; set; }
 
         [MessagePackMember(3)]
-        public int TotalMemoryQuotaAvailable { get; set; }
+        public long TotalMemoryQuotaAvailable { get; set; }
 
         [MessagePackMember(4)]
-        public int CurrentMemoryQuotaUsed { get; set; }
+        public long CurrentMemoryQuotaUsed { get; set; }
     }
 
     public class GetContainerLogsParameters
     {
         [MessagePackMember(0)]
-        public string ContainerId { get; set; }
+        public string ContainerId { get; set; } = default!;
 
         [MessagePackMember(1)]
-        public DateTime? Since { get; internal set; }
+        public DateTime? Since { get;  set; }
 
         [MessagePackMember(2)]
-        public DateTime? Until { get; internal set; }
+        public DateTime? Until { get;  set; }
 
         [MessagePackMember(3)]
-        public uint Size { get; internal set; }
+        public uint Size { get;  set; }
+
+        [MessagePackMember(4)]
+        public bool Follow { get;  set; }
     }
 
-    public class GetContainerLogsResponse
+   
+
+    public enum ContainerStatusUpdateType
+    {
+        Start,
+        Stop,
+        
+    }
+    public class ContainerStatusUpdate
     {
         [MessagePackMember(0)]
-        public IEnumerable<string> StdOut { get; set; }
+        public float ReservedCpu { get; set; }
 
         [MessagePackMember(1)]
-        public IEnumerable<string> StdErr { get; internal set; }
+        public float TotalCpu { get; set; }
+
+        [MessagePackMember(2)]
+        public long ReservedMemory { get; set; }
+
+        [MessagePackMember(3)]
+        public long TotalMemory { get; set; }
+
+        [MessagePackMember(4)]
+        public ContainerDescription Container { get; set; } = default!;
+
+        [MessagePackMember(5)]
+        public ContainerStatusUpdateType EventType { get; set; }
+    }
+
+    public class GetContainerStatsParameters
+    {
+        [MessagePackMember(0)]
+        public string ContainerId { get; set; } = default!;
+
+        [MessagePackMember(1)]
+        public bool Stream { get;  set; }
+
+        [MessagePackMember(2)]
+        public bool OneShot { get;  set; }
+    }
+
+    public class GetContainerStatsResponse
+    {
+
     }
 }

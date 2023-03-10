@@ -1,6 +1,7 @@
 ﻿using Stormancer.Plugins;
 using Stormancer.Server.Plugins.GameSession.ServerProviders;
 using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -42,20 +43,43 @@ namespace Stormancer.GameServers.Agent
                         ctx.SendValue(await controller.GetRunningContainers(args));
 
                     });
+
                     scene.AddProcedure("agent.tryStartContainer", async ctx => {
                         var args = ctx.ReadObject<ContainerStartParameters>();
 
                         ctx.SendValue(await controller.TryStartContainer(args));
                     });
+
                     scene.AddProcedure("agent.stopContainer", async ctx => {
                         var args = ctx.ReadObject<ContainerStopParameters>();
 
                         ctx.SendValue(await controller.StopContainer(args));
                     });
+
                     scene.AddProcedure("agent.getLogs",async ctx => {
                         var args = ctx.ReadObject<GetContainerLogsParameters>();
+                        await foreach(var block in controller.GetContainerLogs(args, ctx.CancellationToken))
+                        {
+                            ctx.SendValue(block);
+                        }
+                    });
 
-                        ctx.SendValue(await controller.GetContainerLogs(args,ctx.CancellationToken));
+                    scene.AddProcedure("agent.getDockerEvents", async ctx =>
+                    {
+                        await foreach(var evt in controller.SubscribeToContainerUpdates(ctx.CancellationToken))
+                        {
+                            ctx.SendValue(evt);
+                        }
+                    });
+
+                    scene.AddProcedure("agent.getContainerStats", async ctx =>
+                    {
+                        var args = ctx.ReadObject<GetContainerStatsParameters>();
+
+                        await foreach (var stat in controller.GetContainerStats(args, ctx.CancellationToken))
+                        {
+                            ctx.SendValue(stat);
+                        }
                     });
                 }
             };

@@ -1034,10 +1034,17 @@ namespace Stormancer.Server.Plugins.GameSession
             await CloseGameServer();
         }
 
-        public GameSessionConfigurationDto GetGameSessionConfig()
+        public GameSessionConfigurationDto? GetGameSessionConfig()
         {
-            Debug.Assert(_config != null);
-            return new GameSessionConfigurationDto { Teams = _config.TeamsList, Parameters = _config.Parameters, UserIds = _config.UserIds, HostUserId = _config.HostUserId, GameFinder = _config.GameFinder };
+            if (_config == null)
+            {
+                return null;
+            }
+            else
+            {
+                return new GameSessionConfigurationDto { Teams = _config.TeamsList, Parameters = _config.Parameters, UserIds = _config.UserIds, HostUserId = _config.HostUserId, GameFinder = _config.GameFinder };
+            }
+            
         }
 
 
