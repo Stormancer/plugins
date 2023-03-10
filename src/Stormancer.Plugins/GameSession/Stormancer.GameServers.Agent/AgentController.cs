@@ -29,7 +29,7 @@ namespace Stormancer.GameServers.Agent
         {
             Debug.Assert(UserApi!=null);
             var containers = await _docker.ListContainers().ToListAsync();
-            var response = new GetRunningContainersResponse { Containers = containers.Select(c=>new ContainerDescription { AgentId  = UserApi.UserId, Id = c.Id, Image = c.Image, CreatedOn = c.Created,  }) };
+            var response = new GetRunningContainersResponse { Containers = containers.Select(c=>new ContainerDescription { AgentId  = UserApi.UserId, Id = c.DockerContainerId, Image = c.Image, CreatedOn = c.Created,  }) };
         }
 
         internal async Task<ContainerStopResponse> StopContainer(ContainerStopParameters args)

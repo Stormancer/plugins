@@ -20,6 +20,13 @@ namespace Stormancer.GameServers.Agent
     {
 
     }
+
+    public class StartContainerResult
+    {
+        public bool Success { get; set; }
+
+        public ServerContainer? Container { get; set; }
+    }
     internal class DockerService : IDisposable, IProgress<Message>
     {
         private object _lock = new object();
@@ -93,38 +100,57 @@ namespace Stormancer.GameServers.Agent
         }
         public Action<ServerContainerStateChange>? OnContainerStateChanged { get; set; }
 
-        public async Task<ServerContainer> StartContainer(
+        public async Task<StartContainerResult> StartContainer(
             string image,
-            string name,
+            string id,
             Dictionary<string, string> labels,
             Dictionary<string, string> environmentVariables,
             long memory,
             float cpuQuota)
         {
-            _logger.Log(LogLevel.Information, "Starting docker container {name} from image '{image}'.", name, image);
-            var images = await _docker.Images.ListImagesAsync(new ImagesListParameters { All = true });
-            if (!images.Any(i => i.RepoTags.Contains(image)))
+            ServerContainer serverContainer;
+            lock(_trackedContainers)
             {
-                _logger.Log(LogLevel.Information, "Downloading image {name}...", image);
-                await _docker.Images.CreateImageAsync(new ImagesCreateParameters { FromImage = image }, new AuthConfig { }, NullDockerJsonMessageProgress.Instance);
-                _logger.Log(LogLevel.Information, "Image {name} downloaded.", image);
+                if(memory + this.UsedMemory > this.TotalMemory)
+                {
+                    return new StartContainerResult { Success = false };
+                }
+
+                if(cpuQuota +this.UsedCpu > this.TotalCpu)
+                {
+                    return new StartContainerResult { Success = false };
+                }
+                serverContainer = new ServerContainer(id, image, DateTime.UtcNow, memory, cpuQuota);
+                _trackedContainers.Add(id,serverContainer);
             }
 
-
-            var publicIp = _options.PublicIp;
-            var portReservation = _portsManager.AcquirePort();
-            CreateContainerParameters parameters = new CreateContainerParameters()
+            try
             {
-                Image = image,
-                Name = name,
-                Labels = labels,
-                HostConfig = new HostConfig()
-                {
 
-                    DNS = new[] { "8.8.8.8", "8.8.4.4" },//Use Google DNS. 
-                    PortBindings = new Dictionary<string, IList<PortBinding>>
+                _logger.Log(LogLevel.Information, "Starting docker container {name} from image '{image}'.", id, image);
+                var images = await _docker.Images.ListImagesAsync(new ImagesListParameters { All = true });
+                if (!images.Any(i => i.RepoTags.Contains(image)))
+                {
+                    _logger.Log(LogLevel.Information, "Downloading image {name}...", image);
+                    await _docker.Images.CreateImageAsync(new ImagesCreateParameters { FromImage = image }, new AuthConfig { }, NullDockerJsonMessageProgress.Instance);
+                    _logger.Log(LogLevel.Information, "Image {name} downloaded.", image);
+                }
+
+
+                var publicIp = _options.PublicIp;
+                var portReservation = _portsManager.AcquirePort();
+                CreateContainerParameters parameters = new CreateContainerParameters()
+                {
+                    Image = image,
+                    Name = id,
+                    Labels = labels,
+                    HostConfig = new HostConfig()
                     {
-                        [portReservation.Port + "/udp"] = new List<PortBinding>
+
+                        DNS = new[] { "8.8.8.8", "8.8.4.4" },//Use Google DNS. 
+                        PortBindings = new Dictionary<string, IList<PortBinding>>
+                        {
+                            [portReservation.Port + "/udp"] = new List<PortBinding>
                         {
                             new PortBinding
                             {
@@ -132,34 +158,42 @@ namespace Stormancer.GameServers.Agent
                                 HostPort = portReservation.Port.ToString()
                             }
                         }
+                        },
+
+                        Memory = memory,
+                        CPUPeriod = 100000,
+                        CPUQuota = (long)(100000 * cpuQuota)
+
                     },
-                    
-                    Memory = memory,
-                    CPUPeriod = 100000,
-                    CPUQuota =  (long)(100000*cpuQuota)
 
-                },
+                    ExposedPorts = new Dictionary<string, EmptyStruct> { { portReservation.Port + "/udp", new EmptyStruct() } },
+                    Env = environmentVariables.Select(kvp => $"{kvp.Key}={kvp.Value}").ToList(),
 
-                ExposedPorts = new Dictionary<string, EmptyStruct> { { portReservation.Port + "/udp", new EmptyStruct() } },
-                Env = environmentVariables.Select(kvp => $"{kvp.Key}={kvp.Value}").ToList(),
+                };
 
-            };
+                _logger.Log(LogLevel.Information, "Creating docker container from image {image}.", image);
 
-            _logger.Log(LogLevel.Information, "Creating docker container from image {image}.", image);
+                var response = await _docker.Containers.CreateContainerAsync(parameters);
 
-            var response = await _docker.Containers.CreateContainerAsync(parameters);
+                _logger.Log(LogLevel.Information, "Starting docker container {id} from image {image}.", response.ID, image);
 
-            _logger.Log(LogLevel.Information, "Starting docker container {id} from image {image}.", response.ID, image);
-
-            var container = new ServerContainer(response.ID, new List<string> { name }, image, DateTime.UtcNow, memory, cpuQuota);
+                serverContainer.DockerContainerId = response.ID;
 
 
+                var startResponse = await _docker.Containers.StartContainerAsync(response.ID, new ContainerStartParameters { });
 
-            _trackedContainers.Add(response.ID, container);
 
-            var startResponse = await _docker.Containers.StartContainerAsync(response.ID, new ContainerStartParameters { });
+                return new StartContainerResult { Success = true, Container = serverContainer };
 
-            return container;
+            }
+            catch
+            {
+                lock(_lock)
+                {
+                    _trackedContainers.Remove(id);
+                }
+                return new StartContainerResult { Success = false };
+            }
 
         }
 
@@ -309,18 +343,18 @@ namespace Stormancer.GameServers.Agent
 
     public class ServerContainer : IDisposable
     {
-        internal ServerContainer(string id, IList<string> names, string image, DateTime created, long memory, float cpuCount)
+        internal ServerContainer(string name, string image, DateTime created, long memory, float cpuCount)
         {
-            Id = id;
-            Names = names;
+           
+            Name = name;
             Image = image;
             Created = created;
             Memory = memory;
             CpuQuota = cpuCount;
         }
 
-        public string Id { get; }
-        public IList<string> Names { get; }
+        public string? DockerContainerId { get; set; }
+        public string Name { get; }
         public string Image { get; }
         public DateTime Created { get; }
         public long Memory { get; }
