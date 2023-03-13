@@ -32,10 +32,22 @@ namespace Stormancer.Server.Plugins.GameSession
         public Guid Id { get; set; }
         public Action OnClosed { get; set; }
     }
+
+    public class StartGameServerResponse
+    {
+        public StartGameServerResponse(bool success, GameServerInstance? instance )
+        {
+            Success = success;
+            Instance = instance;
+        }
+
+        public bool Success { get; }
+        public GameServerInstance? Instance { get; }
+    }
     public interface IGameServerProvider
     {
         string Type { get; }
-        Task<GameServerInstance> StartServer(string id, JObject config, CancellationToken ct);
+        Task<StartGameServerResponse> TryStartServer(string id, JObject config, CancellationToken ct);
 
         Task StopServer(string id);
     }

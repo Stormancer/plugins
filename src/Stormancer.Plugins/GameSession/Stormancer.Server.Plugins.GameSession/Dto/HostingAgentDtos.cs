@@ -1,5 +1,4 @@
 ﻿using MsgPack.Serialization;
-using Stormancer.GameServers.Agent;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -182,5 +181,21 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
     public class GetContainerStatsResponse
     {
 
+    }
+
+
+    public class AgentStatusDto
+    {
+        [MessagePackMember(0)]
+        public Dictionary<string, string> Claims { get; set; } = default!;
+
+        [MessagePackMember(1)]
+        public string DockerVersion { get; set; } = default!;
+
+        [MessagePackMember(2)]
+        public string AgentVersion { get; set; } = default!;
+
+        [MessagePackMember(3)]
+        public string Error { get; set; } = default!;
     }
 }

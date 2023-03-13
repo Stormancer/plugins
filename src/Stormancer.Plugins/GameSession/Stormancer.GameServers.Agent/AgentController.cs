@@ -21,7 +21,7 @@ namespace Stormancer.GameServers.Agent
         internal IAsyncEnumerable<IEnumerable<string>> GetContainerLogs(GetContainerLogsParameters args, CancellationToken cancellationToken)
         {
             return _docker.GetContainerLogsAsync(args.ContainerId, args.Since, args.Until, args.Size, args.Follow, cancellationToken);
-            
+
         }
 
         internal async Task<GetRunningContainersResponse> GetRunningContainers(GetRunningContainersParameters args)
@@ -72,7 +72,7 @@ namespace Stormancer.GameServers.Agent
         }
         internal async Task<ContainerStartResponse> TryStartContainer(ContainerStartParameters args)
         {
-            var result = await _docker.StartContainer(args.Image, args.containerId,UserApi.UserId, new Dictionary<string, string>(), args.EnvironmentVariables, args.MemoryQuota, args.cpuQuota);
+            var result = await _docker.StartContainer(args.Image, args.containerId, UserApi.UserId, new Dictionary<string, string>(), args.EnvironmentVariables, args.MemoryQuota, args.cpuQuota);
 
 
             return new ContainerStartResponse
@@ -88,14 +88,14 @@ namespace Stormancer.GameServers.Agent
 
         internal async IAsyncEnumerable<GetContainerStatsResponse> GetContainerStats(GetContainerStatsParameters args, CancellationToken cancellationToken)
         {
-            await foreach(var item in _docker.GetContainerStatsAsync(args.ContainerId,args.Stream, args.OneShot,cancellationToken))
+            await foreach (var item in _docker.GetContainerStatsAsync(args.ContainerId, args.Stream, args.OneShot, cancellationToken))
             {
                 yield return new GetContainerStatsResponse();
             }
         }
         internal IAsyncEnumerable<ContainerStatusUpdate> SubscribeToContainerUpdates(CancellationToken cancellationToken)
         {
-            
+
             var subject = new Subject<ContainerStatusUpdate>();
 
             void OnContainerStateChanged(ServerContainerStateChange change)
@@ -125,6 +125,19 @@ namespace Stormancer.GameServers.Agent
             }
 
             return subject.ToAsyncEnumerable();
+        }
+
+        internal async Task<AgentStatusDto> GetAgentStatus()
+        {
+            var status = await _docker.GetStatus();
+
+            return new AgentStatusDto
+            {
+                AgentVersion = status.AgentVersion,
+                Claims = status.Claims,
+                DockerVersion = status.DockerVersion,
+                Error = status.Error
+            };
         }
     }
 }

@@ -2,12 +2,12 @@ using RakNet;
 
 namespace Stormancer.GameServers.Agent
 {
-    public class Worker : BackgroundService
+    internal class Worker : BackgroundService
     {
         private readonly ILogger<Worker> _logger;
         private readonly DockerAgentConfigurationOptions _options;
 
-        public Worker(ILogger<Worker> logger, IConfiguration configuration, IAgentController controller)
+        public Worker(ILogger<Worker> logger, IConfiguration configuration, AgentController controller)
         {
             _logger = logger;
 
@@ -16,25 +16,29 @@ namespace Stormancer.GameServers.Agent
             ClientFactory.SetConfigFactory(() =>
             {
                 var config = Stormancer.ClientConfiguration.Create(_options.StormancerEndpoint, _options.StormancerAccount, _options.StormancerApplication);
-                config.Plugins.Add(new GameServerAgentPlugin(_options,controller));
+                config.Plugins.Add(new GameServerAgentPlugin(_options, controller));
                 return config;
             });
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+
+            _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
+
+
+
+
+            var client = Stormancer.ClientFactory.GetClient(0);
+
+            await client.DependencyResolver.Resolve<DockerService>().StartAgent(stoppingToken);
+
             while (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
-
-
-                
-
-                var client = Stormancer.ClientFactory.GetClient(0);
-
-                client.DependencyResolver
-
+                await Task.Delay(10000, stoppingToken);
             }
+
+
         }
     }
 }

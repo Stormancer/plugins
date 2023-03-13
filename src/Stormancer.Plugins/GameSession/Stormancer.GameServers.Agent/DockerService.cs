@@ -10,6 +10,7 @@ using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
@@ -77,11 +78,16 @@ namespace Stormancer.GameServers.Agent
             }
         }
 
-        public async Task StartAgent()
+        public async Task StartAgent(CancellationToken cancellationToken)
         {
-            while (!await IsDockerRunning())
+            while (!await IsDockerRunning() && !cancellationToken.IsCancellationRequested)
             {
                 await Task.Delay(1000);
+            }
+
+            if(cancellationToken.IsCancellationRequested)
+            {
+                return;
             }
 
             var containers = await _docker.Containers.ListContainersAsync(new ContainersListParameters { All = true });
@@ -321,7 +327,7 @@ namespace Stormancer.GameServers.Agent
 
 
 
-            return source.GetObservable().Buffer(TimeSpan.FromSeconds(1),100).ToAsyncEnumerable();
+            return source.GetObservable().Buffer(TimeSpan.FromSeconds(1), 100).ToAsyncEnumerable();
 
         }
 
@@ -384,7 +390,41 @@ namespace Stormancer.GameServers.Agent
             }
         }
 
+        internal async Task<AgentStatus> GetStatus()
+        {
+            try
+            {
+                var version = await _docker.System.GetVersionAsync();
+                return new AgentStatus
+                {
+                    Claims = _options.Attributes,
 
+                    AgentVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? string.Empty,
+                    DockerVersion = version.Version
+                };
+            }
+            catch (Exception ex)
+            {
+                return new AgentStatus
+                {
+                    Claims = _options.Attributes,
+
+                    AgentVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? string.Empty,
+                    DockerVersion = string.Empty,
+                    Error = ex.ToString()
+                };
+            }
+        }
+    }
+
+    public class AgentStatus
+    {
+        public Dictionary<string, string> Claims { get; set; }
+
+        public string DockerVersion { get; set; }
+
+        public string AgentVersion { get; set; }
+        public string Error { get; set; }
     }
 
     public class ServerContainer : IDisposable

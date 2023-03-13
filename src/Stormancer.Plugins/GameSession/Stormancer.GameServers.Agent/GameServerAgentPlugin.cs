@@ -81,6 +81,11 @@ namespace Stormancer.GameServers.Agent
                             ctx.SendValue(stat);
                         }
                     });
+                    scene.AddProcedure("agent.getStatus", async ctx =>
+                    {
+                        var status = await controller.GetAgentStatus();
+                        ctx.SendValue(status);
+                    });
                 }
             };
         }
