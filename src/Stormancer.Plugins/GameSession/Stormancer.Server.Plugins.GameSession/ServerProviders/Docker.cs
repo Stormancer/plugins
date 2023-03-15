@@ -161,7 +161,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         }
 
-        public async Task<GameServerInstance> StartServer(string id, JObject c, CancellationToken ct)
+        public async Task<StartGameServerResult> TryStartServer(string id, JObject c, CancellationToken ct)
         {
             _shouldMonitorDocker = true;
             var config = c.ToObject<DockerPoolConfiguration>();
@@ -266,7 +266,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 if (startResponse)
                 {
                     _servers.TryAdd(id, server);
-                    return server.Instance;
+                    return new StartGameServerResult(true, server.Instance);
                 }
                 else
                 {

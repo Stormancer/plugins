@@ -43,7 +43,7 @@ namespace Stormancer.Server.Plugins.Users
         private readonly ISceneHost scene;
 
 
-        private static MemoryCache<Session> sessionCache = new MemoryCache<Session>();
+        private static MemoryCache<SessionId,Session> sessionCache = new MemoryCache<SessionId,Session>();
         private int CACHE_DURATION_SECONDS = 30;
         public UserSessionImpl(UserSessionProxy proxy, ISerializer serializer, ISceneHost scene)
         {
@@ -76,7 +76,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public Task<Session?> GetSessionById(SessionId sessionId, CancellationToken cancellationToken)
         {
-            return sessionCache.Get(sessionId.ToString(), async (id) =>
+            return sessionCache.Get(sessionId, async (id) =>
             {
                 var session = await proxy.GetSessionById(sessionId, cancellationToken);
 
@@ -109,9 +109,9 @@ namespace Stormancer.Server.Plugins.Users
 
         public async Task<Dictionary<SessionId, Session?>> GetSessions(IEnumerable<SessionId> sessionIds, CancellationToken cancellationToken)
         {
-            var entries = sessionCache.GetMany(sessionIds.Select(id => id.ToString()), (ids) =>
+            var entries = sessionCache.GetMany(sessionIds, (ids) =>
             {
-                Dictionary<string, Task<(Session?, TimeSpan)>> result = new();
+                Dictionary<SessionId, Task<(Session?, TimeSpan)>> result = new();
 
                 var task = proxy.GetSessionsbySessionIds(sessionIds, cancellationToken);
 
@@ -123,7 +123,7 @@ namespace Stormancer.Server.Plugins.Users
                 }
                 foreach (var sessionId in ids)
                 {
-                    result[sessionId] = GetEntryAsync(SessionId.From(sessionId), task);
+                    result[sessionId] = GetEntryAsync(sessionId, task);
                 }
 
 
@@ -131,7 +131,7 @@ namespace Stormancer.Server.Plugins.Users
             });
 
             await Task.WhenAll(entries.Values);
-            return entries.ToDictionary(kvp => SessionId.From(kvp.Key), kvp => kvp.Value.Result);
+            return entries.ToDictionary(kvp =>kvp.Key, kvp => kvp.Value.Result);
 
         }
 
