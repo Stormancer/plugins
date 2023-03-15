@@ -164,9 +164,9 @@ namespace Stormancer.Server.Plugins.Epic
         private readonly ISerializer _serializer;
         private readonly ILogger _logger;
         private readonly ISecretsStore _secretsStore;
-        private static readonly MemoryCache<AuthResult> _accessTokenCache = new();
-        private static readonly MemoryCache<Account> _accountsCache = new();
-        private static readonly MemoryCache<string> _externalAccountsCache = new();
+        private static readonly MemoryCache<string,AuthResult> _accessTokenCache = new();
+        private static readonly MemoryCache<string,Account> _accountsCache = new();
+        private static readonly MemoryCache<string,string> _externalAccountsCache = new();
 
         /// <summary>
         /// Epic service constructor

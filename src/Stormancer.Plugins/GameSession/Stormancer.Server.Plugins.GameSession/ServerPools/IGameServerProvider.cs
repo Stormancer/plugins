@@ -33,9 +33,9 @@ namespace Stormancer.Server.Plugins.GameSession
         public Action OnClosed { get; set; }
     }
 
-    public class StartGameServerResponse
+    public class StartGameServerResult
     {
-        public StartGameServerResponse(bool success, GameServerInstance? instance )
+        public StartGameServerResult(bool success, GameServerInstance? instance )
         {
             Success = success;
             Instance = instance;
@@ -47,7 +47,7 @@ namespace Stormancer.Server.Plugins.GameSession
     public interface IGameServerProvider
     {
         string Type { get; }
-        Task<StartGameServerResponse> TryStartServer(string id, JObject config, CancellationToken ct);
+        Task<StartGameServerResult> TryStartServer(string id, JObject config, CancellationToken ct);
 
         Task StopServer(string id);
     }

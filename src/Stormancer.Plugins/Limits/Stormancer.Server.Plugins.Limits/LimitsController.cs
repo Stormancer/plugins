@@ -61,7 +61,7 @@ namespace Stormancer.Server.Plugins.Limits
         /// <summary>
         /// Cache
         /// </summary>
-        public MemoryCache<UserConnectionLimitStatus> Value { get; } = new MemoryCache<UserConnectionLimitStatus>();
+        public MemoryCache<string,UserConnectionLimitStatus> Value { get; } = new MemoryCache<string,UserConnectionLimitStatus>();
     }
     /// <summary>
     /// Client to get limits informations.

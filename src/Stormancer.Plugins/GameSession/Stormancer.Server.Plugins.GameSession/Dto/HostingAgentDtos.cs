@@ -66,7 +66,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public string containerId { get; set; } = default!;
 
         [MessagePackMember(2)]
-        public long cpuQuota { get; set; }
+        public float cpuQuota { get; set; }
 
         [MessagePackMember(3)]
         public int MemoryQuota { get; set; }
