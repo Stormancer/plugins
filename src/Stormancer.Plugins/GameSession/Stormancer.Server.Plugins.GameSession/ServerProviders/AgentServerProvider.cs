@@ -5,6 +5,7 @@ using MsgPack.Serialization;
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Configuration;
+using Stormancer.Server.Plugins.DataProtection;
 using Stormancer.Server.Plugins.GameSession.ServerPool;
 using Stormancer.Server.Plugins.Users;
 using Stormancer.Server.Secrets;
@@ -34,13 +35,15 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
     public class AgentPoolConfigurationSection : PoolConfiguration
     {
         public string Image { get; set; }
-        public Dictionary<string,string> EnvironmentVariables { get; set; }
+        public Dictionary<string, string> EnvironmentVariables { get; set; }
 
         public uint TimeoutSeconds { get; set; }
 
         public override string type => "fromProvider";
 
         public string provider { get; set; } = "agent";
+        public float CpuRequirement { get; set; } = 0.5f;
+        public long MemoryRequirement { get; set; } = 300 * 1024 * 1024;
     }
 
     internal class GameServerAgentConfiguration : IConfigurationChangedEventHandler
@@ -177,6 +180,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 Fault = fault;
             }
         }
+        public CancellationTokenSource CancellationTokenSource { get; } = new CancellationTokenSource();
 
         public string Id { get; }
         public IScenePeerClient Peer { get; }
@@ -195,13 +199,21 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
     {
         private object _syncRoot = new object();
         private Dictionary<string, DockerAgent> _agents = new();
+        private readonly IEnvironment _environment;
+        private readonly IDataProtector _dataProtector;
+
+        public AgentBasedGameServerProvider(IEnvironment environment, IDataProtector dataProtector)
+        {
+            _environment = environment;
+            _dataProtector = dataProtector;
+        }
 
         public void AgentConnected(IScenePeerClient peer, Session agentSession)
         {
             lock (_syncRoot)
             {
                 _agents.Add(agentSession.User.Id, new DockerAgent(peer, agentSession));
-                
+
             }
         }
 
@@ -226,7 +238,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         private async Task SubscribeContainerStatusUpdate(DockerAgent agent, CancellationToken cancellationToken)
         {
-            await foreach(var update in GetContainerStatusUpdates(agent.Id, cancellationToken))
+            await foreach (var update in GetContainerStatusUpdates(agent.Id, cancellationToken))
             {
                 agent.TotalCpu = update.TotalCpu;
                 agent.UsedCpu = update.ReservedCpu;
@@ -251,7 +263,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
             return observable.ToAsyncEnumerable();
         }
-      
+
         public async IAsyncEnumerable<ContainerDescription> GetRunningContainers()
         {
             List<Task<IEnumerable<ContainerDescription>>> tasks = new List<Task<IEnumerable<ContainerDescription>>>();
@@ -290,7 +302,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             return peer.RpcTask<bool, IEnumerable<ContainerDescription>>("agent.getRunningContainers", true);
         }
 
-        public Task<ContainerStartResponse> StartContainerAsync(string agentId, string image, string containerId, float cpuQuota, int memoryQuota, Dictionary<string,string> environmentVariables)
+        public Task<ContainerStartResponse> StartContainerAsync(string agentId, string image, string containerId, float cpuQuota, long memoryQuota, Dictionary<string, string> environmentVariables)
         {
             DockerAgent? agent;
             lock (_syncRoot)
@@ -308,7 +320,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 Image = image,
                 MemoryQuota = memoryQuota,
                 EnvironmentVariables = environmentVariables,
-                
+
             });
         }
 
@@ -326,7 +338,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             return agent.Peer.RpcTask<ContainerStopParameters, ContainerStopResponse>("agent.stopContainer", new ContainerStopParameters { ContainerId = containerId });
         }
 
-        public IAsyncEnumerable<IEnumerable<string>> GetLogsAsync(string agentId, string containerId,bool follow, DateTime? since = null, DateTime? until = null,uint size = 0, CancellationToken cancellationToken)
+        public IAsyncEnumerable<IEnumerable<string>> GetLogsAsync(string agentId, string containerId, bool follow, DateTime? since = null, DateTime? until = null, uint size = 0, CancellationToken cancellationToken = default)
         {
             DockerAgent? agent;
             lock (_syncRoot)
@@ -337,47 +349,92 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 }
             }
 
-            var observable = agent.Peer.Rpc<GetContainerLogsParameters, IEnumerable<string>>("agent.getLogs", new GetContainerLogsParameters { 
+            var observable = agent.Peer.Rpc<GetContainerLogsParameters, IEnumerable<string>>("agent.getLogs", new GetContainerLogsParameters
+            {
                 ContainerId = containerId,
                 Follow = follow,
                 Since = since,
                 Until = until,
                 Size = size
-            
-            },cancellationToken);
+
+            }, cancellationToken);
 
 
             return observable.ToAsyncEnumerable();
-          
+
         }
 
 
         public string Type => GameServerAgentConstants.TYPE;
 
-        public Task<StartGameServerResult> TryStartServer(string id, JObject config, CancellationToken ct)
+        public async Task<StartGameServerResult> TryStartServer(string id, JObject config, CancellationToken ct)
         {
             var agentConfig = config.ToObject<AgentPoolConfigurationSection>();
             var applicationInfo = await _environment.GetApplicationInfos();
             var fed = await _environment.GetFederation();
             var node = await _environment.GetNodeInfos();
 
-            var arguments = string.Join(" ", config.arguments ?? Enumerable.Empty<string>());
-
             var udpTransports = node.Transports.First(t => t.Item1 == "raknet");
+
+            var authenticationToken = await _dataProtector.ProtectBase64Url(Encoding.UTF8.GetBytes(id), "gameServer");
+
+            var endpoints = string.Join(',', fed.current.endpoints);
+
             var environmentVariables = new Dictionary<string, string>
             {
-                //startInfo.EnvironmentVariables.Add("connectionToken", token);
-                    { "Stormancer_Server_Port", server.ServerPort.ToString() },
+                ////startInfo.EnvironmentVariables.Add("connectionToken", token);
+                //    { "Stormancer_Server_Port", server.ServerPort.ToString() },
                     { "Stormancer_Server_ClusterEndpoints", endpoints },
-                    { "Stormancer_Server_PublishedAddresses", server.PublicIp },
-                    { "Stormancer_Server_PublishedPort", server.ServerPort.ToString() },
+                    //{ "Stormancer_Server_PublishedAddresses", server.PublicIp },
+                    //{ "Stormancer_Server_PublishedPort", server.ServerPort.ToString() },
                     { "Stormancer_Server_AuthenticationToken", authenticationToken },
                     { "Stormancer_Server_Account", applicationInfo.AccountId },
                     { "Stormancer_Server_Application", applicationInfo.ApplicationName },
-                    { "Stormancer_Server_Arguments", arguments },
-                    { "Stormancer_Server_TransportEndpoint", TransformEndpoint(udpTransports.Item2.First().Replace(":","|")) }
-                };
-    
+                    { "Stormancer_Server_TransportEndpoint", udpTransports.Item2.First().Replace(":","|") }
+             };
+
+            foreach (var (key, value) in agentConfig.EnvironmentVariables)
+            {
+                environmentVariables[key] = value;
+            }
+
+            var tries = 0;
+            while (tries < 4)
+            {
+                tries++;
+                var agent = FindAgent(agentConfig.CpuRequirement, agentConfig.MemoryRequirement);
+
+                if(agent != null)
+                {
+                    var response = await StartContainerAsync(agent.Id, agentConfig.Image, id, agentConfig.CpuRequirement, agentConfig.MemoryRequirement, environmentVariables);
+
+                    agent.TotalCpu = response.TotalCpuQuotaAvailable;
+                    agent.TotalMemory = response.TotalMemoryQuotaAvailable;
+                    agent.UsedCpu = response.CurrentCpuQuotaUsed;
+                    agent.UsedMemory = response.CurrentMemoryQuotaUsed;
+
+                    if(response.Success)
+                    {
+                        return new StartGameServerResult(true, new GameServerInstance { Id = response.Container.ContainerId })
+                    }
+                }
+            }
+
+        }
+
+        private DockerAgent? FindAgent(float cpuRequirement, long memoryRequirement)
+        {
+            lock (_syncRoot)
+            {
+                foreach (var (id, agent) in _agents)
+                {
+                    if (agent.TotalCpu - agent.UsedCpu > cpuRequirement && agent.TotalMemory - agent.UsedMemory > memoryRequirement)
+                    {
+                        return agent;
+                    }
+                }
+            }
+            return null;
         }
 
         public Task StopServer(string id)
