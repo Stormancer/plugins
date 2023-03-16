@@ -293,7 +293,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
 
 
-        public async Task StopServer(string id)
+        public async Task StopServer(string id, object context)
         {
 
             if (_servers.TryRemove(id, out var server))

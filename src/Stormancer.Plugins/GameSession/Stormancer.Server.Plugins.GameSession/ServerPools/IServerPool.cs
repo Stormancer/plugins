@@ -41,6 +41,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         public DateTime CreatedOn { get; internal set; }
         public IScenePeerClient Peer { get; internal set; }
         public TaskCompletionSource<GameServerStartupParameters> RunTcs { get; internal set; }
+        public object Context { get; internal set; }
 
         public void Dispose()
         {

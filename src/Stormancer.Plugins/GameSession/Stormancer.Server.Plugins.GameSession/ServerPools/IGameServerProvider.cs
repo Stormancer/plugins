@@ -43,12 +43,13 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public bool Success { get; }
         public GameServerInstance? Instance { get; }
+        public object Context { get; set; }
     }
     public interface IGameServerProvider
     {
         string Type { get; }
         Task<StartGameServerResult> TryStartServer(string id, JObject config, CancellationToken ct);
 
-        Task StopServer(string id);
+        Task StopServer(string id, object context);
     }
 }

@@ -142,7 +142,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                         for (int i = 0; i < serversToStart; i++)
                         {
                             var guid = Guid.NewGuid().ToString();
-                            _ = StartServer(provider.Type + "/" + guid);
+                            await StartServer(provider.Type + "/" + guid);
                         }
 
                        
@@ -190,17 +190,26 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             var cts = new CancellationTokenSource(10 * 60 * 1000);
             try
             {
-                var gs = await provider.StartServer(id, config, cts.Token);
-                server.GameServer = gs;
-                gs.OnClosed += () =>
+                var gsResult = await provider.TryStartServer(id, config, cts.Token);
+                if (gsResult.Success)
                 {
-                    _runningServers.TryRemove(id, out _);
-                };
+                    server.Context = gsResult.Context;
+                    server.GameServer = gsResult.Instance;
+                    server.GameServer.OnClosed += () =>
+                    {
+                        _runningServers.TryRemove(id, out _);
+                    };
+                }
+                else
+                {
+                    
+                }
             }
             catch (Exception ex)
             {
                 logger.Log(LogLevel.Fatal, "serverpools." + provider.Type, "An error occured while trying to create a server in the pool", ex);
                 _startingServers.TryRemove(id, out _);
+                
             }
 
         }
@@ -276,7 +285,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
            
             if (_runningServers.TryRemove(serverId, out var server))
             {
-                await provider.StopServer(server.Id);
+                await provider.StopServer(server.Id,server.Context);
             }
         }
 
@@ -287,7 +296,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             if (_runningServers.TryGetValue(serverId, out var server))
             {
                 await server.Peer.Send("ServerPool.Shutdown", _ => { }, Core.PacketPriority.MEDIUM_PRIORITY, Core.PacketReliability.RELIABLE);
-                await provider.StopServer(server.Id);
+                await provider.StopServer(server.Id,server.Context);
             }
         }
     }
