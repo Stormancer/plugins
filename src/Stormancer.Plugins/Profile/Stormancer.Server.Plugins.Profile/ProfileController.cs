@@ -50,10 +50,10 @@ namespace Stormancer.Server.Plugins.Profile
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<Dictionary<string, ProfileDto>> GetProfilesBySessionIds(IEnumerable<string> sessionIds, Dictionary<string, string> displayOptions, RequestContext<IScenePeerClient> ctx)
+        public async Task<Dictionary<string, ProfileDto>> GetProfilesBySessionIds(IEnumerable<SessionId> sessionIds, Dictionary<string, string> displayOptions, RequestContext<IScenePeerClient> ctx)
         {
 
-            var sessions = await _sessions.GetSessions(sessionIds.Select(s=>SessionId.From(s)), ctx.CancellationToken);
+            var sessions = await _sessions.GetSessions(sessionIds, ctx.CancellationToken);
 
             IEnumerable<string> userIds = sessions.Values.Select(s => s?.User?.Id).Where(id => id != null)!;
 
