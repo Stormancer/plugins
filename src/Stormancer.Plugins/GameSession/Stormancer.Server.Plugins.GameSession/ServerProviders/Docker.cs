@@ -266,7 +266,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 if (startResponse)
                 {
                     _servers.TryAdd(id, server);
-                    return new StartGameServerResult(true, server.Instance);
+                    return new StartGameServerResult(true, server.Instance,null);
                 }
                 else
                 {
@@ -318,7 +318,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 throw new InvalidOperationException("Unable to acquire port for the server");
             }
-            var serverGuid = Guid.NewGuid();
+            var serverGuid = Guid.NewGuid().ToString();
             var result = new GameServerInstance { Id = serverGuid };
             var server = new GameServerContainer(result, serverLease)
             {

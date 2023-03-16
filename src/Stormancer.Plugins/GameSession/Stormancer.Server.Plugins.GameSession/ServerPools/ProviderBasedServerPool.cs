@@ -47,11 +47,11 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             this.logger = logger;
             this.scene = scene;
         }
-        public bool TryCreate(string id, JObject config,[NotNullWhen(true)] out IServerPool? pool)
+        public bool TryCreate(string id, JObject config, [NotNullWhen(true)] out IServerPool? pool)
         {
             pool = null;
             var d = (dynamic)config;
-            if((string?)d?.type != "fromProvider")
+            if ((string?)d?.type != "fromProvider")
             {
                 return false;
             }
@@ -98,88 +98,88 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             Id = id;
             this.provider = provider;
             this.logger = logger;
-            Task.Run(async () =>
-            {
-                isRunning = true;
-                while (isRunning)
-                {
-                    try
-                    {
-                        // resolve pending requests
-                        while (_pendingRequests.Any() && _readyServers.Any())
-                        {
-                            if (_pendingRequests.TryDequeue(out var request))
-                            {
-                                var serverId = _readyServers.Keys.FirstOrDefault();
+            //Task.Run(async () =>
+            //{
+            //    isRunning = true;
+            //    while (isRunning)
+            //    {
+            //        try
+            //        {
+            //            // resolve pending requests
+            //            while (_pendingRequests.Any() && _readyServers.Any())
+            //            {
+            //                if (_pendingRequests.TryDequeue(out var request))
+            //                {
+            //                    var serverId = _readyServers.Keys.FirstOrDefault();
 
-                                if (serverId != null && _readyServers.TryRemove(serverId, out var server))
-                                {
+            //                    if (serverId != null && _readyServers.TryRemove(serverId, out var server))
+            //                    {
 
 
-                                    request.RequestCompletedCompletionSource.SetResult(new GameServer { GameServerSessionId = server.Peer.SessionId });
+            //                        request.RequestCompletedCompletionSource.SetResult(new GameServer { GameServerSessionId = server.Peer.SessionId });
 
-                                    _runningServers.TryAdd(serverId, server);
+            //                        _runningServers.TryAdd(serverId, server);
 
-                                    await using var scope = scene.CreateRequestScope();
-                                    var startupParameters = new GameServerStartupParameters
-                                    {
-                                        GameSessionConnectionToken = await scope.Resolve<IGameSessions>().CreateServerConnectionToken(request.Id, server.Id),
-                                        Config = request.GameSessionConfiguration,
-                                        GameSessionId = request.Id
-                                    };
-                                    server.RunTcs.TrySetResult(startupParameters);
-                                }
-                                else
-                                {
-                                    _pendingRequests.Enqueue(request);
-                                }
-                            }
-                        }
+            //                        await using var scope = scene.CreateRequestScope();
+            //                        var startupParameters = new GameServerStartupParameters
+            //                        {
+            //                            GameSessionConnectionToken = await scope.Resolve<IGameSessions>().CreateServerConnectionToken(request.Id, server.Id),
+            //                            Config = request.GameSessionConfiguration,
+            //                            GameSessionId = request.Id
+            //                        };
+            //                        server.RunTcs.TrySetResult(startupParameters);
+            //                    }
+            //                    else
+            //                    {
+            //                        _pendingRequests.Enqueue(request);
+            //                    }
+            //                }
+            //            }
 
-                        //meet running servers requirements to satisfy requests + min ready server requirements
-                        var serversToStart = PendingServerRequests - _readyServers.Count - _startingServers.Count + MinServerReady;
+            //            //meet running servers requirements to satisfy requests + min ready server requirements
+            //            var serversToStart = PendingServerRequests - _readyServers.Count - _startingServers.Count + MinServerReady;
 
-                        for (int i = 0; i < serversToStart; i++)
-                        {
-                            var guid = Guid.NewGuid().ToString();
-                            await StartServer(provider.Type + "/" + guid);
-                        }
+            //            for (int i = 0; i < serversToStart; i++)
+            //            {
+            //                var guid = Guid.NewGuid().ToString();
+            //                await StartServer(provider.Type + "/" + guid);
+            //            }
 
-                       
 
-                        //clean timedout servers
-                        foreach (var server in _startingServers.Values.ToArray())
-                        {
-                            if (server.CreatedOn < DateTime.UtcNow - TimeSpan.FromSeconds(GameServerTimeout))
-                            {
-                                if(_startingServers.TryRemove(server.Id, out _))
-                                {
-                                    _ = provider.StopServer(server.Id,server.Context);
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Log(LogLevel.Fatal, "serverpools." + provider.Type, "An error occured while running the server pool logic", ex);
-                    }
-                    await Task.Delay(1000);
-                }
 
-                foreach (var rq in _pendingRequests)
-                {
-                    rq.RequestCompletedCompletionSource.TrySetCanceled();
-                }
+            //            //clean timedout servers
+            //            foreach (var server in _startingServers.Values.ToArray())
+            //            {
+            //                if (server.CreatedOn < DateTime.UtcNow - TimeSpan.FromSeconds(GameServerTimeout))
+            //                {
+            //                    if(_startingServers.TryRemove(server.Id, out _))
+            //                    {
+            //                        _ = provider.StopServer(server.Id,server.Context);
+            //                    }
+            //                }
+            //            }
+            //        }
+            //        catch (Exception ex)
+            //        {
+            //            logger.Log(LogLevel.Fatal, "serverpools." + provider.Type, "An error occured while running the server pool logic", ex);
+            //        }
+            //        await Task.Delay(1000);
+            //    }
 
-                while (_startingServers.Any() || _readyServers.Any())
-                {
-                    foreach (var server in _readyServers.Values)
-                    {
-                        await provider.StopServer(server.Id);
-                    }
-                    await Task.Delay(1000);
-                }
-            });
+            //    foreach (var rq in _pendingRequests)
+            //    {
+            //        rq.RequestCompletedCompletionSource.TrySetCanceled();
+            //    }
+
+            //    while (_startingServers.Any() || _readyServers.Any())
+            //    {
+            //        foreach (var server in _readyServers.Values)
+            //        {
+            //            await provider.StopServer(server.Id,server.Context);
+            //        }
+            //        await Task.Delay(1000);
+            //    }
+            //});
         }
 
 
@@ -202,14 +202,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                 }
                 else
                 {
-                    
+
                 }
             }
             catch (Exception ex)
             {
                 logger.Log(LogLevel.Fatal, "serverpools." + provider.Type, "An error occured while trying to create a server in the pool", ex);
                 _startingServers.TryRemove(id, out _);
-                
+
             }
 
         }
@@ -226,7 +226,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         public int ServersRunning => _runningServers.Count;
 
-        public int PendingServerRequests => _pendingRequests.Count(rq=>!rq.CancellationToken.IsCancellationRequested);
+        public int PendingServerRequests => _pendingRequests.Count(rq => !rq.CancellationToken.IsCancellationRequested);
 
         public bool CanAcceptRequest => ServersRunning + PendingServerRequests < MaxServersInPool;
 
@@ -235,16 +235,27 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             isRunning = false;
         }
 
-        public Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration config,CancellationToken cancellationToken)
+        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration config, CancellationToken cancellationToken)
         {
             if (!isRunning)
             {
                 throw new InvalidOperationException("Pool not running");
             }
-            var tcs = new TaskCompletionSource<WaitGameServerResult>();
-            _pendingRequests.Enqueue(new GameServerRequest { RequestCompletedCompletionSource = tcs, Id = gameSessionId, GameSessionConfiguration = config, CancellationToken = cancellationToken });
+            //var tcs = new TaskCompletionSource<WaitGameServerResult>();
+            //_pendingRequests.Enqueue(new GameServerRequest { RequestCompletedCompletionSource = tcs, Id = gameSessionId, GameSessionConfiguration = config, CancellationToken = cancellationToken });
 
-            return tcs.Task;
+            var result = await provider.TryStartServer(gameSessionId, this.config, cancellationToken);
+            if (result.Success)
+            {
+                _runningServers.TryAdd(Id, result.Instance);
+                server.Context = gsResult.Context;
+                server.GameServer = gsResult.Instance;
+                server.GameServer.OnClosed += () =>
+                {
+                    _runningServers.TryRemove(id, out _);
+                };
+            }
+            return new WaitGameServerResult { Success = result.Success, Value = result.Instance };
         }
 
         public void UpdateConfiguration(JObject config)
@@ -256,14 +267,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             GameServerTimeout = ((int?)d.serverTimeout) ?? 60;
         }
 
-      
-        
+
+
         public bool CanManage(Session session, IScenePeerClient peer)
         {
             return session.platformId.Platform == DedicatedServerAuthProvider.PROVIDER_NAME;
         }
 
-        public async Task<GameServerStartupParameters?> WaitGameSessionAsync(Session session, IScenePeerClient client,CancellationToken cancellationToken)
+        public async Task<GameServerStartupParameters?> WaitGameSessionAsync(Session session, IScenePeerClient client, CancellationToken cancellationToken)
         {
             var id = session.platformId.PlatformUserId;
 
@@ -282,21 +293,21 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         public async Task OnGameServerDisconnected(string serverId)
         {
-           
+
             if (_runningServers.TryRemove(serverId, out var server))
             {
-                await provider.StopServer(server.Id,server.Context);
+                await provider.StopServer(server.Id, server.Context);
             }
         }
 
         public async Task CloseServer(string serverId)
         {
-          
-              
+
+
             if (_runningServers.TryGetValue(serverId, out var server))
             {
                 await server.Peer.Send("ServerPool.Shutdown", _ => { }, Core.PacketPriority.MEDIUM_PRIORITY, Core.PacketReliability.RELIABLE);
-                await provider.StopServer(server.Id,server.Context);
+                await provider.StopServer(server.Id, server.Context);
             }
         }
     }

@@ -57,7 +57,7 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
             var logs = await _provider.GetLogsAsync(agentId, containerId, false, since, until, size, cancellationToken).ToListAsync();
 
 
-            return Ok(logs.SelectMany(b=>b));
+            return Ok(new GetContainerLogsResponse { Logs = logs.SelectMany(b => b) });
         }
 
         /// <summary>

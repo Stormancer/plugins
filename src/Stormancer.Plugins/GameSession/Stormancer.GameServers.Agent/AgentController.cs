@@ -72,7 +72,7 @@ namespace Stormancer.GameServers.Agent
         }
         internal async Task<ContainerStartResponse> TryStartContainer(ContainerStartParameters args)
         {
-            var result = await _docker.StartContainer(args.Image, args.containerId, UserApi.UserId, new Dictionary<string, string>(), args.EnvironmentVariables, args.MemoryQuota, args.cpuQuota);
+            var result = await _docker.StartContainer(args.Image, args.name, UserApi.UserId, new Dictionary<string, string>(), args.EnvironmentVariables, args.MemoryQuota, args.cpuQuota);
 
 
             return new ContainerStartResponse

@@ -132,7 +132,7 @@ namespace Stormancer.GameServers.Agent
 
         public async Task<StartContainerResult> StartContainer(
             string image,
-            string id,
+            string name,
             string agentUserId,
             Dictionary<string, string> labels,
             Dictionary<string, string> environmentVariables,
@@ -151,14 +151,14 @@ namespace Stormancer.GameServers.Agent
                 {
                     return new StartContainerResult { Success = false };
                 }
-                serverContainer = new ServerContainer(id, image, DateTime.UtcNow, memory, cpuQuota);
-                _trackedContainers.Add(id, serverContainer);
+                serverContainer = new ServerContainer(name, image, DateTime.UtcNow, memory, cpuQuota);
+                _trackedContainers.Add(name, serverContainer);
             }
 
             try
             {
 
-                _logger.Log(LogLevel.Information, "Starting docker container {name} from image '{image}'.", id, image);
+                _logger.Log(LogLevel.Information, "Starting docker container {name} from image '{image}'.", name, image);
                 var images = await _docker.Images.ListImagesAsync(new ImagesListParameters { All = true });
                 if (!images.Any(i => i.RepoTags.Contains(image)))
                 {
@@ -176,7 +176,7 @@ namespace Stormancer.GameServers.Agent
                 CreateContainerParameters parameters = new CreateContainerParameters()
                 {
                     Image = image,
-                    Name = id,
+                    Name = name,
                     Labels = labels,
 
                     HostConfig = new HostConfig()
@@ -226,7 +226,7 @@ namespace Stormancer.GameServers.Agent
             {
                 lock (_lock)
                 {
-                    _trackedContainers.Remove(id);
+                    _trackedContainers.Remove(name);
                 }
                 return new StartContainerResult { Success = false };
             }

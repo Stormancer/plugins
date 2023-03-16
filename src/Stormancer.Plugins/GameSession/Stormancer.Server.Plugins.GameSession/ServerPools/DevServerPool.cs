@@ -104,7 +104,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
             public async Task<WaitGameServerResult> WaitForServerAsync()
             {
-                var s =  tcs.Task;
+                var s =  await tcs.Task;
                 return new WaitGameServerResult { Value = s, Success = true };
             }
 

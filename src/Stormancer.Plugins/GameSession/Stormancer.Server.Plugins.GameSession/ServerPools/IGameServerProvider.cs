@@ -22,6 +22,7 @@
 
 using Newtonsoft.Json.Linq;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -42,6 +43,7 @@ namespace Stormancer.Server.Plugins.GameSession
             Context = context;
         }
 
+        [MemberNotNullWhen(true,"Instance")]
         public bool Success { get; }
         public GameServerInstance? Instance { get; }
         public object? Context { get; set; }
@@ -51,6 +53,6 @@ namespace Stormancer.Server.Plugins.GameSession
         string Type { get; }
         Task<StartGameServerResult> TryStartServer(string id, JObject config, CancellationToken ct);
 
-        Task StopServer(string id, object context);
+        Task StopServer(string id, object? context);
     }
 }

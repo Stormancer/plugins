@@ -313,7 +313,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             return peer.RpcTask<bool, IEnumerable<ContainerDescription>>("agent.getRunningContainers", true);
         }
 
-        public Task<ContainerStartResponse> StartContainerAsync(string agentId, string image, string containerId, float cpuQuota, long memoryQuota, Dictionary<string, string> environmentVariables)
+        public Task<ContainerStartResponse> StartContainerAsync(string agentId, string image, string name, float cpuQuota, long memoryQuota, Dictionary<string, string> environmentVariables)
         {
             DockerAgent? agent;
             lock (_syncRoot)
@@ -326,7 +326,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
             return agent.Peer.RpcTask<ContainerStartParameters, ContainerStartResponse>("agent.tryStartContainer", new ContainerStartParameters
             {
-                containerId = containerId,
+                name = name,
                 cpuQuota = cpuQuota,
                 Image = image,
                 MemoryQuota = memoryQuota,
