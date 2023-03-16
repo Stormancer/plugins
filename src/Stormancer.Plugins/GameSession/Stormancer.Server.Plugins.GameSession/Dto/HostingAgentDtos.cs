@@ -69,7 +69,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public float cpuQuota { get; set; }
 
         [MessagePackMember(3)]
-        public int MemoryQuota { get; set; }
+        public long MemoryQuota { get; set; }
 
         [MessagePackMember(4)]
         public Dictionary<string, string> EnvironmentVariables { get; internal set; } = default!;

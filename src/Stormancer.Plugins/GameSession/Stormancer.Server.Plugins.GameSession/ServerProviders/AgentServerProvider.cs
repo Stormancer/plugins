@@ -194,6 +194,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public float UsedCpu { get; set; }
         public long TotalMemory { get; set; }
         public long UsedMemory { get; set; }
+        public bool IsActive { get; set; } = true;
     }
     public class AgentBasedGameServerProvider : IGameServerProvider
     {
@@ -264,6 +265,16 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             return observable.ToAsyncEnumerable();
         }
 
+        public void DisableAgent(string agentId)
+        {
+            lock(_syncRoot)
+            {
+                if(_agents.TryGetValue(agentId,out var agent))
+                {
+                    agent.IsActive = false;
+                }
+            }
+        }
         public async IAsyncEnumerable<ContainerDescription> GetRunningContainers()
         {
             List<Task<IEnumerable<ContainerDescription>>> tasks = new List<Task<IEnumerable<ContainerDescription>>>();
@@ -428,7 +439,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             {
                 foreach (var (id, agent) in _agents)
                 {
-                    if (agent.TotalCpu - agent.UsedCpu > cpuRequirement && agent.TotalMemory - agent.UsedMemory > memoryRequirement)
+                    if (agent.IsActive && agent.TotalCpu - agent.UsedCpu > cpuRequirement && agent.TotalMemory - agent.UsedMemory > memoryRequirement)
                     {
                         return agent;
                     }
@@ -437,7 +448,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             return null;
         }
 
-        public Task StopServer(string id)
+        public Task StopServer(string id, object ctx)
         {
             throw new NotImplementedException();
         }
