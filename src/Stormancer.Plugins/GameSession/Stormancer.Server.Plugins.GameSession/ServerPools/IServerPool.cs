@@ -59,6 +59,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         public SessionId GameServerSessionId { get; set; }
     }
 
+    public class WaitGameServerResult
+    {
+        [MemberNotNullWhen(true,"Value")]
+        public bool Success { get; set; }
+
+      
+        public GameServer? Value { get; set; }
+    }
     
     public interface IServerPool: IDisposable
     {
@@ -70,7 +78,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         /// <param name="gameSessionId"></param>
         /// <param name="gameSessionConfig"></param>
         /// <returns></returns>
-        Task<GameServer> WaitGameServerAsync(string gameSessionId, GameSessionConfiguration gameSessionConfig, CancellationToken cancellationToken);
+        Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gameSessionConfig, CancellationToken cancellationToken);
 
         void UpdateConfiguration(JObject config);
 

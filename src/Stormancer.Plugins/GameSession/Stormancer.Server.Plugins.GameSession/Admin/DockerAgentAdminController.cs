@@ -41,12 +41,12 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
 
         [HttpGet]
         [Route("containers/{agentId}/{containerId}/logs")]
-        [ProducesResponseType(200,Type=typeof(GetContainerLogsResponse))]
-        public async Task<IActionResult> GetContainerLogs(string agentId, string containerId)
+        [ProducesResponseType(200,Type=typeof(IEnumerable<string>))]
+        public async Task<IActionResult> GetContainerLogs(string agentId, string containerId, DateTime? since, DateTime? until, uint size)
         {
-            var logs = await _provider.GetLogs(agentId, containerId);
+            var logs = await _provider.GetLogsAsync(agentId, containerId,false, since,until,size).ToListAsync();
 
-            return Ok(logs);
+            return Ok(logs.SelectMany(b=>b));
         }
     }
 

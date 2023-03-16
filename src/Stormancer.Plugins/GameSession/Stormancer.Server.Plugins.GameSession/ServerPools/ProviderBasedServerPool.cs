@@ -77,7 +77,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
     {
         private class GameServerRequest
         {
-            public TaskCompletionSource<GameServer> RequestCompletedCompletionSource { get; set; }
+            public TaskCompletionSource<WaitGameServerResult> RequestCompletedCompletionSource { get; set; }
             public GameSessionConfiguration GameSessionConfiguration { get; set; }
             public string Id { get; set; }
             public CancellationToken CancellationToken { get; internal set; }
@@ -154,7 +154,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                             {
                                 if(_startingServers.TryRemove(server.Id, out _))
                                 {
-                                    _ = provider.StopServer(server.Id);
+                                    _ = provider.StopServer(server.Id,server.Context);
                                 }
                             }
                         }
@@ -235,13 +235,13 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             isRunning = false;
         }
 
-        public Task<GameServer> WaitGameServerAsync(string gameSessionId, GameSessionConfiguration config,CancellationToken cancellationToken)
+        public Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration config,CancellationToken cancellationToken)
         {
             if (!isRunning)
             {
                 throw new InvalidOperationException("Pool not running");
             }
-            var tcs = new TaskCompletionSource<GameServer>();
+            var tcs = new TaskCompletionSource<WaitGameServerResult>();
             _pendingRequests.Enqueue(new GameServerRequest { RequestCompletedCompletionSource = tcs, Id = gameSessionId, GameSessionConfiguration = config, CancellationToken = cancellationToken });
 
             return tcs.Task;

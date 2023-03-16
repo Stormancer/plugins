@@ -415,10 +415,13 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
                     if(response.Success)
                     {
-                        return new StartGameServerResult(true, new GameServerInstance { Id = response.Container.ContainerId })
+                        return new StartGameServerResult(true, new GameServerInstance { Id = response.Container.ContainerId }, agent.Id);
                     }
                 }
+                await Task.Delay(500);
             }
+
+            return new StartGameServerResult(false, null, null);
 
         }
 

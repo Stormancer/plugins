@@ -1,6 +1,7 @@
 ﻿using MsgPack.Serialization;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -33,7 +34,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
     public class ContainerDescription
     {
         [MessagePackMember(0)]
-        public string? ContainerId { get; set; } = default!;
+        public string ContainerId { get; set; } = default!;
 
 
         [MessagePackMember(1)]
@@ -69,7 +70,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public float cpuQuota { get; set; }
 
         [MessagePackMember(3)]
-        public int MemoryQuota { get; set; }
+        public long MemoryQuota { get; set; }
 
         [MessagePackMember(4)]
         public Dictionary<string, string> EnvironmentVariables { get; internal set; } = default!;
@@ -78,6 +79,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
     public class ContainerStartResponse
     {
         [MessagePackMember(0)]
+        [MemberNotNullWhen(true,"Container")]
         public bool Success { get; set; }
 
         [MessagePackMember(1)]

@@ -29,21 +29,22 @@ namespace Stormancer.Server.Plugins.GameSession
 {
     public class GameServerInstance
     {
-        public Guid Id { get; set; }
+        public string Id { get; set; }
         public Action OnClosed { get; set; }
     }
 
     public class StartGameServerResult
     {
-        public StartGameServerResult(bool success, GameServerInstance? instance )
+        public StartGameServerResult(bool success, GameServerInstance? instance, object? context )
         {
             Success = success;
             Instance = instance;
+            Context = context;
         }
 
         public bool Success { get; }
         public GameServerInstance? Instance { get; }
-        public object Context { get; set; }
+        public object? Context { get; set; }
     }
     public interface IGameServerProvider
     {
