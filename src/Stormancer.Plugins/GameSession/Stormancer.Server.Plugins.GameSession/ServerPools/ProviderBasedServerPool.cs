@@ -85,6 +85,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         private readonly IGameServerProvider provider;
         private readonly ILogger logger;
+        private readonly ISceneHost _scene;
         private JObject config;
         private ConcurrentDictionary<string, Server> _startingServers = new ConcurrentDictionary<string, Server>();
         private ConcurrentDictionary<string, Server> _readyServers = new ConcurrentDictionary<string, Server>();
@@ -98,6 +99,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             Id = id;
             this.provider = provider;
             this.logger = logger;
+            _scene = scene;
             //Task.Run(async () =>
             //{
             //    isRunning = true;
@@ -235,27 +237,32 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             isRunning = false;
         }
 
-        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration config, CancellationToken cancellationToken)
+        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gsConfig, CancellationToken cancellationToken)
         {
             if (!isRunning)
             {
                 throw new InvalidOperationException("Pool not running");
             }
-            //var tcs = new TaskCompletionSource<WaitGameServerResult>();
-            //_pendingRequests.Enqueue(new GameServerRequest { RequestCompletedCompletionSource = tcs, Id = gameSessionId, GameSessionConfiguration = config, CancellationToken = cancellationToken });
-
+            var tcs = new TaskCompletionSource<WaitGameServerResult>();
+        
             var result = await provider.TryStartServer(gameSessionId, this.config, cancellationToken);
             if (result.Success)
             {
-                _runningServers.TryAdd(Id, result.Instance);
-                server.Context = gsResult.Context;
-                server.GameServer = gsResult.Instance;
+                var server =new Server { Context = result.Context, GameServer = result.Instance, Id = gameSessionId };
+                _startingServers.TryAdd(gameSessionId,server );
+                server.Context = result.Context;
+                server.GameServer = result.Instance;
+                server.GameSessionConfiguration = gsConfig;
+                server.RequestCompletedCompletionSource = tcs;
                 server.GameServer.OnClosed += () =>
                 {
-                    _runningServers.TryRemove(id, out _);
+                    _startingServers.TryRemove(gameSessionId, out _);
+                    _readyServers.TryRemove(gameSessionId, out _);
+                    _runningServers.TryRemove(gameSessionId, out _);
                 };
             }
-            return new WaitGameServerResult { Success = result.Success, Value = result.Instance };
+
+            return await tcs.Task;
         }
 
         public void UpdateConfiguration(JObject config)
@@ -282,7 +289,16 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             {
                 server.Peer = client;
                 server.RunTcs = new TaskCompletionSource<GameServerStartupParameters>();
-                _readyServers.TryAdd(id, server);
+                _runningServers.TryAdd(id, server);
+
+                await using var scope = this._scene.CreateRequestScope();
+                var startupParameters = new GameServerStartupParameters
+                {
+                    GameSessionConnectionToken = await scope.Resolve<IGameSessions>().CreateServerConnectionToken(server.Id, server.Id),
+                    Config = server.GameSessionConfiguration,
+                    GameSessionId = server.Id
+                };
+                server.RequestCompletedCompletionSource.SetResult(new WaitGameServerResult { Success = true, Value = new GameServer { GameServerSessionId = client.SessionId } }); 
                 return await server.RunTcs.Task;
             }
             else
