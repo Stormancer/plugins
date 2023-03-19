@@ -32,6 +32,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public IEnumerable<string> AuthCertPaths { get; set; } = Enumerable.Empty<string>();
     }
 
+    /// <summary>
+    /// Configuration class for the Agent based gameserver hosting pools
+    /// </summary>
     public class AgentPoolConfigurationSection : PoolConfiguration
     {
         public string Image { get; set; }
