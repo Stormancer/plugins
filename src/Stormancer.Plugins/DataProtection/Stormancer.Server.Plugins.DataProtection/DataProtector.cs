@@ -123,7 +123,7 @@ namespace Stormancer.Server.Plugins.DataProtection
             return SimpleDecrypt(new Span<byte>(value, nonceLength, value.Length - nonceLength), new Span<byte>(value, 0, nonceLength), key);
         }
 
-        private static MemoryCache<byte[]> _cache = new MemoryCache<byte[]>();
+        private static MemoryCache<string,byte[]> _cache = new MemoryCache<string,byte[]>();
         private Task<byte[]?> GetKey(string keyPath, bool allowGenerate) => _cache.Get(keyPath,id=>GetKeyImpl(keyPath,allowGenerate));
 
         private async Task<(byte[]?, TimeSpan)> GetKeyImpl(string keyPath, bool allowGenerate)

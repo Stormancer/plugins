@@ -20,6 +20,7 @@ Added
 *****
 - Added IsPersistentServer configuration to set wether the server of a gamesession should be stopped and the scene destroyed when the last player disconnects.
 - Added More analytics
+- Added Agent based game server hosting for better robustness and flexibility.
 
 6.0.2
 -----

@@ -96,23 +96,19 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         }
 
-        public async Task<GameServer> WaitGameServerAsync(string gameSessionId, GameSessionConfiguration config, CancellationToken cancellationToken)
+        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration config, CancellationToken cancellationToken)
         {
-            var candidate = _subPools.Reverse<IServerPool>().FirstOrDefault(p => p.ServersReady > 0);
-            if (candidate != null)
+           
+            foreach(var subPool in _subPools)
             {
-                return await candidate.WaitGameServerAsync(gameSessionId, config,cancellationToken);
+                var result = await subPool.TryWaitGameServerAsync(gameSessionId, config, cancellationToken);
+                if(result.Success)
+                {
+                    return result;
+                }
             }
 
-            candidate = _subPools.FirstOrDefault(p => p.CanAcceptRequest);
-            if (candidate != null)
-            {
-                return await candidate.WaitGameServerAsync(gameSessionId, config, cancellationToken);
-            }
-            else
-            {
-                throw new InvalidOperationException("No pool available to service the request.");
-            }
+            return new WaitGameServerResult { Success = false };
 
         }
 

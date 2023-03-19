@@ -61,7 +61,7 @@ namespace Stormancer.Server.Plugins.Limits
         /// <summary>
         /// Cache
         /// </summary>
-        public MemoryCache<UserConnectionLimitStatus> Value { get; } = new MemoryCache<UserConnectionLimitStatus>();
+        public MemoryCache<string,UserConnectionLimitStatus> Value { get; } = new MemoryCache<string,UserConnectionLimitStatus>();
     }
     /// <summary>
     /// Client to get limits informations.
@@ -102,7 +102,7 @@ namespace Stormancer.Server.Plugins.Limits
                     RetryPolicies.ConstantDelay(4, TimeSpan.FromMilliseconds(500)), 
                     cancellationToken, 
                     ex => true)
-            , TimeSpan.FromSeconds(1));
+            , TimeSpan.FromSeconds(1))!;
 
         }
     }

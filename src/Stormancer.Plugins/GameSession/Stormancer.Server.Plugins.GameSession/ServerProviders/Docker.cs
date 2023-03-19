@@ -161,7 +161,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         }
 
-        public async Task<GameServerInstance> StartServer(string id, JObject c, CancellationToken ct)
+        public async Task<StartGameServerResult> TryStartServer(string id, JObject c, CancellationToken ct)
         {
             _shouldMonitorDocker = true;
             var config = c.ToObject<DockerPoolConfiguration>();
@@ -266,7 +266,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 if (startResponse)
                 {
                     _servers.TryAdd(id, server);
-                    return server.Instance;
+                    return new StartGameServerResult(true, server.Instance,null);
                 }
                 else
                 {
@@ -293,7 +293,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
 
 
-        public async Task StopServer(string id)
+        public async Task StopServer(string id, object context)
         {
 
             if (_servers.TryRemove(id, out var server))
@@ -318,7 +318,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 throw new InvalidOperationException("Unable to acquire port for the server");
             }
-            var serverGuid = Guid.NewGuid();
+            var serverGuid = Guid.NewGuid().ToString();
             var result = new GameServerInstance { Id = serverGuid };
             var server = new GameServerContainer(result, serverLease)
             {

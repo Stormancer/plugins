@@ -680,29 +680,52 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 await using var scope = _scene.CreateRequestScope();
                 var pools = scope.Resolve<ServerPoolProxy>();
-                var server = await pools.WaitGameServer(poolId, GameSessionId, _config, _gameCompleteCts.Token);
 
                 if (!state.IsServerPersistent())
                 {
                     _scene.Disconnected.Add(async (args) =>
                     {
-                        //If the only peer remaining is the server, close it and destroy the gamesession.
-                        if (!_scene.RemotePeers.Any(p => p.SessionId != server.GameServerSessionId))
+                        if (this._serverPeer.Task.IsCompletedSuccessfully)
                         {
-                            await pools.CloseServer(poolId, server.GameServerSessionId, CancellationToken.None);
-                            _scene.Shutdown("gamesession.empty");
+                            //If the only peer remaining is the server, close it and destroy the gamesession.
+                            if (!_scene.RemotePeers.Any(p => p.SessionId != this._serverPeer.Task.Result.SessionId))
+                            {
+                                _gameCompleteCts.Cancel();
+                                await pools.CloseServer(poolId, this._serverPeer.Task.Result.SessionId, CancellationToken.None);
+                                _scene.Shutdown("gamesession.empty");
+
+                            }
                         }
+                        else
+                        {
+                            if(!_scene.RemotePeers.Any())
+                            {
+                                _gameCompleteCts.Cancel();
+                                _scene.Shutdown("gamesession.empty");
+                            }
+                        }
+                       
 
                     });
+                   
+                }
+
+
+                var server = await pools.WaitGameServer(poolId, GameSessionId, _config, _gameCompleteCts.Token);
+
+                if(!state.IsServerPersistent())
+                {
                     _ = _scene.RunTask(async ct => {
                         await Task.Delay(1000 * 60 * 5);
-                        if(!_playerConnectedOnce)
+                        if (!_playerConnectedOnce)
                         {
                             await pools.CloseServer(poolId, server.GameServerSessionId, CancellationToken.None);
                             _scene.Shutdown("gamesession.empty");
                         }
                     });
                 }
+
+                
                 using var cts = new CancellationTokenSource(state.GameServerStartTimeout());
                 var peer = await GetServerTcs().Task.WaitAsync(cts.Token);
 
@@ -1011,10 +1034,17 @@ namespace Stormancer.Server.Plugins.GameSession
             await CloseGameServer();
         }
 
-        public GameSessionConfigurationDto GetGameSessionConfig()
+        public GameSessionConfigurationDto? GetGameSessionConfig()
         {
-            Debug.Assert(_config != null);
-            return new GameSessionConfigurationDto { Teams = _config.TeamsList, Parameters = _config.Parameters, UserIds = _config.UserIds, HostUserId = _config.HostUserId, GameFinder = _config.GameFinder };
+            if (_config == null)
+            {
+                return null;
+            }
+            else
+            {
+                return new GameSessionConfigurationDto { Teams = _config.TeamsList, Parameters = _config.Parameters, UserIds = _config.UserIds, HostUserId = _config.HostUserId, GameFinder = _config.GameFinder };
+            }
+            
         }
 
 
