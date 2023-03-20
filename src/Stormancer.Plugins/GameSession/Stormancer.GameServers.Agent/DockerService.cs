@@ -83,9 +83,10 @@ namespace Stormancer.GameServers.Agent
             while (!await IsDockerRunning() && !cancellationToken.IsCancellationRequested)
             {
                 await Task.Delay(1000);
+                _logger.LogError("Failed to contact the docker daemon.");
             }
-
-            if(cancellationToken.IsCancellationRequested)
+            _logger.LogInformation("Docker agent found.");
+            if (cancellationToken.IsCancellationRequested)
             {
                 return;
             }
@@ -347,10 +348,15 @@ namespace Stormancer.GameServers.Agent
                 {
                     await _docker.System.MonitorEventsAsync(new ContainerEventsParameters { Since = ((int)(_monitorSince - DateTime.UnixEpoch).TotalSeconds).ToString() }, this);
                 }
+                catch(TimeoutException)
+                {
+                    await Task.Delay(1000);
+                }
                 catch (Exception ex)
                 {
                     _logger.Log(LogLevel.Warning, "an error occured while querying docker for events : {ex}", ex);
-                    await Task.Delay(10000);
+                    await Task.Delay(1000);
+
                 }
             }
         }

@@ -13,11 +13,13 @@ namespace Stormancer.GameServers.Agent
     {
         private readonly DockerAgentConfigurationOptions _options;
         private readonly AgentController _controller;
+        private readonly DockerService _docker;
 
-        public GameServerAgentPlugin(DockerAgentConfigurationOptions options, AgentController controller)
+        public GameServerAgentPlugin(DockerAgentConfigurationOptions options, AgentController controller, DockerService docker)
         {
             _options = options;
             _controller = controller;
+            this._docker = docker;
         }
         public void Build(PluginBuildContext ctx)
         {
@@ -25,7 +27,8 @@ namespace Stormancer.GameServers.Agent
             {
                 client.DependencyResolver.RegisterDependency(_options);
                 client.DependencyResolver.RegisterDependency(_controller);
-                client.DependencyResolver.Register((dr) => new AgentApi(), true);
+                client.DependencyResolver.Register((dr) => new AgentApi(dr.Resolve<DockerService>(),dr.Resolve<UserApi>(), dr.Resolve<Stormancer.Diagnostics.ILogger>()), true);
+                client.DependencyResolver.RegisterDependency(_docker);
                 
                 client.DependencyResolver.Register<IAuthenticationEventHandler>(dr => new DockerAgentAuthEventHandler(dr.Resolve<DockerAgentConfigurationOptions>()));
 
