@@ -131,3 +131,7 @@ installed, it can be created using the following command:
 
     > dotnet tool run stormancer manage secrets-store create --cluster test --account my-account --id my-secret-store
 
+
+# Analytics
+The plugin produces the following analytics:
+- 

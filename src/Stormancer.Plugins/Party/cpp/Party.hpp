@@ -2844,7 +2844,29 @@ namespace Stormancer
 									}
 									return true;
 									}, pplx::get_ambient_scheduler(), ct);
-							}, _dispatcher);
+							})
+						.then([wThat](pplx::task<std::shared_ptr<PartyContainer>> task)
+						{
+							try
+							{
+
+								return pplx::task_from_result(task.get());
+							}
+							catch(std::exception& ex)
+							{
+								if (auto that = wThat.lock())
+								{
+									if (that->isInParty())
+									{
+										return that->leaveParty().then([ex]()
+										{
+											return pplx::task_from_exception<std::shared_ptr<PartyContainer>>(ex);
+										});
+									}
+								}
+								throw;
+							}
+						}, _dispatcher);
 				}
 
 				pplx::task<std::string> obtainConnectionToken(const PartyId& partyId, const std::vector<byte>& userData, pplx::cancellation_token ct = pplx::cancellation_token::none())

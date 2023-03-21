@@ -102,9 +102,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                 tcs.SetResult(server);
             }
 
-            public Task<GameServer> WaitForServerAsync()
+            public async Task<WaitGameServerResult> WaitForServerAsync()
             {
-                return tcs.Task;
+                var s =  await tcs.Task;
+                return new WaitGameServerResult { Value = s, Success = true };
             }
 
             internal void Cancel()
@@ -158,7 +159,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         private Dictionary<string, IScenePeerClient> _connectedServers = new Dictionary<string, IScenePeerClient>();
 
 
-        public Task<GameServer> WaitGameServerAsync(string gameSessionId, GameSessionConfiguration gameSessionConfig, CancellationToken cancellationToken)
+        public Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gameSessionConfig, CancellationToken cancellationToken)
         {
             var request = new GetServerPendingRequest(gameSessionId, gameSessionConfig);
             if (cancellationToken.IsCancellationRequested)
@@ -174,7 +175,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                     {
                         gameServer.SetGameFound(gameSessionId, gameSessionConfig);
                         gameServer.CancellationTokenRegistration.Unregister();
-                        return Task.FromResult(new GameServer { GameServerSessionId = gameServer.Session.SessionId });
+                        return Task.FromResult(new WaitGameServerResult { Success = true, Value = new GameServer { GameServerSessionId = gameServer.Session.SessionId } });
 
                     }
                 }
@@ -281,6 +282,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             if(client!=null)
             {
                 await client.Send("ServerPool.Shutdown", _ => { }, Core.PacketPriority.MEDIUM_PRIORITY, Core.PacketReliability.RELIABLE);
+                await client.DisconnectFromServer("server.shutdown");
             }
         }
     }

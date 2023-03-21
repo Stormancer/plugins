@@ -24,6 +24,7 @@ using MsgPack.Serialization;
 using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.API;
+using Stormancer.Server.Plugins.GameSession.ServerProviders;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Threading;
@@ -61,12 +62,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         private readonly ServerPools pools;
         private readonly IUserSessions sessions;
         private readonly IGameSessions gamesessions;
+        private readonly AgentBasedGameServerProvider _agentsRepository;
 
-        public ServerPoolController(ServerPools pools, IUserSessions sessions, IGameSessions gamesessions)
+        public ServerPoolController(ServerPools pools, IUserSessions sessions, IGameSessions gamesessions, AgentBasedGameServerProvider agentsRepository)
         {
             this.pools = pools;
             this.sessions = sessions;
             this.gamesessions = gamesessions;
+            _agentsRepository = agentsRepository;
         }
 
         protected override async Task OnDisconnected(DisconnectedArgs args)
@@ -74,7 +77,28 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             var session = await sessions.GetSessionById(args.Peer.SessionId, CancellationToken.None);
             if (session != null)
             {
-                pools.RemoveGameServer(session.platformId.PlatformUserId);
+                if (session.platformId.Platform == GameServerAgentConstants.TYPE) //AGENT
+                {
+                    _agentsRepository.AgentDisconnected(args.Peer, session);
+                }
+                else
+                {
+                    pools.RemoveGameServer(session.platformId.PlatformUserId); //GAMESERVER
+                }
+            }
+           
+        }
+
+        protected override async Task OnConnected(IScenePeerClient peer)
+        {
+            var session = await sessions.GetSession(peer,CancellationToken.None);
+
+            if(session != null)
+            {
+                if(session.platformId.Platform == GameServerAgentConstants.TYPE)
+                {
+                    _agentsRepository.AgentConnected(peer, session);
+                }
             }
            
         }
@@ -109,11 +133,20 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         }
 
         [S2SApi]
-        public Task<GameServer> WaitGameServer(string poolId, string gameSessionId, GameSessionConfiguration config, CancellationToken cancellationToken)
+        public async Task<GameServer> WaitGameServer(string poolId, string gameSessionId, GameSessionConfiguration config, CancellationToken cancellationToken)
         {
             if (pools.TryGetPool(poolId, out var pool))
             {
-                return pool.WaitGameServerAsync(gameSessionId, config, cancellationToken);
+                var result = await pool.TryWaitGameServerAsync(gameSessionId, config, cancellationToken);
+
+                if(result.Success)
+                {
+                    return result.Value;
+                }
+                else
+                {
+                    throw new InvalidOperationException("Failed to start server.");
+                }
             }
             else
             {

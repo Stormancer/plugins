@@ -22,6 +22,7 @@
 
 using Newtonsoft.Json.Linq;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -29,14 +30,29 @@ namespace Stormancer.Server.Plugins.GameSession
 {
     public class GameServerInstance
     {
-        public Guid Id { get; set; }
+        public string Id { get; set; }
         public Action OnClosed { get; set; }
+    }
+
+    public class StartGameServerResult
+    {
+        public StartGameServerResult(bool success, GameServerInstance? instance, object? context )
+        {
+            Success = success;
+            Instance = instance;
+            Context = context;
+        }
+
+        [MemberNotNullWhen(true,"Instance")]
+        public bool Success { get; }
+        public GameServerInstance? Instance { get; }
+        public object? Context { get; set; }
     }
     public interface IGameServerProvider
     {
         string Type { get; }
-        Task<GameServerInstance> StartServer(string id, JObject config, CancellationToken ct);
+        Task<StartGameServerResult> TryStartServer(string id, JObject config, CancellationToken ct);
 
-        Task StopServer(string id);
+        Task StopServer(string id, object? context);
     }
 }
