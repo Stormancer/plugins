@@ -6,7 +6,7 @@
 #include "stormancer/StormancerTypes.h"
 #include "stormancer/msgpack_define.h"
 #include "stormancer/Scene.h"
-#include "users/Users.hpp"
+#include "Users/Users.hpp"
 #include <unordered_map>
 
 namespace Stormancer
