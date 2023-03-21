@@ -127,6 +127,8 @@ namespace Stormancer
 		{
 		public:
 
+			virtual ~IProfileEventHandler() = default;
+
 			virtual void onGetProfiles(std::unordered_map<std::string, details::ProfileDto>&)
 			{
 			}
@@ -199,6 +201,18 @@ namespace Stormancer
 					return _rpcService->rpc<std::unordered_map<SessionId, ProfileDto>>("Profile.GetProfilesBySessionIds", cancellationToken, sessionIds, displayOptions)
 						.then([wClient = _wClient](std::unordered_map<SessionId, ProfileDto> result)
 					{
+						auto client = wClient.lock();
+						if (!client)
+						{
+							throw ObjectDeletedException("IClient");
+						}
+
+						auto profileEventHandlers = client->dependencyResolver().resolveAll<IProfileEventHandler>();
+						for (auto& profileEventHandler : profileEventHandlers)
+						{
+							profileEventHandler->onGetProfiles(result);
+						}
+
 						ProfilesResultSessionId r;
 						r.profiles = result;
 						return r;
@@ -379,7 +393,7 @@ namespace Stormancer
 					_maskProfanityHandler = handler;
 				}
 
-				std::function<void(MaskProfanityContext&)> getMaskProfanityHandler() const
+				std::function<void(MaskProfanityContext&)> getMaskProfanityHandler() const override
 				{
 					return _maskProfanityHandler;
 				}
