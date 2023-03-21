@@ -23,8 +23,8 @@
 #pragma once
 
 #include "gamefinder/GameFinder.hpp"
-#include "users/ClientAPI.hpp"
-#include "users/Users.hpp"
+#include "Users/ClientAPI.hpp"
+#include "Users/Users.hpp"
 
 #include "stormancer/IClient.h"
 #include "stormancer/Event.h"
