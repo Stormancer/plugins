@@ -1,6 +1,6 @@
 #pragma once
-#include "users/ClientAPI.hpp"
-#include "users/Users.hpp"
+#include "Users/ClientAPI.hpp"
+#include "Users/Users.hpp"
 #include "stormancer/IPlugin.h"
 #include "stormancer/Configuration.h"
 #include <sstream>
