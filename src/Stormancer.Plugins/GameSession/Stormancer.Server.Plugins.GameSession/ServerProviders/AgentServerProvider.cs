@@ -138,8 +138,13 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
             user.UserData["claims"] = JObject.FromObject(claims);
 
+            
+            var result =  AuthenticationResult.CreateSuccess(user, id, authenticationCtx.Parameters);
 
-            return AuthenticationResult.CreateSuccess(user, id, authenticationCtx.Parameters);
+            //Declares the session as being of type "service" and not a game client. This is picked up by the gameversion plugin to disable game version checks.
+            result.initialSessionData["stormancer.type"] = Encoding.UTF8.GetBytes("service");
+
+            return result;
 
         }
 
