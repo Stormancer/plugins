@@ -63,7 +63,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         {
             _configuration = configuration;
             _secretsStore = secretsStore;
-            _section = _configuration.GetValue<GameServerAgentConfigurationSection>("gameservers.agents");
+            _section = _configuration.GetValue<GameServerAgentConfigurationSection>("gameservers.agents")?? new GameServerAgentConfigurationSection();
             _certificates = LoadSigningCertificates();
         }
 
@@ -84,7 +84,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public void OnConfigurationChanged()
         {
             _section = _configuration.GetValue<GameServerAgentConfigurationSection>("gameservers.agents");
-
+            _certificates = LoadSigningCertificates();
         }
 
         public GameServerAgentConfigurationSection ConfigurationSection => _section;
