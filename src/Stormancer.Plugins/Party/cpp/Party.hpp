@@ -2941,6 +2941,10 @@ namespace Stormancer
 					try
 					{
 						joinPartyTask.get();
+						if (!party->isInParty())
+						{
+							return;
+						}
 
 						party->raiseJoinedParty();
 
@@ -3035,7 +3039,26 @@ namespace Stormancer
 
 				bool isInParty() const noexcept override
 				{
-					return tryGetParty() != nullptr;
+					auto party = tryGetParty();
+					if (!party)
+					{
+						return false;
+					}
+
+					auto users = _wUsers.lock();
+					if (!users)
+					{
+						return false;
+					}
+
+					auto myId = users->userId();
+					auto members = party->members();
+					auto it = std::find_if(members.begin(), members.end(), [&myId](const PartyUserDto& user)
+						{
+							return user.userId == myId;
+						});
+
+					return it != members.end();
 				}
 
 				std::shared_ptr<Scene> getPartyScene() const override
@@ -3086,7 +3109,6 @@ namespace Stormancer
 					{
 						return *it;
 					}
-					assert(false); // Bug!
 					throw std::runtime_error(PartyError::Str::NotInParty);
 				}
 
