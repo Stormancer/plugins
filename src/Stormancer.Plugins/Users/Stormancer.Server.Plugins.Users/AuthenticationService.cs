@@ -95,19 +95,23 @@ namespace Stormancer.Server.Plugins.Users
                 throw new InvalidOperationException("Cannot call login on another scene than the authenticator scene");
             }
 
+            var provider = GetProviders().FirstOrDefault(p => p.Type == auth.Type);
+            if (provider == null)
+            {
+                return new LoginResult { Success = false, ErrorMsg = $"authentication.notSupported?type={auth.Type}", Authentications = new Dictionary<string, string>(), Metadata = new Dictionary<string, string>() };
+            }
+
             var result = new LoginResult();
             var session = await sessions.GetSessionRecordById(peer.SessionId);
             var authenticationCtx = new AuthenticationContext(auth.Parameters, peer, session?.CreateView());
             var validationCtx = new LoggingInCtx { AuthCtx = authenticationCtx, Type = auth.Type };
+            await provider.Authenticating(validationCtx);
+
             await _handlers().RunEventHandler(h => h.OnLoggingIn(validationCtx), ex => _logger.Log(LogLevel.Error, "user.login", "An error occured while running Validate event handler", ex));
 
             if (!validationCtx.HasError)
             {
-                var provider = GetProviders().FirstOrDefault(p => p.Type == auth.Type);
-                if (provider == null)
-                {
-                    return new LoginResult { Success = false, ErrorMsg = $"authentication.notSupported?type={auth.Type}", Authentications = new Dictionary<string, string>(), Metadata = new Dictionary<string, string>() };
-                }
+              
 
                 var authResult = await provider.Authenticate(authenticationCtx, ct);
 

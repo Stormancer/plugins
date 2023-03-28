@@ -113,6 +113,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         }
 
+        public Task Authenticating(LoggingInCtx loggingInCtx)
+        {
+            loggingInCtx.Context = "service";
+            return Task.CompletedTask;
+        }
+
         public async Task<AuthenticationResult> Authenticate(AuthenticationContext authenticationCtx, CancellationToken ct)
         {
             PlatformId id = new PlatformId();

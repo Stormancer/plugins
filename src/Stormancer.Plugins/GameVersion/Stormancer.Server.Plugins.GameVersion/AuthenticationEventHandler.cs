@@ -59,7 +59,7 @@ namespace Stormancer.Server.Plugins.GameVersion
                 return Task.CompletedTask;
             }
             //Don't control the gameversion on "services" clients. Services clients include gameserver hosting agents.
-            if(authenticationCtx.AuthCtx.CurrentSession.SessionData.TryGetValue("stormancer.type", out var bytes) && System.Text.Encoding.UTF8.GetString(bytes) == "service")
+            if(authenticationCtx.Context is string type && type == "service")
             {
                 return Task.CompletedTask;
             }

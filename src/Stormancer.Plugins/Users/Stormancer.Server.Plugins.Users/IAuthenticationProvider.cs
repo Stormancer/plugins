@@ -146,5 +146,12 @@ namespace Stormancer.Server.Plugins.Users
         /// </param>
         /// <returns>The new expiration date after the credentials have been renewed. Null if they should no longer expire.</returns>
         Task<DateTime?> RenewCredentials(AuthenticationContext authenticationContext);
+
+        /// <summary>
+        /// Event fired before the authentication process starts.
+        /// </summary>
+        /// <param name="validationCtx"></param>
+        /// <returns></returns>
+        Task Authenticating(LoggingInCtx validationCtx) => Task.CompletedTask;
     }
 }
