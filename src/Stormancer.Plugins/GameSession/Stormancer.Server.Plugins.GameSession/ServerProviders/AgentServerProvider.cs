@@ -137,7 +137,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             }
             var claims = Jose.JWT.Decode<Dictionary<string, string>>(jwt, certificate.GetRSAPublicKey());
 
-            id.Platform = "stormancer.gameservers.agents";
+            id.Platform = GameServerAgentConstants.TYPE;
             id.PlatformUserId = claims["id"];
 
             var user = new User { Id = Guid.NewGuid().ToString() };
