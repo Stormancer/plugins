@@ -67,7 +67,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             {
                 return false;
             }
-            logger.Log(LogLevel.Info, "serverpools", $"Creating provider based pool {id} of type {pId}");
+            logger.Log(LogLevel.Info, "serverpools", $"Creating provider based pool {id} of type {pId}", new { });
             pool = new ProviderBasedServerPool(id, provider, logger, scene);
             return true;
 
