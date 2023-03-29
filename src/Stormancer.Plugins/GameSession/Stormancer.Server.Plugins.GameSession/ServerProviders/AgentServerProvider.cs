@@ -44,7 +44,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         public override string type => "fromProvider";
 
-        public string provider { get; set; } = "agent";
+        public string provider { get; set; } = GameServerAgentConstants.TYPE;
         public float CpuRequirement { get; set; } = 0.5f;
         public long MemoryRequirement { get; set; } = 300 * 1024 * 1024;
     }
