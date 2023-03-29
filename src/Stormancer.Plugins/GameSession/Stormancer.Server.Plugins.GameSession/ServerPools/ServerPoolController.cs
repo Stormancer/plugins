@@ -27,6 +27,7 @@ using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.GameSession.ServerProviders;
 using Stormancer.Server.Plugins.Users;
 using System;
+using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -72,11 +73,13 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             _agentsRepository = agentsRepository;
         }
 
+        private ConcurrentDictionary<SessionId, Session> _sessions = new ConcurrentDictionary<SessionId, Session>();
         protected override async Task OnDisconnected(DisconnectedArgs args)
         {
-            var session = await sessions.GetSessionById(args.Peer.SessionId, CancellationToken.None);
-            if (session != null)
+            //var session = await sessions.GetSessionById(args.Peer.SessionId, CancellationToken.None);
+            if (_sessions.TryRemove(args.Peer.SessionId,out var session))
             {
+
                 if (session.platformId.Platform == GameServerAgentConstants.TYPE) //AGENT
                 {
                     _agentsRepository.AgentDisconnected(args.Peer, session);
@@ -95,6 +98,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
             if(session != null)
             {
+                _sessions[session.SessionId] = session;
                 if(session.platformId.Platform == GameServerAgentConstants.TYPE)
                 {
                     _agentsRepository.AgentConnected(peer, session);
