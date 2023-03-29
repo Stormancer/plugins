@@ -93,7 +93,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         private ConcurrentDictionary<string, Server> _runningServers = new ConcurrentDictionary<string, Server>();
         private ConcurrentQueue<GameServerRequest> _pendingRequests = new ConcurrentQueue<GameServerRequest>();
 
-        private bool isRunning = false;
+        private bool isRunning = true;
         public string Id { get; }
         public ProviderBasedServerPool(string id, IGameServerProvider provider, ILogger logger, ISceneHost scene)
         {

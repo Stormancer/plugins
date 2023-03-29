@@ -130,7 +130,7 @@ class Build : NukeBuild
     .Executes(async () =>
     {
         await StartDiscord();
-        foreach (var project in Solution.AllProjects.Where(p => !p.Name.StartsWith("_") && !p.Name.Contains("TestApp")))
+        foreach (var project in Solution.AllProjects.Where(p => !p.Name.StartsWith("_") && !p.Name.Contains("Test") && !p.Name.Contains("sample", StringComparison.InvariantCultureIgnoreCase)))
         {
             var changelogFile = Path.Combine(project.Directory, "Changelog.rst");
 
@@ -142,14 +142,13 @@ class Build : NukeBuild
                     try
                     {
                         await _channel.SendMessageAsync($"*[{BuildType} {Configuration}]* Publish skipped for `{project.Name}`. No changelog found.");
-                        continue;
+                        break;
                     }
                     catch (Exception)
                     {
                         await Task.Delay(500);
                     }
                 }
-                continue;
             }
 
             foreach (var file in Directory.GetFiles(project.Directory, "*.nupkg", SearchOption.AllDirectories))
