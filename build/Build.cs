@@ -149,6 +149,7 @@ class Build : NukeBuild
                         await Task.Delay(500);
                     }
                 }
+                continue;
             }
 
             foreach (var file in Directory.GetFiles(project.Directory, "*.nupkg", SearchOption.AllDirectories))
