@@ -73,7 +73,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             _agentsRepository = agentsRepository;
         }
 
-        private ConcurrentDictionary<SessionId, Session> _sessions = new ConcurrentDictionary<SessionId, Session>();
+        private static ConcurrentDictionary<SessionId, Session> _sessions = new ConcurrentDictionary<SessionId, Session>();
         protected override async Task OnDisconnected(DisconnectedArgs args)
         {
             //var session = await sessions.GetSessionById(args.Peer.SessionId, CancellationToken.None);
