@@ -171,7 +171,7 @@ namespace Stormancer.Server.Plugins
         {
             lock (_syncRoot)
             {
-                if (cache.TryGetValue(id, out var entry) || entry.ExpiresOn == null || entry.ExpiresOn < DateTime.UtcNow)
+                if (cache.TryGetValue(id, out var entry) && entry.ExpiresOn != null && entry.ExpiresOn >= DateTime.UtcNow)
                 {
                     expiresOn = entry.ExpiresOn;
                     value = entry.Content;
@@ -237,7 +237,7 @@ namespace Stormancer.Server.Plugins
                 var unknownIds = new List<TKey>();
                 foreach (var id in ids)
                 {
-                    if (cache.TryGetValue(id, out var entry) || entry.ExpiresOn == null || entry.ExpiresOn < DateTime.UtcNow)
+                    if (cache.TryGetValue(id, out var entry) && entry.ExpiresOn != null && entry.ExpiresOn >= DateTime.UtcNow)
                     {
                         results.Add(id, entry.Content);
                     }
