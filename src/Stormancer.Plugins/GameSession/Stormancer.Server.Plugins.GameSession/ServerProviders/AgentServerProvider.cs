@@ -193,6 +193,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             {
                 Fault = fault;
             }
+
+            TotalCpu = float.Parse(Description.Claims["quotas.maxCpu"]);
+            TotalMemory = long.Parse(Description.Claims["quotas.maxMemory"]);
         }
         public CancellationTokenSource CancellationTokenSource { get; } = new CancellationTokenSource();
 
