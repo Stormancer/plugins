@@ -40,7 +40,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         public GameServerInstance GameServer { get; internal set; }
         public DateTime CreatedOn { get; internal set; }
         public IScenePeerClient Peer { get; internal set; }
-        public TaskCompletionSource<GameServerStartupParameters> RunTcs { get; internal set; }
+      
         public object? Context { get; internal set; }
         public GameSessionConfiguration GameSessionConfiguration { get; internal set; }
         public TaskCompletionSource<WaitGameServerResult> RequestCompletedCompletionSource { get; internal set; }

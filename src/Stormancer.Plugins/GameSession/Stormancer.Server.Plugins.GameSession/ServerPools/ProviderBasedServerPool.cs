@@ -289,7 +289,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             if (_startingServers.TryRemove(id, out var server))
             {
                 server.Peer = client;
-                server.RunTcs = new TaskCompletionSource<GameServerStartupParameters>();
+              
                 _runningServers.TryAdd(id, server);
 
                 await using var scope = this._scene.CreateRequestScope();
@@ -300,7 +300,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                     GameSessionId = server.Id
                 };
                 server.RequestCompletedCompletionSource.SetResult(new WaitGameServerResult { Success = true, Value = new GameServer { GameServerSessionId = client.SessionId } }); 
-                return await server.RunTcs.Task;
+                return startupParameters;
             }
             else
             {
