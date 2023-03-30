@@ -72,7 +72,7 @@ namespace Stormancer
 
 			void initialize(std::shared_ptr<Scene> scene)
 			{
-				std::weak_ptr<SpectateService> wThat;
+				std::weak_ptr<SpectateService> wThat = this->shared_from_this();
 				scene->addRoute("Spectate.SendFrames", [wThat](Stormancer::Packetisp_ptr packet)
 					{
 						if (auto that = wThat.lock())

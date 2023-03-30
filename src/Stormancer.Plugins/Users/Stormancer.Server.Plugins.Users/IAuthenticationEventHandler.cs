@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Jose;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -93,6 +94,11 @@ namespace Stormancer.Server.Plugins.Users
         public bool HasError { get; set; }
         public string Reason { get; set; }
         public string Type { get; internal set; }
+
+        /// <summary>
+        /// Context object passed by the pre authentication phase of the provider.
+        /// </summary>
+        public object? Context { get; set; }
     }
 
 
