@@ -888,7 +888,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 memStream.Seek(0, SeekOrigin.Begin);
                 _clients[userId].ResultData = memStream;
 
-                EvaluateGameComplete();
+                await EvaluateGameComplete();
 
                 var tcs = _clients[userId].GameCompleteTcs;
                 if (tcs != null)
@@ -944,49 +944,58 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public event Action? OnGameSessionCompleted;
 
-        private void EvaluateGameComplete()
+        private async Task EvaluateGameComplete()
         {
             Debug.Assert(_config != null);
+            var ctx = new GameSessionCompleteCtx(this, _scene, _config, _clients.Select(kvp => new GameSessionResult(kvp.Key, kvp.Value.Peer, kvp.Value.ResultData ?? new MemoryStream())), _clients.Keys);
+
+
+            async Task runHandlers()
+            {
+                await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+                {
+                    await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.GameSessionCompleted(ctx), ex =>
+                    {
+                        _logger.Log(LogLevel.Error, "gameSession", "An error occured while running gameSession.GameSessionCompleted event handlers", ex);
+                        foreach (var client in _clients.Values)
+                        {
+                            client.GameCompleteTcs?.TrySetException(ex);
+                        }
+                    });
+                }
+
+                foreach (var client in _clients.Values)
+                {
+                    client.GameCompleteTcs?.TrySetResult(ctx.ResultsWriter);
+                }
+
+                await Task.Delay(5000);
+
+                // Update : Do not disconnect players to allow them to restart a game.
+                // By uncommenting the next line, you can encounter RPC failures if EvaluateGameComplete was called from an RPC called by the client (for example postResults).
+                //await Task.WhenAll(_scene.RemotePeers.Select(user => user.Disconnect("gamesession.completed")));
+
+                RaiseGameCompleted();
+
+                await _scene.KeepAlive(TimeSpan.Zero);
+            }
+
+            bool shouldRunHandlers = false;
             lock (this)
             {
                 if (!_gameCompleteExecuted && _clients.Values.All(c => c.ResultData != null || c.Peer == null))//All remaining clients sent their data
                 {
                     _gameCompleteExecuted = true;
 
-                    var ctx = new GameSessionCompleteCtx(this, _scene, _config, _clients.Select(kvp => new GameSessionResult(kvp.Key, kvp.Value.Peer, kvp.Value.ResultData ?? new MemoryStream())), _clients.Keys);
 
-                    async Task runHandlers()
-                    {
-                        await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
-                        {
-                            await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.GameSessionCompleted(ctx), ex =>
-                            {
-                                _logger.Log(LogLevel.Error, "gameSession", "An error occured while running gameSession.GameSessionCompleted event handlers", ex);
-                                foreach (var client in _clients.Values)
-                                {
-                                    client.GameCompleteTcs?.TrySetException(ex);
-                                }
-                            });
-                        }
-
-                        foreach (var client in _clients.Values)
-                        {
-                            client.GameCompleteTcs?.TrySetResult(ctx.ResultsWriter);
-                        }
-
-                        await Task.Delay(5000);
-
-                        // Update : Do not disconnect players to allow them to restart a game.
-                        // By uncommenting the next line, you can encounter RPC failures if EvaluateGameComplete was called from an RPC called by the client (for example postResults).
-                        //await Task.WhenAll(_scene.RemotePeers.Select(user => user.Disconnect("gamesession.completed")));
-
-                        RaiseGameCompleted();
-
-                        await _scene.KeepAlive(TimeSpan.Zero);
-                    }
-
-                    _ = runHandlers();
+                    shouldRunHandlers = true;
+                    
                 }
+            }
+
+            if (shouldRunHandlers)
+            {
+                await runHandlers();
             }
         }
 
