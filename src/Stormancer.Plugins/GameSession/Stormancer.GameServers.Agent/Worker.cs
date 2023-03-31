@@ -17,6 +17,7 @@ namespace Stormancer.GameServers.Agent
             ClientFactory.SetConfigFactory(() =>
             {
                 var config = Stormancer.ClientConfiguration.Create(_options.StormancerEndpoint, _options.StormancerAccount, _options.StormancerApplication);
+                config.Logger = new Logger(logger);
                 config.Plugins.Add(new GameServerAgentPlugin(_options, controller, dockerService));
                 config.Plugins.Add(new Stormancer.Plugins.AuthenticationPlugin());
                 return config;

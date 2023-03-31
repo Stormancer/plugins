@@ -20,10 +20,12 @@ namespace Stormancer.GameServers.Agent
 
         public async Task StartAgent(CancellationToken stoppingToken)
         {
+            await userApi.Login();
+            var scene = await userApi.GetSceneForService("stormancer.plugins.serverPool");
             await dockerService.StartAgent(stoppingToken);
 
-            _logger.Log(Diagnostics.LogLevel.Info,"agent","Docker agent found.");
-            await userApi.Login();
+            _logger.Log(Diagnostics.LogLevel.Info, "agent", "Docker daemon found.");
+
         }
     }
 }

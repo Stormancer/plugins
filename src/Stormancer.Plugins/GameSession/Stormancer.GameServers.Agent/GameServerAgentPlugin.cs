@@ -36,14 +36,14 @@ namespace Stormancer.GameServers.Agent
 
             ctx.SceneCreated += (Scene scene) =>
             {
-                if (scene.Id == "authenticator")
+                if (scene.Id == "gamesession-serverpool")
                 {
                     var controller = scene.DependencyResolver.Resolve<AgentController>();
-
+                    controller.UserApi = scene.DependencyResolver.Resolve<UserApi>();
                     scene.AddProcedure("agent.getRunningContainers",async ctx => {
-                        var args = ctx.ReadObject<GetRunningContainersParameters>();
+                        var args = ctx.ReadObject<bool>();
 
-                        ctx.SendValue(await controller.GetRunningContainers(args));
+                        ctx.SendValue(await controller.GetRunningContainers(new GetRunningContainersParameters()));
 
                     });
 

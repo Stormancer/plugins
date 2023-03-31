@@ -34,7 +34,7 @@ namespace Stormancer.GameServers.Agent
                 ["x5t"] = privateKey.Thumbprint
             });
 
-            ctx.AuthParameters.Type = "stormanger.gameservers.agent";
+            ctx.AuthParameters.Type = "stormancer.gameserver.agent";
             ctx.AuthParameters.Parameters["dockerAgent.jwt"] = jwt;
 
             return Task.CompletedTask;
