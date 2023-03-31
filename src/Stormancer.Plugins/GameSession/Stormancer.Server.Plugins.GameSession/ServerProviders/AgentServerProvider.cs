@@ -395,7 +395,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         public string Type => GameServerAgentConstants.TYPE;
 
-        public async Task<StartGameServerResult> TryStartServer(string id, JObject config, CancellationToken ct)
+        public async Task<StartGameServerResult> TryStartServer(string id,string authenticationToken, JObject config, CancellationToken ct)
         {
             var agentConfig = config.ToObject<AgentPoolConfigurationSection>();
             var applicationInfo = await _environment.GetApplicationInfos();
@@ -404,7 +404,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
             var udpTransports = node.Transports.First(t => t.Item1 == "raknet");
 
-            var authenticationToken = await _dataProtector.ProtectBase64Url(Encoding.UTF8.GetBytes(id), "gameServer");
+          
 
             var endpoints = string.Join(',', fed.current.endpoints);
 
@@ -445,7 +445,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
                     if (response.Success)
                     {
-                        return new StartGameServerResult(true, new GameServerInstance { Id = response.Container.ContainerId }, agent.Id);
+                        return new StartGameServerResult(true, new GameServerInstance { Id = response.Container.ContainerId }, (agent.Id,response.Container.ContainerId));
                     }
                 }
                 await Task.Delay(500);
@@ -472,7 +472,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         public Task StopServer(string id, object ctx)
         {
-            throw new NotImplementedException();
+            (string agentId, string containerId) = (ValueTuple<string, string>)(ctx);
+
+            return StopContainer(agentId, containerId);
+          
         }
     }
 

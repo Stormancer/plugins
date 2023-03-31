@@ -685,13 +685,13 @@ namespace Stormancer.Server.Plugins.GameSession
                 {
                     _scene.Disconnected.Add(async (args) =>
                     {
-                        if (this._serverPeer.Task.IsCompletedSuccessfully)
+                        if (this._server!=null)
                         {
                             //If the only peer remaining is the server, close it and destroy the gamesession.
                             if (!_scene.RemotePeers.Any(p => p.SessionId != this._serverPeer.Task.Result.SessionId))
                             {
                                 _gameCompleteCts.Cancel();
-                                await pools.CloseServer(poolId, this._serverPeer.Task.Result.SessionId, CancellationToken.None);
+                                await pools.CloseServer(_server.GameServerId, CancellationToken.None);
                                 _scene.Shutdown("gamesession.empty");
 
                             }
@@ -711,7 +711,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 }
 
 
-                var server = await pools.WaitGameServer(poolId, GameSessionId, _config, _gameCompleteCts.Token);
+                _server = await pools.WaitGameServer(poolId, GameSessionId, _config, _gameCompleteCts.Token);
 
                 if(!state.IsServerPersistent())
                 {
@@ -719,7 +719,10 @@ namespace Stormancer.Server.Plugins.GameSession
                         await Task.Delay(1000 * 60 * 5);
                         if (!_playerConnectedOnce)
                         {
-                            await pools.CloseServer(poolId, server.GameServerSessionId, CancellationToken.None);
+                            if (_server != null)
+                            {
+                                await pools.CloseServer(_server.GameServerId, CancellationToken.None);
+                            }
                             _scene.Shutdown("gamesession.empty");
                         }
                     });
@@ -732,7 +735,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
 
 
-                var serverCtx = new ServerReadyContext(peer, server);
+                var serverCtx = new ServerReadyContext(peer, _server);
 
                 await using (var serverReadyscope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
                 {
@@ -856,7 +859,10 @@ namespace Stormancer.Server.Plugins.GameSession
                 {
                     await using var scope = _scene.CreateRequestScope();
                     var pools = scope.Resolve<ServerPoolProxy>();
-                    await pools.CloseServer(poolId, GetServerTcs().Task.Result.SessionId, CancellationToken.None);
+                    if (_server != null)
+                    {
+                        await pools.CloseServer(_server.GameServerId,CancellationToken.None);
+                    }
                 }
             }
         }
@@ -1257,6 +1263,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private ConcurrentDictionary<Guid, ReservationState> _reservationStates = new ConcurrentDictionary<Guid, ReservationState>();
         private Timer _reservationCleanupTimer;
+        private GameServer _server;
 
         private Team? FindPlayerTeam(string userId)
         {

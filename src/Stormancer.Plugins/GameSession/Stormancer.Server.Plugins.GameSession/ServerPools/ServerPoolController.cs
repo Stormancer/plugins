@@ -77,7 +77,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         protected override async Task OnDisconnected(DisconnectedArgs args)
         {
             //var session = await sessions.GetSessionById(args.Peer.SessionId, CancellationToken.None);
-            if (_sessions.TryRemove(args.Peer.SessionId,out var session))
+            if (_sessions.TryRemove(args.Peer.SessionId, out var session))
             {
 
                 if (session.platformId.Platform == GameServerAgentConstants.TYPE) //AGENT
@@ -89,22 +89,22 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                     pools.RemoveGameServer(session.platformId.PlatformUserId); //GAMESERVER
                 }
             }
-           
+
         }
 
         protected override async Task OnConnected(IScenePeerClient peer)
         {
-            var session = await sessions.GetSession(peer,CancellationToken.None);
+            var session = await sessions.GetSession(peer, CancellationToken.None);
 
-            if(session != null)
+            if (session != null)
             {
                 _sessions[session.SessionId] = session;
-                if(session.platformId.Platform == GameServerAgentConstants.TYPE)
+                if (session.platformId.Platform == GameServerAgentConstants.TYPE)
                 {
                     _agentsRepository.AgentConnected(peer, session);
                 }
             }
-           
+
         }
 
         /// <summary>
@@ -143,7 +143,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             {
                 var result = await pool.TryWaitGameServerAsync(gameSessionId, config, cancellationToken);
 
-                if(result.Success)
+                if (result.Success)
                 {
                     return result.Value;
                 }
@@ -160,18 +160,16 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         }
 
         [S2SApi]
-        public async Task CloseServer(string poolId, SessionId sessionId)
+        public async Task CloseServer(GameServerId id)
         {
-            if (pools.TryGetPool(poolId, out var pool))
+            if (pools.TryGetPool(id.PoolId, out var pool))
             {
-                var session = await sessions.GetSessionById(sessionId,CancellationToken.None);
-                if (session != null)
-                {
-                    await pool.CloseServer(session.platformId.PlatformUserId);
-                }
+
+                await pool.CloseServer(id.Id);
+
             }
-            
-           
+
+
         }
     }
 }
