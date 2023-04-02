@@ -70,13 +70,13 @@ namespace Stormancer.Plugins.Tests.ServerApp
                         .TeamSize(1)
                     )
                 );
-                host.ConfigureGameSession("gamesession-replication", c => c
 
-                   .CustomizeScene(scene => {
-                       scene.AddReplication();
-                       scene.AddSocket();
-                       })
-                ) ;
+                host.ConfigureGameSession("gamesession-replication", c => c
+                .CustomizeScene(scene => {
+                    scene.AddReplication();      
+                    scene.AddSocket();
+                    })
+                );
 
                 host.ConfigureGamefinderTemplate("joingame-test", c => c
                     .ConfigureQuickQueue(b => b
@@ -87,6 +87,21 @@ namespace Stormancer.Plugins.Tests.ServerApp
                     )
                 );
 
+                host.ConfigureGameSession("gamesession-partygame", c => c
+                   .CustomizeScene(scene =>
+                   {
+                       scene.AddReplication();
+                       scene.AddSocket();
+                   })
+                   .EnablePeerDirectConnection(false)
+                );
+
+                host.ConfigureGamefinderTemplate("joinpartygame-test", c => c
+                    .ConfigurePartyGameFinder(b => b
+                        .GameSessionTemplate("gamesession-partygame")
+                    )
+                );
+
 
                 host.ConfigureGameSession("gamesession-disable-direct-connection", c => c
 
@@ -94,7 +109,7 @@ namespace Stormancer.Plugins.Tests.ServerApp
                 );
 
                 host.ConfigureGamefinderTemplate("disable-direct-connection-test", c => c
-                    .ConfigureQuickQueue(b =>b
+                    .ConfigureQuickQueue(b => b
                         .GameSessionTemplate("gamesession-disable-direct-connection")
                         .TeamCount(2)
                         .TeamSize(1)
@@ -102,7 +117,7 @@ namespace Stormancer.Plugins.Tests.ServerApp
                 );
 
 
-              
+
 
             };
             ctx.HostStarted += (IHost host) =>

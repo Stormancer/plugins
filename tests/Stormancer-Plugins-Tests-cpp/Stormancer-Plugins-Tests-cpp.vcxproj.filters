@@ -47,9 +47,11 @@
     <ClInclude Include="..\..\src\Stormancer.Plugins\Profile\cpp\Profile.hpp">
       <Filter>Profile</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\GameSession\cpp\GameSession.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Spectate\cpp\Spectate.hpp">
       <Filter>Spectate</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Stormancer.Plugins\GameSession\cpp\GameSession.hpp">
+      <Filter>GameSession</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
