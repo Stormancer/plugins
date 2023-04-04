@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+4.0.0.3
+-------
 Changed
 *****
 - Update GetProfilesBySessionIds API to expect a sequence of SessionId objects instead of a sequence of string.
