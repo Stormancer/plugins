@@ -224,6 +224,8 @@ namespace Stormancer.Server.Plugins.Steam
                                     partySettingsDto.PublicServerData["SteamIDLobby"] = steamIDLobby.ToString();
                                     _ = ctx.Party.UpdateSettings(partySettingsDto, CancellationToken.None);
                                     data.SteamIDLobby = steamIDLobby;
+                                    data.UserData[ctx.Session.SessionId] = new SteamUserData { SessionId = ctx.Session.SessionId, SteamId = (ulong)steamId };
+                                    data.IncrementNumMembers();
                                     data.IsJoinable = joinable;
                                 }
                                 else
