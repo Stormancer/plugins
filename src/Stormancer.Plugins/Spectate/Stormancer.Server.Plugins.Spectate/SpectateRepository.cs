@@ -134,7 +134,7 @@ namespace Stormancer.Server.Plugins.Spectate
         {
             lock (_frames)
             {
-                return _frames.GetViewBetween(new FrameList { Time = startTime }, new FrameList { Time = endTime });
+                return _frames.GetViewBetween(new FrameList { Time = startTime }, new FrameList { Time = endTime }).ToArray();
             }
         }
 
