@@ -329,6 +329,11 @@ namespace Stormancer.Server.Plugins.Steam
                         await _steamService.RemoveUserFromLobby(steamUserData.SteamId, data.SteamIDLobby);
                         data.DecrementNumMembers();
                         data.UserData.TryRemove(sessionId, out var _);
+
+                        if(data.UserData.Count == 0)
+                        {
+                            data.SteamIDLobby = 0;
+                        }
                     });
                 }
             }

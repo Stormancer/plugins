@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Fixed
+*****
+- Destroy Steam lobby when last Steam player leave the party.
+
 4.1.3
 -----
 Changed
