@@ -175,7 +175,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                     {
                         gameServer.SetGameFound(gameSessionId, gameSessionConfig);
                         gameServer.CancellationTokenRegistration.Unregister();
-                        return Task.FromResult(new WaitGameServerResult { Success = true, Value = new GameServer { GameServerSessionId = gameServer.Session.SessionId } });
+                        return Task.FromResult(new WaitGameServerResult { Success = true, Value = new GameServer { GameServerId = new GameServerId { PoolId = this.Id, Id = gameSessionId }, GameServerSessionId = gameServer.Session.SessionId } });
 
                     }
                 }

@@ -8,25 +8,34 @@ namespace Stormancer.GameServers.Agent
 {
     internal class Messager
     {
-        private readonly Func<IEnumerable<IMessageHandler>> _handlers;
+      
+        private readonly IServiceScopeFactory serviceScopeFactory;
 
-        public Messager(Func<IEnumerable<IMessageHandler>> handlers)
+        public Messager(IServiceScopeFactory serviceScopeFactory)
         {
-            _handlers = handlers;
+          
+            this.serviceScopeFactory = serviceScopeFactory;
         }
         public void PostServerStoppedMessage(ServerContainer container)
         {
-            foreach(var handler in _handlers())
+            using(var scope  = serviceScopeFactory.CreateScope())
             {
-                handler.OnServerStopped(container);
+                var handlers = scope.ServiceProvider.GetRequiredService<IEnumerable<IMessageHandler>>();
+                foreach (var handler in handlers)
+                {
+                    handler.OnServerStopped(container);
+                }
             }
+           
         }
 
         public void PostServerStartedMessage(ServerContainer container)
         {
-            foreach (var handler in _handlers())
+            using (var scope = serviceScopeFactory.CreateScope())
             {
-                handler.OnServerStarted(container);
+                var handlers = scope.ServiceProvider.GetRequiredService<IEnumerable<IMessageHandler>>();
+                foreach (var handler in handlers)
+                    handler.OnServerStarted(container);
             }
         }
     }

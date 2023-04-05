@@ -165,12 +165,18 @@ namespace Stormancer.Server.Plugins.Spectate
              
             }
         }
-
+        
         private MatchArrayFilter? _filter;
-        public MatchArrayFilter? GetSubscribers()
+        public MatchArrayFilter GetSubscribers()
         {
-
-            return _filter;
+            if (_filter != null)
+            {
+                return _filter;
+            }
+            else
+            {
+                return new MatchArrayFilter(Enumerable.Empty<SessionId>());
+            }
 
         }
     }

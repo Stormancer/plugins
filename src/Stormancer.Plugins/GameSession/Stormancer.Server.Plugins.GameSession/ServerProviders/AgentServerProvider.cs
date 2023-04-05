@@ -38,13 +38,13 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
     public class AgentPoolConfigurationSection : PoolConfiguration
     {
         public string Image { get; set; }
-        public Dictionary<string, string> EnvironmentVariables { get; set; }
+        public Dictionary<string, string>? EnvironmentVariables { get; set; }
 
         public uint TimeoutSeconds { get; set; }
 
         public override string type => "fromProvider";
 
-        public string provider { get; set; } = "agent";
+        public string provider { get; set; } = GameServerAgentConstants.TYPE;
         public float CpuRequirement { get; set; } = 0.5f;
         public long MemoryRequirement { get; set; } = 300 * 1024 * 1024;
     }
@@ -63,7 +63,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         {
             _configuration = configuration;
             _secretsStore = secretsStore;
-            _section = _configuration.GetValue<GameServerAgentConfigurationSection>("gameservers.agents");
+            _section = _configuration.GetValue<GameServerAgentConfigurationSection>("gameservers.agents") ?? new GameServerAgentConfigurationSection();
             _certificates = LoadSigningCertificates();
         }
 
@@ -84,7 +84,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public void OnConfigurationChanged()
         {
             _section = _configuration.GetValue<GameServerAgentConfigurationSection>("gameservers.agents");
-
+            _certificates = LoadSigningCertificates();
         }
 
         public GameServerAgentConfigurationSection ConfigurationSection => _section;
@@ -113,6 +113,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         }
 
+        public Task Authenticating(LoggingInCtx loggingInCtx)
+        {
+            loggingInCtx.Context = "service";
+            return Task.CompletedTask;
+        }
+
         public async Task<AuthenticationResult> Authenticate(AuthenticationContext authenticationCtx, CancellationToken ct)
         {
             PlatformId id = new PlatformId();
@@ -131,7 +137,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             }
             var claims = Jose.JWT.Decode<Dictionary<string, string>>(jwt, certificate.GetRSAPublicKey());
 
-            id.Platform = "stormancer.gameservers.agents";
+            id.Platform = GameServerAgentConstants.TYPE;
             id.PlatformUserId = claims["id"];
 
             var user = new User { Id = Guid.NewGuid().ToString() };
@@ -139,7 +145,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             user.UserData["claims"] = JObject.FromObject(claims);
 
 
-            return AuthenticationResult.CreateSuccess(user, id, authenticationCtx.Parameters);
+            var result = AuthenticationResult.CreateSuccess(user, id, authenticationCtx.Parameters);
+
+            //Declares the session as being of type "service" and not a game client. This is picked up by the gameversion plugin to disable game version checks.
+            result.initialSessionData["stormancer.type"] = Encoding.UTF8.GetBytes("service");
+
+            return result;
 
         }
 
@@ -182,6 +193,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             {
                 Fault = fault;
             }
+
+            TotalCpu = float.Parse(Description.Claims["quotas.maxCpu"]);
+            TotalMemory = long.Parse(Description.Claims["quotas.maxMemory"]);
         }
         public CancellationTokenSource CancellationTokenSource { get; } = new CancellationTokenSource();
 
@@ -270,9 +284,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         public void DisableAgent(string agentId)
         {
-            lock(_syncRoot)
+            lock (_syncRoot)
             {
-                if(_agents.TryGetValue(agentId,out var agent))
+                if (_agents.TryGetValue(agentId, out var agent))
                 {
                     agent.IsActive = false;
                 }
@@ -381,7 +395,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         public string Type => GameServerAgentConstants.TYPE;
 
-        public async Task<StartGameServerResult> TryStartServer(string id, JObject config, CancellationToken ct)
+        public async Task<StartGameServerResult> TryStartServer(string id,string authenticationToken, JObject config, CancellationToken ct)
         {
             var agentConfig = config.ToObject<AgentPoolConfigurationSection>();
             var applicationInfo = await _environment.GetApplicationInfos();
@@ -390,7 +404,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
             var udpTransports = node.Transports.First(t => t.Item1 == "raknet");
 
-            var authenticationToken = await _dataProtector.ProtectBase64Url(Encoding.UTF8.GetBytes(id), "gameServer");
+          
 
             var endpoints = string.Join(',', fed.current.endpoints);
 
@@ -406,10 +420,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                     { "Stormancer_Server_Application", applicationInfo.ApplicationName },
                     { "Stormancer_Server_TransportEndpoint", udpTransports.Item2.First().Replace(":","|") }
              };
-
-            foreach (var (key, value) in agentConfig.EnvironmentVariables)
+            if (agentConfig != null && agentConfig.EnvironmentVariables != null)
             {
-                environmentVariables[key] = value;
+                foreach (var (key, value) in agentConfig.EnvironmentVariables)
+                {
+                    environmentVariables[key] = value;
+                }
             }
 
             var tries = 0;
@@ -418,7 +434,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 tries++;
                 var agent = FindAgent(agentConfig.CpuRequirement, agentConfig.MemoryRequirement);
 
-                if(agent != null)
+                if (agent != null)
                 {
                     var response = await StartContainerAsync(agent.Id, agentConfig.Image, id, agentConfig.CpuRequirement, agentConfig.MemoryRequirement, environmentVariables);
 
@@ -427,9 +443,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                     agent.UsedCpu = response.CurrentCpuQuotaUsed;
                     agent.UsedMemory = response.CurrentMemoryQuotaUsed;
 
-                    if(response.Success)
+                    if (response.Success)
                     {
-                        return new StartGameServerResult(true, new GameServerInstance { Id = response.Container.ContainerId }, agent.Id);
+                        return new StartGameServerResult(true, new GameServerInstance { Id = response.Container.ContainerId }, (agent.Id,response.Container.ContainerId));
                     }
                 }
                 await Task.Delay(500);
@@ -456,7 +472,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         public Task StopServer(string id, object ctx)
         {
-            throw new NotImplementedException();
+            (string agentId, string containerId) = (ValueTuple<string, string>)(ctx);
+
+            return StopContainer(agentId, containerId);
+          
         }
     }
 

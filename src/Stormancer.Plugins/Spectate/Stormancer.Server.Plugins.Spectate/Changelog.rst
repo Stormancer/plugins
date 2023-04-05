@@ -15,6 +15,12 @@ Fixed
 *****
 - Fix concurrency bug in GetFrames
 
+0.3.1
+-----
+Fixed
+*****
+- Don't send null as the filter to Send.
+
 0.3.0
 ----------
 Changed

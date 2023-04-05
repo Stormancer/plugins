@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+2.3.0
+-----
 Added
 *****
 - Added An exception handler to RPCs to log more detailed informations about Elasticsearch exceptions.

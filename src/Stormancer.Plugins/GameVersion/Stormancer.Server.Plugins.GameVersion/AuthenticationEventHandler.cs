@@ -58,6 +58,11 @@ namespace Stormancer.Server.Plugins.GameVersion
             {
                 return Task.CompletedTask;
             }
+            //Don't control the gameversion on "services" clients. Services clients include gameserver hosting agents.
+            if(authenticationCtx.Context is string type && type == "service")
+            {
+                return Task.CompletedTask;
+            }
 
             var serverVersion = gameVersionService.CurrentGameVersion;
 

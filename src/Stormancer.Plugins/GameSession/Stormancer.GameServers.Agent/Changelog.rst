@@ -1,4 +1,4 @@
-﻿=========
+=========
 Changelog
 =========
 
@@ -9,12 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-0.1.0.14
---------
-Changed
+0.2.0
 -----
-- Improve log buffering
-
-0.1.0.12
-----------
-- Initial plugin release. This dotnet Client plugins simplifies creating agents and control servers for the Stormancer RemoteControl plugin (Stormancer.Server.Plugins.RemoteControl).
+Added
+*****
+- Initial preversion of the agent.

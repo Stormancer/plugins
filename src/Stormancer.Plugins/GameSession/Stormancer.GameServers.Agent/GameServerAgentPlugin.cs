@@ -13,11 +13,13 @@ namespace Stormancer.GameServers.Agent
     {
         private readonly DockerAgentConfigurationOptions _options;
         private readonly AgentController _controller;
+        private readonly DockerService _docker;
 
-        public GameServerAgentPlugin(DockerAgentConfigurationOptions options, AgentController controller)
+        public GameServerAgentPlugin(DockerAgentConfigurationOptions options, AgentController controller, DockerService docker)
         {
             _options = options;
             _controller = controller;
+            this._docker = docker;
         }
         public void Build(PluginBuildContext ctx)
         {
@@ -25,7 +27,8 @@ namespace Stormancer.GameServers.Agent
             {
                 client.DependencyResolver.RegisterDependency(_options);
                 client.DependencyResolver.RegisterDependency(_controller);
-                client.DependencyResolver.Register((dr) => new AgentApi(), true);
+                client.DependencyResolver.Register((dr) => new AgentApi(dr.Resolve<DockerService>(),dr.Resolve<UserApi>(), dr.Resolve<Stormancer.Diagnostics.ILogger>()), true);
+                client.DependencyResolver.RegisterDependency(_docker);
                 
                 client.DependencyResolver.Register<IAuthenticationEventHandler>(dr => new DockerAgentAuthEventHandler(dr.Resolve<DockerAgentConfigurationOptions>()));
 
@@ -33,14 +36,14 @@ namespace Stormancer.GameServers.Agent
 
             ctx.SceneCreated += (Scene scene) =>
             {
-                if (scene.Id == "authenticator")
+                if (scene.Id == "gamesession-serverpool")
                 {
                     var controller = scene.DependencyResolver.Resolve<AgentController>();
-
+                    controller.UserApi = scene.DependencyResolver.Resolve<UserApi>();
                     scene.AddProcedure("agent.getRunningContainers",async ctx => {
-                        var args = ctx.ReadObject<GetRunningContainersParameters>();
+                        var args = ctx.ReadObject<bool>();
 
-                        ctx.SendValue(await controller.GetRunningContainers(args));
+                        ctx.SendValue(await controller.GetRunningContainers(new GetRunningContainersParameters()));
 
                     });
 

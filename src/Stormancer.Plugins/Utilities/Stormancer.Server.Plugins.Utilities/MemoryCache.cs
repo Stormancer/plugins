@@ -126,9 +126,13 @@ namespace Stormancer.Server.Plugins
 
                 while (await _timer.WaitForNextTickAsync())
                 {
+                    KeyValuePair<TKey, CacheEntry>[] copy;
+                    lock (_syncRoot)
+                    {
+                        copy = cache.Where(kvp => (kvp.Value.ExpiresOn ?? DateTime.MaxValue) < DateTime.UtcNow).ToArray();
+                    }
 
-
-                    foreach (var entry in cache.Where(kvp => (kvp.Value.ExpiresOn ?? DateTime.MaxValue) < DateTime.UtcNow).ToArray())
+                    foreach (var entry in copy)
                     {
                         entry.Value.OnInvalidated(entry.Key);
                     }
@@ -171,7 +175,7 @@ namespace Stormancer.Server.Plugins
         {
             lock (_syncRoot)
             {
-                if (cache.TryGetValue(id, out var entry) || entry.ExpiresOn == null || entry.ExpiresOn < DateTime.UtcNow)
+                if (cache.TryGetValue(id, out var entry) && entry.ExpiresOn != null && entry.ExpiresOn >= DateTime.UtcNow)
                 {
                     expiresOn = entry.ExpiresOn;
                     value = entry.Content;
@@ -237,7 +241,7 @@ namespace Stormancer.Server.Plugins
                 var unknownIds = new List<TKey>();
                 foreach (var id in ids)
                 {
-                    if (cache.TryGetValue(id, out var entry) || entry.ExpiresOn == null || entry.ExpiresOn < DateTime.UtcNow)
+                    if (cache.TryGetValue(id, out var entry) && entry.ExpiresOn != null && entry.ExpiresOn >= DateTime.UtcNow)
                     {
                         results.Add(id, entry.Content);
                     }

@@ -59,6 +59,11 @@ This will fill the local cache of the Epic SDK.
 
 ```json
 {
+	"auth": {
+		"epic": {
+			"enabled": true
+		}
+    },
 	"epic": {
     	"productIds": [ "UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU" ],
     	"applicationIds": [ "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV" ],

@@ -1,4 +1,5 @@
 using RakNet;
+using Stormancer.Plugins;
 
 namespace Stormancer.GameServers.Agent
 {
@@ -7,7 +8,7 @@ namespace Stormancer.GameServers.Agent
         private readonly ILogger<Worker> _logger;
         private readonly DockerAgentConfigurationOptions _options;
 
-        public Worker(ILogger<Worker> logger, IConfiguration configuration, AgentController controller)
+        public Worker(ILogger<Worker> logger, IConfiguration configuration, AgentController controller, DockerService dockerService)
         {
             _logger = logger;
 
@@ -16,7 +17,9 @@ namespace Stormancer.GameServers.Agent
             ClientFactory.SetConfigFactory(() =>
             {
                 var config = Stormancer.ClientConfiguration.Create(_options.StormancerEndpoint, _options.StormancerAccount, _options.StormancerApplication);
-                config.Plugins.Add(new GameServerAgentPlugin(_options, controller));
+                config.Logger = new Logger(logger);
+                config.Plugins.Add(new GameServerAgentPlugin(_options, controller, dockerService));
+                config.Plugins.Add(new Stormancer.Plugins.AuthenticationPlugin());
                 return config;
             });
         }
@@ -31,7 +34,7 @@ namespace Stormancer.GameServers.Agent
 
             var client = Stormancer.ClientFactory.GetClient(0);
 
-            await client.DependencyResolver.Resolve<DockerService>().StartAgent(stoppingToken);
+            await client.DependencyResolver.Resolve<AgentApi>().StartAgent(stoppingToken);
 
             while (!stoppingToken.IsCancellationRequested)
             {
