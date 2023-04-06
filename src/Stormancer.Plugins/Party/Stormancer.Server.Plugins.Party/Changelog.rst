@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+5.0.0.2
+-------
 Changed
 *******
 - Send IndexedDocument as part of party updated events.
