@@ -60,6 +60,8 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
     public class ContainerStartParameters
     {
+        
+
         [MessagePackMember(0)]
         public string Image { get; set; } = default!;
 
@@ -74,6 +76,13 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         [MessagePackMember(4)]
         public Dictionary<string, string> EnvironmentVariables { get; internal set; } = default!;
+
+        /// <summary>
+        /// Deployment id of the app controlling the agent.
+        /// </summary>
+        [MessagePackMember(5)]
+        public string? AppDeploymentId { get; set; }
+        
     }
 
     public class ContainerStartResponse

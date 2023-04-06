@@ -85,9 +85,10 @@ namespace Stormancer.Server.Plugins.GameSession
             _analytics.Push("gamesession", "gamesession-closed", JObject.FromObject(new
             {
                 gameSessionId = gameSessionService.GameSessionId,
-                sessionDuration = gameSessionService.CreatedOn - DateTime.UtcNow
+                sessionDuration = gameSessionService.CreatedOn - DateTime.UtcNow,
+                maxClientsConnected = gameSessionService.MaxClientsConnected
 
-            }));
+            })) ;
             Interlocked.Decrement(ref _gameSessionsCount);
         }
     }

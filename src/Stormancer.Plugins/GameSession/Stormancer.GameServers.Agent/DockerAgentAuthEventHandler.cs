@@ -6,27 +6,29 @@ namespace Stormancer.GameServers.Agent
 {
     internal class DockerAgentAuthEventHandler : IAuthenticationEventHandler
     {
-        private readonly DockerAgentConfigurationOptions _options;
+        private readonly DockerAgentConfigurationOptions _agentOptions;
+        private readonly AgentApi _agentApi;
 
-        public DockerAgentAuthEventHandler(DockerAgentConfigurationOptions options)
+        public DockerAgentAuthEventHandler(DockerAgentConfigurationOptions agentOptions, AgentApi agentApi)
         {
-            _options = options;
+            _agentOptions = agentOptions;
+            _agentApi = agentApi;
         }
 
         public Task RetrieveCredentials(CredentialsContext ctx)
         {
-            ArgumentNullException.ThrowIfNull(_options.PrivateKeyPath);
-            var privateKey = new X509Certificate2(_options.PrivateKeyPath, _options.PrivateKeyPassword);
+            ArgumentNullException.ThrowIfNull(_agentApi.ApplicationConfiguration.PrivateKeyPath);
+            var privateKey = new X509Certificate2(_agentApi.ApplicationConfiguration.PrivateKeyPath, _agentApi.ApplicationConfiguration.PrivateKeyPassword);
 
             var claims = new Dictionary<string, string>();
-            foreach (var attr in _options.Attributes)
+            foreach (var attr in _agentOptions.Attributes)
             {
                 claims.Add($"attributes.{attr.Key}", attr.Value);
             }
 
-            claims.Add("quotas.maxMemory", _options.MaxMemory.ToString());
-            claims.Add("quotas.maxCpu", _options.MaxCpu.ToString());
-            claims.Add("id", _options.Id);
+            claims.Add("quotas.maxMemory", _agentOptions.MaxMemory.ToString());
+            claims.Add("quotas.maxCpu", _agentOptions.MaxCpu.ToString());
+            claims.Add("id", _agentOptions.Id);
 
             var jwt = Jose.JWT.Encode(claims, privateKey.GetRSAPrivateKey(), JwsAlgorithm.RS256, new Dictionary<string, object>
             {

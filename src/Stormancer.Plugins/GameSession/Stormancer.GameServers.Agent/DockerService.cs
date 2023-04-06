@@ -81,6 +81,10 @@ namespace Stormancer.GameServers.Agent
 
         public async Task StartAgent(CancellationToken cancellationToken)
         {
+            if (IsRunning)
+            {
+                return;
+            }
             while (!await IsDockerRunning() && !cancellationToken.IsCancellationRequested)
             {
                 await Task.Delay(1000);
@@ -115,6 +119,7 @@ namespace Stormancer.GameServers.Agent
         public long TotalMemory => _options.MaxMemory;
         public float TotalCpu => _options.MaxCpu;
 
+        public bool IsRunning { get; private set; }
         public long UsedMemory
         {
             get
@@ -140,6 +145,7 @@ namespace Stormancer.GameServers.Agent
         public Action<ServerContainerStateChange>? OnContainerStateChanged { get; set; }
 
         public async Task<StartContainerResult> StartContainer(
+            int agentId,
             string image,
             string name,
             string agentUserId,
@@ -149,7 +155,7 @@ namespace Stormancer.GameServers.Agent
             float cpuQuota)
         {
             ServerContainer serverContainer;
-            lock (_trackedContainers)
+            lock (_lock)
             {
                 if (memory + this.UsedMemory > this.TotalMemory)
                 {
@@ -160,7 +166,7 @@ namespace Stormancer.GameServers.Agent
                 {
                     return new StartContainerResult { Success = false };
                 }
-                serverContainer = new ServerContainer(name, image, DateTime.UtcNow, memory, cpuQuota);
+                serverContainer = new ServerContainer(agentId,name, image, DateTime.UtcNow, memory, cpuQuota);
                 _trackedContainers.Add(name, serverContainer);
             }
 
@@ -182,6 +188,7 @@ namespace Stormancer.GameServers.Agent
 
                 labels["stormancer.agent"] = AgentId;
                 labels["stormancer.agent.userId"] = agentUserId;
+                labels["stormancer.agent.clientId"] = agentId.ToString();
                 CreateContainerParameters parameters = new CreateContainerParameters()
                 {
                     Image = image,
@@ -242,21 +249,28 @@ namespace Stormancer.GameServers.Agent
 
         }
 
-        public Task<bool> StopContainer(string id, uint waitBeforeKillSeconds)
+        public async Task<bool> StopContainer(int agentId, string id, uint waitBeforeKillSeconds)
         {
+            lock (_lock)
+            {
+                if (!_trackedContainers.Values.Any(c => c.DockerContainerId == id && c.AgentId == agentId))
+                {
+                    return false;
+                }
+            }
             _logger.Log(LogLevel.Information, "Stopping docker container {containerId}.", id);
-            return _docker.Containers.StopContainerAsync(id, new Docker.DotNet.Models.ContainerStopParameters { WaitBeforeKillSeconds = waitBeforeKillSeconds });
+            return await _docker.Containers.StopContainerAsync(id, new Docker.DotNet.Models.ContainerStopParameters { WaitBeforeKillSeconds = waitBeforeKillSeconds });
 
         }
 
-        public async IAsyncEnumerable<ServerContainer> ListContainers()
+        public async IAsyncEnumerable<ServerContainer> ListContainers(int agentId)
         {
             var response = await _docker.Containers.ListContainersAsync(new Docker.DotNet.Models.ContainersListParameters { All = true });
 
 
             foreach (var container in response)
             {
-                if (_trackedContainers.TryGetValue(container.ID, out var server))
+                if (_trackedContainers.TryGetValue(container.ID, out var server) && agentId == server.AgentId)
                 {
                     yield return server;
                 }
@@ -271,7 +285,7 @@ namespace Stormancer.GameServers.Agent
 
             public ResponseSource(Func<IProgress<T>, CancellationToken, Task> func)
             {
-               
+
                 _func = func;
             }
 
@@ -314,31 +328,42 @@ namespace Stormancer.GameServers.Agent
 
 
         }
-        public async IAsyncEnumerable<ContainerStatsResponse> GetContainerStatsAsync(string name, bool stream, bool oneShot, CancellationToken cancellationToken)
+        public async IAsyncEnumerable<ContainerStatsResponse> GetContainerStatsAsync(int agentId, string name, bool stream, bool oneShot, CancellationToken cancellationToken)
         {
-            var containerId = await GetContainerIdByName(name);
+            var containerId = GetContainerIdByName(agentId, name);
             if (containerId == null)
             {
                 yield break;
             }
 
             var source = new ResponseSource<ContainerStatsResponse>((progress, ct) => _docker.Containers.GetContainerStatsAsync(containerId, new ContainerStatsParameters { Stream = stream, OneShot = oneShot }, progress, ct));
-            await foreach(var response in source.GetResponses(cancellationToken))
+            await foreach (var response in source.GetResponses(cancellationToken))
             {
+
                 yield return response;
             }
         }
 
-        private async Task<string?> GetContainerIdByName(string name)
+        private string? GetContainerIdByName(int agentId, string name)
         {
-            var containers = await _docker.Containers.ListContainersAsync(new ContainersListParameters { All = true });
-            return containers.FirstOrDefault(c => c.Names[0].EndsWith(name))?.ID;
+            lock (_lock)
+            {
+                if (_trackedContainers.TryGetValue(name, out var serverContainer) && serverContainer.AgentId == agentId)
+                {
+                    return serverContainer.DockerContainerId;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
         }
 
-        internal async IAsyncEnumerable<IEnumerable<string>> GetContainerLogsAsync(string name, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken)
+        internal async IAsyncEnumerable<IEnumerable<string>> GetContainerLogsAsync(int agentId, string name, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken)
         {
-            var containerId = await GetContainerIdByName(name);
-            if(containerId == null)
+            var containerId = GetContainerIdByName(agentId, name);
+            if (containerId == null)
             {
                 yield break;
             }
@@ -365,7 +390,7 @@ namespace Stormancer.GameServers.Agent
 
 
 
-            await foreach(var lines in source.GetObservable(cancellationToken).Buffer(TimeSpan.FromSeconds(1), 100).ToAsyncEnumerable())
+            await foreach (var lines in source.GetObservable(cancellationToken).Buffer(TimeSpan.FromSeconds(1), 100).ToAsyncEnumerable())
             {
                 yield return lines;
             }
@@ -417,13 +442,13 @@ namespace Stormancer.GameServers.Agent
                 lock (_lock)
                 {
                     server = _trackedContainers.FirstOrDefault(kvp => kvp.Value.DockerContainerId == value.ID).Value;
-                    if(server!=null)
+                    if (server != null)
                     {
                         _trackedContainers.Remove(server.Name);
                     }
 
                 }
-                if (server !=null)
+                if (server != null)
                 {
                     using (server)
                     {
@@ -484,9 +509,9 @@ namespace Stormancer.GameServers.Agent
 
     public class ServerContainer : IDisposable
     {
-        internal ServerContainer(string name, string image, DateTime created, long memory, float cpuCount)
+        internal ServerContainer(int agentId, string name, string image, DateTime created, long memory, float cpuCount)
         {
-
+            AgentId = agentId;
             Name = name;
             Image = image;
             Created = created;
@@ -494,6 +519,7 @@ namespace Stormancer.GameServers.Agent
             CpuQuota = cpuCount;
         }
 
+        public int AgentId { get; }
         public string? DockerContainerId { get; set; }
         public string Name { get; }
         public string Image { get; }

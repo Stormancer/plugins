@@ -18,16 +18,16 @@ namespace Stormancer.GameServers.Agent
 
         public UserApi? UserApi { get; set; }
 
-        internal IAsyncEnumerable<IEnumerable<string>> GetContainerLogs(GetContainerLogsParameters args, CancellationToken cancellationToken)
+        internal IAsyncEnumerable<IEnumerable<string>> GetContainerLogs(int agentId, GetContainerLogsParameters args, CancellationToken cancellationToken)
         {
-            return _docker.GetContainerLogsAsync(args.ContainerId, args.Since, args.Until, args.Size, args.Follow, cancellationToken);
+            return _docker.GetContainerLogsAsync(agentId,args.ContainerId, args.Since, args.Until, args.Size, args.Follow, cancellationToken);
 
         }
 
-        internal async Task<GetRunningContainersResponse> GetRunningContainers(GetRunningContainersParameters args)
+        internal async Task<GetRunningContainersResponse> GetRunningContainers(int agentId, GetRunningContainersParameters args)
         {
             Debug.Assert(UserApi != null);
-            var containers = await _docker.ListContainers().ToListAsync();
+            var containers = await _docker.ListContainers(agentId).ToListAsync();
             var response = new GetRunningContainersResponse
             {
                 Containers = containers.Select(c => GetDesc(c))
@@ -35,9 +35,9 @@ namespace Stormancer.GameServers.Agent
             return response;
         }
 
-        internal async Task<ContainerStopResponse> StopContainer(ContainerStopParameters args)
+        internal async Task<ContainerStopResponse> StopContainer(int agentId, ContainerStopParameters args)
         {
-            var result = await _docker.StopContainer(args.ContainerId, args.WaitBeforeKillSeconds);
+            var result = await _docker.StopContainer(agentId, args.ContainerId, args.WaitBeforeKillSeconds);
 
             return new ContainerStopResponse
             {
@@ -70,9 +70,9 @@ namespace Stormancer.GameServers.Agent
                 return null;
             }
         }
-        internal async Task<ContainerStartResponse> TryStartContainer(ContainerStartParameters args)
+        internal async Task<ContainerStartResponse> TryStartContainer(int agentId, ContainerStartParameters args)
         {
-            var result = await _docker.StartContainer(args.Image, args.name, UserApi.UserId, new Dictionary<string, string>(), args.EnvironmentVariables, args.MemoryQuota, args.cpuQuota);
+            var result = await _docker.StartContainer(agentId,args.Image, args.name, UserApi.UserId, new Dictionary<string, string>(), args.EnvironmentVariables, args.MemoryQuota, args.cpuQuota);
 
 
             return new ContainerStartResponse
@@ -86,29 +86,32 @@ namespace Stormancer.GameServers.Agent
             };
         }
 
-        internal async IAsyncEnumerable<GetContainerStatsResponse> GetContainerStats(GetContainerStatsParameters args, CancellationToken cancellationToken)
+        internal async IAsyncEnumerable<GetContainerStatsResponse> GetContainerStats(int agentId, GetContainerStatsParameters args, CancellationToken cancellationToken)
         {
-            await foreach (var item in _docker.GetContainerStatsAsync(args.ContainerId, args.Stream, args.OneShot, cancellationToken))
+            await foreach (var item in _docker.GetContainerStatsAsync(agentId, args.ContainerId, args.Stream, args.OneShot, cancellationToken))
             {
                 yield return new GetContainerStatsResponse();
             }
         }
-        internal IAsyncEnumerable<ContainerStatusUpdate> SubscribeToContainerUpdates(CancellationToken cancellationToken)
+        internal IAsyncEnumerable<ContainerStatusUpdate> SubscribeToContainerUpdates(int agentId, CancellationToken cancellationToken)
         {
 
             var subject = new Subject<ContainerStatusUpdate>();
 
             void OnContainerStateChanged(ServerContainerStateChange change)
             {
-                subject.OnNext(new ContainerStatusUpdate
+                if (change.Container.AgentId == agentId)
                 {
-                    Container = GetDesc(change.Container),
-                    EventType = (ContainerStatusUpdateType)change.Status,
-                    ReservedCpu = _docker.UsedCpu,
-                    ReservedMemory = _docker.UsedMemory,
-                    TotalCpu = _docker.TotalCpu,
-                    TotalMemory = _docker.TotalMemory
-                });
+                    subject.OnNext(new ContainerStatusUpdate
+                    {
+                        Container = GetDesc(change.Container),
+                        EventType = (ContainerStatusUpdateType)change.Status,
+                        ReservedCpu = _docker.UsedCpu,
+                        ReservedMemory = _docker.UsedMemory,
+                        TotalCpu = _docker.TotalCpu,
+                        TotalMemory = _docker.TotalMemory
+                    });
+                }
             }
             _docker.OnContainerStateChanged += OnContainerStateChanged;
             IDisposable? disposable = null;

@@ -188,6 +188,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             public TaskCompletionSource<Action<Stream, ISerializer>>? GameCompleteTcs { get; private set; }
         }
+        public int MaxClientsConnected { get; private set; } = 0;
 
         // Constant variable
         private const string LOG_CATEOGRY = "gamesession";
@@ -646,6 +647,12 @@ namespace Stormancer.Server.Plugins.GameSession
                 h => h.OnClientConnected(playerConnectedCtx),
                 ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing OnClientConnected event", ex));
 
+
+            var count = _clients.Count;
+            if(MaxClientsConnected < count)
+            {
+                MaxClientsConnected = count;
+            }
         }
 
         private Task? _serverStartTask = null;
