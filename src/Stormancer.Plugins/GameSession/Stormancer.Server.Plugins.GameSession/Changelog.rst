@@ -9,6 +9,13 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Add MaxPlayersInGameSession analytics
+- Notify gameserver hosting agents when the app is not an active deployment.
+
 6.1.0.17
 --------
 Changed

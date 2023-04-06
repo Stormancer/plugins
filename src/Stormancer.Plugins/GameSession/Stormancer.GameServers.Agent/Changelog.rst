@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Add support for multiple apps to agents.
+
 0.2.0
 -----
 Added
