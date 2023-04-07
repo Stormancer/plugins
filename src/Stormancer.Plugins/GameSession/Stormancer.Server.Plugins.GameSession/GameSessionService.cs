@@ -695,7 +695,7 @@ namespace Stormancer.Server.Plugins.GameSession
                         if (this._server!=null)
                         {
                             //If the only peer remaining is the server, close it and destroy the gamesession.
-                            if (!_scene.RemotePeers.Any(p => p.SessionId != this._serverPeer.Task.Result.SessionId))
+                            if (!_scene.RemotePeers.Any(p => p.SessionId != _server.GameServerSessionId))
                             {
                                 _gameCompleteCts.Cancel();
                                 await pools.CloseServer(_server.GameServerId, CancellationToken.None);

@@ -247,8 +247,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         {
             lock (_syncRoot)
             {
-                _agents.Add(agentSession.User.Id, new DockerAgent(peer, agentSession));
-
+                var agent = new DockerAgent(peer, agentSession);
+                _agents.Add(agentSession.User.Id,agent);
+                _ = SubscribeContainerStatusUpdate(agent,agent.CancellationTokenSource.Token);
             }
         }
 
@@ -256,7 +257,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         {
             lock (_syncRoot)
             {
-                _agents.Remove(agentSession.User.Id);
+                if (_agents.Remove(agentSession.User.Id, out var agent))
+                {
+                    agent.CancellationTokenSource.Cancel(false);
+                }
             }
         }
 
@@ -430,7 +434,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
             var environmentVariables = new Dictionary<string, string>
             {
-                ////startInfo.EnvironmentVariables.Add("connectionToken", token);
+               
                 //    { "Stormancer_Server_Port", server.ServerPort.ToString() },
                     { "Stormancer_Server_ClusterEndpoints", endpoints },
                     //{ "Stormancer_Server_PublishedAddresses", server.PublicIp },
@@ -481,7 +485,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             {
                 foreach (var (id, agent) in _agents)
                 {
-                    if (agent.IsActive && agent.TotalCpu - agent.UsedCpu > cpuRequirement && agent.TotalMemory - agent.UsedMemory > memoryRequirement)
+                    if (agent.IsActive && agent.TotalCpu - agent.UsedCpu >= cpuRequirement && agent.TotalMemory - agent.UsedMemory >= memoryRequirement)
                     {
                         return agent;
                     }

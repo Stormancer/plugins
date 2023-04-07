@@ -64,6 +64,7 @@ namespace Stormancer.GameServers.Agent
         {
             try
             {
+                _logger.Log(LogLevel.Information, "Connecting to application {app}", applicationConfiguration);
                 Stormancer.Client client;
                 int i;
                 lock (_syncRoot)

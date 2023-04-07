@@ -12,6 +12,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -166,7 +167,7 @@ namespace Stormancer.GameServers.Agent
                 {
                     return new StartContainerResult { Success = false };
                 }
-                serverContainer = new ServerContainer(agentId,name, image, DateTime.UtcNow, memory, cpuQuota);
+                serverContainer = new ServerContainer(agentId, name, image, DateTime.UtcNow, memory, cpuQuota);
                 _trackedContainers.Add(name, serverContainer);
             }
 
@@ -185,7 +186,13 @@ namespace Stormancer.GameServers.Agent
 
                 var publicIp = _options.PublicIp;
                 var portReservation = _portsManager.AcquirePort();
-
+                environmentVariables["Stormancer_Server_Port"] = portReservation.Port.ToString();
+                /*
+                 { "Stormancer_Server_PublishedAddresses", server.PublicIp },
+                    { "Stormancer_Server_PublishedPort", server.ServerPort.ToString() }
+                 */
+                environmentVariables["Stormancer_Server_PublishedAddresses"] = publicIp;
+                environmentVariables["Stormancer_Server_PublishedPort"] = portReservation.Port.ToString();
                 labels["stormancer.agent"] = AgentId;
                 labels["stormancer.agent.userId"] = agentUserId;
                 labels["stormancer.agent.clientId"] = agentId.ToString();
@@ -360,9 +367,22 @@ namespace Stormancer.GameServers.Agent
 
         }
 
+        private async Task<string?> GetContainerIdByNameFromDocker(int agentId, string name)
+        {
+            var containers = await _docker.Containers.ListContainersAsync(new ContainersListParameters { All = true, });
+            foreach (var container in containers)
+            {
+                if (container.Names.Any(n => n.EndsWith(name)))
+                {
+                    return container.ID;
+                }
+            }
+            return null;
+        }
+
         internal async IAsyncEnumerable<IEnumerable<string>> GetContainerLogsAsync(int agentId, string name, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken)
         {
-            var containerId = GetContainerIdByName(agentId, name);
+            var containerId = await GetContainerIdByNameFromDocker(agentId, name);
             if (containerId == null)
             {
                 yield break;
