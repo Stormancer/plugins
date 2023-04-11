@@ -1045,7 +1045,14 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 return false;
             }
-            return sessionId == GetServerTcs().Task.Result.SessionId;
+            try
+            {
+                return sessionId == GetServerTcs().Task.Result.SessionId;
+            }
+            catch(Exception)
+            {
+                return false;
+            }
         }
 
         public async ValueTask DisposeAsync()

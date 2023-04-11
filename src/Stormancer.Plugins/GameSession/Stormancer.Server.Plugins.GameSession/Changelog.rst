@@ -15,6 +15,7 @@ Changed
 *******
 - Add MaxPlayersInGameSession analytics
 - Notify gameserver hosting agents when the app is not an active deployment.
+- Make sure that calling IsHost never throws, but instead returns false.
 
 6.1.0.17
 --------
