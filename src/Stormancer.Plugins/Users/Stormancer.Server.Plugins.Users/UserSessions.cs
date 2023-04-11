@@ -876,16 +876,28 @@ namespace Stormancer.Server.Plugins.Users
                     }).ToAsyncEnumerable().WithCancellation(cancellationToken);
 
                     bool headerSent = false;
-                    await foreach (var packet in rpc)
+                    try
                     {
-                        if (!headerSent)
+                        await foreach (var packet in rpc)
                         {
-                            headerSent = true;
-                            await rq.OutputPipe.Writer.WriteObject(true, serializer, cancellationToken);
+                            if (!headerSent)
+                            {
+                                headerSent = true;
+                                await rq.OutputPipe.Writer.WriteObject(true, serializer, cancellationToken);
+                            }
+                            using (packet)
+                            {
+                                await packet.Stream.CopyToAsync(rq.OutputPipe.Writer);
+                            }
                         }
-                        using (packet)
+
+                    }
+                    catch(Exception ex)
+                    {
+                        if(!headerSent)
                         {
-                            await packet.Stream.CopyToAsync(rq.OutputPipe.Writer);
+                            await rq.OutputPipe.Writer.WriteObject(true, serializer, cancellationToken);
+                            await rq.OutputPipe.Writer.WriteObject(ex.Message, serializer, cancellationToken);
                         }
                     }
 
@@ -927,10 +939,16 @@ namespace Stormancer.Server.Plugins.Users
             await rq.Writer.WriteObject(arg, serializer, cancellationToken);
             rq.Writer.Complete();
 
-            await rq.Reader.ReadObject<bool>(serializer, cancellationToken);
-            var result = await rq.Reader.ReadObject<TReturn>(serializer, cancellationToken);
-            rq.Reader.Complete();
-            return result;
+            if (await rq.Reader.ReadObject<bool>(serializer, cancellationToken))
+            {
+                var result = await rq.Reader.ReadObject<TReturn>(serializer, cancellationToken);
+                rq.Reader.Complete();
+                return result;
+            }
+            else
+            {
+                throw new ClientException(await rq.Reader.ReadObject<string>(serializer, cancellationToken));
+            }
         }
 
         internal static async Task<TReturn> SendRequestImpl<TReturn, TArg1, TArg2>(IUserSessions sessions, ISerializer serializer, string operationName, string senderUserId, string recipientUserId, TArg1 arg1, TArg2 arg2, CancellationToken cancellationToken)
@@ -940,11 +958,16 @@ namespace Stormancer.Server.Plugins.Users
             await rq.Writer.WriteObject(arg2, serializer, cancellationToken);
             rq.Writer.Complete();
 
-            await rq.Reader.ReadObject<bool>(serializer, cancellationToken);
-            var result = await rq.Reader.ReadObject<TReturn>(serializer, cancellationToken);
-            rq.Reader.Complete();
-            return result;
-
+            if (await rq.Reader.ReadObject<bool>(serializer, cancellationToken))
+            {
+                var result = await rq.Reader.ReadObject<TReturn>(serializer, cancellationToken);
+                rq.Reader.Complete();
+                return result;
+            }
+            else
+            {
+                throw new ClientException(await rq.Reader.ReadObject<string>(serializer, cancellationToken));
+            }
         }
 
         internal static async Task SendRequestImpl<TArg>(IUserSessions sessions, ISerializer serializer, string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
