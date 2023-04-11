@@ -880,24 +880,29 @@ namespace Stormancer.Server.Plugins.Users
                     {
                         await foreach (var packet in rpc)
                         {
-                            if (!headerSent)
-                            {
-                                headerSent = true;
-                                await rq.OutputPipe.Writer.WriteObject(true, serializer, cancellationToken);
-                            }
                             using (packet)
                             {
+                                if (!headerSent)
+                                {
+                                    headerSent = true;
+                                    await rq.OutputPipe.Writer.WriteObject(true, serializer, cancellationToken);
+                                }
+
                                 await packet.Stream.CopyToAsync(rq.OutputPipe.Writer);
                             }
                         }
 
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
-                        if(!headerSent)
+                        if (!headerSent)
                         {
-                            await rq.OutputPipe.Writer.WriteObject(true, serializer, cancellationToken);
+                            await rq.OutputPipe.Writer.WriteObject(false, serializer, cancellationToken);
                             await rq.OutputPipe.Writer.WriteObject(ex.Message, serializer, cancellationToken);
+                        }
+                        else
+                        {
+
                         }
                     }
 
@@ -922,62 +927,87 @@ namespace Stormancer.Server.Plugins.Users
             return rq;
         }
 
-        public Task<TReturn> SendRequest<TReturn, TArg>(string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
+        public Task<SendRequestResult<TReturn>> SendRequest<TReturn, TArg>(string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
              => SendRequestImpl<TReturn, TArg>(this, serializer, operationName, senderUserId, recipientUserId, arg, cancellationToken);
 
 
-        public Task<TReturn> SendRequest<TReturn, TArg1, TArg2>(string operationName, string senderUserId, string recipientUserId, TArg1 arg1, TArg2 arg2, CancellationToken cancellationToken)
+        public Task<SendRequestResult<TReturn>> SendRequest<TReturn, TArg1, TArg2>(string operationName, string senderUserId, string recipientUserId, TArg1 arg1, TArg2 arg2, CancellationToken cancellationToken)
             => SendRequestImpl<TReturn, TArg1, TArg2>(this, serializer, operationName, senderUserId, recipientUserId, arg1, arg2, cancellationToken);
 
-        public Task SendRequest<TArg>(string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
+        public Task<SendRequestResult> SendRequest<TArg>(string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
             => SendRequestImpl<TArg>(this, serializer, operationName, senderUserId, recipientUserId, arg, cancellationToken);
 
 
-        internal static async Task<TReturn> SendRequestImpl<TReturn, TArg>(IUserSessions sessions, ISerializer serializer, string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
+        internal static async Task<SendRequestResult<TReturn>> SendRequestImpl<TReturn, TArg>(IUserSessions sessions, ISerializer serializer, string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
         {
             await using var rq = sessions.SendRequest(operationName, senderUserId, recipientUserId, cancellationToken);
             await rq.Writer.WriteObject(arg, serializer, cancellationToken);
             rq.Writer.Complete();
 
-            if (await rq.Reader.ReadObject<bool>(serializer, cancellationToken))
+            try
             {
-                var result = await rq.Reader.ReadObject<TReturn>(serializer, cancellationToken);
-                rq.Reader.Complete();
-                return result;
+                if (await rq.Reader.ReadObject<bool>(serializer, cancellationToken))
+                {
+                    return new SendRequestResult<TReturn> { Success = true, Value = await rq.Reader.ReadObject<TReturn>(serializer, cancellationToken) };
+                }
+                else
+                {
+                    return new SendRequestResult<TReturn> { Success =false, Error = await rq.Reader.ReadObject<string>(serializer, cancellationToken) };
+                }
             }
-            else
+            finally
             {
-                throw new ClientException(await rq.Reader.ReadObject<string>(serializer, cancellationToken));
+                rq.Reader.Complete();
             }
         }
 
-        internal static async Task<TReturn> SendRequestImpl<TReturn, TArg1, TArg2>(IUserSessions sessions, ISerializer serializer, string operationName, string senderUserId, string recipientUserId, TArg1 arg1, TArg2 arg2, CancellationToken cancellationToken)
+        internal static async Task<SendRequestResult<TReturn>> SendRequestImpl<TReturn, TArg1, TArg2>(IUserSessions sessions, ISerializer serializer, string operationName, string senderUserId, string recipientUserId, TArg1 arg1, TArg2 arg2, CancellationToken cancellationToken)
         {
             await using var rq = sessions.SendRequest(operationName, senderUserId, recipientUserId, cancellationToken);
             await rq.Writer.WriteObject(arg1, serializer, cancellationToken);
             await rq.Writer.WriteObject(arg2, serializer, cancellationToken);
             rq.Writer.Complete();
 
-            if (await rq.Reader.ReadObject<bool>(serializer, cancellationToken))
+            try
             {
-                var result = await rq.Reader.ReadObject<TReturn>(serializer, cancellationToken);
-                rq.Reader.Complete();
-                return result;
+                if (await rq.Reader.ReadObject<bool>(serializer, cancellationToken))
+                {
+                   
+                    return new SendRequestResult<TReturn> { Value = await rq.Reader.ReadObject<TReturn>(serializer, cancellationToken), Success = true };
+                }
+                else
+                {
+                    return new SendRequestResult<TReturn> { Error = await rq.Reader.ReadObject<string>(serializer, cancellationToken), Success = false };
+                }
             }
-            else
+            finally
             {
-                throw new ClientException(await rq.Reader.ReadObject<string>(serializer, cancellationToken));
+                rq.Reader.Complete();
             }
         }
 
-        internal static async Task SendRequestImpl<TArg>(IUserSessions sessions, ISerializer serializer, string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
+        internal static async Task<SendRequestResult> SendRequestImpl<TArg>(IUserSessions sessions, ISerializer serializer, string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
         {
             await using var rq = sessions.SendRequest(operationName, senderUserId, recipientUserId, cancellationToken);
             await rq.Writer.WriteObject(arg, serializer, cancellationToken);
             rq.Writer.Complete();
 
-            await rq.Reader.ReadObject<bool>(serializer, cancellationToken);
-            rq.Reader.Complete();
+            try
+            {
+
+                if (await rq.Reader.ReadObject<bool>(serializer, cancellationToken))
+                {
+                    return new SendRequestResult { Success = true };
+                }
+                else
+                {
+                    return new SendRequestResult { Success = false, Error = await rq.Reader.ReadObject<string>(serializer, cancellationToken) };
+                }
+            }
+            finally
+            {
+                rq.Reader.Complete();
+            }
 
         }
 

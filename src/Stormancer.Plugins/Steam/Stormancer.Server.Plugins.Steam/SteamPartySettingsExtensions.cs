@@ -58,6 +58,14 @@ namespace Stormancer.Server.Plugins.Party
         /// }
         /// </example>
         public const string MaxMembers = "steam.maxMembers";
+
+        /// <summary>
+        /// Setting key used to set whether party join should fail if steam lobby creation failed.
+        /// </summary>
+        /// <remarks>
+        /// "true" or "false". Defaults to false.
+        /// </remarks>
+        public const string DoNotJoinIfLobbyCreationFailed = "steam.doNotJoinIfLobbyCreationFailed";
     }
 
     /// <summary>
@@ -102,6 +110,16 @@ namespace Stormancer.Server.Plugins.Party
         public static int? SteamMaxMembers(this ServerPartySettings settings)
         {
             return settings.TryGetValue(SteamSettingsConstants.MaxMembers, out var steamMaxMembers) ? int.Parse(steamMaxMembers) : settings.MaxMembers();
+        }
+
+        /// <summary>
+        /// Gets if the client should join a party even if it couldn't join/create the associated steam lobby.
+        /// </summary>
+        /// <param name="settings"></param>
+        /// <returns></returns>
+        public static bool DoNotJoinIfSteamLobbyCreationFailed(this ServerPartySettings settings)
+        {
+            return settings.TryGetValue(SteamSettingsConstants.DoNotJoinIfLobbyCreationFailed, out var value) ? bool.Parse(value) : false;
         }
 
         /// <summary>
