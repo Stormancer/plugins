@@ -53,7 +53,7 @@ namespace Stormancer.Server.Plugins.Party
             _serializer = serializer;
         }
 
-        public async Task UpdatePartySettings(RequestContext<IScenePeerClient> ctx)
+        public Task UpdatePartySettings(RequestContext<IScenePeerClient> ctx)
         {
             var partySettings = ctx.ReadObject<PartySettingsDto>();
 
@@ -67,7 +67,7 @@ namespace Stormancer.Server.Plugins.Party
                 throw new ClientException(UnauthorizedError);
             }
 
-            await _partyService.UpdateSettings(partySettings, ctx.CancellationToken);
+            return _partyService.UpdateSettings(partySettings, ctx.CancellationToken);
         }
 
         public Task UpdatePartyUserData(RequestContext<IScenePeerClient> ctx)
@@ -78,8 +78,7 @@ namespace Stormancer.Server.Plugins.Party
             }
             var data = _serializer.Deserialize<byte[]>(ctx.InputStream);
 
-            _partyService.UpdatePartyUserData(member.UserId, data, ctx.CancellationToken);
-            return Task.CompletedTask;
+            return _partyService.UpdatePartyUserData(member.UserId, data, ctx.CancellationToken);
         }
 
         public Task PromoteLeader(RequestContext<IScenePeerClient> ctx)
@@ -94,12 +93,11 @@ namespace Stormancer.Server.Plugins.Party
             }
 
             var playerToPromote = ctx.ReadObject<string>();
-            _partyService.PromoteLeader(playerToPromote, ctx.CancellationToken);
+            return _partyService.PromoteLeader(playerToPromote, ctx.CancellationToken);
 
-            return Task.CompletedTask;
         }
 
-        public async Task KickPlayer(RequestContext<IScenePeerClient> ctx)
+        public Task KickPlayer(RequestContext<IScenePeerClient> ctx)
         {
 
             if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
@@ -112,10 +110,10 @@ namespace Stormancer.Server.Plugins.Party
             }
 
             var playerIdToKick = ctx.ReadObject<string>();
-            await _partyService.KickPlayerByLeader(playerIdToKick, ctx.CancellationToken);
+            return _partyService.KickPlayerByLeader(playerIdToKick, ctx.CancellationToken);
         }
 
-        public async Task UpdateGameFinderPlayerStatus(RequestContext<IScenePeerClient> ctx)
+        public Task UpdateGameFinderPlayerStatus(RequestContext<IScenePeerClient> ctx)
         {
             var newStatus = ctx.ReadObject<PartyMemberStatusUpdateRequest>();
 
@@ -124,7 +122,7 @@ namespace Stormancer.Server.Plugins.Party
                 throw new ClientException(NotInPartyError);
             }
 
-            await _partyService.UpdateGameFinderPlayerStatus(member.UserId, newStatus, ctx.CancellationToken);
+            return _partyService.UpdateGameFinderPlayerStatus(member.UserId, newStatus, ctx.CancellationToken);
         }
 
         public async Task GetPartyState(RequestContext<IScenePeerClient> ctx)
@@ -199,7 +197,7 @@ namespace Stormancer.Server.Plugins.Party
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public void CancelInvitationCode(RequestContext<IScenePeerClient> ctx)
         {
-          
+
             if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
             {
                 throw new ClientException(NotInPartyError);
@@ -225,7 +223,7 @@ namespace Stormancer.Server.Plugins.Party
                 else
                 {
                     var partySettings = new PartySettingsDto(state);
-                    if(partySettings.PublicServerData == null)
+                    if (partySettings.PublicServerData == null)
                     {
                         partySettings.PublicServerData = new System.Collections.Generic.Dictionary<string, string>();
                     }
@@ -245,7 +243,7 @@ namespace Stormancer.Server.Plugins.Party
             if (_partyService.Settings.PublicServerData.TryGetValue("stormancer.partyStatus", out var status))
             {
                 var result = new PartyStatus() { Status = status };
-                if(_partyService.Settings.PublicServerData.TryGetValue("stormancer.partyStatus.details", out var details))
+                if (_partyService.Settings.PublicServerData.TryGetValue("stormancer.partyStatus.details", out var details))
                 {
                     result.Details = details;
                 }

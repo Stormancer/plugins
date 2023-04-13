@@ -15,6 +15,9 @@ Changed
 *******
 - Add MaxPlayersInGameSession analytics
 - Notify gameserver hosting agents when the app is not an active deployment.
+- Make sure that calling IsHost never throws, but instead returns false.
+- Don't send Teams infos to analytics
+- Add gamefinder and Parameters to analytics
 
 6.1.0.17
 --------

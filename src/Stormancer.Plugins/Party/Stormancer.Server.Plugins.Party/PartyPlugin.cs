@@ -38,6 +38,7 @@ using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Party
@@ -217,7 +218,7 @@ namespace Stormancer.Server.Plugins.Party
                 //Ensure PartyManagement scene exists.
                 host.EnsureSceneExists(PARTY_MANAGEMENT_SCENEID, PARTY_MANAGEMENT_SCENE_TYPE, false, true);
 
-                _ = host.DependencyResolver.Resolve<PartyAnalyticsWorker>().Run();
+                _ = host.DependencyResolver.Resolve<PartyAnalyticsWorker>().Run(CancellationToken.None);
 
             };
 

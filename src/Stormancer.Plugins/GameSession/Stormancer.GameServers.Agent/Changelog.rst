@@ -14,6 +14,7 @@ Unreleased
 Changed
 *******
 - Add support for multiple apps to agents.
+- GetStatus now reports the reserved resources on the node.
 
 0.2.0
 -----

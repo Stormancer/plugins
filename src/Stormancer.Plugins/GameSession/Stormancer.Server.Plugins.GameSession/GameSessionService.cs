@@ -672,7 +672,7 @@ namespace Stormancer.Server.Plugins.GameSession
         private async Task Start()
         {
             Debug.Assert(_config != null);
-
+            _analytics.StartGamesession(this);
             var ctx = new GameSessionContext(this._scene, _config, this);
             await using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
             {
@@ -1045,7 +1045,14 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 return false;
             }
-            return sessionId == GetServerTcs().Task.Result.SessionId;
+            try
+            {
+                return sessionId == GetServerTcs().Task.Result.SessionId;
+            }
+            catch(Exception)
+            {
+                return false;
+            }
         }
 
         public async ValueTask DisposeAsync()

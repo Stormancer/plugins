@@ -2,6 +2,7 @@
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using Microsoft.Extensions.Configuration;
+using MsgPack.Serialization;
 using RakNet;
 using System;
 using System.Collections.Generic;
@@ -152,22 +153,24 @@ namespace Stormancer.GameServers.Agent
             string agentUserId,
             Dictionary<string, string> labels,
             Dictionary<string, string> environmentVariables,
-            long memory,
-            float cpuQuota)
+            long memoryLimit,
+            float cpuLimit,
+            long reservedMemory,
+            float reservedCpu)
         {
             ServerContainer serverContainer;
             lock (_lock)
             {
-                if (memory + this.UsedMemory > this.TotalMemory)
+                if (reservedMemory + this.UsedMemory > this.TotalMemory)
                 {
                     return new StartContainerResult { Success = false };
                 }
 
-                if (cpuQuota + this.UsedCpu > this.TotalCpu)
+                if (reservedCpu + this.UsedCpu > this.TotalCpu)
                 {
                     return new StartContainerResult { Success = false };
                 }
-                serverContainer = new ServerContainer(agentId, name, image, DateTime.UtcNow, memory, cpuQuota);
+                serverContainer = new ServerContainer(agentId, name, image, DateTime.UtcNow, reservedMemory, reservedCpu);
                 _trackedContainers.Add(name, serverContainer);
             }
 
@@ -218,9 +221,9 @@ namespace Stormancer.GameServers.Agent
                         }
                         },
 
-                        Memory = memory,
+                        Memory = memoryLimit,
                         CPUPeriod = 100000,
-                        CPUQuota = (long)(100000 * cpuQuota)
+                        CPUQuota = (long)(100000 * cpuLimit)
 
                     },
 
@@ -277,7 +280,8 @@ namespace Stormancer.GameServers.Agent
 
             foreach (var container in response)
             {
-                if (_trackedContainers.TryGetValue(container.ID, out var server) && agentId == server.AgentId)
+                var name = container.Names.FirstOrDefault();
+                if (name !=null && _trackedContainers.TryGetValue(name, out var server) && agentId == server.AgentId)
                 {
                     yield return server;
                 }
@@ -500,7 +504,11 @@ namespace Stormancer.GameServers.Agent
                     Claims = _options.Attributes,
 
                     AgentVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? string.Empty,
-                    DockerVersion = version.Version
+                    DockerVersion = version.Version,
+                    ReservedCpu = this.UsedCpu,
+                    TotalCpu = TotalCpu,
+                    ReservedMemory = UsedMemory,
+                    TotalMemory = TotalMemory
                 };
             }
             catch (Exception ex)
@@ -525,6 +533,17 @@ namespace Stormancer.GameServers.Agent
 
         public string AgentVersion { get; set; }
         public string Error { get; set; }
+      
+        public float ReservedCpu { get; set; }
+
+    
+        public float TotalCpu { get; set; }
+
+     
+        public long ReservedMemory { get; set; }
+
+
+        public long TotalMemory { get; set; }
     }
 
     public class ServerContainer : IDisposable

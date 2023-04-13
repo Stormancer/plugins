@@ -162,6 +162,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         Stop,
         
     }
+ 
     public class ContainerStatusUpdate
     {
         [MessagePackMember(0)]
@@ -214,5 +215,19 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         [MessagePackMember(3)]
         public string Error { get; set; } = default!;
+
+        [MessagePackMember(4)]
+        public float ReservedCpu { get; set; }
+
+        [MessagePackMember(5)]
+        public float TotalCpu { get; set; }
+
+        [MessagePackMember(6)]
+        public long ReservedMemory { get; set; }
+
+        [MessagePackMember(7)]
+        public long TotalMemory { get; set; }
+
+
     }
 }
