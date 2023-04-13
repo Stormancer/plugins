@@ -280,7 +280,8 @@ namespace Stormancer.GameServers.Agent
 
             foreach (var container in response)
             {
-                if (_trackedContainers.TryGetValue(container.ID, out var server) && agentId == server.AgentId)
+                var name = container.Names.FirstOrDefault();
+                if (name !=null && _trackedContainers.TryGetValue(name, out var server) && agentId == server.AgentId)
                 {
                     yield return server;
                 }
