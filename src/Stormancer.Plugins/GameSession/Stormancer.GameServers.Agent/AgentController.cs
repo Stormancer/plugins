@@ -20,7 +20,7 @@ namespace Stormancer.GameServers.Agent
 
         internal IAsyncEnumerable<IEnumerable<string>> GetContainerLogs(int agentId, GetContainerLogsParameters args, CancellationToken cancellationToken)
         {
-            return _docker.GetContainerLogsAsync(agentId,args.ContainerId, args.Since, args.Until, args.Size, args.Follow, cancellationToken);
+            return _docker.GetContainerLogsAsync(agentId, args.ContainerId, args.Since, args.Until, args.Size, args.Follow, cancellationToken);
 
         }
 
@@ -72,7 +72,17 @@ namespace Stormancer.GameServers.Agent
         }
         internal async Task<ContainerStartResponse> TryStartContainer(int agentId, ContainerStartParameters args)
         {
-            var result = await _docker.StartContainer(agentId,args.Image, args.name, UserApi.UserId, new Dictionary<string, string>(), args.EnvironmentVariables, args.MemoryQuota, args.cpuQuota);
+            var result = await _docker.StartContainer(
+                agentId, 
+                args.Image, 
+                args.name, 
+                UserApi.UserId, 
+                new Dictionary<string, string>(),
+                args.EnvironmentVariables, 
+                args.memoryLimit,
+                args.cpuLimit,
+                args.reservedMemory,
+                args.reservedCpu);
 
 
             return new ContainerStartResponse
@@ -139,7 +149,11 @@ namespace Stormancer.GameServers.Agent
                 AgentVersion = status.AgentVersion,
                 Claims = status.Claims,
                 DockerVersion = status.DockerVersion,
-                Error = status.Error
+                Error = status.Error,
+                TotalMemory = status.TotalMemory,
+                ReservedMemory = status.ReservedMemory,
+                TotalCpu = status.TotalCpu,
+                ReservedCpu = status.ReservedCpu
             };
         }
     }

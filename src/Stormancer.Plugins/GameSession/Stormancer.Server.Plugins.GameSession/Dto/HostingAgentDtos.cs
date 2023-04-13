@@ -69,10 +69,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public string name { get; set; } = default!;
 
         [MessagePackMember(2)]
-        public float cpuQuota { get; set; }
+        public float cpuLimit { get; set; }
 
         [MessagePackMember(3)]
-        public long MemoryQuota { get; set; }
+        public long memoryLimit { get; set; }
 
         [MessagePackMember(4)]
         public Dictionary<string, string> EnvironmentVariables { get; internal set; } = default!;
@@ -82,6 +82,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// </summary>
         [MessagePackMember(5)]
         public string? AppDeploymentId { get; set; }
+
+        [MessagePackMember(6)]
+        public float reservedCpu { get; set; }
+
+        [MessagePackMember(7)]
+        public long reservedMemory { get; set; }
         
     }
 
@@ -156,6 +162,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         Stop,
         
     }
+ 
     public class ContainerStatusUpdate
     {
         [MessagePackMember(0)]
@@ -208,5 +215,19 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         [MessagePackMember(3)]
         public string Error { get; set; } = default!;
+
+        [MessagePackMember(4)]
+        public float ReservedCpu { get; set; }
+
+        [MessagePackMember(5)]
+        public float TotalCpu { get; set; }
+
+        [MessagePackMember(6)]
+        public long ReservedMemory { get; set; }
+
+        [MessagePackMember(7)]
+        public long TotalMemory { get; set; }
+
+
     }
 }

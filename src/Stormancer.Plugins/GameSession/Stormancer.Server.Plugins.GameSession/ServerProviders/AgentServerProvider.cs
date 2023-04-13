@@ -208,9 +208,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public AgentDescription Description { get; }
 
         public float TotalCpu { get; set; }
-        public float UsedCpu { get; set; }
+        public float ReservedCpu { get; set; }
         public long TotalMemory { get; set; }
-        public long UsedMemory { get; set; }
+        public long ReservedMemory { get; set; }
         public bool IsActive { get; set; } = true;
     }
     public class AgentBasedGameServerProvider : IGameServerProvider
@@ -277,12 +277,29 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         private async Task SubscribeContainerStatusUpdate(DockerAgent agent, CancellationToken cancellationToken)
         {
+            _ = UpdateAgentStatus(agent, cancellationToken);
             await foreach (var update in GetContainerStatusUpdates(agent.Id, cancellationToken))
             {
                 agent.TotalCpu = update.TotalCpu;
-                agent.UsedCpu = update.ReservedCpu;
+                agent.ReservedCpu = update.ReservedCpu;
                 agent.TotalMemory = update.TotalMemory;
-                agent.UsedMemory = update.ReservedMemory;
+                agent.ReservedMemory = update.ReservedMemory;
+            }
+        }
+
+        
+        private async Task UpdateAgentStatus(DockerAgent agent,CancellationToken cancellationToken)
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1000));
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var status = await agent.Peer.RpcTask<bool, AgentStatusDto>("agent.getStatus", true, cancellationToken);
+                agent.TotalCpu = status.TotalCpu;
+                agent.ReservedCpu = status.ReservedCpu;
+                agent.TotalMemory = status.TotalMemory;
+                agent.ReservedMemory = status.ReservedMemory;
+
+                await timer.WaitForNextTickAsync();
             }
         }
 
@@ -365,9 +382,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             return await agent.Peer.RpcTask<ContainerStartParameters, ContainerStartResponse>("agent.tryStartContainer", new ContainerStartParameters
             {
                 name = name,
-                cpuQuota = cpuQuota,
+                cpuLimit = cpuQuota,
                 Image = image,
-                MemoryQuota = memoryQuota,
+                memoryLimit = memoryQuota,
                 EnvironmentVariables = environmentVariables,
                 AppDeploymentId = appInfos.DeploymentId
 
@@ -464,8 +481,8 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
                     agent.TotalCpu = response.TotalCpuQuotaAvailable;
                     agent.TotalMemory = response.TotalMemoryQuotaAvailable;
-                    agent.UsedCpu = response.CurrentCpuQuotaUsed;
-                    agent.UsedMemory = response.CurrentMemoryQuotaUsed;
+                    agent.ReservedCpu = response.CurrentCpuQuotaUsed;
+                    agent.ReservedMemory = response.CurrentMemoryQuotaUsed;
 
                     if (response.Success)
                     {
@@ -485,7 +502,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             {
                 foreach (var (id, agent) in _agents)
                 {
-                    if (agent.IsActive && agent.TotalCpu - agent.UsedCpu >= cpuRequirement && agent.TotalMemory - agent.UsedMemory >= memoryRequirement)
+                    if (agent.IsActive && agent.TotalCpu - agent.ReservedCpu >= cpuRequirement && agent.TotalMemory - agent.ReservedMemory >= memoryRequirement)
                     {
                         return agent;
                     }
