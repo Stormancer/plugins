@@ -45,8 +45,29 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public override string type => "fromProvider";
 
         public string provider { get; set; } = GameServerAgentConstants.TYPE;
-        public float CpuRequirement { get; set; } = 0.5f;
-        public long MemoryRequirement { get; set; } = 300 * 1024 * 1024;
+
+        /// <summary>
+        /// The maximum CPU time ratio a game server in the pool can use.
+        /// </summary>
+        public float cpuLimit { get; set; } = 0.5f;
+
+        /// <summary>
+        /// The maximum physical memory a game server in the pool can use.
+        /// </summary>
+        public long memoryLimit { get; set; } = 300 * 1024 * 1024;
+
+        /// <summary>
+        /// The CPU time ratio reserved for a game server.
+        /// </summary>
+        public float reservedCpu { get; set; } = 0.5f;
+
+        /// <summary>
+        /// The physical memory reserved for a game server.
+        /// </summary>
+        /// <remarks>
+        /// Reserved memory should be lower or equal to memoryLimit.
+        /// </remarks>
+        public int reservedMemory { get; set; } = 300 * 1024 * 1024;
     }
 
     internal class GameServerAgentConfiguration : IConfigurationChangedEventHandler
@@ -351,7 +372,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             return peer.RpcTask<bool, IEnumerable<ContainerDescription>>("agent.getRunningContainers", true);
         }
 
-        public async Task<ContainerStartResponse> StartContainerAsync(string agentId, string image, string name, float cpuQuota, long memoryQuota, Dictionary<string, string> environmentVariables)
+        public async Task<ContainerStartResponse> StartContainerAsync(string agentId, string image, string name, float reservedCpu, long reservedMemory,float cpuLimit, long memoryLimit, Dictionary<string, string> environmentVariables)
         {
             DockerAgent? agent;
             lock (_syncRoot)
@@ -365,11 +386,13 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             return await agent.Peer.RpcTask<ContainerStartParameters, ContainerStartResponse>("agent.tryStartContainer", new ContainerStartParameters
             {
                 name = name,
-                cpuQuota = cpuQuota,
+                reservedCpu = reservedCpu,
                 Image = image,
-                MemoryQuota = memoryQuota,
+                reservedMemory = reservedMemory,
                 EnvironmentVariables = environmentVariables,
-                AppDeploymentId = appInfos.DeploymentId
+                AppDeploymentId = appInfos.DeploymentId,
+                cpuLimit = cpuLimit,
+                memoryLimit = memoryLimit,
 
             });
         }
@@ -456,11 +479,11 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             while (tries < 4)
             {
                 tries++;
-                var agent = FindAgent(agentConfig.CpuRequirement, agentConfig.MemoryRequirement);
+                var agent = FindAgent(agentConfig.reservedCpu, agentConfig.reservedMemory);
 
                 if (agent != null)
                 {
-                    var response = await StartContainerAsync(agent.Id, agentConfig.Image, id, agentConfig.CpuRequirement, agentConfig.MemoryRequirement, environmentVariables);
+                    var response = await StartContainerAsync(agent.Id, agentConfig.Image, id, agentConfig.reservedCpu, agentConfig.reservedMemory,agentConfig.cpuLimit,agentConfig.memoryLimit, environmentVariables);
 
                     agent.TotalCpu = response.TotalCpuQuotaAvailable;
                     agent.TotalMemory = response.TotalMemoryQuotaAvailable;

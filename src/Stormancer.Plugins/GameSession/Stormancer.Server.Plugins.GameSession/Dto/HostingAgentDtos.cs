@@ -69,10 +69,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public string name { get; set; } = default!;
 
         [MessagePackMember(2)]
-        public float cpuQuota { get; set; }
+        public float reservedCpu { get; set; }
 
         [MessagePackMember(3)]
-        public long MemoryQuota { get; set; }
+        public long reservedMemory { get; set; }
 
         [MessagePackMember(4)]
         public Dictionary<string, string> EnvironmentVariables { get; internal set; } = default!;
@@ -82,7 +82,13 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// </summary>
         [MessagePackMember(5)]
         public string? AppDeploymentId { get; set; }
-        
+
+        [MessagePackMember(6)]
+        public float cpuLimit { get; set; }
+
+        [MessagePackMember(7)]
+        public long memoryLimit { get; set; }
+
     }
 
     public class ContainerStartResponse
