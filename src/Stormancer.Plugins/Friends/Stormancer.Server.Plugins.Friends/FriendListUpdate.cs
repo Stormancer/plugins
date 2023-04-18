@@ -19,6 +19,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
 using MsgPack.Serialization;
 
 namespace Stormancer.Server.Plugins.Friends
@@ -26,11 +27,11 @@ namespace Stormancer.Server.Plugins.Friends
     [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
     public enum FriendListUpdateDtoOperation
     {
-        Add = 0,
+        AddOrUpdate = 0,
         Remove = 1,
-        Update = 2,
-        UpdateStatus = 3
+        UpdateStatus = 2
     }
+
     public class FriendListUpdateDto
     {
         [MessagePackMember(0)]

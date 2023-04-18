@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+*****
+- Implemented block list
+
 4.0.0.7
 ----------
 Changed

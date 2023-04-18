@@ -41,6 +41,7 @@
     <ClCompile Include="TestBrowseParties.cpp" />
     <ClCompile Include="TestDevServer.cpp" />
     <ClCompile Include="TestDisableGameSessionDirectConnection.cpp" />
+    <ClCompile Include="TestFriendsBlock.cpp" />
     <ClCompile Include="TestParty.cpp" />
     <ClCompile Include="TestSocketApi.cpp" />
     <ClCompile Include="pch.cpp">

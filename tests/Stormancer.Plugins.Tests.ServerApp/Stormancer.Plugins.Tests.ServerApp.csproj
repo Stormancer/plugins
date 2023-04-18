@@ -8,9 +8,10 @@
 
 	<ItemGroup>
 		<PackageReference Include="Stormancer.Abstractions.Server" Version="*-*" />
-		<PackageReference Include="Stormancer.Server.Hosting" Version="0.3.3-pre" />
+		<PackageReference Include="Stormancer.Server.Hosting" Version="1.0.0.2-pre" />
 		<PackageReference Include="Stormancer.Server.Hosting.SourceGenerator" Version="0.1.0" />
 		<PackageReference Include="Stormancer.Server.Plugins.DataProtection" Version="*-*" />
+		<PackageReference Include="Stormancer.Server.Plugins.Friends" Version="5.0.0.14-pre" />
 		<PackageReference Include="Stormancer.Server.Plugins.Queries" Version="*-*" />
 		<PackageReference Include="Stormancer.Server.Plugins.GameFinder" Version="*-*" />
 		<PackageReference Include="Stormancer.Server.Plugins.GameSession" Version="*-*" />
@@ -19,6 +20,7 @@
 		<PackageReference Include="Stormancer.Server.Plugins.SocketApi" Version="*-*" />
 		<PackageReference Include="Stormancer.Server.Plugins.Users" Version="*-*" />
 		<PackageReference Include="Stormancer.Server.Plugins.Utilities" Version="*-*" />
+		<PackageReference Include="Stormancer.Server.Plugins.Analytics" Version="*-*" />
 	</ItemGroup>
 
 </Project>

@@ -47,10 +47,9 @@ namespace Stormancer
 
 		enum class FriendListUpdateOperationInternal
 		{
-			Add = 0,
+			AddOrUpdate = 0,
 			Remove = 1,
-			Update = 2,
-			UpdateStatus = 3
+			UpdateStatus = 2
 		};
 
 		struct FriendListUpdateDto
@@ -64,9 +63,8 @@ namespace Stormancer
 
 		enum class FriendListUpdateOperation
 		{
-			Add = 0,
-			Remove = 1,
-			Update = 2
+			AddOrUpdate = 0,
+			Remove = 1
 		};
 
 		/// <summary>
@@ -190,6 +188,12 @@ namespace Stormancer
 			/// </summary>
 			/// <returns>A task which terminate when the server has returned the friend list and the local plugin processed the changes localy.</returns>
 			virtual pplx::task<void> refresh() = 0;
+
+			virtual pplx::task<void> block(std::string userIdToBlock, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
+
+			virtual pplx::task<void> unblock(std::string userIdToUnblock, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
+
+			virtual pplx::task<std::vector<std::string>> getBlockedList(pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
 		};
 
 		namespace details
@@ -226,7 +230,7 @@ namespace Stormancer
 
 				pplx::task<void> subscribe()
 				{
-					return _rpcService->rpc<void>("friends.invitefriend");
+					return _rpcService->rpc<void>("Friends.Subscribe");
 				}
 
 				pplx::task<void> inviteFriend(std::string userId)
@@ -277,7 +281,7 @@ namespace Stormancer
 								{
 									// ADD
 									auto fr = f[newFriend.first] = std::make_shared<Friend>(newFriend.second);
-									friendsService->friendListChanged(FriendListUpdatedEvent{ FriendListUpdateOperation::Add, fr });
+									friendsService->friendListChanged(FriendListUpdatedEvent{ FriendListUpdateOperation::AddOrUpdate, fr });
 								}
 								else
 								{
@@ -289,7 +293,7 @@ namespace Stormancer
 										fr->lastConnected = newFriend.second.lastConnected;
 										fr->userId = newFriend.second.userId;
 										fr->customData = newFriend.second.customData;
-										friendsService->friendListChanged(FriendListUpdatedEvent{ FriendListUpdateOperation::Update, fr });
+										friendsService->friendListChanged(FriendListUpdatedEvent{ FriendListUpdateOperation::AddOrUpdate, fr });
 									}
 								}
 							}
@@ -302,6 +306,21 @@ namespace Stormancer
 					return _isLoaded;
 				}
 
+				pplx::task<void> block(std::string userIdToBlock, pplx::cancellation_token ct = pplx::cancellation_token::none())
+				{
+					return _rpcService->rpc<void, std::string>("Friends.Block", ct, userIdToBlock);
+				}
+
+				pplx::task<void> unblock(std::string userIdToUnblock, pplx::cancellation_token ct = pplx::cancellation_token::none())
+				{
+					return _rpcService->rpc<void, std::string>("Friends.Unblock", ct, userIdToUnblock);
+				}
+
+				pplx::task<std::vector<std::string>> getBlockedList(pplx::cancellation_token ct = pplx::cancellation_token::none())
+				{
+					return _rpcService->rpc<std::vector<std::string>>("Friends.GetBlockedList", ct);
+				}
+
 			private:
 
 				void onFriendNotification(const FriendListUpdateDto& update)
@@ -311,11 +330,8 @@ namespace Stormancer
 					case FriendListUpdateOperationInternal::Remove:
 						onFriendRemove(update);
 						break;
-					case FriendListUpdateOperationInternal::Update:
-						onFriendUpdate(update);
-						break;
-					case FriendListUpdateOperationInternal::Add:
-						onFriendAdd(update);
+					case FriendListUpdateOperationInternal::AddOrUpdate:
+						onFriendAddOrUpdate(update);
 						break;
 					case FriendListUpdateOperationInternal::UpdateStatus:
 						onFriendUpdateStatus(update);
@@ -326,14 +342,7 @@ namespace Stormancer
 					}
 				}
 
-				void onFriendAdd(const FriendListUpdateDto& update)
-				{
-					auto fr = std::make_shared<Friend>(update.data);
-					friends[update.itemId] = fr;
-					friendListChanged(FriendListUpdatedEvent{ FriendListUpdateOperation::Add, fr });
-				}
-
-				void onFriendUpdate(const FriendListUpdateDto& update)
+				void onFriendAddOrUpdate(const FriendListUpdateDto& update)
 				{
 					auto friendIt = friends.find(update.itemId);
 					if (friendIt != friends.end())
@@ -345,8 +354,14 @@ namespace Stormancer
 							fr->lastConnected = update.data.lastConnected;
 							fr->userId = update.data.userId;
 							fr->customData = update.data.customData;
-							friendListChanged(FriendListUpdatedEvent{ FriendListUpdateOperation::Update, fr });
+							friendListChanged(FriendListUpdatedEvent{ FriendListUpdateOperation::AddOrUpdate, fr });
 						}
+					}
+					else
+					{
+						auto fr = std::make_shared<Friend>(update.data);
+						friends[update.itemId] = fr;
+						friendListChanged(FriendListUpdatedEvent{ FriendListUpdateOperation::AddOrUpdate, fr });
 					}
 				}
 
@@ -359,7 +374,7 @@ namespace Stormancer
 						if (fr)
 						{
 							fr->status = update.data.status;
-							friendListChanged(FriendListUpdatedEvent{ FriendListUpdateOperation::Update, fr });
+							friendListChanged(FriendListUpdatedEvent{ FriendListUpdateOperation::AddOrUpdate, fr });
 						}
 					}
 				}
@@ -457,6 +472,21 @@ namespace Stormancer
 					return friendListChanged.subscribe(callback);
 				}
 
+				pplx::task<void> block(std::string userIdToBlock, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
+				{
+					return getFriendService().then([userIdToBlock, ct](std::shared_ptr<FriendsService> s) { return s->block(userIdToBlock, ct); });
+				}
+
+				pplx::task<void> unblock(std::string userIdToUnblock, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
+				{
+					return getFriendService().then([userIdToUnblock, ct](std::shared_ptr<FriendsService> s) { return s->unblock(userIdToUnblock, ct); });
+				}
+
+				pplx::task<std::vector<std::string>> getBlockedList(pplx::cancellation_token ct = pplx::cancellation_token::none()) override
+				{
+					return getFriendService().then([ct](std::shared_ptr<FriendsService> s) { return s->getBlockedList(ct); });
+				}
+
 				Event<FriendListUpdatedEvent> friendListChanged;
 
 			private:
@@ -495,7 +525,7 @@ namespace Stormancer
 		public:
 
 			static constexpr const char* PLUGIN_NAME = "Friends";
-			static constexpr const char* PLUGIN_VERSION = "1.0.0";
+			static constexpr const char* PLUGIN_VERSION = "2.0.0";
 
 			PluginDescription getDescription() override
 			{
