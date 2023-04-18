@@ -15,6 +15,7 @@ Changed
 *******
 - Add support for multiple apps to agents.
 - GetStatus now reports the reserved resources on the node.
+- Support more than 8Gb of total reservable memory.
 
 0.2.0
 -----

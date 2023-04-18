@@ -37,7 +37,7 @@ namespace Stormancer.GameServers.Agent
         public ushort MinPort { get; set; } = 40000;
         public ushort MaxPort { get; set; } = 40050;
 
-        public uint MaxMemory { get; set; }
+        public long MaxMemory { get; set; }
         public float MaxCpu { get; set; }
         public string Id { get; set; } = Environment.MachineName;
 
