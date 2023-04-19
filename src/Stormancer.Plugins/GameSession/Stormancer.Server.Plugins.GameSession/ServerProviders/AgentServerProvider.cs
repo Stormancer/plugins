@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Hosting;
 using MsgPack.Serialization;
 using Newtonsoft.Json.Linq;
+using Stormancer.Diagnostics;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.DataProtection;
@@ -240,11 +241,13 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         private Dictionary<string, DockerAgent> _agents = new();
         private readonly IEnvironment _environment;
         private readonly IDataProtector _dataProtector;
+        private readonly ILogger _logger;
         private readonly Task<ApplicationInfos> _applicationInfos;
-        public AgentBasedGameServerProvider(IEnvironment environment, IDataProtector dataProtector)
+        public AgentBasedGameServerProvider(IEnvironment environment, IDataProtector dataProtector, ILogger logger)
         {
             _environment = environment;
             _dataProtector = dataProtector;
+            _logger = logger;
             _applicationInfos = _environment.GetApplicationInfos();
             _environment.ActiveDeploymentChanged += OnActiveDeploymentChanged;
         }
@@ -509,7 +512,16 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
                     if (response.Success)
                     {
-                        return new StartGameServerResult(true, new GameServerInstance { Id = response.Container.ContainerId }, (agent.Id, response.Container.ContainerId));
+                        return new StartGameServerResult(true, new GameServerInstance { Id = agent.Id +"/"+response.Container.ContainerId }, (agent.Id, response.Container.ContainerId));
+                    }
+                    else
+                    {
+                        
+                        if (response.Error != "unableToSatisfyResourceReservation")
+                        {
+                            _logger.Log(LogLevel.Warn, "docker", $"Failed to Start container : '{response.Error}'", new { });
+                          
+                        }
                     }
                 }
                 await Task.Delay(500);
