@@ -88,6 +88,7 @@ namespace Stormancer.GameServers.Agent
             return new ContainerStartResponse
             {
                 Success = result.Success,
+                Error = result.Error,
                 Container = GetDesc(result.Container),
                 CurrentCpuQuotaUsed = _docker.UsedCpu,
                 CurrentMemoryQuotaUsed = _docker.UsedMemory,

@@ -137,39 +137,16 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         }
 
         [S2SApi]
-        public async Task<GameServer> WaitGameServer(string poolId, string gameSessionId, GameSessionConfiguration config, CancellationToken cancellationToken)
+        public Task<GameServer> WaitGameServer(string poolId, string gameSessionId, GameSessionConfiguration config, CancellationToken cancellationToken)
         {
-            if (pools.TryGetPool(poolId, out var pool))
-            {
-                var result = await pool.TryWaitGameServerAsync(gameSessionId, config, cancellationToken);
-
-                if (result.Success)
-                {
-                    return result.Value;
-                }
-                else
-                {
-                    throw new InvalidOperationException("Failed to start server.");
-                }
-            }
-            else
-            {
-                throw new InvalidOperationException($"gameserverpool.notfound?pool={poolId}");
-            }
+            return pools.WaitGameServer(poolId, gameSessionId, config, cancellationToken);
 
         }
 
         [S2SApi]
-        public async Task CloseServer(GameServerId id)
+        public Task CloseServer(GameServerId id)
         {
-            if (pools.TryGetPool(id.PoolId, out var pool))
-            {
-
-                await pool.CloseServer(id.Id);
-
-            }
-
-
+            return pools.CloseServer(id);
         }
     }
 }

@@ -95,6 +95,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
     {
         [MessagePackMember(0)]
         [MemberNotNullWhen(true,"Container")]
+        [MemberNotNullWhen(false, "Error")]
         public bool Success { get; set; }
 
         [MessagePackMember(1)]
@@ -111,6 +112,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         [MessagePackMember(5)]
         public ContainerDescription? Container { get; set; }
+
+        [MessagePackMember(6)]
+        public string? Error { get; set; }
     }
 
     public class ContainerStopParameters

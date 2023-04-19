@@ -20,9 +20,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Nest;
 using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Configuration;
+using Stormancer.Server.Plugins.Database;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Concurrent;
@@ -55,6 +57,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         private readonly IConfiguration configuration;
     
         private readonly IEnumerable<IServerPoolProvider> providers;
+        private readonly IESClientFactory _eSClientFactory;
         private readonly Dictionary<string, IServerPool> _pools = new Dictionary<string, IServerPool>();
         private object _poolsSyncRoot = new object();
 
@@ -62,12 +65,13 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         private object _gameServersSyncRoot = new object();
         private Dictionary<string, GameServerConnectionInfo> _gameServers = new Dictionary<string, GameServerConnectionInfo>();
 
-        public ServerPools(ILogger logger, IConfiguration config, IEnumerable<IServerPoolProvider> providers)
+        public ServerPools(ILogger logger, IConfiguration config, IEnumerable<IServerPoolProvider> providers, Database.IESClientFactory eSClientFactory)
         {
             this.logger = logger;
             this.configuration = config;
            
             this.providers = providers;
+            _eSClientFactory = eSClientFactory;
             ApplySettings();
         }
 
@@ -200,7 +204,42 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         {
             ApplySettings();
         }
+        public async Task<GameServer> WaitGameServer(string poolId, string gameSessionId, GameSessionConfiguration config, CancellationToken cancellationToken)
+        {
+            if (TryGetPool(poolId, out var pool))
+            {
+                var record = new GameServerRecord() {  Id = gameSessionId, Pool = poolId, StartedOn = DateTime.UtcNow };
 
-       
+                var result = await pool.TryWaitGameServerAsync(gameSessionId, config,record, cancellationToken);
+
+                var client =await _eSClientFactory.CreateClient<GameServerRecord>("gameservers");
+
+                await client.IndexAsync(record,desc=>desc.Id(record.Id));
+                if (result.Success)
+                {
+                    return result.Value;
+                }
+                else
+                {
+                    throw new InvalidOperationException("Failed to start server.");
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException($"gameserverpool.notfound?pool={poolId}");
+            }
+        }
+
+
+        public async Task CloseServer(GameServerId id)
+        {
+            if (TryGetPool(id.PoolId, out var pool))
+            {
+
+                await pool.CloseServer(id.Id);
+
+            }
+        }
+
     }
 }

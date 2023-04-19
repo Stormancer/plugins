@@ -31,6 +31,7 @@ namespace Stormancer.GameServers.Agent
         public bool Success { get; set; }
 
         public ServerContainer? Container { get; set; }
+        public string? Error { get; set; }
     }
     internal class DockerService : IDisposable, IProgress<Message>
     {
@@ -163,12 +164,12 @@ namespace Stormancer.GameServers.Agent
             {
                 if (reservedMemory + this.UsedMemory > this.TotalMemory)
                 {
-                    return new StartContainerResult { Success = false };
+                    return new StartContainerResult { Success = false, Error="unableToSatisfyResourceReservation" };
                 }
 
                 if (reservedCpu + this.UsedCpu > this.TotalCpu)
                 {
-                    return new StartContainerResult { Success = false };
+                    return new StartContainerResult { Success = false, Error= "unableToSatisfyResourceReservation" };
                 }
                 serverContainer = new ServerContainer(agentId, name, image, DateTime.UtcNow, reservedMemory, reservedCpu);
                 _trackedContainers.Add(name, serverContainer);
@@ -183,7 +184,17 @@ namespace Stormancer.GameServers.Agent
                 {
                     _logger.Log(LogLevel.Information, "Downloading image {name}...", image);
                     await _docker.Images.CreateImageAsync(new ImagesCreateParameters { FromImage = image }, new AuthConfig { }, NullDockerJsonMessageProgress.Instance);
-                    _logger.Log(LogLevel.Information, "Image {name} downloaded.", image);
+                    images = await _docker.Images.ListImagesAsync(new ImagesListParameters { All = true });
+
+                    if (!images.Any(i => i.RepoTags?.Contains(image) ?? false))
+                    {
+                        _logger.Log(LogLevel.Error, "Image {name} not found.", image);
+                        throw new InvalidOperationException($"Image {image} not found.");
+                    }
+                    else
+                    {
+                        _logger.Log(LogLevel.Information, "Image {name} downloaded.", image);
+                    }
                 }
 
 
@@ -248,13 +259,13 @@ namespace Stormancer.GameServers.Agent
                 return new StartContainerResult { Success = true, Container = serverContainer };
 
             }
-            catch
+            catch(Exception ex)
             {
                 lock (_lock)
                 {
                     _trackedContainers.Remove(name);
                 }
-                return new StartContainerResult { Success = false };
+                return new StartContainerResult { Success = false, Error = ex.ToString() };
             }
 
         }
