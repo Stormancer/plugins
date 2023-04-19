@@ -165,17 +165,26 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         }
 
-        internal void RemoveGameServer(string serverId)
+        internal async Task RemoveGameServer(string serverId)
         {
+            IServerPool? pool = null;
             lock(_poolsSyncRoot)
             {
                 if(_gameServers.Remove(serverId,out var infos))
                 {
-                    if(TryGetPool(infos.poolId,out var pool))
-                    {
-                        pool.OnGameServerDisconnected(serverId);
-                    }
+                    TryGetPool(infos.poolId, out pool);
+                   
                 }
+            }
+            if (pool != null)
+            {
+                var client = await _eSClientFactory.CreateClient<GameServerRecord>("gameservers");
+
+                var record = client.Get<GameServerRecord>(serverId);
+                record.Source.ClosedOn = DateTime.UtcNow;
+                await pool.OnGameServerDisconnected(serverId,record.Source);
+
+                await client.IndexAsync(record.Source, desc => desc.Id(record.Id));
             }
            
         }

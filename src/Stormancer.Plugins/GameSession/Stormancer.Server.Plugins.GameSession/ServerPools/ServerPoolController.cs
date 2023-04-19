@@ -86,7 +86,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                 }
                 else
                 {
-                    pools.RemoveGameServer(session.platformId.PlatformUserId); //GAMESERVER
+                    await pools.RemoveGameServer(session.platformId.PlatformUserId); //GAMESERVER
                 }
             }
 
