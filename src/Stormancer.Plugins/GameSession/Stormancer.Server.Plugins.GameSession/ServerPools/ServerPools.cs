@@ -183,7 +183,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                 var record = client.Get<GameServerRecord>(serverId);
                 record.Source.ClosedOn = DateTime.UtcNow;
                 await pool.OnGameServerDisconnected(serverId,record.Source);
-
+                record.Source.RunTimeInSeconds = (record.Source.ClosedOn - record.Source.StartedOn).Seconds;
                 await client.IndexAsync(record.Source, desc => desc.Id(record.Id));
             }
            

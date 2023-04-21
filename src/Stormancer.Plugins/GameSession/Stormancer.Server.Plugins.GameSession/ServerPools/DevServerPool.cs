@@ -210,7 +210,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         /// </summary>
         /// <param name="sessionId"></param>
         /// <returns></returns>
-        public Task OnGameServerDisconnected(string serverId)
+        public Task OnGameServerDisconnected(string serverId, GameServerRecord gameServer)
         {
             lock (_syncRoot)
             {

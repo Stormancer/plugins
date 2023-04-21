@@ -44,7 +44,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             this.pools = pools;
             this.logger = logger;
         }
-        public bool TryCreate(string id, JObject config,[NotNullWhen(true)] out IServerPool? pool)
+        public bool TryCreate(string id, JObject config, [NotNullWhen(true)] out IServerPool? pool)
         {
             if (config["type"] == JValue.CreateString("composite"))
             {
@@ -81,7 +81,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         public int MaxServersInPool => _subPools.Sum(p => p.MaxServersInPool);
 
-        public int PendingServerRequests => _subPools.Sum(p=>p.MaxServersInPool);
+        public int PendingServerRequests => _subPools.Sum(p => p.MaxServersInPool);
 
         public bool CanAcceptRequest => _subPools.Any(p => p.CanAcceptRequest);
 
@@ -98,11 +98,11 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration config, GameServerRecord record, CancellationToken cancellationToken)
         {
-           
-            foreach(var subPool in _subPools)
+
+            foreach (var subPool in _subPools)
             {
-                var result = await subPool.TryWaitGameServerAsync(gameSessionId, config,record, cancellationToken);
-                if(result.Success)
+                var result = await subPool.TryWaitGameServerAsync(gameSessionId, config, record, cancellationToken);
+                if (result.Success)
                 {
                     return result;
                 }
@@ -112,8 +112,8 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         }
 
-      
-       
+
+
         public void UpdateConfiguration(JObject config)
         {
             this.config = config;
@@ -131,24 +131,24 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         }
 
         public bool CanManage(Session session, IScenePeerClient peer) => false;
-        
+
 
         public Task<GameServerStartupParameters?> WaitGameSessionAsync(Session session, IScenePeerClient client, CancellationToken cancellationToken)
         {
             throw new NotSupportedException();
         }
 
-        public async Task OnGameServerDisconnected(string serverId)
+        public async Task OnGameServerDisconnected(string serverId, GameServerRecord gameServerRecord)
         {
-           foreach(var pool in _subPools)
+            foreach (var pool in _subPools)
             {
-                await pool.OnGameServerDisconnected(serverId);
+                await pool.OnGameServerDisconnected(serverId, gameServerRecord);
             }
         }
 
         public async Task CloseServer(string serverId)
         {
-            foreach(var pool in _subPools)
+            foreach (var pool in _subPools)
             {
                 await pool.CloseServer(serverId);
             }

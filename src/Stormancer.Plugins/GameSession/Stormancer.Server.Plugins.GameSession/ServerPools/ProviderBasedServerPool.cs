@@ -297,7 +297,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             }
         }
 
-        public async Task OnGameServerDisconnected(string serverId)
+        public async Task OnGameServerDisconnected(string serverId, GameServerRecord gameServerRecord)
         {
 
             if (_runningServers.TryRemove(serverId, out var server))
