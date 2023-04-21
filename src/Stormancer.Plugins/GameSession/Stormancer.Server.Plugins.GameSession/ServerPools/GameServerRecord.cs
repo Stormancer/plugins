@@ -13,7 +13,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public string Pool { get; set; }
 
-        public JObject CustomData { get; set; }
+        public JObject CustomData { get; set; } = new JObject();
 
         public DateTime StartedOn { get; set; }
         public DateTime ClosedOn { get; set; }
