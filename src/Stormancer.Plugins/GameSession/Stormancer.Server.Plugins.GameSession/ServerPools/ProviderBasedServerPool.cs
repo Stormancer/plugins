@@ -215,7 +215,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             isRunning = false;
         }
 
-        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gsConfig, CancellationToken cancellationToken)
+        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gsConfig, GameServerRecord record, CancellationToken cancellationToken)
         {
             if (!isRunning)
             {
@@ -225,10 +225,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
             var authToken = await _dataProtector.ProtectBase64Url(Encoding.UTF8.GetBytes(gameSessionId), "gameServer");
 
-            var result = await provider.TryStartServer(gameSessionId, authToken, this.config, cancellationToken);
+            record.Pool = this.Id;
+            record.PoolType = provider.Type;
+            var result = await provider.TryStartServer(gameSessionId, authToken, this.config,record, cancellationToken);
             if (result.Success)
             {
-                var server = new Server { Context = result.Context, GameServer = result.Instance, Id = gameSessionId };
+                var server = new Server { Context = result.Context, GameServer = result.Instance, Id = gameSessionId, Record = record };
                 _startingServers.TryAdd(gameSessionId, server);
                 server.Context = result.Context;
                 server.GameServer = result.Instance;

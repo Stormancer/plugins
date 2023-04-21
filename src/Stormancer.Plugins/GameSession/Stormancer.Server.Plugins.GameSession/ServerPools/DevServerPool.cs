@@ -159,8 +159,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         private Dictionary<string, IScenePeerClient> _connectedServers = new Dictionary<string, IScenePeerClient>();
 
 
-        public Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gameSessionConfig, CancellationToken cancellationToken)
+        public Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gameSessionConfig, GameServerRecord record, CancellationToken cancellationToken)
         {
+            
             var request = new GetServerPendingRequest(gameSessionId, gameSessionConfig);
             if (cancellationToken.IsCancellationRequested)
             {
@@ -175,6 +176,8 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                     {
                         gameServer.SetGameFound(gameSessionId, gameSessionConfig);
                         gameServer.CancellationTokenRegistration.Unregister();
+                        record.Pool = this.Id;
+                        record.PoolType = "dev";
                         return Task.FromResult(new WaitGameServerResult { Success = true, Value = new GameServer { GameServerId = new GameServerId { PoolId = this.Id, Id = gameSessionId }, GameServerSessionId = gameServer.Session.SessionId } });
 
                     }

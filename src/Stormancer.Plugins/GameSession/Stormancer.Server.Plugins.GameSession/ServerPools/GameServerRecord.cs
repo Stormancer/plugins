@@ -17,5 +17,6 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public DateTime StartedOn { get; set; }
         public DateTime ClosedOn { get; set; }
+        public string PoolType { get; internal set; }
     }
 }

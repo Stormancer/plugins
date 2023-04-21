@@ -257,11 +257,11 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             ShuttingDown = true;
             if (!e.IsActive)
             {
-                lock(_syncRoot)
+                lock (_syncRoot)
                 {
-                    foreach(var (id,agent) in _agents)
+                    foreach (var (id, agent) in _agents)
                     {
-                        agent.Peer.Send("agent.UpdateActiveApp",e.ActiveDeploymentId, Core.PacketPriority.MEDIUM_PRIORITY, Core.PacketReliability.RELIABLE);
+                        agent.Peer.Send("agent.UpdateActiveApp", e.ActiveDeploymentId, Core.PacketPriority.MEDIUM_PRIORITY, Core.PacketReliability.RELIABLE);
                     }
                 }
             }
@@ -272,8 +272,8 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             lock (_syncRoot)
             {
                 var agent = new DockerAgent(peer, agentSession);
-                _agents.Add(agentSession.User.Id,agent);
-                _ = SubscribeContainerStatusUpdate(agent,agent.CancellationTokenSource.Token);
+                _agents.Add(agentSession.User.Id, agent);
+                _ = SubscribeContainerStatusUpdate(agent, agent.CancellationTokenSource.Token);
             }
         }
 
@@ -311,8 +311,8 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             }
         }
 
-        
-        private async Task UpdateAgentStatus(DockerAgent agent,CancellationToken cancellationToken)
+
+        private async Task UpdateAgentStatus(DockerAgent agent, CancellationToken cancellationToken)
         {
             using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1000));
             while (!cancellationToken.IsCancellationRequested)
@@ -392,7 +392,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             return peer.RpcTask<bool, IEnumerable<ContainerDescription>>("agent.getRunningContainers", true);
         }
 
-        public async Task<ContainerStartResponse> StartContainerAsync(string agentId, string image, string name, float reservedCpu, long reservedMemory,float cpuLimit, long memoryLimit, Dictionary<string, string> environmentVariables)
+        public async Task<ContainerStartResponse> StartContainerAsync(string agentId, string image, string name, float reservedCpu, long reservedMemory, float cpuLimit, long memoryLimit, Dictionary<string, string> environmentVariables)
         {
             DockerAgent? agent;
             lock (_syncRoot)
@@ -462,8 +462,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         public bool ShuttingDown { get; private set; }
 
-        public async Task<StartGameServerResult> TryStartServer(string id, string authenticationToken, JObject config, CancellationToken ct)
+        public async Task<StartGameServerResult> TryStartServer(string id, string authenticationToken, JObject config, GameServerRecord record, CancellationToken ct)
         {
+            
             var agentConfig = config.ToObject<AgentPoolConfigurationSection>();
             var applicationInfo = await _environment.GetApplicationInfos();
             var fed = await _environment.GetFederation();
@@ -503,7 +504,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
                 if (agent != null)
                 {
-                    var response = await StartContainerAsync(agent.Id, agentConfig.Image, id, agentConfig.reservedCpu, agentConfig.reservedMemory,agentConfig.cpuLimit,agentConfig.memoryLimit, environmentVariables);
+                    var response = await StartContainerAsync(agent.Id, agentConfig.Image, id, agentConfig.reservedCpu, agentConfig.reservedMemory, agentConfig.cpuLimit, agentConfig.memoryLimit, environmentVariables);
 
                     agent.TotalCpu = response.TotalCpuQuotaAvailable;
                     agent.TotalMemory = response.TotalMemoryQuotaAvailable;
@@ -512,15 +513,18 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
                     if (response.Success)
                     {
-                        return new StartGameServerResult(true, new GameServerInstance { Id = agent.Id +"/"+response.Container.ContainerId }, (agent.Id, response.Container.ContainerId));
+                        record.CustomData["agent"] = agent.Id;
+                        record.CustomData["containerId"] = response.Container.ContainerId;
+
+                        return new StartGameServerResult(true, new GameServerInstance { Id = agent.Id + "/" + response.Container.ContainerId }, (agent.Id, response.Container.ContainerId));
                     }
                     else
                     {
-                        
+
                         if (response.Error != "unableToSatisfyResourceReservation")
                         {
                             _logger.Log(LogLevel.Warn, "docker", $"Failed to Start container : '{response.Error}'", new { });
-                          
+
                         }
                     }
                 }
@@ -552,7 +556,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
             var response = await StopContainer(agentId, containerId);
 
-            
+
 
         }
     }

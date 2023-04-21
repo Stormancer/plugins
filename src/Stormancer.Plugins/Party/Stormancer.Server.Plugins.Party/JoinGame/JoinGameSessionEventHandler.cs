@@ -57,6 +57,8 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
             if (IsEnabled)
             {
                 string? partyId = null;
+
+
                 lock (state.syncRoot)
                 {
                     var party = ctx.GameSession.GetGameSessionConfig().Teams.SelectMany(t => t.Parties).FirstOrDefault(p => p.Players.ContainsKey(ctx.Player.Player.UserId));
@@ -81,9 +83,13 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                     }
                     catch(Exception ex)
                     {
-                        logger.Log(LogLevel.Error,"party", $"Failed to update the party status (id='{partyId}') with gamesesion related informations :", ex);
+                        logger.Log(LogLevel.Error,"party", $"Failed to update the party status (id='{partyId}') with gamesession related informations :", ex);
                         throw;
                     }
+                }
+                else
+                {
+                    logger.Log(LogLevel.Warn, "party.gamesession", "No party found associated with player.", new { }, ctx.GameSession.GameSessionId, ctx.Player.Player.UserId);
                 }
 
             }
@@ -114,6 +120,10 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                 if (partyId != null)
                 {
                     await party.UpdatePartyStatusAsync(partyId, "gamesession", "", null, default);
+                }
+                else
+                {
+                    logger.Log(LogLevel.Warn, "party.gamesession", "No party found associated with player.", new { }, ctx.GameSession.GameSessionId, ctx.Player.Player.UserId);
                 }
             }
         }

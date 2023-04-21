@@ -45,6 +45,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         public object? Context { get; internal set; }
         public GameSessionConfiguration GameSessionConfiguration { get; internal set; }
         public TaskCompletionSource<WaitGameServerResult> RequestCompletedCompletionSource { get; internal set; }
+        public GameServerRecord Record { get; internal set; }
 
         public void Dispose()
         {
