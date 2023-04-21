@@ -181,10 +181,16 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                 var client = await _eSClientFactory.CreateClient<GameServerRecord>("gameservers");
 
                 var record = client.Get<GameServerRecord>(serverId);
-                record.Source.ClosedOn = DateTime.UtcNow;
-                await pool.OnGameServerDisconnected(serverId,record.Source);
-                record.Source.RunTimeInSeconds = (record.Source.ClosedOn - record.Source.StartedOn).Seconds;
-                await client.IndexAsync(record.Source, desc => desc.Id(record.Id));
+                if (record != null)
+                {
+                    record.Source.ClosedOn = DateTime.UtcNow;
+                }
+                await pool.OnGameServerDisconnected(serverId,record?.Source);
+                if (record != null)
+                {
+                    record.Source.RunTimeInSeconds = (record.Source.ClosedOn - record.Source.StartedOn).Seconds;
+                    await client.IndexAsync(record.Source, desc => desc.Id(record.Id));
+                }
             }
            
         }

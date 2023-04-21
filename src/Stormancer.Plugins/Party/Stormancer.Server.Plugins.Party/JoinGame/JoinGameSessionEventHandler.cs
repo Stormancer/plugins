@@ -115,16 +115,19 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                             partyId = party.PartyId;
                         }
                     }
+                    else
+                    {
+                        logger.Log(LogLevel.Warn, "party.gamesession.leave", "No party found associated with player.", new { }, ctx.GameSession.GameSessionId, ctx.Player.Player.UserId);
+                    }
+                
                 }
 
                 if (partyId != null)
                 {
                     await party.UpdatePartyStatusAsync(partyId, "gamesession", "", null, default);
                 }
-                else
-                {
-                    logger.Log(LogLevel.Warn, "party.gamesession.leave", "No party found associated with player.", new { }, ctx.GameSession.GameSessionId, ctx.Player.Player.UserId);
-                }
+                
+                   
             }
         }
 
