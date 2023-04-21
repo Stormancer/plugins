@@ -1184,15 +1184,15 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             if (_reservationStates.TryRemove(Guid.Parse(id), out var reservationState))
             {
-                var ids = new List<(string, string)>();
+                var players = new List<(string TeamId, Player Player)>();
                 lock (syncRoot)
                 {
 
                     foreach (var userId in reservationState.UserIds)
                     {
-                        if (TryRemoveUserFromConfig(userId, out var teamId))
+                        if (TryRemoveUserFromConfig(userId, out var teamId, out var player))
                         {
-                            ids.Add((teamId, userId));
+                            players.Add((teamId, player));
                         }
                     }
                 }
@@ -1200,7 +1200,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 await using var scope = _scene.CreateRequestScope();
 
                 await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
-                   h => h.OnReservationCancelled(new ReservationCancelledContext(reservationState.ReservationId, ids)),
+                   h => h.OnReservationCancelled(new ReservationCancelledContext(reservationState.ReservationId, players)),
                    ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing OnReservationCancelled event", ex));
 
             }
@@ -1219,19 +1219,19 @@ namespace Stormancer.Server.Plugins.GameSession
                     {
                         if (reservationState.ExpiresOn < DateTime.UtcNow)
                         {
-                            var ids = new List<(string, string)>();
+                            var players = new List<(string TeamId, Player Player)>();
                             foreach (var userId in reservationState.UserIds)
                             {
-                                if (TryRemoveUserFromConfig(userId, out var teamId))
+                                if (TryRemoveUserFromConfig(userId, out var teamId, out var player))
                                 {
-                                    ids.Add((teamId, userId));
+                                    players.Add((teamId, player));
                                 }
                             }
 
                             await using var scope = _scene.CreateRequestScope();
 
                             await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
-                               h => h.OnReservationCancelled(new ReservationCancelledContext(reservationState.ReservationId, ids)),
+                               h => h.OnReservationCancelled(new ReservationCancelledContext(reservationState.ReservationId, players)),
                                ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing OnReservationCancelled event", ex));
                         }
 
@@ -1247,7 +1247,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         }
 
-        private bool TryRemoveUserFromConfig(string userId, [NotNullWhen(true)] out string? teamId)
+        private bool TryRemoveUserFromConfig(string userId, [NotNullWhen(true)] out string? teamId, [NotNullWhen(true)] out Player? player)
         {
             if (!_clients.ContainsKey(userId) && _config != null)
             {
@@ -1255,8 +1255,9 @@ namespace Stormancer.Server.Plugins.GameSession
                 {
                     foreach (var party in team.Parties)
                     {
-                        if (party.Players.Remove(userId))
+                        if (party.Players.TryGetValue(userId, out player))
                         {
+                            party.Players.Remove(userId);
                             if (!party.Players.Any())
                             {
                                 team.Parties.Remove(party);
@@ -1273,6 +1274,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 }
             }
             teamId = null;
+            player = null;
             return false;
 
         }
