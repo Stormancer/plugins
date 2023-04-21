@@ -720,7 +720,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 }
 
-                _logger.Log(LogLevel.Info, "gamesession.startup", "starting gameserver.", new { id = this.GameSessionId, _server.GameServerId, _server.GameServerSessionId }, this.GameSessionId);
+                _logger.Log(LogLevel.Info, "gamesession.startup", "starting gameserver.", new { id = this.GameSessionId }, this.GameSessionId);
 
                 _server = await pools.WaitGameServer(poolId, GameSessionId, _config, _gameCompleteCts.Token);
                 _logger.Log(LogLevel.Info, "gamesession.startup", "started gameserver.", new { id = this.GameSessionId, _server.GameServerId, _server.GameServerSessionId }, this.GameSessionId);
