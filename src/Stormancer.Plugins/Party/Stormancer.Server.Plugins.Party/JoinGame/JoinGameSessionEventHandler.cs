@@ -89,7 +89,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                 }
                 else
                 {
-                    logger.Log(LogLevel.Warn, "party.gamesession", "No party found associated with player.", new { }, ctx.GameSession.GameSessionId, ctx.Player.Player.UserId);
+                    logger.Log(LogLevel.Warn, "party.gamesession.join", "No party found associated with player.", new { }, ctx.GameSession.GameSessionId, ctx.Player.Player.UserId);
                 }
 
             }
@@ -123,7 +123,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                 }
                 else
                 {
-                    logger.Log(LogLevel.Warn, "party.gamesession", "No party found associated with player.", new { }, ctx.GameSession.GameSessionId, ctx.Player.Player.UserId);
+                    logger.Log(LogLevel.Warn, "party.gamesession.leave", "No party found associated with player.", new { }, ctx.GameSession.GameSessionId, ctx.Player.Player.UserId);
                 }
             }
         }
