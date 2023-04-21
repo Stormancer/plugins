@@ -902,7 +902,7 @@ namespace Stormancer.Server.Plugins.Users
                         }
                         else
                         {
-
+                            logger.Log(LogLevel.Error, "usersessions.SendRequest", "An error occured while sending a request to a client.", ex);
                         }
                     }
 
@@ -916,6 +916,10 @@ namespace Stormancer.Server.Plugins.Users
                 }
                 catch (Exception ex)
                 {
+
+                    await rq.OutputPipe.Writer.WriteObject(false, serializer, cancellationToken);
+                    await rq.OutputPipe.Writer.WriteObject(ex.Message, serializer, cancellationToken);
+
                     rq.InputPipe.Reader.Complete(ex);
                     rq.OutputPipe.Writer.Complete(ex);
                 }
@@ -952,7 +956,7 @@ namespace Stormancer.Server.Plugins.Users
                 }
                 else
                 {
-                    return new SendRequestResult<TReturn> { Success =false, Error = await rq.Reader.ReadObject<string>(serializer, cancellationToken) };
+                    return new SendRequestResult<TReturn> { Success = false, Error = await rq.Reader.ReadObject<string>(serializer, cancellationToken) };
                 }
             }
             finally
@@ -972,7 +976,7 @@ namespace Stormancer.Server.Plugins.Users
             {
                 if (await rq.Reader.ReadObject<bool>(serializer, cancellationToken))
                 {
-                   
+
                     return new SendRequestResult<TReturn> { Value = await rq.Reader.ReadObject<TReturn>(serializer, cancellationToken), Success = true };
                 }
                 else
