@@ -50,9 +50,16 @@
     <ClInclude Include="..\..\src\Stormancer.Plugins\Profile\cpp\Profile.hpp">
       <Filter>Profile</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\GameSession\cpp\GameSession.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Spectate\cpp\Spectate.hpp">
       <Filter>Spectate</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Stormancer.Plugins\GameSession\cpp\GameSession.hpp">
+      <Filter>GameSession</Filter>
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Limits\cpp\connectionQueue.hpp">
+      <Filter>Limits</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Notification\cpp\Notifications.hpp">
+      <Filter>Notifications</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -91,6 +98,12 @@
     </Filter>
     <Filter Include="Spectate">
       <UniqueIdentifier>{df81b003-a2dd-4b01-9e5c-86b60ee1d952}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Limits">
+      <UniqueIdentifier>{e09752e2-ae7e-4a18-b9bf-93aa64d55ef2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Notifications">
+      <UniqueIdentifier>{bab8feb7-d80e-4a42-acc1-0974181f4711}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

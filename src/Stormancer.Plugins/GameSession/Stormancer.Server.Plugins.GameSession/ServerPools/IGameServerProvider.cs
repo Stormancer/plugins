@@ -51,7 +51,7 @@ namespace Stormancer.Server.Plugins.GameSession
     public interface IGameServerProvider
     {
         string Type { get; }
-        Task<StartGameServerResult> TryStartServer(string id, JObject config, CancellationToken ct);
+        Task<StartGameServerResult> TryStartServer(string id,string authToken, JObject config, GameServerRecord record, CancellationToken ct);
 
         Task StopServer(string id, object? context);
     }

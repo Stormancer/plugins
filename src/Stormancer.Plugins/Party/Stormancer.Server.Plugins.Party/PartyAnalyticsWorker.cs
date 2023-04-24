@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Party
@@ -34,35 +35,38 @@ namespace Stormancer.Server.Plugins.Party
                 _parties.Remove(party);
             }
         }
-        internal async Task Run()
+        internal async Task Run(CancellationToken cancellationToken)
         {
             var startTime = DateTime.UtcNow;
 
-            try
+            while (!cancellationToken.IsCancellationRequested)
             {
-                var count = 0;
-                var players = 0;
-                lock(_syncRoot)
+                try
                 {
-                    count = _parties.Count;
-                    players = _parties.Sum(p=>p.PartyMembers.Count);
-                }
-                if (count > 0)
-                {
-                    _analytics.Push("party", "party-stats", JObject.FromObject(new
+                    var count = 0;
+                    var players = 0;
+                    lock (_syncRoot)
                     {
-                        parties = count,
-                        playersInParties = players
-                    }));
+                        count = _parties.Count;
+                        players = _parties.Sum(p => p.PartyMembers.Count);
+                    }
+                    if (count > 0)
+                    {
+                        _analytics.Push("party", "party-stats", JObject.FromObject(new
+                        {
+                            parties = count,
+                            playersInParties = players
+                        }));
+                    }
                 }
-            }
-            catch { }
+                catch { }
 
-            var duration = DateTime.UtcNow - startTime;
+                var duration = DateTime.UtcNow - startTime;
 
-            if (TimeSpan.FromSeconds(1) - duration > TimeSpan.FromMilliseconds(20))
-            {
-                await Task.Delay(TimeSpan.FromSeconds(1) - duration);
+                if (TimeSpan.FromSeconds(1) - duration > TimeSpan.FromMilliseconds(20))
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(1) - duration);
+                }
             }
         }
     }

@@ -13,6 +13,12 @@ Unreleased
 ----------
 Changed
 *******
+- Update SendRequest to properly handle client exceptions
+
+7.1.0
+-----
+Changed
+*******
 - Use latest version of MemoryCache, improve performance by using SessionId instead of string as cache key.
 
 7.0.1.2

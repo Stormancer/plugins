@@ -5,8 +5,9 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>0.1.0</Version>
+		<Version>0.3.0.4</Version>
 		<IncludeSymbols>true</IncludeSymbols>
+		<ToolCommandName>stormancer-gameservers-agent</ToolCommandName>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<Nullable>enable</Nullable>
@@ -46,7 +47,7 @@
 		</PackageReference>
 		<PackageReference Include="jose-jwt" Version="4.1.0" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
-		<PackageReference Include="Stormancer.Client" Version="3.4.4.3" />
+		<PackageReference Include="Stormancer.Client" Version="3.4.4.4" />
 		<PackageReference Include="System.Linq.Async" Version="6.0.1" />
 	</ItemGroup>
 </Project>

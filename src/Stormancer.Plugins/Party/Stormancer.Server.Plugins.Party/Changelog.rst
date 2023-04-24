@@ -11,6 +11,13 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Fixed
+*****
+- Send back errors to  client when an operation fails.
+- Fix typo that could prevent steam users from joining parties.
+
+5.0.0.2
+-------
 Changed
 *******
 - Send IndexedDocument as part of party updated events.

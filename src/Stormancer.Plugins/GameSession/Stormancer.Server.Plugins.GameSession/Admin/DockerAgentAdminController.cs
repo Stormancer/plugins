@@ -35,9 +35,13 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
                     Description = a.Description,
                     Fault = a.Fault,
                     Faulted = a.Faulted,
-                    Active = a.IsActive
+                    Active = a.IsActive,
+                    ReservedCpu = a.ReservedCpu,
+                    ReservedMemory = a.ReservedMemory,
+                    TotalCpu = a.TotalCpu,
+                    TotalMemory = a.TotalMemory
                 })
-            });
+            }) ;
         }
         [HttpGet]
         [Route("containers")]
@@ -86,6 +90,11 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
         public AgentDescription Description { get; set; }
 
         public bool Active { get; set; }
+
+        public float ReservedCpu { get; set; }
+        public long ReservedMemory { get; set; }
+        public long TotalMemory { get;  set; }
+        public float TotalCpu { get;  set; }
     }
     public class GetContainersResponse
     {

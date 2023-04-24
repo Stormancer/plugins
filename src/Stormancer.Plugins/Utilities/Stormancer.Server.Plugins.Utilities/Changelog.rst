@@ -9,11 +9,13 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+3.1.4.2
+-------
 Fixed
 *****
 - When addfunction throws an exception, the cache should immediately evict the value.
+- Fixed threading issue in MemoryCache
+
 3.1.2
 -----
 Changed

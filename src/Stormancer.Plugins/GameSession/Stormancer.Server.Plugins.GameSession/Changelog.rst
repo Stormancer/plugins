@@ -12,6 +12,17 @@ This project adheres to semantic versioning.
 Unreleased
 ----------
 Changed
+*******
+- Add MaxPlayersInGameSession analytics
+- Notify gameserver hosting agents when the app is not an active deployment.
+- Make sure that calling IsHost never throws, but instead returns false.
+- Don't send Teams infos to analytics
+- Add gamefinder and Parameters to analytics
+- Added the affected Players to the ReservationCancelledContext instead of only their user id
+
+6.1.0.17
+--------
+Changed
 ********
 - Updated dependency to Stormancer.Abstractions.Server to 9.2
 - Docker: Support pulling from dockerHub

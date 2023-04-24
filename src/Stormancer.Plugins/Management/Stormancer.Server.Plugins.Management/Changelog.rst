@@ -9,6 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+3.0.2.5
+-------
+Changed
+*******
+Update dependency to Stormancer.Server.Plugins.Utilities 3.1.4.2
 
 3.0.2.4
 ----------

@@ -85,10 +85,24 @@ namespace Stormancer.Server.Plugins.GameSession
             _analytics.Push("gamesession", "gamesession-closed", JObject.FromObject(new
             {
                 gameSessionId = gameSessionService.GameSessionId,
-                sessionDuration = gameSessionService.CreatedOn - DateTime.UtcNow
+                sessionDuration = gameSessionService.CreatedOn - DateTime.UtcNow,
+                maxClientsConnected = gameSessionService.MaxClientsConnected,
+                gameFinder = gameSessionService?.GetGameSessionConfig()?.GameFinder,
+                parameters = gameSessionService?.GetGameSessionConfig()?.Parameters
 
-            }));
+            })) ;
             Interlocked.Decrement(ref _gameSessionsCount);
+        }
+
+        internal void StartGamesession(GameSessionService gameSessionService)
+        {
+
+            _analytics.Push("gamesession", "gmaesession-started", JObject.FromObject(new
+            {
+                gamesessionId = gameSessionService.GameSessionId,
+                gameFinder = gameSessionService.GetGameSessionConfig()?.GameFinder,
+                parameters = gameSessionService.GetGameSessionConfig()?.Parameters
+            })) ;
         }
     }
 }

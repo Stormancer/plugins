@@ -96,8 +96,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     scene.Starting.Add(metadata =>
                     {
                         var service = scene.DependencyResolver.Resolve<IGameSessionService>();
-                        var analytics = scene.DependencyResolver.Resolve<IAnalyticsService>();
-                        analytics.Push("gamesession", "started", scene.Configuration);
+                       
                         service.SetConfiguration(metadata);
                         service.TryStart();
                         return Task.FromResult(true);

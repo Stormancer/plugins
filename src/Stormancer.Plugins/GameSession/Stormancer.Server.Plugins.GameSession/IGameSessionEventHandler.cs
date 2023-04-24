@@ -111,10 +111,10 @@ namespace Stormancer.Server.Plugins.GameSession
     /// </summary>
     public class ReservationCancelledContext
     {
-        internal ReservationCancelledContext(Guid reservationId, IEnumerable<(string,string)> userIdsReservationsCancelled )
+        internal ReservationCancelledContext(Guid reservationId, IEnumerable<(string TeamId, Player player)> playersReservationsCancelled)
         {
             ReservationId = reservationId;
-            UserIdsReservationsCancelled = userIdsReservationsCancelled;
+            PlayersReservationsCancelled = playersReservationsCancelled;
         }
 
         /// <summary>
@@ -125,7 +125,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <summary>
         /// List of (teamId,userId) tuple whose reservations where actually cancelled (ie if the user connected, they won't be in the list.)
         /// </summary>
-        public IEnumerable<(string, string)> UserIdsReservationsCancelled { get; }
+        public IEnumerable<(string TeamId, Player player)> PlayersReservationsCancelled { get; }
     }
 
     /// <summary>

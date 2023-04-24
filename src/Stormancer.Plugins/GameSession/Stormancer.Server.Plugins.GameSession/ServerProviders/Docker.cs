@@ -161,7 +161,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         }
 
-        public async Task<StartGameServerResult> TryStartServer(string id, JObject c, CancellationToken ct)
+        public async Task<StartGameServerResult> TryStartServer(string id,string authenticationToken, JObject c, GameServerRecord record, CancellationToken ct)
         {
             _shouldMonitorDocker = true;
             var config = c.ToObject<DockerPoolConfiguration>();
@@ -184,7 +184,6 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 //Token used to authenticate the DS with the DedicatedServerAuthProvider
 
-                var authenticationToken = await dataProtector.ProtectBase64Url(Encoding.UTF8.GetBytes(id), "gameServer");
 
                 var endpoints = string.Join(',', fed.current.endpoints.Select(e => TransformEndpoint(e)));
 

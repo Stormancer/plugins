@@ -126,14 +126,18 @@ namespace Stormancer.Server.Plugins.Database
     {
 
         /// <summary>
-        /// Retry timeout.
+        /// Retry timeout (s).
         /// </summary>
-        public int RetryTimeout { get; set; } = 5;
+        public int RetryTimeout { get; set; } = 30;
 
         /// <summary>
         /// Max number of retries before failure.
         /// </summary>
         public int MaxRetries { get; set; } = 5;
+        /// <summary>
+        /// Ping timeout (ms)
+        /// </summary>
+        public int PingTimeout { get; set; } = 2000;
 
         /// <summary>
         /// Pattern used to transform the app index into an ES index.
@@ -198,6 +202,7 @@ namespace Stormancer.Server.Plugins.Database
         public string IndexName { get; set; }
         public int maxRetries { get; set; }
         public int retryTimeout { get; set; }
+        public double PingTimeout { get; set; }
     }
 
     /// <summary>
@@ -386,7 +391,7 @@ namespace Stormancer.Server.Plugins.Database
             ESIndexPolicyConfig? policyConfig;
             if (_config.Indices.TryGetValue(name, out var indexConfig))
             {
-                policyConfig = indexConfig.ToObject<ESIndexPolicyConfig>();
+                policyConfig = indexConfig.ToObject<ESIndexPolicyConfig>()?? new ESIndexPolicyConfig();
             }
             else
             {
@@ -420,8 +425,18 @@ namespace Stormancer.Server.Plugins.Database
             {
                 indexName = $"{name}-{type}";
             }
-
-            return new ConnectionParameters { ConnectionPool = policyConfig?.ConnectionPool ?? "default", IndexName = indexName.ToLowerInvariant(), maxRetries = policyConfig.MaxRetries, retryTimeout = policyConfig.RetryTimeout };
+            if(policyConfig == null)
+            {
+                policyConfig = new ESIndexPolicyConfig();
+            }
+            return new ConnectionParameters
+            {
+                ConnectionPool = policyConfig?.ConnectionPool ?? "default",
+                IndexName = indexName.ToLowerInvariant(),
+                maxRetries = policyConfig.MaxRetries,
+                retryTimeout = policyConfig.RetryTimeout,
+                PingTimeout = policyConfig.PingTimeout,
+            };
         }
 
         public IElasticClient CreateClient(ConnectionParameters p)
@@ -439,16 +454,16 @@ namespace Stormancer.Server.Plugins.Database
 
                 ConnectionSettings.SourceSerializerFactory s = (IElasticsearchSerializer s, IConnectionSettingsValues v) => new JsonNetSerializer(s, v);
 
-                var settings = new ConnectionSettings(connectionPool.Pool, s).DefaultIndex(p.IndexName.ToLowerInvariant()).MaximumRetries(p.maxRetries).MaxRetryTimeout(TimeSpan.FromSeconds(p.retryTimeout));
+                var settings = new ConnectionSettings(connectionPool.Pool, s).DefaultIndex(p.IndexName.ToLowerInvariant()).PingTimeout(TimeSpan.FromMilliseconds(p.PingTimeout)).MaximumRetries(p.maxRetries).MaxRetryTimeout(TimeSpan.FromSeconds(p.retryTimeout));
                 settings = settings.EnableApiVersioningHeader();
-                
+
                 if (connectionPool?.Credentials?.Basic?.Login != null && connectionPool?.Credentials?.Basic?.Password != null)
                 {
 
                     settings = settings.BasicAuthentication(connectionPool?.Credentials?.Basic?.Login, connectionPool?.Credentials?.Basic?.Password);
                 }
 
-                if(connectionPool?.IgnoreCertificateErrors?? false)
+                if (connectionPool?.IgnoreCertificateErrors ?? false)
                 {
                     settings = settings.ServerCertificateValidationCallback((_, cert, chain, policyErrors) =>
                     {

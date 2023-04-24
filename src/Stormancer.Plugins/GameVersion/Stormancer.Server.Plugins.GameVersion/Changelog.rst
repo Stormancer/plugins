@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+2.2.0.1
+-------
 Changed
 *******
 - Do not control the version on services clients.

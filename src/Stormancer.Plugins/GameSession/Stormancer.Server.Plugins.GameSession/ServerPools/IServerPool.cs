@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using MsgPack.Serialization;
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Users;
 using System;
@@ -40,10 +41,11 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         public GameServerInstance GameServer { get; internal set; }
         public DateTime CreatedOn { get; internal set; }
         public IScenePeerClient Peer { get; internal set; }
-        public TaskCompletionSource<GameServerStartupParameters> RunTcs { get; internal set; }
+      
         public object? Context { get; internal set; }
         public GameSessionConfiguration GameSessionConfiguration { get; internal set; }
         public TaskCompletionSource<WaitGameServerResult> RequestCompletedCompletionSource { get; internal set; }
+        public GameServerRecord Record { get; internal set; }
 
         public void Dispose()
         {
@@ -58,7 +60,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         /// <summary>
         /// Gets or sets the session id of the gameServer
         /// </summary>
+        [MessagePackMember(0)]
         public SessionId GameServerSessionId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Id of the gameserver
+        /// </summary>
+        [MessagePackMember(1)]
+        public GameServerId GameServerId { get; set; } = default!;
     }
 
     public class WaitGameServerResult
@@ -68,6 +77,24 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
       
         public GameServer? Value { get; set; }
+    }
+
+    /// <summary>
+    /// Id of gameservers in the system.
+    /// </summary>
+    public class GameServerId
+    {
+        /// <summary>
+        /// Id of the pool containing the gameserver
+        /// </summary>
+        [MessagePackMember(0)]
+        public string PoolId { get; set; } = default!;
+
+        /// <summary>
+        /// Id of the gameserver in the pool
+        /// </summary>
+        [MessagePackMember(1)]
+        public string Id { get; set; } = default!;
     }
     
     public interface IServerPool: IDisposable
@@ -80,7 +107,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         /// <param name="gameSessionId"></param>
         /// <param name="gameSessionConfig"></param>
         /// <returns></returns>
-        Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gameSessionConfig, CancellationToken cancellationToken);
+        Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gameSessionConfig,GameServerRecord record, CancellationToken cancellationToken);
 
         void UpdateConfiguration(JObject config);
 
@@ -95,7 +122,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         bool CanManage(Session session, IScenePeerClient peer);
         Task<GameServerStartupParameters?> WaitGameSessionAsync(Session session, IScenePeerClient client, CancellationToken cancellationToken);
-        Task OnGameServerDisconnected(string serverId);
+        Task OnGameServerDisconnected(string serverId, GameServerRecord gameServerRecord);
         Task CloseServer(string serverId);
     }
 }
