@@ -8,6 +8,9 @@
     <ClCompile Include="TestDisableGameSessionDirectConnection.cpp" />
     <ClCompile Include="TestBrowseParties.cpp" />
     <ClCompile Include="TestTunnel.cpp" />
+    <ClCompile Include="TestFriendsBlock.cpp">
+      <Filter>Friends</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />

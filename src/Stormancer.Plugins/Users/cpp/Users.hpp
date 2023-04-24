@@ -565,7 +565,7 @@ namespace Stormancer
 					.then([serviceType, serviceName, ct, logger](std::shared_ptr<Scene> authScene)
 				{
 					auto rpcService = authScene->dependencyResolver().resolve<RpcService>();
-					logger->log(LogLevel::Info, "authentication", "Getting token for " + serviceType + " and name  " + serviceName);
+					logger->log(LogLevel::Info, "authentication", "Getting token for service type '" + serviceType + "' and name '" + serviceName + "'");
 
 					return rpcService->rpc<std::string>("Locator.GetSceneConnectionToken", ct, serviceType, serviceName)
 						.then([logger, serviceType, serviceName](pplx::task<std::string> t)
@@ -573,12 +573,12 @@ namespace Stormancer
 						try
 						{
 							auto token = t.get();
-							logger->log(LogLevel::Info, "authentication", "Got token for " + serviceType + " and name  " + serviceName);
+							logger->log(LogLevel::Info, "authentication", "Got token for service type '" + serviceType + "' and name '" + serviceName + "'");
 							return token;
 						}
 						catch (std::exception& ex)
 						{
-							logger->log(LogLevel::Error, "authentication", "Failed getting token for " + serviceType + " and name  " + serviceName, ex.what());
+							logger->log(LogLevel::Error, "authentication", "Failed getting token for service type '" + serviceType + "' and name '" + serviceName + "'", ex.what());
 							throw;
 						}
 					});
@@ -654,7 +654,7 @@ namespace Stormancer
 
 						if (that)
 						{
-							that->_logger->log(LogLevel::Info, "authentication", "Retrieved scene connection token for service type " + serviceType + " and name  " + serviceName);
+							that->_logger->log(LogLevel::Info, "authentication", "Retrieved scene connection token for service type '" + serviceType + "' and name '" + serviceName + "'");
 
 							if (auto client = that->_wClient.lock())
 							{
@@ -668,7 +668,7 @@ namespace Stormancer
 					{
 						if (auto that = wThat.lock())
 						{
-							that->_logger->log(LogLevel::Error, "authentication", "Failed to get scene connection token for service type " + serviceType + " and name " + serviceName, ex.what());
+							that->_logger->log(LogLevel::Error, "authentication", "Failed to get scene connection token for service type '" + serviceType + "' and name '" + serviceName + "'", ex.what());
 						}
 						throw;
 					}

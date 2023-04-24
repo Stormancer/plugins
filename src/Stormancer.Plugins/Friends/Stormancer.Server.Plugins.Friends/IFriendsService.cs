@@ -19,6 +19,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
 using Stormancer.Server.Plugins.Users;
 using System.Collections.Generic;
 using System.Threading;
@@ -55,5 +56,15 @@ namespace Stormancer.Server.Plugins.Friends
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         Task<IEnumerable<Friend>> GetFriends(string userId, CancellationToken cancellationToken);
+
+        Task<MemberDto?> GetRelationship(string userId, string targetUserId, CancellationToken cancellationToken);
+
+        Task Block(string userId, string userIdToBlock, CancellationToken cancellationToken);
+
+        Task Unblock(string userId, string userIdToUnblock, CancellationToken cancellationToken);
+
+        Task<Dictionary<string, IEnumerable<string>>> GetBlockedLists(IEnumerable<string> userIds, CancellationToken cancellationToken);
+
+        Task<IEnumerable<string>> GetBlockedList(string userId, CancellationToken cancellationToken);
     }
 }
