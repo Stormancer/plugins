@@ -48,6 +48,7 @@ using Stormancer.Server.Plugins.Models;
 using System.Diagnostics.CodeAnalysis;
 using Stormancer.Server.Plugins.GameSession.ServerPool;
 using MsgPack.Serialization;
+using System.Reactive.Subjects;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
@@ -991,15 +992,21 @@ namespace Stormancer.Server.Plugins.GameSession
                     client.GameCompleteTcs?.TrySetResult(ctx.ResultsWriter);
                 }
 
-                await Task.Delay(5000);
+               async Task DelayAndComplete()
+                {
+                    await Task.Delay(5000);
 
-                // Update : Do not disconnect players to allow them to restart a game.
-                // By uncommenting the next line, you can encounter RPC failures if EvaluateGameComplete was called from an RPC called by the client (for example postResults).
-                //await Task.WhenAll(_scene.RemotePeers.Select(user => user.Disconnect("gamesession.completed")));
+                    // Update : Do not disconnect players to allow them to restart a game.
+                    // By uncommenting the next line, you can encounter RPC failures if EvaluateGameComplete was called from an RPC called by the client (for example postResults).
+                    //await Task.WhenAll(_scene.RemotePeers.Select(user => user.Disconnect("gamesession.completed")));
 
-                RaiseGameCompleted();
+                    RaiseGameCompleted();
 
-                await _scene.KeepAlive(TimeSpan.Zero);
+                    await _scene.KeepAlive(TimeSpan.Zero);
+                };
+
+                _ = DelayAndComplete();
+
             }
 
             bool shouldRunHandlers = false;

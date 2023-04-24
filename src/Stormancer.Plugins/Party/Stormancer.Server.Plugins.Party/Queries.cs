@@ -84,6 +84,7 @@ namespace Stormancer.Server.Plugins.Party
             {
                 lock (syncRoot)
                 {
+                    
                     if (_data.TryGetValue(id, out var doc))
                     {
                         yield return new Document<JObject>(id, JObject.FromObject(new { customData = doc.Item2, indexedData = doc.Item1 }));
@@ -130,14 +131,18 @@ namespace Stormancer.Server.Plugins.Party
 
         public void DeleteDocument(string id)
         {
+            var mustRemove = false;
             lock (syncRoot)
             {
-                if (_data.Remove(id))
-                {
-                    lucene.DeleteDocument(PARTY_LUCENE_INDEX, id);
-
-                }
+                mustRemove = _data.Remove(id);
+                
             }
+            if(mustRemove)
+            {
+                lucene.DeleteDocument(PARTY_LUCENE_INDEX, id);
+            }
+          
+
         }
     }
 }
