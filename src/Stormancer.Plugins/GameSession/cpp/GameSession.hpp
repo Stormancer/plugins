@@ -798,35 +798,35 @@ namespace Stormancer
 											}
 										});
 							})
-						.then([wThat, logger = _logger](pplx::task<GameSessionConnectionParameters> task)
+						.then([wThat, logger = _logger,dispatcher](pplx::task<GameSessionConnectionParameters> task)
+						{
+							try
 							{
-								try
+								task.get();
+							}
+							catch (...)
+							{
+								if (auto that = wThat.lock())
 								{
-									task.get();
-								}
-								catch (...)
-								{
-									if (auto that = wThat.lock())
-									{
-										std::exception_ptr ptrEx = std::current_exception();
-										return that->disconnectFromGameSession()
-											.then([ptrEx, logger](pplx::task<void> task) -> GameSessionConnectionParameters
-												{
-													try
-													{
-														task.get();
-													}
-													catch (const std::exception& ex)
-													{
-														logger->log(LogLevel::Warn, "GameSessionConnection", "Cannot disconnect from game session after connection timeout or cancel.", ex.what());
-													}
+									std::exception_ptr ptrEx = std::current_exception();
+									return that->disconnectFromGameSession()
+										.then([ptrEx, logger](pplx::task<void> task) -> GameSessionConnectionParameters
+										{
+											try
+											{
+												task.get();
+											}
+											catch (const std::exception& ex)
+											{
+												logger->log(LogLevel::Warn, "GameSessionConnection", "Cannot disconnect from game session after connection timeout or cancel.", ex.what());
+											}
 
-													std::rethrow_exception(ptrEx);
-												});
-									}
+											std::rethrow_exception(ptrEx);
+										},dispatcher);
 								}
-								return task;
-							}, dispatcher);
+							}
+							return task;
+						}, dispatcher);
 				}
 
 				pplx::task<std::shared_ptr<Stormancer::IP2PScenePeer>> connectP2P(Stormancer::SessionId target, pplx::cancellation_token ct) override
