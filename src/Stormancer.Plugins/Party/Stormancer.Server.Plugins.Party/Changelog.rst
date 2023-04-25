@@ -16,6 +16,7 @@ Fixed
 - Send back errors to  client when an operation fails.
 - Fix typo that could prevent steam users from joining parties.
 - Always remove party from index on shutdown.
+- Also consider the players whose connection is currently being validated when checking for max member count.
 
 5.0.0.2
 -------

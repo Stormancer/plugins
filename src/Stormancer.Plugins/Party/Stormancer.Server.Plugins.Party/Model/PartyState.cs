@@ -75,6 +75,11 @@ namespace Stormancer.Server.Plugins.Party.Model
         public ConcurrentDictionary<SessionId, PartyMember> PartyMembers { get; } = new ConcurrentDictionary<SessionId, PartyMember>();
 
         /// <summary>
+        /// Number of members, including those who are currently being accepted.
+        /// </summary>
+        public int MemberCount => PartyMembers.Count+PendingAcceptedPeers.Count;
+
+        /// <summary>
         /// This queue is used to synchronize operations on the party state.
         /// </summary>
         /// <remarks>
@@ -113,6 +118,7 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// </remarks>
         public Dictionary<string, ConcurrentDictionary<string, Invitation>> PendingInvitations { get; } = new Dictionary<string, ConcurrentDictionary<string, Invitation>>();
 
+      
         /// <summary>
         /// Indexed json document used to search for the party.
         /// </summary>
