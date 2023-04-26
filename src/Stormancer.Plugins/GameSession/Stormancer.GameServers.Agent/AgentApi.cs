@@ -6,16 +6,16 @@ using Stormancer.Core;
 
 namespace Stormancer.GameServers.Agent
 {
-    internal class AgentApi
+    internal class AgentApi 
     {
         private readonly Client _client;
-        private readonly UserApi userApi;
+        private readonly UserApi _userApi;
         private readonly Stormancer.Diagnostics.ILogger _logger;
 
         public AgentApi(Client client, UserApi userApi, Stormancer.Diagnostics.ILogger logger)
         {
             _client = client;
-            this.userApi = userApi;
+            this._userApi = userApi;
             this._logger = logger;
         }
 
@@ -28,9 +28,12 @@ namespace Stormancer.GameServers.Agent
 
             AgentGuid = id;
             ApplicationConfiguration = applicationConfiguration;
-            await userApi.Login();
-            var scene = await userApi.GetSceneForService("stormancer.plugins.serverPool");
+            _userApi.OnGameConnectionStateChanged += OnConnectionStateChanged;
 
+
+            await _userApi.Login();
+
+           
 
             _logger.Log(Diagnostics.LogLevel.Info, "agent", "Docker daemon found.");
 
@@ -38,5 +41,20 @@ namespace Stormancer.GameServers.Agent
         public IScene ServerPoolsScene { get; internal set; }
         public int AgentGuid { get; private set; }
         public ApplicationConfigurationOptions ApplicationConfiguration { get; private set; }
+
+        public void OnConnectionStateChanged(GameConnectionStateCtx ctx)
+        {
+            if(ctx.State == GameConnectionState.Authenticated)
+            {
+                _ = ConnectScene();
+            }
+
+        }
+
+        private async Task ConnectScene()
+        {
+            var scene = await _userApi.GetSceneForService("stormancer.plugins.serverPool");
+
+        }
     }
 }

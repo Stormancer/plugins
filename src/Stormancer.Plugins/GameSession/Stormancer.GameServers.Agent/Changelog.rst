@@ -16,6 +16,7 @@ Changed
 - Add support for multiple apps to agents.
 - GetStatus now reports the reserved resources on the node.
 - Support more than 8Gb of total reservable memory.
+- Add code to also reconnect to the serverpools scene on server reconnect.
 
 0.2.0
 -----
