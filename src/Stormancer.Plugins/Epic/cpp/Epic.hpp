@@ -584,15 +584,11 @@ namespace Stormancer
 
 				pplx::task<Party::PartyId> accept(std::shared_ptr<Party::PartyApi> partyApi) override
 				{
-					return partyApi->joinPartyBySceneId(_partySceneId, {})
-						.then([partySceneId = _partySceneId]()
-					{
-						Party::PartyId partyId;
-						partyId.platform = "epic";
-						partyId.type = Party::PartyId::TYPE_SCENE_ID;
-						partyId.id = partySceneId;
-						return partyId;
-					});
+					Party::PartyId partyId;
+					partyId.platform = "epic";
+					partyId.type = Party::PartyId::TYPE_SCENE_ID;
+					partyId.id = _partySceneId;
+					return pplx::task_from_result(partyId);
 				}
 
 				pplx::task<void> decline(std::shared_ptr<Party::PartyApi>) override
