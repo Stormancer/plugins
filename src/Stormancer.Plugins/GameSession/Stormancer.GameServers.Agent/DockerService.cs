@@ -104,13 +104,20 @@ namespace Stormancer.GameServers.Agent
             {
                 if (container.Labels.TryGetValue("stormancer.agent", out var agentId) && AgentId == agentId)
                 {
-                    if (container.State != "exited")
+                    try
                     {
-                        await _docker.Containers.KillContainerAsync(container.ID, new ContainerKillParameters { Signal = "SIGKILL" });
+                        if (container.State == "running ")
+                        {
+                            await _docker.Containers.KillContainerAsync(container.ID, new ContainerKillParameters { Signal = "SIGKILL" });
+                        }
+                        else
+                        {
+                            await _docker.Containers.RemoveContainerAsync(container.ID, new ContainerRemoveParameters());
+                        }
                     }
-                    else
+                    catch(Exception ex)
                     {
-                        await _docker.Containers.RemoveContainerAsync(container.ID, new ContainerRemoveParameters());
+                        _logger.Log(LogLevel.Error, "An error occurred while trying to destroy container '{containerId}' state={state}, ex={ex}",container.ID, container.State, ex);
                     }
                 }
             }
