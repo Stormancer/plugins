@@ -137,9 +137,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         }
 
         [S2SApi]
-        public Task<GameServer> WaitGameServer(string poolId, string gameSessionId, GameSessionConfiguration config, CancellationToken cancellationToken)
+        public Task<GameServer?> TryStartGameServer(string poolId, string gameSessionId, GameSessionConfiguration config, CancellationToken cancellationToken)
         {
-            return pools.WaitGameServer(poolId, gameSessionId, config, cancellationToken);
+            return pools.TryStartGameServer(poolId, gameSessionId, config, cancellationToken);
 
         }
 

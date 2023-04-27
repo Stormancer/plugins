@@ -219,7 +219,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         {
             ApplySettings();
         }
-        public async Task<GameServer> WaitGameServer(string poolId, string gameSessionId, GameSessionConfiguration config, CancellationToken cancellationToken)
+        public async Task<GameServer?> TryStartGameServer(string poolId, string gameSessionId, GameSessionConfiguration config, CancellationToken cancellationToken)
         {
             if (TryGetPool(poolId, out var pool))
             {
@@ -229,6 +229,8 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
                 var client =await _eSClientFactory.CreateClient<GameServerRecord>("gameservers");
 
+                record.ServerFound = result.Success;
+              
                 await client.IndexAsync(record,desc=>desc.Id(record.Id));
                 if (result.Success)
                 {

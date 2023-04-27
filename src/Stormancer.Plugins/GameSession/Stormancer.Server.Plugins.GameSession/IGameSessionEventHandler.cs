@@ -270,7 +270,7 @@ namespace Stormancer.Server.Plugins.GameSession
     /// </summary>
     public class ServerReadyContext
     {
-        internal ServerReadyContext(IScenePeerClient peer, GameServer gameServer)
+        internal ServerReadyContext(IScenePeerClient peer, GameServer? gameServer)
         {
             Peer = peer;
             GameServer = gameServer;
@@ -284,7 +284,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <summary>
         /// Gets details about the server.
         /// </summary>
-        public GameServer GameServer { get; }
+        public GameServer? GameServer { get; }
     }
     /// <summary>
     /// Context passed to a <see cref="IGameSessionEventHandler.GameSessionCompleted(GameSessionCompleteCtx)"/> event.

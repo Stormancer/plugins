@@ -242,9 +242,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                     _readyServers.TryRemove(gameSessionId, out _);
                     _runningServers.TryRemove(gameSessionId, out _);
                 };
+                return await tcs.Task;
+            }
+            else
+            {
+                return new WaitGameServerResult { Success = false };
             }
 
-            return await tcs.Task;
+          
         }
 
         public void UpdateConfiguration(JObject config)

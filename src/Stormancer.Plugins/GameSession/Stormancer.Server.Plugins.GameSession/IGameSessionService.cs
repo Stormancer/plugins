@@ -88,7 +88,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Tries to start the gamesession.
         /// </summary>
         /// <returns></returns>
-        Task TryStart();
+        Task<bool> TryStart();
 
         /// <summary>
         /// Sets a peer as ready in the gamesession.

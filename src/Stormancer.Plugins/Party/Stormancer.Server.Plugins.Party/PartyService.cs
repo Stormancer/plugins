@@ -212,7 +212,7 @@ namespace Stormancer.Server.Plugins.Party
                 }
                 var userData = peer.ContentType == "party/userdata" ? peer.UserData : new byte[0];
                 var ctx = new JoiningPartyContext(this, session, _partyState.PendingAcceptedPeers.Count + _partyState.PartyMembers.Count, userData);
-                await handlers.RunEventHandler(h => h.OnJoining(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnJoining", ex));
+                await handlers.RunEventHandler(h => h.OnJoining(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while running OnJoining", ex));
                 if (!ctx.Accept)
                 {
                     Log(LogLevel.Trace, "OnConnecting", "Join denied by event handler", peer.SessionId, session.User?.Id);

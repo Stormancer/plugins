@@ -19,6 +19,8 @@ Changed
 - Don't send Teams infos to analytics
 - Add gamefinder and Parameters to analytics
 - Added the affected Players to the ReservationCancelledContext instead of only their user id.
+- P2P is now the default mode if a gameserver couldn't be located.
+
 Fixed
 *****
 - Don't wait 5s before returning PostResults response for the last player in the session.

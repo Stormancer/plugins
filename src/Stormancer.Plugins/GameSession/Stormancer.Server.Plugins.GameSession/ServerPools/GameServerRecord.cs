@@ -19,5 +19,6 @@ namespace Stormancer.Server.Plugins.GameSession
         public DateTime ClosedOn { get; set; }
         public string PoolType { get; set; }
         public int RunTimeInSeconds { get; set; }
+        public bool ServerFound { get; set; }
     }
 }
