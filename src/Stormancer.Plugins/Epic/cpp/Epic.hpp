@@ -233,7 +233,8 @@ namespace Stormancer
 					_productVersion = config->additionalParameters.find(ConfigurationKeys::ProductVersion) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ProductVersion) : "";
 					_diagnostics = config->additionalParameters.find(ConfigurationKeys::Diagnostics) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::Diagnostics) != "false" : false;
 
-					if (_loginMode.empty() && _exchangeCode.empty() && config->processLaunchArguments.size() > 1)
+					// /!\ This code will override the `LoginMode` to `ExchangeCode` if an exchange code is found in the `processLaunchArguments`.
+					if (_exchangeCode.empty() && config->processLaunchArguments.size() > 1)
 					{
 						bool authTypeExchangecode = false;
 						bool exchangeCodeRetrieved = false;
