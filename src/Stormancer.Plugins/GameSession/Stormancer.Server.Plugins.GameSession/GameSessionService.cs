@@ -345,6 +345,8 @@ namespace Stormancer.Server.Plugins.GameSession
                 if (currentClient.Status < PlayerStatus.Ready)
                 {
                     currentClient.Status = PlayerStatus.Ready;
+
+
                     var ctx = new ClientReadyContext(peer);
 
                     await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
@@ -523,14 +525,18 @@ namespace Stormancer.Server.Plugins.GameSession
                 await _scene.Send(new MatchArrayFilter(_scene.RemotePeers.Where(p => p.SessionId != sessionId)), "player.update", s => _serializer.Serialize(playerUpdate, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
             }
 
-            var serverCtx = new ServerReadyContext(peer, _server);
-
-            await using (var serverReadyscope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+            if (_server != null)
             {
-                await serverReadyscope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.OnServerReady(serverCtx), ex =>
+                var serverCtx = new ServerReadyContext(peer, _server);
+
+
+                await using (var serverReadyscope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
                 {
-                    _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running gameSession.OnServerReady event handlers", ex);
-                });
+                    await serverReadyscope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.OnServerReady(serverCtx), ex =>
+                    {
+                        _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running gameSession.OnServerReady event handlers", ex);
+                    });
+                }
             }
 
         }
