@@ -354,6 +354,7 @@ namespace Stormancer.Server.Plugins.Party
                     if (_partyState.PartyMembers.IsEmpty)
                     {
                         partyDocumentsStore.DeleteDocument(_partyState.Settings.PartyId);
+                        CancelInvitationCode();
                         _ = _scene.KeepAlive(TimeSpan.Zero);
                     }
                 }

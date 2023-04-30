@@ -179,7 +179,10 @@ namespace Stormancer.Server.Plugins.Party
             ctx.SceneShuttingDown += (ISceneHost scene) =>
               {
                   var state = scene.DependencyResolver.Resolve<PartyState>();
-                  scene.DependencyResolver.Resolve<PartyLuceneDocumentStore>().DeleteDocument(state.Settings.PartyId);
+                  if (state.Settings != null)
+                  {
+                      scene.DependencyResolver.Resolve<PartyLuceneDocumentStore>().DeleteDocument(state.Settings.PartyId);
+                  }
                   scene.DependencyResolver.Resolve<InvitationCodeService>().CancelCode(scene);
               };
             ctx.SceneCreated += (ISceneHost scene) =>

@@ -523,6 +523,16 @@ namespace Stormancer.Server.Plugins.GameSession
                 await _scene.Send(new MatchArrayFilter(_scene.RemotePeers.Where(p => p.SessionId != sessionId)), "player.update", s => _serializer.Serialize(playerUpdate, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
             }
 
+            var serverCtx = new ServerReadyContext(peer, _server);
+
+            await using (var serverReadyscope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+            {
+                await serverReadyscope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.OnServerReady(serverCtx), ex =>
+                {
+                    _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running gameSession.OnServerReady event handlers", ex);
+                });
+            }
+
         }
 
         public bool IsDedicatedServer(Session session)
@@ -572,7 +582,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             var serverFound = await TryStart();
 
-
+         
 
             var userId = client.Key;
 
@@ -585,7 +595,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             // If the host is not defined a P2P was sent with "" to notify client is host.
             _logger.Log(LogLevel.Trace, "gamesession", $"Gamesession {_scene.Id} evaluating {userId} as host (expected host :{_config.HostUserId})", new { });
-            if (string.IsNullOrEmpty(_config.HostUserId) || _config.HostUserId == userId)
+            if (!serverFound && (string.IsNullOrEmpty(_config.HostUserId) || _config.HostUserId == userId))
             {
                 _config.HostUserId = userId;
                 if (GetServerTcs().TrySetResult(peer))
@@ -754,21 +764,9 @@ namespace Stormancer.Server.Plugins.GameSession
                     }
                 }
             }
-            using var cts = new CancellationTokenSource(state.GameServerStartTimeout());
-            var peer = await GetServerTcs().Task.WaitAsync(cts.Token);
+            
 
-
-
-
-            var serverCtx = new ServerReadyContext(peer, _server);
-
-            await using (var serverReadyscope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
-            {
-                await serverReadyscope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.OnServerReady(serverCtx), ex =>
-                {
-                    _logger.Log(LogLevel.Error, "gameSession", "An error occured while running gameSession.OnServertReady event handlers", ex);
-                });
-            }
+          
 
             return _server != null;
         }
