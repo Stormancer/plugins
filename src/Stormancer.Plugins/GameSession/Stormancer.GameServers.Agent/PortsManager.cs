@@ -23,7 +23,7 @@ namespace Stormancer.GameServers.Agent
         {
             lock (_syncRoot)
             {
-                for (ushort port = _options.MinPort; port <= _options.MaxPort; port++)
+                for (ushort port = (ushort)_options.MinPort; port <= _options.MaxPort; port++)
                 {
                     if (!_acquiredPorts.Contains(port))
                     {
