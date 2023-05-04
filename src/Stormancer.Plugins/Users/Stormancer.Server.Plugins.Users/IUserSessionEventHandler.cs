@@ -21,6 +21,8 @@
 // SOFTWARE.
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
@@ -56,9 +58,10 @@ namespace Stormancer.Server.Plugins.Users
     /// </summary>
     public class KickContext
     {
-        internal KickContext(IScenePeerClient peer, string query)
+        internal KickContext(IScenePeerClient peer, Session? session,IEnumerable<string> query)
         {
             Peer = peer;
+            Session = session;
             Query = query;
         }
 
@@ -68,9 +71,14 @@ namespace Stormancer.Server.Plugins.Users
         public IScenePeerClient Peer { get; }
 
         /// <summary>
+        /// Session of the player examined.
+        /// </summary>
+        public Session? Session { get; }
+
+        /// <summary>
         /// Kick query.
         /// </summary>
-        public string Query { get; }
+        public IEnumerable<string> Query { get; }
 
         /// <summary>
         /// A boolean indicating whether the peer should be kicked.

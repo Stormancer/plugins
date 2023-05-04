@@ -139,16 +139,21 @@ namespace Stormancer.Server.Plugins.Users
         /// <summary>
         /// kicks a player from the server.
         /// </summary>
-        /// <param name="id">Id of the user to kick.</param>
         /// <param name="args">Kick options.</param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpPost]
-        [Route("{userId}/_kick")]
-        public async Task Kick(string id, [FromBody] KickArguments args, CancellationToken cancellationToken)
+        [Route("_kick")]
+        public async Task<ActionResult> Kick([FromBody] KickArguments args, CancellationToken cancellationToken)
         {
+            if(args.reason == null)
+            {
+                return BadRequest("'reason' cannot be null.");
+            }
             await using var scope = scene.CreateRequestScope();
-            await scope.Resolve<IUserSessions>().KickUser(id, args.reason ?? "adminRequest", cancellationToken);
+            await scope.Resolve<IUserSessions>().KickUser(args.Ids, args.reason, cancellationToken);
+
+            return Ok();
         }
 
 
@@ -160,12 +165,17 @@ namespace Stormancer.Server.Plugins.Users
     public class KickArguments
     {
         /// <summary>
+        /// Ids of the users to kick. '*' to kick all players.
+        /// </summary>
+        public IEnumerable<string> Ids { get; set; } = Enumerable.Empty<string>();
+
+        /// <summary>
         /// Reason the player was kick out of the server.
         /// </summary>
         /// <remarks>
         /// *the reason is sent to the client.
         /// </remarks>
-        public string? reason { get; set; }
+        public string reason { get; set; } = "adminRequest";
     }
 
 

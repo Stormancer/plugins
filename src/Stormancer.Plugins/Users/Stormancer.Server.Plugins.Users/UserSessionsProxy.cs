@@ -151,9 +151,9 @@ namespace Stormancer.Server.Plugins.Users
             return proxy.IsAuthenticated(peer.SessionId, cancellationToken);
         }
 
-        public Task KickUser(string userId, string reason, CancellationToken cancellationToken)
+        public Task KickUser(IEnumerable<string> userIds, string reason, CancellationToken cancellationToken)
         {
-            return proxy.KickUser(userId, reason, cancellationToken);
+            return proxy.KickUser(userIds, reason, cancellationToken);
         }
 
         public Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string, string>> query, int take, int skip, CancellationToken cancellationToken)

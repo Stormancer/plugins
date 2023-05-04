@@ -464,11 +464,7 @@ namespace Stormancer.Server.Plugins.Users
             {
                 return false;
             }
-
-
         }
-
-
 
         public async Task Login(IScenePeerClient peer, User? user, PlatformId onlineId, Dictionary<string, byte[]> sessionData)
         {
@@ -560,6 +556,11 @@ namespace Stormancer.Server.Plugins.Users
         }
         public Task<Session?> GetSession(string userId, CancellationToken cancellationToken)
         {
+            return Task.FromResult(GetSessionImpl(userId));
+        }
+
+        private Session? GetSessionImpl(string userId)
+        {
             var result = repository.Filter(JObject.FromObject(new
             {
                 match = new
@@ -572,11 +573,11 @@ namespace Stormancer.Server.Plugins.Users
             if (result.Total > 0)
             {
 
-                return Task.FromResult(result.Hits.First().Source?.CreateView());
+                return result.Hits.First().Source?.CreateView();
             }
             else
             {
-                return Task.FromResult(default(Session));
+                return default;
             }
         }
 
@@ -604,13 +605,23 @@ namespace Stormancer.Server.Plugins.Users
 
         public Task<SessionRecord?> GetSessionRecordById(SessionId sessionId)
         {
-            return Task.FromResult(repository.GetSession(sessionId)?.Source);
+            return Task.FromResult(GetSessionRecordByIdImpl(sessionId));
         }
 
-        public async Task<Session?> GetSessionById(SessionId sessionId, CancellationToken cancellationToken)
+        private SessionRecord? GetSessionRecordByIdImpl(SessionId sessionId)
         {
-            var session = await GetSessionRecordById(sessionId);
-            return session?.CreateView();
+            return repository.GetSession(sessionId)?.Source;
+        }
+
+        public Task<Session?> GetSessionById(SessionId sessionId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(GetSessionRecordByIdImpl(sessionId)?.CreateView());
+           
+        }
+
+        private Session? GetSessionByIdImpl(SessionId sessionId)
+        {
+            return GetSessionRecordByIdImpl(sessionId)?.CreateView();
         }
 
         public Task<Session?> GetSessionByUserId(string userId, CancellationToken cancellationToken)
@@ -1061,14 +1072,14 @@ namespace Stormancer.Server.Plugins.Users
 
         }
 
-        public async Task KickUser(string userId, string reason, CancellationToken cancellationToken)
+        public async Task KickUser(IEnumerable<string> userIds, string reason, CancellationToken cancellationToken)
         {
-            if (userId == "*")
+            if (userIds.Contains("*"))
             {
                 await Task.WhenAll(_scene.RemotePeers.Select(async p =>
                 {
-                    var ctx = new KickContext(p, userId);
-                    await _eventHandlers().RunEventHandler(h => h.OnKicking(ctx), ex => logger.Log(LogLevel.Error, "userSessions", "An error occured while running onKick event.", new { }));
+                    var ctx = new KickContext(p, GetSessionByIdImpl(p.SessionId),userIds);
+                    await _eventHandlers().RunEventHandler(h => h.OnKicking(ctx), ex => logger.Log(LogLevel.Error, "userSessions", "An error occurred while running onKick event.", new { }));
 
                     if (ctx.Kick)
                     {
@@ -1076,14 +1087,14 @@ namespace Stormancer.Server.Plugins.Users
                     }
                 }));
             }
-            else if (userId == "*/authenticated")
+            else if (userIds.Contains( "*/authenticated"))
             {
                 await Task.WhenAll(_scene.RemotePeers.Select(async p =>
                 {
                     if (GetSession(p, cancellationToken) != null)
                     {
-                        var ctx = new KickContext(p, userId);
-                        await _eventHandlers().RunEventHandler(h => h.OnKicking(ctx), ex => logger.Log(LogLevel.Error, "userSessions", "An error occured while running onKick event.", new { }));
+                        var ctx = new KickContext(p, GetSessionByIdImpl(p.SessionId), userIds);
+                        await _eventHandlers().RunEventHandler(h => h.OnKicking(ctx), ex => logger.Log(LogLevel.Error, "userSessions", "An error occurred while running onKick event.", new { }));
 
                         if (ctx.Kick)
                         {
@@ -1092,14 +1103,14 @@ namespace Stormancer.Server.Plugins.Users
                     }
                 }));
             }
-            else if (userId == "*/!authenticated")
+            else if (userIds.Contains("*/!authenticated"))
             {
                 await Task.WhenAll(_scene.RemotePeers.Select(async p =>
                 {
                     if (GetSession(p, cancellationToken) != null)
                     {
-                        var ctx = new KickContext(p, userId);
-                        await _eventHandlers().RunEventHandler(h => h.OnKicking(ctx), ex => logger.Log(LogLevel.Error, "userSessions", "An error occured while running onKick event.", new { }));
+                        var ctx = new KickContext(p, GetSessionByIdImpl(p.SessionId), userIds);
+                        await _eventHandlers().RunEventHandler(h => h.OnKicking(ctx), ex => logger.Log(LogLevel.Error, "userSessions", "An error occurred while running onKick event.", new { }));
 
                         if (ctx.Kick)
                         {
@@ -1110,11 +1121,21 @@ namespace Stormancer.Server.Plugins.Users
             }
             else
             {
-                var peer = await GetPeer(userId, cancellationToken);
-                if (peer != null)
+                foreach (var userId in userIds)
                 {
-                    await peer.DisconnectFromServer(reason);
+                    var p = await GetPeer(userId, cancellationToken);
+                    if (GetSession(p, cancellationToken) != null)
+                    {
+                        var ctx = new KickContext(p, GetSessionByIdImpl(p.SessionId), userIds);
+                        await _eventHandlers().RunEventHandler(h => h.OnKicking(ctx), ex => logger.Log(LogLevel.Error, "userSessions", "An error occurred while running onKick event.", new { }));
+
+                        if (ctx.Kick)
+                        {
+                            await p.DisconnectFromServer(reason);
+                        }
+                    }
                 }
+            
             }
         }
 

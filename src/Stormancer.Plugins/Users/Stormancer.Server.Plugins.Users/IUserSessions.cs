@@ -314,11 +314,11 @@ namespace Stormancer.Server.Plugins.Users
         /// <summary>
         /// Kicks an user from the server.
         /// </summary>
-        /// <param name="userId"></param>
+        /// <param name="userIds"></param>
         /// <param name="reason"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task KickUser(string userId, string reason, CancellationToken cancellationToken);
+        Task KickUser(IEnumerable<string> userIds, string reason, CancellationToken cancellationToken);
     }
 
 
