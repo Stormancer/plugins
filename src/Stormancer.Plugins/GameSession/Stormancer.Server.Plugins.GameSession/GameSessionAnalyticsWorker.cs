@@ -20,23 +20,24 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         /// <param name="count"></param>
         /// <param name="dimensions"></param>
-        public GameSessionsStatistics(Dictionary<string, string> dimensions, int count)
+        public GameSessionsStatistics(IReadOnlyDictionary<string, string> dimensions, int count)
         {
             Count = count;
+            Dimensions = dimensions;
         }
 
         /// <summary>
         /// Number of game sessions matching the criteria.
         /// </summary>
         public int Count { get; }
-        Dictionary<string, string> Terms = new Dictionary<string, string>();
+        IReadOnlyDictionary<string, string> Dimensions { get; }
     }
 
     internal class GameSessionAnalyticsWorker
     {
-        private class DimensionsComparer : IEqualityComparer<Dictionary<string, string>>
+        private class DimensionsComparer : IEqualityComparer<IReadOnlyDictionary<string, string>>
         {
-            public bool Equals(Dictionary<string, string>? x, Dictionary<string, string>? y)
+            public bool Equals(IReadOnlyDictionary<string, string>? x, IReadOnlyDictionary<string, string>? y)
             {
                 if (x == null)
                 {
@@ -79,7 +80,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             }
 
-            public int GetHashCode([DisallowNull] Dictionary<string, string> obj)
+            public int GetHashCode([DisallowNull] IReadOnlyDictionary<string, string> obj)
             {
                 var hashCode = new HashCode();
                 foreach (var (key, value) in obj)

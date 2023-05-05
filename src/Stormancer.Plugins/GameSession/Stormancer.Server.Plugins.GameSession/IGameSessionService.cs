@@ -176,6 +176,13 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <summary>
         /// Dimensions used to group game sessions for analytics purpose.
         /// </summary>
-        public Dictionary<string,string> Dimensions { get; }
+        public IReadOnlyDictionary<string,string> Dimensions { get; }
+
+        /// <summary>
+        /// Sets the value of a dimension.
+        /// </summary>
+        /// <param name="dimension"></param>
+        /// <param name="value"></param>
+        public void SetDimension(string dimension, string value);
     }
 }

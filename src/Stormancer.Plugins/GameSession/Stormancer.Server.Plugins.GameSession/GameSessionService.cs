@@ -50,6 +50,7 @@ using Stormancer.Server.Plugins.GameSession.ServerPool;
 using MsgPack.Serialization;
 using System.Reactive.Subjects;
 using Docker.DotNet.Models;
+using System.Collections.Immutable;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
@@ -255,7 +256,7 @@ namespace Stormancer.Server.Plugins.GameSession
             _repository = repository;
             _serializer = serializer;
 
-            Dimensions["template"] = _scene.Template;
+            
             ApplySettings();
            
             analyticsWorker.AddGameSession(this);
@@ -433,7 +434,7 @@ namespace Stormancer.Server.Plugins.GameSession
             if (metadata.gameSession != null)
             {
                 _config = ((JObject)metadata.gameSession).ToObject<GameSessionConfiguration>();
-                Dimensions["gamefinder"] = _config?.GameFinder ?? "";
+               
                 
             }
         }
@@ -701,7 +702,7 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(h => h.GameSessionStarting(ctx), ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing GameSessionStarting event", ex));
             }
-            _repository.AddGameSession(this);
+           
             _logger.Log(LogLevel.Info, "gamesession.startup", "Ran GameSessionStarting event handlers.", new { id = this.GameSessionId }, this.GameSessionId);
 
             _logger.Log(LogLevel.Info, "gamesession.startup", "Creating Gamesession server.", new { id = this.GameSessionId }, this.GameSessionId);
@@ -778,8 +779,14 @@ namespace Stormancer.Server.Plugins.GameSession
                 }
             }
 
-
-
+            if (poolId != null)
+            {
+                this.SetDimension("pool",poolId);
+            }
+            this.SetDimension("hostType",_server != null ? "server" : "client");
+            SetDimension("gamefinder",_config?.GameFinder ?? "");
+            SetDimension("template", _scene.Template);
+            _repository.AddGameSession(this);
 
             return _server != null;
         }
@@ -978,7 +985,26 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public DateTime CreatedOn { get; } = DateTime.UtcNow;
 
-        public Dictionary<string, string> Dimensions { get; } = new Dictionary<string, string>();
+        private object _syncRoot = new object();
+        private Dictionary<string, string> _dimensions = new Dictionary<string,string>();
+        public IReadOnlyDictionary<string, string> Dimensions
+        {
+            get
+            {
+                lock (_syncRoot)
+                {
+                    return _dimensions.ToImmutableDictionary();
+                }
+            }
+        }
+
+        public void SetDimension(string dimension, string value)
+        {
+            lock(_syncRoot)
+            {
+                _dimensions[dimension] = value;
+            }
+        }
 
         private bool _gameCompleteExecuted = false;
 
