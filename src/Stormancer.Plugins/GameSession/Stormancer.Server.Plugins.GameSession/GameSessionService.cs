@@ -206,7 +206,7 @@ namespace Stormancer.Server.Plugins.GameSession
         private readonly ISceneHost _scene;
         private readonly IEnvironment _environment;
         private readonly RpcService _rpc;
-
+        private readonly GameSessionsRepository _repository;
         private readonly ISerializer _serializer;
 
         private TimeSpan _gameSessionTimeout = TimeSpan.MaxValue;
@@ -240,6 +240,7 @@ namespace Stormancer.Server.Plugins.GameSession
             ManagementClientProvider management,
             ILogger logger,
             RpcService rpc,
+            GameSessionsRepository repository,
             ISerializer serializer)
         {
             _management = management;
@@ -251,15 +252,17 @@ namespace Stormancer.Server.Plugins.GameSession
             _environment = environment;
 
             _rpc = rpc;
-
+            _repository = repository;
             _serializer = serializer;
 
-
+            Dimensions["template"] = _scene.Template;
             ApplySettings();
+           
             analyticsWorker.AddGameSession(this);
             scene.Shuttingdown.Add(args =>
             {
                 analyticsWorker.RemoveGameSession(this);
+                _repository.RemoveGameSession(this);
                 _sceneCts.Cancel();
                 return Task.CompletedTask;
             });
@@ -430,6 +433,8 @@ namespace Stormancer.Server.Plugins.GameSession
             if (metadata.gameSession != null)
             {
                 _config = ((JObject)metadata.gameSession).ToObject<GameSessionConfiguration>();
+                Dimensions["gamefinder"] = _config?.GameFinder ?? "";
+                
             }
         }
 
@@ -588,7 +593,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             var serverFound = await TryStart();
 
-         
+
 
             var userId = client.Key;
 
@@ -691,10 +696,12 @@ namespace Stormancer.Server.Plugins.GameSession
             _analytics.StartGamesession(this);
             var ctx = new GameSessionContext(this._scene, _config, this);
             _logger.Log(LogLevel.Info, "gamesession.startup", "Starting up gamesession.", new { id = this.GameSessionId }, this.GameSessionId);
+         
             await using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
             {
                 await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(h => h.GameSessionStarting(ctx), ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing GameSessionStarting event", ex));
             }
+            _repository.AddGameSession(this);
             _logger.Log(LogLevel.Info, "gamesession.startup", "Ran GameSessionStarting event handlers.", new { id = this.GameSessionId }, this.GameSessionId);
 
             _logger.Log(LogLevel.Info, "gamesession.startup", "Creating Gamesession server.", new { id = this.GameSessionId }, this.GameSessionId);
@@ -770,9 +777,9 @@ namespace Stormancer.Server.Plugins.GameSession
                     }
                 }
             }
-            
 
-          
+
+
 
             return _server != null;
         }
@@ -970,6 +977,8 @@ namespace Stormancer.Server.Plugins.GameSession
         public string GameSessionId => _scene.Id;
 
         public DateTime CreatedOn { get; } = DateTime.UtcNow;
+
+        public Dictionary<string, string> Dimensions { get; } = new Dictionary<string, string>();
 
         private bool _gameCompleteExecuted = false;
 

@@ -115,9 +115,9 @@ namespace Stormancer.GameServers.Agent
                             await _docker.Containers.RemoveContainerAsync(container.ID, new ContainerRemoveParameters());
                         }
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
-                        _logger.Log(LogLevel.Error, "An error occurred while trying to destroy container '{containerId}' state={state}, ex={ex}",container.ID, container.State, ex);
+                        _logger.Log(LogLevel.Error, "An error occurred while trying to destroy container '{containerId}' state={state}, ex={ex}", container.ID, container.State, ex);
                     }
                 }
             }
@@ -171,12 +171,12 @@ namespace Stormancer.GameServers.Agent
             {
                 if (reservedMemory + this.UsedMemory > this.TotalMemory)
                 {
-                    return new StartContainerResult { Success = false, Error="unableToSatisfyResourceReservation" };
+                    return new StartContainerResult { Success = false, Error = "unableToSatisfyResourceReservation" };
                 }
 
                 if (reservedCpu + this.UsedCpu > this.TotalCpu)
                 {
-                    return new StartContainerResult { Success = false, Error= "unableToSatisfyResourceReservation" };
+                    return new StartContainerResult { Success = false, Error = "unableToSatisfyResourceReservation" };
                 }
                 serverContainer = new ServerContainer(agentId, name, image, DateTime.UtcNow, reservedMemory, reservedCpu);
                 _trackedContainers.Add(name, serverContainer);
@@ -266,7 +266,7 @@ namespace Stormancer.GameServers.Agent
                 return new StartContainerResult { Success = true, Container = serverContainer };
 
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 lock (_lock)
                 {
@@ -298,8 +298,8 @@ namespace Stormancer.GameServers.Agent
 
             foreach (var container in response)
             {
-                var name = container.Names.FirstOrDefault();
-                if (name !=null && _trackedContainers.TryGetValue(name, out var server) && agentId == server.AgentId)
+                var name = container.Names.FirstOrDefault()?.Trim('/');
+                if (name != null && _trackedContainers.TryGetValue(name, out var server) && agentId == server.AgentId)
                 {
                     yield return server;
                 }
@@ -551,13 +551,13 @@ namespace Stormancer.GameServers.Agent
 
         public string AgentVersion { get; set; }
         public string Error { get; set; }
-      
+
         public float ReservedCpu { get; set; }
 
-    
+
         public float TotalCpu { get; set; }
 
-     
+
         public long ReservedMemory { get; set; }
 
 

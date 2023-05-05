@@ -4,6 +4,7 @@ using Stormancer.Server.Plugins.Analytics;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -11,53 +12,126 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
-    internal class GameSessionAnalyticsWorker
-    {
-        private readonly IAnalyticsService _analytics;
 
-        public GameSessionAnalyticsWorker(IAnalyticsService service)
+    public class GameSessionsStatistics
+    {
+        /// <summary>
+        /// Creates a GameSessionsStatistics object.
+        /// </summary>
+        /// <param name="count"></param>
+        /// <param name="dimensions"></param>
+        public GameSessionsStatistics(Dictionary<string, string> dimensions, int count)
         {
-            _analytics = service;
+            Count = count;
         }
 
-        public async Task Run()
+        /// <summary>
+        /// Number of game sessions matching the criteria.
+        /// </summary>
+        public int Count { get; }
+        Dictionary<string, string> Terms = new Dictionary<string, string>();
+    }
+
+    internal class GameSessionAnalyticsWorker
+    {
+        private class DimensionsComparer : IEqualityComparer<Dictionary<string, string>>
         {
-            while (true)
+            public bool Equals(Dictionary<string, string>? x, Dictionary<string, string>? y)
             {
-                
-                var startTime = DateTime.UtcNow;
+                if (x == null)
+                {
+                    if (y == null)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+
+                if (y == null)
+                {
+                    if (x == null)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+
+                if (x.Count != y.Count)
+                {
+                    return false;
+                }
+
+                foreach (var (key, value) in x)
+                {
+                    if (!y.TryGetValue(key, out var v) || v != value)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+
+            }
+
+            public int GetHashCode([DisallowNull] Dictionary<string, string> obj)
+            {
+                var hashCode = new HashCode();
+                foreach (var (key, value) in obj)
+                {
+                    hashCode.Add(key);
+                    hashCode.Add(value);
+                }
+                return hashCode.ToHashCode();
+            }
+        }
+        private readonly IAnalyticsService _analytics;
+        private readonly GameSessionsRepository _repository;
+
+        public GameSessionAnalyticsWorker(IAnalyticsService service, GameSessionsRepository repository)
+        {
+            _analytics = service;
+            _repository = repository;
+        }
+
+        private static DimensionsComparer _comparer = new DimensionsComparer();
+        public async Task Run(CancellationToken cancellationToken)
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
+            while (!cancellationToken.IsCancellationRequested)
+            {
+
 
                 try
                 {
-                    if (_gameSessionsCount > 0)
+                    var groups = _repository.LocalGameSessions.GroupBy(s => s.Dimensions, _comparer);
+                    foreach (var group in groups)
                     {
-                        _analytics.Push("gamesession", "gameseSession-stats", JObject.FromObject(new
-                        {
-                            gamesessions = _gameSessionsCount
-                        }));
+                        _analytics.Push("gamesession", "gamesession-stats",
+                            JObject.FromObject(new GameSessionsStatistics(group.Key, group.Count()))
+                            );
                     }
                 }
                 catch { }
 
-                var duration = DateTime.UtcNow - startTime;
 
-                if (TimeSpan.FromSeconds(1) - duration > TimeSpan.FromMilliseconds(20))
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(1) - duration);
-                }
             }
         }
-
-        private int _gameSessionsCount;
 
         internal void AddGameSession(GameSessionService gameSessionService)
         {
             _analytics.Push("gamesession", "gameSession-created", JObject.FromObject(new
             {
-
+                gameFinder = gameSessionService.GetGameSessionConfig()?.GameFinder,
+                parameters = gameSessionService?.GetGameSessionConfig()?.Parameters,
                 gameSessionId = gameSessionService.GameSessionId
             }));
-            Interlocked.Increment(ref _gameSessionsCount);
+
         }
 
         internal void PlayerJoined(string userId, string sessionId, string gamesessionId)
@@ -90,8 +164,8 @@ namespace Stormancer.Server.Plugins.GameSession
                 gameFinder = gameSessionService?.GetGameSessionConfig()?.GameFinder,
                 parameters = gameSessionService?.GetGameSessionConfig()?.Parameters
 
-            })) ;
-            Interlocked.Decrement(ref _gameSessionsCount);
+            }));
+
         }
 
         internal void StartGamesession(GameSessionService gameSessionService)
@@ -102,7 +176,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 gamesessionId = gameSessionService.GameSessionId,
                 gameFinder = gameSessionService.GetGameSessionConfig()?.GameFinder,
                 parameters = gameSessionService.GetGameSessionConfig()?.Parameters
-            })) ;
+            }));
         }
     }
 }
