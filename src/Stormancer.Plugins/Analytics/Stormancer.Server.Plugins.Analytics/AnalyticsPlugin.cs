@@ -97,7 +97,7 @@ namespace Stormancer.Server.Plugins.Analytics
             if (ctx.ServiceType == AnalyticsPlugin.METADATA_KEY)
             {
 
-                ctx.SceneId = SCENE_ID;
+                ctx.SceneId = AnalyticsPlugin.SCENE_ID;
             }
             return Task.CompletedTask;
 

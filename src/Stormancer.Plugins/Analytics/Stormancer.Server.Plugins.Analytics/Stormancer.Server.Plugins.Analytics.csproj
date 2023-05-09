@@ -38,7 +38,7 @@
     <ProjectReference Include="..\..\Configuration\Stormancer.Server.Plugins.Configuration\Stormancer.Server.Plugins.Configuration.csproj" />
     <ProjectReference Include="..\..\Database\Stormancer.Server.Plugins.Database.Elasticsearch\Stormancer.Server.Plugins.Database.Elasticsearch.csproj" />
     <ProjectReference Include="..\..\Management\Stormancer.Server.Plugins.Management\Stormancer.Server.Plugins.Management.csproj" />
-	  <ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />
+    <ProjectReference Include="..\..\Users\Stormancer.Abstractions.Server.Users\Stormancer.Abstractions.Server.Users.csproj" />
   </ItemGroup>
 
   <ItemGroup>

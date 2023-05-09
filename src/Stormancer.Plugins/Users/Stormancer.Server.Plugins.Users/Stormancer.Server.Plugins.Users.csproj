@@ -54,6 +54,7 @@
 		<ProjectReference Include="..\..\Queries\Stormancer.Server.Plugins.Queries\Stormancer.Server.Plugins.Queries.csproj" />
 		<ProjectReference Include="..\..\Utilities\Stormancer.Server.Plugins.Annotations\Stormancer.Server.Plugins.Annotations.csproj" />
 		<ProjectReference Include="..\..\Utilities\Stormancer.Server.Plugins.Utilities\Stormancer.Server.Plugins.Utilities.csproj" />
+		<ProjectReference Include="..\Stormancer.Abstractions.Server.Users\Stormancer.Abstractions.Server.Users.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

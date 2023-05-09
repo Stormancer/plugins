@@ -19,14 +19,8 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using Newtonsoft.Json.Linq;
+
 using Stormancer.Server.Plugins.Users;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.ServiceLocator
 {
@@ -51,14 +45,14 @@ namespace Stormancer.Server.Plugins.ServiceLocator
         public string? SceneId { get; set; }
 
         /// <summary>
-        /// Additionnal context for the request.
+        /// Additional context for the request.
         /// </summary>
         public Dictionary<string, string> Context { get; set; } = new Dictionary<string, string>();
 
         /// <summary>
         /// Session of the user doing the request.
         /// </summary>
-        public Session? Session { get; internal set; }
+        public Session? Session { get;  set; }
     }
 
     /// <summary>
