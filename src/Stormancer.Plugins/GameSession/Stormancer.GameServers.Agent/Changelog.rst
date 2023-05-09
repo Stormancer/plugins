@@ -9,6 +9,13 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+
+Unreleased
+----------
+Added
+*****
+- Create server crash reports and store them locally.
+
 0.3.0.8
 -------
 Changed

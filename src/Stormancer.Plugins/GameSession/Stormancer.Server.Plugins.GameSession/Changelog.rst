@@ -9,6 +9,16 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+*****
+- Added support for crash reports in game server agent.
+
+Fixed
+*****
+- Fixed infinite loop in the analytics worker loop.
+
 6.1.1.15
 ----------
 Changed
@@ -24,7 +34,7 @@ Changed
 Fixed
 *****
 - Don't wait 5s before returning PostResults response for the last player in the session.
-- Fixed infinite loop in the analytics worker loop.
+
 
 6.1.0.17
 --------

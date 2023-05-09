@@ -9,15 +9,19 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+
+Unreleased
+-----------
+Added
+*****
+- Configure a scene to accept analytics from clients.
+
 2.0.6.1
 ----------
 Changed
 *******
 - Added ServerError property to Errors log when analytics couldn't be indexed in Elastic.
 
-Added
-*****
-- Configure a scene to accept analytics from clients.
 
 2.0.6
 -----
