@@ -9,8 +9,8 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
-----------
+5.0.1.7
+-------
 Fixed
 *****
 - Send back errors to  client when an operation fails.

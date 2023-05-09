@@ -31,8 +31,8 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="9.0.0" />
-    <PackageReference Include="Stormancer.Management" Version="4.0.0" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="9.3.0" />
+    <PackageReference Include="Stormancer.Management" Version="5.0.0" />
   </ItemGroup>
   <ItemGroup>
     <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
