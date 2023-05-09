@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Fixed
+*****
+- Fix concurrency bug in GetFrames
+
 0.3.1
 -----
 Fixed

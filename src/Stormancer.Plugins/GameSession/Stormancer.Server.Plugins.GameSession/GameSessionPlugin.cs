@@ -62,11 +62,11 @@ namespace Stormancer.Server.Plugins.GameSession
                 builder.Register<GameSessionsServiceLocator>().As<IServiceLocatorProvider>();
                 builder.Register<DevServerPoolProvider>().As<IServerPoolProvider>().SingleInstance();
                 builder.Register<ProviderBasedServerPoolProvider>().As<IServerPoolProvider>().InstancePerScene();
-                builder.Register<DockerGameServerProvider>().As<IGameServerProvider>().SingleInstance();
                 builder.Register<GameSessionAnalyticsWorker>().SingleInstance();
                 builder.Register<AgentBasedGameServerProvider>().As<IGameServerProvider>().AsSelf().SingleInstance();
                 builder.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
                 builder.Register<DockerAgentAdminController>();
+                builder.Register<GameSessionsRepository>().SingleInstance();
 
             };
 
@@ -84,7 +84,7 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 host.EnsureSceneExists(POOL_SCENEID, POOL_SCENEID, false, true);
 
-                _ = host.DependencyResolver.Resolve<GameSessionAnalyticsWorker>().Run();
+                _ = host.DependencyResolver.Resolve<GameSessionAnalyticsWorker>().Run(CancellationToken.None);
             };
 
             ctx.SceneCreated += (ISceneHost scene) =>
@@ -96,8 +96,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     scene.Starting.Add(metadata =>
                     {
                         var service = scene.DependencyResolver.Resolve<IGameSessionService>();
-                        var analytics = scene.DependencyResolver.Resolve<IAnalyticsService>();
-                        analytics.Push("gamesession", "started", scene.Configuration);
+                       
                         service.SetConfiguration(metadata);
                         service.TryStart();
                         return Task.FromResult(true);
@@ -120,6 +119,7 @@ namespace Stormancer.Server.Plugins.GameSession
                             d.Resolve<Management.ManagementClientProvider>(),
                             d.Resolve<ILogger>(),
                             d.Resolve<RpcService>(),
+                            d.Resolve<GameSessionsRepository>(),
                             d.Resolve<ISerializer>())
                     )
                     .As<IGameSessionService>()

@@ -19,7 +19,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using Stormancer.Server.Plugins.Users;
+
 using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
@@ -45,7 +45,7 @@ namespace Stormancer.Server.Plugins.Friends
         }
         public Task AddPeer(string key, IScenePeerClient peer, FriendListConfigRecord statusConfig)
         {
-            if(statusConfig == null)
+            if (statusConfig == null)
             {
                 throw new ArgumentNullException("statusConfig");
             }
@@ -78,7 +78,7 @@ namespace Stormancer.Server.Plugins.Friends
             return Task.FromResult(p.config);
         }
 
-        public Task<Tuple<FriendListConfigRecord,string>> RemovePeer(SessionId sessionId)
+        public Task<Tuple<FriendListConfigRecord, string>> RemovePeer(SessionId sessionId)
         {
             UserContainer p = default(UserContainer);
             string key;

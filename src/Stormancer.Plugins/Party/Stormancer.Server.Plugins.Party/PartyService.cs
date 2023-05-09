@@ -193,7 +193,7 @@ namespace Stormancer.Server.Plugins.Party
                 //  2. Si il ne l'est pas alors on continue le pipeline normal
                 //  3. Si il l'est alors on selon la config on change du SA on bloque ou on d�connect depuis l'autre scene et on la co � la nouvelle.
 
-                if (_partyState.PartyMembers.Count >= _partyState.Settings.ServerSettings.MaxMembers())
+                if (_partyState.MemberCount >= _partyState.Settings.ServerSettings.MaxMembers())
                 {
                     Log(LogLevel.Trace, "OnConnecting", "Party join denied because the party is full.", peer.SessionId);
                     throw new ClientException(JoinDeniedError + "?reason=partyFull");
@@ -212,7 +212,7 @@ namespace Stormancer.Server.Plugins.Party
                 }
                 var userData = peer.ContentType == "party/userdata" ? peer.UserData : new byte[0];
                 var ctx = new JoiningPartyContext(this, session, _partyState.PendingAcceptedPeers.Count + _partyState.PartyMembers.Count, userData);
-                await handlers.RunEventHandler(h => h.OnJoining(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnJoining", ex));
+                await handlers.RunEventHandler(h => h.OnJoining(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while running OnJoining", ex));
                 if (!ctx.Accept)
                 {
                     Log(LogLevel.Trace, "OnConnecting", "Join denied by event handler", peer.SessionId, session.User?.Id);
@@ -322,35 +322,41 @@ namespace Stormancer.Server.Plugins.Party
         {
             await _partyState.TaskQueue.PushWork(async () =>
             {
-
-                if (_partyState.PartyMembers.TryRemove(args.Peer.SessionId, out var partyUser))
+                try
                 {
-                    Log(LogLevel.Trace, "OnDisconnected", $"Member left the party, reason: {args.Reason}", args.Peer.SessionId, partyUser.UserId);
 
-                    var handlers = _handlers();
-                    var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene);
-                    partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
-                    await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while processing an 'OnPlayerReadyStateRest' event.", ex));
-
-                    if (partyResetCtx.ShouldReset)
+                    if (_partyState.PartyMembers.TryRemove(args.Peer.SessionId, out var partyUser))
                     {
-                        await TryCancelPendingGameFinder();
-                    }
+                        Log(LogLevel.Trace, "OnDisconnected", $"Member left the party, reason: {args.Reason}", args.Peer.SessionId, partyUser.UserId);
 
-                    if (_partyState.Settings.PartyLeaderId == partyUser.UserId && _partyState.PartyMembers.Count != 0)
-                    {
-                        // Change party leader
-                        _partyState.Settings.PartyLeaderId = _partyState.PartyMembers.FirstOrDefault().Value.UserId;
-                        Log(LogLevel.Trace, "OnDisconnected", $"New leader elected: {_partyState.Settings.PartyLeaderId}", args.Peer.SessionId, partyUser.UserId);
-                        await BroadcastStateUpdateRpc(LeaderChangedRoute, _partyState.Settings.PartyLeaderId);
+                        var handlers = _handlers();
+                        var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene);
+                        partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
+                        await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while processing an 'OnPlayerReadyStateRest' event.", ex));
+
+                        if (partyResetCtx.ShouldReset)
+                        {
+                            await TryCancelPendingGameFinder();
+                        }
+
+                        if (_partyState.Settings.PartyLeaderId == partyUser.UserId && _partyState.PartyMembers.Count != 0)
+                        {
+                            // Change party leader
+                            _partyState.Settings.PartyLeaderId = _partyState.PartyMembers.FirstOrDefault().Value.UserId;
+                            Log(LogLevel.Trace, "OnDisconnected", $"New leader elected: {_partyState.Settings.PartyLeaderId}", args.Peer.SessionId, partyUser.UserId);
+                            await BroadcastStateUpdateRpc(LeaderChangedRoute, _partyState.Settings.PartyLeaderId);
+                        }
+                        await BroadcastStateUpdateRpc(PartyMemberDisconnection.Route, new PartyMemberDisconnection { UserId = partyUser.UserId, Reason = ParseDisconnectionReason(args.Reason) });
                     }
-                    await BroadcastStateUpdateRpc(PartyMemberDisconnection.Route, new PartyMemberDisconnection { UserId = partyUser.UserId, Reason = ParseDisconnectionReason(args.Reason) });
                 }
-
-                if (_partyState.PartyMembers.IsEmpty)
+                finally
                 {
-                    partyDocumentsStore.DeleteDocument(_partyState.Settings.PartyId);
-                    _ = _scene.KeepAlive(TimeSpan.Zero);
+                    if (_partyState.PartyMembers.IsEmpty)
+                    {
+                        partyDocumentsStore.DeleteDocument(_partyState.Settings.PartyId);
+                        CancelInvitationCode();
+                        _ = _scene.KeepAlive(TimeSpan.Zero);
+                    }
                 }
 
                 _ = RunOperationCompletedEventHandler((service, handlers, scope) =>
@@ -378,94 +384,99 @@ namespace Stormancer.Server.Plugins.Party
         {
             return _partyState.TaskQueue.PushWork(async () =>
             {
-                var partySettingsDto = partySettingsUpdater( _partyState);
-
-                if (partySettingsDto == null)
+                try
                 {
-                    return;
-                }
-                if (ct.IsCancellationRequested)
-                {
-                    return;
-                }
+                    var partySettingsDto = partySettingsUpdater(_partyState);
 
-                if (partySettingsDto.GameFinderName == "")
-                {
-                    throw new ClientException(GameFinderNameError);
-                }
-
-                await using var scope = _scene.CreateRequestScope();
-                var handlers = scope.Resolve<IEnumerable<IPartyEventHandler>>();
-
-                var originalDto = partySettingsDto.Clone();
-                var ctx = new PartySettingsUpdateCtx(this, partySettingsDto);
-
-                await handlers.RunEventHandler(h => h.OnUpdatingSettings(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnUpdatingSettings", ex));
-
-                if (!ctx.ApplyChanges)
-                {
-                    Log(LogLevel.Trace, "UpdateSettings", "Settings update refused by event handler", partySettingsDto);
-                    throw new ClientException(ctx.ErrorMsg);
-                }
-
-                Log(LogLevel.Trace, "UpdateSettings", "Settings update accepted", partySettingsDto);
-                await handlers.RunEventHandler(h => h.OnUpdateSettings(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnUpdateSettings", ex));
-
-                // If the event handlers have modified the settings, we need to notify the leader to invalidate their local copy.
-                // Make an additional bump to the version number to achieve this.
-                int newSettingsVersion = _partyState.SettingsVersionNumber + 1;
-                if (!partySettingsDto.Equals(originalDto))
-                {
-                    newSettingsVersion = _partyState.SettingsVersionNumber + 2;
-                }
-
-                _partyState.Settings.GameFinderName = partySettingsDto.GameFinderName;
-                _partyState.Settings.CustomData = partySettingsDto.CustomData;
-                _partyState.Settings.OnlyLeaderCanInvite = partySettingsDto.OnlyLeaderCanInvite;
-                _partyState.Settings.IsJoinable = partySettingsDto.IsJoinable;
-
-
-                if (!string.IsNullOrEmpty(partySettingsDto.IndexedDocument))
-                {
-                    try
+                    if (partySettingsDto == null)
                     {
-                        _partyState.SearchDocument = JObject.Parse(partySettingsDto.IndexedDocument);
+                        return;
                     }
-                    catch (Exception)
+                    if (ct.IsCancellationRequested)
+                    {
+                        return;
+                    }
+
+                    if (partySettingsDto.GameFinderName == "")
+                    {
+                        throw new ClientException(GameFinderNameError);
+                    }
+
+                    await using var scope = _scene.CreateRequestScope();
+                    var handlers = scope.Resolve<IEnumerable<IPartyEventHandler>>();
+
+                    var originalDto = partySettingsDto.Clone();
+                    var ctx = new PartySettingsUpdateCtx(this, partySettingsDto);
+
+                    await handlers.RunEventHandler(h => h.OnUpdatingSettings(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnUpdatingSettings", ex));
+
+                    if (!ctx.ApplyChanges)
+                    {
+                        Log(LogLevel.Trace, "UpdateSettings", "Settings update refused by event handler", partySettingsDto);
+                        throw new ClientException(ctx.ErrorMsg);
+                    }
+
+                    Log(LogLevel.Trace, "UpdateSettings", "Settings update accepted", partySettingsDto);
+                    await handlers.RunEventHandler(h => h.OnUpdateSettings(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnUpdateSettings", ex));
+
+                    // If the event handlers have modified the settings, we need to notify the leader to invalidate their local copy.
+                    // Make an additional bump to the version number to achieve this.
+                    int newSettingsVersion = _partyState.SettingsVersionNumber + 1;
+                    if (!partySettingsDto.Equals(originalDto))
+                    {
+                        newSettingsVersion = _partyState.SettingsVersionNumber + 2;
+                    }
+
+                    _partyState.Settings.GameFinderName = partySettingsDto.GameFinderName;
+                    _partyState.Settings.CustomData = partySettingsDto.CustomData;
+                    _partyState.Settings.OnlyLeaderCanInvite = partySettingsDto.OnlyLeaderCanInvite;
+                    _partyState.Settings.IsJoinable = partySettingsDto.IsJoinable;
+
+
+                    if (!string.IsNullOrEmpty(partySettingsDto.IndexedDocument))
+                    {
+                        try
+                        {
+                            _partyState.SearchDocument = JObject.Parse(partySettingsDto.IndexedDocument);
+                        }
+                        catch (Exception)
+                        {
+                            _partyState.SearchDocument = null;
+                            //Ignore parse errors.
+                        }
+                    }
+                    else
                     {
                         _partyState.SearchDocument = null;
-                        //Ignore parse errors.
                     }
+
+                    if (partySettingsDto.PublicServerData != null)
+                    {
+                        _partyState.Settings.PublicServerData = partySettingsDto.PublicServerData;
+                    }
+                    _partyState.SettingsVersionNumber = newSettingsVersion;
+
+
+                    var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartySettingsUpdated, _scene);
+                    partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
+                    await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while processing an 'OnPlayerReadyStateRest' event.", ex));
+
+                    if (partyResetCtx.ShouldReset)
+                    {
+                        await TryCancelPendingGameFinder();
+                    }
+
+                    Dictionary<PartyMember, PartySettingsUpdateDto> updates = _partyState.PartyMembers.Values.ToDictionary(m => m, _ => new PartySettingsUpdateDto(_partyState));
+
+                    await handlers.RunEventHandler(h => h.OnSendingSettingsUpdateToMembers(new PartySettingsMemberUpdateCtx(this, updates)),
+                    ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnSendingSettingsToMember", ex));
+
+                    await BroadcastStateUpdateRpc(PartySettingsUpdateDto.Route, updates);
                 }
-                else
+                finally
                 {
-                    _partyState.SearchDocument = null;
+                    partyDocumentsStore.UpdateDocument(_partyState.Settings.PartyId, _partyState.SearchDocument, _partyState.Settings.CustomData);
                 }
-
-                if (partySettingsDto.PublicServerData != null)
-                {
-                    _partyState.Settings.PublicServerData = partySettingsDto.PublicServerData;
-                }
-                _partyState.SettingsVersionNumber = newSettingsVersion;
-
-
-                var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartySettingsUpdated, _scene);
-                partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
-                await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while processing an 'OnPlayerReadyStateRest' event.", ex));
-
-                if (partyResetCtx.ShouldReset)
-                {
-                    await TryCancelPendingGameFinder();
-                }
-
-                Dictionary<PartyMember, PartySettingsUpdateDto> updates = _partyState.PartyMembers.Values.ToDictionary(m => m, _ => new PartySettingsUpdateDto(_partyState));
-
-                await handlers.RunEventHandler(h => h.OnSendingSettingsUpdateToMembers(new PartySettingsMemberUpdateCtx(this, updates)),
-                ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnSendingSettingsToMember", ex));
-
-                await BroadcastStateUpdateRpc(PartySettingsUpdateDto.Route, updates);
-
-                partyDocumentsStore.UpdateDocument(_partyState.Settings.PartyId, _partyState.SearchDocument, _partyState.Settings.CustomData);
             });
         }
 

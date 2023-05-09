@@ -88,7 +88,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Tries to start the gamesession.
         /// </summary>
         /// <returns></returns>
-        Task TryStart();
+        Task<bool> TryStart();
 
         /// <summary>
         /// Sets a peer as ready in the gamesession.
@@ -142,7 +142,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
 
         /// <summary>
-        /// Event fired when the gamesession completes or is destroyed.
+        /// Event fired when the game session completes or is destroyed.
         /// </summary>
         event Action OnGameSessionCompleted;
 
@@ -165,11 +165,24 @@ namespace Stormancer.Server.Plugins.GameSession
         Task CancelReservationAsync(string id, CancellationToken cancellationToken);
 
         /// <summary>
-        /// Creates a P2P token to connect 2 players of the gamesession together.
+        /// Creates a P2P token to connect 2 players of the game session together.
         /// </summary>
         /// <param name="callerSessionId"></param>
         /// <param name="remotePeerSessionId"></param>
         /// <returns></returns>
         Task<string> CreateP2PToken(SessionId callerSessionId, SessionId remotePeerSessionId);
+
+
+        /// <summary>
+        /// Dimensions used to group game sessions for analytics purpose.
+        /// </summary>
+        public IReadOnlyDictionary<string,string> Dimensions { get; }
+
+        /// <summary>
+        /// Sets the value of a dimension.
+        /// </summary>
+        /// <param name="dimension"></param>
+        /// <param name="value"></param>
+        public void SetDimension(string dimension, string value);
     }
 }

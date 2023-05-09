@@ -60,7 +60,7 @@ namespace Stormancer.Server.Plugins.Friends
         public List<string> Roles { get; set; }
 
         [MessagePackMember(4)]
-        public FriendRecordStatus Status { get; set; }
+        public FriendInvitationStatus Status { get; set; }
 
         [MessagePackMember(5)]
         public List<string> Tags { get; set; } = new List<string>();
@@ -95,7 +95,7 @@ namespace Stormancer.Server.Plugins.Friends
 
         public List<string> Roles { get; set; } = new List<string>();
 
-        public FriendRecordStatus Status { get; set; }
+        public FriendInvitationStatus Status { get; set; }
 
         public List<string> Tags { get; set; } = new List<string>();
     }
@@ -126,17 +126,20 @@ namespace Stormancer.Server.Plugins.Friends
         public DateTimeOffset LastConnected { get; set; } = DateTimeOffset.UnixEpoch;
 
         [MessagePackMember(2)]
-        public FriendStatus Status { get; set; }
+        public FriendStatus Status { get; set; } = FriendStatus.Unknow;
 
         [MessagePackMember(3)]
-        public List<string> Tags { get; set; } = new List<string>();
+        public List<string> Tags { get; set; } = new();
 
         [MessagePackMember(4)]
         public Dictionary<string, string> CustomData = new();
+
+        [MessagePackMember(5)]
+        public List<string> Roles { get; set; } = new();
     }
 
     [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
-    public enum FriendRecordStatus
+    public enum FriendInvitationStatus
     {
         Unknow = -1,
         Accepted = 0,

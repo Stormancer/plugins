@@ -92,7 +92,7 @@ namespace Stormancer.Server.Plugins.Users
 
             var result = await _sessions.GetPeer(userId, cancellationToken);
 
-            return result?.SessionId??SessionId.Empty;
+            return result?.SessionId ?? SessionId.Empty;
         }
 
 
@@ -198,9 +198,9 @@ namespace Stormancer.Server.Plugins.Users
         }
 
         [S2SApi]
-        public Task KickUser(string userId, string reason, CancellationToken cancellationToken)
+        public Task KickUser(IEnumerable<string> userIds, string reason, CancellationToken cancellationToken)
         {
-            return _sessions.KickUser(userId, reason, cancellationToken);
+            return _sessions.KickUser(userIds, reason, cancellationToken);
         }
 
         [S2SApi]
@@ -208,11 +208,6 @@ namespace Stormancer.Server.Plugins.Users
         {
             await using var rq = _sessions.SendRequest(operationName, senderUserId, recipientUserId, ctx.CancellationToken);
 
-            static async Task CopyToAsync(PipeReader reader, PipeWriter writer, CancellationToken cancellationToken)
-            {
-                await reader.TryCopyToAsync(writer, true, cancellationToken);
-
-            }
             var t1 = ctx.Reader.TryCopyToAsync(rq.Writer, true, ctx.CancellationToken);
             var t2 = rq.Reader.TryCopyToAsync(ctx.Writer, true, ctx.CancellationToken);
 

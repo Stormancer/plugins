@@ -117,7 +117,7 @@ namespace Stormancer.Server.PartyManagement
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public Task CreateConnectionTokenFromPartyId(string partyId, byte[] userData, RequestContext<IScenePeerClient> ctx)
+        public Task<string?> CreateConnectionTokenFromPartyId(string partyId, byte[] userData, RequestContext<IScenePeerClient> ctx)
         {
             return _partyService.CreateConnectionTokenFromPartyId(partyId, userData,ctx.CancellationToken);
         }

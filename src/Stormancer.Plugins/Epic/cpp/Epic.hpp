@@ -233,7 +233,8 @@ namespace Stormancer
 					_productVersion = config->additionalParameters.find(ConfigurationKeys::ProductVersion) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ProductVersion) : "";
 					_diagnostics = config->additionalParameters.find(ConfigurationKeys::Diagnostics) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::Diagnostics) != "false" : false;
 
-					if (_loginMode.empty() && _exchangeCode.empty() && config->processLaunchArguments.size() > 1)
+					// /!\ This code will override the `LoginMode` to `ExchangeCode` if an exchange code is found in the `processLaunchArguments`.
+					if (_exchangeCode.empty() && config->processLaunchArguments.size() > 1)
 					{
 						bool authTypeExchangecode = false;
 						bool exchangeCodeRetrieved = false;
@@ -584,15 +585,11 @@ namespace Stormancer
 
 				pplx::task<Party::PartyId> accept(std::shared_ptr<Party::PartyApi> partyApi) override
 				{
-					return partyApi->joinPartyBySceneId(_partySceneId, {})
-						.then([partySceneId = _partySceneId]()
-					{
-						Party::PartyId partyId;
-						partyId.platform = "epic";
-						partyId.type = Party::PartyId::TYPE_SCENE_ID;
-						partyId.id = partySceneId;
-						return partyId;
-					});
+					Party::PartyId partyId;
+					partyId.platform = "epic";
+					partyId.type = Party::PartyId::TYPE_SCENE_ID;
+					partyId.id = _partySceneId;
+					return pplx::task_from_result(partyId);
 				}
 
 				pplx::task<void> decline(std::shared_ptr<Party::PartyApi>) override

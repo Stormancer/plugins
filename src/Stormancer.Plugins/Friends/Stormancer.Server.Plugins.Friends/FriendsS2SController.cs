@@ -19,18 +19,16 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
 using Stormancer.Server.Plugins.API;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Friends
 {
-    [Service(Named =false, ServiceType = "stormancer.plugins.friends")]
-    public class FriendsS2SController: ControllerBase
+    [Service(Named = false, ServiceType = "stormancer.plugins.friends")]
+    public class FriendsS2SController : ControllerBase
     {
         private readonly IFriendsService _friends;
 
@@ -38,17 +36,47 @@ namespace Stormancer.Server.Plugins.Friends
         {
             _friends = friends;
         }
+
         [S2SApi]
         public Task AddNonPersistedFriends(string userId, IEnumerable<Friend> friends, CancellationToken cancellationToken)
         {
-            return _friends.AddNonPersistedFriends(userId, friends,cancellationToken);
-
+            return _friends.AddNonPersistedFriends(userId, friends, cancellationToken);
         }
 
         [S2SApi]
         public Task<IEnumerable<Friend>> GetFriends(string userId, CancellationToken cancellationToken)
         {
-            return _friends.GetFriends(userId,cancellationToken);
+            return _friends.GetFriends(userId, cancellationToken);
+        }
+
+        [S2SApi]
+        public Task<MemberDto?> GetRelationship(string userId, string targetUserId, CancellationToken cancellationToken)
+        {
+            return _friends.GetRelationship(userId, targetUserId, cancellationToken);
+        }
+
+        [S2SApi]
+        public Task Block(string userId, string userIdToBlock, CancellationToken cancellationToken)
+        {
+            return _friends.Block(userId, userIdToBlock, cancellationToken);
+        }
+
+        [S2SApi]
+        public Task Unblock(string userId, string userIdToUnblock, CancellationToken cancellationToken)
+        {
+            return _friends.Unblock(userId, userIdToUnblock, cancellationToken);
+        }
+
+        [S2SApi]
+        public Task<Dictionary<string, IEnumerable<string>>> GetBlockedLists(IEnumerable<string> userIds, CancellationToken cancellationToken)
+        {
+            return _friends.GetBlockedLists(userIds, cancellationToken);
+        }
+
+        [S2SApi]
+        public Task<IEnumerable<string>> GetBlockedList(string userId, CancellationToken cancellationToken)
+        {
+            return _friends.GetBlockedList(userId, cancellationToken);
         }
     }
 }

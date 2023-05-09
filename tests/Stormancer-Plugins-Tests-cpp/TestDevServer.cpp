@@ -6,7 +6,7 @@
 #include "party/Party.hpp"
 #include "Profile/Profile.hpp"
 #include "gameFinder/GameFinder.hpp"
-#include "gameSession/Gamesession.hpp"
+#include "GameSession/GameSession.hpp"
 #include "gameSession/ServerPools.hpp"
 
 #include "stormancer/IActionDispatcher.h"

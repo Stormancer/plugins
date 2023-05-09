@@ -341,11 +341,7 @@ namespace Stormancer
 
 				pplx::task<Party::PartyId> accept(std::shared_ptr<Party::PartyApi> partyApi) override
 				{
-					return partyApi->joinParty(_partyId, {})
-						.then([partyId = _partyId]()
-					{
-						return partyId;
-					});
+					return pplx::task_from_result(_partyId);
 				}
 
 				pplx::task<void> decline(std::shared_ptr<Party::PartyApi>) override

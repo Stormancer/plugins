@@ -20,11 +20,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using MsgPack.Serialization;
 using Newtonsoft.Json.Linq;
 using Stormancer;
 using Stormancer.Core;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -33,6 +35,51 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
+    /// <summary>
+    /// The result of a <see cref="IUserSessions.SendRequest{TReturn, TArg}(string, string, string, TArg, CancellationToken)"/> operation.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public struct SendRequestResult<T>
+    {
+        /// <summary>
+        /// Gets the value returned by the call.
+        /// </summary>
+        [MessagePackMember(0)]
+        public T? Value { get; set; }
+
+        /// <summary>
+        /// Gets a boolean indicating whether the request was successful or resulted in an error.
+        /// </summary>
+        [MemberNotNullWhen(false,"Error")]
+        [MessagePackMember(1)]
+        public bool Success { get; set; }
+
+        /// <summary>
+        /// Gets the error message if <see cref="Success"/> is false.
+        /// </summary>
+        [MessagePackMember(2)]
+        public string? Error { get; set; }
+    }
+
+    /// <summary>
+    /// The result of a <see cref="IUserSessions.SendRequest{TArg}(string, string, string, TArg, CancellationToken)"/> operation.
+    /// </summary>
+    public struct SendRequestResult
+    {
+        /// <summary>
+        /// Gets a boolean indicating whether the request was successful or resulted in an error.
+        /// </summary>
+        [MemberNotNullWhen(false, "Error")]
+        [MessagePackMember(0)]
+        public bool Success { get; set; }
+
+        /// <summary>
+        /// Gets the error message if <see cref="Success"/> is false.
+        /// </summary>
+        [MessagePackMember(1)]
+        public string? Error { get; set; }
+    }
+
     /// <summary>
     /// Provides APIs to incteract with client sessions.
     /// </summary>
@@ -227,7 +274,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="arg"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<TReturn> SendRequest<TReturn, TArg>(string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken);
+        Task<SendRequestResult<TReturn>> SendRequest<TReturn, TArg>(string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken);
 
         /// <summary>
         /// Sends a request to an user.
@@ -242,7 +289,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="arg2"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<TReturn> SendRequest<TReturn, TArg1, TArg2>(string operationName, string senderUserId, string recipientUserId, TArg1 arg1, TArg2 arg2, CancellationToken cancellationToken);
+        Task<SendRequestResult<TReturn>> SendRequest<TReturn, TArg1, TArg2>(string operationName, string senderUserId, string recipientUserId, TArg1 arg1, TArg2 arg2, CancellationToken cancellationToken);
 
 
         /// <summary>
@@ -255,7 +302,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="arg"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task SendRequest<TArg>(string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken);
+        Task<SendRequestResult> SendRequest<TArg>(string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the number of authenticated users.
@@ -267,11 +314,11 @@ namespace Stormancer.Server.Plugins.Users
         /// <summary>
         /// Kicks an user from the server.
         /// </summary>
-        /// <param name="userId"></param>
+        /// <param name="userIds"></param>
         /// <param name="reason"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task KickUser(string userId, string reason, CancellationToken cancellationToken);
+        Task KickUser(IEnumerable<string> userIds, string reason, CancellationToken cancellationToken);
     }
 
 

@@ -58,7 +58,8 @@ namespace Stormancer.Server.Plugins.Analytics
               
                 if (r.Errors)
                 {
-                    logger.Log(LogLevel.Error, "analytics", "Failed to index analytics", new { errors = r.ItemsWithErrors.Select(i => i.Error) });
+                    
+                    logger.Log(LogLevel.Error, "analytics", "Failed to index analytics", new { errors = r.ItemsWithErrors.Select(i => i.Error) , r.ServerError });
                 }
             }
         }

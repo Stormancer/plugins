@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "stormancer.cli": {
+      "version": "5.3.1",
+      "commands": [
+        "stormancer"
+      ]
+    }
+  }
+}

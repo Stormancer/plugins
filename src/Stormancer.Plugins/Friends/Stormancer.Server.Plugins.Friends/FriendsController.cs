@@ -19,12 +19,14 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using Stormancer.Server.Plugins.API;
+
+using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Users;
+using System.Collections.Generic;
 using System.Threading.Tasks;
-using Stormancer.Core;
 
 namespace Stormancer.Server.Plugins.Friends
 {
@@ -54,7 +56,7 @@ namespace Stormancer.Server.Plugins.Friends
         }
 
         protected override Task OnDisconnected(DisconnectedArgs args) => _friends.Unsubscribe(args.Peer, System.Threading.CancellationToken.None);
-       
+
         public async Task InviteFriend(RequestContext<IScenePeerClient> ctx)
         {
             var friendId = ctx.ReadObject<string>();
@@ -65,28 +67,28 @@ namespace Stormancer.Server.Plugins.Friends
 
             var friend = await _users.GetUser(friendId);
 
-            if(friend == null)
+            if (friend == null)
             {
                 throw new ClientException($"User '{friendId}' does not exist.");
             }
-            var user = await _userSessions.GetUser(ctx.RemotePeer,ctx.CancellationToken);
+            var user = await _userSessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
 
             if (user == null)
             {
                 throw new ClientException("NotAuthenticated");
             }
-            
-            if(friend.Id == user.Id)
+
+            if (friend.Id == user.Id)
             {
                 throw new ClientException("You cannot invite yourself as a friend.");
             }
-                        
-            await _friends.Invite(user, friend,ctx.CancellationToken);
+
+            await _friends.Invite(user, friend, ctx.CancellationToken);
         }
 
         public async Task AcceptFriendInvitation(RequestContext<IScenePeerClient> ctx)
         {
-            var user = await _userSessions.GetUser(ctx.RemotePeer,ctx.CancellationToken);
+            var user = await _userSessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
             if (user == null)
             {
                 throw new ClientException("NotAuthenticated");
@@ -96,23 +98,23 @@ namespace Stormancer.Server.Plugins.Friends
 
             await _friends.ManageInvitation(user, senderId, accepts, ctx.CancellationToken);
         }
-        
+
         public async Task RemoveFriend(RequestContext<IScenePeerClient> ctx)
         {
-            var user = await _userSessions.GetUser(ctx.RemotePeer,ctx.CancellationToken);
+            var user = await _userSessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
             if (user == null)
             {
                 throw new ClientException("NotAuthenticated");
             }
 
             var friendId = ctx.ReadObject<string>();
-            
+
             await _friends.RemoveFriend(user, friendId, ctx.CancellationToken);
         }
 
         public async Task SetStatus(RequestContext<IScenePeerClient> ctx)
         {
-            var user = await _userSessions.GetUser(ctx.RemotePeer,ctx.CancellationToken);
+            var user = await _userSessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
 
             if (user == null)
             {
@@ -124,6 +126,64 @@ namespace Stormancer.Server.Plugins.Friends
             var details = ctx.ReadObject<string>();
 
             await _friends.SetStatus(user, status, details, ctx.CancellationToken);
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task<MemberDto?> GetRelationship(RequestContext<IScenePeerClient> ctx)
+        {
+            var user = await _userSessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
+
+            if (user == null)
+            {
+                throw new ClientException("NotAuthenticated");
+            }
+
+            var targetUserId = ctx.ReadObject<string>();
+
+            return await _friends.GetRelationship(user.Id, targetUserId, ctx.CancellationToken);
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task Block(RequestContext<IScenePeerClient> ctx)
+        {
+            var user = await _userSessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
+
+            if (user == null)
+            {
+                throw new ClientException("NotAuthenticated");
+            }
+
+            var userIdToBlock = ctx.ReadObject<string>();
+
+            await _friends.Block(user.Id, userIdToBlock, ctx.CancellationToken);
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task Unblock(RequestContext<IScenePeerClient> ctx)
+        {
+            var user = await _userSessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
+
+            if (user == null)
+            {
+                throw new ClientException("NotAuthenticated");
+            }
+
+            var userIdToUnblock = ctx.ReadObject<string>();
+
+            await _friends.Unblock(user.Id, userIdToUnblock, ctx.CancellationToken);
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task<IEnumerable<string>> GetBlockedList(RequestContext<IScenePeerClient> ctx)
+        {
+            var user = await _userSessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
+
+            if (user == null)
+            {
+                throw new ClientException("NotAuthenticated");
+            }
+
+            return await _friends.GetBlockedList(user.Id, ctx.CancellationToken);
         }
     }
 }

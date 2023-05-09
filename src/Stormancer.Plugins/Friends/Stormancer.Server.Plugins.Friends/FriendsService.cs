@@ -20,7 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Nest;
 using Stormancer.Core;
+using Stormancer.Core.Helpers;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Database;
@@ -35,6 +37,8 @@ namespace Stormancer.Server.Plugins.Friends
 {
     internal class FriendsService : IFriendsService
     {
+        private const string ROLE_BLOCKED = "blocked";
+
         private const string INDEX_NAME = "friends";
         private readonly FriendsRepository _channel;
         private readonly ISceneHost _scene;
@@ -42,6 +46,9 @@ namespace Stormancer.Server.Plugins.Friends
 
         private readonly ILogger _logger;
         private readonly IESClientFactory _esClient;
+
+        private static bool _indexExistsChecked = false;
+        private static AsyncLock _mappingCheckedLock = new AsyncLock();
 
         public FriendsService(
             FriendsRepository repository,
@@ -61,7 +68,30 @@ namespace Stormancer.Server.Plugins.Friends
 
         private async Task<Nest.IElasticClient> CreateClient<T>(object[] parameters = null)
         {
-            return await _esClient.CreateClient<T>(INDEX_NAME, parameters);
+            var client = await _esClient.CreateClient<T>(INDEX_NAME, parameters);
+            if (!_indexExistsChecked)
+            {
+                using (await _mappingCheckedLock.LockAsync())
+                {
+                    if (!_indexExistsChecked)
+                    {
+                        _indexExistsChecked = true;
+                        await CreateFriendsIndex();
+                    }
+                }
+            }
+            return client;
+        }
+
+        private async Task CreateFriendsIndex()
+        {
+            var client = await CreateClient<MemberRecord>();
+            await client.Indices.CreateAsync(client.ConnectionSettings.DefaultIndex);
+            await client.MapAsync<MemberRecord>(m => m
+            .Properties(pd => pd
+                .Keyword(kpd => kpd.Name(m => m.OwnerId))
+                .Keyword(kpd => kpd.Name(m => m.FriendId))
+                ));
         }
 
         public async Task Invite(User user, User friend, CancellationToken cancellationToken)
@@ -86,7 +116,7 @@ namespace Stormancer.Server.Plugins.Friends
                 return;
             }
 
-            var friendRecord = new MemberRecord { FriendId = user.Id, OwnerId = friend.Id, Status = FriendRecordStatus.WaitingAccept };
+            var friendRecord = new MemberRecord { FriendId = user.Id, OwnerId = friend.Id, Status = FriendInvitationStatus.WaitingAccept };
 
             var client = await CreateClient<MemberRecord>();
 
@@ -100,7 +130,7 @@ namespace Stormancer.Server.Plugins.Friends
             await Notify(Enumerable.Repeat(new FriendListUpdateDto
             {
                 ItemId = user.Id,
-                Operation = FriendListUpdateDtoOperation.Add,
+                Operation = FriendListUpdateDtoOperation.AddOrUpdate,
                 Data = CreateFriendDtoSummary(friendRecord)
             }, 1), friend.Id, cancellationToken);
         }
@@ -122,7 +152,7 @@ namespace Stormancer.Server.Plugins.Friends
             }
             else //Connected
             {
-                if (record.Status == FriendRecordStatus.Accepted)
+                if (record.Status == FriendInvitationStatus.Accepted)
                 {
                     switch (config.Status)
                     {
@@ -139,7 +169,7 @@ namespace Stormancer.Server.Plugins.Friends
                             break;
                     }
                 }
-                else if (record.Status == FriendRecordStatus.WaitingAccept)
+                else if (record.Status == FriendInvitationStatus.WaitingAccept)
                 {
                     friend.Status = FriendStatus.Pending;
                 }
@@ -238,13 +268,13 @@ namespace Stormancer.Server.Plugins.Friends
             }
             else
             {
-                targetFriendRecord.Status = FriendRecordStatus.Accepted;
+                targetFriendRecord.Status = FriendInvitationStatus.Accepted;
                 await client.UpdateAsync<MemberRecord>(user.Id + "_" + senderId, desc => desc.Routing(user.Id).Doc(targetFriendRecord));
-                var senderFriendRecord = new MemberRecord { FriendId = user.Id, OwnerId = senderId, Status = FriendRecordStatus.Accepted };
+                var senderFriendRecord = new MemberRecord { FriendId = user.Id, OwnerId = senderId, Status = FriendInvitationStatus.Accepted };
 
                 await client.IndexAsync<MemberRecord>(senderFriendRecord, desc => desc.Routing(senderId));
-                await Notify(Enumerable.Repeat(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.Update, ItemId = senderId, Data = await CreateFriendDtoDetailed(targetFriendRecord) }, 1), user.Id, cancellationToken);
-                await Notify(Enumerable.Repeat(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.Add, ItemId = user.Id, Data = await CreateFriendDtoDetailed(senderFriendRecord) }, 1), senderId, cancellationToken);
+                await Notify(Enumerable.Repeat(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.AddOrUpdate, ItemId = senderId, Data = await CreateFriendDtoDetailed(targetFriendRecord) }, 1), user.Id, cancellationToken);
+                await Notify(Enumerable.Repeat(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.AddOrUpdate, ItemId = user.Id, Data = await CreateFriendDtoDetailed(senderFriendRecord) }, 1), senderId, cancellationToken);
             }
         }
 
@@ -287,9 +317,9 @@ namespace Stormancer.Server.Plugins.Friends
             var _ = Notify(Enumerable.Repeat(new FriendListUpdateDto
             {
                 ItemId = user.Id,
-                Operation = FriendListUpdateDtoOperation.Update,
+                Operation = FriendListUpdateDtoOperation.AddOrUpdate,
                 Data = CreateFriendDtoDetailed(config, user, online)
-            }, 1), friends.Where(f => f.Status == FriendRecordStatus.Accepted).Select(f => f.FriendId), cancellationToken);
+            }, 1), friends.Where(f => f.Status == FriendInvitationStatus.Accepted).Select(f => f.FriendId), cancellationToken);
         }
 
         public async Task Subscribe(IScenePeerClient peer, CancellationToken cancellationToken)
@@ -316,12 +346,9 @@ namespace Stormancer.Server.Plugins.Friends
                 }
                 var ctx = new GetFriendsCtx(user.Id, friends, false);
 
-                await scope.ResolveAll<IFriendsEventHandler>().RunEventHandler(h => h.OnGetFriends(ctx), ex => { _logger.Log(LogLevel.Warn, "FriendsEventHandlers", "An error occured while executing the friends event handlers", ex); });
+                await scope.ResolveAll<IFriendsEventHandler>().RunEventHandler(h => h.OnGetFriends(ctx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", "An error occured while executing the friends event handlers", ex); });
 
-
-
-                await Notify(friends.Select(friend => new FriendListUpdateDto { ItemId = friend.UserId, Operation = FriendListUpdateDtoOperation.Add, Data = friend }), user.Id, cancellationToken);
-
+                await Notify(friends.Select(friend => new FriendListUpdateDto { ItemId = friend.UserId, Operation = FriendListUpdateDtoOperation.AddOrUpdate, Data = friend }), user.Id, cancellationToken);
 
                 if (!friends.Any())
                 {
@@ -347,7 +374,7 @@ namespace Stormancer.Server.Plugins.Friends
                 }
                 var ctx = new GetFriendsCtx(userId, friends, true);
 
-                await scope.ResolveAll<IFriendsEventHandler>().RunEventHandler(h => h.OnGetFriends(ctx), ex => { _logger.Log(LogLevel.Warn, "FriendsEventHandlers", "An error occured while executing the friends event handlers", ex); });
+                await scope.ResolveAll<IFriendsEventHandler>().RunEventHandler(h => h.OnGetFriends(ctx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", "An error occured while executing the friends event handlers", ex); });
 
                 return friends;
             }
@@ -409,7 +436,7 @@ namespace Stormancer.Server.Plugins.Friends
             var client = await CreateClient<MemberRecord>();
             var result = await client.SearchAsync<MemberRecord>(rq => rq.Query(
                 q => q.Term(t => t.Field("ownerId.keyword")
-                                   .Value(userId)))
+                .Value(userId)))
                 .Routing(userId)
                 .AllowNoIndices());
 
@@ -423,16 +450,16 @@ namespace Stormancer.Server.Plugins.Friends
             }
             else
             {
-                _logger.Log(LogLevel.Error, "FriendsService.GetFriends", "an error occurred when trying to retrieve friends",
-                                   new
-                                   {
-                                       result.ApiCall.HttpMethod,
-                                       result.ApiCall.Uri,
-                                       result.ApiCall.DebugInformation,
-                                       result.ApiCall.HttpStatusCode,
-                                       requestBody = result.ApiCall.RequestBodyInBytes != null ? System.Text.Encoding.UTF8.GetString(result.ApiCall.RequestBodyInBytes) : null,
-                                       responseBody = result.ApiCall.ResponseBodyInBytes != null ? System.Text.Encoding.UTF8.GetString(result.ApiCall.ResponseBodyInBytes) : null
-                                   });
+                _logger.Log(Diagnostics.LogLevel.Error, "FriendsService.GetFriends", "an error occurred when trying to retrieve friends",
+                new
+                {
+                    result.ApiCall.HttpMethod,
+                    result.ApiCall.Uri,
+                    result.ApiCall.DebugInformation,
+                    result.ApiCall.HttpStatusCode,
+                    requestBody = result.ApiCall.RequestBodyInBytes != null ? System.Text.Encoding.UTF8.GetString(result.ApiCall.RequestBodyInBytes) : null,
+                    responseBody = result.ApiCall.ResponseBodyInBytes != null ? System.Text.Encoding.UTF8.GetString(result.ApiCall.ResponseBodyInBytes) : null
+                });
                 throw new InvalidOperationException("An error occured while searching friends", result.OriginalException);
             }
         }
@@ -452,7 +479,9 @@ namespace Stormancer.Server.Plugins.Friends
                 return new FriendListConfigRecord { Id = userId, Status = FriendListStatusConfig.Online, CustomData = null };
             }
         }
+
         public Task Notify(IEnumerable<FriendListUpdateDto> data, string userId, CancellationToken cancellationToken) => Notify(data, Enumerable.Repeat(userId, 1), cancellationToken);
+
         public async Task Notify(IEnumerable<FriendListUpdateDto> data, IEnumerable<string> userIds, CancellationToken cancellationToken)
         {
             await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
@@ -479,9 +508,222 @@ namespace Stormancer.Server.Plugins.Friends
 
         public async Task AddNonPersistedFriends(string userId, IEnumerable<Friend> friends, CancellationToken cancellationToken)
         {
+            await Notify(friends.Select(friend => new FriendListUpdateDto { ItemId = friend.UserId, Operation = FriendListUpdateDtoOperation.AddOrUpdate, Data = friend }), userId, cancellationToken);
+        }
 
-            await Notify(friends.Select(friend => new FriendListUpdateDto { ItemId = friend.UserId, Operation = FriendListUpdateDtoOperation.Add, Data = friend }), userId, cancellationToken);
+        public async Task<MemberDto?> GetRelationship(string userId, string targetUserId, CancellationToken cancellationToken)
+        {
+            var client = await CreateClient<MemberRecord>();
 
+            var result = await client.GetAsync<MemberRecord>(userId + "_" + targetUserId, desc => desc.Routing(userId));
+
+            if (result.ServerError == null)
+            {
+                return (result.Source != null ? new MemberDto(result.Source) : null);
+            }
+            else
+            {
+                throw new InvalidOperationException($"An error occured while searching relationship with {targetUserId} for user {userId}", result.OriginalException);
+            }
+        }
+
+        public async Task Block(string userId, string userIdToBlock, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new ArgumentNullException("userId");
+            }
+
+            if (string.IsNullOrWhiteSpace(userIdToBlock))
+            {
+                throw new ArgumentNullException("userIdToBlock");
+            }
+
+            if (userId == userIdToBlock)
+            {
+                throw new InvalidOperationException("Cannot block himself.");
+            }
+
+            var user = await _users.GetUser(userId);
+            var userToBlock = await _users.GetUser(userIdToBlock);
+
+            if (user == null)
+            {
+                throw new ArgumentNullException($"User with UserId {userId} not found");
+            }
+
+            if (userToBlock == null)
+            {
+                throw new ArgumentNullException($"User with UserId {userIdToBlock} not found");
+            }
+
+            var client = await CreateClient<MemberRecord>();
+
+            var result = await client.GetAsync<MemberRecord>(userId + "_" + userIdToBlock, desc => desc.Routing(userId));
+
+            if (result.ServerError != null)
+            {
+                throw new InvalidOperationException($"An error occured while searching relationship with {userIdToBlock} for user {userId}", result.OriginalException);
+            }
+
+            MemberRecord? memberRecord = (result.Found ? result.Source : null);
+
+            bool createRecord = false;
+            if (memberRecord == null)
+            {
+                memberRecord = new MemberRecord();
+                createRecord = true;
+            }
+
+            memberRecord.OwnerId = userId;
+            memberRecord.FriendId = userIdToBlock;
+            memberRecord.Status = FriendInvitationStatus.Unknow;
+            memberRecord.Roles = new List<string> { ROLE_BLOCKED };
+            memberRecord.Tags = new List<string>();
+
+            if (createRecord)
+            {
+                await client.IndexAsync(memberRecord, desc => desc.Routing(userId).Refresh(Elasticsearch.Net.Refresh.WaitFor));
+            }
+            else
+            {
+                await client.UpdateAsync<MemberRecord>(userId + "_" + userIdToBlock, desc => desc.Routing(userId).Doc(memberRecord).Refresh(Elasticsearch.Net.Refresh.WaitFor));
+            }
+
+            await Notify(Enumerable.Repeat(new FriendListUpdateDto { ItemId = userId, Operation = FriendListUpdateDtoOperation.AddOrUpdate, Data = new Friend { UserId = userIdToBlock, Status = FriendStatus.Unknow, Roles = new List<string> { ROLE_BLOCKED } } }, 1), userId, cancellationToken);
+        }
+
+        public async Task Unblock(string userId, string userIdToUnblock, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new ArgumentNullException("userId");
+            }
+
+            if (string.IsNullOrWhiteSpace(userIdToUnblock))
+            {
+                throw new ArgumentNullException("userIdToBlock");
+            }
+
+            if (userId == userIdToUnblock)
+            {
+                throw new InvalidOperationException("Cannot unblock himself.");
+            }
+
+            var user = await _users.GetUser(userId);
+            var userToUnblock = await _users.GetUser(userIdToUnblock);
+
+            if (user == null)
+            {
+                throw new ArgumentNullException($"User with UserId {userId} not found");
+            }
+
+            if (userToUnblock == null)
+            {
+                throw new ArgumentNullException($"User with UserId {userIdToUnblock} not found");
+            }
+
+            var client = await CreateClient<MemberRecord>();
+
+            var result = await client.DeleteAsync<MemberRecord>(userId + "_" + userIdToUnblock, desc => desc.Routing(userId).Refresh(Elasticsearch.Net.Refresh.WaitFor));
+
+            if (result.IsValid)
+            {
+                await Notify(Enumerable.Repeat(new FriendListUpdateDto { ItemId = userId, Operation = FriendListUpdateDtoOperation.Remove, Data = new Friend { UserId = userIdToUnblock } }, 1), userId, cancellationToken);
+            }
+            else if (result.ServerError != null)
+            {
+                throw new InvalidOperationException($"An error occured while deleting relationship with {userIdToUnblock} for user {userId}", result.OriginalException);
+            }
+        }
+
+        public async Task<Dictionary<string, IEnumerable<string>>> GetBlockedLists(IEnumerable<string> userIds, CancellationToken cancellationToken)
+        {
+            var result = new Dictionary<string, IEnumerable<string>>();
+
+            var batch = userIds.Chunk(100).SelectMany(chunk =>
+            {
+                var task = GetBlockedListsImpl(chunk, cancellationToken);
+                return chunk.Select(userId => (userId, task));
+            });
+
+            foreach (var (userId, task) in batch)
+            {
+                var taskResult = await task;
+                foreach (var kvp in taskResult)
+                {
+                    result[kvp.Key] = kvp.Value;
+                }
+            }
+
+            return result;
+        }
+
+        public async Task<Dictionary<string, IEnumerable<string>>> GetBlockedListsImpl(IEnumerable<string> userIds, CancellationToken cancellationToken)
+        {
+            if (userIds == null || !userIds.Any())
+            {
+                return new Dictionary<string, IEnumerable<string>>();
+            }
+
+            var client = await CreateClient<MemberRecord>();
+            var result = await client.MultiSearchAsync(null, rq =>
+            {
+                foreach (var userId in userIds)
+                {
+                    rq = rq.Search<MemberRecord>(s => s
+                        .Query(
+                            q => q.Bool(bq => bq
+                            .Must(
+                                qcd => qcd.Term(m => m.OwnerId, userId),
+                                qcd => qcd.Term(m => m.Roles, ROLE_BLOCKED)
+                                )
+                            )
+                        )
+                    );
+                }
+                return rq;
+            }, cancellationToken);
+
+            if (result.IsValid)
+            {
+                var dictionary = new Dictionary<string, IEnumerable<string>>();
+                var responses = result.GetResponses<MemberRecord>();
+
+                foreach (var (userId, response) in userIds.Zip(responses))
+                {
+                    dictionary[userId] = response.Documents.Select(doc => doc.FriendId);
+                }
+                return dictionary;
+            }
+            else if (result.ServerError == null || result.ServerError.Status == 404)
+            {
+                return new Dictionary<string, IEnumerable<string>>();
+            }
+            else
+            {
+                _logger.Log(Diagnostics.LogLevel.Error, "FriendsService.GetBlockedList", "an error occurred when trying to retrieve blocked users",
+                new
+                {
+                    result.ApiCall.HttpMethod,
+                    result.ApiCall.Uri,
+                    result.ApiCall.DebugInformation,
+                    result.ApiCall.HttpStatusCode,
+                    requestBody = result.ApiCall.RequestBodyInBytes != null ? System.Text.Encoding.UTF8.GetString(result.ApiCall.RequestBodyInBytes) : null,
+                    responseBody = result.ApiCall.ResponseBodyInBytes != null ? System.Text.Encoding.UTF8.GetString(result.ApiCall.ResponseBodyInBytes) : null
+                });
+                throw new InvalidOperationException("An error occured while searching friends", result.OriginalException);
+            }
+        }
+
+        public async Task<IEnumerable<string>> GetBlockedList(string userId, CancellationToken cancellationToken)
+        {
+            var result = await GetBlockedLists(new List<string> { userId }, cancellationToken);
+            if (result.TryGetValue(userId, out var blockedUserIds))
+            {
+                return blockedUserIds;
+            }
+            throw new InvalidOperationException("Invalid UserId");
         }
     }
 }

@@ -421,7 +421,17 @@ namespace Stormancer.Server.Plugins.Steam
 
         public async Task<IEnumerable<SteamFriend>> GetFriendListFromClient(string userId, uint maxFriendsCount = uint.MaxValue)
         {
-            return await _userSessions.SendRequest<IEnumerable<SteamFriend>, uint>("Steam.GetFriends", "", userId, maxFriendsCount, CancellationToken.None);
+            var result = await _userSessions.SendRequest<IEnumerable<SteamFriend>, uint>("Steam.GetFriends", "", userId, maxFriendsCount, CancellationToken.None);
+
+            if(result.Success)
+            {
+                return result.Value?? Enumerable.Empty<SteamFriend>();
+            }
+            else
+            {
+                _logger.Log(LogLevel.Warn, "steam", $"Failed to get Steam friends : '{result.Error}'", new { });
+                return Enumerable.Empty<SteamFriend>();
+            }
         }
 
         /// <summary>

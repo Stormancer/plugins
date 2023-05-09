@@ -2831,11 +2831,11 @@ namespace Stormancer
 														{
 															return that->getPartySceneByToken(connectionToken, partyId, userMetadata, ct);
 														}
-											throw std::runtime_error(PartyError::Str::StormancerClientDestroyed);
+														throw std::runtime_error(PartyError::Str::StormancerClientDestroyed);
 													});
 										}
-					throw std::runtime_error(PartyError::Str::StormancerClientDestroyed);
-									}, 1000ms, 10, [logger](const std::exception& ex)
+										throw std::runtime_error(PartyError::Str::StormancerClientDestroyed);
+									}, 1000ms, 2, [logger](const std::exception& ex)
 									{
 										logger->log(LogLevel::Error, "Party", "Join party failed", ex);
 									if (std::string(ex.what()).find("party.joinDenied") == 0)
@@ -2941,10 +2941,6 @@ namespace Stormancer
 					try
 					{
 						joinPartyTask.get();
-						if (!party->isInParty())
-						{
-							return;
-						}
 
 						party->raiseJoinedParty();
 
@@ -3039,26 +3035,7 @@ namespace Stormancer
 
 				bool isInParty() const noexcept override
 				{
-					auto party = tryGetParty();
-					if (!party)
-					{
-						return false;
-					}
-
-					auto users = _wUsers.lock();
-					if (!users)
-					{
-						return false;
-					}
-
-					auto myId = users->userId();
-					auto members = party->members();
-					auto it = std::find_if(members.begin(), members.end(), [&myId](const PartyUserDto& user)
-						{
-							return user.userId == myId;
-						});
-
-					return it != members.end();
+					return tryGetParty() != nullptr;
 				}
 
 				std::shared_ptr<Scene> getPartyScene() const override
@@ -3109,6 +3086,7 @@ namespace Stormancer
 					{
 						return *it;
 					}
+					assert(false); // Bug!
 					throw std::runtime_error(PartyError::Str::NotInParty);
 				}
 

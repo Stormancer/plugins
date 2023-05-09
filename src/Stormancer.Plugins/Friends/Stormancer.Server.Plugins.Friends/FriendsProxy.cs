@@ -19,30 +19,21 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
+using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reactive.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Stormancer.Core;
-using Stormancer.Plugins;
-using Stormancer.Server.Plugins.ServiceLocator;
-using Stormancer.Server.Plugins.Users;
 
 namespace Stormancer.Server.Plugins.Friends
 {
     class FriendsProxy : IFriendsService
     {
-
         private readonly FriendsS2SProxy proxy;
 
         public FriendsProxy(FriendsS2SProxy proxy)
         {
-
-
             this.proxy = proxy;
         }
 
@@ -51,9 +42,29 @@ namespace Stormancer.Server.Plugins.Friends
             return proxy.AddNonPersistedFriends(userId, friends, cancellationToken);
         }
 
+        public Task Block(string userId, string userIdToBlock, CancellationToken cancellationToken)
+        {
+            return proxy.Block(userId, userIdToBlock, cancellationToken);
+        }
+
+        public Task<IEnumerable<string>> GetBlockedList(string userId, CancellationToken cancellationToken)
+        {
+            return proxy.GetBlockedList(userId, cancellationToken);
+        }
+
+        public Task<Dictionary<string, IEnumerable<string>>> GetBlockedLists(IEnumerable<string> userIds, CancellationToken cancellationToken)
+        {
+            return proxy.GetBlockedLists(userIds, cancellationToken);
+        }
+
         public Task<IEnumerable<Friend>> GetFriends(string userId, CancellationToken cancellationToken)
         {
             return proxy.GetFriends(userId,cancellationToken) ;
+        }
+
+        public Task<MemberDto?> GetRelationship(string userId, string targetUserId, CancellationToken cancellationToken)
+        {
+            return proxy.GetRelationship(userId, targetUserId, cancellationToken);
         }
 
         public Task Invite(User user, User friendId, CancellationToken cancellationToken)
@@ -84,6 +95,11 @@ namespace Stormancer.Server.Plugins.Friends
         public Task Subscribe(IScenePeerClient peer, CancellationToken cancellationToken)
         {
             throw new NotSupportedException();
+        }
+
+        public Task Unblock(string userId, string userIdToUnblock, CancellationToken cancellationToken)
+        {
+            return proxy.Unblock(userId, userIdToUnblock, cancellationToken);
         }
 
         public Task Unsubscribe(IScenePeerClient peer, CancellationToken cancellationToken)

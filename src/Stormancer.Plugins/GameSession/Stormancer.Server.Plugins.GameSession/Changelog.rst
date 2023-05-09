@@ -9,6 +9,22 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Add MaxPlayersInGameSession analytics
+- Notify gameserver hosting agents when the app is not an active deployment.
+- Make sure that calling IsHost never throws, but instead returns false.
+- Don't send Teams infos to analytics
+- Add gamefinder and Parameters to analytics
+- Added the affected Players to the ReservationCancelledContext instead of only their user id.
+- P2P is now the default mode if a gameserver couldn't be located.
+
+Fixed
+*****
+- Don't wait 5s before returning PostResults response for the last player in the session.
+
 6.1.0.17
 --------
 Changed

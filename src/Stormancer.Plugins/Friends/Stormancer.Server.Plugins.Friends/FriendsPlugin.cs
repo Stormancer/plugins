@@ -19,13 +19,19 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
 using Stormancer.Core;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.ServiceLocator;
+using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Friends
 {
     class FriendsPlugin : IHostPlugin
     {
+        public const string SERVICE_ID = "stormancer.friends";
+        public const string SCENE_ID = "friends";
+        public const string TEMPLATE_ID = "friends";
         internal const string METADATA_KEY = "stormancer.friends";
 
         public void Build(HostPluginBuildContext ctx)
@@ -34,13 +40,13 @@ namespace Stormancer.Server.Plugins.Friends
             {
                 builder.Register<FriendsController>().InstancePerRequest();
                 builder.Register<FriendsS2SController>().InstancePerRequest();
+                builder.Register<FriendsSceneLocator>().As<IServiceLocatorProvider>().InstancePerRequest();
                 builder.Register<FriendsRepository>().InstancePerScene();
-               
             };
-
-            ctx.SceneDependenciesRegistration+=(IDependencyBuilder builder, ISceneHost scene)=>
+            
+            ctx.SceneDependenciesRegistration+=(IDependencyBuilder builder, ISceneHost scene) =>
             {
-                if(scene.Metadata.ContainsKey(METADATA_KEY))
+                if (scene.Metadata.ContainsKey(METADATA_KEY))
                 {
                     builder.Register<FriendsService>().As<IFriendsService>().InstancePerScene();
                 }
@@ -50,13 +56,25 @@ namespace Stormancer.Server.Plugins.Friends
                 }
             };
 
+            ctx.HostStarting += (IHost host) =>
+            {
+                host.AddSceneTemplate(TEMPLATE_ID, (ISceneHost sceneHost) =>
+                {
+                    sceneHost.AddFriends();
+                });
+            };
+
+            ctx.HostStarted += (IHost host) =>
+            {
+                host.EnsureSceneExists(SCENE_ID, TEMPLATE_ID, false, true);
+            };
+
             ctx.SceneCreated += (ISceneHost scene) =>
             {
                 if (scene.Metadata.ContainsKey(METADATA_KEY))
                 {
                     scene.AddController<FriendsController>();
                     scene.AddController<FriendsS2SController>();
-                    
                 }
             };
 
@@ -67,6 +85,22 @@ namespace Stormancer.Server.Plugins.Friends
                     scene.DependencyResolver.Resolve<IFriendsService>();
                 }
             };
+        }
+    }
+
+    class FriendsSceneLocator : IServiceLocatorProvider
+    {
+        public Task LocateService(ServiceLocationCtx ctx)
+        {
+            switch (ctx.ServiceType)
+            {
+                case FriendsPlugin.SERVICE_ID:
+                    ctx.SceneId = FriendsPlugin.SCENE_ID;
+                    break;
+                default:
+                    break;
+            }
+            return Task.CompletedTask;
         }
     }
 }
