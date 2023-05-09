@@ -50,16 +50,25 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// <summary>
         /// The maximum CPU time ratio a game server in the pool can use.
         /// </summary>
+        /// <remarks>
+        /// Default value : 0.5
+        /// </remarks>
         public float cpuLimit { get; set; } = 0.5f;
 
         /// <summary>
         /// The maximum physical memory a game server in the pool can use.
         /// </summary>
+        /// <remarks>
+        /// Default value : 300MB
+        /// </remarks>
         public long memoryLimit { get; set; } = 300 * 1024 * 1024;
 
         /// <summary>
         /// The CPU time ratio reserved for a game server.
         /// </summary>
+        /// <remarks>
+        /// Default value : 0.5
+        /// </remarks>
         public float reservedCpu { get; set; } = 0.5f;
 
         /// <summary>
@@ -67,8 +76,31 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// </summary>
         /// <remarks>
         /// Reserved memory should be lower or equal to memoryLimit.
+        /// Default value : 300MB
         /// </remarks>
         public int reservedMemory { get; set; } = 300 * 1024 * 1024;
+
+      
+        /// <summary>
+        /// Configuration of the game server crash report system.
+        /// </summary>
+        public CrashReportConfiguration CrashReportConfiguration { get; set; } = new CrashReportConfiguration();
+
+    }
+
+    public class CrashReportConfiguration
+    {
+        public bool Enabled { get; set; } = false;
+        /// <summary>
+        /// List of additional files in the container that should be bundled in the crash dump archive
+        /// </summary>
+        public IEnumerable<string> AdditionalContainerFiles { get; set; } = Enumerable.Empty<string>();
+
+        /// <summary>
+        /// Includes
+        /// </summary>
+        public bool IncludeOutput { get; set;} = true;
+        public bool IncludeDump { get; set; } = true;
     }
 
     internal class GameServerAgentConfiguration : IConfigurationChangedEventHandler

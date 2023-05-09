@@ -17,6 +17,7 @@ Fixed
 - Fix typo that could prevent steam users from joining parties.
 - Always remove party from index on shutdown.
 - Also consider the players whose connection is currently being validated when checking for max member count.
+- Fix to concurrency issues
 
 5.0.0.2
 -------

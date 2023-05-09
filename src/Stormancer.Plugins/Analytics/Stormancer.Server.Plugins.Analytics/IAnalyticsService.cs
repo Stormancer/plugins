@@ -48,6 +48,7 @@ namespace Stormancer.Server.Plugins.Analytics
         /// <param name="document"></param>
         void Push(AnalyticsDocument document);
 
+
         /// <summary>
         /// Flushes the documents currently waiting for save.
         /// </summary>

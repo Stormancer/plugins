@@ -58,7 +58,7 @@ namespace Stormancer.Server.Plugins.GameVersion
             {
                 return Task.CompletedTask;
             }
-            //Don't control the gameversion on "services" clients. Services clients include gameserver hosting agents.
+            //Don't control the game version on "services" clients. Services clients include game server hosting agents.
             if(authenticationCtx.Context is string type && type == "service")
             {
                 return Task.CompletedTask;
@@ -91,7 +91,7 @@ namespace Stormancer.Server.Plugins.GameVersion
             else
             {
                 authenticationCtx.HasError = true;
-                authenticationCtx.Reason = $"badGameVersion?absent&serverVersion={serverVersion}";
+                authenticationCtx.Reason = $"badGameVersion?absentClientVersion&serverVersion={serverVersion}";
                 _logger.Log(LogLevel.Trace, "GameVersion", "Client tried to connect without game version.", new { serverVersion });
             }
 

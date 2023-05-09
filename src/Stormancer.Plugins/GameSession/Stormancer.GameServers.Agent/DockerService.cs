@@ -164,7 +164,8 @@ namespace Stormancer.GameServers.Agent
             long memoryLimit,
             float cpuLimit,
             long reservedMemory,
-            float reservedCpu)
+            float reservedCpu,
+            CancellationToken cancellationToken)
         {
             ServerContainer serverContainer;
             lock (_lock)
@@ -241,7 +242,8 @@ namespace Stormancer.GameServers.Agent
 
                         Memory = memoryLimit,
                         CPUPeriod = 100000,
-                        CPUQuota = (long)(100000 * cpuLimit)
+                        CPUQuota = (long)(100000 * cpuLimit),
+                        Ulimits = new List<Ulimit> { new Ulimit { Name = "core", Hard = -1, Soft = -1 } }
 
                     },
 
@@ -249,11 +251,13 @@ namespace Stormancer.GameServers.Agent
                     ExposedPorts = new Dictionary<string, EmptyStruct> { { portReservation.Port + "/udp", new EmptyStruct() } },
                     Env = environmentVariables.Select(kvp => $"{kvp.Key}={kvp.Value}").ToList(),
 
+
                 };
 
                 _logger.Log(LogLevel.Information, "Creating docker container from image {image}.", image);
 
                 var response = await _docker.Containers.CreateContainerAsync(parameters);
+
 
                 _logger.Log(LogLevel.Information, "Starting docker container {id} from image {image}.", response.ID, image);
 
@@ -497,6 +501,7 @@ namespace Stormancer.GameServers.Agent
 
                         _logger.Log(LogLevel.Information, "Docker container {id} stopped.", value.ID);
 
+
                         this.OnContainerStateChanged?.Invoke(new ServerContainerStateChange { Container = server, Status = ContainerEventType.Stop });
                         _messager.PostServerStoppedMessage(server);
 
@@ -512,6 +517,19 @@ namespace Stormancer.GameServers.Agent
             }
         }
 
+        async Task<long> GetStatusCode(string containerId)
+        {
+
+            var inspectResult = await _docker.Containers.InspectContainerAsync(containerId);
+            return inspectResult.State.ExitCode;
+
+        }
+
+        public Task<GetArchiveFromContainerResponse> GetContainerFile(string containerId, string path, CancellationToken cancellationToken)
+        {
+            return _docker.Containers.GetArchiveFromContainerAsync(containerId, new GetArchiveFromContainerParameters { Path = path }, true, cancellationToken);
+
+        }
         internal async Task<AgentStatus> GetStatus()
         {
             try

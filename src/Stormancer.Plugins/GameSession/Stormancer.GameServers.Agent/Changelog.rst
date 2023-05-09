@@ -18,6 +18,10 @@ Changed
 - Support more than 8Gb of total reservable memory.
 - Add code to also reconnect to the serverpools scene on server reconnect.
 
+Fixed
+*****
+- List containers now returns properly living containers managed by the agent.
+
 0.2.0
 -----
 Added
