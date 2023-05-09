@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+7.1.0
+-----
+Changed
+*******
+- Use latest version of MemoryCache, improve performance by using SessionId instead of string as cache key.
+
 7.0.1.2
 -------
 Changed

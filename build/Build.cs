@@ -130,14 +130,25 @@ class Build : NukeBuild
     .Executes(async () =>
     {
         await StartDiscord();
-        foreach (var project in Solution.AllProjects.Where(p => !p.Name.StartsWith("_") && !p.Name.Contains("TestApp")))
+        foreach (var project in Solution.AllProjects.Where(p => !p.Name.StartsWith("_") && !p.Name.Contains("Test") && !p.Name.Contains("sample", StringComparison.InvariantCultureIgnoreCase)))
         {
             var changelogFile = Path.Combine(project.Directory, "Changelog.rst");
 
             var changeLog = Stormancer.Build.ChangeLog.ReadFrom(changelogFile);
             if (changeLog == null)
             {
-                await _channel.SendMessageAsync($"*[{BuildType} {Configuration}]* Publish skipped for `{project.Name}`. No changelog found.");
+                for (var i = 0; i < 2; i++)
+                {
+                    try
+                    {
+                        await _channel.SendMessageAsync($"*[{BuildType} {Configuration}]* Publish skipped for `{project.Name}`. No changelog found.");
+                        break;
+                    }
+                    catch (Exception)
+                    {
+                        await Task.Delay(500);
+                    }
+                }
                 continue;
             }
 

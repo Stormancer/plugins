@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Company>Stormancer</Company>
+		<Authors>Stormancer</Authors>
+		<Version>0.2.0</Version>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<Description>Manages a docker daemon to run gameservers for Stormancer gamesessions.</Description>
+		<PackageReadmeFile>Readme.md</PackageReadmeFile>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<Deterministic>true</Deterministic>
+		<PackAsTool>true</PackAsTool>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<IsPackable>true</IsPackable>
+		
+	</PropertyGroup>
+	<PropertyGroup>
+		<PackageIcon>icon.png</PackageIcon>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
+	</ItemGroup>
+	<ItemGroup>
+		<None Include="docs\Readme.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
+		<Version>$(Version)-pre</Version>
+	</PropertyGroup>
+	
+	<ItemGroup>
+		<Compile Include="..\Stormancer.Server.Plugins.GameSession\Dto\HostingAgentDtos.cs" Link="HostingAgentDtos.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Docker.DotNet" Version="3.125.12" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="jose-jwt" Version="4.1.0" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
+		<PackageReference Include="Stormancer.Client" Version="3.4.4.3" />
+		<PackageReference Include="System.Linq.Async" Version="6.0.1" />
+	</ItemGroup>
+</Project>

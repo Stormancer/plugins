@@ -25,7 +25,7 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Party.Model
 {
-    internal class Invitation
+    public class Invitation
     {
         public Invitation(string platformName, CancellationToken invitationRequestToken)
         {

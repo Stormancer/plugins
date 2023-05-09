@@ -5,7 +5,7 @@
 #include "users/Users.hpp"
 #include "party/Party.hpp"
 #include "gameFinder/GameFinder.hpp"
-#include "gameSession/Gamesessions.hpp"
+#include "gameSession/Gamesession.hpp"
 #include "gameSession/ServerPools.hpp"
 
 #include "stormancer/IActionDispatcher.h"
@@ -102,7 +102,7 @@ static pplx::task<std::string> CreateGameImpl(int id)
 	//>  host.AddGamefinder("matchmaking", "matchmaking");
 
 	return users->login().then([party]() {
-		Stormancer::Party::PartyRequestDto request;
+		Stormancer::Party::PartyCreationOptions request;
 		request.GameFinderName = "joingame-test";
 		return party->createPartyIfNotJoined(request);
 		})

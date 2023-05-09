@@ -135,9 +135,12 @@ namespace Stormancer.Server.Plugins.Galaxy
                                 data["platforms"]![GalaxyConstants.PLATFORM_NAME] = new JObject();
                                 data["platforms"]![GalaxyConstants.PLATFORM_NAME]![GalaxyConstants.GALAXYID_CLAIMPATH] = galaxyId;
 
-                                if (userInfos.TryGetValue(galaxyId, out var value))
+                                if (user.LastPlatform == GalaxyConstants.PLATFORM_NAME)
                                 {
-                                    data["pseudo"] = value.username;
+                                    if (userInfos.TryGetValue(galaxyId, out var value))
+                                    {
+                                        data["pseudo"] = value.username;
+                                    }
                                 }
 
                                 return data;

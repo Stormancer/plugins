@@ -39,14 +39,78 @@ namespace Stormancer.Server.Plugins.Party
         /// The party creation request parameters.
         /// </summary>
         public PartyRequestDto PartyRequest { get; }
-        public bool Accept { get; set; }
-        public string ErrorMessage { get; set; }
 
-        public PartyCreationContext(PartyRequestDto partyRequest)
+        /// <summary>
+        /// Gets or sets a value indicating whether party creation must succeed or fail.
+        /// </summary>
+        public bool Accept { get; set; }
+
+        /// <summary>
+        /// Custom error message to use of party creation is denied.
+        /// </summary>
+        public string? ErrorMessage { get; set; }
+
+        internal PartyCreationContext(PartyRequestDto partyRequest)
         {
             PartyRequest = partyRequest;
             Accept = true;
         }
+    }
+
+    /// <summary>
+    /// List of circonstances that can trigger a status reset
+    /// </summary>
+    public enum PartyMemberReadyStateResetEventType
+    {
+        /// <summary>
+        /// The party settings were updated by the party leader.
+        /// </summary>
+        PartySettingsUpdated = 1,
+
+        /// <summary>
+        /// The data associated with a party member were updated.
+        /// </summary>
+        PartyMemberDataUpdated = 2,
+
+        /// <summary>
+        /// The member list in the party was updated.
+        /// </summary>
+        PartyMembersListUpdated = 4,
+
+    }
+
+    /// <summary>
+    /// Context for <see cref="IPartyEventHandler.OnPlayerReadyStateReset(PartyMemberReadyStateResetContext)"/>
+    /// </summary>
+    public class PartyMemberReadyStateResetContext
+    {
+
+        internal PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType eventType, ISceneHost scene)
+        {
+            PartyScene = scene;
+            EventType = eventType;
+            ShouldReset = true;
+        }
+
+        /// <summary>
+        /// Circonstance that triggered the event.
+        /// </summary>
+        public PartyMemberReadyStateResetEventType EventType { get; set; }
+
+        /// <summary>
+        /// Gets or sets a boolean value indicating whether the ready status should be reset.
+        /// </summary>
+        public bool ShouldReset { get; set; } = true;
+
+        /// <summary>
+        /// Party scene that triggered the event.
+        /// </summary>
+        public ISceneHost PartyScene { get; set; }
+
+        /// <summary>
+        /// Party the event
+        /// </summary>
+        public IPartyService Party => PartyScene.DependencyResolver.Resolve<IPartyService>();
     }
 
     public class PartySettingsUpdateCtx
@@ -99,14 +163,22 @@ namespace Stormancer.Server.Plugins.Party
         /// </summary>
         public string? Reason { get; set; }
 
-        internal JoiningPartyContext(IPartyService party, Session session, int slots)
+        /// <summary>
+        /// Gets the user data provided by the client.
+        /// </summary>
+        public byte[] UserData { get; }
+        internal JoiningPartyContext(IPartyService party, Session session, int slots, byte[] userData)
         {
             Party = party;
             Session = session;
             TotalOccupiedSlots = slots;
+            UserData = userData;
         }
     }
 
+    /// <summary>
+    /// Context object for the <see cref="IPartyEventHandler.OnJoinDenied(JoinDeniedContext)"/> event.
+    /// </summary>
     public class JoinDeniedContext
     {
         public IPartyService Party { get; }
@@ -120,15 +192,30 @@ namespace Stormancer.Server.Plugins.Party
         }
     }
 
+    /// <summary>
+    /// Context object for the <see cref="IPartyEventHandler.OnJoined(JoinedPartyContext)"/> event.
+    /// </summary>
     public class JoinedPartyContext
     {
+        /// <summary>
+        /// Gets the party the event originates from.
+        /// </summary>
         public IPartyService Party { get; }
+
+        /// <summary>
+        /// Gets the Session object of the user who joined the party.
+        /// </summary>
         public Session Session { get; }
 
-        internal JoinedPartyContext(IPartyService party, Session session)
+        /// <summary>
+        /// Gets or sets user data stored with the member.
+        /// </summary>
+        public byte[] UserData { get; set; }
+        internal JoinedPartyContext(IPartyService party, Session session, byte[] userData)
         {
             Party = party;
             Session = session;
+            UserData = userData;
         }
     }
 
@@ -153,14 +240,38 @@ namespace Stormancer.Server.Plugins.Party
 
     public class PlayerReadyStateContext
     {
+        public ISceneHost PartyScene { get; }
         public IPartyService Party { get; }
         public PartyMember Member { get; }
         public GameFinderRequestPolicy GameFinderPolicy { get; set; } = GameFinderRequestPolicy.StartWhenAllMembersReady;
 
-        internal PlayerReadyStateContext(IPartyService party, PartyMember user)
+        internal PlayerReadyStateContext(IPartyService party, PartyMember user, ISceneHost scene)
         {
             Party = party;
             Member = user;
+            PartyScene = scene;
+        }
+    }
+
+    public class UpdatingPlayerReadyStateContext
+    {
+        public ISceneHost PartyScene { get; }
+        public IPartyService Party { get; }
+        public PartyMember Member { get; }
+        public GameFinderRequestPolicy GameFinderPolicy { get; set; } = GameFinderRequestPolicy.StartWhenAllMembersReady;
+
+
+        /// <summary>
+        /// Set to false to refuse the ready state update.
+        /// </summary>
+        public bool Accept { get; set; } = true;
+        public string ErrorId { get; set; } = string.Empty;
+
+        internal UpdatingPlayerReadyStateContext(IPartyService party, PartyMember user, ISceneHost scene)
+        {
+            Party = party;
+            Member = user;
+            PartyScene = scene;
         }
     }
 
@@ -185,6 +296,51 @@ namespace Stormancer.Server.Plugins.Party
         }
     }
 
+    /// <summary>
+    /// Context object used by <see cref="IPartyEventHandler.OnUpdatingPartyMemberData(UpdatingPartyMemberDataContext)"/>
+    /// </summary>
+    public class UpdatingPartyMemberDataContext
+    {
+        internal UpdatingPartyMemberDataContext(PartyMember member, byte[] newData, ISceneHost scene)
+        {
+            PartyScene = scene;
+            PartyMember = member;
+            NewUserData = newData;
+        }
+        /// <summary>
+        /// The current party member to update.
+        /// </summary>
+        public PartyMember PartyMember { get; }
+
+        /// <summary>
+        /// Gets or sets the new content that should replace the current party member data.
+        /// </summary>
+        public byte[] NewUserData { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating wether the update should happen or be denied.
+        /// </summary>
+        public bool IsUpdateValid { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets an optional error message to use if the update is denied.
+        /// </summary>
+        public string? Error { get; set; }
+
+        /// <summary>
+        /// Gets the scene of the party.
+        /// </summary>
+        public ISceneHost PartyScene { get; }
+
+        /// <summary>
+        /// Gets the party service.
+        /// </summary>
+        public IPartyService Party => PartyScene.DependencyResolver.Resolve<IPartyService>();
+    }
+
+    /// <summary>
+    /// Extensibility contract for parties
+    /// </summary>
     public interface IPartyEventHandler
     {
         /// <summary>
@@ -271,6 +427,24 @@ namespace Stormancer.Server.Plugins.Party
         Task OnQuit(QuitPartyContext ctx);
 
         /// <summary>
+        /// Event fired when the custom data associated with a member are updating
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <remarks>
+        /// This event enables validating the data an denying the change.
+        /// </remarks>
+        /// <returns></returns>
+        Task OnUpdatingPartyMemberData(UpdatingPartyMemberDataContext ctx) => Task.CompletedTask;
+
+
+        /// <summary>
+        /// Fired before setting a player as ready (or NotReady) from the client. This can be used to validate player custom data before setting them as ready.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task OnUpdatingPlayerReadyState(UpdatingPlayerReadyStateContext ctx) => Task.CompletedTask;
+       
+        /// <summary>
         /// Fired when a member updates their party status (ready/not ready).
         /// </summary>
         /// <remarks>
@@ -281,6 +455,15 @@ namespace Stormancer.Server.Plugins.Party
         /// </remarks>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        Task OnPlayerReadyStateChanged(PlayerReadyStateContext ctx);
+        Task OnPlayerReadyStateChanged(PlayerReadyStateContext ctx) => Task.CompletedTask;
+
+        /// <summary>
+        /// Event fired when the ready status of a player will be automatically reset to NotReady. 
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <remarks>An handler code can prevent the reset from occuring by setting <see cref="PartyMemberReadyStateResetContext.ShouldReset"/> to false.</remarks>
+        /// <returns></returns>
+        Task OnPlayerReadyStateReset(PartyMemberReadyStateResetContext ctx) => Task.CompletedTask;
+        
     }
 }

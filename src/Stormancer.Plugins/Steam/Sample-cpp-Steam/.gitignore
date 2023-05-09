@@ -1,0 +1,14 @@
+# Directories
+Prospero_Debug/*
+Prospero_Release/*
+
+# File extensions
+*.user
+*.elf
+*.prx
+*.bin
+*.naps_metric.json
+*.pkg
+
+# Files
+GameProductConfig.h

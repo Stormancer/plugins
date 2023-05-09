@@ -36,13 +36,13 @@ namespace Stormancer.Server.Plugins
     /// Represents a simple memory cache.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class MemoryCache<T> : IDisposable where T : class
+    public class MemoryCache<TKey, T> : IDisposable where T : class where TKey : notnull
     {
         private class CacheEntry
         {
-            public CacheEntry(string id, Task<T?> content, DateTime expiresOn, Action<string> onInvalidated)
+            public CacheEntry(TKey id, Task<T?> content, DateTime expiresOn, Action<TKey> onInvalidated)
             {
-                async Task<T?> GetContent(Task<T?> c, Action<string> invalidate)
+                async Task<T?> GetContent(Task<T?> c, Action<TKey> invalidate)
                 {
                     try
                     {
@@ -71,9 +71,9 @@ namespace Stormancer.Server.Plugins
                 OnInvalidated = onInvalidated;
             }
 
-            public CacheEntry(string id, Task<(T?, TimeSpan)> content, Action<string> onInvalidated)
+            public CacheEntry(TKey id, Task<(T?, TimeSpan)> content, Action<TKey> onInvalidated)
             {
-                async Task<T?> GetContent(Task<(T?, TimeSpan)> c, Action<string> invalidate)
+                async Task<T?> GetContent(Task<(T?, TimeSpan)> c, Action<TKey> invalidate)
                 {
                     try
                     {
@@ -105,33 +105,37 @@ namespace Stormancer.Server.Plugins
             public Task<T?> Content { get; }
             public DateTime CreatedOn { get; }
             public DateTime? ExpiresOn { get; private set; }
-            public string Id { get; }
-            public Action<string> OnInvalidated { get; }
+            public TKey Id { get; }
+            public Action<TKey> OnInvalidated { get; }
         }
 
         private object _syncRoot = new object();
 
-        Dictionary<string, CacheEntry> cache = new Dictionary<string, CacheEntry>();
-      
-        private PeriodicTimer _timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+        Dictionary<TKey, CacheEntry> cache = new Dictionary<TKey, CacheEntry>();
+        private readonly PeriodicTimer _timer;
 
         /// <summary>
         /// Creates the memory cache.
         /// </summary>
         public MemoryCache()
         {
+
+            _timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
             Task.Run(async () =>
             {
 
                 while (await _timer.WaitForNextTickAsync())
                 {
+                    KeyValuePair<TKey, CacheEntry>[] copy;
+                    lock (_syncRoot)
+                    {
+                        copy = cache.Where(kvp => (kvp.Value.ExpiresOn ?? DateTime.MaxValue) < DateTime.UtcNow).ToArray();
+                    }
 
-
-                    foreach (var entry in cache.Where(kvp => (kvp.Value.ExpiresOn ?? DateTime.MaxValue) < DateTime.UtcNow).ToArray())
+                    foreach (var entry in copy)
                     {
                         entry.Value.OnInvalidated(entry.Key);
                     }
-                   ;
 
                 }
             });
@@ -145,7 +149,7 @@ namespace Stormancer.Server.Plugins
         /// <param name="addFunction"></param>
         /// <param name="invalidationDelay"></param>
         /// <returns></returns>
-        public async Task<T?> Get(string id, Func<string, Task<T?>> addFunction, TimeSpan invalidationDelay)
+        public async Task<T?> Get(TKey id, Func<TKey, Task<T?>> addFunction, TimeSpan invalidationDelay)
         {
             CacheEntry? entry;
             lock (_syncRoot)
@@ -167,11 +171,11 @@ namespace Stormancer.Server.Plugins
         /// <param name="value"></param>
         /// <param name="expiresOn">Date d'expiration de l'entrée. Can be null if the task didn't complete yet.</param>
         /// <returns></returns>
-        public bool TryPeek(string id, [NotNullWhen(true)] out Task<T?>? value, out DateTime? expiresOn)
+        public bool TryPeek(TKey id, [NotNullWhen(true)] out Task<T?>? value, out DateTime? expiresOn)
         {
             lock (_syncRoot)
             {
-                if (cache.TryGetValue(id, out var entry) && (entry.ExpiresOn == null || entry.ExpiresOn > DateTime.UtcNow))
+                if (cache.TryGetValue(id, out var entry) && entry.ExpiresOn != null && entry.ExpiresOn >= DateTime.UtcNow)
                 {
                     expiresOn = entry.ExpiresOn;
                     value = entry.Content;
@@ -186,20 +190,36 @@ namespace Stormancer.Server.Plugins
             }
         }
 
+
+        public async Task<T?> Get(TKey id, Func<TKey, Task<(T?, TimeSpan)>> addFunction)
+        {
+            CacheEntry? entry;
+            lock (_syncRoot)
+            {
+                if (!cache.TryGetValue(id, out entry) || entry.ExpiresOn == null || entry.ExpiresOn < DateTime.UtcNow)
+                {
+                    entry = new CacheEntry(id, addFunction(id), (i) => Remove(i));
+                    cache[id] = entry;
+                }
+            }
+
+            return await entry.Content;
+        }
         /// <summary>
         /// Gets from the cache or update a cached value.
         /// </summary>
         /// <param name="id"></param>
         /// <param name="addFunction"></param>
+        /// <param name="state"></param>
         /// <returns></returns>
-        public async Task<T?> Get(string id, Func<string, Task<(T?, TimeSpan)>> addFunction)
+        public async Task<T?> Get<TState>(TKey id, Func<TKey, TState, Task<(T?, TimeSpan)>> addFunction, TState state)
         {
             CacheEntry? entry;
             lock (_syncRoot)
             {
-                if (!cache.TryGetValue(id, out entry) || (entry.ExpiresOn != null && entry.ExpiresOn < DateTime.UtcNow))
+                if (!cache.TryGetValue(id, out entry) || entry.ExpiresOn == null || entry.ExpiresOn < DateTime.UtcNow)
                 {
-                    entry = new CacheEntry(id, addFunction(id), (i) => Remove(i));
+                    entry = new CacheEntry(id, addFunction(id, state), (i) => Remove(i));
                     cache[id] = entry;
                 }
             }
@@ -213,15 +233,15 @@ namespace Stormancer.Server.Plugins
         /// <param name="ids"></param>
         /// <param name="addFunction"></param>
         /// <returns></returns>
-        public Dictionary<string, Task<T?>> GetMany(IEnumerable<string> ids, Func<IEnumerable<string>, Dictionary<string, Task<(T?, TimeSpan)>>> addFunction)
+        public Dictionary<TKey, Task<T?>> GetMany(IEnumerable<TKey> ids, Func<IEnumerable<TKey>, Dictionary<TKey, Task<(T?, TimeSpan)>>> addFunction)
         {
-            var results = new Dictionary<string, Task<T?>>();
+            var results = new Dictionary<TKey, Task<T?>>();
             lock (_syncRoot)
             {
-                var unknownIds = new List<string>();
+                var unknownIds = new List<TKey>();
                 foreach (var id in ids)
                 {
-                    if (cache.TryGetValue(id, out var entry) && (entry.ExpiresOn == null || entry.ExpiresOn > DateTime.UtcNow))
+                    if (cache.TryGetValue(id, out var entry) && entry.ExpiresOn != null && entry.ExpiresOn >= DateTime.UtcNow)
                     {
                         results.Add(id, entry.Content);
                     }
@@ -251,7 +271,7 @@ namespace Stormancer.Server.Plugins
         /// Removes an entry from the cache.
         /// </summary>
         /// <param name="id"></param>
-        public void Remove(string id)
+        public void Remove(TKey id)
         {
             lock (_syncRoot)
             {

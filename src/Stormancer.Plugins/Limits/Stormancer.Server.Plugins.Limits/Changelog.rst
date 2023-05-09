@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+0.2.0.2
+----------
+Changed
+*******
+- Update MemoryCache implementation
+
 0.2.0.1
 ----------
 Changed

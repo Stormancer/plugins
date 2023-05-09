@@ -5,7 +5,7 @@
 #include "users/Users.hpp"
 #include "party/Party.hpp"
 #include "gameFinder/GameFinder.hpp"
-#include "gameSession/Gamesessions.hpp"
+#include "gameSession/Gamesession.hpp"
 
 #include "stormancer/IActionDispatcher.h"
 #include "stormancer/IClientFactory.h"
@@ -47,7 +47,7 @@ static pplx::task<bool> JoinGameImpl(int id)
 
 
 
-	Stormancer::Party::PartyRequestDto request;
+	Stormancer::Party::PartyCreationOptions request;
 	request.GameFinderName = "disable-direct-connection-test";
 	//Name of the matchmaking, defined in Stormancer.Server.TestApp/TestPlugin.cs.
 	//>  host.AddGamefinder("matchmaking", "matchmaking");

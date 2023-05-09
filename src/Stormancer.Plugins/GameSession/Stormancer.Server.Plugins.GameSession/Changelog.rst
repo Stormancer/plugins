@@ -9,6 +9,26 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+6.1.0.17
+--------
+Changed
+********
+- Updated dependency to Stormancer.Abstractions.Server to 9.2
+- Docker: Support pulling from dockerHub
+- Docker: Use host network mode on Linux
+
+Added
+*****
+- Added IsPersistentServer configuration to set wether the server of a gamesession should be stopped and the scene destroyed when the last player disconnects.
+- Added More analytics
+- Added Agent based game server hosting for better robustness and flexibility.
+
+6.0.2
+-----
+Added
+*****
+- Added a new Analytics event (type 'gamessesion', category 'started') to gamesessions.
+
 6.0.1.1
 -------
 Added

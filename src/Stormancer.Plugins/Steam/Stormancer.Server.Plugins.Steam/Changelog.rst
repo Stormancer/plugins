@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+4.1.3
+-----
+Changed
+*******
+- Add compatibility to Stormancer.Server.Plugins.Party 5.0.0
+
 4.1.2.10
 ----------
 Changed

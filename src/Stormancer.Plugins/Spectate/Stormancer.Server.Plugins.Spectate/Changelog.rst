@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+0.3.1
+-----
+Fixed
+*****
+- Don't send null as the filter to Send.
+
 0.3.0
 ----------
 Changed

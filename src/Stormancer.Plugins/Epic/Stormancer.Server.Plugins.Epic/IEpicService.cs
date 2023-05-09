@@ -31,6 +31,6 @@ namespace Stormancer.Server.Plugins.Epic
         /// <param name="identityProviderId"></param>
         /// <param name="environment"></param>
         /// <returns></returns>
-        Task<Dictionary<string, string?>> GetExternalAccounts(string requestorUserId, IEnumerable<string> externalAccountIds, string identityProviderId = "epicgames", string? environment = null);
+        Task<Dictionary<string, string?>> GetExternalAccounts(IEnumerable<string> externalAccountIds, string identityProviderId = "epicgames", string? environment = null);
     }
 }

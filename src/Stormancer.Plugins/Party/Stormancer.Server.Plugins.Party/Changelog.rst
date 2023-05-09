@@ -9,6 +9,22 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+5.0.0.2
+-------
+Changed
+*******
+- Send IndexedDocument as part of party updated events.
+- Add configuration and event handler extensibility points to control when ready state is reset, validate ready state changes and user data updates.
+- Parties are now destroyed immediatly after the last player left to prevent players from joining afterwards.
+- UpdateSettings method now takes a PartyState object as lambda argument.
+- PartyUpdateDto new takes a PartyState object as lambda argument.
+- Automatically destroy scene when last player disconnects.
+
+Added
+*****
+- Add arguments to set member data on party creation or on joining.
+
+
 4.3.1.13
 --------
 Added

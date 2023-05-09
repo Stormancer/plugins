@@ -103,13 +103,16 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// Creates a <see cref="PartySettingsDto"/> object.
         /// </summary>
         /// <param name="config"></param>
-        public PartySettingsDto(PartyConfiguration config)
+        /// <param name="partyState"></param>
+        public PartySettingsDto(PartyState partyState)
         {
+            var config = partyState.Settings;
             GameFinderName = config.GameFinderName;
             CustomData = config.CustomData;
             OnlyLeaderCanInvite = config.OnlyLeaderCanInvite;
             IsJoinable = config.IsJoinable;
             PublicServerData = config.PublicServerData.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            IndexedDocument = partyState.SearchDocument?.ToString()??string.Empty;
         }
 
         /// <summary>
@@ -188,6 +191,13 @@ namespace Stormancer.Server.Plugins.Party.Dto
         [MessagePackMember(5)]
         public Dictionary<string, string> PublicServerData { get; set; } = new Dictionary<string, string>();
 
+
+        /// <summary>
+        /// Json document used as a source to index the party in the in memory database for querying.
+        /// </summary>
+        [MessagePackMember(6)]
+        public string IndexedDocument { get; set; }
+
         internal PartySettingsUpdateDto(PartyState state)
         {
             GameFinderName = state.Settings.GameFinderName;
@@ -196,6 +206,7 @@ namespace Stormancer.Server.Plugins.Party.Dto
             OnlyLeaderCanInvite = state.Settings.OnlyLeaderCanInvite;
             IsJoinable = state.Settings.IsJoinable;
             PublicServerData = state.Settings.PublicServerData;
+            IndexedDocument = state.SearchDocument?.ToString()??string.Empty;
         }
 
         public PartySettingsUpdateDto()

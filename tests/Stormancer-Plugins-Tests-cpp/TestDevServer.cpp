@@ -6,7 +6,7 @@
 #include "party/Party.hpp"
 #include "Profile/Profile.hpp"
 #include "gameFinder/GameFinder.hpp"
-#include "gameSession/Gamesessions.hpp"
+#include "gameSession/Gamesession.hpp"
 #include "gameSession/ServerPools.hpp"
 
 #include "stormancer/IActionDispatcher.h"
@@ -85,7 +85,7 @@ static pplx::task<bool> JoinGameImpl(int id)
 
 
 
-	Stormancer::Party::PartyRequestDto request;
+	Stormancer::Party::PartyCreationOptions request;
 	request.GameFinderName = "server-test";
 	//Name of the matchmaking, defined in Stormancer.Server.TestApp/TestPlugin.cs.
 	//>  host.AddGamefinder("matchmaking", "matchmaking");

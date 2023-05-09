@@ -209,7 +209,7 @@ namespace Stormancer.Server.Plugins.Epic
         private readonly IUserSessions _userSessions;
         private readonly ISerializer _serializer;
         private readonly IEpicService _epicService;
-        private static MemoryCache<KeyCollectionResponse> _keysCache = new MemoryCache<KeyCollectionResponse>();
+        private static MemoryCache<string,KeyCollectionResponse> _keysCache = new MemoryCache<string,KeyCollectionResponse>();
 
         public EpicAuthenticationProvider(IUserService users, ILogger logger, IConfiguration configuration, IHttpClientFactory httpClientFactory, IEpicService epicService, IUserSessions userSessions, ISerializer serializer)
         {

@@ -4,7 +4,7 @@ Epic
 # DevAuth
 
 To auth with a normal account :
-- Set the Stormancer client configuration key `LoginMode` to `AccountPortal`
+- Set the Stormancer client configuration key `LoginMode` to `ExchangeCode`
 
 To auth with a dev account :
 - Download the [Epic EOS SDK](https://dev.epicgames.com/portal)
@@ -18,6 +18,9 @@ To auth with a dev account :
 - Set the Stormancer client configuration key `LoginMode` to `DevAuth`
 - Set the Stormancer client configuration key `DevAuthHost` to `localhost:4567`
 - Set the Stormancer client configuration key `DevAuthCredentialsName` to `dev1`
+
+In the final game, you must get an exchange code from the game process launch argument `AUTH_PASSWORD` (argv).  
+Format : `-AUTH_LOGIN=unused -AUTH_PASSWORD=<password> -AUTH_TYPE=exchangecode -epicapp=<appid> -epicenv=Prod -EpicPortal  -epicusername=<username> -epicuserid=<userid> -epiclocale=en-US`
 
 # Client configuration
 
@@ -34,7 +37,8 @@ To auth with a dev account :
 	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::DevAuthHost] = "localhost:4567";
 	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::DevAuthCredentialsName] = "dev1";
 #else
-	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::LoginMode] = "AccountPortal";
+	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::LoginMode] = "ExchangeCode";
+	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::ExchangeCode] = exchangeCode;
 #endif
 	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::ProductId] = "UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU";
 	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::SandboxId] = "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW";
@@ -46,12 +50,20 @@ To auth with a dev account :
 
 ## ProductUserId
 
-To use product user id provided by stormancer profile part, you should use the connect API before using it client side : https://dev.epicgames.com/docs/api-ref/functions/eos-connect-login
+The Epic profile part contains the `ProductUserId` associated with the player. However, if using it in the game client, it won't be recognized by the Epic SDK by default.  
+
+To be able to use it on the client, you must call the client [connect API](https://dev.epicgames.com/docs/api-ref/functions/eos-connect-login) beforehand.  
+This will fill the local cache of the Epic SDK.
 
 # Server configuration
 
 ```json
 {
+	"auth": {
+		"epic": {
+			"enabled": true
+		}
+    },
 	"epic": {
     	"productIds": [ "UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU" ],
     	"applicationIds": [ "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV" ],

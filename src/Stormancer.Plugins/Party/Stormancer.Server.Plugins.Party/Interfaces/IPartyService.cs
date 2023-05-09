@@ -55,7 +55,7 @@ namespace Stormancer.Server.Plugins.Party
         /// <param name="partySettingsUpdater">updater (return null for no change)</param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        Task UpdateSettings(Func<PartyConfiguration,PartySettingsDto?> partySettingsUpdater, CancellationToken ct);
+        Task UpdateSettings(Func<PartyState,PartySettingsDto?> partySettingsUpdater, CancellationToken ct);
 
         /// <summary>
         /// Updates the gamefinder status of a player.
@@ -142,6 +142,8 @@ namespace Stormancer.Server.Plugins.Party
         void SetConfiguration(dynamic metadata);
 
         PartyConfiguration Settings { get; }
+
+        PartyState State { get; }
 
         /// <summary>
         /// Data that can be set by other server components for bookkeeping.

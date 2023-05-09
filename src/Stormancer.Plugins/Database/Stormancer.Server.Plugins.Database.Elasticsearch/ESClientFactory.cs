@@ -28,6 +28,7 @@ using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Components;
+using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Secrets;
 using System;
@@ -179,6 +180,7 @@ namespace Stormancer.Server.Plugins.Database
             ctx.HostDependenciesRegistration += (IDependencyBuilder b) =>
             {
                 b.Register<ESClientFactory>().As<IESClientFactory>().As<IConfigurationChangedEventHandler>().SingleInstance();
+                b.Register<ElasticsearchExceptionHandler>().As<IApiHandler>().SingleInstance();
                 SmartFormat.Smart.Default.AddExtensions(new TimeIntervalFormatter());
             };
 

@@ -9,6 +9,18 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+3.1.1.3
+-------
+Changed
+*******
+- Updated MemoryCache implementation.
+
+3.1.1.2
+-------
+Changed
+*******
+- Revert bad fix profile part
+
 3.1.1.1
 -------
 Changed

@@ -15,39 +15,38 @@
 // Copy GameProductConfig.sample.h to GameProductConfig.h with values corresponding to your Epic game product
 #include "GameProductConfig.h"
 
-using namespace Stormancer;
-
 int main()
 {
-	static std::shared_ptr<ILogger> s_logger = std::make_shared<ConsoleLogger>();
-	std::shared_ptr<MainThreadActionDispatcher> actionDispatcher = std::make_shared<MainThreadActionDispatcher>();
+	static std::shared_ptr<Stormancer::ILogger> s_logger = std::make_shared<Stormancer::ConsoleLogger>();
+	std::shared_ptr<Stormancer::MainThreadActionDispatcher> actionDispatcher = std::make_shared<Stormancer::MainThreadActionDispatcher>();
 
-	auto config = Configuration::create(STORM_ENDPOINT, STORM_ACCOUNT, STORM_APPLICATION);
+	auto config = Stormancer::Configuration::create(STORM_ENDPOINT, STORM_ACCOUNT, STORM_APPLICATION);
 	config->logger = s_logger;
 	config->actionDispatcher = actionDispatcher;
-	config->additionalParameters[Epic::ConfigurationKeys::InitPlatform] = "true";
-	config->additionalParameters[Epic::ConfigurationKeys::ProductName] = "Sample-cpp-Epic";
-	config->additionalParameters[Epic::ConfigurationKeys::ProductVersion] = "0.1";
-	config->additionalParameters[Epic::ConfigurationKeys::AuthenticationEnabled] = "true";
-	config->additionalParameters[Epic::ConfigurationKeys::LoginMode] = STORM_EPIC_LOGIN_MODE;
-	config->additionalParameters[Epic::ConfigurationKeys::DevAuthHost] = STORM_EPIC_DEVAUTH_CREDENTIALS_HOST;
-	config->additionalParameters[Epic::ConfigurationKeys::DevAuthCredentialsName] = STORM_EPIC_DEVAUTH_CREDENTIALS_NAME;
-	config->additionalParameters[Epic::ConfigurationKeys::ProductId] = STORM_EPIC_PRODUCT_ID;
-	config->additionalParameters[Epic::ConfigurationKeys::SandboxId] = STORM_EPIC_SANDBOX_ID;
-	config->additionalParameters[Epic::ConfigurationKeys::DeploymentId] = STORM_EPIC_DEPLOYMENT_ID;
-	config->additionalParameters[Epic::ConfigurationKeys::ClientId] = STORM_EPIC_CLIENT_ID;
-	config->additionalParameters[Epic::ConfigurationKeys::ClientSecret] = STORM_EPIC_CLIENT_SECRET;
-	config->additionalParameters[Epic::ConfigurationKeys::Diagnostics] = "true";
-	config->additionalParameters[GameVersion::ConfigurationKeys::ClientVersion] = STORM_CLIENT_VERSION;
-	config->addPlugin(new Users::UsersPlugin());
-	config->addPlugin(new GameFinder::GameFinderPlugin());
-	config->addPlugin(new Party::PartyPlugin());
-	config->addPlugin(new Epic::EpicPlugin());
-	config->addPlugin(new GameVersion::GameVersionPlugin());
-	config->addPlugin(new Profile::ProfilePlugin());
-	auto client = IClient::create(config);
-	auto usersApi = client->dependencyResolver().resolve<Users::UsersApi>();
-	auto profileApi = client->dependencyResolver().resolve<Profile::ProfileApi>();
+	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::InitPlatform] = "true";
+	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::ProductName] = "Sample-cpp-Epic";
+	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::ProductVersion] = "0.1";
+	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::AuthenticationEnabled] = "true";
+	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::LoginMode] = STORM_EPIC_LOGIN_MODE;
+	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::DevAuthHost] = STORM_EPIC_DEVAUTH_CREDENTIALS_HOST;
+	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::DevAuthCredentialsName] = STORM_EPIC_DEVAUTH_CREDENTIALS_NAME;
+	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::ProductId] = STORM_EPIC_PRODUCT_ID;
+	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::SandboxId] = STORM_EPIC_SANDBOX_ID;
+	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::DeploymentId] = STORM_EPIC_DEPLOYMENT_ID;
+	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::ClientId] = STORM_EPIC_CLIENT_ID;
+	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::ClientSecret] = STORM_EPIC_CLIENT_SECRET;
+	config->additionalParameters[Stormancer::Epic::ConfigurationKeys::Diagnostics] = "true";
+	config->additionalParameters[Stormancer::GameVersion::ConfigurationKeys::ClientVersion] = STORM_CLIENT_VERSION;
+	config->addPlugin(new Stormancer::Users::UsersPlugin());
+	config->addPlugin(new Stormancer::GameFinder::GameFinderPlugin());
+	config->addPlugin(new Stormancer::Party::PartyPlugin());
+	config->addPlugin(new Stormancer::Epic::EpicPlugin());
+	config->addPlugin(new Stormancer::GameVersion::GameVersionPlugin());
+	config->addPlugin(new Stormancer::Profile::ProfilePlugin());
+	auto client = Stormancer::IClient::create(config);
+	auto usersApi = client->dependencyResolver().resolve<Stormancer::Users::UsersApi>();
+	auto profileApi = client->dependencyResolver().resolve<Stormancer::Profile::ProfileApi>();
+	auto partyApi = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
 
 	bool disconnected = false;
 
@@ -59,68 +58,115 @@ int main()
 		}
 	});
 
+	auto onvitationReceivedSubscription = partyApi->subscribeOnInvitationReceived([](Stormancer::Party::PartyInvitation partyInvitation)
+	{
+		if (partyInvitation.isValid())
+		{
+			s_logger->log(Stormancer::LogLevel::Info, "EpicSample", "Party invitation received", partyInvitation.getSenderId());
+			partyInvitation.acceptAndJoinParty()
+				.then([](pplx::task<void> task)
+			{
+				try
+			{
+				task.get();
+				s_logger->log(Stormancer::LogLevel::Info, "EpicSample", "Party invitation accepted and party joined");
+			}
+			catch (const std::exception& ex)
+			{
+				s_logger->log(Stormancer::LogLevel::Error, "EpicSample", "Fail to join a party after accepting the invitation", ex.what());
+			}
+			});
+		}
+		else
+		{
+			s_logger->log(Stormancer::LogLevel::Error, "EpicSample", "Invalid party invitation received", partyInvitation.getSenderId());
+		}
+	});
+
 	try
 	{
 		usersApi->login().get();
 	}
 	catch (const std::exception& ex)
 	{
-		s_logger->log(LogLevel::Error, "Sample-cpp-Epic", "Login failed", ex.what());
+		s_logger->log(Stormancer::LogLevel::Error, "Sample-cpp-Epic", "Login failed", ex.what());
 		disconnected = true;
 		mainLoop.join();
 		return 1;
 	}
 
 	std::string stormancerUserId = usersApi->userId();
-	s_logger->log(LogLevel::Info, "SampleMain", "Login succeed!", "userId=" + stormancerUserId);
+	s_logger->log(Stormancer::LogLevel::Info, "SampleMain", "Login succeed!", "userId=" + stormancerUserId);
 
 	try
 	{
-		Profile::Profile profile = profileApi->getProfile(stormancerUserId, { { "character", "details" }, { "user", "details" }, {"epic", "details"} }).get();
+		Stormancer::Profile::Profile profile = profileApi->getProfile(stormancerUserId, { { "character", "details" }, { "user", "details" }, {"epic", "details"} }).get();
 
-		web::json::value jsonValue = web::json::value::parse(utility::conversions::to_string_t(profile.data["epic"]));
-		if (jsonValue.type() != web::json::value::value_type::Object)
+		auto epicPart = profile.data["epic"];
+		if (!epicPart)
+		{
+			throw std::runtime_error("epic part missing");
+		}
+		Stormancer::web::json::value jsonValue = Stormancer::web::json::value::parse(Stormancer::utility::conversions::to_string_t(*epicPart));
+		if (jsonValue.type() != Stormancer::web::json::value::value_type::Object)
 		{
 			throw std::runtime_error("Bad json type: not an object");
 		}
 
-		web::json::value& accountIdValue = jsonValue.as_object().at(utility::conversions::to_string_t("accountId"));
-		if (accountIdValue.type() != web::json::value::value_type::String)
+		Stormancer::web::json::value& accountIdValue = jsonValue.as_object().at(Stormancer::utility::conversions::to_string_t("accountId"));
+		if (accountIdValue.type() != Stormancer::web::json::value::value_type::String)
 		{
 			throw std::runtime_error("Bad json type: not a string");
 		}
-		std::string accountId = utility::conversions::to_utf8string(accountIdValue.as_string());
+		std::string accountId = Stormancer::utility::conversions::to_utf8string(accountIdValue.as_string());
 
-		web::json::value& productUserIdValue = jsonValue.as_object().at(utility::conversions::to_string_t("productUserId"));
-		if (productUserIdValue.type() != web::json::value::value_type::String)
+		Stormancer::web::json::value& productUserIdValue = jsonValue.as_object().at(Stormancer::utility::conversions::to_string_t("productUserId"));
+		if (productUserIdValue.type() != Stormancer::web::json::value::value_type::String)
 		{
 			throw std::runtime_error("Bad json type: not a string");
 		}
-		std::string productUserId = utility::conversions::to_utf8string(productUserIdValue.as_string());
+		std::string productUserId = Stormancer::utility::conversions::to_utf8string(productUserIdValue.as_string());
 
-		web::json::value& displayNameValue = jsonValue.as_object().at(utility::conversions::to_string_t("displayName"));
-		if (displayNameValue.type() != web::json::value::value_type::String)
+		Stormancer::web::json::value& displayNameValue = jsonValue.as_object().at(Stormancer::utility::conversions::to_string_t("displayName"));
+		if (displayNameValue.type() != Stormancer::web::json::value::value_type::String)
 		{
 			throw std::runtime_error("Bad json type: not a string");
 		}
-		std::string displayName = utility::conversions::to_utf8string(displayNameValue.as_string());
+		std::string displayName = Stormancer::utility::conversions::to_utf8string(displayNameValue.as_string());
 
-		s_logger->log(LogLevel::Info, "SampleMain", "Profile retrieved", "AccountId=" + accountId + "; ProductUserId=" + productUserId + "; DisplayName=" + displayName);
+		s_logger->log(Stormancer::LogLevel::Info, "SampleMain", "Profile retrieved", "AccountId=" + accountId + "; ProductUserId=" + productUserId + "; DisplayName=" + displayName);
 	}
 	catch (const std::exception& ex)
 	{
-		s_logger->log(LogLevel::Error, "SampleMain", "Profile retrieve failed", ex.what());
+		s_logger->log(Stormancer::LogLevel::Error, "EpicSampleMain", "Profile retrieve failed", ex.what());
 	}
 
-	usersApi->logout()
-		.then([client, &disconnected]()
+	Stormancer::Party::PartyCreationOptions partyCreationOptions;
+	partyCreationOptions.isJoinable = true;
+	partyCreationOptions.isPublic = true;
+	partyApi->createParty(partyCreationOptions)
+		.then([](pplx::task<void> task)
 	{
-		client->disconnect()
-			.then([&disconnected]()
+		try
 		{
-			disconnected = true;
-		});
-	});
+			task.get();
+		}
+		catch (const std::exception& ex)
+		{
+			s_logger->log(Stormancer::LogLevel::Error, "EpicSampleMain", "Create party failed", ex.what());
+		}
+	})
+		.get();
+
+	//usersApi->logout()
+	//	.then([client, &disconnected]()
+	//{
+	//	client->disconnect()
+	//		.then([&disconnected]()
+	//	{
+	//		disconnected = true;
+	//	});
+	//});
 
 	mainLoop.join();
 

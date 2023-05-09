@@ -1,7 +1,7 @@
 #pragma once
 
-#include "users/ClientAPI.hpp"
-#include "users/Users.hpp"
+#include "Users/ClientAPI.hpp"
+#include "Users/Users.hpp"
 #include "stormancer/StormancerTypes.h"
 #include "stormancer/msgpack_define.h"
 #include "stormancer/Event.h"

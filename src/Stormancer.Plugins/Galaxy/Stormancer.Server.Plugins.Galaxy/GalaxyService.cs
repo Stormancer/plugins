@@ -148,7 +148,7 @@ namespace Stormancer.Server.Plugins.Galaxy
     public class GalaxyService : IGalaxyService
     {
         private readonly ILogger _logger;
-        private static readonly MemoryCache<UserInfo> _accountsCache = new();
+        private static readonly MemoryCache<string,UserInfo> _accountsCache = new();
         private const double _cacheTimeoutSeconds = 600;
 
         /// <summary>

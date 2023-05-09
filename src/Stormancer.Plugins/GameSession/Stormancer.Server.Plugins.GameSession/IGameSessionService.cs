@@ -69,7 +69,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Gets the gamesession configuration.
         /// </summary>
         /// <returns></returns>
-        GameSessionConfigurationDto GetGameSessionConfig();
+        GameSessionConfigurationDto? GetGameSessionConfig();
 
         /// <summary>
         /// Create a P2P token to connect to the gamesession's host.

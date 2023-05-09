@@ -2,6 +2,7 @@
 using Stormancer.Server;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.GameSession.ServerPool;
+using Stormancer.Server.Plugins.GameSession.ServerProviders;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -133,11 +134,50 @@ namespace Stormancer
         }
 
         /// <summary>
+        /// Adds a pool that manages docker container based gameservers using agents that register with the Stormancer application. 
+        /// </summary>
+        /// <param name="poolId"></param>
+        /// <param name="configurator"></param>
+        /// <remarks>
+        /// Agent based pools are the recommended way of self hosting gameservers for Stormancer applications. The docker pool is deprecated and shouldn't be used.
+        /// </remarks>
+        /// <returns></returns>
+        public ServerPoolsConfigurationBuilder AgentBasedPool(string poolId, Func<AgentPoolConfigurationSection, AgentPoolConfigurationSection> configurator)
+        {
+            AgentPoolConfigurationSection section;
+            if (!Configuration.TryGetValue(poolId, out var sectionToken))
+            {
+                section = new AgentPoolConfigurationSection();
+               
+            }
+            else
+            {
+                section = sectionToken.ToObject<AgentPoolConfigurationSection>()?? new AgentPoolConfigurationSection();
+            }
+                    
+
+            section = configurator(section);
+            Configuration[poolId] = JObject.FromObject(section);
+
+            host.ConfigureUsers(u =>
+            {
+                u.Settings[GameServerAgentConstants.TYPE] = JObject.FromObject(new { enabled = true });
+                return u;
+            });
+
+
+            return this;
+        }
+
+        /// <summary>
         /// Gets or sets the configuration section object as a json.
         /// </summary>
         public JObject Configuration { get; }
     }
 
+    /// <summary>
+    /// Configuration of the dev pool
+    /// </summary>
     public class DevPoolConfiguration : PoolConfiguration
     {
         public override string type => "dev";

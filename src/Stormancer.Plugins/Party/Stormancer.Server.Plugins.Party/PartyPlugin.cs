@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Stormancer.Abstractions.Server;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
@@ -70,9 +71,11 @@ namespace Stormancer.Server.Plugins.Party
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
-                builder.Register<PartyService>(r=>new PartyService(
-                    r.Resolve<ISceneHost>(), 
-                    r.Resolve<ILogger>(), 
+                builder.Register<PartyAnalyticsWorker>().SingleInstance();
+
+                builder.Register<PartyService>(r => new PartyService(
+                    r.Resolve<ISceneHost>(),
+                    r.Resolve<ILogger>(),
                     r.Resolve<IUserSessions>(),
                     r.Resolve<GameFinderProxy>(),
                     r.Resolve<IServiceLocator>(),
@@ -84,23 +87,25 @@ namespace Stormancer.Server.Plugins.Party
                     r.Resolve<IEnumerable<IPartyPlatformSupport>>(),
                     r.Resolve<StormancerPartyPlatformSupport>(),
                     r.Resolve<InvitationCodeService>(),
-                    r.Resolve<PartyLuceneDocumentStore>())
+                    r.Resolve<PartyLuceneDocumentStore>(),
+                    r.Resolve<PartyConfigurationService>(),
+                    r.Resolve<PartyAnalyticsWorker>())
                 ).As<IPartyService>().InstancePerRequest();
-                
-                builder.Register<PartyController>(r=>new PartyController(
+
+                builder.Register<PartyController>(r => new PartyController(
                     r.Resolve<IUserSessions>(),
                     r.Resolve<IPartyService>(),
                     r.Resolve<ISerializer>())
                 ).InstancePerRequest();
-                
-                builder.Register<PartyManagementService>(r=> new PartyManagementService(
+
+                builder.Register<PartyManagementService>(r => new PartyManagementService(
                     r.Resolve<InvitationCodeService>(),
                     r.Resolve<ManagementClientProvider>(),
                     r.Resolve<ISceneHost>(),
                     r.Resolve<IServiceLocator>())
                 ).As<IPartyManagementService>().InstancePerRequest();
 
-                builder.Register<PartyManagementController>(r=>new PartyManagementController(
+                builder.Register<PartyManagementController>(r => new PartyManagementController(
                     r.Resolve<IPartyManagementService>(),
                     r.Resolve<IUserSessions>(),
                     r.Resolve<ILogger>(),
@@ -110,16 +115,16 @@ namespace Stormancer.Server.Plugins.Party
                     )
                 ).InstancePerRequest();
 
-                builder.Register<PartyState>(r=>new PartyState()).InstancePerScene();
+                builder.Register<PartyState>(r => new PartyState()).InstancePerScene();
 
-                builder.Register<StormancerPartyPlatformSupport>(r=>new StormancerPartyPlatformSupport(
+                builder.Register<StormancerPartyPlatformSupport>(r => new StormancerPartyPlatformSupport(
                     r.Resolve<IUserSessions>(),
                     r.Resolve<ISerializer>())
                 ).As<IPartyPlatformSupport>().AsSelf().InstancePerRequest();
 
-                builder.Register<PartySceneLocator>(r=>new PartySceneLocator()).As<IServiceLocatorProvider>();
+                builder.Register<PartySceneLocator>(r => new PartySceneLocator()).As<IServiceLocatorProvider>();
 
-                builder.Register<InvitationCodeService>(r=>new InvitationCodeService(
+                builder.Register<InvitationCodeService>(r => new InvitationCodeService(
                     r.Resolve<IHost>(),
                     r.Resolve<ISerializer>(),
                     r.Resolve<ManagementClientProvider>(),
@@ -128,38 +133,42 @@ namespace Stormancer.Server.Plugins.Party
 
                 builder.Register<JoinGamePartyController>().InstancePerRequest();
 
-                builder.Register<JoinGamesessionController>(r=> new JoinGamesessionController(
+                builder.Register<JoinGamesessionController>(r => new JoinGamesessionController(
                     r.Resolve<IGameSessionService>(),
                     r.Resolve<IUserSessions>(),
                     r.Resolve<IGameSessions>())
                 ).InstancePerRequest();
 
-                builder.Register<JoinGameSessionEventHandler>(r=>new JoinGameSessionEventHandler(
+                builder.Register<JoinGameSessionEventHandler>(r => new JoinGameSessionEventHandler(
                     r.Resolve<PartyProxy>(),
                     r.Resolve<JoinGameSessionState>(),
-                    r.Resolve<IConfiguration>())
+                    r.Resolve<IConfiguration>(),
+                    r.Resolve<ILogger>())
                 ).As<IGameSessionEventHandler>().InstancePerRequest();
-                
-                builder.Register<JoinGameSessionState>(r=>new JoinGameSessionState()
+
+                builder.Register<JoinGameSessionState>(r => new JoinGameSessionState()
                 ).InstancePerScene();
 
-                builder.Register<PartyConfigurationService>(r=>new PartyConfigurationService(r.Resolve<IConfiguration>())
+                builder.Register<PartyConfigurationService>(r => new PartyConfigurationService(r.Resolve<IConfiguration>())
                 ).SingleInstance();
 
-                builder.Register<PartyLuceneDocumentStore>(r=>new PartyLuceneDocumentStore(
+                builder.Register<PartyLuceneDocumentStore>(r => new PartyLuceneDocumentStore(
                     r.Resolve<ILucene>())
                 ).As<ILuceneDocumentStore>().AsSelf().SingleInstance();
 
-                builder.Register<PartySearchService>(r=>new PartySearchService(
+                builder.Register<PartySearchService>(r => new PartySearchService(
                     r.Resolve<SearchEngine>())
                 );
             };
 
-            ctx.HostStarting += (IHost host) => {
-                host.AddSceneTemplate(PARTY_SCENE_TYPE, (ISceneHost scene) => {
+            ctx.HostStarting += (IHost host) =>
+            {
+                host.AddSceneTemplate(PARTY_SCENE_TYPE, (ISceneHost scene) =>
+                {
                     scene.AddParty();
                 });
-                host.AddSceneTemplate(PARTY_MANAGEMENT_SCENE_TYPE, (ISceneHost scene) => {
+                host.AddSceneTemplate(PARTY_MANAGEMENT_SCENE_TYPE, (ISceneHost scene) =>
+                {
 
                     scene.AddPartyManagement();
                 });
@@ -176,6 +185,7 @@ namespace Stormancer.Server.Plugins.Party
                 {
                     scene.AddController<PartyController>();
                     scene.AddController<JoinGamePartyController>();
+                    scene.DestroyWhenLastPlayerLeft();
 
                     scene.Starting.Add(async metadata =>
                     {
@@ -185,11 +195,11 @@ namespace Stormancer.Server.Plugins.Party
                             service.SetConfiguration(metadata);
                         }
 
-                        
+
                     });
                 }
-                
-                if(scene.Metadata.ContainsKey("stormancer.gamesession"))
+
+                if (scene.Metadata.ContainsKey("stormancer.gamesession"))
                 {
                     scene.AddController<JoinGamesessionController>();
                 }
@@ -197,7 +207,7 @@ namespace Stormancer.Server.Plugins.Party
                 if (scene.Metadata.ContainsKey(PARTYMANAGEMENT_METADATA_KEY))
                 {
                     scene.AddController<PartyManagementController>();
-                    
+
                 }
             };
 
@@ -206,7 +216,9 @@ namespace Stormancer.Server.Plugins.Party
 
                 //Ensure PartyManagement scene exists.
                 host.EnsureSceneExists(PARTY_MANAGEMENT_SCENEID, PARTY_MANAGEMENT_SCENE_TYPE, false, true);
-                
+
+                _ = host.DependencyResolver.Resolve<PartyAnalyticsWorker>().Run();
+
             };
 
         }

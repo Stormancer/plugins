@@ -29,7 +29,10 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Party.Model
 {
-    internal class PartyState
+    /// <summary>
+    /// Party State
+    /// </summary>
+    public class PartyState
     {
 
 
