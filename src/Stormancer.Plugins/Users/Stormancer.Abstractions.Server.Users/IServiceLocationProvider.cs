@@ -21,6 +21,8 @@
 // SOFTWARE.
 
 using Stormancer.Server.Plugins.Users;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.ServiceLocator
 {
