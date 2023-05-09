@@ -9,6 +9,14 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+
+Unreleased
+----------
+Changed
+*******
+- Updated dependency to Users to support new abstraction lib.
+
+
 1.1.3.2
 -------
 Changed
