@@ -41,6 +41,11 @@ namespace Stormancer.GameServers.Agent
         public float MaxCpu { get; set; }
         public string Id { get; set; } = Environment.MachineName;
 
+        /// <summary>
+        /// Core path
+        /// </summary>
+        public string? CorePath { get; set; }
+
         public Dictionary<string, ApplicationConfigurationOptions> Applications { get; set; }
        
 

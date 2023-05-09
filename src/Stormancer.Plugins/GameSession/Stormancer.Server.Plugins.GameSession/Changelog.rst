@@ -24,6 +24,7 @@ Changed
 Fixed
 *****
 - Don't wait 5s before returning PostResults response for the last player in the session.
+- Fixed infinite loop in the analytics worker loop.
 
 6.1.0.17
 --------

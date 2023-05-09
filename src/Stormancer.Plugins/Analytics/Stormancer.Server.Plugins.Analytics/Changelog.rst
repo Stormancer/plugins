@@ -15,6 +15,10 @@ Changed
 *******
 - Added ServerError property to Errors log when analytics couldn't be indexed in Elastic.
 
+Added
+*****
+- Configure a scene to accept analytics from clients.
+
 2.0.6
 -----
 Changed

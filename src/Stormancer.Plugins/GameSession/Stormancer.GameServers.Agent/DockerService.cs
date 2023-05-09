@@ -7,6 +7,7 @@ using RakNet;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO.Compression;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
@@ -165,6 +166,7 @@ namespace Stormancer.GameServers.Agent
             float cpuLimit,
             long reservedMemory,
             float reservedCpu,
+            Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration crashReportConfiguration,
             CancellationToken cancellationToken)
         {
             ServerContainer serverContainer;
@@ -179,7 +181,7 @@ namespace Stormancer.GameServers.Agent
                 {
                     return new StartContainerResult { Success = false, Error = "unableToSatisfyResourceReservation" };
                 }
-                serverContainer = new ServerContainer(agentId, name, image, DateTime.UtcNow, reservedMemory, reservedCpu);
+                serverContainer = new ServerContainer(agentId, name, image, DateTime.UtcNow, reservedMemory, reservedCpu, crashReportConfiguration);
                 _trackedContainers.Add(name, serverContainer);
             }
 
@@ -502,6 +504,7 @@ namespace Stormancer.GameServers.Agent
                         _logger.Log(LogLevel.Information, "Docker container {id} stopped.", value.ID);
 
 
+                        _ = CreateCrashReportIfNecessary(server,CancellationToken.None);
                         this.OnContainerStateChanged?.Invoke(new ServerContainerStateChange { Container = server, Status = ContainerEventType.Stop });
                         _messager.PostServerStoppedMessage(server);
 
@@ -517,6 +520,60 @@ namespace Stormancer.GameServers.Agent
             }
         }
 
+        private async Task CreateCrashReportIfNecessary(ServerContainer server, CancellationToken cancellationToken)
+        {
+            if (server.DockerContainerId == null || !server.CrashReportConfiguration.Enabled)
+            {
+                return;
+            }
+            var statusCode = await GetStatusCode(server.DockerContainerId);
+
+            if (statusCode != 0)
+            {
+                Directory.CreateDirectory("reports");
+                using var archive = new ZipArchive(File.Create($"reports/{server.Name}.zip"));
+
+                if (server.CrashReportConfiguration.IncludeOutput)
+                {
+
+                    var entry = archive.CreateEntry("logs.txt", CompressionLevel.SmallestSize);
+                    using var writer = new StreamWriter(entry.Open());
+
+                    await foreach (var block in GetContainerLogsAsync(server.AgentId, server.Name, null, null, 0, false, cancellationToken))
+                    {
+                        foreach (var log in block)
+                        {
+                            writer.WriteLine(log);
+                        }
+                    }
+                }
+
+                foreach(var file in server.CrashReportConfiguration.AdditionalContainerFiles)
+                {
+                    if (file.StartsWith('/'))
+                    {
+                        var containerFile = await GetContainerFile(server.DockerContainerId, file, cancellationToken);
+                        if (containerFile !=null )
+                        {
+                            var entry = archive.CreateEntry($"container{file}.tar", CompressionLevel.SmallestSize);
+
+                            await containerFile.Stream.CopyToAsync(entry.Open(),cancellationToken);
+                        }
+                    }
+                }
+
+                if(server.CrashReportConfiguration.IncludeDump && _options.CorePath !=null )
+                {
+                    var containerFile = await GetContainerFile(server.DockerContainerId, _options.CorePath, cancellationToken);
+                    if (containerFile != null)
+                    {
+                        var entry = archive.CreateEntry($"core_dump.tar", CompressionLevel.SmallestSize);
+
+                        await containerFile.Stream.CopyToAsync(entry.Open(), cancellationToken);
+                    }
+                }
+            }
+        }
         async Task<long> GetStatusCode(string containerId)
         {
 
@@ -527,7 +584,7 @@ namespace Stormancer.GameServers.Agent
 
         public Task<GetArchiveFromContainerResponse> GetContainerFile(string containerId, string path, CancellationToken cancellationToken)
         {
-            return _docker.Containers.GetArchiveFromContainerAsync(containerId, new GetArchiveFromContainerParameters { Path = path }, true, cancellationToken);
+            return _docker.Containers.GetArchiveFromContainerAsync(containerId, new GetArchiveFromContainerParameters { Path = path }, false, cancellationToken);
 
         }
         internal async Task<AgentStatus> GetStatus()
@@ -584,7 +641,7 @@ namespace Stormancer.GameServers.Agent
 
     public class ServerContainer : IDisposable
     {
-        internal ServerContainer(int agentId, string name, string image, DateTime created, long memory, float cpuCount)
+        internal ServerContainer(int agentId, string name, string image, DateTime created, long memory, float cpuCount, Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration crashReportConfiguration)
         {
             AgentId = agentId;
             Name = name;
@@ -592,6 +649,7 @@ namespace Stormancer.GameServers.Agent
             Created = created;
             Memory = memory;
             CpuQuota = cpuCount;
+            CrashReportConfiguration = crashReportConfiguration;
         }
 
         public int AgentId { get; }
@@ -601,6 +659,7 @@ namespace Stormancer.GameServers.Agent
         public DateTime Created { get; }
         public long Memory { get; }
         public float CpuQuota { get; }
+        public Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration CrashReportConfiguration { get; }
 
         public void AddResource(IDisposable resource)
         {
@@ -608,6 +667,8 @@ namespace Stormancer.GameServers.Agent
         }
 
         private List<IDisposable> _resources = new List<IDisposable>();
+
+
         public void Dispose()
         {
             foreach (var resource in _resources)

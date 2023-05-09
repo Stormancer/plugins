@@ -27,11 +27,14 @@ using Stormancer.Plugins;
 using System;
 using System.Threading.Tasks;
 using Stormancer.Server.Plugins.Configuration;
+using System.Threading;
+using Stormancer.Server.Plugins.ServiceLocator;
 
 namespace Stormancer.Server.Plugins.Analytics
 {
     class AnalyticsPlugin : IHostPlugin
     {
+        internal const string SCENE_ID = "analytics";
         internal const string METADATA_KEY = "stormancer.analytics";
 
         public void Build(HostPluginBuildContext ctx)
@@ -42,19 +45,25 @@ namespace Stormancer.Server.Plugins.Analytics
                   builder.Register<AnalyticsService>().As<IAnalyticsService>().SingleInstance();
                   builder.Register<ApiAnalyticsEventHandler>().As<IApiHandler>().As<IConfigurationChangedEventHandler>().SingleInstance();
                   builder.Register<ElasticsearchOutput>().As<IAnalyticsOutput>();
+                  builder.Register<LocatorProvider>().As<IServiceLocatorProvider>();
               };
-
+            ctx.HostStarting += (IHost host) =>
+            {
+                host.AddSceneTemplate(SCENE_ID, scene => scene.AddAnalytics());
+            };
             ctx.HostStarted += (IHost host) =>
             {
+                host.EnsureSceneExists(SCENE_ID, SCENE_ID, false, true);
                 Task.Run(async () =>
                 {
+                    using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
                     while (true)
                     {
                         try
                         {
-                            await Task.Delay(1000 * 5);
+                            await timer.WaitForNextTickAsync();
                             var analyticsService = host.DependencyResolver.Resolve<IAnalyticsService>();
-                            await analyticsService.Flush();                          
+                            await analyticsService.Flush();
                         }
                         catch (Exception ex)
                         {
@@ -65,6 +74,7 @@ namespace Stormancer.Server.Plugins.Analytics
                 });
             };
 
+
             ctx.SceneCreated += (ISceneHost scene) =>
              {
                  if (scene.Metadata.ContainsKey(METADATA_KEY))
@@ -72,6 +82,25 @@ namespace Stormancer.Server.Plugins.Analytics
                      scene.AddController<AnalyticsController>();
                  }
              };
+        }
+    }
+
+    internal class LocatorProvider : IServiceLocatorProvider
+    {
+
+        public LocatorProvider()
+        {
+
+        }
+        public Task LocateService(ServiceLocationCtx ctx)
+        {
+            if (ctx.ServiceType == AnalyticsPlugin.METADATA_KEY)
+            {
+
+                ctx.SceneId = SCENE_ID;
+            }
+            return Task.CompletedTask;
+
         }
     }
 }

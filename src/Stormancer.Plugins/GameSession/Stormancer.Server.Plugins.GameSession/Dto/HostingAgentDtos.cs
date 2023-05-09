@@ -10,6 +10,27 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 {
+    public class CrashReportConfiguration
+    {
+        [MessagePackMember(0)]
+        public bool Enabled { get; set; } = false;
+
+
+        /// <summary>
+        /// List of additional files in the container that should be bundled in the crash dump archive
+        /// </summary>
+        [MessagePackMember(1)]
+        public IEnumerable<string> AdditionalContainerFiles { get; set; } = Enumerable.Empty<string>();
+
+        /// <summary>
+        /// Includes
+        /// </summary>
+        [MessagePackMember(2)]
+        public bool IncludeOutput { get; set; } = true;
+
+        [MessagePackMember(3)]
+        public bool IncludeDump { get; set; } = true;
+    }
     public class GetRunningContainersParameters
     {
 
@@ -88,6 +109,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         [MessagePackMember(7)]
         public long memoryLimit { get; set; }
+
+
+        [MessagePackMember(8)]
+        public CrashReportConfiguration? CrashReportConfiguration { get; set; }
 
     }
 

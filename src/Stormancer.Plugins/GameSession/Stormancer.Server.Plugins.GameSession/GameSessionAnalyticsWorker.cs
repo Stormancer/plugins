@@ -107,7 +107,7 @@ namespace Stormancer.Server.Plugins.GameSession
             while (!cancellationToken.IsCancellationRequested)
             {
 
-
+                await timer.WaitForNextTickAsync(cancellationToken);
                 try
                 {
                     var groups = _repository.LocalGameSessions.GroupBy(s => s.Dimensions, _comparer);

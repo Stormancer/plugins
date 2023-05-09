@@ -88,20 +88,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
     }
 
-    public class CrashReportConfiguration
-    {
-        public bool Enabled { get; set; } = false;
-        /// <summary>
-        /// List of additional files in the container that should be bundled in the crash dump archive
-        /// </summary>
-        public IEnumerable<string> AdditionalContainerFiles { get; set; } = Enumerable.Empty<string>();
-
-        /// <summary>
-        /// Includes
-        /// </summary>
-        public bool IncludeOutput { get; set;} = true;
-        public bool IncludeDump { get; set; } = true;
-    }
+    
 
     internal class GameServerAgentConfiguration : IConfigurationChangedEventHandler
     {
@@ -424,7 +411,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             return peer.RpcTask<bool, IEnumerable<ContainerDescription>>("agent.getRunningContainers", true);
         }
 
-        public async Task<ContainerStartResponse> StartContainerAsync(string agentId, string image, string name, float reservedCpu, long reservedMemory, float cpuLimit, long memoryLimit, Dictionary<string, string> environmentVariables)
+        public async Task<ContainerStartResponse> StartContainerAsync(string agentId, string image, string name, float reservedCpu, long reservedMemory, float cpuLimit, long memoryLimit, Dictionary<string, string> environmentVariables, CrashReportConfiguration crashReportConfiguration)
         {
             DockerAgent? agent;
             lock (_syncRoot)
@@ -445,6 +432,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 AppDeploymentId = appInfos.DeploymentId,
                 cpuLimit = cpuLimit,
                 memoryLimit = memoryLimit,
+                CrashReportConfiguration = crashReportConfiguration
 
             });
         }
@@ -536,7 +524,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
                 if (agent != null)
                 {
-                    var response = await StartContainerAsync(agent.Id, agentConfig.Image, id, agentConfig.reservedCpu, agentConfig.reservedMemory, agentConfig.cpuLimit, agentConfig.memoryLimit, environmentVariables);
+                    var response = await StartContainerAsync(agent.Id, agentConfig.Image, id, agentConfig.reservedCpu, agentConfig.reservedMemory, agentConfig.cpuLimit, agentConfig.memoryLimit, environmentVariables, agentConfig.CrashReportConfiguration);
 
                     agent.TotalCpu = response.TotalCpuQuotaAvailable;
                     agent.TotalMemory = response.TotalMemoryQuotaAvailable;

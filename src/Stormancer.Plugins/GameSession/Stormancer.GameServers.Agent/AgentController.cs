@@ -70,7 +70,7 @@ namespace Stormancer.GameServers.Agent
                 return null;
             }
         }
-        internal async Task<ContainerStartResponse> TryStartContainer(int agentId, ContainerStartParameters args)
+        internal async Task<ContainerStartResponse> TryStartContainer(int agentId, ContainerStartParameters args, CancellationToken cancellationToken)
         {
             var result = await _docker.StartContainer(
                 agentId, 
@@ -82,7 +82,9 @@ namespace Stormancer.GameServers.Agent
                 args.memoryLimit,
                 args.cpuLimit,
                 args.reservedMemory,
-                args.reservedCpu);
+                args.reservedCpu,
+                args.CrashReportConfiguration?? new(),
+                cancellationToken);
 
 
             return new ContainerStartResponse
