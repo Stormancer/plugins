@@ -15,7 +15,9 @@ Unreleased
 Added
 *****
 - Configure a scene to accept analytics from clients.
-
+Changed
+*******
+- When receiving a client analytic event, use "milliseconds since epoch" as the date format.
 2.0.6.1
 ----------
 Changed

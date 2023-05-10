@@ -49,11 +49,11 @@ namespace Stormancer.Server.Plugins.Analytics
                     try
                     {
                         Newtonsoft.Json.Linq.JObject content = Newtonsoft.Json.Linq.JObject.Parse(doc.Content);//Try parse document  
-                        AnalyticsDocument document = new AnalyticsDocument { Category = doc.Category, Type = doc.Type, Content = content, CreationDate = DateTime.UtcNow };
+                        AnalyticsDocument document = new AnalyticsDocument { Category = doc.Category, Type = doc.Type, Content = content, CreationDate = doc.CreatedOn == 0 ? DateTime.UtcNow : DateTime.UnixEpoch.AddMilliseconds(doc.CreatedOn) };
                         _analytics.Push(document);
                         //_logger.Log(LogLevel.Info, "analytics", $"Successfully pushed analytics document", doc.Content);
                     }
-                    catch(Exception)
+                    catch (Exception)
                     {
                         _logger.Log(LogLevel.Error, "analytics", $"Invalid analytics json received", doc.Content);
                     }

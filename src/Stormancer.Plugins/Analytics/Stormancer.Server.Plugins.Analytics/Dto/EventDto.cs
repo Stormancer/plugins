@@ -28,9 +28,9 @@ namespace Stormancer.Server.Plugins.Analytics
         public string Category { get; set; } = default!;
 
         /// <summary>
-        /// Date the event was created on.
+        /// Date the event was created on. (linux timestamp: ms since epoch)
         /// </summary>
         [MessagePackMember(3)]
-        public DateTime CreatedOn { get; set; }
+        public long CreatedOn { get; set; }
     }
 }
