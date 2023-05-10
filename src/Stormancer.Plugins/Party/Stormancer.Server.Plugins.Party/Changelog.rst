@@ -16,6 +16,9 @@ Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
 
+Fixed
+*****
+- Use PeriodicTimer in PartyAnalyticsWorker to fix an high usage CPU issue.
 
 5.0.1.7
 -------

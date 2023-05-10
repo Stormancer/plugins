@@ -38,9 +38,10 @@ namespace Stormancer.Server.Plugins.Party
         internal async Task Run(CancellationToken cancellationToken)
         {
             var startTime = DateTime.UtcNow;
-
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
             while (!cancellationToken.IsCancellationRequested)
             {
+                await timer.WaitForNextTickAsync(cancellationToken);
                 try
                 {
                     var count = 0;
@@ -61,12 +62,7 @@ namespace Stormancer.Server.Plugins.Party
                 }
                 catch { }
 
-                var duration = DateTime.UtcNow - startTime;
-
-                if (TimeSpan.FromSeconds(1) - duration > TimeSpan.FromMilliseconds(20))
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(1) - duration);
-                }
+               
             }
         }
     }
