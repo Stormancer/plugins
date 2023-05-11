@@ -53,6 +53,7 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 builder.Register<GameSessionController>().InstancePerRequest();
                 builder.Register<ServerPoolController>().InstancePerRequest();
+                builder.Register<AgentServerController>().InstancePerRequest();
                 builder.Register<DedicatedServerAuthProvider>().As<IAuthenticationProvider>();
                 builder.Register<GameServerAgentAuthenticationProvider>().As<IAuthenticationProvider>();
                 builder.Register<GameServerAgentConfiguration>().As<IConfigurationChangedEventHandler>().AsSelf().SingleInstance();
