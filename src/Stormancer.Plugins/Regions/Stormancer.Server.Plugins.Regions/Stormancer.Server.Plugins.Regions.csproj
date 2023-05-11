@@ -1,0 +1,63 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Company>Stormancer</Company>
+		<Authors>Stormancer</Authors>
+		<Version>0.1.0</Version>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<Description>Enables regions based gamesession selection.</Description>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<Deterministic>true</Deterministic>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
+		<Version>$(Version)-pre</Version>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<PackageIcon>icon.png</PackageIcon>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+		<PackageReference Include="Stormancer.Abstractions.Core" Version="2.4.0" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
+		<Pdbs Include="$(TargetDir)*.pdb" />
+		<cpp Include="$(ProjectDir)../cpp/*" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="Changelog.rst" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Include="Changelog.rst" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\GameSession\Stormancer.Server.Plugins.GameSession\Stormancer.Server.Plugins.GameSession.csproj" />
+	</ItemGroup>
+
+
+	<Target Name="PostPack" AfterTargets="Pack">
+		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
+		<Copy SourceFiles="@(Pdbs)" DestinationFolder="$(ProjectDir)../../../../output/symbols/$(ConfigurationName)" />
+		<Copy SourceFiles="@(cpp)" DestinationFolder="$(ProjectDir)../../../../output/cpp/Users" />
+	</Target>
+</Project>

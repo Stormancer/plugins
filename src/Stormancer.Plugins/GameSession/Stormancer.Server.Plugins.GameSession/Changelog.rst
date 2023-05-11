@@ -18,6 +18,7 @@ Added
 Fixed
 *****
 - Fixed infinite loop in the analytics worker loop.
+- Fixed an wrong null check on closing servers that could lead to a NullRef exception when updating the game server auditing record.
 
 6.1.1.15
 ----------

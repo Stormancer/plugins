@@ -1,6 +1,28 @@
+using Docker.DotNet.Models;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Stormancer.GameServers.Agent;
 
-IHost host = Host.CreateDefaultBuilder(args)
+DockerAgentConfigurationOptions? options = null;
+
+IHost host = Host.CreateDefaultBuilder()
+    .ConfigureHostConfiguration((configBuilder)=>
+    {
+        configBuilder.Sources.Clear();
+        configBuilder.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+        .AddEnvironmentVariables(prefix:"STRM_GS_AGENT_")
+        .AddCommandLine(args);
+        
+    })
+    .ConfigureAppConfiguration((hostingContext,configBuilder)=>
+    {
+        var env = hostingContext.HostingEnvironment;
+        configBuilder
+              .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true);
+
+        options = configBuilder.Build().GetSection(DockerAgentConfigurationOptions.Section).Get<DockerAgentConfigurationOptions>();
+    })
     .ConfigureServices(services =>
     {
         services.AddHostedService<Worker>();
@@ -10,6 +32,28 @@ IHost host = Host.CreateDefaultBuilder(args)
         services.AddSingleton<AgentController>();
         
     })
+    .ConfigureWebHostDefaults(webBuilder=>
+    {
+      
+        webBuilder.Configure(app =>
+        {
+            app.UseRouting();
+            app.UseEndpoints(endpoints => {
+
+
+                endpoints.MapGet("/", () =>
+                {
+                    return Results.Ok();
+                });
+            });
+        });
+        webBuilder.UseKestrel(kestrel => {
+
+            
+            kestrel.ListenAnyIP(options?.HttpPort??30001);
+            });
+    })
+    
     .Build();
 
 await host.RunAsync();

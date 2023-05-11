@@ -63,7 +63,7 @@ namespace Stormancer.GameServers.Agent
             _messager = messager;
             _options = new DockerAgentConfigurationOptions();
 
-            _configuration.Bind(_options.Section, _options);
+            _configuration.Bind(DockerAgentConfigurationOptions.Section, _options);
             _ = StartMonitorDocker();
         }
 

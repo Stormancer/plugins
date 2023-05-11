@@ -80,7 +80,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// </remarks>
         public int reservedMemory { get; set; } = 300 * 1024 * 1024;
 
-      
+
         /// <summary>
         /// Configuration of the game server crash report system.
         /// </summary>
@@ -88,7 +88,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
     }
 
-    
+
 
     internal class GameServerAgentConfiguration : IConfigurationChangedEventHandler
     {
@@ -211,15 +211,30 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         }
     }
 
+    /// <summary>
+    /// Constants
+    /// </summary>
     public static class GameServerAgentConstants
     {
+        /// <summary>
+        /// Authentication type for gameserver agents.
+        /// </summary>
         public const string TYPE = "stormancer.gameserver.agent";
     }
 
+    /// <summary>
+    /// A remote agent that can run game servers.
+    /// </summary>
     public class DockerAgent
     {
+        /// <summary>
+        /// Creates a new <see cref="DockerAgent"/> object.
+        /// </summary>
+        /// <param name="peer"></param>
+        /// <param name="session"></param>
         public DockerAgent(IScenePeerClient peer, Session session)
         {
+            ArgumentNullException.ThrowIfNull(session.User);
             Id = session.User.Id;
             Peer = peer;
             Session = session;
@@ -228,7 +243,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             Description = new AgentDescription
             {
                 Id = session.User.Id,
-                Claims = session.User.UserData["claims"].ToObject<Dictionary<string, string>>()
+                Claims = session.User.UserData["claims"]?.ToObject<Dictionary<string, string>>() ?? new Dictionary<string, string>(),
+                WebApiEndpoint = 
+                Region =
             };
             if (Description.Claims.TryGetValue("fault", out var fault))
             {
@@ -237,21 +254,69 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
             TotalCpu = float.Parse(Description.Claims["quotas.maxCpu"]);
             TotalMemory = long.Parse(Description.Claims["quotas.maxMemory"]);
+            
         }
+
+        /// <summary>
+        /// Cancellation token source used to signal the agent disconnected.
+        /// </summary>
         public CancellationTokenSource CancellationTokenSource { get; } = new CancellationTokenSource();
 
+        /// <summary>
+        /// Unique ID of the agent.
+        /// </summary>
         public string Id { get; }
+
+        /// <summary>
+        /// Peer of the agent.
+        /// </summary>
         public IScenePeerClient Peer { get; }
+
+        /// <summary>
+        /// Session of the agent.
+        /// </summary>
         public Session Session { get; }
+
+        /// <summary>
+        /// Error that occurred on the agent.
+        /// </summary>
         public string? Fault { get; }
+
+        /// <summary>
+        /// Error state of the agent.
+        /// </summary>
         public bool Faulted => Fault != null;
 
+        /// <summary>
+        /// Description of the agent.
+        /// </summary>
         public AgentDescription Description { get; }
 
+
+        /// <summary>
+        /// Total CPU available on the agent.
+        /// </summary>
         public float TotalCpu { get; set; }
+
+        /// <summary>
+        /// Cpu currently reserved on the agent.
+        /// </summary>
         public float ReservedCpu { get; set; }
+
+        /// <summary>
+        /// Total available memory on the agent.
+        /// </summary>
         public long TotalMemory { get; set; }
+
+
+        /// <summary>
+        /// Memory currently reserved by game servers on the agent.
+        /// </summary>
         public long ReservedMemory { get; set; }
+
+        /// <summary>
+        /// Gets or sets a boolean indicating whether the agent should be considered to start game servers.
+        /// </summary>
         public bool IsActive { get; set; } = true;
     }
     public class AgentBasedGameServerProvider : IGameServerProvider
@@ -484,7 +549,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         public async Task<StartGameServerResult> TryStartServer(string id, string authenticationToken, JObject config, GameServerRecord record, CancellationToken ct)
         {
-            
+
             var agentConfig = config.ToObject<AgentPoolConfigurationSection>();
             var applicationInfo = await _environment.GetApplicationInfos();
             var fed = await _environment.GetFederation();
@@ -581,11 +646,36 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         }
     }
 
-
+    /// <summary>
+    /// Description of an agent.
+    /// </summary>
     public class AgentDescription
     {
-        public string Id { get; set; }
-        public Dictionary<string, string> Claims { get; set; }
+        /// <summary>
+        /// Id of the agent
+        /// </summary>
+        [MessagePackMember(0)]
+        public string Id { get; set; } = default!;
+
+
+        /// <summary>
+        /// List of claims associated with the agent.
+        /// </summary>
+        [MessagePackMember(1)]
+        public Dictionary<string, string> Claims { get; set; } = default!;
+
+
+        /// <summary>
+        /// Web Api endpoint of the agent.
+        /// </summary>
+        [MessagePackIgnore]
+        public string? WebApiEndpoint => Claims.ContainsKey("agent.webApi") ? Claims["agent.webApi"] : null;
+
+        /// <summary>
+        /// Region the agent belongs to.
+        /// </summary>
+        [MessagePackIgnore]
+        public string? Region => Claims.ContainsKey("agent.region") ? Claims["agent.region"] : null;
     }
 
 

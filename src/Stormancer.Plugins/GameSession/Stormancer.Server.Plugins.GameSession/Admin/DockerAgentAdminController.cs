@@ -10,49 +10,70 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession.Admin
 {
+
+    /// <summary>
+    /// Admin controller used to manage server agents.
+    /// </summary>
     [ApiController]
     [Route("_hostingAgents")]
     public class DockerAgentAdminController : ControllerBase
     {
         private readonly AgentBasedGameServerProvider _provider;
+        private readonly AgentServerProxy _agentServerApi;
 
-        public DockerAgentAdminController(AgentBasedGameServerProvider provider)
+        /// <summary>
+        /// Creates a new <see cref="DockerAgentAdminController"/> object.
+        /// </summary>
+        /// <param name="provider"></param>
+        /// <param name="agentServerApi"></param>
+        public DockerAgentAdminController(AgentBasedGameServerProvider provider, AgentServerProxy agentServerApi)
         {
             _provider = provider;
+            _agentServerApi = agentServerApi;
         }
 
+
+        /// <summary>
+        /// Gets the game server agents connected to the app.
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("agents")]
         [ProducesResponseType(200, Type = typeof(GetAgentsResponse))]
-        public async Task<IActionResult> GetAgents()
+        public async Task<IActionResult> GetAgents(CancellationToken cancellationToken)
         {
-            var agents = _provider.GetAgents();
-
+            
             return Ok(new GetAgentsResponse
             {
-                Agents = agents.Select(a => new AgentDocument
-                {
-                    Description = a.Description,
-                    Fault = a.Fault,
-                    Faulted = a.Faulted,
-                    Active = a.IsActive,
-                    ReservedCpu = a.ReservedCpu,
-                    ReservedMemory = a.ReservedMemory,
-                    TotalCpu = a.TotalCpu,
-                    TotalMemory = a.TotalMemory
-                })
-            }) ;
+                Agents = await _agentServerApi.GetAgents(cancellationToken)
+            });
         }
+
+        /// <summary>
+        /// Gets the game servers currently ran by the agents.
+        /// </summary>
+        /// <returns></returns>
         [HttpGet]
         [Route("containers")]
         [ProducesResponseType(200, Type = typeof(GetContainersResponse))]
-        public async Task<IActionResult> GetRunningContainers()
+        public async Task<IActionResult> GetRunningGameServers()
         {
             var response = await _provider.GetRunningContainers().ToListAsync();
 
             return Ok(new GetContainersResponse { Containers = response });
         }
 
+        /// <summary>
+        /// Gets the logs of a game server.
+        /// </summary>
+        /// <param name="agentId"></param>
+        /// <param name="containerId"></param>
+        /// <param name="since"></param>
+        /// <param name="until"></param>
+        /// <param name="size"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("containers/{agentId}/{containerId}/logs")]
         [ProducesResponseType(200, Type = typeof(GetContainerLogsResponse))]
@@ -93,8 +114,8 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
 
         public float ReservedCpu { get; set; }
         public long ReservedMemory { get; set; }
-        public long TotalMemory { get;  set; }
-        public float TotalCpu { get;  set; }
+        public long TotalMemory { get; set; }
+        public float TotalCpu { get; set; }
     }
     public class GetContainersResponse
     {
