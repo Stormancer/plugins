@@ -14,7 +14,7 @@ namespace Stormancer.GameServers.Agent
             _logger = logger;
             _dockerService = dockerService;
             _options = new DockerAgentConfigurationOptions();
-            configuration.Bind(_options.Section, _options);
+            configuration.Bind(DockerAgentConfigurationOptions.Section, _options);
 
 
             ClientFactory.SetConfigFactory(() =>
@@ -40,6 +40,7 @@ namespace Stormancer.GameServers.Agent
 
             while (!stoppingToken.IsCancellationRequested)
             {
+
                 foreach(var (id, app) in _options.Applications)
                 {
                     bool found = false;
@@ -47,6 +48,7 @@ namespace Stormancer.GameServers.Agent
                     {
                         found = _agents.Values.Any(c => c.AppConfiguration == app);
                     }
+
                     if(!found)
                     {
                         _ =RunAppAsync(app, stoppingToken);
@@ -71,9 +73,12 @@ namespace Stormancer.GameServers.Agent
                 {
                     i = _currentAgentId++;
                     client = ClientFactory.GetClient(i);
+                    
                     _agents[i] = new AgentContainer(i, client, applicationConfiguration);
                 }
+
                 await client.DependencyResolver.Resolve<AgentApi>().StartAgent(i, applicationConfiguration, stoppingToken);
+
             }
             catch(Exception ex) 
             {

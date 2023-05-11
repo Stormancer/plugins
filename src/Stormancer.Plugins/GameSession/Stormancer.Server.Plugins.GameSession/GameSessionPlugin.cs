@@ -76,6 +76,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 {
                     s.Metadata["stormancer.serverPool"] = "1.0.0";
                     s.AddController<ServerPoolController>();
+                    s.AddController<AgentServerController>();
                 });
                
             };

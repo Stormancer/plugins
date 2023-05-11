@@ -31,12 +31,13 @@ namespace Stormancer.GameServers.Agent
     }
     public class DockerAgentConfigurationOptions
     {
-        public string Section => "agent";
+        public static string Section => "agent";
         public string? PublicIp { get; set; }
 
         public int MinPort { get; set; } = 40000;
         public int MaxPort { get; set; } = 40999;
 
+        public int HttpPort { get; set; } = 30001;
         public long MaxMemory { get; set; }
         public float MaxCpu { get; set; }
         public string Id { get; set; } = Environment.MachineName;
@@ -46,7 +47,7 @@ namespace Stormancer.GameServers.Agent
         /// </summary>
         public string? CorePath { get; set; }
 
-        public Dictionary<string, ApplicationConfigurationOptions> Applications { get; set; }
+        public Dictionary<string, ApplicationConfigurationOptions> Applications { get; set; } = new Dictionary<string, ApplicationConfigurationOptions>();
        
 
         public Dictionary<string, string> Attributes { get; set; } = new Dictionary<string, string>();

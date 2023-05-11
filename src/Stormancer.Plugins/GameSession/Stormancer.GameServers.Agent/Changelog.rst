@@ -15,6 +15,7 @@ Unreleased
 Added
 *****
 - Create server crash reports and store them locally.
+- Listen 
 
 0.3.0.8
 -------

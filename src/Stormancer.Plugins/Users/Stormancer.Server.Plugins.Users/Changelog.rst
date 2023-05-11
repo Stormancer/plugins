@@ -16,6 +16,10 @@ Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
 
+Added
+*****
+- IAuthenticationEventHandler.OnLoggedIn now provides the peer.
+
 8.0.0.2
 ----------
 Changed

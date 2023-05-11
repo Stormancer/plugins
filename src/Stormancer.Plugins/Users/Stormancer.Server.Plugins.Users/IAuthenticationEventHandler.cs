@@ -111,21 +111,26 @@ namespace Stormancer.Server.Plugins.Users
         /// <summary>
         /// Gets the authentication context that was used for authentication.
         /// </summary>
-        public AuthenticationContext AuthCtx { get; internal set; } = default!;
+        public AuthenticationContext AuthCtx { get;  set; } = default!;
 
         /// <summary>
         /// Gets the result of the auth operation.
         /// </summary>
-        public LoginResult Result { get; internal set; } = default!;
+        public LoginResult Result { get;  set; } = default!;
 
         /// <summary>
         /// Gets the user session.
         /// </summary>
-        public SessionRecord Session { get; internal set; } = default!;
+        public SessionRecord Session { get;  set; } = default!;
 
         /// <summary>
-        /// Gets the cancellation token of the auth request.
+        /// Gets the cancellation token of the authentication request.
         /// </summary>
-        public CancellationToken CancellationToken { get; internal set; }
+        public CancellationToken CancellationToken { get;  set; }
+
+        /// <summary>
+        /// Gets the peer which was logged in.
+        /// </summary>
+        public IScenePeerClient Peer { get;  set; }
     }
 }
