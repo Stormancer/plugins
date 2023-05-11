@@ -141,7 +141,7 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 ctx.SceneId = ctx.ServiceName;
             }
-            if (ctx.ServiceType == "stormancer.plugins.serverPool")
+            if (ctx.ServiceType == "stormancer.plugins.serverPool" || ctx.ServiceType == "gameservers.agent")
             {
                 ctx.SceneId = GameSessionPlugin.POOL_SCENEID;
             }
