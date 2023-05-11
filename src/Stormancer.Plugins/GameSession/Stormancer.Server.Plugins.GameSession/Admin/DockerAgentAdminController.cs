@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Nest;
+using Stormancer.Core;
 using Stormancer.Server.Plugins.GameSession.ServerProviders;
 using System;
 using System.Collections.Generic;
@@ -19,17 +20,17 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
     public class DockerAgentAdminController : ControllerBase
     {
         private readonly AgentBasedGameServerProvider _provider;
-        private readonly AgentServerProxy _agentServerApi;
+        private readonly ISceneHost _scene;
 
         /// <summary>
         /// Creates a new <see cref="DockerAgentAdminController"/> object.
         /// </summary>
         /// <param name="provider"></param>
         /// <param name="agentServerApi"></param>
-        public DockerAgentAdminController(AgentBasedGameServerProvider provider, AgentServerProxy agentServerApi)
+        public DockerAgentAdminController(AgentBasedGameServerProvider provider, ISceneHost scene)
         {
             _provider = provider;
-            _agentServerApi = agentServerApi;
+            _scene = scene;
         }
 
 
@@ -43,10 +44,11 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
         [ProducesResponseType(200, Type = typeof(GetAgentsResponse))]
         public async Task<IActionResult> GetAgents(CancellationToken cancellationToken)
         {
-            
+            await using var scope = _scene.CreateRequestScope();
+
             return Ok(new GetAgentsResponse
             {
-                Agents = await _agentServerApi.GetAgents(cancellationToken)
+                Agents = await scope.Resolve<AgentServerProxy>().GetAgents(cancellationToken)
             });
         }
 
