@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Stormancer.Server.Plugins.GameSession.ServerProviders;
 
 namespace Stormancer.Server.Plugins.Regions
 {
@@ -12,34 +13,31 @@ namespace Stormancer.Server.Plugins.Regions
     {
         private readonly IUserSessions _sessions;
         private readonly AgentServerProxy _agentServer;
+        private readonly RegionTestingStorage _storage;
+        private readonly ISerializer _serializer;
 
-        public RegionsTestingService(IUserSessions sessions, AgentServerProxy agentServer)
+        public RegionsTestingService(IUserSessions sessions, AgentServerProxy agentServer, RegionTestingStorage storage, ISerializer serializer)
         {
             _sessions = sessions;
             _agentServer = agentServer;
+            _storage = storage;
+            _serializer = serializer;
         }
-        public async ValueTask<Dictionary<string, string>> GetTestIps()
+        public async Task<Dictionary<string, string>> GetTestIps()
         {
-            var agents =await  _agentServer.GetTestIps();
-
-
+            var result = await _storage.Cache.Get(0, async _ => await _agentServer.GetRegions(CancellationToken.None), TimeSpan.FromMinutes(1));
+            return result ?? new();
         }
 
-        public Task UpdateRegionAsync(SessionId sessionId, string? regionName, CancellationToken cancellationToken)
+        public Task UpdateRegionAsync(SessionId sessionId, IEnumerable<string> regions, CancellationToken cancellationToken)
         {
-            return _sessions.UpdateSessionData(sessionId, "stormancer.region", Encoding.UTF8.GetBytes(regionName??string.Empty), cancellationToken);
+            return _sessions.UpdateSessionData(sessionId, "stormancer.region", regions, cancellationToken);
 
         }
-        public string GetRegion(Session session)
+        public IEnumerable<string> GetRegion(Session session)
         {
-            if(session.SessionData.TryGetValue("stormancer.region",out var utf8))
-            {
-                return Encoding.UTF8.GetString(utf8);
-            }
-            else
-            {
-                return string.Empty;
-            }
+            return session.GetSessionValue<IEnumerable<string>>("stormancer.region", _serializer) ?? Enumerable.Empty<string>();
+
         }
     }
 }

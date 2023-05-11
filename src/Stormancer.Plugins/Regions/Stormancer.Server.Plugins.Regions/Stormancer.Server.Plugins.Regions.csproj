@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFramework>net6.0</TargetFramework>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
@@ -40,6 +40,14 @@
 		<NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
 		<Pdbs Include="$(TargetDir)*.pdb" />
 		<cpp Include="$(ProjectDir)../cpp/*" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="Changelog.rst" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Include="Changelog.rst" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -45,9 +45,9 @@ namespace Stormancer.Server.Plugins.Regions
         {
             var testResults = await ctx.Peer.RpcTask<LatencyTestRequest, GetLatencyTestsResponse>("regions.testIps", new LatencyTestRequest { TestIps = await _regionTestingService.GetTestIps() }, ctx.CancellationToken);
 
-            var selectedRegion = testResults.Results.OrderBy(kvp => kvp.Latency).FirstOrDefault();
-            var regionString = selectedRegion?.Region ?? string.Empty;
-            await _regionTestingService.UpdateRegionAsync(ctx.Session.SessionId, regionString, ctx.CancellationToken);
+            var regionPreferences = testResults.Results.OrderBy(kvp => kvp.Latency).Select(kvp=>kvp.Region);
+            
+            await _regionTestingService.UpdateRegionAsync(ctx.Session.SessionId, regionPreferences, ctx.CancellationToken);
         }
     }
 }

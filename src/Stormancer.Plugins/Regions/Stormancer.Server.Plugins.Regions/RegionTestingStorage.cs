@@ -6,11 +6,8 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Regions
 {
-    internal class RegionTestingStorage
+    public class RegionTestingStorage
     {
-        public ValueTask<Dictionary<string, string>> GetTestIps()
-        {
-
-        }
+        public MemoryCache<int, Dictionary<string, string>> Cache { get; } = new MemoryCache<int, Dictionary<string, string>>();
     }
 }
