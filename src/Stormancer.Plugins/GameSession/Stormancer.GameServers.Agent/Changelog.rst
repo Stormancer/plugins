@@ -15,7 +15,7 @@ Unreleased
 Added
 *****
 - Create server crash reports and store them locally.
-- Listen 
+- Added APIs and systems to support best region detection.
 
 0.3.0.8
 -------

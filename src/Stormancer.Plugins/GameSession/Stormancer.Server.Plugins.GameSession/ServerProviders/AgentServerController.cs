@@ -35,5 +35,20 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 TotalMemory = a.TotalMemory
             });
         }
+
+        [S2SApi]
+        public Dictionary<string,string> GetRegions()
+        {
+            var result = new Dictionary<string, string>();
+            var agents = _gameServerProvider.GetAgents();
+            foreach(var agent in agents)
+            {
+                if(agent.Description.Region !=null && !result.TryGetValue(agent.Description.Region, out _) && agent.Description.WebApiEndpoint !=null && agent.IsActive)
+                {
+                    result[agent.Description.Region] = agent.Description.WebApiEndpoint; 
+                }
+            }
+            return result;
+        }
     }
 }

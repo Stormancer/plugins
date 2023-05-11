@@ -47,6 +47,8 @@ namespace Stormancer.GameServers.Agent
         /// </summary>
         public string? CorePath { get; set; }
 
+        public string? Region { get; set; }
+
         public Dictionary<string, ApplicationConfigurationOptions> Applications { get; set; } = new Dictionary<string, ApplicationConfigurationOptions>();
        
 

@@ -29,6 +29,12 @@ namespace Stormancer.GameServers.Agent
             claims.Add("quotas.maxMemory", _agentOptions.MaxMemory.ToString());
             claims.Add("quotas.maxCpu", _agentOptions.MaxCpu.ToString());
             claims.Add("id", _agentOptions.Id);
+            if (_agentOptions.Region != null)
+            {
+                claims.Add("agent.region", _agentOptions.Region);
+                claims.Add("agent.webApi", $"http://{_agentOptions.PublicIp}:{_agentOptions.HttpPort}");
+            }
+           
 
             var jwt = Jose.JWT.Encode(claims, privateKey.GetRSAPrivateKey(), JwsAlgorithm.RS256, new Dictionary<string, object>
             {

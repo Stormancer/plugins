@@ -244,7 +244,8 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             {
                 Id = session.User.Id,
                 Claims = session.User.UserData["claims"]?.ToObject<Dictionary<string, string>>() ?? new Dictionary<string, string>(),
-                WebApiEndpoint = Description.Claims.ContainsKey("agent.webApi") ? Description.Claims["agent.webApi"] : null
+                WebApiEndpoint = 
+                Region =
             };
             if (Description.Claims.TryGetValue("fault", out var fault))
             {
@@ -667,14 +668,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// <summary>
         /// Web Api endpoint of the agent.
         /// </summary>
-        [MessagePackMember(2)]
-        public string? WebApiEndpoint { get; set; }
+        [MessagePackIgnore]
+        public string? WebApiEndpoint => Claims.ContainsKey("agent.webApi") ? Claims["agent.webApi"] : null;
 
         /// <summary>
         /// Region the agent belongs to.
         /// </summary>
-        [MessagePackMember(3)]
-        public string? Region { get; set; }
+        [MessagePackIgnore]
+        public string? Region => Claims.ContainsKey("agent.region") ? Claims["agent.region"] : null;
     }
 
 
