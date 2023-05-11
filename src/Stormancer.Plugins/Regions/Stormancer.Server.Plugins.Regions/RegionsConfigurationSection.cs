@@ -12,6 +12,10 @@ namespace Stormancer.Server.Plugins.Regions
     public class RegionsConfigurationSection
     {
         /// <summary>
+        /// Is the regions feature enabled.
+        /// </summary>
+        public bool Enabled { get; set; } = false;
+        /// <summary>
         /// Default region
         /// </summary>
         public string? DefaultRegion { get; set; }

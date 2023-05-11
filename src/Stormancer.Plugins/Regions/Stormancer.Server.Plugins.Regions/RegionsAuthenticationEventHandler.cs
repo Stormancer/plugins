@@ -43,11 +43,15 @@ namespace Stormancer.Server.Plugins.Regions
         }
         public async Task OnLoggedIn(Stormancer.Server.Plugins.Users.LoggedInCtx ctx)
         {
-            var testResults = await ctx.Peer.RpcTask<LatencyTestRequest, GetLatencyTestsResponse>("regions.testIps", new LatencyTestRequest { TestIps = await _regionTestingService.GetTestIps() }, ctx.CancellationToken);
+            var config = _configuration.GetValue<RegionsConfigurationSection>("regions");
+            if (config.Enabled)
+            {
+                var testResults = await ctx.Peer.RpcTask<LatencyTestRequest, GetLatencyTestsResponse>("regions.testIps", new LatencyTestRequest { TestIps = await _regionTestingService.GetTestIps() }, ctx.CancellationToken);
 
-            var regionPreferences = testResults.Results.OrderBy(kvp => kvp.Latency).Select(kvp=>kvp.Region);
-            
-            await _regionTestingService.UpdateRegionAsync(ctx.Session.SessionId, regionPreferences, ctx.CancellationToken);
+                var regionPreferences = testResults.Results.OrderBy(kvp => kvp.Latency).Select(kvp => kvp.Region);
+
+                await _regionTestingService.UpdateRegionAsync(ctx.Session.SessionId, regionPreferences, ctx.CancellationToken);
+            }
         }
     }
 }
