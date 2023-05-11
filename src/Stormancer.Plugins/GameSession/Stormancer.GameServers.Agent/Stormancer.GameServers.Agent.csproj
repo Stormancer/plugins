@@ -5,7 +5,7 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>0.5.0</Version>
+		<Version>0.5.0.1</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<ToolCommandName>stormancer-gameservers-agent</ToolCommandName>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
@@ -26,7 +26,11 @@
 		<PackageIcon>icon.png</PackageIcon>
 	</PropertyGroup>
 	<ItemGroup>
+	  <Content Remove="appsettings.json" />
+	</ItemGroup>
+	<ItemGroup>
 		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
+		<None Include="appsettings.json" />
 	</ItemGroup>
 	<ItemGroup>
 		<None Include="docs\Readme.md" Pack="true" PackagePath="\" />

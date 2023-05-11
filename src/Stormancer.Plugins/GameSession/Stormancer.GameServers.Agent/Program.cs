@@ -10,7 +10,7 @@ IHost host = Host.CreateDefaultBuilder()
     .ConfigureHostConfiguration((configBuilder)=>
     {
         configBuilder.Sources.Clear();
-        configBuilder.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+        configBuilder.AddJsonFile(Path.Combine(Environment.CurrentDirectory,"appsettings.json"), optional: false, reloadOnChange: true)
         .AddEnvironmentVariables(prefix:"STRM_GS_AGENT_")
         .AddCommandLine(args);
         
@@ -19,7 +19,7 @@ IHost host = Host.CreateDefaultBuilder()
     {
         var env = hostingContext.HostingEnvironment;
         configBuilder
-              .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true);
+              .AddJsonFile(Path.Combine(Environment.CurrentDirectory, $"appsettings.{env.EnvironmentName}.json"), optional: true, reloadOnChange: true);
 
         options = configBuilder.Build().GetSection(DockerAgentConfigurationOptions.Section).Get<DockerAgentConfigurationOptions>();
     })
