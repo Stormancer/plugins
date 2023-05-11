@@ -244,8 +244,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             {
                 Id = session.User.Id,
                 Claims = session.User.UserData["claims"]?.ToObject<Dictionary<string, string>>() ?? new Dictionary<string, string>(),
-                WebApiEndpoint = 
-                Region =
+              
             };
             if (Description.Claims.TryGetValue("fault", out var fault))
             {

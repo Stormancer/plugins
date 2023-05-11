@@ -1219,7 +1219,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
                     h => h.OnCreatedReservation(createdCtx),
-                    ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing OnCreatedReservation event", ex));
+                    ex => _logger.Log(LogLevel.Error, "gameSession", "An error occurred while executing OnCreatedReservation event", ex));
 
                 return new GameSessionReservation { ReservationId = reservationState.ReservationId.ToString(), ExpiresOn = reservationState.ExpiresOn };
             }
