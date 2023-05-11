@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 {
     [Service(Named =false, ServiceType = "gameservers.agent")]
-    internal class AgentServerController :ControllerBase
+    public class AgentServerController :ControllerBase
     {
         private readonly AgentBasedGameServerProvider _gameServerProvider;
 
@@ -19,11 +19,11 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         }
 
         [S2SApi]
-        public IEnumerable<AgentDocument> GetAgents()
+        public Task<IEnumerable<AgentDocument>> GetAgents()
         {
             var agents = _gameServerProvider.GetAgents();
 
-            return agents.Select(a => new AgentDocument
+            return Task.FromResult(agents.Select(a => new AgentDocument
             {
                 Description = a.Description,
                 Fault = a.Fault,
@@ -33,11 +33,11 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 ReservedMemory = a.ReservedMemory,
                 TotalCpu = a.TotalCpu,
                 TotalMemory = a.TotalMemory
-            });
+            }));
         }
 
         [S2SApi]
-        public Dictionary<string,string> GetRegions()
+        public Task<Dictionary<string,string>> GetRegions()
         {
             var result = new Dictionary<string, string>();
             var agents = _gameServerProvider.GetAgents();
@@ -48,7 +48,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                     result[agent.Description.Region] = agent.Description.WebApiEndpoint; 
                 }
             }
-            return result;
+            return Task.FromResult(result);
         }
     }
 }
