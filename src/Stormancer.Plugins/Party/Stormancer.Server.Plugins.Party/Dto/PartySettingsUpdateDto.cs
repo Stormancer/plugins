@@ -92,6 +92,13 @@ namespace Stormancer.Server.Plugins.Party.Dto
         [MessagePackMember(4)]
         public string IndexedDocument { get; set; } = string.Empty;
 
+
+        /// <summary>
+        /// Gets or sets the party id.
+        /// </summary>
+        [MessagePackMember(5)]
+        public string PartyId { get; set; } = default!;
+
         /// <summary>
         /// Creates a <see cref="PartySettingsDto"/> object.
         /// </summary>
@@ -113,6 +120,7 @@ namespace Stormancer.Server.Plugins.Party.Dto
             IsJoinable = config.IsJoinable;
             PublicServerData = config.PublicServerData.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             IndexedDocument = partyState.SearchDocument?.ToString()??string.Empty;
+            PartyId = config.PartyId;
         }
 
         /// <summary>

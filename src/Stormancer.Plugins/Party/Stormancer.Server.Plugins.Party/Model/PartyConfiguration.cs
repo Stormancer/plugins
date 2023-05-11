@@ -27,9 +27,9 @@ namespace Stormancer.Server.Plugins.Party.Model
     public class PartyConfiguration
     {
         /// <summary>
-        /// Scene name and platform id given by client.
+        /// Id of the party (might be different from the sceneId) 
         /// </summary>
-        public string PartyId { get; set; }
+        public string PartyId { get; set; } = default!;
 
         /// <summary>
         /// Current party leader can be changed.

@@ -20,6 +20,10 @@ Fixed
 *****
 - Use PeriodicTimer in PartyAnalyticsWorker to fix an high usage CPU issue.
 
+Added
+*****
+- Added Party Id to PartySettingsUpdateDto
+
 5.0.1.7
 -------
 Fixed
