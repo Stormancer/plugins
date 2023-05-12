@@ -48,7 +48,7 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
 
             return Ok(new GetAgentsResponse
             {
-                Agents = await scope.Resolve<AgentServerProxy>().GetAgents(cancellationToken)
+                Agents = await scope.Resolve<AgentServerProxy>().GetAgents(false,cancellationToken)
             });
         }
 

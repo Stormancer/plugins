@@ -19,11 +19,21 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         }
 
         [S2SApi]
-        public Task<IEnumerable<AgentDocument>> GetAgents()
+        public Task<IEnumerable<AgentDocument>> GetAgents(bool onlyActive)
         {
             var agents = _gameServerProvider.GetAgents();
 
-            return Task.FromResult(agents.Select(a => new AgentDocument
+            return Task.FromResult(agents.Where(a =>
+            {
+                if(onlyActive)
+                {
+                    return a.IsActive;
+                }
+                else
+                {
+                    return true;
+                }
+            }).Select(a => new AgentDocument
             {
                 Description = a.Description,
                 Fault = a.Fault,
@@ -37,11 +47,21 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         }
 
         [S2SApi]
-        public Task<Dictionary<string,string>> GetRegions()
+        public Task<Dictionary<string,string>> GetRegions(bool onlyActive)
         {
             var result = new Dictionary<string, string>();
-            var agents = _gameServerProvider.GetAgents();
-            foreach(var agent in agents)
+            var agents = _gameServerProvider.GetAgents().Where(a =>
+            {
+                if (onlyActive)
+                {
+                    return a.IsActive;
+                }
+                else
+                {
+                    return true;
+                }
+            });
+            foreach (var agent in agents)
             {
                 if(agent.Description.Region !=null && !result.TryGetValue(agent.Description.Region, out _) && agent.Description.WebApiEndpoint !=null && agent.IsActive)
                 {

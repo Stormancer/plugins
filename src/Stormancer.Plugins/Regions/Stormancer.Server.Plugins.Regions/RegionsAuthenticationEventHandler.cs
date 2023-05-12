@@ -44,7 +44,7 @@ namespace Stormancer.Server.Plugins.Regions
         public async Task OnLoggedIn(Stormancer.Server.Plugins.Users.LoggedInCtx ctx)
         {
             var config = _configuration.GetValue<RegionsConfigurationSection>("regions");
-            if (config.Enabled)
+            if (config.Enabled && ctx.Peer.Routes.Any(r=>r.Name == "regions.testIps"))
             {
                 var testResults = await ctx.Peer.RpcTask<LatencyTestRequest, GetLatencyTestsResponse>("regions.testIps", new LatencyTestRequest { TestIps = await _regionTestingService.GetTestIps() }, ctx.CancellationToken);
 

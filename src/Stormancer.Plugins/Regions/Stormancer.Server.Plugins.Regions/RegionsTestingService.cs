@@ -25,7 +25,7 @@ namespace Stormancer.Server.Plugins.Regions
         }
         public async Task<Dictionary<string, string>> GetTestIps()
         {
-            var result = await _storage.Cache.Get(0, async _ => await _agentServer.GetRegions(CancellationToken.None), TimeSpan.FromMinutes(1));
+            var result = await _storage.Cache.Get(0, async _ => await _agentServer.GetRegions(true,CancellationToken.None), TimeSpan.FromMinutes(1));
             return result ?? new();
         }
 
