@@ -265,6 +265,8 @@ namespace Stormancer.Server.Plugins.Party
                 }
                 var user = session.User;
 
+              
+                await _userSessions.UpdateSessionData(peer.SessionId, "party", _partyState.Settings.PartyId, CancellationToken.None);
                 var userData = peer.ContentType == "party/userdata" ? peer.UserData : new byte[0];
                 var partyUser = new PartyMember { UserId = user.Id, StatusInParty = PartyMemberStatus.NotReady, Peer = peer, UserData = userData };
                 _partyState.PartyMembers.TryAdd(peer.SessionId, partyUser);
@@ -346,7 +348,12 @@ namespace Stormancer.Server.Plugins.Party
                             Log(LogLevel.Trace, "OnDisconnected", $"New leader elected: {_partyState.Settings.PartyLeaderId}", args.Peer.SessionId, partyUser.UserId);
                             await BroadcastStateUpdateRpc(LeaderChangedRoute, _partyState.Settings.PartyLeaderId);
                         }
+
+
+                        await _userSessions.UpdateSessionData(args.Peer.SessionId, "party", null, CancellationToken.None);
                         await BroadcastStateUpdateRpc(PartyMemberDisconnection.Route, new PartyMemberDisconnection { UserId = partyUser.UserId, Reason = ParseDisconnectionReason(args.Reason) });
+                        
+
                     }
                 }
                 finally

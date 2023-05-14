@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Stormancer.Server.Plugins.Users;
+using System.Threading;
 
 namespace Stormancer.Server.Plugins.Party.JoinGame
 {
@@ -20,17 +22,20 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
     internal class JoinGameSessionEventHandler : IGameSessionEventHandler
     {
         private readonly PartyProxy party;
+        private readonly IUserSessions _userSessions;
         private readonly JoinGameSessionState state;
         private readonly IConfiguration configuration;
         private readonly ILogger logger;
 
         public JoinGameSessionEventHandler(
-            PartyProxy party, 
-            JoinGameSessionState state, 
+            PartyProxy party,
+            IUserSessions userSessions,
+            JoinGameSessionState state,
             IConfiguration configuration,
             ILogger logger)
         {
             this.party = party;
+            _userSessions = userSessions;
             this.state = state;
             this.configuration = configuration;
             this.logger = logger;
@@ -56,22 +61,30 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
         {
             if (IsEnabled)
             {
-                string? partyId = null;
+                string? partyId = await _userSessions.GetSessionData<string>(ctx.Player.Peer.SessionId, "party", CancellationToken.None);
+
 
 
                 lock (state.syncRoot)
                 {
-                    var party = ctx.GameSession.GetGameSessionConfig().Teams.SelectMany(t => t.Parties).FirstOrDefault(p => p.Players.ContainsKey(ctx.Player.Player.UserId));
-
-                    if (party != null)
+                    if (partyId != null)
                     {
-                        if (!state.UserIdToPartyId.Values.Contains(party.PartyId))
+                        state.UserIdToPartyId[ctx.Player.Player.UserId] = partyId;
+                    }
+                    else
+                    {
+                        var party = ctx.GameSession.GetGameSessionConfig().Teams.SelectMany(t => t.Parties).FirstOrDefault(p => p.Players.ContainsKey(ctx.Player.Player.UserId));
+
+                        if (party != null)
                         {
+                            if (!state.UserIdToPartyId.Values.Contains(party.PartyId))
+                            {
+                                partyId = party.PartyId;
+                            }
+                            state.UserIdToPartyId[ctx.Player.Player.UserId] = party.PartyId;
+
                             partyId = party.PartyId;
                         }
-                        state.UserIdToPartyId[ctx.Player.Player.UserId] = party.PartyId;
-
-                        partyId = party.PartyId;
                     }
                 }
 
@@ -81,9 +94,9 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                     {
                         await party.UpdatePartyStatusAsync(partyId, null, "gamesession", ctx.GameSession.GameSessionId, default);
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
-                        logger.Log(LogLevel.Error,"party", $"Failed to update the party status (id='{partyId}') with gamesession related informations :", ex);
+                        logger.Log(LogLevel.Error, "party", $"Failed to update the party status (id='{partyId}') with gamesession related informations :", ex);
                         throw;
                     }
                 }
@@ -105,29 +118,20 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                 string? partyId = null;
                 lock (state.syncRoot)
                 {
-                    var party = ctx.GameSession.GetGameSessionConfig().Teams.SelectMany(t => t.Parties).FirstOrDefault(p => p.Players.ContainsKey(ctx.Player.Player.UserId));
-                    if (party != null)
-                    {
+                    state.UserIdToPartyId.Remove(ctx.Player.Player.UserId, out partyId);
 
-                        state.UserIdToPartyId.Remove(ctx.Player.Player.UserId);
-                        if (!state.UserIdToPartyId.Values.Contains(party.PartyId))
-                        {
-                            partyId = party.PartyId;
-                        }
-                    }
-                    else
+                    if (partyId != null && state.UserIdToPartyId.Values.Contains(partyId))
                     {
-                        logger.Log(LogLevel.Warn, "party.gamesession.leave", "No party found associated with player.", new { }, ctx.GameSession.GameSessionId, ctx.Player.Player.UserId);
+                        partyId = null;
                     }
-                
                 }
 
                 if (partyId != null)
                 {
                     await party.UpdatePartyStatusAsync(partyId, "gamesession", "", null, default);
                 }
-                
-                   
+
+
             }
         }
 

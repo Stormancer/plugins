@@ -240,6 +240,7 @@ namespace Stormancer.Server.Plugins.Party
         [S2SApi]
         public PartyStatus GetPartyStatus(CancellationToken cancellationToken)
         {
+            
             if (_partyService.Settings.PublicServerData.TryGetValue("stormancer.partyStatus", out var status))
             {
                 var result = new PartyStatus() { Status = status };
@@ -292,5 +293,10 @@ namespace Stormancer.Server.Plugins.Party
         /// Gets or sets details about the status.
         /// </summary>
         public string Details { get; set; } = default!;
+
+        /// <summary>
+        /// Version of the party status.
+        /// </summary>
+        public ulong Version { get; set; } = 0;
     }
 }

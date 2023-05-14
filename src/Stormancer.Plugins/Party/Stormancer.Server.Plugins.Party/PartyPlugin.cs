@@ -142,6 +142,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 builder.Register<JoinGameSessionEventHandler>(r => new JoinGameSessionEventHandler(
                     r.Resolve<PartyProxy>(),
+                    r.Resolve<IUserSessions>(),
                     r.Resolve<JoinGameSessionState>(),
                     r.Resolve<IConfiguration>(),
                     r.Resolve<ILogger>())
