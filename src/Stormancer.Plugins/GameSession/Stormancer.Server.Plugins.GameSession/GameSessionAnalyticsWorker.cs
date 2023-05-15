@@ -30,7 +30,11 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Number of game sessions matching the criteria.
         /// </summary>
         public int Count { get; }
-        IReadOnlyDictionary<string, string> Dimensions { get; }
+
+        /// <summary>
+        /// Dimensions associated
+        /// </summary>
+        public IReadOnlyDictionary<string, string> Dimensions { get; }
     }
 
     internal class GameSessionAnalyticsWorker
