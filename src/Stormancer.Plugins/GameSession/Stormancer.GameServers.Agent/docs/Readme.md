@@ -30,6 +30,8 @@ Then install the Stormancer.GameServer.Agent tool
 1. Run `echo '/tmp/core-dump.%p' | sudo tee /proc/sys/kernel/core_pattern` on the agent to setup the host core pattern.
 
 For more information about the core_pattern : https://www.kernel.org/doc/html/latest/admin-guide/sysctl/kernel.html#core-pattern
+    
+To make the change in the host core pattern permanent, add 'kernel.core_pattern = /tmp/core-dump.%p' to /etc/sysctl.conf
 
 2. Set the `CorePath` value in the agent configuration to the path of the generated core dump in the container.
 
