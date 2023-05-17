@@ -130,7 +130,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         internal void AddGameSession(GameSessionService gameSessionService)
         {
-            _analytics.Push("gamesession", "gameSession-created", JObject.FromObject(new
+            _analytics.Push("gamesession", "gamesession-created", JObject.FromObject(new
             {
                 gameFinder = gameSessionService.GetGameSessionConfig()?.GameFinder,
                 parameters = gameSessionService?.GetGameSessionConfig()?.Parameters,
@@ -164,7 +164,7 @@ namespace Stormancer.Server.Plugins.GameSession
             _analytics.Push("gamesession", "gamesession-closed", JObject.FromObject(new
             {
                 gameSessionId = gameSessionService.GameSessionId,
-                sessionDuration = gameSessionService.CreatedOn - DateTime.UtcNow,
+                sessionDuration = (gameSessionService.CreatedOn - DateTime.UtcNow).TotalMilliseconds,
                 maxClientsConnected = gameSessionService.MaxClientsConnected,
                 gameFinder = gameSessionService?.GetGameSessionConfig()?.GameFinder,
                 parameters = gameSessionService?.GetGameSessionConfig()?.Parameters
@@ -176,7 +176,7 @@ namespace Stormancer.Server.Plugins.GameSession
         internal void StartGamesession(GameSessionService gameSessionService)
         {
 
-            _analytics.Push("gamesession", "gmaesession-started", JObject.FromObject(new
+            _analytics.Push("gamesession", "gamesession-started", JObject.FromObject(new
             {
                 gamesessionId = gameSessionService.GameSessionId,
                 gameFinder = gameSessionService.GetGameSessionConfig()?.GameFinder,

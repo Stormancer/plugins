@@ -14,11 +14,15 @@ Unreleased
 Added
 *****
 - Added support for crash reports in game server agent.
+- Exclude agents for 30s when they failed to create a server
+- Kill agents if they fail twice in succession, indicating they are faulty.
 
 Fixed
 *****
 - Fixed infinite loop in the analytics worker loop.
 - Fixed an wrong null check on closing servers that could lead to a NullRef exception when updating the game server auditing record.
+- When trying to start a game server, timeout if it takes more than 5s to do a docker start on an agent.
+- Fixed false positives error logs.
 
 6.1.1.15
 ----------

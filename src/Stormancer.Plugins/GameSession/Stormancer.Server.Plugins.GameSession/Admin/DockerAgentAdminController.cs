@@ -108,7 +108,7 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
     public class AgentDocument
     {
         public bool Faulted { get; set; }
-        public string? Fault { get; set; }
+        public IEnumerable<string> Faults { get; set; }
 
         public AgentDescription Description { get; set; }
 

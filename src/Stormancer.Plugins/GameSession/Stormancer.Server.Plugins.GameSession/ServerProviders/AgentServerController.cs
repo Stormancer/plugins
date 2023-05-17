@@ -36,7 +36,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             }).Select(a => new AgentDocument
             {
                 Description = a.Description,
-                Fault = a.Fault,
+                Faults = a.Faults,
                 Faulted = a.Faulted,
                 Active = a.IsActive,
                 ReservedCpu = a.ReservedCpu,

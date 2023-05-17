@@ -92,6 +92,7 @@ namespace Stormancer.Server.Plugins.Analytics
                     doc.App = appInfos.ApplicationName;
                     doc.Cluster = fed.current.id;
                     doc.DeploymentId = appInfos.DeploymentId;
+                    doc.IsDeploymentActive = _environment.IsActive;
                     documents.Add(doc);
                 }
                 foreach(var output in outputs())
