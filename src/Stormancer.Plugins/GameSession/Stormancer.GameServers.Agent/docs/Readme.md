@@ -47,26 +47,29 @@ Create a service file (gameservers-agent.service) in /etc/systemd/system using n
 > sudo nano /etc/systemd/system/gameservers-agent.service
 
  - A sample service file would be as follow:
-    [Unit]
-    Description=Game server agent
-    After=network-online.target
 
-    [Service]
-    Type=simple
+```
+[Unit]
+Description=Game server agent
+After=network-online.target
 
-    #a user with sufficient permissions
-    User=root 
+[Service]
+Type=simple
 
-    ExecStart=/usr/bin/dotnet tool run stormancer-gameservers-agent
-    #use your agent installation folder as WorkingDirectory
-    WorkingDirectory=/home/agent
+#a user with sufficient permissions
+User=root 
 
-    Restart=on-failure
+ExecStart=/usr/bin/dotnet tool run stormancer-gameservers-agent
+#use your agent installation folder as WorkingDirectory
+WorkingDirectory=/home/agent
 
-    TimeoutStopSec=30
+Restart=on-failure
 
-    [Install]
-    WantedBy=multi-user.target
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
+```
 
 - Enable the service
 > sudo systemctl daemon-reload
