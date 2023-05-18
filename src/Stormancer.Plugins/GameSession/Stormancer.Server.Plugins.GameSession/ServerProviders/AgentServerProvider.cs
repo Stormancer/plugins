@@ -592,7 +592,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
                 if (agent != null)
                 {
-                    using var cts = new CancellationTokenSource(5000);
+                    using var cts = new CancellationTokenSource(30000);
                     ContainerStartResponse response;
                     try
                     {
