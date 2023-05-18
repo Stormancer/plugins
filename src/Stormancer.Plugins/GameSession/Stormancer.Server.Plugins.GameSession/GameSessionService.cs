@@ -666,7 +666,7 @@ namespace Stormancer.Server.Plugins.GameSession
             await using var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag);
             await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
                 h => h.OnClientConnected(playerConnectedCtx),
-                ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing OnClientConnected event", ex));
+                ex => _logger.Log(LogLevel.Error, "gameSession", "An error occurred while executing OnClientConnected event", ex));
 
 
             var count = _clients.Count;
@@ -758,18 +758,23 @@ namespace Stormancer.Server.Plugins.GameSession
                         {
                             _ = _scene.RunTask(async ct =>
                             {
-                                await Task.Delay(1000 * 60 * 5);
-                                if (!_playerConnectedOnce)
+                                try
                                 {
-                                    if (_server != null)
-                                    {
-                                        await pools.CloseServer(_server.GameServerId, CancellationToken.None);
-                                    }
+                                    await Task.Delay(1000 * 60 * 5, ct);
 
-                                    _gameCompleteCts.Cancel();
-                                    _repository.RemoveGameSession(this);
-                                    _scene.Shutdown("gamesession.empty");
+                                    if (!_playerConnectedOnce && !ct.IsCancellationRequested)
+                                    {
+                                        if (_server != null)
+                                        {
+                                            await pools.CloseServer(_server.GameServerId, CancellationToken.None);
+                                        }
+
+                                        _gameCompleteCts.Cancel();
+                                        _repository.RemoveGameSession(this);
+                                        _scene.Shutdown("gamesession.empty");
+                                    }
                                 }
+                                catch (OperationCanceledException) { }
                             });
                         }
                     }
