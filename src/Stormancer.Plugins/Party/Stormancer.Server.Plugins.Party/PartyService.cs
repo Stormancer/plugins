@@ -193,7 +193,7 @@ namespace Stormancer.Server.Plugins.Party
                 //  2. Si il ne l'est pas alors on continue le pipeline normal
                 //  3. Si il l'est alors on selon la config on change du SA on bloque ou on d�connect depuis l'autre scene et on la co � la nouvelle.
 
-                if (_partyState.MemberCount + 1 >= _partyState.Settings.ServerSettings.MaxMembers())
+                if (_partyState.MemberCount >= _partyState.Settings.ServerSettings.MaxMembers())
                 {
                     Log(LogLevel.Trace, "OnConnecting", "Party join denied because the party is full.", peer.SessionId);
                     throw new ClientException(JoinDeniedError + "?reason=partyFull");
