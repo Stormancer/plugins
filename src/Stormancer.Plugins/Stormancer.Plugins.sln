@@ -199,7 +199,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Abstractions.Ser
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Regions", "Regions", "{2B3E8F94-2646-4CB5-909D-9A665DF507A0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Regions", "Regions\Stormancer.Server.Plugins.Regions\Stormancer.Server.Plugins.Regions.csproj", "{1164B2AD-12ED-4EE9-8809-43C16A31E2C7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Regions", "Regions\Stormancer.Server.Plugins.Regions\Stormancer.Server.Plugins.Regions.csproj", "{1164B2AD-12ED-4EE9-8809-43C16A31E2C7}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Gameye", "Gameye\Stormancer.Server.Plugins.Gameye\Stormancer.Server.Plugins.Gameye.csproj", "{674FF7A5-CBAB-4C2A-825C-EB25C8B7BFAB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -754,6 +756,18 @@ Global
 		{1164B2AD-12ED-4EE9-8809-43C16A31E2C7}.Release|x64.Build.0 = Release|Any CPU
 		{1164B2AD-12ED-4EE9-8809-43C16A31E2C7}.Release|x86.ActiveCfg = Release|Any CPU
 		{1164B2AD-12ED-4EE9-8809-43C16A31E2C7}.Release|x86.Build.0 = Release|Any CPU
+		{674FF7A5-CBAB-4C2A-825C-EB25C8B7BFAB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{674FF7A5-CBAB-4C2A-825C-EB25C8B7BFAB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{674FF7A5-CBAB-4C2A-825C-EB25C8B7BFAB}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{674FF7A5-CBAB-4C2A-825C-EB25C8B7BFAB}.Debug|x64.Build.0 = Debug|Any CPU
+		{674FF7A5-CBAB-4C2A-825C-EB25C8B7BFAB}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{674FF7A5-CBAB-4C2A-825C-EB25C8B7BFAB}.Debug|x86.Build.0 = Debug|Any CPU
+		{674FF7A5-CBAB-4C2A-825C-EB25C8B7BFAB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{674FF7A5-CBAB-4C2A-825C-EB25C8B7BFAB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{674FF7A5-CBAB-4C2A-825C-EB25C8B7BFAB}.Release|x64.ActiveCfg = Release|Any CPU
+		{674FF7A5-CBAB-4C2A-825C-EB25C8B7BFAB}.Release|x64.Build.0 = Release|Any CPU
+		{674FF7A5-CBAB-4C2A-825C-EB25C8B7BFAB}.Release|x86.ActiveCfg = Release|Any CPU
+		{674FF7A5-CBAB-4C2A-825C-EB25C8B7BFAB}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -840,6 +854,7 @@ Global
 		{3BE68D6A-981F-4696-BD28-D97E0B6D8608} = {4F181B0F-E420-462E-9658-7AE8F1B0F36F}
 		{2B3E8F94-2646-4CB5-909D-9A665DF507A0} = {FD264C24-4E01-4B1E-B5A1-489EC1C376E4}
 		{1164B2AD-12ED-4EE9-8809-43C16A31E2C7} = {2B3E8F94-2646-4CB5-909D-9A665DF507A0}
+		{674FF7A5-CBAB-4C2A-825C-EB25C8B7BFAB} = {0780A7C2-5D87-492C-8DE3-A3C72DAD165B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}

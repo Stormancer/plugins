@@ -186,14 +186,14 @@ namespace Stormancer.Server.Plugins.Party
                 //Todo jojo later
                 // Quand un utilisateur essais de ce connecter au party.
                 // Il faut : 
-                //  1. V�rfier via une requ�te S2S si il n'est pas d�j� connecter � un party
+                //  1. Vérifier via une requ�te S2S si il n'est pas d�j� connecter � un party
                 //      1. R�cup�rer en S2S les informations de session dans les UserSessionData
                 //      1. V�rifier si un party est pr�sent
                 //      1. Si il y a un party demande � celui-ci (S2S) si l'utilisateur et bien connecter dessus.
                 //  2. Si il ne l'est pas alors on continue le pipeline normal
                 //  3. Si il l'est alors on selon la config on change du SA on bloque ou on d�connect depuis l'autre scene et on la co � la nouvelle.
 
-                if (_partyState.MemberCount >= _partyState.Settings.ServerSettings.MaxMembers())
+                if (_partyState.MemberCount + 1 >= _partyState.Settings.ServerSettings.MaxMembers())
                 {
                     Log(LogLevel.Trace, "OnConnecting", "Party join denied because the party is full.", peer.SessionId);
                     throw new ClientException(JoinDeniedError + "?reason=partyFull");
@@ -265,7 +265,7 @@ namespace Stormancer.Server.Plugins.Party
                 }
                 var user = session.User;
 
-              
+
                 await _userSessions.UpdateSessionData(peer.SessionId, "party", _partyState.Settings.PartyId, CancellationToken.None);
                 var userData = peer.ContentType == "party/userdata" ? peer.UserData : new byte[0];
                 var partyUser = new PartyMember { UserId = user.Id, StatusInParty = PartyMemberStatus.NotReady, Peer = peer, UserData = userData };
@@ -352,7 +352,7 @@ namespace Stormancer.Server.Plugins.Party
 
                         await _userSessions.UpdateSessionData(args.Peer.SessionId, "party", null, CancellationToken.None);
                         await BroadcastStateUpdateRpc(PartyMemberDisconnection.Route, new PartyMemberDisconnection { UserId = partyUser.UserId, Reason = ParseDisconnectionReason(args.Reason) });
-                        
+
 
                     }
                 }
@@ -490,7 +490,7 @@ namespace Stormancer.Server.Plugins.Party
         public Task UpdateSettings(PartySettingsDto partySettingsDto, CancellationToken ct)
         {
             return UpdateSettings(_ => partySettingsDto, ct);
-            
+
         }
 
         /// <summary>
