@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Docker.DotNet.Models;
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
@@ -268,7 +269,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 await _userSessions.UpdateSessionData(peer.SessionId, "party", _partyState.Settings.PartyId, CancellationToken.None);
                 var userData = peer.ContentType == "party/userdata" ? peer.UserData : new byte[0];
-                var partyUser = new PartyMember { UserId = user.Id, StatusInParty = PartyMemberStatus.NotReady, Peer = peer, UserData = userData };
+                var partyUser = new PartyMember { UserId = user.Id, StatusInParty = PartyMemberStatus.NotReady, Peer = peer, UserData = userData, LocalPlayerCount = 1 };
                 _partyState.PartyMembers.TryAdd(peer.SessionId, partyUser);
                 // Complete existing invtations for the new user. These invitations should all have been completed by now, but this is hard to guarantee.
                 if (_partyState.PendingInvitations.TryGetValue(user.Id, out var invitations))
@@ -287,7 +288,7 @@ namespace Stormancer.Server.Plugins.Party
                 var ClientPluginVersion = peer.Metadata[PartyPlugin.CLIENT_METADATA_KEY];
                 Log(LogLevel.Trace, "OnConnected", "Connection complete", new { peer.SessionId, user.Id, ClientPluginVersion }, peer.SessionId.ToString(), user.Id);
 
-                await BroadcastStateUpdateRpc(MemberConnectedRoute, new PartyMemberDto { PartyUserStatus = partyUser.StatusInParty, UserData = partyUser.UserData, UserId = partyUser.UserId, SessionId = partyUser.Peer.SessionId });
+                await BroadcastStateUpdateRpc(MemberConnectedRoute, new PartyMemberDto { PartyUserStatus = partyUser.StatusInParty, UserData = partyUser.UserData, UserId = partyUser.UserId, SessionId = partyUser.Peer.SessionId, LocalPlayerCount = partyUser.LocalPlayerCount });
 
                 _ = RunOperationCompletedEventHandler((service, handlers, scope) =>
                 {
@@ -591,7 +592,7 @@ namespace Stormancer.Server.Plugins.Party
 
         public string PartyId => Settings.PartyId;
 
-        public async Task UpdatePartyUserData(string userId, byte[] data, CancellationToken ct)
+        public async Task UpdatePartyUserData(string userId, byte[] data, uint localPlayerCount, CancellationToken ct)
         {
             await _partyState.TaskQueue.PushWork(async () =>
             {
@@ -605,31 +606,48 @@ namespace Stormancer.Server.Plugins.Party
                     ThrowNoSuchMemberError(userId);
                 }
 
+                var localPlayerCountChanged = localPlayerCount != partyUser.LocalPlayerCount;
+                var userDataChanged = !partyUser.UserData.SequenceEqual(data);
+
+                if (localPlayerCountChanged && _partyState.MemberCount - partyUser.LocalPlayerCount + localPlayerCount >= _partyState.Settings.ServerSettings.MaxMembers())
+                {
+                    throw new ClientException(JoinDeniedError + "?reason=partyFull");
+                }
+
+
+
                 await using var scope = _scene.CreateRequestScope();
                 var handlers = scope.Resolve<IEnumerable<IPartyEventHandler>>();
 
-                var ctx = new UpdatingPartyMemberDataContext(partyUser, data, _scene);
-                await handlers.RunEventHandler(h => h.OnUpdatingPartyMemberData(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running the event 'OnUpdatingPartyMemberData'.", ex));
+                var ctx = new UpdatingPartyMemberDataContext(partyUser, localPlayerCount, data, _scene);
+                await handlers.RunEventHandler(h => h.OnUpdatingPartyMemberData(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while running the event 'OnUpdatingPartyMemberData'.", ex));
 
                 if (!ctx.IsUpdateValid)
                 {
                     throw new ClientException(ctx.Error ?? "party.invalidMemberData");
                 }
+
+
+
+                partyUser.LocalPlayerCount = localPlayerCount;
                 partyUser.UserData = data;
                 Log(LogLevel.Trace, "UpdatePartyUserData", "Updated user data", new { partyUser.Peer.SessionId, partyUser.UserId, UserData = data });
 
-                var partyResetctx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMemberDataUpdated, _scene);
-                partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetctx);
-                await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while processing an 'OnPlayerReadyStateRest' event.", ex));
+                var flags = (localPlayerCountChanged ? PartyMemberReadyStateResetEventType.PartyMembersListUpdated : 0) | (userDataChanged ? PartyMemberReadyStateResetEventType.PartyMemberDataUpdated : 0);
 
-                if (partyResetctx.ShouldReset)
+                if (flags != 0)
                 {
-                    await TryCancelPendingGameFinder();
+                    var partyResetCtx = new PartyMemberReadyStateResetContext(flags, _scene);
+                    partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
+                    await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
+
+                    if (partyResetCtx.ShouldReset)
+                    {
+                        await TryCancelPendingGameFinder();
+                    }
+
+                    await BroadcastStateUpdateRpc(PartyMemberDataUpdate.Route, new PartyMemberDataUpdate { UserId = userId, UserData = partyUser.UserData, LocalPlayerCount = partyUser.LocalPlayerCount });
                 }
-
-
-
-                await BroadcastStateUpdateRpc(PartyMemberDataUpdate.Route, new PartyMemberDataUpdate { UserId = userId, UserData = partyUser.UserData });
             });
         }
 

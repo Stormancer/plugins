@@ -70,10 +70,11 @@ namespace Stormancer.Server.Plugins.Party
         /// Updates party user data.
         /// </summary>
         /// <param name="userId"></param>
+        /// <param name="localPlayerCount"></param>
         /// <param name="data"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        Task UpdatePartyUserData(string userId, byte[] data, CancellationToken ct);
+        Task UpdatePartyUserData(string userId, byte[] data, uint localPlayerCount, CancellationToken ct);
 
         /// <summary>
         /// Promotes an user as leader.

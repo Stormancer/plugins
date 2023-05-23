@@ -50,5 +50,11 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// </summary>
         [MessagePackMember(3)]
         public SessionId SessionId { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        [MessagePackMember(4)]
+        public uint LocalPlayerCount { get; set; } = 1;
     }
 }

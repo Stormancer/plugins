@@ -528,7 +528,7 @@ namespace Stormancer
 			/// <param name="data">New player data</param>
 			/// <returns>A task that completes when the data has been updated and replicated to other players.</returns>
 			/// <exception cref="std::exception">If you are not in a party.</exception>
-			virtual pplx::task<void> updatePlayerData(std::vector<byte> data) = 0;
+			virtual pplx::task<void> updatePlayerData(std::vector<byte> data, unsigned int localPlayerCount = 1) = 0;
 
 			/// <summary>
 			/// Check if the local user is the leader of the party.
@@ -955,7 +955,7 @@ namespace Stormancer
 			/// Check whether this invitation is still valid.
 			/// </summary>
 			/// <remarks>
-			/// An invitaiton becomes invalid once it has been accepted or denied.
+			/// An invitation becomes invalid once it has been accepted or denied.
 			/// </remarks>
 			/// <returns><c>true</c> if the invitation is valid, <c>false</c> otherwise.</returns>
 			bool isValid() const { return _internal->isValid(); }
@@ -972,12 +972,14 @@ namespace Stormancer
 			std::vector<byte> userData;
 			Stormancer::SessionId sessionId;
 
+			unsigned int localPlayerCount;
+
 			bool isLeader = false; // Computed locally
 
 			PartyUserDto(std::string userId) : userId(userId) {}
 			PartyUserDto() = default;
 
-			MSGPACK_DEFINE(userId, partyUserStatus, userData, sessionId);
+			MSGPACK_DEFINE(userId, partyUserStatus, userData, sessionId, localPlayerCount);
 		};
 
 		struct PartySettings
@@ -1596,8 +1598,9 @@ namespace Stormancer
 			{
 				std::string userId;
 				std::vector<byte> userData;
+				unsigned int localPlayerCount;
 
-				MSGPACK_DEFINE(userId, userData);
+				MSGPACK_DEFINE(userId, userData, localPlayerCount);
 			};
 
 			struct MemberDisconnection
@@ -1770,14 +1773,15 @@ namespace Stormancer
 				/// 
 				/// Update party user data all data are replecated between all connected party scene
 				/// 
-				pplx::task<void> updatePlayerData(std::vector<byte> data)
+				pplx::task<void> updatePlayerData(std::vector<byte> data, unsigned int localPlayerCount)
 				{
 					PartyUserData update;
 					update.userData = data;
+					update.localPlayerCount = localPlayerCount;
 					update.userId = _myUserId;
 					applyUserDataUpdate(update);
 
-					return syncStateOnError(_rpcService->rpc<void>("party.updatepartyuserdata", data));
+					return syncStateOnError(_rpcService->rpc<void>("Party.UpdatePartyUserData2", data, localPlayerCount));
 				}
 
 				///
@@ -2399,6 +2403,7 @@ namespace Stormancer
 					{
 
 						member->userData = update.userData;
+						member->localPlayerCount = update.localPlayerCount;
 						MembersUpdate updates;
 						updates.updatedMembers.emplace_back(*member, MembersUpdate::DataUpdated);
 						PartyMembersUpdated(updates);
@@ -2960,26 +2965,26 @@ namespace Stormancer
 									}, pplx::get_ambient_scheduler(), ct);
 							})
 						.then([wThat](pplx::task<std::shared_ptr<PartyContainer>> task)
-						{
-							try
 							{
-
-								return pplx::task_from_result(task.get());
-							}
-							catch(std::exception& ex)
-							{
-								if (auto that = wThat.lock())
+								try
 								{
-									if (that->isInParty())
-									{
-										return that->leaveParty().then([ex]()
-										{
-											return pplx::task_from_exception<std::shared_ptr<PartyContainer>>(ex);
-										});
-									}
+
+									return pplx::task_from_result(task.get());
 								}
-								throw;
-							}
+								catch (std::exception& ex)
+								{
+									if (auto that = wThat.lock())
+									{
+										if (that->isInParty())
+										{
+											return that->leaveParty().then([ex]()
+												{
+													return pplx::task_from_exception<std::shared_ptr<PartyContainer>>(ex);
+												});
+										}
+									}
+									throw;
+								}
 							}, _dispatcher);
 				}
 
@@ -3356,7 +3361,7 @@ namespace Stormancer
 					return party->partyService()->updatePartySettings(partySettingsDto);
 				}
 
-				pplx::task<void> updatePlayerData(std::vector<byte> data) override
+				pplx::task<void> updatePlayerData(std::vector<byte> data, unsigned int localPlayerCount) override
 				{
 					auto party = tryGetParty();
 					if (!party)
@@ -3364,7 +3369,7 @@ namespace Stormancer
 						STORM_RETURN_TASK_FROM_EXCEPTION_OPT(std::runtime_error(PartyError::Str::NotInParty), _dispatcher, void);
 					}
 
-					return party->partyService()->updatePlayerData(data);
+					return party->partyService()->updatePlayerData(data, localPlayerCount);
 				}
 
 				pplx::task<void> promoteLeader(std::string userId) override
@@ -3707,30 +3712,30 @@ namespace Stormancer
 					std::vector<byte> userData = args.userData;
 					_joinPartyFromSystemHandler(args)
 						.then([partyId = ctx.partyId, that, ct, userData, ctx](bool accept)
-					{
-						if (accept)
-						{
-							pplx::task<void> task = pplx::task_from_result();
-
-							if (that->isInParty())
 							{
-								auto partyContainer = that->tryGetParty();
-								if (partyContainer != nullptr && partyContainer->getPartyId() != partyId)
+								if (accept)
 								{
-									task = that->leaveParty();
-								}
-							}
+									pplx::task<void> task = pplx::task_from_result();
 
-							return task.then([partyId, that, ct, userData, ctx]()
+									if (that->isInParty())
+									{
+										auto partyContainer = that->tryGetParty();
+										if (partyContainer != nullptr && partyContainer->getPartyId() != partyId)
+										{
+											task = that->leaveParty();
+										}
+									}
+
+									return task.then([partyId, that, ct, userData, ctx]()
+										{
+											return that->joinParty(partyId, userData, std::unordered_map<std::string, std::string>{ { "invitedUser", ctx.invitedUser->userId } }, ct);
+										});
+								}
+								else
 								{
-									return that->joinParty(partyId, userData, std::unordered_map<std::string, std::string>{ { "invitedUser", ctx.invitedUser->userId } }, ct);
-								});
-						}
-						else
-						{
-							return pplx::task_from_result();
-						}
-					})
+									return pplx::task_from_result();
+								}
+							})
 						.then([that](pplx::task<void> task)
 							{
 								try
@@ -4276,37 +4281,37 @@ namespace Stormancer
 									}
 								}
 							}),
-								partyService->UpdatedPartySettings.subscribe([wPartyManagement](PartySettings settings)
+						partyService->UpdatedPartySettings.subscribe([wPartyManagement](PartySettings settings)
+							{
+								if (auto partyManagement = wPartyManagement.lock())
+								{
+									if (partyManagement->isInParty())
 									{
-										if (auto partyManagement = wPartyManagement.lock())
-										{
-											if (partyManagement->isInParty())
-											{
-												partyManagement->raisePartySettingsUpdated(settings);
-											}
-										}
-									}),
-								partyService->UpdatedInviteList.subscribe([wPartyManagement](std::vector<std::string> invitations)
+										partyManagement->raisePartySettingsUpdated(settings);
+									}
+								}
+							}),
+						partyService->UpdatedInviteList.subscribe([wPartyManagement](std::vector<std::string> invitations)
+							{
+								if (auto partyManagement = wPartyManagement.lock())
+								{
+									if (partyManagement->isInParty())
 									{
-										if (auto partyManagement = wPartyManagement.lock())
-										{
-											if (partyManagement->isInParty())
-											{
-												partyManagement->_onSentInvitationsUpdated(invitations);
-											}
-										}
-									}),
-										partyService->OnGameFinderFailed.subscribe([wPartyManagement](PartyGameFinderFailure dto)
-											{
-												if (auto partyManagement = wPartyManagement.lock())
-												{
-													if (partyManagement->isInParty())
-													{
-														partyManagement->_onGameFinderFailure(dto);
-													}
-												}
-											})
-										);
+										partyManagement->_onSentInvitationsUpdated(invitations);
+									}
+								}
+							}),
+						partyService->OnGameFinderFailed.subscribe([wPartyManagement](PartyGameFinderFailure dto)
+							{
+								if (auto partyManagement = wPartyManagement.lock())
+								{
+									if (partyManagement->isInParty())
+									{
+										partyManagement->_onGameFinderFailure(dto);
+									}
+								}
+							})
+					);
 
 					return partyService->waitForPartyReady(ct)
 						.then([party]
@@ -4615,7 +4620,7 @@ namespace Stormancer
 						dr.resolve<IActionDispatcher>(),
 						dr.resolve<GameFinder::GameFinderApi>(),
 						dr.resolve<IClient>()
-						);
+					);
 					// initialize() needs weak_from_this(), so it can't be called from Party_Impl's constructor
 					partyImpl->initialize();
 					return partyImpl;

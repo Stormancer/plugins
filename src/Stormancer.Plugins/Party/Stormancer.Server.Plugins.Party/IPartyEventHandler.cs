@@ -301,16 +301,22 @@ namespace Stormancer.Server.Plugins.Party
     /// </summary>
     public class UpdatingPartyMemberDataContext
     {
-        internal UpdatingPartyMemberDataContext(PartyMember member, byte[] newData, ISceneHost scene)
+        internal UpdatingPartyMemberDataContext(PartyMember member,uint localPlayerCount, byte[] newData, ISceneHost scene)
         {
             PartyScene = scene;
             PartyMember = member;
+            LocalPlayerCount = localPlayerCount;
             NewUserData = newData;
         }
         /// <summary>
         /// The current party member to update.
         /// </summary>
         public PartyMember PartyMember { get; }
+
+        /// <summary>
+        /// Number of local players on the party member.
+        /// </summary>
+        public uint LocalPlayerCount { get; }
 
         /// <summary>
         /// Gets or sets the new content that should replace the current party member data.
