@@ -104,8 +104,24 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <param name="ctx"></param>
         /// <returns></returns>
         Task OnReservationCancelled(ReservationCancelledContext ctx) => Task.CompletedTask;
+
+        /// <summary>
+        /// Event fired when the scene shuts down.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task OnGameSessionShutdown(GameSessionShutdownContext ctx) => Task.CompletedTask;
     }
 
+
+    /// <summary>
+    /// Context 
+    /// </summary>
+    public class GameSessionShutdownContext
+    {
+        internal GameSessionShutdownContext(IGameSessionService gameSession) { GameSession = gameSession; }
+        public IGameSessionService GameSession { get; }
+    }
     /// <summary>
     /// Ctx
     /// </summary>

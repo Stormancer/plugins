@@ -260,12 +260,19 @@ namespace Stormancer.Server.Plugins.GameSession
             ApplySettings();
 
             analyticsWorker.AddGameSession(this);
-            scene.Shuttingdown.Add(args =>
+            scene.Shuttingdown.Add(async args =>
             {
                 analyticsWorker.RemoveGameSession(this);
                 _repository.RemoveGameSession(this);
                 _sceneCts.Cancel();
-                return Task.CompletedTask;
+
+                await using var scope = _scene.CreateRequestScope();
+                var ctx = new GameSessionShutdownContext(this);
+                await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.OnGameSessionShutdown(ctx), ex =>
+                {
+                    _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running gameSession.OnGameSessionShutdown event handlers", ex);
+                });
+
             });
 
 
@@ -357,7 +364,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     {
                         await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.OnClientReady(ctx), ex =>
                         {
-                            _logger.Log(LogLevel.Error, "gameSession", "An error occured while running gameSession.OnClientReady event handlers", ex);
+                            _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running gameSession.OnClientReady event handlers", ex);
                         });
                     }
                     BroadcastClientUpdate(currentClient, user, customData);
@@ -700,7 +707,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             await using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
             {
-                await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(h => h.GameSessionStarting(ctx), ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing GameSessionStarting event", ex));
+                await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(h => h.GameSessionStarting(ctx), ex => _logger.Log(LogLevel.Error, "gameSession", "An error occurred while executing GameSessionStarting event", ex));
             }
 
             _logger.Log(LogLevel.Info, "gamesession.startup", "Ran GameSessionStarting event handlers.", new { id = this.GameSessionId }, this.GameSessionId);
@@ -964,7 +971,7 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.GameSessionCompleted(ctx), ex =>
                 {
-                    _logger.Log(LogLevel.Error, "gameSession", "An error occured while running gameSession.GameSessionCompleted event handlers", ex);
+                    _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running gameSession.GameSessionCompleted event handlers", ex);
                 });
             }
 
@@ -1023,7 +1030,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 {
                     await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.GameSessionCompleted(ctx), ex =>
                     {
-                        _logger.Log(LogLevel.Error, "gameSession", "An error occured while running gameSession.GameSessionCompleted event handlers", ex);
+                        _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running gameSession.GameSessionCompleted event handlers", ex);
                         foreach (var client in _clients.Values)
                         {
                             client.GameCompleteTcs?.TrySetException(ex);

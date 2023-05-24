@@ -94,7 +94,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                 {
                     try
                     {
-                        await party.UpdatePartyStatusAsync(partyId, null, "gamesession", ctx.GameSession.GameSessionId, default);
+                        await party.AddPartyToGameSession(partyId,ctx.GameSession.GameSessionId, default);
                     }
                     catch (Exception ex)
                     {
@@ -132,7 +132,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                 {
                     try
                     {
-                        await party.UpdatePartyStatusAsync(partyId, "gamesession", "", null, default);
+                        await party.RemovePartyFromGameSession(partyId,ctx.GameSession.GameSessionId, default);
                     }
                     catch(InvalidOperationException)
                     {
@@ -143,6 +143,31 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
 
             }
         }
+
+        public async Task OnGameSessionShutdown(Stormancer.Server.Plugins.GameSession.GameSessionShutdownContext ctx)
+        {
+            if(IsEnabled)
+            {
+                var partyIds = new List<string>();
+                lock(state.syncRoot)
+                {
+                    foreach(var entry in state.UserIdToPartyId.Values.Distinct())
+                    {
+                        partyIds.Add(entry);
+                    }
+                }
+
+                foreach(var partyId in partyIds)
+                {
+                    try
+                    {
+                        await party.RemovePartyFromGameSession(partyId, ctx.GameSession.GameSessionId, default);
+                    }
+                    catch (Exception) { }
+                }
+            }
+        }
+
 
 
     }

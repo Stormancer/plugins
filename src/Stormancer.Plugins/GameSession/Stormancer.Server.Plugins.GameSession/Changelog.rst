@@ -16,6 +16,7 @@ Added
 - Added support for crash reports in game server agent.
 - Exclude agents for 30s when they failed to create a server
 - Kill agents if they fail twice in succession, indicating they are faulty.
+- Added `IGameSessionEventHandler.OnGameSessionShutdown` event fired during scene shutdown.
 
 Fixed
 *****

@@ -269,6 +269,52 @@ namespace Stormancer.Server.Plugins.Party
             }
         }
 
+        [S2SApi]
+        public Task AddPartyToGameSession(string gamesessionId, CancellationToken cancellationToken)
+        {
+            return _partyService.UpdateSettings(state =>
+            {
+
+               
+                    var partySettings = new PartySettingsDto(state);
+                    if (partySettings.PublicServerData == null)
+                    {
+                        partySettings.PublicServerData = new System.Collections.Generic.Dictionary<string, string>();
+                    }
+                    partySettings.PublicServerData["stormancer.partyStatus"] = "gamesession";
+                    partySettings.PublicServerData["stormancer.partyStatus.details"] = gamesessionId;
+                    return partySettings;
+             
+
+            }, cancellationToken);
+        }
+
+        [S2SApi]
+        public Task RemovePartyFromGameSession(string gamesessionId,CancellationToken cancellationToken)
+        {
+            
+            return _partyService.UpdateSettings(state =>
+            {
+               
+                if (_partyService.Settings.PublicServerData.TryGetValue("stormancer.partyStatus", out var status) && status == "gamesession")
+                {
+                    var partySettings = new PartySettingsDto(state);
+                    if (partySettings.PublicServerData == null)
+                    {
+                        partySettings.PublicServerData = new System.Collections.Generic.Dictionary<string, string>();
+                    }
+                    partySettings.PublicServerData["stormancer.partyStatus"] = string.Empty;
+                    partySettings.PublicServerData["stormancer.partyStatus.details"] = string.Empty;
+                    return partySettings;
+                }
+                else
+                {
+                    return null;
+                }
+
+            }, cancellationToken);
+        }
+
         protected override Task OnConnecting(IScenePeerClient client)
         {
             return (_partyService as PartyService)!.OnConnecting(client);

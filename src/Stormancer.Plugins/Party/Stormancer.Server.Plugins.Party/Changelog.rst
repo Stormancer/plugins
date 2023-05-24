@@ -15,6 +15,7 @@ Unreleased
 Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
+- Remove current gamesession in party when the gamesession scene shuts down.
 
 Fixed
 *****
