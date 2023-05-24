@@ -15,9 +15,12 @@ Unreleased
 Added
 *****
 - Configure a scene to accept analytics from clients.
+- Added IsDeploymentActive field to all events to know if they were produced by an active deployment.
+
 Changed
 *******
 - When receiving a client analytic event, use "milliseconds since epoch" as the date format.
+
 2.0.6.1
 ----------
 Changed

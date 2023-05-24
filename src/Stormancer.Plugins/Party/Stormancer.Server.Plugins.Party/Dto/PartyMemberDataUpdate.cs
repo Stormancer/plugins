@@ -24,13 +24,33 @@ using MsgPack.Serialization;
 
 namespace Stormancer.Server.Plugins.Party.Dto
 {
+    /// <summary>
+    /// DTO for member update.
+    /// </summary>
     public class PartyMemberDataUpdate
     {
+        /// <summary>
+        /// Member updated route.
+        /// </summary>
         public const string Route = "party.memberDataUpdated";
 
+
+        /// <summary>
+        /// The user Id.
+        /// </summary>
         [MessagePackMember(0)]
-        public string UserId { get; set; }
+        public string UserId { get; set; } = default!;
+
+        /// <summary>
+        /// User data
+        /// </summary>
         [MessagePackMember(1)]
-        public byte[] UserData { get; set; }
+        public byte[] UserData { get; set; } = default!;
+
+        /// <summary>
+        /// Local players associated with the party member.
+        /// </summary>
+        [MessagePackMember(2)]
+        public uint LocalPlayerCount { get;  set; }
     }
 }

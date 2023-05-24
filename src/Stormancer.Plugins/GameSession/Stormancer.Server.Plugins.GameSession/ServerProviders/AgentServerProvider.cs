@@ -244,16 +244,16 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             {
                 Id = session.User.Id,
                 Claims = session.User.UserData["claims"]?.ToObject<Dictionary<string, string>>() ?? new Dictionary<string, string>(),
-              
+
             };
             if (Description.Claims.TryGetValue("fault", out var fault))
             {
-                Fault = fault;
+                Faults.Add(fault);
             }
 
             TotalCpu = float.Parse(Description.Claims["quotas.maxCpu"]);
             TotalMemory = long.Parse(Description.Claims["quotas.maxMemory"]);
-            
+
         }
 
         /// <summary>
@@ -279,12 +279,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// <summary>
         /// Error that occurred on the agent.
         /// </summary>
-        public string? Fault { get; }
+        public List<string> Faults { get; set; } = new List<string>();
 
         /// <summary>
         /// Error state of the agent.
         /// </summary>
-        public bool Faulted => Fault != null;
+        public bool Faulted => Faults.Count !=0;
+
+        public DateTime? FaultExpiration { get; set; }
 
         /// <summary>
         /// Description of the agent.
@@ -475,7 +477,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             return peer.RpcTask<bool, IEnumerable<ContainerDescription>>("agent.getRunningContainers", true);
         }
 
-        public async Task<ContainerStartResponse> StartContainerAsync(string agentId, string image, string name, float reservedCpu, long reservedMemory, float cpuLimit, long memoryLimit, Dictionary<string, string> environmentVariables, CrashReportConfiguration crashReportConfiguration)
+        public async Task<ContainerStartResponse> StartContainerAsync(string agentId, string image, string name, float reservedCpu, long reservedMemory, float cpuLimit, long memoryLimit, Dictionary<string, string> environmentVariables, CrashReportConfiguration crashReportConfiguration, CancellationToken cancellationToken)
         {
             DockerAgent? agent;
             lock (_syncRoot)
@@ -486,6 +488,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 }
             }
             var appInfos = await _applicationInfos;
+
             return await agent.Peer.RpcTask<ContainerStartParameters, ContainerStartResponse>("agent.tryStartContainer", new ContainerStartParameters
             {
                 name = name,
@@ -498,7 +501,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 memoryLimit = memoryLimit,
                 CrashReportConfiguration = crashReportConfiguration
 
-            });
+            }, cancellationToken);
         }
 
         public Task<ContainerStopResponse> StopContainer(string agentId, string containerId)
@@ -581,6 +584,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             }
 
             var tries = 0;
+            var tryResults = new List<ContainerStartResponse>();
             while (tries < 4)
             {
                 tries++;
@@ -588,8 +592,28 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
                 if (agent != null)
                 {
-                    var response = await StartContainerAsync(agent.Id, agentConfig.Image, id, agentConfig.reservedCpu, agentConfig.reservedMemory, agentConfig.cpuLimit, agentConfig.memoryLimit, environmentVariables, agentConfig.CrashReportConfiguration);
+                    using var cts = new CancellationTokenSource(30000);
+                    ContainerStartResponse response;
+                    try
+                    {
+                        response = await StartContainerAsync(agent.Id, agentConfig.Image, id, agentConfig.reservedCpu, agentConfig.reservedMemory, agentConfig.cpuLimit, agentConfig.memoryLimit, environmentVariables, agentConfig.CrashReportConfiguration, cts.Token);
 
+                        agent.Faults.Clear();
+                        agent.FaultExpiration = null;
+                    }
+                    catch(Exception ex)
+                    {
+                      
+                        if(agent.Faults.Count > 0)
+                        {
+                            await agent.Peer.DisconnectFromServer("faulted");
+                        }
+                        agent.Faults.Add(ex.ToString());
+                        agent.FaultExpiration = DateTime.UtcNow.AddSeconds(30);
+                        response = new ContainerStartResponse { Success = false, Error = ex.ToString() };
+                    }
+                    _logger.Log(LogLevel.Info, "docker.start", $"Sent start container command to agent {agent.Id} for gamesession '{id}'", new { agentConfig, agentId = agent.Id, gameSession = id, response }, id, agent.Id);
+                    tryResults.Add(response);
                     agent.TotalCpu = response.TotalCpuQuotaAvailable;
                     agent.TotalMemory = response.TotalMemoryQuotaAvailable;
                     agent.ReservedCpu = response.CurrentCpuQuotaUsed;
@@ -607,7 +631,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
                         if (response.Error != "unableToSatisfyResourceReservation")
                         {
-                            _logger.Log(LogLevel.Warn, "docker", $"Failed to Start container : '{response.Error}'", new { });
+                            _logger.Log(LogLevel.Warn, "docker", $"Failed to Start container : '{response.Error}'", new { tries, tryResults });
 
                         }
                     }
@@ -625,12 +649,15 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             {
                 foreach (var (id, agent) in _agents)
                 {
-                    if (agent.IsActive && agent.TotalCpu - agent.ReservedCpu >= cpuRequirement && agent.TotalMemory - agent.ReservedMemory >= memoryRequirement)
+                    
+                    if ((!agent.Faulted || (agent.FaultExpiration !=null && agent.FaultExpiration < DateTime.UtcNow)) && agent.IsActive && agent.TotalCpu - agent.ReservedCpu >= cpuRequirement && agent.TotalMemory - agent.ReservedMemory >= memoryRequirement)
                     {
                         return agent;
                     }
                 }
             }
+
+            
             return null;
         }
 

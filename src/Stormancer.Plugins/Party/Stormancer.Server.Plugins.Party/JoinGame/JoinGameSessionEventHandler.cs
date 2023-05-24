@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Stormancer.Server.Plugins.Users;
 using System.Threading;
+using Stormancer.Server.Components;
 
 namespace Stormancer.Server.Plugins.Party.JoinGame
 {
@@ -34,6 +35,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
             IConfiguration configuration,
             ILogger logger)
         {
+          
             this.party = party;
             _userSessions = userSessions;
             this.state = state;
@@ -128,7 +130,14 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
 
                 if (partyId != null)
                 {
-                    await party.UpdatePartyStatusAsync(partyId, "gamesession", "", null, default);
+                    try
+                    {
+                        await party.UpdatePartyStatusAsync(partyId, "gamesession", "", null, default);
+                    }
+                    catch(InvalidOperationException)
+                    {
+                        //Party already destroyed. Ignore the error.
+                    }
                 }
 
 

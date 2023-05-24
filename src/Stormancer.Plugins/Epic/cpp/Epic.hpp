@@ -577,19 +577,17 @@ namespace Stormancer
 			{
 			public:
 
-				EpicPartyInvitation(const std::string& senderId, const std::string& partySceneId)
+				static constexpr const char* invitationDataPartyIdField = "partyId";
+
+				EpicPartyInvitation(const std::string& senderId, const Party::PartyId& partyId)
 					: _senderId(senderId)
-					, _partySceneId(partySceneId)
+					, _partyId(partyId)
 				{
 				}
 
 				pplx::task<Party::PartyId> accept(std::shared_ptr<Party::PartyApi> partyApi) override
 				{
-					Party::PartyId partyId;
-					partyId.platform = "epic";
-					partyId.type = Party::PartyId::TYPE_SCENE_ID;
-					partyId.id = _partySceneId;
-					return pplx::task_from_result(partyId);
+					return pplx::task_from_result(_partyId);
 				}
 
 				pplx::task<void> decline(std::shared_ptr<Party::PartyApi>) override
@@ -604,18 +602,18 @@ namespace Stormancer
 
 				std::string getSenderPlatformId() override
 				{
-					return "Epic";
+					return platformName;
 				}
 
-				std::string getPartySceneId()
+				Party::PartyId getPartyId()
 				{
-					return _partySceneId;
+					return _partyId;
 				}
 
 			private:
 
 				std::string _senderId;
-				std::string _partySceneId;
+				Party::PartyId _partyId;
 			};
 
 			class EpicPartyProvider;
@@ -828,7 +826,41 @@ namespace Stormancer
 							char senderId[EOS_PRODUCTUSERID_MAX_LENGTH];
 							int32_t senderIdBufferLength = EOS_PRODUCTUSERID_MAX_LENGTH;
 							EOS_ProductUserId_ToString(data->TargetUserId, senderId, &senderIdBufferLength);
-							auto epicPartyInvitation = std::make_shared<EpicPartyInvitation>(senderId, data->Payload);
+
+							auto jsonValue = web::json::value::parse(utility::conversions::to_string_t(data->Payload));
+
+							if (!jsonValue.is_object())
+							{
+								logger->log(LogLevel::Trace, "onNotifyCustomInviteAccepted", "Invitation data json parse failed: json value is not of type object");
+								return;
+							}
+
+							auto jsonObject = jsonValue.as_object();
+							auto partyIdIt = jsonObject.find(utility::conversions::to_string_t(EpicPartyInvitation::invitationDataPartyIdField));
+
+							if (partyIdIt == jsonObject.end())
+							{
+								logger->log(LogLevel::Trace, "onNotifyCustomInviteAccepted", "Invitation data json parse failed: missing field partyId");
+								return;
+							}
+							if (!partyIdIt->second.is_string())
+							{
+								logger->log(LogLevel::Trace, "onNotifyCustomInviteAccepted", "Invitation data json parse failed: partyId value is not of type string");
+								return;
+							}
+
+							Party::PartyId partyId;
+							partyId.id = utility::conversions::to_utf8string(partyIdIt->second.as_string());
+
+							if (partyId.id.empty())
+							{
+								logger->log(LogLevel::Trace, "onNotifyCustomInviteAccepted", "Invitation data json parse failed: partyId is empty");
+								return;
+							}
+
+							partyId.type = Party::PartyId::TYPE_PARTY_ID;
+							partyId.platform = platformName;
+							auto epicPartyInvitation = std::make_shared<EpicPartyInvitation>(senderId, partyId);
 							invitationMessenger->notifyInvitationReceived(epicPartyInvitation);
 							//FGame::Get().GetCustomInvites()->HandleCustomInviteAccepted(Data->Payload, Data->CustomInviteId, Data->TargetUserId);
 						}
@@ -932,21 +964,25 @@ namespace Stormancer
 				{
 				}
 
-				void onJoinedParty(std::shared_ptr<Party::PartyApi>, std::string partySceneId) override
+				void onJoinedParty(std::shared_ptr<Party::JoinedPartyContext> ctx) override
 				{
 					// We need to set the custom invite payload to allow users to invite their friends though the Epic Games UI (clic on a friend -> invite)
 
-					if (partySceneId.empty())
+					if (ctx->partyId.id.empty())
 					{
-						_logger->log(LogLevel::Error, "Steam", "Party scene id is invalid");
+						_logger->log(LogLevel::Error, "Epic", "PartyId is invalid");
 						return;
 					}
 
-					if (partySceneId.size() > EOS_CUSTOMINVITES_MAX_PAYLOAD_LENGTH)
+					if (ctx->partyId.id.size() > EOS_CUSTOMINVITES_MAX_PAYLOAD_LENGTH)
 					{
-						_logger->log(LogLevel::Error, "Steam", "Party scene id too long to be sent in a EOS_CustomInvite");
+						_logger->log(LogLevel::Error, "Epic", "Party scene id too long to be sent in a EOS_CustomInvite");
 						return;
 					}
+
+					auto invidationDataJsonObject = web::json::value::object();
+					invidationDataJsonObject[utility::conversions::to_string_t(EpicPartyInvitation::invitationDataPartyIdField)] = web::json::value(utility::conversions::to_string_t(ctx->partyId.id));
+					auto invidationDataJsonString = utility::conversions::to_utf8string(invidationDataJsonObject.serialize());
 
 					EOS_HPlatform platformHandle = _epicState->getPlatformHandle();
 					if (!platformHandle)
@@ -962,7 +998,7 @@ namespace Stormancer
 					EOS_CustomInvites_SetCustomInviteOptions setCustomInviteOptions;
 					setCustomInviteOptions.ApiVersion = EOS_CUSTOMINVITES_SETCUSTOMINVITE_API_LATEST;
 					setCustomInviteOptions.LocalUserId = productUserId;
-					setCustomInviteOptions.Payload = partySceneId.c_str();
+					setCustomInviteOptions.Payload = invidationDataJsonString.c_str();
 					EOS_CustomInvites_SetCustomInvite(customInvitesHandle, &setCustomInviteOptions);
 					// Whenever a Custom Invite Payload has been set, the Social Overlay will allow the local player to use the "Invite" button to send an invite with the currently set Custom Invite Payload to their friends.
 

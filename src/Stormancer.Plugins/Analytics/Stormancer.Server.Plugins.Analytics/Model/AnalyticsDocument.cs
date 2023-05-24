@@ -52,5 +52,10 @@ namespace Stormancer.Server.Plugins.Analytics
         /// Gets or sets the cluster that produced the document.
         /// </summary>
         public string Cluster { get; set; } = default!;
+
+        /// <summary>
+        /// Indicates if the deployment is active or not.
+        /// </summary>
+        public bool IsDeploymentActive { get;  set; }
     }
 }

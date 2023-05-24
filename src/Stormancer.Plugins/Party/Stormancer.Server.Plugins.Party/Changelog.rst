@@ -19,10 +19,13 @@ Changed
 Fixed
 *****
 - Use PeriodicTimer in PartyAnalyticsWorker to fix an high usage CPU issue.
+- Don't create an error log if the party of a player was already destroyed when a gamesession try to update its party state.
+- Fixed issue in party size check that prevented the connecting player from being taken into account.
 
 Added
 *****
 - Added Party Id to PartySettingsUpdateDto
+- Added LocalPlayerCount to party user data to enable party members to be associated to several local players.
 
 5.0.1.7
 -------

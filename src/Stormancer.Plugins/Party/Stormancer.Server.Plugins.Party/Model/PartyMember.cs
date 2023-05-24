@@ -60,5 +60,10 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// Custom user data populate by developer
         /// </summary>
         public byte[] UserData { get; set; } = default!;
+
+        /// <summary>
+        /// Number of players represented by this user.
+        /// </summary>
+        public uint LocalPlayerCount { get; set; } = 1;
     }
 }

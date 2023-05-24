@@ -30,6 +30,8 @@ Then install the Stormancer.GameServer.Agent tool
 1. Run `echo '/tmp/core-dump.%p' | sudo tee /proc/sys/kernel/core_pattern` on the agent to setup the host core pattern.
 
 For more information about the core_pattern : https://www.kernel.org/doc/html/latest/admin-guide/sysctl/kernel.html#core-pattern
+    
+To make the change in the host core pattern permanent, add `kernel.core_pattern = /tmp/core-dump.%p` to /etc/sysctl.conf, then reload it with `sysctl -p`
 
 2. Set the `CorePath` value in the agent configuration to the path of the generated core dump in the container.
 
@@ -45,26 +47,29 @@ Create a service file (gameservers-agent.service) in /etc/systemd/system using n
 > sudo nano /etc/systemd/system/gameservers-agent.service
 
  - A sample service file would be as follow:
-    [Unit]
-    Description=Game server agent
-    After=network-online.target
 
-    [Service]
-    Type=simple
+```
+[Unit]
+Description=Game server agent
+After=network-online.target
 
-    #a user with sufficient permissions
-    User=root 
+[Service]
+Type=simple
 
-    ExecStart=/usr/bin/dotnet tool run stormancer-gameservers-agent
-    #use your agent installation folder as WorkingDirectory
-    WorkingDirectory=/home/agent
+#a user with sufficient permissions
+User=root 
 
-    Restart=on-failure
+ExecStart=/usr/bin/dotnet tool run stormancer-gameservers-agent
+#use your agent installation folder as WorkingDirectory
+WorkingDirectory=/home/agent
 
-    TimeoutStopSec=30
+Restart=on-failure
 
-    [Install]
-    WantedBy=multi-user.target
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
+```
 
 - Enable the service
 > sudo systemctl daemon-reload

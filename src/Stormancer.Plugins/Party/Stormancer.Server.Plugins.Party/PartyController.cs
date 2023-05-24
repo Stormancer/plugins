@@ -78,7 +78,19 @@ namespace Stormancer.Server.Plugins.Party
             }
             var data = _serializer.Deserialize<byte[]>(ctx.InputStream);
 
-            return _partyService.UpdatePartyUserData(member.UserId, data, ctx.CancellationToken);
+            return _partyService.UpdatePartyUserData(member.UserId, data, 1, ctx.CancellationToken) ;
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public Task UpdatePartyUserData2(byte[] data, uint localPlayerCount, RequestContext<IScenePeerClient> ctx)
+        {
+            if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
+            {
+                throw new ClientException(NotInPartyError);
+            }
+            
+
+            return _partyService.UpdatePartyUserData(member.UserId, data, localPlayerCount, ctx.CancellationToken);
         }
 
         public Task PromoteLeader(RequestContext<IScenePeerClient> ctx)

@@ -256,9 +256,9 @@ namespace Stormancer.Server.Plugins.GameSession
             _repository = repository;
             _serializer = serializer;
 
-            
+
             ApplySettings();
-           
+
             analyticsWorker.AddGameSession(this);
             scene.Shuttingdown.Add(args =>
             {
@@ -434,8 +434,8 @@ namespace Stormancer.Server.Plugins.GameSession
             if (metadata.gameSession != null)
             {
                 _config = ((JObject)metadata.gameSession).ToObject<GameSessionConfiguration>();
-               
-                
+
+
             }
         }
 
@@ -666,7 +666,7 @@ namespace Stormancer.Server.Plugins.GameSession
             await using var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag);
             await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
                 h => h.OnClientConnected(playerConnectedCtx),
-                ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing OnClientConnected event", ex));
+                ex => _logger.Log(LogLevel.Error, "gameSession", "An error occurred while executing OnClientConnected event", ex));
 
 
             var count = _clients.Count;
@@ -697,12 +697,12 @@ namespace Stormancer.Server.Plugins.GameSession
             _analytics.StartGamesession(this);
             var ctx = new GameSessionContext(this._scene, _config, this);
             _logger.Log(LogLevel.Info, "gamesession.startup", "Starting up gamesession.", new { id = this.GameSessionId }, this.GameSessionId);
-         
+
             await using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
             {
                 await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(h => h.GameSessionStarting(ctx), ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing GameSessionStarting event", ex));
             }
-           
+
             _logger.Log(LogLevel.Info, "gamesession.startup", "Ran GameSessionStarting event handlers.", new { id = this.GameSessionId }, this.GameSessionId);
 
             _logger.Log(LogLevel.Info, "gamesession.startup", "Creating Gamesession server.", new { id = this.GameSessionId }, this.GameSessionId);
@@ -711,80 +711,94 @@ namespace Stormancer.Server.Plugins.GameSession
 
             if (poolId != null)
             {
+
+                if (!state.IsServerPersistent())
+                {
+                    _scene.Disconnected.Add(async (args) =>
+                    {
+                        if (this._server != null)
+                        {
+
+                            //If the only peer remaining is the server, close it and destroy the gamesession.
+                            if (!_scene.RemotePeers.Any(p => p.SessionId != _server.GameServerSessionId))
+                            {
+                                await using (var scope = _scene.CreateRequestScope())
+                                {
+                                    var pools = scope.Resolve<ServerPoolProxy>();
+                                    _gameCompleteCts.Cancel();
+                                    await pools.CloseServer(_server.GameServerId, CancellationToken.None);
+                                    _repository.RemoveGameSession(this);
+                                    _scene.Shutdown("gamesession.empty");
+                                }
+
+                            }
+                        }
+                        else
+                        {
+                            if (!_scene.RemotePeers.Any())
+                            {
+                                _gameCompleteCts.Cancel();
+                                _repository.RemoveGameSession(this);
+                                _scene.Shutdown("gamesession.empty");
+                            }
+                        }
+
+
+                    });
+
+                }
+
+                _logger.Log(LogLevel.Info, "gamesession.startup", "starting gameserver.", new { id = this.GameSessionId }, this.GameSessionId);
                 await using (var scope = _scene.CreateRequestScope())
                 {
                     var pools = scope.Resolve<ServerPoolProxy>();
 
+                    _server = await pools.TryStartGameServer(poolId, GameSessionId, _config, _gameCompleteCts.Token);
+                }
+                if (_server != null)
+                {
+                    _logger.Log(LogLevel.Info, "gamesession.startup", "started gameserver.", new { id = this.GameSessionId, _server.GameServerId, _server.GameServerSessionId }, this.GameSessionId);
                     if (!state.IsServerPersistent())
                     {
-                        _scene.Disconnected.Add(async (args) =>
+                        _ = _scene.RunTask(async ct =>
                         {
-                            if (this._server != null)
+                            try
                             {
+                                await Task.Delay(1000 * 60 * 5, ct);
 
-                                //If the only peer remaining is the server, close it and destroy the gamesession.
-                                if (!_scene.RemotePeers.Any(p => p.SessionId != _server.GameServerSessionId))
+                                if (!_playerConnectedOnce && !ct.IsCancellationRequested)
                                 {
-                                    _gameCompleteCts.Cancel();
-                                    await pools.CloseServer(_server.GameServerId, CancellationToken.None);
-                                    _scene.Shutdown("gamesession.empty");
-
-                                }
-                            }
-                            else
-                            {
-                                if (!_scene.RemotePeers.Any())
-                                {
-                                    _gameCompleteCts.Cancel();
-                                    _scene.Shutdown("gamesession.empty");
-                                }
-                            }
-
-
-                        });
-
-                    }
-
-                    _logger.Log(LogLevel.Info, "gamesession.startup", "starting gameserver.", new { id = this.GameSessionId }, this.GameSessionId);
-
-                    _server = await pools.TryStartGameServer(poolId, GameSessionId, _config, _gameCompleteCts.Token);
-
-                    if (_server != null)
-                    {
-                        _logger.Log(LogLevel.Info, "gamesession.startup", "started gameserver.", new { id = this.GameSessionId, _server.GameServerId, _server.GameServerSessionId }, this.GameSessionId);
-                        if (!state.IsServerPersistent())
-                        {
-                            _ = _scene.RunTask(async ct =>
-                            {
-                                await Task.Delay(1000 * 60 * 5);
-                                if (!_playerConnectedOnce)
-                                {
-                                    if (_server != null)
+                                    await using (var scope = _scene.CreateRequestScope())
                                     {
-                                        await pools.CloseServer(_server.GameServerId, CancellationToken.None);
-                                    }
-                                    else
-                                    {
+                                        var pools = scope.Resolve<ServerPoolProxy>();
+                                        if (_server != null)
+                                        {
+                                            await pools.CloseServer(_server.GameServerId, CancellationToken.None);
+                                        }
+
                                         _gameCompleteCts.Cancel();
+                                        _repository.RemoveGameSession(this);
+                                        _scene.Shutdown("gamesession.empty");
                                     }
-                                    _scene.Shutdown("gamesession.empty");
                                 }
-                            });
-                        }
-                    }
-                    else
-                    {
-                        _logger.Log(LogLevel.Info, "gamesession.startup", "No gameserver found, using P2P mode.", new { id = this.GameSessionId, }, this.GameSessionId);
+                            }
+                            catch (OperationCanceledException) { }
+                        });
                     }
                 }
+                else
+                {
+                    _logger.Log(LogLevel.Info, "gamesession.startup", "No gameserver found, using P2P mode.", new { id = this.GameSessionId, }, this.GameSessionId);
+                }
+
             }
 
             if (poolId != null)
             {
-                this.SetDimension("pool",poolId);
+                this.SetDimension("pool", poolId);
             }
-            this.SetDimension("hostType",_server != null ? "server" : "client");
-            SetDimension("gamefinder",_config?.GameFinder ?? "");
+            this.SetDimension("hostType", _server != null ? "server" : "client");
+            SetDimension("gamefinder", _config?.GameFinder ?? "");
             SetDimension("template", _scene.Template);
             _repository.AddGameSession(this);
 
@@ -858,7 +872,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 {
                     await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.OnClientLeaving(ctx), ex =>
                     {
-                        _logger.Log(LogLevel.Error, "gameSession", "An error occured while running gameSession.OnClientLeaving event handlers", ex);
+                        _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running gameSession.OnClientLeaving event handlers", ex);
                     });
                 }
 
@@ -867,23 +881,10 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 BroadcastClientUpdate(client, userId);
 
-                EvaluateGameComplete();
+                await EvaluateGameComplete();
             }
 
-            if (_shutdownMode == ShutdownMode.NoPlayerLeft)
-            {
-                if (!_clients.Values.Any(c => c.Status != PlayerStatus.Disconnected))
-                {
-                    var _ = Task.Run(async () =>
-                    {
-                        await Task.Delay(1000 * 60);
-                        if (!_clients.Values.Any(c => c.Status != PlayerStatus.Disconnected))
-                        {
-                            await CloseGameServer();
-                        }
-                    });
-                }
-            }
+
         }
 
         private async ValueTask CloseGameServer()
@@ -986,7 +987,7 @@ namespace Stormancer.Server.Plugins.GameSession
         public DateTime CreatedOn { get; } = DateTime.UtcNow;
 
         private object _syncRoot = new object();
-        private Dictionary<string, string> _dimensions = new Dictionary<string,string>();
+        private Dictionary<string, string> _dimensions = new Dictionary<string, string>();
         public IReadOnlyDictionary<string, string> Dimensions
         {
             get
@@ -1000,7 +1001,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public void SetDimension(string dimension, string value)
         {
-            lock(_syncRoot)
+            lock (_syncRoot)
             {
                 _dimensions[dimension] = value;
             }

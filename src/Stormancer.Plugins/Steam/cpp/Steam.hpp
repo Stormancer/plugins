@@ -1401,12 +1401,12 @@ namespace Stormancer
 					return platformName;
 				}
 
-				pplx::task<std::string> getPartySceneId(const Party::PartyId& partyId, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
+				pplx::task<Party::PartyId> getPartyId(const Party::PartyId& partyId, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
 				{
 					if (partyId.type != PARTY_TYPE_STEAMIDLOBBY)
 					{
 						assert(false);
-						STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error("Unknown PartyId type"), std::string);
+						STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error("Unknown PartyId type"), Party::PartyId);
 					}
 
 					std::lock_guard<std::recursive_mutex> lg(_mutex);
@@ -1426,7 +1426,7 @@ namespace Stormancer
 						auto it = lobby.data.find("partyDataToken");
 						if (it == lobby.data.end())
 						{
-							return pplx::task_from_result(std::string());
+							throw std::runtime_error("partyDataToken not found in Steam lobby data");
 						}
 
 						// If the "partyDataToken" metadata is found in the Steam lobby, we can join the associated party.
@@ -1448,7 +1448,10 @@ namespace Stormancer
 								throw std::runtime_error("Invalid partyId");
 							}
 
-							return partyDataDto.partyId;
+							Party::PartyId partyId;
+							partyId.id = partyDataDto.partyId;
+							partyId.type = Party::PartyId::TYPE_PARTY_ID;
+							return partyId;
 						});
 					});
 				}
@@ -1702,8 +1705,8 @@ namespace Stormancer
 							if (it != dtos.end())
 							{
 								auto& dto = it->second;
-								advertisedParty.partyId.type = Party::PartyId::TYPE_SCENE_ID;
 								advertisedParty.partyId.id = dto.partyId;
+								advertisedParty.partyId.type = Party::PartyId::TYPE_PARTY_ID;
 								advertisedParty.leaderUserId = dto.leaderUserId;
 
 								steamIDs.push_back(std::stoull(advertisedParty.metadata["steam.steamIDFriend"]));
