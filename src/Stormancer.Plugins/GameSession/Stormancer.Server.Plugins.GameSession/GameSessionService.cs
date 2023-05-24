@@ -1260,7 +1260,7 @@ namespace Stormancer.Server.Plugins.GameSession
         private bool _reservationCleanupRunning = false;
         private async Task ReservationCleanupCallback(object? userState)
         {
-            if (!_reservationCleanupRunning)
+            if (!_reservationCleanupRunning && !_gameCompleteCts.IsCancellationRequested)
             {
                 _reservationCleanupRunning = true;
                 try
