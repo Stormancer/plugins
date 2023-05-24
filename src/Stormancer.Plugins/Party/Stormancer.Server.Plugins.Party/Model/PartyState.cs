@@ -78,7 +78,7 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// <summary>
         /// Number of members, including those who are currently being accepted.
         /// </summary>
-        public int MemberCount => (int)PartyMembers.Sum(kvp => kvp.Value.LocalPlayerCount) + PendingAcceptedPeers.Count;
+        public int MemberCount => (int)PartyMembers.Sum(kvp => kvp.Value.LocalPlayers.Count) + PendingAcceptedPeers.Count;
 
         /// <summary>
         /// This queue is used to synchronize operations on the party state.

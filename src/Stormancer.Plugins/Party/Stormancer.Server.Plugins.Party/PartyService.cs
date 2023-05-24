@@ -30,6 +30,7 @@ using Stormancer.Server.Plugins.GameFinder;
 using Stormancer.Server.Plugins.Party.Dto;
 using Stormancer.Server.Plugins.Party.Interfaces;
 using Stormancer.Server.Plugins.Party.Model;
+using Stormancer.Server.Plugins.Profile;
 using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Users;
 using System;
@@ -71,6 +72,8 @@ namespace Stormancer.Server.Plugins.Party
         private readonly InvitationCodeService invitationCodes;
         private readonly PartyLuceneDocumentStore partyDocumentsStore;
         private readonly PartyConfigurationService partyConfigurationService;
+        private readonly IProfileService _profiles;
+        private readonly PartyAnalyticsWorker _analyticsWorker;
 
         public IReadOnlyDictionary<SessionId, PartyMember> PartyMembers => _partyState.PartyMembers;
 
@@ -94,6 +97,7 @@ namespace Stormancer.Server.Plugins.Party
             InvitationCodeService invitationCodes,
             PartyLuceneDocumentStore partyDocumentsStore,
             PartyConfigurationService partyConfigurationService,
+            IProfileService profiles,
             PartyAnalyticsWorker analyticsWorker
         )
         {
@@ -111,6 +115,8 @@ namespace Stormancer.Server.Plugins.Party
             this.invitationCodes = invitationCodes;
             this.partyDocumentsStore = partyDocumentsStore;
             this.partyConfigurationService = partyConfigurationService;
+            _profiles = profiles;
+            _analyticsWorker = analyticsWorker;
             ApplySettings(configuration.Settings);
         }
 
@@ -266,10 +272,20 @@ namespace Stormancer.Server.Plugins.Party
                 }
                 var user = session.User;
 
+                if (user == null)
+                {
+                    await peer.Disconnect("noUser");
+                    return;
+                }
 
                 await _userSessions.UpdateSessionData(peer.SessionId, "party", _partyState.Settings.PartyId, CancellationToken.None);
                 var userData = peer.ContentType == "party/userdata" ? peer.UserData : new byte[0];
-                var partyUser = new PartyMember { UserId = user.Id, StatusInParty = PartyMemberStatus.NotReady, Peer = peer, UserData = userData, LocalPlayerCount = 1 };
+
+                var profile = await _profiles.GetProfile(user.Id, new Dictionary<string, string> { ["user"] = "summary" }, session, CancellationToken.None);
+
+                var mainLocalUser = new LocalPlayerInfos { StormancerUserId = user.Id, Platform = session.platformId.Platform, PlatformId = session.platformId.OnlineId, Pseudo = profile["user"]["pseudo"]?.ToObject<string>() ?? "anonymous" };
+
+                var partyUser = new PartyMember { UserId = user.Id, StatusInParty = PartyMemberStatus.NotReady, Peer = peer, UserData = userData, LocalPlayers = new List<LocalPlayerInfos> { mainLocalUser } };
                 _partyState.PartyMembers.TryAdd(peer.SessionId, partyUser);
                 // Complete existing invtations for the new user. These invitations should all have been completed by now, but this is hard to guarantee.
                 if (_partyState.PendingInvitations.TryGetValue(user.Id, out var invitations))
@@ -288,7 +304,7 @@ namespace Stormancer.Server.Plugins.Party
                 var ClientPluginVersion = peer.Metadata[PartyPlugin.CLIENT_METADATA_KEY];
                 Log(LogLevel.Trace, "OnConnected", "Connection complete", new { peer.SessionId, user.Id, ClientPluginVersion }, peer.SessionId.ToString(), user.Id);
 
-                await BroadcastStateUpdateRpc(MemberConnectedRoute, new PartyMemberDto { PartyUserStatus = partyUser.StatusInParty, UserData = partyUser.UserData, UserId = partyUser.UserId, SessionId = partyUser.Peer.SessionId, LocalPlayerCount = partyUser.LocalPlayerCount });
+                await BroadcastStateUpdateRpc(MemberConnectedRoute, new PartyMemberDto { PartyUserStatus = partyUser.StatusInParty, UserData = partyUser.UserData, UserId = partyUser.UserId, SessionId = partyUser.Peer.SessionId, LocalPlayers = partyUser.LocalPlayers });
 
                 _ = RunOperationCompletedEventHandler((service, handlers, scope) =>
                 {
@@ -592,7 +608,7 @@ namespace Stormancer.Server.Plugins.Party
 
         public string PartyId => Settings.PartyId;
 
-        public async Task UpdatePartyUserData(string userId, byte[] data, uint localPlayerCount, CancellationToken ct)
+        public async Task UpdatePartyUserData(string userId, byte[] data, List<LocalPlayerInfos> localPlayers, CancellationToken ct)
         {
             await _partyState.TaskQueue.PushWork(async () =>
             {
@@ -606,10 +622,12 @@ namespace Stormancer.Server.Plugins.Party
                     ThrowNoSuchMemberError(userId);
                 }
 
-                var localPlayerCountChanged = localPlayerCount != partyUser.LocalPlayerCount;
+               
+
+                var localPlayerCountChanged = !localPlayers.SequenceEqual(partyUser.LocalPlayers);
                 var userDataChanged = !partyUser.UserData.SequenceEqual(data);
 
-                if (localPlayerCountChanged && _partyState.MemberCount - partyUser.LocalPlayerCount + localPlayerCount >= _partyState.Settings.ServerSettings.MaxMembers())
+                if (localPlayerCountChanged && _partyState.MemberCount - partyUser.LocalPlayers.Count + localPlayers.Count >= _partyState.Settings.ServerSettings.MaxMembers())
                 {
                     throw new ClientException(JoinDeniedError + "?reason=partyFull");
                 }
@@ -619,7 +637,7 @@ namespace Stormancer.Server.Plugins.Party
                 await using var scope = _scene.CreateRequestScope();
                 var handlers = scope.Resolve<IEnumerable<IPartyEventHandler>>();
 
-                var ctx = new UpdatingPartyMemberDataContext(partyUser, localPlayerCount, data, _scene);
+                var ctx = new UpdatingPartyMemberDataContext(partyUser, localPlayers, data, _scene);
                 await handlers.RunEventHandler(h => h.OnUpdatingPartyMemberData(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while running the event 'OnUpdatingPartyMemberData'.", ex));
 
                 if (!ctx.IsUpdateValid)
@@ -629,7 +647,7 @@ namespace Stormancer.Server.Plugins.Party
 
 
 
-                partyUser.LocalPlayerCount = localPlayerCount;
+                partyUser.LocalPlayers = localPlayers;
                 partyUser.UserData = data;
                 Log(LogLevel.Trace, "UpdatePartyUserData", "Updated user data", new { partyUser.Peer.SessionId, partyUser.UserId, UserData = data });
 
@@ -646,7 +664,7 @@ namespace Stormancer.Server.Plugins.Party
                         await TryCancelPendingGameFinder();
                     }
 
-                    await BroadcastStateUpdateRpc(PartyMemberDataUpdate.Route, new PartyMemberDataUpdate { UserId = userId, UserData = partyUser.UserData, LocalPlayerCount = partyUser.LocalPlayerCount });
+                    await BroadcastStateUpdateRpc(PartyMemberDataUpdate.Route, new PartyMemberDataUpdate { UserId = userId, UserData = partyUser.UserData, LocalPlayers = partyUser.LocalPlayers });
                 }
             });
         }
@@ -943,7 +961,7 @@ namespace Stormancer.Server.Plugins.Party
                 LeaderId = _partyState.Settings.PartyLeaderId,
                 Settings = new PartySettingsUpdateDto(_partyState),
                 PartyMembers = _partyState.PartyMembers.Values.Select(member =>
-                    new PartyMemberDto { PartyUserStatus = member.StatusInParty, UserData = member.UserData, UserId = member.UserId, SessionId = member.Peer.SessionId }).ToList(),
+                    new PartyMemberDto { PartyUserStatus = member.StatusInParty, UserData = member.UserData, UserId = member.UserId, SessionId = member.Peer.SessionId, LocalPlayers = member.LocalPlayers }).ToList(),
                 Version = _partyState.VersionNumber
             };
 

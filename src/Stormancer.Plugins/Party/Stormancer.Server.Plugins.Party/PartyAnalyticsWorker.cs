@@ -49,7 +49,7 @@ namespace Stormancer.Server.Plugins.Party
                     lock (_syncRoot)
                     {
                         count = _parties.Count;
-                        players = _parties.Sum(p => p.PartyMembers.Count);
+                        players = _parties.Sum(p => p.PartyMembers.Sum(m=>m.Value.LocalPlayers.Count));
                     }
                     if (count > 0)
                     {

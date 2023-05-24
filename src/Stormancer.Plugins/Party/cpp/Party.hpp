@@ -358,6 +358,15 @@ namespace Stormancer
 			MSGPACK_DEFINE(total, hits)
 		};
 
+		struct LocalPlayerInfos
+		{
+			std::string stormancerUserId;
+			std::string platform;
+			std::string pseudo;
+			std::string platformId;
+			MSGPACK_DEFINE(platform, stormancerUserId, pseudo,platformId)
+		};
+
 		class PartyApi
 		{
 		public:
@@ -528,7 +537,7 @@ namespace Stormancer
 			/// <param name="data">New player data</param>
 			/// <returns>A task that completes when the data has been updated and replicated to other players.</returns>
 			/// <exception cref="std::exception">If you are not in a party.</exception>
-			virtual pplx::task<void> updatePlayerData(std::vector<byte> data, unsigned int localPlayerCount = 1) = 0;
+			virtual pplx::task<void> updatePlayerData(std::vector<byte> data, std::vector<LocalPlayerInfos> localPlayers) = 0;
 
 			/// <summary>
 			/// Check if the local user is the leader of the party.
@@ -972,14 +981,14 @@ namespace Stormancer
 			std::vector<byte> userData;
 			Stormancer::SessionId sessionId;
 
-			unsigned int localPlayerCount;
+			std::vector<LocalPlayerInfos> localPlayers;
 
 			bool isLeader = false; // Computed locally
 
 			PartyUserDto(std::string userId) : userId(userId) {}
 			PartyUserDto() = default;
 
-			MSGPACK_DEFINE(userId, partyUserStatus, userData, sessionId, localPlayerCount);
+			MSGPACK_DEFINE(userId, partyUserStatus, userData, sessionId, localPlayers);
 		};
 
 		struct PartySettings
@@ -1598,9 +1607,9 @@ namespace Stormancer
 			{
 				std::string userId;
 				std::vector<byte> userData;
-				unsigned int localPlayerCount;
+				std::vector<LocalPlayerInfos> localPlayers;
 
-				MSGPACK_DEFINE(userId, userData, localPlayerCount);
+				MSGPACK_DEFINE(userId, userData, localPlayers);
 			};
 
 			struct MemberDisconnection
@@ -1773,15 +1782,15 @@ namespace Stormancer
 				/// 
 				/// Update party user data all data are replecated between all connected party scene
 				/// 
-				pplx::task<void> updatePlayerData(std::vector<byte> data, unsigned int localPlayerCount)
+				pplx::task<void> updatePlayerData(std::vector<byte> data, std::vector<LocalPlayerInfos> localPlayers)
 				{
 					PartyUserData update;
 					update.userData = data;
-					update.localPlayerCount = localPlayerCount;
+					update.localPlayers = localPlayers;
 					update.userId = _myUserId;
 					applyUserDataUpdate(update);
 
-					return syncStateOnError(_rpcService->rpc<void>("Party.UpdatePartyUserData2", data, localPlayerCount));
+					return syncStateOnError(_rpcService->rpc<void>("Party.UpdatePartyUserData2", data, localPlayers));
 				}
 
 				///
@@ -2403,7 +2412,7 @@ namespace Stormancer
 					{
 
 						member->userData = update.userData;
-						member->localPlayerCount = update.localPlayerCount;
+						member->localPlayers = update.localPlayers;
 						MembersUpdate updates;
 						updates.updatedMembers.emplace_back(*member, MembersUpdate::DataUpdated);
 						PartyMembersUpdated(updates);
@@ -3361,7 +3370,7 @@ namespace Stormancer
 					return party->partyService()->updatePartySettings(partySettingsDto);
 				}
 
-				pplx::task<void> updatePlayerData(std::vector<byte> data, unsigned int localPlayerCount) override
+				pplx::task<void> updatePlayerData(std::vector<byte> data, std::vector<LocalPlayerInfos> localPlayers) override
 				{
 					auto party = tryGetParty();
 					if (!party)
@@ -3369,7 +3378,7 @@ namespace Stormancer
 						STORM_RETURN_TASK_FROM_EXCEPTION_OPT(std::runtime_error(PartyError::Str::NotInParty), _dispatcher, void);
 					}
 
-					return party->partyService()->updatePlayerData(data, localPlayerCount);
+					return party->partyService()->updatePlayerData(data, localPlayers);
 				}
 
 				pplx::task<void> promoteLeader(std::string userId) override

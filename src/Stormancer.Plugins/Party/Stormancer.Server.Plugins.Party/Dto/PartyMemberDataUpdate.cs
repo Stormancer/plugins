@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using MsgPack.Serialization;
+using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.Party.Dto
 {
@@ -51,6 +52,6 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// Local players associated with the party member.
         /// </summary>
         [MessagePackMember(2)]
-        public uint LocalPlayerCount { get;  set; }
+        public IEnumerable<LocalPlayerInfos> LocalPlayers { get;  set; }
     }
 }

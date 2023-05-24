@@ -32,6 +32,7 @@ using Stormancer.Server.Plugins.Management;
 using Stormancer.Server.Plugins.Party.Interfaces;
 using Stormancer.Server.Plugins.Party.JoinGame;
 using Stormancer.Server.Plugins.Party.Model;
+using Stormancer.Server.Plugins.Profile;
 using Stormancer.Server.Plugins.Queries;
 using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Users;
@@ -90,6 +91,7 @@ namespace Stormancer.Server.Plugins.Party
                     r.Resolve<InvitationCodeService>(),
                     r.Resolve<PartyLuceneDocumentStore>(),
                     r.Resolve<PartyConfigurationService>(),
+                    r.Resolve<IProfileService>(),
                     r.Resolve<PartyAnalyticsWorker>())
                 ).As<IPartyService>().InstancePerRequest();
 
@@ -185,6 +187,7 @@ namespace Stormancer.Server.Plugins.Party
                       scene.DependencyResolver.Resolve<PartyLuceneDocumentStore>().DeleteDocument(state.Settings.PartyId);
                   }
                   scene.DependencyResolver.Resolve<InvitationCodeService>().CancelCode(scene);
+                  scene.DependencyResolver.Resolve<PartyAnalyticsWorker>().RemoveParty((PartyService)scene.DependencyResolver.Resolve<IPartyService>());
               };
             ctx.SceneCreated += (ISceneHost scene) =>
             {
@@ -204,6 +207,8 @@ namespace Stormancer.Server.Plugins.Party
 
 
                     });
+
+                    scene.DependencyResolver.Resolve<PartyAnalyticsWorker>().AddParty((PartyService)scene.DependencyResolver.Resolve<IPartyService>());
                 }
 
                 if (scene.Metadata.ContainsKey("stormancer.gamesession"))

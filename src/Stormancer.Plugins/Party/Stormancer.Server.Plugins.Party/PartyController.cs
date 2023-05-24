@@ -26,6 +26,7 @@ using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Party.Dto;
 using Stormancer.Server.Plugins.Users;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -78,11 +79,11 @@ namespace Stormancer.Server.Plugins.Party
             }
             var data = _serializer.Deserialize<byte[]>(ctx.InputStream);
 
-            return _partyService.UpdatePartyUserData(member.UserId, data, 1, ctx.CancellationToken) ;
+            return _partyService.UpdatePartyUserData(member.UserId, data, member.LocalPlayers, ctx.CancellationToken) ;
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public Task UpdatePartyUserData2(byte[] data, uint localPlayerCount, RequestContext<IScenePeerClient> ctx)
+        public Task UpdatePartyUserData2(byte[] data, List<LocalPlayerInfos> localPlayers, RequestContext<IScenePeerClient> ctx)
         {
             if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
             {
@@ -90,7 +91,7 @@ namespace Stormancer.Server.Plugins.Party
             }
             
 
-            return _partyService.UpdatePartyUserData(member.UserId, data, localPlayerCount, ctx.CancellationToken);
+            return _partyService.UpdatePartyUserData(member.UserId, data, localPlayers, ctx.CancellationToken);
         }
 
         public Task PromoteLeader(RequestContext<IScenePeerClient> ctx)

@@ -21,7 +21,10 @@
 // SOFTWARE.
 
 using MsgPack.Serialization;
+using Stormancer.Server.Plugins.GameSession.Admin;
 using Stormancer.Server.Plugins.Party.Model;
+using System;
+using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.Party.Dto
 {
@@ -55,6 +58,54 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// 
         /// </summary>
         [MessagePackMember(4)]
-        public uint LocalPlayerCount { get; set; } = 1;
+        public List<LocalPlayerInfos> LocalPlayers { get; set; } = default!;
+    }
+
+    public class LocalPlayerInfos : IEquatable<LocalPlayerInfos?>
+    {
+        [MessagePackMember(0)]
+        public string Platform { get; set; }
+
+        [MessagePackMember(1)]
+        public string StormancerUserId { get; set; }
+
+        [MessagePackMember(2)]
+        public string Pseudo { get; set; }
+
+        [MessagePackMember(3)]
+        public string PlatformId { get; set; }
+
+        public override bool Equals(object? obj)
+        {
+            return obj is LocalPlayerInfos infos &&
+                   Platform == infos.Platform &&
+                   StormancerUserId == infos.StormancerUserId &&
+                   Pseudo == infos.Pseudo &&
+                   PlatformId == infos.PlatformId;
+        }
+
+        public bool Equals(LocalPlayerInfos? other)
+        {
+            return other is not null &&
+                   Platform == other.Platform &&
+                   StormancerUserId == other.StormancerUserId &&
+                   Pseudo == other.Pseudo &&
+                   PlatformId == other.PlatformId;
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Platform, StormancerUserId, Pseudo, PlatformId);
+        }
+
+        public static bool operator ==(LocalPlayerInfos? left, LocalPlayerInfos? right)
+        {
+            return EqualityComparer<LocalPlayerInfos>.Default.Equals(left, right);
+        }
+
+        public static bool operator !=(LocalPlayerInfos? left, LocalPlayerInfos? right)
+        {
+            return !(left == right);
+        }
     }
 }

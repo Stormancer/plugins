@@ -21,6 +21,8 @@
 // SOFTWARE.
 
 using MsgPack.Serialization;
+using Stormancer.Server.Plugins.Party.Dto;
+using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.Party.Model
 {
@@ -64,6 +66,6 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// <summary>
         /// Number of players represented by this user.
         /// </summary>
-        public uint LocalPlayerCount { get; set; } = 1;
+        public List<LocalPlayerInfos> LocalPlayers { get; set; } = default!;
     }
 }
