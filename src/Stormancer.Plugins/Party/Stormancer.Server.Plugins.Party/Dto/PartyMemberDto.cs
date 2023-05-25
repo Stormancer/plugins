@@ -75,13 +75,15 @@ namespace Stormancer.Server.Plugins.Party.Dto
         [MessagePackMember(3)]
         public string PlatformId { get; set; }
 
+        [MessagePackMember(4)]
+        public string CustomData { get; set; }
+
+        [MessagePackMember(5)]
+        public int LocalPlayerIndex { get; set; }
+
         public override bool Equals(object? obj)
         {
-            return obj is LocalPlayerInfos infos &&
-                   Platform == infos.Platform &&
-                   StormancerUserId == infos.StormancerUserId &&
-                   Pseudo == infos.Pseudo &&
-                   PlatformId == infos.PlatformId;
+            return Equals(obj as LocalPlayerInfos);
         }
 
         public bool Equals(LocalPlayerInfos? other)
@@ -90,12 +92,14 @@ namespace Stormancer.Server.Plugins.Party.Dto
                    Platform == other.Platform &&
                    StormancerUserId == other.StormancerUserId &&
                    Pseudo == other.Pseudo &&
-                   PlatformId == other.PlatformId;
+                   PlatformId == other.PlatformId &&
+                   CustomData == other.CustomData &&
+                   LocalPlayerIndex == other.LocalPlayerIndex;
         }
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(Platform, StormancerUserId, Pseudo, PlatformId);
+            return HashCode.Combine(Platform, StormancerUserId, Pseudo, PlatformId, CustomData, LocalPlayerIndex);
         }
 
         public static bool operator ==(LocalPlayerInfos? left, LocalPlayerInfos? right)

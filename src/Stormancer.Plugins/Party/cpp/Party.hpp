@@ -364,7 +364,12 @@ namespace Stormancer
 			std::string platform;
 			std::string pseudo;
 			std::string platformId;
-			MSGPACK_DEFINE(platform, stormancerUserId, pseudo,platformId)
+
+			std::string customData;
+
+			int localPlayerIndex;
+
+			MSGPACK_DEFINE(platform, stormancerUserId, pseudo, platformId, customData, localPlayerIndex)
 		};
 
 		class PartyApi
