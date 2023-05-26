@@ -36,7 +36,7 @@ namespace Stormancer.Server.Plugins.Regions
         /// <summary>
         /// Gets or sets the latency associated with the tested region.
         /// </summary>
-        [MessagePackMember(0)]
+        [MessagePackMember(1)]
         public int Latency { get; set; }
     }
 

@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Analytics;
+using Stormancer.Server.Plugins.Party.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +13,7 @@ namespace Stormancer.Server.Plugins.Party
     internal class PartyAnalyticsWorker
     {
         private readonly IAnalyticsService _analytics;
-        private List<PartyService> _parties = new List<PartyService>();
+        private List<PartyState> _parties = new List<PartyState>();
         private object _syncRoot = new object();
 
         public PartyAnalyticsWorker(IAnalyticsService analytics)
@@ -20,7 +21,7 @@ namespace Stormancer.Server.Plugins.Party
             _analytics = analytics;
         }
 
-        public void AddParty(PartyService party)
+        public void AddParty(PartyState party)
         {
             lock(_syncRoot)
             {
@@ -28,7 +29,7 @@ namespace Stormancer.Server.Plugins.Party
             }
         }
 
-        public void RemoveParty(PartyService party)
+        public void RemoveParty(PartyState party)
         {
             lock(_syncRoot)
             {

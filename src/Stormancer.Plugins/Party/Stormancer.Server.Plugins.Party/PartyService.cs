@@ -627,7 +627,7 @@ namespace Stormancer.Server.Plugins.Party
                 var localPlayerCountChanged = !localPlayers.SequenceEqual(partyUser.LocalPlayers);
                 var userDataChanged = !partyUser.UserData.SequenceEqual(data);
 
-                if (localPlayerCountChanged && _partyState.MemberCount - partyUser.LocalPlayers.Count + localPlayers.Count >= _partyState.Settings.ServerSettings.MaxMembers())
+                if (localPlayerCountChanged && _partyState.MemberCount - partyUser.LocalPlayers.Count + localPlayers.Count > _partyState.Settings.ServerSettings.MaxMembers())
                 {
                     throw new ClientException(JoinDeniedError + "?reason=partyFull");
                 }
