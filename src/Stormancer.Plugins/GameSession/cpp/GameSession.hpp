@@ -725,7 +725,10 @@ namespace Stormancer
 						.then([wThat, openTunnel, cancellationToken, wContainer, logger = _logger](std::shared_ptr<Scene> scene)
 							{
 								auto that = wThat.lock();
-
+								if (cancellationToken.is_canceled())
+								{
+									pplx::cancel_current_task();
+								}
 								if (!that)
 								{
 									throw ObjectDeletedException("GameSession");
