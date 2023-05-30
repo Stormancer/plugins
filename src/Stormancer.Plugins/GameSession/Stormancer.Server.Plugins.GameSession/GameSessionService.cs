@@ -703,16 +703,13 @@ namespace Stormancer.Server.Plugins.GameSession
             Debug.Assert(_config != null);
             _analytics.StartGamesession(this);
             var ctx = new GameSessionContext(this._scene, _config, this);
-            _logger.Log(LogLevel.Info, "gamesession.startup", "Starting up gamesession.", new { id = this.GameSessionId }, this.GameSessionId);
-
+           
             await using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
             {
                 await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(h => h.GameSessionStarting(ctx), ex => _logger.Log(LogLevel.Error, "gameSession", "An error occurred while executing GameSessionStarting event", ex));
             }
 
-            _logger.Log(LogLevel.Info, "gamesession.startup", "Ran GameSessionStarting event handlers.", new { id = this.GameSessionId }, this.GameSessionId);
-
-            _logger.Log(LogLevel.Info, "gamesession.startup", "Creating Gamesession server.", new { id = this.GameSessionId }, this.GameSessionId);
+            
             var poolId = state.GameServerPool();
 
 
@@ -755,7 +752,6 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 }
 
-                _logger.Log(LogLevel.Info, "gamesession.startup", "starting gameserver.", new { id = this.GameSessionId }, this.GameSessionId);
                 await using (var scope = _scene.CreateRequestScope())
                 {
                     var pools = scope.Resolve<ServerPoolProxy>();
@@ -764,7 +760,6 @@ namespace Stormancer.Server.Plugins.GameSession
                 }
                 if (_server != null)
                 {
-                    _logger.Log(LogLevel.Info, "gamesession.startup", "started gameserver.", new { id = this.GameSessionId, _server.GameServerId, _server.GameServerSessionId }, this.GameSessionId);
                     if (!state.IsServerPersistent())
                     {
                         _ = _scene.RunTask(async ct =>
@@ -793,10 +788,7 @@ namespace Stormancer.Server.Plugins.GameSession
                         });
                     }
                 }
-                else
-                {
-                    _logger.Log(LogLevel.Info, "gamesession.startup", "No gameserver found, using P2P mode.", new { id = this.GameSessionId, }, this.GameSessionId);
-                }
+                
 
             }
 
