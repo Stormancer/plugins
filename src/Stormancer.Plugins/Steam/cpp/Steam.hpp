@@ -414,6 +414,28 @@ namespace Stormancer
 						{
 							scheduleRunSteamAPiCallbacks();
 						}
+
+						auto steamLobbyIdStr = steamConfig->getConnectLobby();
+
+						if (!steamLobbyIdStr.empty())
+						{
+							if (auto invitationMessenger = _wInvitationMessenger.lock())
+							{
+								SteamIDLobby steamIDLobby = std::stoull(steamLobbyIdStr);
+
+								_logger->log(LogLevel::Trace, "Steam", "Game lobby join requested", std::to_string(steamIDLobby));
+
+								SteamID senderId = callback->m_steamIDFriend.ConvertToUint64();
+
+								Party::PartyId partyId;
+								partyId.platform = platformName;
+								partyId.type = PARTY_TYPE_STEAMIDLOBBY;
+								partyId.id = std::to_string(steamIDLobby);
+
+								auto steamPartyInvitation = std::make_shared<SteamPartyInvitation>(std::to_string(senderId), partyId);
+								invitationMessenger->notifyInvitationReceived(steamPartyInvitation);
+							}
+						}
 					}
 
 					auto usersApi = _wUsersApi.lock();
