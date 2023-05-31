@@ -333,9 +333,9 @@ namespace Stormancer
 			{
 			public:
 
-				SteamPartyInvitation(const std::string& senderId, const Party::PartyId& partyId)
-					: _senderId(senderId)
-					, _partyId(partyId)
+				SteamPartyInvitation(const Party::PartyId& partyId, const std::string& senderSteamID = "")
+					: _partyId(partyId)
+					, _senderSteamID(senderSteamID)
 				{
 				}
 
@@ -351,7 +351,7 @@ namespace Stormancer
 
 				std::string getSenderId() override
 				{
-					return _senderId;
+					return _senderSteamID;
 				}
 
 				std::string getSenderPlatformId() override
@@ -366,8 +366,8 @@ namespace Stormancer
 
 			private:
 
-				std::string _senderId;
 				Party::PartyId _partyId;
+				std::string _senderSteamID;
 			};
 
 			class SteamPartyProvider;
@@ -413,6 +413,26 @@ namespace Stormancer
 						if (steamConfig->getSteamApiRunCallbacks())
 						{
 							scheduleRunSteamAPiCallbacks();
+						}
+
+						auto connectLobbyArgument = steamConfig->getConnectLobby();
+
+						if (!connectLobbyArgument.empty())
+						{
+							if (auto invitationMessenger = _wInvitationMessenger.lock())
+							{
+								_logger->log(LogLevel::Trace, "Steam", "Process launch argument +connect_lobby", connectLobbyArgument);
+
+								SteamIDLobby steamIDLobby = std::stoull(connectLobbyArgument);
+
+								Party::PartyId partyId;
+								partyId.id = std::to_string(steamIDLobby);
+								partyId.type = PARTY_TYPE_STEAMIDLOBBY;
+								partyId.platform = platformName;
+
+								auto steamPartyInvitation = std::make_shared<SteamPartyInvitation>(partyId);
+								invitationMessenger->notifyInvitationReceived(steamPartyInvitation);
+							}
 						}
 					}
 
@@ -1311,9 +1331,9 @@ namespace Stormancer
 				SteamID senderId = callback->m_steamIDFriend.ConvertToUint64();
 
 				Party::PartyId partyId;
-				partyId.platform = platformName;
-				partyId.type = PARTY_TYPE_STEAMIDLOBBY;
 				partyId.id = std::to_string(steamIDLobby);
+				partyId.type = PARTY_TYPE_STEAMIDLOBBY;
+				partyId.platform = platformName;
 
 				auto invitationMessenger = _wInvitationMessenger.lock();
 				if (!invitationMessenger)
@@ -1322,7 +1342,7 @@ namespace Stormancer
 					return;
 				}
 
-				auto steamPartyInvitation = std::make_shared<SteamPartyInvitation>(std::to_string(senderId), partyId);
+				auto steamPartyInvitation = std::make_shared<SteamPartyInvitation>(partyId, std::to_string(senderId));
 				invitationMessenger->notifyInvitationReceived(steamPartyInvitation);
 			}
 
