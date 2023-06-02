@@ -223,14 +223,16 @@ namespace Stormancer
 					_steamApiInitialize = config->additionalParameters.find(ConfigurationKeys::SteamApiInitialize) != config->additionalParameters.end() ? (config->additionalParameters.at(ConfigurationKeys::SteamApiInitialize) != "false") : true;
 					_steamApiRunCallbacks = config->additionalParameters.find(ConfigurationKeys::SteamApiRunCallbacks) != config->additionalParameters.end() ? (config->additionalParameters.at(ConfigurationKeys::SteamApiRunCallbacks) != "false") : true;
 
-					if (_connectLobby.empty() && config->processLaunchArguments.size() >= 20)
+					if (_connectLobby.empty() && config->processLaunchArguments.size() >= 2)
 					{
 						for (auto argi = 0; argi < config->processLaunchArguments.size(); argi++)
 						{
 							if (config->processLaunchArguments[argi] == "+connect_lobby" && config->processLaunchArguments.size() > (argi + 1))
 							{
 								std::string steamIDLobby = config->processLaunchArguments[argi + 1];
-								logger->log(LogLevel::Trace, "Steam", "Detected connectLobby in processLaunchArguments", steamIDLobby);
+
+								logger->log(LogLevel::Trace, "Steam", "Extract and store connectLobby from processLaunchArguments", steamIDLobby);
+
 								_connectLobby = steamIDLobby;
 							}
 						}
@@ -422,8 +424,9 @@ namespace Stormancer
 						{
 							if (auto invitationMessenger = _wInvitationMessenger.lock())
 							{
-								SteamIDLobby steamIDLobby = std::stoull(connectLobbyArgument);
+								_logger->log(LogLevel::Trace, "Steam", "Process launch argument '+connect_lobby'", connectLobbyArgument);
 
+								SteamIDLobby steamIDLobby = std::stoull(connectLobbyArgument);
 
 								Party::PartyId partyId;
 								partyId.id = std::to_string(steamIDLobby);
