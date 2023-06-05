@@ -1205,14 +1205,21 @@ namespace Stormancer
 			{
 			public:
 
+				InvitationMessenger(std::shared_ptr<ILogger> logger)
+					: _logger(logger)
+				{
+				}
+
 				void notifyInvitationReceived(std::shared_ptr<IPlatformInvitation> invitation)
 				{
 					if (_invitationReceivedEvent.hasSubscribers())
 					{
+						_logger->log(LogLevel::Trace, "InvitationMessenger", "Fire event invitation received");
 						_invitationReceivedEvent(invitation);
 					}
 					else
 					{
+						_logger->log(LogLevel::Trace, "InvitationMessenger", "Store invitation as pending invitation");
 						_pendingInvitation = invitation;
 					}
 				}
@@ -1222,6 +1229,7 @@ namespace Stormancer
 					auto subscription = _invitationReceivedEvent.subscribe(callback);
 					if (_pendingInvitation)
 					{
+						_logger->log(LogLevel::Trace, "InvitationMessenger", "Fire event invitation received (pending invitation)");
 						_invitationReceivedEvent(_pendingInvitation);
 						_pendingInvitation.reset();
 					}
@@ -1232,6 +1240,7 @@ namespace Stormancer
 
 				Event<std::shared_ptr<IPlatformInvitation>> _invitationReceivedEvent;
 				std::shared_ptr<IPlatformInvitation> _pendingInvitation;
+				std::shared_ptr<ILogger> _logger;
 			};
 
 			/// <summary>
@@ -4640,7 +4649,7 @@ namespace Stormancer
 					return partyImpl;
 					}).singleInstance();
 
-					builder.registerDependency<Platform::InvitationMessenger>().singleInstance();
+					builder.registerDependency<Platform::InvitationMessenger, ILogger>().singleInstance();
 
 					builder.registerDependency<details::StormancerInvitationProvider>([](const DependencyScope& dr)
 						{

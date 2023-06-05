@@ -253,6 +253,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 catch (Exception ex)
                 {
                     state.Tcs.SetException(ex);
+                    _logger.Log(LogLevel.Error, "gamefinder", $"Matchmaking failed : {ex}", ex);
                     _analytics.Push("gameFinder", "end", JObject.FromObject(new { partySize = party.Players.Count, duration = (DateTime.UtcNow - startTime).TotalMilliseconds, type = "failed" }));
                     await BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) => s.WriteByte((byte)GameFinderStatusUpdate.Failed), ct);
                 }

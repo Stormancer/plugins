@@ -15,13 +15,14 @@ Unreleased
 Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
-
+- Improved sandbox error logs.
 
 1.1.3.2
 -------
 Changed
 *******
 - Use latest version of the MemoryCache
+
 
 1.1.3
 -----

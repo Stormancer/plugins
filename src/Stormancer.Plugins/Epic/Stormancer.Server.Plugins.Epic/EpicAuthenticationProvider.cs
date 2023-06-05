@@ -345,7 +345,7 @@ namespace Stormancer.Server.Plugins.Epic
 
                     if (string.IsNullOrWhiteSpace(payload.pfsid) || !config.sandboxIds.Contains(payload.pfsid))
                     {
-                        _logger.Log(LogLevel.Error, "EpicAuthenticationProvider.Authenticate", "Invalid sandbox id", new { TokenApplicationId = payload.appid, ConfigSandboxIds = config.sandboxIds });
+                        _logger.Log(LogLevel.Error, "EpicAuthenticationProvider.Authenticate", "Invalid sandbox id", new { TokenApplicationId = payload.appid, TokenSandboxId = payload.pfsid, ConfigSandboxIds = config.sandboxIds });
                         return AuthenticationResult.CreateFailure($"Invalid token (5).", pId, authParams);
                     }
 
