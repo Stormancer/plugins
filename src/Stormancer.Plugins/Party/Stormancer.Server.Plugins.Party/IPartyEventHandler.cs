@@ -301,9 +301,10 @@ namespace Stormancer.Server.Plugins.Party
     /// </summary>
     public class UpdatingPartyMemberDataContext
     {
-        internal UpdatingPartyMemberDataContext(PartyMember member,IEnumerable<LocalPlayerInfos> localPlayers, byte[] newData, ISceneHost scene)
+        internal UpdatingPartyMemberDataContext(PartyMember member,IEnumerable<LocalPlayerInfos> localPlayers, byte[] newData, ISceneHost scene, IPartyService party)
         {
             PartyScene = scene;
+            Party = party;
             PartyMember = member;
             LocalPlayers = localPlayers;
             NewUserData = newData;
@@ -341,7 +342,7 @@ namespace Stormancer.Server.Plugins.Party
         /// <summary>
         /// Gets the party service.
         /// </summary>
-        public IPartyService Party => PartyScene.DependencyResolver.Resolve<IPartyService>();
+        public IPartyService Party { get; }
     }
 
     /// <summary>

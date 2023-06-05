@@ -637,7 +637,7 @@ namespace Stormancer.Server.Plugins.Party
                 await using var scope = _scene.CreateRequestScope();
                 var handlers = scope.Resolve<IEnumerable<IPartyEventHandler>>();
 
-                var ctx = new UpdatingPartyMemberDataContext(partyUser, localPlayers, data, _scene);
+                var ctx = new UpdatingPartyMemberDataContext(partyUser, localPlayers, data, _scene,this);
                 await handlers.RunEventHandler(h => h.OnUpdatingPartyMemberData(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while running the event 'OnUpdatingPartyMemberData'.", ex));
 
                 if (!ctx.IsUpdateValid)
