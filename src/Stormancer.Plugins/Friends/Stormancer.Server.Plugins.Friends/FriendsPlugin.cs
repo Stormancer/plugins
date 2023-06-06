@@ -39,7 +39,6 @@ namespace Stormancer.Server.Plugins.Friends
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
                 builder.Register<FriendsController>().InstancePerRequest();
-                builder.Register<FriendsS2SController>().InstancePerRequest();
                 builder.Register<FriendsSceneLocator>().As<IServiceLocatorProvider>().InstancePerRequest();
                 builder.Register<FriendsRepository>().InstancePerScene();
             };
@@ -52,7 +51,7 @@ namespace Stormancer.Server.Plugins.Friends
                 }
                 else
                 {
-                    builder.Register<FriendsProxy>().As<IFriendsService>();
+                    builder.Register<FriendsServiceProxy>().As<IFriendsService>();
                 }
             };
 
@@ -74,7 +73,6 @@ namespace Stormancer.Server.Plugins.Friends
                 if (scene.Metadata.ContainsKey(METADATA_KEY))
                 {
                     scene.AddController<FriendsController>();
-                    scene.AddController<FriendsS2SController>();
                 }
             };
 

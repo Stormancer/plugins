@@ -16,6 +16,7 @@ Unreleased
 Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
+- Fixes S2S service locator 
 
 
 5.0.0.14
