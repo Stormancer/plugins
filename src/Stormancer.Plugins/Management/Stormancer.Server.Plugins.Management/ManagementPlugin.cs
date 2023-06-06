@@ -30,6 +30,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Management
@@ -72,6 +73,13 @@ namespace Stormancer.Server.Plugins.Management
         private Lazy<ManagementClient> _clientV1;
         private ManagementClient clientV1 { get => _clientV1.Value; }
 
+        /// <summary>
+        /// Creates a <see cref="ManagementClientProvider"/> object.
+        /// </summary>
+        /// <param name="environment"></param>
+        /// <param name="logger"></param>
+        /// <param name="clientFactory"></param>
+        /// <exception cref="InvalidOperationException"></exception>
         public ManagementClientProvider(IEnvironment environment, ILogger logger, IHttpClientFactory clientFactory)
         {
             _environment = environment;
@@ -131,6 +139,23 @@ namespace Stormancer.Server.Plugins.Management
 
 
         /// <summary>
+        /// Creates a connection token for a scene in the federation.
+        /// </summary>
+        /// <param name="sceneUri"></param>
+        /// <param name="payload"></param>
+        /// <param name="contentType"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public async Task<Response<string>> CreateConnectionTokenAsync(string sceneUri, byte[]? payload = null, string contentType = "application/octet-stream", CancellationToken cancellationToken = default)
+        {
+
+            (var clusterId, var accountId, var applicationId, var sceneId) = await DecomposeSceneId(sceneUri);
+            return await _clientV3.Applications.CreateConnectionTokenAsync(clusterId, accountId, applicationId, sceneId, payload ?? new byte[0], contentType, cancellationToken);
+
+        }
+
+
+        /// <summary>
         /// Creates a connection token for a scene in the federation, using the V1 protocol.
         /// </summary>
         /// <param name="sceneUri"></param>
@@ -159,7 +184,26 @@ namespace Stormancer.Server.Plugins.Management
 
             (var clusterId, var accountId, var applicationId, var sceneId) = await DecomposeSceneId(sceneUri);
 
-            await _clientV3.Applications.CreateScene(clusterId, accountId, applicationId, sceneId, template, isPublic, metadata, isPersistent);
+            await _clientV3.Applications.CreateSceneAsync(clusterId, accountId, applicationId, sceneId, template, isPublic, metadata, isPersistent,CancellationToken.None);
+
+        }
+
+        /// <summary>
+        /// Creates a scene.
+        /// </summary>
+        /// <param name="sceneUri"></param>
+        /// <param name="template"></param>
+        /// <param name="isPublic"></param>
+        /// <param name="isPersistent"></param>
+        /// <param name="metadata"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public async Task CreateSceneAsync(string sceneUri, string template, bool isPublic, bool isPersistent, JObject? metadata = null, CancellationToken cancellationToken = default)
+        {
+
+            (var clusterId, var accountId, var applicationId, var sceneId) = await DecomposeSceneId(sceneUri);
+
+            await _clientV3.Applications.CreateSceneAsync(clusterId, accountId, applicationId, sceneId, template, isPublic, metadata, isPersistent,cancellationToken);
 
         }
 

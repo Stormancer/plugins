@@ -9,6 +9,13 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- New CreateSceneAsync API.
+- New Create connection token API.
+
 3.0.2.5
 -------
 Changed

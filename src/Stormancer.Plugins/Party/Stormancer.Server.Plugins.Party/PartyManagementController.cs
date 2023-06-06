@@ -117,9 +117,17 @@ namespace Stormancer.Server.PartyManagement
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public Task<string?> CreateConnectionTokenFromPartyId(string partyId, byte[] userData, RequestContext<IScenePeerClient> ctx)
+        public async Task<string?> CreateConnectionTokenFromPartyId(string partyId, byte[] userData, RequestContext<IScenePeerClient> ctx)
         {
-            return _partyService.CreateConnectionTokenFromPartyId(partyId, userData,ctx.CancellationToken);
+            var result = await _partyService.CreateConnectionTokenFromPartyId(partyId, userData, ctx.CancellationToken);
+            if(result.Success)
+            {
+                return result.Value;
+            }
+            else
+            {
+                throw new ClientException(result.Error);
+            }
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]

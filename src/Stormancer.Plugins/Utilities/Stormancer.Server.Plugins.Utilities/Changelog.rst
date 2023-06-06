@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+*****
+- Added Result<TResult,TError> utility type.
+
 3.1.4.2
 -------
 Fixed

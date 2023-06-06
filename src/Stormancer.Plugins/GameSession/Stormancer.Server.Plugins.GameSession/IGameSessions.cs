@@ -99,7 +99,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         Task CancelReservation(string gameSessionId, string id, CancellationToken cancellationToken);
-        
+
     }
 
     internal class GameSessions : IGameSessions
@@ -109,7 +109,7 @@ namespace Stormancer.Server.Plugins.GameSession
         private readonly IUserSessions sessions;
         private readonly ISerializer serializer;
 
-        public GameSessions(ManagementClientProvider management,GameSessionProxy s2sProxy, IUserSessions sessions, ISerializer serializer)
+        public GameSessions(ManagementClientProvider management, GameSessionProxy s2sProxy, IUserSessions sessions, ISerializer serializer)
         {
             this.management = management;
             s2SProxy = s2sProxy;
@@ -117,20 +117,20 @@ namespace Stormancer.Server.Plugins.GameSession
             this.serializer = serializer;
         }
 
-       
+
 
         public Task Create(string template, string id, GameSessionConfiguration config)
         {
-            return management.CreateScene(id, template, false, false, JObject.FromObject(new { gameSession = config }));
+            return TaskHelper.Retry(() => TaskHelper.Retry(() => TaskHelper.Retry(() => management.CreateSceneAsync(id, template, false, false, JObject.FromObject(new { gameSession = config })), RetryPolicies.ConstantDelay(4, TimeSpan.FromSeconds(1)), CancellationToken.None), RetryPolicies.ConstantDelay(4, TimeSpan.FromSeconds(1)), CancellationToken.None), RetryPolicies.ConstantDelay(4, TimeSpan.FromSeconds(1)), CancellationToken.None);
         }
 
-        public async Task<string> CreateConnectionToken(string id, SessionId userSessionId, TokenVersion version,CancellationToken cancellationToken)
+        public async Task<string> CreateConnectionToken(string id, SessionId userSessionId, TokenVersion version, CancellationToken cancellationToken)
         {
             using (var stream = new MemoryStream())
             {
-                var session = await sessions.GetSessionById(userSessionId,cancellationToken);
+                var session = await sessions.GetSessionById(userSessionId, cancellationToken);
                 serializer.Serialize(session, stream);
-                return await TaskHelper.Retry(async (_,_) => version switch
+                return await TaskHelper.Retry(async (_, _) => version switch
                 {
                     TokenVersion.V3 => await management.CreateConnectionToken(id, stream.ToArray(), "stormancer/userSession"),
                     TokenVersion.V1 => await management.CreateConnectionTokenV1(id, stream.ToArray(), "stormancer/userSession"),
@@ -142,7 +142,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public Task<GameSessionReservation?> CreateReservation(string gameSessionId, Team team, JObject args, CancellationToken cancellationToken)
         {
-            return s2SProxy.CreateReservation(gameSessionId, team,args, cancellationToken);
+            return s2SProxy.CreateReservation(gameSessionId, team, args, cancellationToken);
         }
 
         public Task CancelReservation(string gameSessionId, string reservationId, CancellationToken cancellationToken)

@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using Stormancer.Core;
+using Stormancer.Management;
 using Stormancer.Server.Plugins.Management;
 using Stormancer.Server.Plugins.Party;
 using Stormancer.Server.Plugins.ServiceLocator;
@@ -88,24 +89,49 @@ namespace Stormancer.Server.PartyManagement
                 metadata
             );
 
-            return await _management.CreateConnectionToken(sceneUri,partyRequest.UserData, "party/userdata");
+            return await _management.CreateConnectionToken(sceneUri, partyRequest.UserData, "party/userdata");
         }
 
 
-        public Task<string?> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode,byte[] userData, CancellationToken cancellationToken)
+        public Task<string?> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode, byte[] userData, CancellationToken cancellationToken)
         {
-            return invitationCodes.CreateConnectionTokenFromInvitationCodeAsync(invitationCode,userData, cancellationToken);
+            return invitationCodes.CreateConnectionTokenFromInvitationCodeAsync(invitationCode, userData, cancellationToken);
         }
 
-        public async Task<string?> CreateConnectionTokenFromPartyId(string partyId, byte[] userData, CancellationToken cancellationToken)
+        public async Task<Result<string, string>> CreateConnectionTokenFromPartyId(string partyId, byte[] userData, CancellationToken cancellationToken)
         {
             var sceneUri = await _serviceLocator.GetSceneId(PartyPlugin.PARTY_SERVICEID, partyId);
 
-            if(sceneUri == null)
+            if (sceneUri == null)
             {
-                return null;
+                return Result<string, string>.Failed("notFound");
             }
-            return await _management.CreateConnectionToken(sceneUri, userData, "party/userdata");
+
+            var result = await _management.CreateConnectionTokenAsync(sceneUri, userData, "party/userdata", cancellationToken);
+
+            if (result.Success)
+            {
+                return Result<string, string>.Succeeded(result.Result);
+            }
+            else
+            {
+                if (result.Error.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    return Result<string, string>.Failed("notFound");
+                }
+                else if(result.Error.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                {
+                    return Result<string, string>.Failed("forbidden");
+                }
+                else
+                {
+                    return Result<string, string>.Failed("serverError");
+                }
+            }
         }
     }
+
+
+
+
 }
