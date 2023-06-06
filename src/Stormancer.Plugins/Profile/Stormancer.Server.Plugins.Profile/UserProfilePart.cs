@@ -56,6 +56,7 @@ namespace Stormancer.Server.Plugins.Profile
                 {
                     if (user != null)
                     {
+                        j["userId"] = user.Id;
                         j["lastPlatform"] = user.LastPlatform ?? "";
 
                         if (!j.ContainsKey("platforms"))

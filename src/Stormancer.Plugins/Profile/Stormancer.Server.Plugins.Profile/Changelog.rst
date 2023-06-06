@@ -15,7 +15,9 @@ Unreleased
 Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
-
+Added
+*****
+- Added 'userId' field to the user profile part.
 
 4.0.0.3
 -------
