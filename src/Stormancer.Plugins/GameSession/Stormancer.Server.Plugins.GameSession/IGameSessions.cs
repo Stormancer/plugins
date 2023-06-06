@@ -117,11 +117,19 @@ namespace Stormancer.Server.Plugins.GameSession
             this.serializer = serializer;
         }
 
+        public Task Create(string template, string id, GameSessionConfiguration config, CancellationToken cancellationToken)
+        {
+            return TaskHelper.Retry(async () =>
+            {
+                using var cts = new CancellationTokenSource(4000);
+                await management.CreateSceneAsync(id, template, false, false, JObject.FromObject(new { gameSession = config }), cts.Token);
 
+            }, RetryPolicies.IncrementalDelay(4, TimeSpan.FromMilliseconds(500)), cancellationToken);
+        }
 
         public Task Create(string template, string id, GameSessionConfiguration config)
         {
-            return TaskHelper.Retry(() => TaskHelper.Retry(() => TaskHelper.Retry(() => management.CreateSceneAsync(id, template, false, false, JObject.FromObject(new { gameSession = config })), RetryPolicies.ConstantDelay(4, TimeSpan.FromSeconds(1)), CancellationToken.None), RetryPolicies.ConstantDelay(4, TimeSpan.FromSeconds(1)), CancellationToken.None), RetryPolicies.ConstantDelay(4, TimeSpan.FromSeconds(1)), CancellationToken.None);
+            return Create(template, id, config, CancellationToken.None);
         }
 
         public async Task<string> CreateConnectionToken(string id, SessionId userSessionId, TokenVersion version, CancellationToken cancellationToken)
