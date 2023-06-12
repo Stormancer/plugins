@@ -14,6 +14,7 @@ Unreleased
 Added
 *****
 - Added Result<TResult,TError> utility type.
+- Added Result<TError> utility type for exceptionless results.
 
 3.1.4.2
 -------
