@@ -17,6 +17,7 @@ Changed
 - Updated dependency to Users to support new abstraction lib.
 - Remove current gamesession in party when the gamesession scene shuts down.
 - If party does not exist, CreateConnectionToken returns 'notFound'
+- Removes an error if a user has no profile when entering the party
 
 Fixed
 *****
