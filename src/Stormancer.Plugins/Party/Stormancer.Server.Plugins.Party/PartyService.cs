@@ -283,7 +283,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 var profile = await _profiles.GetProfile(user.Id, new Dictionary<string, string> { ["user"] = "summary" }, session, CancellationToken.None);
 
-                var mainLocalUser = new LocalPlayerInfos { StormancerUserId = user.Id, Platform = session.platformId.Platform, PlatformId = session.platformId.OnlineId, Pseudo = profile["user"]["pseudo"]?.ToObject<string>() ?? "anonymous" };
+                var mainLocalUser = new LocalPlayerInfos { StormancerUserId = user.Id, Platform = session.platformId.Platform, PlatformId = session.platformId.OnlineId, Pseudo = profile?["user"]?["pseudo"]?.ToObject<string>() ?? "anonymous" };
 
                 var partyUser = new PartyMember { UserId = user.Id, StatusInParty = PartyMemberStatus.NotReady, Peer = peer, UserData = userData, LocalPlayers = new List<LocalPlayerInfos> { mainLocalUser } };
                 _partyState.PartyMembers.TryAdd(peer.SessionId, partyUser);
