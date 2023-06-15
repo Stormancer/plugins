@@ -15,13 +15,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
     class DevServerPoolProvider : IServerPoolProvider
     {
 
-        private readonly Func<IServerPools> pools;
+     
         private readonly ILogger logger;
 
-        public DevServerPoolProvider(Func<IServerPools> pools, ILogger logger)
+        public DevServerPoolProvider(ILogger logger)
         {
 
-            this.pools = pools;
             this.logger = logger;
         }
         public bool TryCreate(string id, JObject config, [NotNullWhen(true)] out IServerPool? pool)
