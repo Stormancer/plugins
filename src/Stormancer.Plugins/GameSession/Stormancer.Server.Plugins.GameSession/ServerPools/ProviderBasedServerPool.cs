@@ -31,6 +31,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -77,7 +78,11 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         }
     }
-
+    class GameServerAuthClaims
+    {
+        public string ProviderType { get; set; }
+        public string GameServerId { get; set; }
+    }
     class ProviderBasedServerPool : IServerPool
     {
         private class GameServerRequest
@@ -223,7 +228,8 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             }
             var tcs = new TaskCompletionSource<WaitGameServerResult>();
 
-            var authToken = await _dataProtector.ProtectBase64Url(Encoding.UTF8.GetBytes(gameSessionId), "gameServer");
+            var claims = new GameServerAuthClaims { GameServerId = gameSessionId, ProviderType = provider.Type };
+            var authToken = await _dataProtector.ProtectBase64Url(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(claims)), "gameServer");
 
             record.Pool = this.Id;
             record.PoolType = provider.Type;
@@ -265,7 +271,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         public bool CanManage(Session session, IScenePeerClient peer)
         {
-            return session.platformId.Platform == DedicatedServerAuthProvider.PROVIDER_NAME;
+            return session.platformId.Platform == provider.Type;
         }
 
         public async Task<GameServerStartupParameters?> WaitGameSessionAsync(Session session, IScenePeerClient client, CancellationToken cancellationToken)

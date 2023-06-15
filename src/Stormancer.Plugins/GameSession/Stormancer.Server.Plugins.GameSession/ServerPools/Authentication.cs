@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.DataProtection;
 using Stormancer.Server.Plugins.Users;
@@ -54,9 +55,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
             try
             {
-                var gameServerId = Encoding.UTF8.GetString(await dataProtector.UnprotectBase64Url(token, "gameServer"));
-
-                return AuthenticationResult.CreateSuccess(new User { Id = "ds-" + gameServerId }, new PlatformId { PlatformUserId = gameServerId, Platform = PROVIDER_NAME }, authenticationCtx.Parameters);
+                var claims = System.Text.Json.JsonSerializer.Deserialize<GameServerAuthClaims>(Encoding.UTF8.GetString(await dataProtector.UnprotectBase64Url(token, "gameServer")));
+                if(claims == null)
+                {
+                    return AuthenticationResult.CreateFailure("Invalid token : Null", new PlatformId { Platform = PROVIDER_NAME }, authenticationCtx.Parameters);
+                }
+                return AuthenticationResult.CreateSuccess(new User { Id = "ds-" + claims.GameServerId }, new PlatformId { PlatformUserId = claims.GameServerId, Platform = claims.ProviderType }, authenticationCtx.Parameters);
             }
             catch (Exception ex)
             {

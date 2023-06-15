@@ -147,6 +147,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                     {
                         selectedPool = pool;
                         _gameServers[session.platformId.PlatformUserId] = new GameServerConnectionInfo(session.SessionId, poolId);
+                        break;
                     }
                 }
             }
