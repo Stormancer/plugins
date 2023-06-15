@@ -113,7 +113,7 @@ namespace Stormancer
 
             host.ConfigureUsers(u =>
             {
-                u.Settings[GameServerAgentConstants.TYPE] = JObject.FromObject(new { enabled = true });
+                u.Settings[GameServerAgentConstants.AGENT_AUTH_TYPE] = JObject.FromObject(new { enabled = true });
                 return u;
             });
 
