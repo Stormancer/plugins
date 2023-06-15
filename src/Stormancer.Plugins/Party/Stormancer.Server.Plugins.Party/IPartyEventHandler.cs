@@ -143,6 +143,11 @@ namespace Stormancer.Server.Plugins.Party
         public Session Session { get; }
 
         /// <summary>
+        /// Gets the user peer object.
+        /// </summary>
+        public IScenePeerClient Peer { get; }
+
+        /// <summary>
         /// The number of users who:
         /// - Are members of the party, or
         /// - Are currently in the connection process and have been accepted by <code>IPartyEventHandler.OnJoining</code> event handlers, but are not fully connected yet.
@@ -167,10 +172,12 @@ namespace Stormancer.Server.Plugins.Party
         /// Gets the user data provided by the client.
         /// </summary>
         public byte[] UserData { get; }
-        internal JoiningPartyContext(IPartyService party, Session session, int slots, byte[] userData)
+
+        internal JoiningPartyContext(IPartyService party, Session session, IScenePeerClient peer, int slots, byte[] userData)
         {
             Party = party;
             Session = session;
+            Peer = peer;
             TotalOccupiedSlots = slots;
             UserData = userData;
         }

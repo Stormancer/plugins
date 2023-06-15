@@ -22,6 +22,7 @@
 
 using MsgPack.Serialization;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Stormancer.Server.Plugins.Steam
 {
@@ -55,4 +56,39 @@ namespace Stormancer.Server.Plugins.Steam
         [MessagePackMember(3)]
         public Dictionary<string, string> Metadata { get; set; } = new();
     }
+
+    /// <summary>
+    /// Result of a create steam lobby API call.
+    /// </summary>
+    public class CreateSteamLobbyResult
+    {
+        /// <summary>
+        /// Was the operation successful
+        /// </summary>
+        [MessagePackMember(0)]
+        [MemberNotNullWhen(false, "ErrorId")]
+        [MemberNotNullWhen(false, "ErrorDetails")]
+        public bool Success { get; set; }
+
+        /// <summary>
+        /// Id of the error if the operation failed.
+        /// </summary>
+        [MessagePackMember(1)]
+        public string? ErrorId { get; set; }
+
+        /// <summary>
+        /// Details about the error if the operation failed.
+        /// </summary>
+        [MessagePackMember(2)]
+        public string? ErrorDetails { get; set; }
+
+        /// <summary>
+        /// Id of the created lobby
+        /// </summary>
+        [MessagePackMember(3)]
+        public ulong SteamLobbyId { get; set; }
+
+    }
+
+    
 }
