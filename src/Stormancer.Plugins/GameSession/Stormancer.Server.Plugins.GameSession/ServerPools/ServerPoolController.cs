@@ -80,7 +80,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             if (_sessions.TryRemove(args.Peer.SessionId, out var session))
             {
 
-                if (session.platformId.Platform == GameServerAgentConstants.TYPE) //AGENT
+                if (session.platformId.Platform == GameServerAgentConstants.AGENT_AUTH_TYPE) //AGENT
                 {
                     _agentsRepository.AgentDisconnected(args.Peer, session);
                 }
@@ -99,7 +99,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             if (session != null)
             {
                 _sessions[session.SessionId] = session;
-                if (session.platformId.Platform == GameServerAgentConstants.TYPE)
+                if (session.platformId.Platform == GameServerAgentConstants.AGENT_AUTH_TYPE)
                 {
                     _agentsRepository.AgentConnected(peer, session);
                 }
