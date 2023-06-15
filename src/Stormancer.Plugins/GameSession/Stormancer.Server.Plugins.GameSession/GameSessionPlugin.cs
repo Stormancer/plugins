@@ -59,7 +59,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 builder.Register<GameServerAgentConfiguration>().As<IConfigurationChangedEventHandler>().AsSelf().SingleInstance();
                 builder.Register<DevDedicatedServerAuthProvider>().As<IAuthenticationProvider>();
                 builder.Register<GameSessions>().As<IGameSessions>();
-                builder.Register<ServerPools>().As<IServerPools>().AsSelf().As<IConfigurationChangedEventHandler>().InstancePerScene();
+               
                 builder.Register<GameSessionsServiceLocator>().As<IServiceLocatorProvider>();
 
                 builder.Register<CompositeServerPoolProvider>().As<IServerPoolProvider>();
@@ -113,6 +113,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 if (scene.Metadata.ContainsKey(METADATA_KEY))
                 {
                     builder.Register(d => new GameSessionState(scene));
+
                     builder.Register(d =>
                         new GameSessionService(
                             d.Resolve<GameSessionState>(),
@@ -130,6 +131,10 @@ namespace Stormancer.Server.Plugins.GameSession
                     .As<IConfigurationChangedEventHandler>()
                     .InstancePerScene();
 
+                }
+                else if(scene.Id == POOL_SCENEID)
+                {
+                    builder.Register<ServerPools>().As<IServerPools>().AsSelf().As<IConfigurationChangedEventHandler>().InstancePerScene();
                 }
             };
         }
