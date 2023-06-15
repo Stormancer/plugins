@@ -54,4 +54,43 @@ namespace Stormancer
         /// </summary>
         public TError? Error { get; }
     }
+
+    /// <summary>
+    /// the result of an operation.
+    /// </summary>
+    /// <typeparam name="TError"></typeparam>
+    public struct Result<TError>
+        where TError : class
+    {
+        private Result(TError? error)
+        {
+            
+            Error = error;
+        }
+
+        /// <summary>
+        /// Creates an result in the error state.
+        /// </summary>
+        /// <param name="error"></param>
+        /// <returns></returns>
+        public static Result<TError> Failed(TError error) => new Result<TError>(error);
+
+
+        /// <summary>
+        /// Creates an result in the error state.
+        /// </summary>
+        /// <returns></returns>
+        public static Result<TError> Succeeded() => new Result<TError>(null);
+
+        /// <summary>
+        /// Gets a value indicating if the operation represented by the <see cref="Result{TResult, TError}"/> was successful.
+        /// </summary>
+        [MemberNotNullWhen(false, "Error")]
+        public bool Success => Error == null;
+
+        /// <summary>
+        /// Gets the error associated with the operation.
+        /// </summary>
+        public TError? Error { get; }
+    }
 }
