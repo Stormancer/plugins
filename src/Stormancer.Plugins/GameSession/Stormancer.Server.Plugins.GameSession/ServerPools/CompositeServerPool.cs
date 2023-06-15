@@ -46,7 +46,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         }
         public bool TryCreate(string id, JObject config, [NotNullWhen(true)] out IServerPool? pool)
         {
-            if (config["type"] == JValue.CreateString("composite"))
+            if (config["type"]?.ToObject<string>() == "composite")
             {
                 pool = new CompositeServerPool(id, pools(), logger);
                 return true;
