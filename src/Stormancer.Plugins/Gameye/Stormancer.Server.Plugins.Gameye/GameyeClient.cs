@@ -236,7 +236,7 @@ namespace Stormancer.Server.Plugins.Gameye
             request.Headers.Authorization = await GetAuthorizationHeaderAsync();
             using var response = await _httpClient.SendAsync(request, cancellationToken);
 
-            if (response.StatusCode == HttpStatusCode.NoContent)
+            if (response.StatusCode == HttpStatusCode.NoContent || response.StatusCode == HttpStatusCode.Conflict)
             {
                 return Result<GameyeServerError>.Succeeded();
             }

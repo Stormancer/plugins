@@ -61,6 +61,8 @@ namespace Stormancer.Server.Plugins.GameSession
                 builder.Register<GameSessions>().As<IGameSessions>();
                 builder.Register<ServerPools>().As<IServerPools>().AsSelf().As<IConfigurationChangedEventHandler>().InstancePerScene();
                 builder.Register<GameSessionsServiceLocator>().As<IServiceLocatorProvider>();
+
+                builder.Register<CompositeServerPoolProvider>().As<IServerPoolProvider>();
                 builder.Register<DevServerPoolProvider>().As<IServerPoolProvider>().SingleInstance();
                 builder.Register<ProviderBasedServerPoolProvider>().As<IServerPoolProvider>().InstancePerScene();
                 builder.Register<GameSessionAnalyticsWorker>().SingleInstance();
