@@ -39,9 +39,6 @@ namespace Stormancer.Plugins.Tests.ServerApp
                     .CustomizeScene(scene => scene.AddSocket())
                 );
 
-
-
-
                 host.ConfigureGamefinderTemplate("server-test-docker", c => c
                     .ConfigureQuickQueue(b => b
                         .GameSessionTemplate("gamesession-server-docker")
@@ -49,16 +46,6 @@ namespace Stormancer.Plugins.Tests.ServerApp
                         .TeamSize(1)
                     )
                 );
-
-                host.ConfigureServerPools(c => c.DockerPool("docker", b => b.Image("battlegoblins-server")));
-
-                host.ConfigureGameSession("gamesession-server-docker", c => c
-                    .UseGameServer(c => c
-                        .PoolId("docker")
-                     )
-                    .CustomizeScene(scene => scene.AddSocket())
-                );
-
 
 
 
