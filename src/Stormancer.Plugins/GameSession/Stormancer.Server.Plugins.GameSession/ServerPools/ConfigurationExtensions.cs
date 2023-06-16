@@ -47,6 +47,7 @@ namespace Stormancer
             {
                 section = (JObject)sectionToken;
             }
+            section["type"] = "composite";
             var configBuilder = new CompositeServerPoolConfigurationBuilder(poolId, section);
 
             builder(configBuilder);
@@ -56,56 +57,7 @@ namespace Stormancer
             return this;
         }
 
-        /// <summary>
-        /// Adds a pool made of local server processes.
-        /// </summary>
-        /// <param name="poolId"></param>
-        /// <param name="builder"></param>
-        /// <returns></returns>
-        public ServerPoolsConfigurationBuilder LocalProcessPool(string poolId, Func<LocalProcessPoolConfigurationBuilder, LocalProcessPoolConfigurationBuilder> builder)
-        {
-            JObject section;
-            if (!Configuration.TryGetValue(poolId, out var sectionToken))
-            {
-                section = new JObject();
-                Configuration[poolId] = section;
-            }
-            else
-            {
-                section = (JObject)sectionToken;
-            }
-            var configBuilder = new LocalProcessPoolConfigurationBuilder(poolId, section);
-
-            builder(configBuilder);
-            Configuration[poolId] = configBuilder.ConfigSection;
-
-            return this;
-        }
-
-        /// <summary>
-        /// Adds a pool made of docker containers running on a docker daemon.
-        /// </summary>
-        /// <param name="poolId"></param>
-        /// <param name="configurator"></param>
-        /// <returns></returns>
-        public ServerPoolsConfigurationBuilder DockerPool(string poolId, Func<DockerPoolConfigurationBuilder, DockerPoolConfigurationBuilder> configurator)
-        {
-            JObject section;
-            if (!Configuration.TryGetValue(poolId, out var sectionToken))
-            {
-                section = new JObject();
-                Configuration[poolId] = section;
-            }
-            else
-            {
-                section = (JObject)sectionToken;
-            }
-            var configBuilder = new DockerPoolConfigurationBuilder(poolId, section);
-
-            configurator(configBuilder);
-            Configuration[poolId] = configBuilder.ConfigSection;
-            return this;
-        }
+      
 
         /// <summary>
         /// Adds a pool of unauthenticated game servers that are started by the developers themselves without any authentication.
@@ -161,7 +113,7 @@ namespace Stormancer
 
             host.ConfigureUsers(u =>
             {
-                u.Settings[GameServerAgentConstants.TYPE] = JObject.FromObject(new { enabled = true });
+                u.Settings[GameServerAgentConstants.AGENT_AUTH_TYPE] = JObject.FromObject(new { enabled = true });
                 return u;
             });
 

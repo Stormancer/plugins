@@ -23,6 +23,7 @@
 using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Users;
+using Stormancer.Server.Plugins.Utilities.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -46,9 +47,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         }
         public bool TryCreate(string id, JObject config, [NotNullWhen(true)] out IServerPool? pool)
         {
-            if (config["type"] == JValue.CreateString("composite"))
+            if (config["type"]?.ToObject<string>() == "composite")
             {
-                pool = new CompositeServerPool(id, pools(), logger);
+                pool = new CompositeServerPool(id, pools, logger);
                 return true;
             }
             else
@@ -62,14 +63,16 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
     class CompositeServerPool : IServerPool
     {
-        private List<IServerPool> _subPools = new List<IServerPool>();
+        private List<string> _subPools = new List<string>();
+
+        public IEnumerable<IServerPool> SubPools => _subPools.Select(p => pools().TryGetPool(p, out var pool) ? pool : null).WhereNotNull();
         private JObject config;
-        private readonly IServerPools pools;
+        private readonly Func<IServerPools> pools;
         private readonly ILogger logger;
 
-        public int ServersReady => _subPools.Sum(p => p.ServersReady);
+        public int ServersReady => SubPools.Sum(p => p.ServersReady);
 
-        public int ServersStarting => _subPools.Sum(p => p.ServersStarting);
+        public int ServersStarting => SubPools.Sum(p => p.ServersStarting);
 
         public int TotalServersInPool => ServersReady + ServersStarting;
 
@@ -77,15 +80,15 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         public string Id { get; }
 
-        public int ServersRunning => _subPools.Sum(p => p.ServersRunning);
+        public int ServersRunning => SubPools.Sum(p => p.ServersRunning);
 
-        public int MaxServersInPool => _subPools.Sum(p => p.MaxServersInPool);
+        public int MaxServersInPool => SubPools.Sum(p => p.MaxServersInPool);
 
-        public int PendingServerRequests => _subPools.Sum(p => p.MaxServersInPool);
+        public int PendingServerRequests => SubPools.Sum(p => p.MaxServersInPool);
 
-        public bool CanAcceptRequest => _subPools.Any(p => p.CanAcceptRequest);
+        public bool CanAcceptRequest => SubPools.Any(p => p.CanAcceptRequest);
 
-        public CompositeServerPool(string id, IServerPools pools, ILogger logger)
+        public CompositeServerPool(string id, Func<IServerPools> pools, ILogger logger)
         {
             Id = id;
             this.pools = pools;
@@ -101,10 +104,13 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
             foreach (var subPool in _subPools)
             {
-                var result = await subPool.TryWaitGameServerAsync(gameSessionId, config, record, cancellationToken);
-                if (result.Success)
+                if (pools().TryGetPool(subPool, out var pool))
                 {
-                    return result;
+                    var result = await pool.TryWaitGameServerAsync(gameSessionId, config, record, cancellationToken);
+                    if (result.Success)
+                    {
+                        return result;
+                    }
                 }
             }
 
@@ -123,10 +129,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             _subPools.Clear();
             foreach (var poolId in poolIds)
             {
-                if (pools.TryGetPool(poolId, out var pool))
-                {
-                    _subPools.Add(pool);
-                }
+
+                _subPools.Add(poolId);
+
             }
         }
 
@@ -140,7 +145,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         public async Task OnGameServerDisconnected(string serverId, GameServerRecord gameServerRecord)
         {
-            foreach (var pool in _subPools)
+            foreach (var pool in SubPools)
             {
                 await pool.OnGameServerDisconnected(serverId, gameServerRecord);
             }
@@ -148,7 +153,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         public async Task CloseServer(string serverId)
         {
-            foreach (var pool in _subPools)
+            foreach (var pool in SubPools)
             {
                 await pool.CloseServer(serverId);
             }

@@ -142,7 +142,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
     {
         private readonly GameServerAgentConfiguration _configuration;
 
-        public string Type => GameServerAgentConstants.TYPE;
+        public string Type => GameServerAgentConstants.AGENT_AUTH_TYPE;
 
 
         public GameServerAgentAuthenticationProvider(GameServerAgentConfiguration configuration)
@@ -178,7 +178,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             }
             var claims = Jose.JWT.Decode<Dictionary<string, string>>(jwt, certificate.GetRSAPublicKey());
 
-            id.Platform = GameServerAgentConstants.TYPE;
+            id.Platform = GameServerAgentConstants.AGENT_AUTH_TYPE;
             id.PlatformUserId = claims["id"];
 
             var user = new User { Id = Guid.NewGuid().ToString() };
@@ -219,7 +219,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// <summary>
         /// Authentication type for gameserver agents.
         /// </summary>
-        public const string TYPE = "stormancer.gameserver.agent";
+        public const string AGENT_AUTH_TYPE = "stormancer.gameserver.agent";
+
+        public const string TYPE = "docker-agent";
     }
 
     /// <summary>

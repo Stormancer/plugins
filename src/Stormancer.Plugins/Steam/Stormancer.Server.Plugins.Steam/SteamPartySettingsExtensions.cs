@@ -123,6 +123,18 @@ namespace Stormancer.Server.Plugins.Party
         }
 
         /// <summary>
+        /// Sets a configuration value indicating if the player should join the party if steam lobby creation failed.
+        /// </summary>
+        /// <param name="settings"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static ServerPartySettings DoNotJoinIfSteamLobbyCreationFailed(this ServerPartySettings settings, bool value = true)
+        {
+             settings[SteamSettingsConstants.DoNotJoinIfLobbyCreationFailed] = value.ToString();
+            return settings;
+        }
+
+        /// <summary>
         /// Sets the max number of members in the Steam lobby.
         /// </summary>
         /// <remarks>

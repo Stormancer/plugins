@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -20,7 +21,7 @@ namespace Stormancer.Server.Plugins.Gameye
         public string Image { get; set; } = default!;
         public Dictionary<string, string>? Env { get; set; }
 
-        public IEnumerable<string>? Args { get; set; }
+        public IEnumerable<string> Args { get; set; } = Enumerable.Empty<string>();
 
         public bool Restart { get; set; }
 
@@ -56,12 +57,12 @@ namespace Stormancer.Server.Plugins.Gameye
             public string Location { get; set; }
             public string Host { get; set; }
             public long Created { get; set; }
-            public Dictionary<string,string> Labels { get; set; }
-        
+            public Dictionary<string, string> Labels { get; set; }
+
         }
         public IEnumerable<GameServerDocument> Sessions { get; set; } = Enumerable.Empty<GameServerDocument>();
     }
-    
+
     public class GameyeConfigurationSection
     {
         public const string PATH = "gameye";
@@ -82,6 +83,8 @@ namespace Stormancer.Server.Plugins.Gameye
         {
             _configuration = configuration;
             _secretsStore = secretsStore;
+
+
         }
 
         private async Task<string?> GetAuthenticationTokenAsync(string authenticationKeyPath)
@@ -97,12 +100,30 @@ namespace Stormancer.Server.Plugins.Gameye
                 return null;
             }
         }
-        private async Task<HttpClient> GetClientAsync()
+
+        /// <summary>
+        /// Use a long lived HttpClient using the SocketsHttpHandler to share a connection to the HTTP server. 
+        /// </summary>
+        private static HttpClient _httpClient = CreateClient();
+        private static HttpClient CreateClient()
+        {
+
+            var handler = new SocketsHttpHandler
+            {
+                PooledConnectionLifetime = TimeSpan.FromMinutes(15) // Recreate every 15 minutes to refresh DNS.
+            };
+            
+            var client = new HttpClient(handler);
+            client.BaseAddress = new Uri("https://api.gameye.io");
+            return client;
+        }
+
+        private async Task<AuthenticationHeaderValue> GetAuthorizationHeaderAsync()
         {
 
             var token = await _tokenCache.Get(0, async (_) =>
             {
-                var section = _configuration.GetValue<GameyeConfigurationSection>(GameyeConfigurationSection.PATH, new GameyeConfigurationSection());
+                var section = _configuration.GetValue(GameyeConfigurationSection.PATH, new GameyeConfigurationSection());
                 if (section.AuthenticationKeyPath != null)
                 {
                     return (await GetAuthenticationTokenAsync(section.AuthenticationKeyPath), TimeSpan.FromMinutes(section.AuthenticationKeyRefreshTimeSeconds));
@@ -113,10 +134,10 @@ namespace Stormancer.Server.Plugins.Gameye
                 }
 
             });
-            var client = new HttpClient(new GameyeHttpClientHandler(token));
-            client.BaseAddress = new Uri("https://api.gameye.io");
+           
+            return new AuthenticationHeaderValue("Bearer", token);
 
-            return client;
+
         }
 
         /// <summary>
@@ -130,10 +151,11 @@ namespace Stormancer.Server.Plugins.Gameye
         /// <returns></returns>
         public async Task<Result<StartGameServerResult, GameyeServerError>> StartGameServerAsync(StartGameServerParameters args, CancellationToken cancellationToken)
         {
-            var client = await GetClientAsync();
-
-            var response = await client.PostAsJsonAsync("/session", args, cancellationToken);
-
+            
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/session");
+            request.Headers.Authorization = await GetAuthorizationHeaderAsync();
+            request.Content = JsonContent.Create(args);
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
 
             if (response.StatusCode == HttpStatusCode.Created)
             {
@@ -158,7 +180,7 @@ namespace Stormancer.Server.Plugins.Gameye
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="args"></param>
+        /// <param name="filter"></param>
         /// <param name="cancellationToken"></param>
         /// <remarks>
         /// https://docs.gameye.com/lists-a-collection-of-active-sessions
@@ -166,15 +188,16 @@ namespace Stormancer.Server.Plugins.Gameye
         /// <returns></returns>
         public async Task<Result<ListGameServersResult, GameyeServerError>> ListGameServersAsync(string? filter, CancellationToken cancellationToken)
         {
-            var client = await GetClientAsync();
-
+           
             var uriBuilder = new UriBuilder("/session");
-            
-            if(filter!=null)
+
+            if (filter != null)
             {
                 uriBuilder.Query = $"?filter={filter}";
             }
-            var response = await client.GetAsync(uriBuilder.Uri, cancellationToken);
+            using var request = new HttpRequestMessage(HttpMethod.Get, uriBuilder.Uri);
+            request.Headers.Authorization = await GetAuthorizationHeaderAsync();
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
 
 
             if (response.StatusCode == HttpStatusCode.Created)
@@ -208,10 +231,12 @@ namespace Stormancer.Server.Plugins.Gameye
         /// <returns></returns>
         public async Task<Result<GameyeServerError>> StopGameServerAsync(string id, CancellationToken cancellationToken)
         {
-            var client = await GetClientAsync();
+           
+            using var request = new HttpRequestMessage(HttpMethod.Delete, $"/session/{id}");
+            request.Headers.Authorization = await GetAuthorizationHeaderAsync();
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
 
-            var response = await client.DeleteAsync($"/session/{id}", cancellationToken);
-            if (response.StatusCode == HttpStatusCode.NoContent)
+            if (response.StatusCode == HttpStatusCode.NoContent || response.StatusCode == HttpStatusCode.Conflict)
             {
                 return Result<GameyeServerError>.Succeeded();
             }
@@ -226,22 +251,22 @@ namespace Stormancer.Server.Plugins.Gameye
         }
     }
 
-    internal class GameyeHttpClientHandler : DelegatingHandler
-    {
-        private readonly string? _parameters;
+    //internal class GameyeHttpClientHandler : DelegatingHandler
+    //{
+    //    private readonly string? _parameters;
 
-        public GameyeHttpClientHandler(string? parameters)
-        {
-            _parameters = parameters;
-        }
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            if (_parameters != null)
-            {
-                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _parameters);
-            }
+    //    public GameyeHttpClientHandler(string? parameters)
+    //    {
+    //        _parameters = parameters;
+    //    }
+    //    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    //    {
+    //        if (_parameters != null)
+    //        {
+    //            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _parameters);
+    //        }
 
-            return base.SendAsync(request, cancellationToken);
-        }
-    }
+    //        return base.SendAsync(request, cancellationToken);
+    //    }
+    //}
 }

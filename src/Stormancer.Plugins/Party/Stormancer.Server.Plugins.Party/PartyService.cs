@@ -218,7 +218,7 @@ namespace Stormancer.Server.Plugins.Party
                     throw new ClientException(JoinDeniedError + "?reason=notAuthenticated");
                 }
                 var userData = peer.ContentType == "party/userdata" ? peer.UserData : new byte[0];
-                var ctx = new JoiningPartyContext(this, session, _partyState.PendingAcceptedPeers.Count + _partyState.PartyMembers.Count, userData);
+                var ctx = new JoiningPartyContext(this, session, peer, _partyState.PendingAcceptedPeers.Count + _partyState.PartyMembers.Count, userData);
                 await handlers.RunEventHandler(h => h.OnJoining(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while running OnJoining", ex));
                 if (!ctx.Accept)
                 {
@@ -408,9 +408,11 @@ namespace Stormancer.Server.Plugins.Party
         {
             return _partyState.TaskQueue.PushWork(async () =>
             {
+
                 try
                 {
                     var partySettingsDto = partySettingsUpdater(_partyState);
+
 
                     if (partySettingsDto == null)
                     {
@@ -426,6 +428,8 @@ namespace Stormancer.Server.Plugins.Party
                         throw new ClientException(GameFinderNameError);
                     }
 
+
+
                     await using var scope = _scene.CreateRequestScope();
                     var handlers = scope.Resolve<IEnumerable<IPartyEventHandler>>();
 
@@ -440,7 +444,7 @@ namespace Stormancer.Server.Plugins.Party
                         throw new ClientException(ctx.ErrorMsg);
                     }
 
-                    Log(LogLevel.Trace, "UpdateSettings", "Settings update accepted", partySettingsDto);
+                   
                     await handlers.RunEventHandler(h => h.OnUpdateSettings(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnUpdateSettings", ex));
 
                     // If the event handlers have modified the settings, we need to notify the leader to invalidate their local copy.
@@ -450,6 +454,8 @@ namespace Stormancer.Server.Plugins.Party
                     {
                         newSettingsVersion = _partyState.SettingsVersionNumber + 2;
                     }
+
+                    Log(LogLevel.Info, "UpdateSettings", $"Settings update accepted on party='{this.PartyId}' Version={newSettingsVersion}", partySettingsDto);
 
                     _partyState.Settings.GameFinderName = partySettingsDto.GameFinderName;
                     _partyState.Settings.CustomData = partySettingsDto.CustomData;
