@@ -109,6 +109,7 @@ namespace Stormancer
 			{
 				static constexpr const char* InvalidInvitation = "party.invalidInvitation";
 				static constexpr const char* AlreadyInParty = "party.alreadyInParty";
+				static constexpr const char* AlreadyInSameParty = "party.alreadyInSameParty";
 				static constexpr const char* NotInParty = "party.notInParty";
 				static constexpr const char* PartyNotReady = "party.partyNotReady";
 				static constexpr const char* Unauthorized = "unauthorized";
@@ -1148,6 +1149,7 @@ namespace Stormancer
 				/// </returns>
 				virtual pplx::task<PartyId> accept(std::shared_ptr<PartyApi> party) = 0;
 
+				virtual PartyId getPartyId() = 0;
 				/// <summary>
 				/// This method is called when the user declines the invitation.
 				/// </summary>
@@ -1562,6 +1564,23 @@ namespace Stormancer
 					return settingsInternal;
 				}
 
+				std::string toString() const
+				{
+					std::string result;
+					result += gameFinderName + ", ";
+					result += customData + ", ";
+					result += "isJoinable=" + std::to_string(isJoinable);
+					result += "versionSettings=" + std::to_string(settingsVersionNumber);
+					result += "publicServerData={";
+				
+					for(auto& it: publicServerData)
+					{
+						result += it.first + "=" + it.second + ",";
+					}
+					result += "}";
+					return result;
+				}
+
 				MSGPACK_DEFINE(gameFinderName, customData, settingsVersionNumber, onlyLeaderCanInvite, isJoinable, publicServerData, indexedDocument, partyId);
 			};
 
@@ -1710,10 +1729,10 @@ namespace Stormancer
 					std::lock_guard<std::recursive_mutex> lg(_stateMutex);
 
 					_gameFinderConnectionTask.then([](pplx::task<void> task)
-						{
-							try { task.get(); }
-							catch (...) {}
-						});
+					{
+						try { task.get(); }
+						catch (...) {}
+					});
 				}
 
 				// This is for compatibility with server plugins older than NEW_INVITATIONS_VERSION
@@ -1863,13 +1882,13 @@ namespace Stormancer
 						std::weak_ptr<PartyService> wThat(this->shared_from_this());
 						request.task = sendInvitationInternal(recipientId, true, token)
 							.then([wThat, recipientId](pplx::task<bool> task)
-								{
-									if (auto that = wThat.lock())
-									{
-										return that->onInvitationComplete(task, recipientId);
-									}
-									return task;
-								}, _dispatcher);
+						{
+							if (auto that = wThat.lock())
+							{
+								return that->onInvitationComplete(task, recipientId);
+							}
+							return task;
+						}, _dispatcher);
 					}
 
 					return request.task;
@@ -1888,10 +1907,10 @@ namespace Stormancer
 
 						std::weak_ptr<PartyService> wThat = this->shared_from_this();
 						auto cancellationTask = invitation.task.then([wThat, recipientId](pplx::task<bool> task)
-							{
-								// Consume the boolean, let the caller handle errors
-								task.wait();
-							});
+						{
+							// Consume the boolean, let the caller handle errors
+							task.wait();
+						});
 						return cancellationTask;
 					}
 					return pplx::task_from_result();
@@ -1958,75 +1977,75 @@ namespace Stormancer
 					auto rpcService = scene->dependencyResolver().resolve<RpcService>();
 
 					rpcService->addProcedure("party.getPartyStateResponse", [wThat](RpcRequestContext_ptr ctx)
+					{
+						if (auto that = wThat.lock())
 						{
-							if (auto that = wThat.lock())
-							{
-								return that->handlePartyStateResponse(ctx);
-							}
-							return pplx::task_from_result();
-						});
+							return that->handlePartyStateResponse(ctx);
+						}
+						return pplx::task_from_result();
+					});
 
 					rpcService->addProcedure("party.settingsUpdated", [wThat](RpcRequestContext_ptr ctx)
+					{
+						if (auto that = wThat.lock())
 						{
-							if (auto that = wThat.lock())
-							{
-								return that->handleSettingsUpdateMessage(ctx);
-							}
-							return pplx::task_from_result();
-						});
+							return that->handleSettingsUpdateMessage(ctx);
+						}
+						return pplx::task_from_result();
+					});
 
 					rpcService->addProcedure("party.memberDataUpdated", [wThat](RpcRequestContext_ptr ctx)
+					{
+						if (auto that = wThat.lock())
 						{
-							if (auto that = wThat.lock())
-							{
-								return that->handleUserDataUpdateMessage(ctx);
-							}
-							return pplx::task_from_result();
-						});
+							return that->handleUserDataUpdateMessage(ctx);
+						}
+						return pplx::task_from_result();
+					});
 
 					rpcService->addProcedure("party.memberStatusUpdated", [wThat](RpcRequestContext_ptr ctx)
+					{
+						if (auto that = wThat.lock())
 						{
-							if (auto that = wThat.lock())
-							{
-								return that->handleMemberStatusUpdateMessage(ctx);
-							}
-							return pplx::task_from_result();
-						});
+							return that->handleMemberStatusUpdateMessage(ctx);
+						}
+						return pplx::task_from_result();
+					});
 
 					rpcService->addProcedure("party.memberConnected", [wThat](RpcRequestContext_ptr ctx)
+					{
+						if (auto that = wThat.lock())
 						{
-							if (auto that = wThat.lock())
-							{
-								return that->handleMemberConnected(ctx);
-							}
-							return pplx::task_from_result();
-						});
+							return that->handleMemberConnected(ctx);
+						}
+						return pplx::task_from_result();
+					});
 
 					rpcService->addProcedure("party.memberDisconnected", [wThat](RpcRequestContext_ptr ctx)
+					{
+						if (auto that = wThat.lock())
 						{
-							if (auto that = wThat.lock())
-							{
-								return that->handleMemberDisconnectedMessage(ctx);
-							}
-							return pplx::task_from_result();
-						});
+							return that->handleMemberDisconnectedMessage(ctx);
+						}
+						return pplx::task_from_result();
+					});
 
 					rpcService->addProcedure("party.leaderChanged", [wThat](RpcRequestContext_ptr ctx)
+					{
+						if (auto that = wThat.lock())
 						{
-							if (auto that = wThat.lock())
-							{
-								return that->handleLeaderChangedMessage(ctx);
-							}
-							return pplx::task_from_result();
-						});
+							return that->handleLeaderChangedMessage(ctx);
+						}
+						return pplx::task_from_result();
+					});
 
 					scene->addRoute<PartyGameFinderFailure>("party.gameFinderFailed", [wThat](PartyGameFinderFailure dto)
+					{
+						if (auto that = wThat.lock())
 						{
-							if (auto that = wThat.lock())
-							{
-								return that->handleGameFinderFailureMessage(dto);
-							}
-						});
+							return that->handleGameFinderFailureMessage(dto);
+						}
+					});
 
 					scene->getConnectionStateChangedObservable().subscribe([wThat](ConnectionState state) {
 						if (auto that = wThat.lock())
@@ -2041,12 +2060,12 @@ namespace Stormancer
 								{
 									that->_gameFinder->disconnectFromGameFinder(that->_state.settings.gameFinderName)
 										.then([](pplx::task<void> t)
-											{
-												try {
-													t.get();
-												}
-												catch (...) {}
-											});
+									{
+										try {
+											t.get();
+										}
+										catch (...) {}
+									});
 
 									MemberDisconnectionReason reason = MemberDisconnectionReason::Left;
 									if (state.reason == "party.kicked")
@@ -2061,7 +2080,7 @@ namespace Stormancer
 								that->_logger->log(LogLevel::Error, "PartyService::ConnectionStateChanged", "An exception was thrown by a connection event handler", ex);
 							}
 						}
-						});
+					});
 				}
 
 				pplx::task<void> waitForPartyReady(pplx::cancellation_token ct = pplx::cancellation_token::none())
@@ -2075,20 +2094,20 @@ namespace Stormancer
 				{
 					std::weak_ptr<PartyService> wThat = this->shared_from_this();
 					return task.then([wThat](pplx::task<void> task)
+					{
+						try
 						{
-							try
+							task.get();
+						}
+						catch (...)
+						{
+							if (auto that = wThat.lock())
 							{
-								task.get();
+								that->syncPartyState();
 							}
-							catch (...)
-							{
-								if (auto that = wThat.lock())
-								{
-									that->syncPartyState();
-								}
-								throw;
-							}
-						}, _dispatcher);
+							throw;
+						}
+					}, _dispatcher);
 				}
 
 				void updateGameFinder()
@@ -2106,10 +2125,10 @@ namespace Stormancer
 
 					// No need to wait for the old GF disconnection before connecting to the new GF
 					_gameFinder->disconnectFromGameFinder(_currentGameFinder).then([](pplx::task<void> task)
-						{
-							try { task.wait(); }
-							catch (...) {}
-						});
+					{
+						try { task.wait(); }
+						catch (...) {}
+					});
 
 					_currentGameFinder = _state.settings.gameFinderName;
 					if (_currentGameFinder.empty())
@@ -2123,44 +2142,44 @@ namespace Stormancer
 					auto token = _gameFinderConnectionCts.get_token();
 					std::weak_ptr<PartyService> wThat = this->shared_from_this();
 					_gameFinderConnectionTask = _gameFinderConnectionTask.then([wThat, newGameFinderName, token](pplx::task<void> task)
+					{
+						// I want to recover from cancellation, but not from error, since error means we're leaving the party
+						task.wait();
+
+						auto that = wThat.lock();
+						if (!that || token.is_canceled())
 						{
-							// I want to recover from cancellation, but not from error, since error means we're leaving the party
-							task.wait();
+							pplx::cancel_current_task();
+						}
 
-							auto that = wThat.lock();
-							if (!that || token.is_canceled())
-							{
-								pplx::cancel_current_task();
-							}
-
-							return that->_gameFinder->connectToGameFinder(newGameFinderName);
-						}, token)
+						return that->_gameFinder->connectToGameFinder(newGameFinderName);
+					}, token)
 						.then([wThat, newGameFinderName](pplx::task<void> task)
+					{
+						auto that = wThat.lock();
+						try
+						{
+							auto status = task.wait();
+							if (that && status == pplx::completed)
 							{
-								auto that = wThat.lock();
-								try
+								that->_logger->log(LogLevel::Trace, "PartyService", "Connected to the GameFinder", newGameFinderName);
+							}
+						}
+						catch (const std::exception& ex)
+						{
+							if (that)
+							{
+								that->_logger->log(LogLevel::Error, "PartyService", "Error connecting to the GameFinder '" + newGameFinderName + "'", ex);
+								if (auto scene = that->_scene.lock())
 								{
-									auto status = task.wait();
-									if (that && status == pplx::completed)
-									{
-										that->_logger->log(LogLevel::Trace, "PartyService", "Connected to the GameFinder", newGameFinderName);
-									}
+									std::lock_guard<std::recursive_mutex> lg(that->_stateMutex);
+									scene->disconnect().then([](pplx::task<void> t) { try { t.get(); } catch (...) {}});
+									that->_scene.reset();
 								}
-								catch (const std::exception& ex)
-								{
-									if (that)
-									{
-										that->_logger->log(LogLevel::Error, "PartyService", "Error connecting to the GameFinder '" + newGameFinderName + "'", ex);
-										if (auto scene = that->_scene.lock())
-										{
-											std::lock_guard<std::recursive_mutex> lg(that->_stateMutex);
-											scene->disconnect().then([](pplx::task<void> t) { try { t.get(); } catch (...) {}});
-											that->_scene.reset();
-										}
-									}
-									throw;
-								}
-							}, token);
+							}
+							throw;
+						}
+					}, token);
 				}
 
 				bool checkVersionNumber(RpcRequestContext_ptr ctx)
@@ -2183,10 +2202,10 @@ namespace Stormancer
 				void syncPartyState()
 				{
 					syncPartyStateTask().then([](pplx::task<void> task)
-						{
-							try { task.get(); }
-							catch (...) {}
-						});
+					{
+						try { task.get(); }
+						catch (...) {}
+					});
 				}
 
 				pplx::task<void> getPartyStateImpl()
@@ -2200,12 +2219,12 @@ namespace Stormancer
 					{
 						std::weak_ptr<PartyService> wThat = this->shared_from_this();
 						return _rpcService->rpc<PartyState>("party.getpartystate2").then([wThat](PartyState state)
+						{
+							if (auto that = wThat.lock())
 							{
-								if (auto that = wThat.lock())
-								{
-									that->applyPartyStateResponse(state);
-								}
-							});
+								that->applyPartyStateResponse(state);
+							}
+						});
 					}
 				}
 
@@ -2213,29 +2232,29 @@ namespace Stormancer
 				{
 					std::weak_ptr<PartyService> wThat = this->shared_from_this();
 					return getPartyStateImpl().then([wThat](pplx::task<void> task)
+					{
+						try
 						{
-							try
+							task.get();
+						}
+						catch (const std::exception& ex)
+						{
+							if (auto that = wThat.lock())
 							{
-								task.get();
-							}
-							catch (const std::exception& ex)
-							{
-								if (auto that = wThat.lock())
+								that->_logger->log(LogLevel::Error, "PartyService::syncPartyStateTaskWithRetries", "An error occurred during syncPartyState, retrying", ex);
+								return taskDelay(std::chrono::milliseconds(200))
+									.then([wThat]
 								{
-									that->_logger->log(LogLevel::Error, "PartyService::syncPartyStateTaskWithRetries", "An error occurred during syncPartyState, retrying", ex);
-									return taskDelay(std::chrono::milliseconds(200))
-										.then([wThat]
-											{
-												if (auto that = wThat.lock())
-												{
-													return that->syncPartyStateTaskWithRetries();
-												}
-												return pplx::task_from_result();
-											});
-								}
+									if (auto that = wThat.lock())
+									{
+										return that->syncPartyStateTaskWithRetries();
+									}
+									return pplx::task_from_result();
+								});
 							}
-							return pplx::task_from_result();
-						});
+						}
+						return pplx::task_from_result();
+					});
 				}
 
 				pplx::task<void> syncPartyStateTask()
@@ -2267,43 +2286,43 @@ namespace Stormancer
 
 					std::weak_ptr<PartyService> wThat = this->shared_from_this();
 					return preliminaryTask.then([wThat, request]
+					{
+						if (auto that = wThat.lock())
+						{
+							return that->_rpcService->rpc<void>("party.updategamefinderplayerstatus", request);
+						}
+						return pplx::task_from_result();
+					}).then([wThat, newStatus](pplx::task<void> task)
+					{
+						try
+						{
+							task.get();
+						}
+						catch (const std::exception& ex)
 						{
 							if (auto that = wThat.lock())
 							{
-								return that->_rpcService->rpc<void>("party.updategamefinderplayerstatus", request);
-							}
-							return pplx::task_from_result();
-						}).then([wThat, newStatus](pplx::task<void> task)
-							{
-								try
+								if (strcmp(ex.what(), "party.settingsOutdated") == 0)
 								{
-									task.get();
-								}
-								catch (const std::exception& ex)
-								{
-									if (auto that = wThat.lock())
+									that->_logger->log(LogLevel::Debug, "PartyService::updatePlayerStatusWithRetries", "Local settings outdated ; retrying");
+									return that->syncPartyStateTask()
+										.then([wThat, newStatus]
 									{
-										if (strcmp(ex.what(), "party.settingsOutdated") == 0)
+										if (auto that = wThat.lock())
 										{
-											that->_logger->log(LogLevel::Debug, "PartyService::updatePlayerStatusWithRetries", "Local settings outdated ; retrying");
-											return that->syncPartyStateTask()
-												.then([wThat, newStatus]
-													{
-														if (auto that = wThat.lock())
-														{
-															return that->updatePlayerStatusWithRetries(newStatus);
-														}
-														return pplx::task_from_result();
-													});
+											return that->updatePlayerStatusWithRetries(newStatus);
 										}
-										else
-										{
-											throw;
-										}
-									}
+										return pplx::task_from_result();
+									});
 								}
-								return pplx::task_from_result();
-							});
+								else
+								{
+									throw;
+								}
+							}
+						}
+						return pplx::task_from_result();
+					});
 				}
 
 				pplx::task<void> handlePartyStateResponse(RpcRequestContext_ptr ctx)
@@ -2397,6 +2416,7 @@ namespace Stormancer
 
 					if (_state.settings.settingsVersionNumber != update.settingsVersionNumber)
 					{
+						_logger->log(LogLevel::Info, "PartyService::ApplySettings", "Applying settings update", update.toString());
 						_state.settings = update;
 						updateGameFinder();
 						this->UpdatedPartySettings(_state.settings);
@@ -2409,7 +2429,7 @@ namespace Stormancer
 
 					if (checkVersionNumber(ctx))
 					{
-						_logger->log(LogLevel::Trace, "PartyService::handleSettingsUpdate", "Received settings update, version = " + std::to_string(_state.version));
+						_logger->log(LogLevel::Trace, "PartyService::handleSettingsUpdate", "Received settings update, version = " + std::to_string(_state.settings.settingsVersionNumber));
 						applySettingsUpdate(ctx->readObject<PartySettingsInternal>());
 					}
 
@@ -2632,13 +2652,13 @@ namespace Stormancer
 							std::weak_ptr<PartyService> wThat = this->shared_from_this();
 							invite.task = sendInvitationInternal(recipientId, true, invite.cts.get_token())
 								.then([wThat, recipientId](pplx::task<bool> task)
-									{
-										if (auto that = wThat.lock())
-										{
-											return that->onInvitationComplete(task, recipientId);
-										}
-										return task;
-									}, _dispatcher);
+							{
+								if (auto that = wThat.lock())
+								{
+									return that->onInvitationComplete(task, recipientId);
+								}
+								return task;
+							}, _dispatcher);
 							return invite.task;
 						}
 					}
@@ -2854,31 +2874,31 @@ namespace Stormancer
 
 					auto partyTask = getPartyManagementService(ct)
 						.then([partySettings, ct](std::shared_ptr<PartyManagementService> partyManagement)
-							{
-								return partyManagement->createParty(partySettings, ct);
-							})
+					{
+						return partyManagement->createParty(partySettings, ct);
+					})
 						.then([wThat, partySettings, userMetadata, ct](std::string sceneToken)
-							{
-								auto that = wThat.lock();
-								if (!that)
-								{
-									throw ObjectDeletedException("PartyApi");
-								}
+					{
+						auto that = wThat.lock();
+						if (!that)
+						{
+							throw ObjectDeletedException("PartyApi");
+						}
 
-								PartyId partyId;
-								partyId.type = PartyId::TYPE_CONNECTION_TOKEN;
-								partyId.id = sceneToken;
-								//user data already setup in the sceneToken.
-								return that->joinPartyInternal(partyId, {}, userMetadata, ct);
-							});
+						PartyId partyId;
+						partyId.type = PartyId::TYPE_CONNECTION_TOKEN;
+						partyId.id = sceneToken;
+						//user data already setup in the sceneToken.
+						return that->joinPartyInternal(partyId, {}, userMetadata, ct);
+					});
 
-							setPartySafe(std::make_shared<pplx::task<std::shared_ptr<PartyContainer>>>(partyTask));
+					setPartySafe(std::make_shared<pplx::task<std::shared_ptr<PartyContainer>>>(partyTask));
 
-							return partyTask
-								.then([wThat](pplx::task<std::shared_ptr<PartyContainer>> task)
-									{
-										triggerPartyJoinedEvents(wThat, task);
-									});
+					return partyTask
+						.then([wThat](pplx::task<std::shared_ptr<PartyContainer>> task)
+					{
+						triggerPartyJoinedEvents(wThat, task);
+					});
 				}
 
 				pplx::task<void> createPartyIfNotJoined(const PartyCreationOptions& partyRequest, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
@@ -2886,21 +2906,21 @@ namespace Stormancer
 					auto wThat = STORM_WEAK_FROM_THIS();
 					return pplx::task_from_result(this->isInParty())
 						.then([wThat, partyRequest, userMetadata, ct](bool isInParty)
-							{
-								auto that = wThat.lock();
-								if (!that)
-								{
-									throw ObjectDeletedException("PartyApi");
-								}
-								if (isInParty)
-								{
-									return pplx::task_from_result();
-								}
-								else
-								{
-									return that->createParty(partyRequest, userMetadata, ct);
-								}
-							});
+					{
+						auto that = wThat.lock();
+						if (!that)
+						{
+							throw ObjectDeletedException("PartyApi");
+						}
+						if (isInParty)
+						{
+							return pplx::task_from_result();
+						}
+						else
+						{
+							return that->createParty(partyRequest, userMetadata, ct);
+						}
+					});
 				}
 
 				pplx::task<void> joinParty(const std::string& token, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
@@ -2917,20 +2937,20 @@ namespace Stormancer
 					auto wThat = STORM_WEAK_FROM_THIS();
 					return getConnectionTokenFromInvitationCode(invitationCode, userData, ct)
 						.then([userMetadata, ct, wThat](std::string connectionToken)
-							{
-								if (ct.is_canceled())
-								{
-									pplx::cancel_current_task();
-								}
+					{
+						if (ct.is_canceled())
+						{
+							pplx::cancel_current_task();
+						}
 
-								auto that = wThat.lock();
-								if (that == nullptr)
-								{
-									throw ObjectDeletedException("PartyApi");
-								}
+						auto that = wThat.lock();
+						if (that == nullptr)
+						{
+							throw ObjectDeletedException("PartyApi");
+						}
 
-								return that->joinParty(connectionToken, userMetadata, ct);
-							});
+						return that->joinParty(connectionToken, userMetadata, ct);
+					});
 				}
 
 				pplx::task<void> joinParty(const PartyId& partyId, const std::vector<byte>& userData, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
@@ -2950,9 +2970,9 @@ namespace Stormancer
 
 					return partyTask
 						.then([wThat](pplx::task<std::shared_ptr<PartyContainer>> task)
-							{
-								triggerPartyJoinedEvents(wThat, task);
-							});
+					{
+						triggerPartyJoinedEvents(wThat, task);
+					});
 				}
 
 				pplx::task<std::shared_ptr<PartyContainer>> joinPartyInternal(const PartyId& partyId, const std::vector<byte>& userData, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none())
@@ -2961,54 +2981,54 @@ namespace Stormancer
 
 					return _leavePartyTask
 						.then([wThat, partyId, userData, userMetadata, ct, logger = _logger]()
+					{
+						return withRetries<std::shared_ptr<PartyContainer>>([wThat, partyId, userData, userMetadata](pplx::cancellation_token ct)
+						{
+							if (auto that = wThat.lock())
 							{
-								return withRetries<std::shared_ptr<PartyContainer>>([wThat, partyId, userData, userMetadata](pplx::cancellation_token ct)
-									{
-										if (auto that = wThat.lock())
-										{
-											return that->obtainConnectionToken(partyId, userData, ct)
-												.then([wThat, partyId, userMetadata, ct](std::string connectionToken)
-													{
-														if (auto that = wThat.lock())
-														{
-															return that->getPartySceneByToken(connectionToken, partyId, userMetadata, ct);
-														}
-														throw std::runtime_error(PartyError::Str::StormancerClientDestroyed);
-													});
-										}
-										throw std::runtime_error(PartyError::Str::StormancerClientDestroyed);
-									}, 1000ms, 2, [logger](const std::exception& ex)
-									{
-										logger->log(LogLevel::Error, "Party", "Join party failed", ex);
-										if (std::string(ex.what()).find("party.joinDenied") == 0)
-										{
-											return false;
-										}
-										return true;
-									}, pplx::get_ambient_scheduler(), ct);
-							})
-						.then([wThat](pplx::task<std::shared_ptr<PartyContainer>> task)
-							{
-								try
-								{
-
-									return pplx::task_from_result(task.get());
-								}
-								catch (std::exception& ex)
+								return that->obtainConnectionToken(partyId, userData, ct)
+									.then([wThat, partyId, userMetadata, ct](std::string connectionToken)
 								{
 									if (auto that = wThat.lock())
 									{
-										if (that->isInParty())
-										{
-											return that->leaveParty().then([ex]()
-												{
-													return pplx::task_from_exception<std::shared_ptr<PartyContainer>>(ex);
-												});
-										}
+										return that->getPartySceneByToken(connectionToken, partyId, userMetadata, ct);
 									}
-									throw;
+									throw std::runtime_error(PartyError::Str::StormancerClientDestroyed);
+								});
+							}
+							throw std::runtime_error(PartyError::Str::StormancerClientDestroyed);
+						}, 1000ms, 2, [logger](const std::exception& ex)
+						{
+							logger->log(LogLevel::Error, "Party", "Join party failed", ex);
+							if (std::string(ex.what()).find("party.joinDenied") == 0)
+							{
+								return false;
+							}
+							return true;
+						}, pplx::get_ambient_scheduler(), ct);
+					})
+						.then([wThat](pplx::task<std::shared_ptr<PartyContainer>> task)
+					{
+						try
+						{
+
+							return pplx::task_from_result(task.get());
+						}
+						catch (std::exception& ex)
+						{
+							if (auto that = wThat.lock())
+							{
+								if (that->isInParty())
+								{
+									return that->leaveParty().then([ex]()
+									{
+										return pplx::task_from_exception<std::shared_ptr<PartyContainer>>(ex);
+									});
 								}
-							}, _dispatcher);
+							}
+							throw;
+						}
+					}, _dispatcher);
 				}
 
 				pplx::task<std::string> obtainConnectionToken(const PartyId& partyId, const std::vector<byte>& userData, pplx::cancellation_token ct = pplx::cancellation_token::none())
@@ -3017,6 +3037,36 @@ namespace Stormancer
 					{
 						return pplx::task_from_result(partyId.id);
 					}
+
+					auto wThat = STORM_WEAK_FROM_THIS();
+					return normalizePartyId(partyId, ct)
+						.then([wThat, ct](PartyId partyId)
+					{
+						if (auto that = wThat.lock())
+						{
+							if (that->isInParty() && that->getPartyId() == partyId)
+							{
+								throw std::runtime_error(PartyError::Str::AlreadyInSameParty);
+							}
+							return that->getPartyManagementService(ct)
+								.then([partyId](std::shared_ptr<Stormancer::Party::details::PartyManagementService> service)
+							{
+								return std::make_tuple(service, partyId.id);
+							});
+						}
+						else
+						{
+							throw ObjectDeletedException("PartyApi");
+						}
+					})
+						.then([userData, ct](std::tuple< std::shared_ptr<Stormancer::Party::details::PartyManagementService>, std::string> tuple)
+					{
+						return std::get<0>(tuple)->getConnectionTokenFromPartyId(std::get<1>(tuple), userData, ct);
+					});
+				}
+
+				pplx::task<PartyId> normalizePartyId(const PartyId& partyId, pplx::cancellation_token& ct = pplx::cancellation_token::none())
+				{
 
 					pplx::task<PartyId> partyIdTask;
 					if (partyId.type == PartyId::TYPE_PARTY_ID)
@@ -3032,32 +3082,10 @@ namespace Stormancer
 						auto provider = getProviderForPlatform(partyId.platform);
 						if (provider == nullptr)
 						{
-							STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error(PartyError::Str::UnsupportedPlatform), std::string);
+							STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error(PartyError::Str::UnsupportedPlatform), PartyId);
 						}
-						partyIdTask = provider->getPartyId(partyId, ct);
+						return provider->getPartyId(partyId, ct);
 					}
-
-					auto wThat = STORM_WEAK_FROM_THIS();
-					return partyIdTask
-						.then([wThat, ct](PartyId partyId)
-							{
-								if (auto that = wThat.lock())
-								{
-									return that->getPartyManagementService(ct)
-										.then([partyId](std::shared_ptr<Stormancer::Party::details::PartyManagementService> service)
-											{
-												return std::make_tuple(service, partyId.id);
-											});
-								}
-								else
-								{
-									throw ObjectDeletedException("PartyApi");
-								}
-							})
-						.then([userData, ct](std::tuple< std::shared_ptr<Stormancer::Party::details::PartyManagementService>, std::string> tuple)
-							{
-								return std::get<0>(tuple)->getConnectionTokenFromPartyId(std::get<1>(tuple), userData, ct);
-							});
 				}
 
 				std::shared_ptr<Platform::IPlatformSupportProvider> getProviderForPlatform(const std::string& platformName)
@@ -3118,22 +3146,22 @@ namespace Stormancer
 					_party = nullptr;
 					auto logger = _logger;
 					party.then([ct, logger](std::shared_ptr<PartyContainer> partyContainer)
+					{
+						return partyContainer->getScene()->disconnect(ct)
+							.then([logger, partyContainer](pplx::task<void> task)
 						{
-							return partyContainer->getScene()->disconnect(ct)
-								.then([logger, partyContainer](pplx::task<void> task)
-									{
-										// Need to keep partyContainer alive so that onLeaving/onLeft are triggered
-										try
-										{
-											task.wait();
-										}
-										catch (const std::exception& ex)
-										{
-											logger->log(LogLevel::Debug, "PartyApi::leaveParty", "An error occurred while leaving the party", ex);
-										}
-										catch (...) {}
-									});
+							// Need to keep partyContainer alive so that onLeaving/onLeft are triggered
+							try
+							{
+								task.wait();
+							}
+							catch (const std::exception& ex)
+							{
+								logger->log(LogLevel::Debug, "PartyApi::leaveParty", "An error occurred while leaving the party", ex);
+							}
+							catch (...) {}
 						});
+					});
 
 					setGameFinderStatus(PartyGameFinderStatus::SearchStopped);
 
@@ -3220,9 +3248,9 @@ namespace Stormancer
 					auto myId = users->userId();
 					auto members = party->members();
 					auto it = std::find_if(members.begin(), members.end(), [&myId](const PartyUserDto& user)
-						{
-							return user.userId == myId;
-						});
+					{
+						return user.userId == myId;
+					});
 
 					if (it != members.end())
 					{
@@ -3301,27 +3329,27 @@ namespace Stormancer
 				{
 					return getPartyManagementService(ct)
 						.then([invitationCode, userData, ct](std::shared_ptr<PartyManagementService> service)
-							{
-								return service->getConnectionTokenFromInvitationCode(invitationCode, userData, ct);
-							});
+					{
+						return service->getConnectionTokenFromInvitationCode(invitationCode, userData, ct);
+					});
 				}
 
 				pplx::task<std::string> getConnectionTokenFromPartyId(const std::string& partyId, const std::vector<byte>& userData, pplx::cancellation_token ct)
 				{
 					return getPartyManagementService(ct)
 						.then([partyId, userData, ct](std::shared_ptr<PartyManagementService> service)
-							{
-								return service->getConnectionTokenFromPartyId(partyId, userData, ct);
-							});
+					{
+						return service->getConnectionTokenFromPartyId(partyId, userData, ct);
+					});
 				}
 
 				pplx::task<SearchResult> searchParties(const std::string& jsonQuery, Stormancer::uint32 skip, Stormancer::uint32 size, pplx::cancellation_token cancellationToken) override
 				{
 					return getPartyManagementService(cancellationToken)
 						.then([jsonQuery, skip, size, cancellationToken](std::shared_ptr<PartyManagementService> service)
-							{
-								return service->searchParties(jsonQuery, skip, size, cancellationToken);
-							});
+					{
+						return service->searchParties(jsonQuery, skip, size, cancellationToken);
+					});
 				}
 
 				pplx::task<void> cancelInvitationCode(pplx::cancellation_token ct = pplx::cancellation_token::none()) override
@@ -3417,50 +3445,50 @@ namespace Stormancer
 					std::weak_ptr<Party_Impl> wThat = this->shared_from_this();
 					return party->partyService()->kickPlayer(userId)
 						.then([userId, wThat]
+					{
+						auto handlersTask = pplx::task_from_result();
+						if (auto that = wThat.lock())
+						{
+							auto logger = that->_logger;
+							for (auto provider : that->platformProviders())
 							{
-								auto handlersTask = pplx::task_from_result();
-								if (auto that = wThat.lock())
+								handlersTask = handlersTask.then([that, provider, userId, logger]
 								{
-									auto logger = that->_logger;
-									for (auto provider : that->platformProviders())
-									{
-										handlersTask = handlersTask.then([that, provider, userId, logger]
-											{
-												return provider->kickPlayer(userId)
-													.then([logger, provider, userId](pplx::task<void> task)
-														{
-															try
-															{
-																task.get();
-															}
-															catch (const std::exception& ex)
-															{
-																logger->log(LogLevel::Error, "PartyApi::kickPlayer", "An error occurred while kicking player " + userId + " from session on platform " + provider->getPlatformName(), ex);
-															}
-														});
-											}, that->_dispatcher);
-									}
-								}
-								return handlersTask;
-							})
-						.then([wThat, userId]
-							{
-								if (auto that = wThat.lock())
-								{
-									auto eventHandlers = that->getEventHandlers();
-									for (auto handler : eventHandlers)
+									return provider->kickPlayer(userId)
+										.then([logger, provider, userId](pplx::task<void> task)
 									{
 										try
 										{
-											handler->onPlayerKickedByLocalMember(that, userId);
+											task.get();
 										}
 										catch (const std::exception& ex)
 										{
-											that->_logger->log(LogLevel::Error, "Party_Impl::kickPlayer", "An exception was thrown by an onPlayerKickedByLocalMember event handler", ex);
+											logger->log(LogLevel::Error, "PartyApi::kickPlayer", "An error occurred while kicking player " + userId + " from session on platform " + provider->getPlatformName(), ex);
 										}
-									}
+									});
+								}, that->_dispatcher);
+							}
+						}
+						return handlersTask;
+					})
+						.then([wThat, userId]
+					{
+						if (auto that = wThat.lock())
+						{
+							auto eventHandlers = that->getEventHandlers();
+							for (auto handler : eventHandlers)
+							{
+								try
+								{
+									handler->onPlayerKickedByLocalMember(that, userId);
 								}
-							}, _dispatcher);
+								catch (const std::exception& ex)
+								{
+									that->_logger->log(LogLevel::Error, "Party_Impl::kickPlayer", "An exception was thrown by an onPlayerKickedByLocalMember event handler", ex);
+								}
+							}
+						}
+					}, _dispatcher);
 				}
 
 				bool canSendInvitations() const override
@@ -3487,26 +3515,26 @@ namespace Stormancer
 					std::weak_ptr<PartyContainer> wParty = party;
 					party->partyService()->sendInvitation(recipient, forceStormancerInvitation)
 						.then([wParty, wThat, logger, recipient](pplx::task<bool> task)
+					{
+						auto that = wThat.lock();
+						auto party = wParty.lock();
+						try
+						{
+							auto status = task.wait();
+							if (that && status == pplx::completed)
 							{
-								auto that = wThat.lock();
-								auto party = wParty.lock();
-								try
+								bool accepted = task.get();
+								if (!accepted)
 								{
-									auto status = task.wait();
-									if (that && status == pplx::completed)
-									{
-										bool accepted = task.get();
-										if (!accepted)
-										{
-											that->_onSentInvitationDeclined(recipient);
-										}
-									}
+									that->_onSentInvitationDeclined(recipient);
 								}
-								catch (const std::exception& ex)
-								{
-									logger->log(LogLevel::Error, "PartyApi::sendInvitation", "Could not send an invitation to " + recipient, ex);
-								}
-							}, _dispatcher);
+							}
+						}
+						catch (const std::exception& ex)
+						{
+							logger->log(LogLevel::Error, "PartyApi::sendInvitation", "Could not send an invitation to " + recipient, ex);
+						}
+					}, _dispatcher);
 					// TODO Use an observable RPC to tell when the invite has been sent as well as when it has been accepted or declined.
 					return pplx::task_from_result();
 				}
@@ -3521,16 +3549,16 @@ namespace Stormancer
 
 					auto logger = _logger;
 					party->partyService()->cancelInvitation(recipient).then([logger, recipient](pplx::task<void> task)
+					{
+						try
 						{
-							try
-							{
-								task.wait();
-							}
-							catch (const std::exception& ex)
-							{
-								logger->log(LogLevel::Error, "PartyApi::cancelInvitation", "Error while canceling invitation to " + recipient, ex);
-							}
-						});
+							task.wait();
+						}
+						catch (const std::exception& ex)
+						{
+							logger->log(LogLevel::Error, "PartyApi::cancelInvitation", "Error while canceling invitation to " + recipient, ex);
+						}
+					});
 				}
 
 				bool showSystemInvitationUI() override
@@ -3566,17 +3594,17 @@ namespace Stormancer
 						tasks.push_back(task);
 
 						task.then([cts, logger = _logger](pplx::task<std::vector<AdvertisedParty>> task)
+						{
+							try
 							{
-								try
-								{
-									task.get();
-								}
-								catch (const std::exception& ex)
-								{
-									cts.cancel();
-									logger->log(LogLevel::Error, "Party", "An IPartyAdvertiser failed", ex);
-								}
-							});
+								task.get();
+							}
+							catch (const std::exception& ex)
+							{
+								cts.cancel();
+								logger->log(LogLevel::Error, "Party", "An IPartyAdvertiser failed", ex);
+							}
+						});
 					}
 
 					return pplx::when_all(tasks.begin(), tasks.end(), _dispatcher);
@@ -3671,43 +3699,43 @@ namespace Stormancer
 				{
 					auto wThat = STORM_WEAK_FROM_THIS();
 					_subscriptions.push_back(_gameFinder->subscribeGameFinderStateChanged([wThat](GameFinder::GameFinderStatusChangedEvent evt)
+					{
+						if (auto that = wThat.lock())
 						{
-							if (auto that = wThat.lock())
+							auto party = that->tryGetParty();
+							if (party && party->settings().gameFinderName == evt.gameFinder)
 							{
-								auto party = that->tryGetParty();
-								if (party && party->settings().gameFinderName == evt.gameFinder)
+								switch (evt.status)
 								{
-									switch (evt.status)
-									{
-									case GameFinder::GameFinderStatus::Searching:
-										that->setGameFinderStatus(PartyGameFinderStatus::SearchInProgress);
-										break;
-									default:
-										that->setGameFinderStatus(PartyGameFinderStatus::SearchStopped);
-										break;
-									}
+								case GameFinder::GameFinderStatus::Searching:
+									that->setGameFinderStatus(PartyGameFinderStatus::SearchInProgress);
+									break;
+								default:
+									that->setGameFinderStatus(PartyGameFinderStatus::SearchStopped);
+									break;
 								}
 							}
-						}));
+						}
+					}));
 					_subscriptions.push_back(_gameFinder->subscribeGameFound([wThat](GameFinder::GameFoundEvent evt)
+					{
+						if (auto that = wThat.lock())
 						{
-							if (auto that = wThat.lock())
+							auto party = that->tryGetParty();
+							if (party && party->settings().gameFinderName == evt.gameFinder)
 							{
-								auto party = that->tryGetParty();
-								if (party && party->settings().gameFinderName == evt.gameFinder)
-								{
-									that->_onGameFound(evt);
-								}
+								that->_onGameFound(evt);
 							}
-						}));
+						}
+					}));
 					auto messenger = _scope.resolve<Platform::InvitationMessenger>();
 					_subscriptions.push_back(messenger->subscribeOnInvitationReceived([wThat](std::shared_ptr<Platform::IPlatformInvitation> invite)
+					{
+						if (auto that = wThat.lock())
 						{
-							if (auto that = wThat.lock())
-							{
-								that->onInvitationReceived(invite);
-							}
-						}));
+							that->onInvitationReceived(invite);
+						}
+					}));
 				}
 
 			private:
@@ -3735,41 +3763,41 @@ namespace Stormancer
 					std::vector<byte> userData = args.userData;
 					_joinPartyFromSystemHandler(args)
 						.then([partyId = ctx.partyId, that, ct, userData, ctx](bool accept)
-							{
-								if (accept)
-								{
-									pplx::task<void> task = pplx::task_from_result();
+					{
+						if (accept)
+						{
+							pplx::task<void> task = pplx::task_from_result();
 
-									if (that->isInParty())
-									{
-										auto partyContainer = that->tryGetParty();
-										if (partyContainer != nullptr && partyContainer->getPartyId() != partyId)
-										{
-											task = that->leaveParty();
-										}
-									}
-
-									return task.then([partyId, that, ct, userData, ctx]()
-										{
-											return that->joinParty(partyId, userData, std::unordered_map<std::string, std::string>{ { "invitedUser", ctx.invitedUser->userId } }, ct);
-										});
-								}
-								else
-								{
-									return pplx::task_from_result();
-								}
-							})
-						.then([that](pplx::task<void> task)
+							if (that->isInParty())
 							{
-								try
+								auto partyContainer = that->tryGetParty();
+								if (partyContainer != nullptr && partyContainer->getPartyId() != partyId)
 								{
-									task.get();
+									task = that->leaveParty();
 								}
-								catch (const std::exception& ex)
-								{
-									that->_logger->log(LogLevel::Error, "PartyApi::onJoinpartyRequestedByPlatform", "Could not join party", ex);
-								}
+							}
+
+							return task.then([partyId, that, ct, userData, ctx]()
+							{
+								return that->joinParty(partyId, userData, std::unordered_map<std::string, std::string>{ { "invitedUser", ctx.invitedUser->userId } }, ct);
 							});
+						}
+						else
+						{
+							return pplx::task_from_result();
+						}
+					})
+						.then([that](pplx::task<void> task)
+					{
+						try
+						{
+							task.get();
+						}
+						catch (const std::exception& ex)
+						{
+							that->_logger->log(LogLevel::Error, "PartyApi::onJoinpartyRequestedByPlatform", "Could not join party", ex);
+						}
+					});
 				}
 
 				std::vector<std::shared_ptr<IPartyEventHandler>> getEventHandlers()
@@ -3807,20 +3835,20 @@ namespace Stormancer
 					{
 						// Keep this task as member to prevent rapid settings updates from overlapping
 						_platformPartyMembersUpdateTask = _platformPartyMembersUpdateTask.then([provider, update]
-							{
-								return provider->updateSessionMembers(update);
-							}, _dispatcher)
+						{
+							return provider->updateSessionMembers(update);
+						}, _dispatcher)
 							.then([logger, provider](pplx::task<void> task)
-								{
-									try
-									{
-										task.get();
-									}
-									catch (const std::exception& ex)
-									{
-										logger->log(LogLevel::Error, "Party_Impl::raisePartyMembersUpdated", "An error occurred while updating platform-specific session members for platform " + provider->getPlatformName(), ex);
-									}
-								});
+						{
+							try
+							{
+								task.get();
+							}
+							catch (const std::exception& ex)
+							{
+								logger->log(LogLevel::Error, "Party_Impl::raisePartyMembersUpdated", "An error occurred while updating platform-specific session members for platform " + provider->getPlatformName(), ex);
+							}
+						});
 					}
 				}
 
@@ -3845,20 +3873,20 @@ namespace Stormancer
 					{
 						// Keep this task as member to prevent rapid settings updates from overlapping
 						_platformPartySettingsUpdateTask = _platformPartySettingsUpdateTask.then([provider, settings]
-							{
-								return provider->updateSessionSettings(settings);
-							}, _dispatcher)
+						{
+							return provider->updateSessionSettings(settings);
+						}, _dispatcher)
 							.then([logger, provider](pplx::task<void> task)
-								{
-									try
-									{
-										task.get();
-									}
-									catch (const std::exception& ex)
-									{
-										logger->log(LogLevel::Error, "Party_Impl::raisePartySettingsUpdated", "An error occurred while updating platform-specific session settings for platform " + provider->getPlatformName(), ex);
-									}
-								});
+						{
+							try
+							{
+								task.get();
+							}
+							catch (const std::exception& ex)
+							{
+								logger->log(LogLevel::Error, "Party_Impl::raisePartySettingsUpdated", "An error occurred while updating platform-specific session settings for platform " + provider->getPlatformName(), ex);
+							}
+						});
 					}
 				}
 
@@ -3928,23 +3956,23 @@ namespace Stormancer
 					{
 						std::weak_ptr<InvitationInternal> wThat(this->shared_from_this());
 						_cancellationSubscription = _impl->subscribeOnInvitationCanceled([wThat]
+						{
+							if (const auto that = wThat.lock())
 							{
-								if (auto that = wThat.lock())
+								if (auto party = that->_party.lock())
 								{
-									if (auto party = that->_party.lock())
-									{
-										// While we are in this cancellation event, the user could be calling one of the other methods, hence the mutex lock on top of each method.
-										// I want that when the IsValid() call has returned true in these methods, the rest of the method can execute
-										// with the certitude that the invitation will not be removed from the list while it is executing.
-										// We could have one mutex per invitation instead, but mutexes are a limited resource, esp. on consoles, so we probably shouldn't
-										std::lock_guard<std::recursive_mutex> lg(party->_invitationsMutex);
-										that->_isValid = false;
-										party->removeInvitation(*that);
-										party->_logger->log(LogLevel::Trace, "InvitationInternal", "Invitation from " + that->_senderId + " was canceled");
-										party->_onInvitationCanceled(that->_senderId);
-									}
+									// While we are in this cancellation event, the user could be calling one of the other methods, hence the mutex lock on top of each method.
+									// I want that when the IsValid() call has returned true in these methods, the rest of the method can execute
+									// with the certitude that the invitation will not be removed from the list while it is executing.
+									// We could have one mutex per invitation instead, but mutexes are a limited resource, esp. on consoles, so we probably shouldn't
+									std::lock_guard<std::recursive_mutex> lg(party->_invitationsMutex);
+									that->_isValid = false;
+									party->removeInvitation(*that);
+									party->_logger->log(LogLevel::Trace, "InvitationInternal", "Invitation from " + that->_senderId + " was canceled");
+									party->_onInvitationCanceled(that->_senderId);
 								}
-							});
+							}
+						});
 					}
 
 					std::string getSenderId() override
@@ -3977,31 +4005,34 @@ namespace Stormancer
 
 						std::lock_guard<std::recursive_mutex> invitesLock(party->_invitationsMutex);
 						std::lock_guard<std::recursive_mutex> partyLock(party->_partyMutex);
+
+						party->removeInvitation(*this);
+
 						if (!isValid())
 						{
 							STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error(PartyError::Str::InvalidInvitation), void);
 						}
-
-						if (party->isInParty())
-						{
-							STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error(PartyError::Str::AlreadyInParty), void);
-						}
-
-						party->removeInvitation(*this);
-
 						_isValid = false;
-						auto partyTask = _impl->accept(party)
-							.then([party, userMetadata, userData, ct](PartyId partyId)
-								{
-									return party->joinPartyInternal(partyId, userData, userMetadata, ct);
-								});
-						party->setPartySafe(std::make_shared<pplx::task<std::shared_ptr<PartyContainer>>>(partyTask));
-						auto wParty = _party;
-						return partyTask
-							.then([wParty](pplx::task<std::shared_ptr<PartyContainer>> task)
-								{
-									triggerPartyJoinedEvents(wParty, task);
-								});
+						return party->normalizePartyId(_impl->getPartyId(), ct)
+							.then([this, party, userMetadata, userData, ct](PartyId partyId)
+						{
+							auto partyTask = _impl->accept(party)
+
+								.then([party, userMetadata, userData, ct](PartyId partyId)
+							{
+								return party->joinPartyInternal(partyId, userData, userMetadata, ct);
+
+							});
+							party->setPartySafe(std::make_shared<pplx::task<std::shared_ptr<PartyContainer>>>(partyTask));
+							auto wParty = _party;
+							return partyTask
+								.then([wParty](pplx::task<std::shared_ptr<PartyContainer>> task)
+							{
+								triggerPartyJoinedEvents(wParty, task);
+							});
+						});
+
+
 					}
 
 					void decline() override
@@ -4023,16 +4054,16 @@ namespace Stormancer
 						_isValid = false;
 						auto logger = party->_logger;
 						_impl->decline(party).then([logger](pplx::task<void> task)
+						{
+							try
 							{
-								try
-								{
-									task.wait();
-								}
-								catch (const std::exception& ex)
-								{
-									logger->log(LogLevel::Error, "InvitationInternal::decline", "An error occurred while declining an invitation", ex);
-								}
-							});
+								task.wait();
+							}
+							catch (const std::exception& ex)
+							{
+								logger->log(LogLevel::Error, "InvitationInternal::decline", "An error occurred while declining an invitation", ex);
+							}
+						});
 					}
 
 					bool isValid() override
@@ -4118,81 +4149,81 @@ namespace Stormancer
 					auto wThat = STORM_WEAK_FROM_THIS();
 
 					return runEventHandlers(getEventHandlers(), [joiningPartyContext](std::shared_ptr<IPartyEventHandler> eventHandler)
-						{
-							return eventHandler->onJoiningParty(joiningPartyContext);
-						}, [logger = _logger](const std::exception& ex)
-						{
-							logger->log(LogLevel::Error, "Party_Impl.getPartySceneByToken", "Party onJoiningParty event handler failed", ex.what());
-							throw;
-						})
+					{
+						return eventHandler->onJoiningParty(joiningPartyContext);
+					}, [logger = _logger](const std::exception& ex)
+					{
+						logger->log(LogLevel::Error, "Party_Impl.getPartySceneByToken", "Party onJoiningParty event handler failed", ex.what());
+						throw;
+					})
 						.then([users, token, wThat, ct]()
+					{
+						return users->connectToPrivateSceneByToken(token, [wThat](std::shared_ptr<Scene> scene)
+						{
+							if (auto that = wThat.lock())
 							{
-								return users->connectToPrivateSceneByToken(token, [wThat](std::shared_ptr<Scene> scene)
-									{
-										if (auto that = wThat.lock())
-										{
-											that->runSceneInitEventHandlers(scene);
-										}
-									}, ct);
-							})
-							.then([ct, wThat](std::shared_ptr<Scene> scene)
+								that->runSceneInitEventHandlers(scene);
+							}
+						}, ct);
+					})
+						.then([ct, wThat](std::shared_ptr<Scene> scene)
+					{
+						auto that = wThat.lock();
+						if (!that)
+						{
+							throw ObjectDeletedException("PartyApi");
+						}
+						return that->initPartyFromScene(scene, ct);
+					})
+						.then([wThat, userMetadata](std::shared_ptr<PartyContainer> container)
+					{
+						auto that = wThat.lock();
+						if (!that)
+						{
+							throw ObjectDeletedException("PartyApi");
+						}
+
+						pplx::task<void> handlersTask = pplx::task_from_result();
+						for (auto provider : that->platformProviders())
+						{
+							handlersTask = handlersTask.then([wThat, provider, container]
+							{
+								if (auto that = wThat.lock())
 								{
-									auto that = wThat.lock();
-									if (!that)
+									return provider->createOrJoinSessionForParty(container->getSceneId());
+								}
+								throw ObjectDeletedException("PartyApi");
+							}, that->_dispatcher);
+						}
+
+						auto eventHandlers = that->getEventHandlers();
+
+
+						return handlersTask.then([container](pplx::task<void> task)
+						{
+							try
+							{
+								task.get();
+								return container;
+							}
+							catch (...)
+							{
+								// Keep container alive so that OnLeftParty gets triggered for event handlers
+								container->getScene()->disconnect()
+									.then([container](pplx::task<void> t)
+								{
+									try
 									{
-										throw ObjectDeletedException("PartyApi");
+										t.wait();
 									}
-									return that->initPartyFromScene(scene, ct);
-								})
-								.then([wThat, userMetadata](std::shared_ptr<PartyContainer> container)
+									catch (...)
 									{
-										auto that = wThat.lock();
-										if (!that)
-										{
-											throw ObjectDeletedException("PartyApi");
-										}
-
-										pplx::task<void> handlersTask = pplx::task_from_result();
-										for (auto provider : that->platformProviders())
-										{
-											handlersTask = handlersTask.then([wThat, provider, container]
-												{
-													if (auto that = wThat.lock())
-													{
-														return provider->createOrJoinSessionForParty(container->getSceneId());
-													}
-													throw ObjectDeletedException("PartyApi");
-												}, that->_dispatcher);
-										}
-
-										auto eventHandlers = that->getEventHandlers();
-
-
-										return handlersTask.then([container](pplx::task<void> task)
-											{
-												try
-												{
-													task.get();
-													return container;
-												}
-												catch (...)
-												{
-													// Keep container alive so that OnLeftParty gets triggered for event handlers
-													container->getScene()->disconnect()
-														.then([container](pplx::task<void> t)
-															{
-																try
-																{
-																	t.wait();
-																}
-																catch (...)
-																{
-																}
-															});
-													throw;
-												}
-											});
-									});
+									}
+								});
+								throw;
+							}
+						});
+					});
 				}
 
 				pplx::task<std::shared_ptr<PartyManagementService>> getPartyManagementService(pplx::cancellation_token ct = pplx::cancellation_token::none())
@@ -4208,22 +4239,22 @@ namespace Stormancer
 					for (auto provider : platformProviders())
 					{
 						handlersTask = handlersTask.then([partySceneId, provider]
-							{
-								return provider->leaveSessionForParty(partySceneId);
-							}, _dispatcher)
+						{
+							return provider->leaveSessionForParty(partySceneId);
+						}, _dispatcher)
 							.then([logger, provider](pplx::task<void> task)
-								{
-									// As these handlers could do important cleanup (e.g leaving a session), it is important that we run all of them even if some fail
-									// This is why I handle errors for each of them
-									try
-									{
-										task.wait();
-									}
-									catch (const std::exception& ex)
-									{
-										logger->log(LogLevel::Error, "Party_Impl::runLeavingPartyEventHandlers", "An exception was thrown by leaveSessionForParty() for platform " + provider->getPlatformName(), ex);
-									}
-								});
+						{
+							// As these handlers could do important cleanup (e.g leaving a session), it is important that we run all of them even if some fail
+							// This is why I handle errors for each of them
+							try
+							{
+								task.wait();
+							}
+							catch (const std::exception& ex)
+							{
+								logger->log(LogLevel::Error, "Party_Impl::runLeavingPartyEventHandlers", "An exception was thrown by leaveSessionForParty() for platform " + provider->getPlatformName(), ex);
+							}
+						});
 					}
 
 					auto eventHandlers = getEventHandlers();
@@ -4231,24 +4262,24 @@ namespace Stormancer
 					{
 						// Capture a shared_ptr because the handlers could do important cleanup and need access to PartyApi
 						handlersTask = handlersTask.then([partyApi, partySceneId, handler]
-							{
-								auto ctx = std::make_shared<LeavingPartyContext>();
-								ctx->partyId = partyApi->getPartyId();
-								ctx->partySceneId = partySceneId;
-								ctx->partyApi = partyApi;
-								return handler->onLeavingParty(ctx);
-							}, _dispatcher)
+						{
+							auto ctx = std::make_shared<LeavingPartyContext>();
+							ctx->partyId = partyApi->getPartyId();
+							ctx->partySceneId = partySceneId;
+							ctx->partyApi = partyApi;
+							return handler->onLeavingParty(ctx);
+						}, _dispatcher)
 							.then([logger](pplx::task<void> task)
-								{
-									try
-									{
-										task.wait();
-									}
-									catch (const std::exception& ex)
-									{
-										logger->log(LogLevel::Error, "Party_Impl::runLeavingPartyEventHandlers", "An exception was thrown by an onLeavingParty() handler", ex);
-									}
-								});
+						{
+							try
+							{
+								task.wait();
+							}
+							catch (const std::exception& ex)
+							{
+								logger->log(LogLevel::Error, "Party_Impl::runLeavingPartyEventHandlers", "An exception was thrown by an onLeavingParty() handler", ex);
+							}
+						});
 					}
 
 					return handlersTask;
@@ -4272,75 +4303,75 @@ namespace Stormancer
 					auto party = std::make_shared<PartyContainer>(
 						scene,
 						partyService->LeftParty.subscribe([wPartyManagement, sceneId](MemberDisconnectionReason reason)
+					{
+						if (auto partyManagement = wPartyManagement.lock())
+						{
+							auto handlersTask = partyManagement->runLeavingPartyHandlers(sceneId);
+							// Wait for the handlers to be done before effectively completing the _leavePartyTce.
+							// This is important for handlers which manage party-related state such as platform-specific game sessions (e.g steam plugin).
+							handlersTask.then([wPartyManagement, reason] // Exceptions have already been handled for this task
 							{
 								if (auto partyManagement = wPartyManagement.lock())
 								{
-									auto handlersTask = partyManagement->runLeavingPartyHandlers(sceneId);
-									// Wait for the handlers to be done before effectively completing the _leavePartyTce.
-									// This is important for handlers which manage party-related state such as platform-specific game sessions (e.g steam plugin).
-									handlersTask.then([wPartyManagement, reason] // Exceptions have already been handled for this task
-										{
-											if (auto partyManagement = wPartyManagement.lock())
-											{
-												if (partyManagement->isInParty())
-												{
-													partyManagement->setPartySafe(nullptr);
-												}
-												partyManagement->raiseLeftParty(reason);
-												partyManagement->_leavePartyTce.set();
-												partyManagement->_leavePartyTce = pplx::task_completion_event<void>();
-											}
-										}, partyManagement->_dispatcher);
+									if (partyManagement->isInParty())
+									{
+										partyManagement->setPartySafe(nullptr);
+									}
+									partyManagement->raiseLeftParty(reason);
+									partyManagement->_leavePartyTce.set();
+									partyManagement->_leavePartyTce = pplx::task_completion_event<void>();
 								}
-							}),
+							}, partyManagement->_dispatcher);
+						}
+					}),
 						partyService->PartyMembersUpdated.subscribe([wPartyManagement](MembersUpdate update)
+					{
+						if (auto partyManagement = wPartyManagement.lock())
+						{
+							if (partyManagement->isInParty())
 							{
-								if (auto partyManagement = wPartyManagement.lock())
-								{
-									if (partyManagement->isInParty())
-									{
-										update.partyApi = partyManagement;
-										partyManagement->raisePartyMembersUpdated(update);
-									}
-								}
-							}),
+								update.partyApi = partyManagement;
+								partyManagement->raisePartyMembersUpdated(update);
+							}
+						}
+					}),
 						partyService->UpdatedPartySettings.subscribe([wPartyManagement](PartySettings settings)
+					{
+						if (auto partyManagement = wPartyManagement.lock())
+						{
+							if (partyManagement->isInParty())
 							{
-								if (auto partyManagement = wPartyManagement.lock())
-								{
-									if (partyManagement->isInParty())
-									{
-										partyManagement->raisePartySettingsUpdated(settings);
-									}
-								}
-							}),
+								partyManagement->raisePartySettingsUpdated(settings);
+							}
+						}
+					}),
 						partyService->UpdatedInviteList.subscribe([wPartyManagement](std::vector<std::string> invitations)
+					{
+						if (auto partyManagement = wPartyManagement.lock())
+						{
+							if (partyManagement->isInParty())
 							{
-								if (auto partyManagement = wPartyManagement.lock())
-								{
-									if (partyManagement->isInParty())
-									{
-										partyManagement->_onSentInvitationsUpdated(invitations);
-									}
-								}
-							}),
+								partyManagement->_onSentInvitationsUpdated(invitations);
+							}
+						}
+					}),
 						partyService->OnGameFinderFailed.subscribe([wPartyManagement](PartyGameFinderFailure dto)
+					{
+						if (auto partyManagement = wPartyManagement.lock())
+						{
+							if (partyManagement->isInParty())
 							{
-								if (auto partyManagement = wPartyManagement.lock())
-								{
-									if (partyManagement->isInParty())
-									{
-										partyManagement->_onGameFinderFailure(dto);
-									}
-								}
-							})
+								partyManagement->_onGameFinderFailure(dto);
+							}
+						}
+					})
 					);
 
 					return partyService->waitForPartyReady(ct)
 						.then([party]
-							{
-								return party;
-							});
+					{
+						return party;
+					});
 				}
 
 				void onInvitationReceived(std::shared_ptr<Platform::IPlatformInvitation> invite)
@@ -4370,9 +4401,9 @@ namespace Stormancer
 					std::lock_guard<std::recursive_mutex> lg(_invitationsMutex);
 
 					auto it = std::find_if(_invitationsNew.begin(), _invitationsNew.end(), [&invite](const std::shared_ptr<InvitationInternal>& other)
-						{
-							return &invite == other.get();
-						});
+					{
+						return &invite == other.get();
+					});
 					assert(it != _invitationsNew.end());
 					_invitationsNew.erase(it);
 				}
@@ -4422,15 +4453,15 @@ namespace Stormancer
 						{
 							auto wThat = STORM_WEAK_FROM_THIS();
 							_joinPartyFromSystemSubs.push_back(provider->subscribeOnJoinPartyRequestedByPlatform([wThat](const Platform::PlatformInvitationRequestContext& ctx)
+							{
+								if (auto that = wThat.lock())
 								{
-									if (auto that = wThat.lock())
+									that->_dispatcher->post([that, ctx]
 									{
-										that->_dispatcher->post([that, ctx]
-											{
-												that->onJoinPartyRequestedByPlatform(ctx);
-											});
-									}
-								}));
+										that->onJoinPartyRequestedByPlatform(ctx);
+									});
+								}
+							}));
 						}
 					}
 				}
@@ -4477,14 +4508,14 @@ namespace Stormancer
 				{
 					std::weak_ptr<StormancerInvitationProvider> wThat = this->shared_from_this();
 					_users->setOperationHandler("party.invite", [wThat](Users::OperationCtx& ctx)
+					{
+						if (auto that = wThat.lock())
 						{
-							if (auto that = wThat.lock())
-							{
-								return that->invitationHandler(ctx);
-							}
-							ctx.request->sendValueTemplated(false);
-							return pplx::task_from_result();
-						});
+							return that->invitationHandler(ctx);
+						}
+						ctx.request->sendValueTemplated(false);
+						return pplx::task_from_result();
+					});
 				}
 
 				std::string getPlatformName() override { return "stormancer"; }
@@ -4531,6 +4562,15 @@ namespace Stormancer
 						requestCt.deregister_callback(ctRegistration);
 					}
 
+
+					PartyId getPartyId()
+					{
+						PartyId partyId;
+						partyId.type = PartyId::TYPE_SCENE_ID;
+						partyId.id = sceneId;
+						return partyId;
+					}
+
 				private:
 
 					pplx::task<PartyId> accept(std::shared_ptr<PartyApi>) override
@@ -4563,6 +4603,7 @@ namespace Stormancer
 					pplx::task_completion_event<bool> requestTce;
 					pplx::cancellation_token requestCt;
 					pplx::cancellation_token_registration ctRegistration;
+
 				};
 
 				pplx::task<void> invitationHandler(Users::OperationCtx& ctx)
@@ -4579,10 +4620,10 @@ namespace Stormancer
 					auto logger = _logger;
 					return pplx::create_task(inviteResponseTce)
 						.then([ctx, logger](bool response)
-							{
-								logger->log(LogLevel::Trace, "StormancerInvitationProvider::invitationHandler", "Sending invitation response to user " + ctx.originId, std::to_string(response));
-								ctx.request->sendValueTemplated(response);
-							});
+					{
+						logger->log(LogLevel::Trace, "StormancerInvitationProvider::invitationHandler", "Sending invitation response to user " + ctx.originId, std::to_string(response));
+						ctx.request->sendValueTemplated(response);
+					});
 				}
 
 				std::shared_ptr<Users::UsersApi> _users;
@@ -4647,16 +4688,16 @@ namespace Stormancer
 					// initialize() needs weak_from_this(), so it can't be called from Party_Impl's constructor
 					partyImpl->initialize();
 					return partyImpl;
-					}).singleInstance();
+				}).singleInstance();
 
-					builder.registerDependency<Platform::InvitationMessenger, ILogger>().singleInstance();
+				builder.registerDependency<Platform::InvitationMessenger, ILogger>().singleInstance();
 
-					builder.registerDependency<details::StormancerInvitationProvider>([](const DependencyScope& dr)
-						{
-							auto provider = std::make_shared<details::StormancerInvitationProvider>(dr.resolve<Platform::InvitationMessenger>(), dr.resolve<Users::UsersApi>(), dr.resolve<ILogger>());
-							provider->initialize();
-							return provider;
-						}).as<Platform::IPlatformSupportProvider>().singleInstance();
+				builder.registerDependency<details::StormancerInvitationProvider>([](const DependencyScope& dr)
+				{
+					auto provider = std::make_shared<details::StormancerInvitationProvider>(dr.resolve<Platform::InvitationMessenger>(), dr.resolve<Users::UsersApi>(), dr.resolve<ILogger>());
+					provider->initialize();
+					return provider;
+				}).as<Platform::IPlatformSupportProvider>().singleInstance();
 			}
 
 			void clientCreated(std::shared_ptr<IClient> client) override

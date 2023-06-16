@@ -96,6 +96,10 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                     {
                         await party.AddPartyToGameSession(partyId,ctx.GameSession.GameSessionId, default);
                     }
+                    catch(ClientException)
+                    {
+                        //party closed.
+                    }
                     catch (Exception ex)
                     {
                         logger.Log(LogLevel.Error, "party", $"Failed to update the party status (id='{partyId}') with gamesession related informations :", ex);
@@ -137,6 +141,10 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                     catch(InvalidOperationException)
                     {
                         //Party already destroyed. Ignore the error.
+                    }
+                    catch(ClientException)
+                    {
+                        //Party closed.
                     }
                 }
 

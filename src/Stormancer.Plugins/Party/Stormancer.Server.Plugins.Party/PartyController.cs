@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using Stormancer.Core;
+using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Party.Dto;
@@ -40,15 +41,18 @@ namespace Stormancer.Server.Plugins.Party
 
         private const string NotInPartyError = "party.notInParty";
         private const string UnauthorizedError = "party.unauthorized";
+        private readonly ILogger _logger;
         private readonly IUserSessions sessions;
         private readonly IPartyService _partyService;
         private readonly ISerializer _serializer;
 
         public PartyController(
+            ILogger logger,
             IUserSessions sessions,
             IPartyService partyService,
             ISerializer serializer)
         {
+            _logger = logger;
             this.sessions = sessions;
             _partyService = partyService;
             _serializer = serializer;
@@ -270,9 +274,10 @@ namespace Stormancer.Server.Plugins.Party
         }
 
         [S2SApi]
-        public Task AddPartyToGameSession(string gamesessionId, CancellationToken cancellationToken)
+        public async Task AddPartyToGameSession(string gamesessionId, CancellationToken cancellationToken)
         {
-            return _partyService.UpdateSettings(state =>
+            _logger.Log(LogLevel.Info, "party.gamesession", $"Adding gamesession {gamesessionId} from party {_partyService.PartyId}", new { });
+            await _partyService.UpdateSettings(state =>
             {
 
                
@@ -287,12 +292,13 @@ namespace Stormancer.Server.Plugins.Party
              
 
             }, cancellationToken);
+            _logger.Log(LogLevel.Info, "party.gamesession", $"Added gamesession {gamesessionId} from party {_partyService.PartyId}", new { });
         }
 
         [S2SApi]
         public async Task RemovePartyFromGameSession(string gamesessionId,CancellationToken cancellationToken)
         {
-
+            _logger.Log(LogLevel.Info, "party.gamesession", $"Removing gamesession {gamesessionId} from party {_partyService.PartyId}",new { });
             while ((_partyService.Settings.PublicServerData.TryGetValue("stormancer.partyStatus", out var status) && status == "gamesession") 
                 && (_partyService.Settings.PublicServerData.TryGetValue("stormancer.partyStatus.details", out var currentGs) && currentGs == gamesessionId)
                 && !cancellationToken.IsCancellationRequested)
@@ -320,6 +326,7 @@ namespace Stormancer.Server.Plugins.Party
                 }, cancellationToken);
 
             }
+            _logger.Log(LogLevel.Info, "party.gamesession", $"Removed gamesession {gamesessionId} from party {_partyService.PartyId}", new { });
         }
 
         protected override Task OnConnecting(IScenePeerClient client)
