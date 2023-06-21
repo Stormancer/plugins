@@ -152,14 +152,49 @@ namespace Stormancer.Server.Plugins.Steam
             }
         }
     }
+
+    /// <summary>
+    /// Steam configuration section
+    /// </summary>
+    public class SteamConfigurationSection
+    {
+       
+        internal const string SECTION_KEY = "steam";
+
+        /// <summary>
+        /// The Game Steam App Id
+        /// </summary>
+        public uint appId { get; set; }
+
+        /// <summary>
+        /// The backend id used to generate authentication tokens on the client.
+        /// </summary>
+        /// <remarks>
+        /// The backend Id is necessary for clients using the Steam SDK 1.57.
+        /// config.additionalConfiguration["steam.backendIdentity"]="my-backend".
+        /// </remarks>
+        public string? backendIdentity { get; set; }
+
+        /// <summary>
+        /// Path to the Steam publisher key in a cluster secret store.
+        /// </summary>
+        /// <remarks>
+        /// This configuration value should be similar to the following:
+        /// {accountId}/{secretStoreId}/{KeyId}
+        /// 
+        /// Where accountId is the id of the account contening the secret store.
+        /// </remarks>
+        public string? apiKey { get; set; }
+
+    }
     internal class SteamService : ISteamService
     {
         private const string ApiRoot = "https://partner.steam-api.com";
         private const string FallbackApiRoot = "https://api.steampowered.com";
         private const string FallbackApiRooWithIp = "https://208.64.202.87";
 
-        private bool _usemockup;
-        private uint _appId;
+
+        private SteamConfigurationSection _configSection;
         
 
         private readonly ILogger _logger;
@@ -181,15 +216,8 @@ namespace Stormancer.Server.Plugins.Steam
             _logger = logger;
             _userSessions = userSessions;
             this.keyStore = keyStore;
-           
 
-            ApplyConfig(configuration.Settings);
-        }
-
-        private void ApplyConfig(dynamic config)
-        {
-            _usemockup = (bool?)config?.steam?.usemockup ?? false;
-            _appId = (uint?)config?.steam?.appId ?? (uint)0;
+            _configSection = configuration.GetValue<SteamConfigurationSection>(SteamConfigurationSection.SECTION_KEY);
            
         }
 
@@ -197,12 +225,9 @@ namespace Stormancer.Server.Plugins.Steam
 
         public async Task<ulong?> AuthenticateUserTicket(string ticket)
         {
-            if (_usemockup)
-            {
-                return (ulong)ticket.GetHashCode();
-            }
-
-            const string AuthenticateUri = "ISteamUserAuth/AuthenticateUserTicket/v0001/";
+            var apiV1 = _configSection.backendIdentity != null;
+            
+            string AuthenticateUri = apiV1?"ISteamUserAuth/AuthenticateUserTicket/v1/" : "ISteamUserAuth/AuthenticateUserTicket/v0001/";
 
             var apiKey = await keyStore.GetApiKeyAsync();
             if (string.IsNullOrWhiteSpace(apiKey))
@@ -211,8 +236,13 @@ namespace Stormancer.Server.Plugins.Steam
             }
 
             var querystring = $"?key={apiKey}"
-                + $"&appid={_appId}"
+                + $"&appid={_configSection.appId}"
                 + $"&ticket={ticket}";
+
+            if(apiV1)
+            {
+                querystring += $"&identity={_configSection.backendIdentity}";
+            }
 
             using (var response = await TryGetAsync(AuthenticateUri + querystring))
             {
@@ -230,17 +260,17 @@ namespace Stormancer.Server.Plugins.Steam
 
                 if (steamResponse.response == null)
                 {
-                    throw new SteamException($"The Steam API failed to authenticate user ticket. The response is null.'. AppId : {_appId}");
+                    throw new SteamException($"The Steam API failed to authenticate user ticket. The response is null.'. AppId : {_configSection.appId}");
                 }
 
                 if (steamResponse.response.error != null)
                 {
-                    throw new SteamException($"The Steam API failed to authenticate user ticket : {steamResponse.response.error.errorcode} : '{steamResponse.response.error.errordesc}'. AppId : {_appId}");
+                    throw new SteamException($"The Steam API failed to authenticate user ticket : {steamResponse.response.error.errorcode} : '{steamResponse.response.error.errordesc}'. AppId : {_configSection.appId}");
                 }
 
                 if (steamResponse.response.@params == null)
                 {
-                    throw new SteamException($"The Steam API failed to authenticate user ticket. The response params is null.'. AppId : {_appId}");
+                    throw new SteamException($"The Steam API failed to authenticate user ticket. The response params is null.'. AppId : {_configSection.appId}");
                 }
 
                 return steamResponse.response.@params.steamid;
@@ -258,7 +288,7 @@ namespace Stormancer.Server.Plugins.Steam
             const string uri = "ICheatReportingService/StartSecureMultiplayerSession/v0001/";
             var p = new Dictionary<string, string> {
                 {"key", apiKey },
-                {"appid", _appId.ToString() },
+                {"appid", _configSection.appId.ToString() },
                 {"steamid", steamId }
             };
 
@@ -289,7 +319,7 @@ namespace Stormancer.Server.Plugins.Steam
             const string uri = "ICheatReportingService/EndSecureMultiplayerSession/v0001/";
             var p = new Dictionary<string, string> {
                 {"key", apiKey },
-                {"appid", _appId.ToString() },
+                {"appid", _configSection.appId.ToString() },
                 {"steamid", steamId },
                 {"session_id", sessionId }
             };
@@ -318,7 +348,7 @@ namespace Stormancer.Server.Plugins.Steam
             const string uri = "ICheatReportingService/RequestVacStatusForUser/v0001/";
             var p = new Dictionary<string, string> {
                 {"key", apiKey },
-                {"appid", _appId.ToString() },
+                {"appid", _configSection.appId.ToString() },
                 {"steamid", steamId },
                 {"session_id", sessionId }
             };
@@ -341,10 +371,7 @@ namespace Stormancer.Server.Plugins.Steam
 
         public async Task<Dictionary<ulong, SteamPlayerSummary>> GetPlayerSummaries(IEnumerable<ulong> steamIds)
         {
-            if (_usemockup)
-            {
-                return steamIds.ToDictionary(id => id, id => new SteamPlayerSummary { personaname = "player" + id.ToString(), steamid = id });
-            }
+           
 
             const string GetPlayerSummariesUri = "ISteamUser/GetPlayerSummaries/V0002/";
 
@@ -460,7 +487,7 @@ namespace Stormancer.Server.Plugins.Steam
 
             var createLobbyInputJson = new
             {
-                appid = _appId,
+                appid = _configSection.appId,
                 lobby_name = lobbyName,
                 lobby_type = (int)LobbyType.FriendsOnly,
                 max_members = maxMembers,
@@ -510,7 +537,7 @@ namespace Stormancer.Server.Plugins.Steam
 
             var removeUserFromLobbyInputJson = new
             {
-                appid = _appId,
+                appid = _configSection.appId,
                 steamid_to_remove = steamIdToRemove,
                 steamid_lobby = steamIDLobby,
             };

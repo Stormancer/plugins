@@ -14,8 +14,12 @@
 
 #pragma warning(disable: 4265) // Disable virtual destructor requirement warnings
 #ifndef STORM_NOINCLUDE_STEAM
-#include "steam_api.h"
+#ifndef STORM_STEAM_INCLUDE
+#define STORM_STEAM_INCLUDE "steam_api.h"
 #endif
+#include STORM_STEAM_INCLUDE
+#endif
+
 #pragma warning(default: 4265)
 
 // https://partner.steamgames.com/doc/sdk/api
@@ -38,6 +42,11 @@ namespace Stormancer
 			/// Use "false" to disable.
 			/// </summary>
 			constexpr const char* AuthenticationEnabled = "steam.authentication.enabled";
+
+			/// <summary>
+			/// Set the backend identity string for web API authentication. Must be the same as the 'steam.backendIdentity' configuration option in the server app.
+			/// </summary>
+			constexpr const char* SteamBackendIdentity = "steam.backendIdentity";
 
 			/// <summary>
 			/// The lobbyID the client should connect on authentication. 
@@ -160,6 +169,27 @@ namespace Stormancer
 			virtual SteamIDApp getAppId() = 0;
 		};
 
+		std::string convertEResultToString(EResult result)
+		{
+			switch (result)
+			{
+			case k_EResultOK:
+				return "OK";
+			case k_EResultFail:
+				return "Fail";
+			case k_EResultTimeout:
+				return "Timeout";
+			case k_EResultLimitExceeded:
+				return "LimitExceeded";
+			case k_EResultAccessDenied:
+				return "AccessDenied";
+			case k_EResultNoConnection:
+				return "NoConnection";
+			default:
+				return "Unknow";
+			}
+		}
+
 		namespace details
 		{
 			class SteamPlatformUserId : public Users::PlatformUserId
@@ -222,7 +252,7 @@ namespace Stormancer
 					_connectLobby = config->additionalParameters.find(ConfigurationKeys::ConnectLobby) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::ConnectLobby) : "";
 					_steamApiInitialize = config->additionalParameters.find(ConfigurationKeys::SteamApiInitialize) != config->additionalParameters.end() ? (config->additionalParameters.at(ConfigurationKeys::SteamApiInitialize) != "false") : true;
 					_steamApiRunCallbacks = config->additionalParameters.find(ConfigurationKeys::SteamApiRunCallbacks) != config->additionalParameters.end() ? (config->additionalParameters.at(ConfigurationKeys::SteamApiRunCallbacks) != "false") : true;
-
+					_backendIdentity = config->additionalParameters.find(ConfigurationKeys::SteamBackendIdentity) != config->additionalParameters.end() ? config->additionalParameters.at(ConfigurationKeys::SteamApiRunCallbacks) : "";
 					if (_connectLobby.empty() && config->processLaunchArguments.size() >= 2)
 					{
 						for (auto argi = 0; argi < config->processLaunchArguments.size(); argi++)
@@ -231,7 +261,7 @@ namespace Stormancer
 							{
 								std::string steamIDLobby = config->processLaunchArguments[argi + 1];
 
-								logger->log(LogLevel::Trace, "Steam", "Extract and store connectLobby from processLaunchArguments", steamIDLobby);
+								logger->log(LogLevel::Info, "Steam", "Extracting `+connect_lobby` arg from processLaunchArguments", steamIDLobby);
 
 								_connectLobby = steamIDLobby;
 							}
@@ -242,6 +272,11 @@ namespace Stormancer
 				bool getAuthenticationEnabled() const
 				{
 					return _authenticationEnabled;
+				}
+
+				std::string getBackendIdentity() const
+				{
+					return _backendIdentity;
 				}
 
 				std::string getConnectLobby() const
@@ -270,6 +305,40 @@ namespace Stormancer
 				std::string _connectLobby;
 				bool _steamApiInitialize = true;
 				bool _steamApiRunCallbacks = true;
+				std::string _backendIdentity;
+			};
+
+			struct GetAuthSessionTokenForWebApiContext
+			{
+				GetAuthSessionTokenForWebApiContext(HAuthTicket ticketId)
+					: ticketId(ticketId)
+				{
+
+				}
+
+				HAuthTicket ticketId;
+				pplx::task_completion_event<std::string> tce;
+
+				void onResultReceived(GetTicketForWebApiResponse_t* response, bool failure)
+				{
+					if (ticketId == response->m_hAuthTicket)
+					{
+						if (!failure)
+						{
+							tce.set_exception(std::runtime_error("Failed to get WebApi token : " + convertEResultToString(response->m_eResult)));
+							return;
+						}
+						std::stringstream ss;
+						ss << std::uppercase << std::hex << std::setfill('0');
+						for (int i = 0; i <response->m_cubTicket;i++)
+						{
+							ss << std::setw(2) << static_cast<unsigned>(response->m_rgubTicket[i]);
+						}
+						auto steamTicketHex = ss.str();
+						tce.set(steamTicketHex);
+					}
+					
+				}
 			};
 
 			struct CreateLobbyDto
@@ -457,7 +526,7 @@ namespace Stormancer
 						{
 							if (auto invitationMessenger = _wInvitationMessenger.lock())
 							{
-								_logger->log(LogLevel::Trace, "Steam", "Process launch argument '+connect_lobby'", connectLobbyArgument);
+								_logger->log(LogLevel::Info, "Steam", "Steam process launch argument found: '+connect_lobby'", connectLobbyArgument);
 
 								SteamIDLobby steamIDLobby = std::stoull(connectLobbyArgument);
 
@@ -648,7 +717,7 @@ namespace Stormancer
 						STORM_RETURN_TASK_FROM_EXCEPTION_OPT(std::runtime_error("SteamMatchmaking() returned null"), taskOptions, SteamIDLobby);
 					}
 
-					_logger->log(LogLevel::Trace, "Steam", "Create lobby");
+					_logger->log(LogLevel::Info, "Steam", "Creating lobby");
 
 					std::lock_guard<std::recursive_mutex> lg(_mutex);
 
@@ -730,7 +799,7 @@ namespace Stormancer
 						STORM_RETURN_TASK_FROM_EXCEPTION_OPT(std::runtime_error("SteamMatchmaking() returned null"), actionDispatcher, void);
 					}
 
-					_logger->log(LogLevel::Trace, "Steam", "Join lobby", std::to_string(steamIDLobby));
+					_logger->log(LogLevel::Info, "Steam", "Join lobby", std::to_string(steamIDLobby));
 
 					std::lock_guard<std::recursive_mutex> lg(_mutex);
 
@@ -776,7 +845,7 @@ namespace Stormancer
 						STORM_RETURN_TASK_CANCELED_OPT(actionDispatcher, void);
 					}
 
-					_logger->log(LogLevel::Trace, "Steam", "Leave lobby", std::to_string(steamIDLobby));
+					_logger->log(LogLevel::Info, "Steam", "Leaving lobby", std::to_string(steamIDLobby));
 
 					steamMatchmaking->LeaveLobby(CSteamID(steamIDLobby));
 
@@ -796,7 +865,7 @@ namespace Stormancer
 						STORM_RETURN_TASK_FROM_EXCEPTION_OPT(std::runtime_error("SteamMatchmaking() returned null"), taskOptions, std::vector<Lobby>);
 					}
 
-					_logger->log(LogLevel::Trace, "Steam", "requestLobbyList");
+					_logger->log(LogLevel::Info, "Steam", "requestLobbyList");
 
 					if (lobbyFilter.distanceFilter != ELobbyDistanceFilter::k_ELobbyDistanceFilterDefault)
 					{
@@ -1231,26 +1300,7 @@ namespace Stormancer
 					}
 				}
 
-				std::string convertEResultToString(EResult result)
-				{
-					switch (result)
-					{
-					case k_EResultOK:
-						return "OK";
-					case k_EResultFail:
-						return "Fail";
-					case k_EResultTimeout:
-						return "Timeout";
-					case k_EResultLimitExceeded:
-						return "LimitExceeded";
-					case k_EResultAccessDenied:
-						return "AccessDenied";
-					case k_EResultNoConnection:
-						return "NoConnection";
-					default:
-						return "Unknow";
-					}
-				}
+				
 
 				std::string convertEChatRoomEnterResponseToString(uint32 chatRoomEnterResponse)
 				{
@@ -1710,12 +1760,12 @@ namespace Stormancer
 							auto steamIDLobby = std::stoull(steamIDLobbyIt->second);
 							if (steamIDLobby != 0)
 							{
-								_logger->log(LogLevel::Trace, "Steam", std::string() + "Setting lobby " + (settings.isJoinable ? "" : "not ") + "joinable", std::to_string(steamIDLobby));
+								_logger->log(LogLevel::Debug, "Steam", std::string() + "Setting lobby " + (settings.isJoinable ? "" : "not ") + "joinable", std::to_string(steamIDLobby));
 
 								return steamApi->setLobbyJoinable(steamIDLobby, settings.isJoinable)
 									.then([settings, steamIDLobby, logger = _logger]
 								{
-									logger->log(LogLevel::Trace, "Steam", std::string() + "Lobby " + (settings.isJoinable ? "" : "not ") + "joinable set", std::to_string(steamIDLobby));
+									logger->log(LogLevel::Debug, "Steam", std::string() + "Lobby " + (settings.isJoinable ? "" : "not ") + "joinable set", std::to_string(steamIDLobby));
 								});
 							}
 						}
@@ -1908,6 +1958,8 @@ namespace Stormancer
 			};
 		}
 
+		
+
 		// https://partner.steamgames.com/doc/features/auth#client_to_backend_webapi
 		// https://partner.steamgames.com/doc/api/ISteamUser#GetAuthSessionTicket
 
@@ -1955,18 +2007,8 @@ namespace Stormancer
 
 				std::lock_guard<std::recursive_mutex> lg(_mutex);
 
-				if (_authTce)
-				{
-					_authTce->set_exception(pplx::task_canceled());
-				}
-
-				_authTce = std::make_shared<pplx::task_completion_event<void>>();
-
-				timeout(10s)
-					.register_callback([tce = _authTce]()
-				{
-					tce->set_exception(pplx::task_canceled());
-				});
+				
+				
 
 				std::string steamTicketHex;
 
@@ -1975,30 +2017,32 @@ namespace Stormancer
 				auto steamUser = SteamUser();
 				if (!steamUser)
 				{
-					throw std::runtime_error("SteamUser() returned null");
+					return pplx::task_from_exception<void>(Stormancer::ObjectDeletedException("ISteamUser null"));
+				}
+				
+				if (_steamState->getBackendIdentity().empty())
+				{
+					return pplx::task_from_exception<void>(std::runtime_error("config->additionalParameters[\"steam.backendIdentity\"] must be set to a non empty value."));
 				}
 
-				steamTicket = std::make_shared<std::vector<byte>>(1024);
+				auto hAuthTicket = steamUser->GetAuthTicketForWebApi(_steamState->getBackendIdentity().c_str());
 
-				auto pcbTicket = std::make_shared<uint32>(0);
-				auto hAuthTicket = steamUser->GetAuthSessionTicket(steamTicket->data(), (int)steamTicket->size(), pcbTicket.get(),nullptr);
-
+				auto ctx = std::make_shared<details::GetAuthSessionTokenForWebApiContext>(hAuthTicket);
+				
+				
 				if (hAuthTicket == k_HAuthTicketInvalid)
 				{
 					throw std::runtime_error("Steam : invalid user authentication ticket");
 				}
 
-				return pplx::create_task(*_authTce)
-					.then([fulfillCredentialsCallback, steamTicket]()
-				{
-					std::stringstream ss;
-					ss << std::uppercase << std::hex << std::setfill('0');
-					for (auto b : *steamTicket)
-					{
-						ss << std::setw(2) << static_cast<unsigned>(b);
-					}
-					auto steamTicketHex = ss.str();
+				CCallResult<details::GetAuthSessionTokenForWebApiContext, GetTicketForWebApiResponse_t> cCallResult;
+				cCallResult.Set(hAuthTicket, ctx.get(),&details::GetAuthSessionTokenForWebApiContext::onResultReceived);
 
+
+				
+				return pplx::create_task(ctx->tce)
+					.then([fulfillCredentialsCallback, ctx](std::string steamTicketHex)
+				{
 					fulfillCredentialsCallback(platformName, platformName, steamTicketHex);
 				});
 			}

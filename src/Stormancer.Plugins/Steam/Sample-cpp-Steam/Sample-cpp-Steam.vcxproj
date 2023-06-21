@@ -49,7 +49,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;STORM_API_TEST;WJ2_STEAM;_CRT_SECURE_NO_WARNINGS;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(Stormancer-Steam-SdkPath)\public\steam;$(Stormancer-Cpp-LibPath)\include;$(ProjectDir)..\..\..\..\output\cpp</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(Stormancer-Steam-SdkPath)\public\steam;$(Stormancer-Cpp-LibPath)\include;$(ProjectDir)..\..\..\..\output\cpp;$(STEAMWORKS_PATH)\public\steam</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -68,7 +68,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;STORM_API_TEST;WJ2_STEAM;_CRT_SECURE_NO_WARNINGS;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(Stormancer-Steam-SdkPath)\public\steam;$(Stormancer-Cpp-LibPath)\include;$(ProjectDir)..\..\..\..\output\cpp</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(Stormancer-Steam-SdkPath)\public\steam;$(Stormancer-Cpp-LibPath)\include;$(ProjectDir)..\..\..\..\output\cpp;$(STEAMWORKS_PATH)\public\steam</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>

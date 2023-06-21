@@ -15,7 +15,9 @@ Unreleased
 Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
-
+Added
+*****
+- Added support for the new Steam Authentication tokens introduced with the Steamworks SDK 1.57
 
 4.1.4
 ----------
