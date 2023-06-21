@@ -313,11 +313,13 @@ namespace Stormancer
 				GetAuthSessionTokenForWebApiContext(HAuthTicket ticketId)
 					: ticketId(ticketId)
 				{
+					cCallResult.Set(ticketId, this, &details::GetAuthSessionTokenForWebApiContext::onResultReceived);
 
 				}
 
 				HAuthTicket ticketId;
 				pplx::task_completion_event<std::string> tce;
+				CCallResult<details::GetAuthSessionTokenForWebApiContext, GetTicketForWebApiResponse_t> cCallResult;
 
 				void onResultReceived(GetTicketForWebApiResponse_t* response, bool failure)
 				{
@@ -2035,9 +2037,8 @@ namespace Stormancer
 					throw std::runtime_error("Steam : invalid user authentication ticket");
 				}
 
-				CCallResult<details::GetAuthSessionTokenForWebApiContext, GetTicketForWebApiResponse_t> cCallResult;
-				cCallResult.Set(hAuthTicket, ctx.get(),&details::GetAuthSessionTokenForWebApiContext::onResultReceived);
-
+				
+				
 
 				
 				return pplx::create_task(ctx->tce)
