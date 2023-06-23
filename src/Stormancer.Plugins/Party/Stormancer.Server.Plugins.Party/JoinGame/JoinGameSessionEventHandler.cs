@@ -66,7 +66,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                 string? partyId = await _userSessions.GetSessionData<string>(ctx.Player.Peer.SessionId, "party", CancellationToken.None);
 
 
-
+                
                 lock (state.syncRoot)
                 {
                     if (partyId != null)
@@ -90,11 +90,15 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                     }
                 }
 
-                if (partyId != null)
+                if (partyId != null && (state.UserIdToPartyId.Values.Where(pId=>pId == partyId).Count() == 1))
                 {
                     try
                     {
                         await party.AddPartyToGameSession(partyId,ctx.GameSession.GameSessionId, default);
+                    }
+                    catch(ClientException)
+                    {
+                        //party closed.
                     }
                     catch (Exception ex)
                     {
@@ -114,12 +118,14 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
 
         public async Task OnClientLeaving(ClientLeavingContext ctx)
         {
+          
             if (IsEnabled)
             {
 
                 string? partyId = null;
                 lock (state.syncRoot)
                 {
+                    logger.Log(LogLevel.Info, "gamesession.joinedGameSession.leaving", $"Player {ctx.Player.Player.UserId} leaving {ctx.GameSession.GameSessionId}.", new { state.UserIdToPartyId });
                     state.UserIdToPartyId.Remove(ctx.Player.Player.UserId, out partyId);
 
                     if (partyId != null && state.UserIdToPartyId.Values.Contains(partyId))
@@ -132,11 +138,16 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                 {
                     try
                     {
+                        logger.Log(LogLevel.Info, "gamesession.joinedGameSession.leaving", $"Removing  {ctx.GameSession.GameSessionId} from party {partyId}", new { state.UserIdToPartyId });
                         await party.RemovePartyFromGameSession(partyId,ctx.GameSession.GameSessionId, default);
                     }
                     catch(InvalidOperationException)
                     {
                         //Party already destroyed. Ignore the error.
+                    }
+                    catch(ClientException)
+                    {
+                        //Party closed.
                     }
                 }
 
@@ -146,12 +157,14 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
 
         public async Task OnGameSessionShutdown(Stormancer.Server.Plugins.GameSession.GameSessionShutdownContext ctx)
         {
+            
             if(IsEnabled)
             {
                 var partyIds = new List<string>();
                 lock(state.syncRoot)
                 {
-                    foreach(var entry in state.UserIdToPartyId.Values.Distinct())
+                    logger.Log(LogLevel.Info, "gamesession.joinedGameSession.shutdown", $"Gamesession {ctx.GameSession.GameSessionId} closing.", new { state.UserIdToPartyId });
+                    foreach (var entry in state.UserIdToPartyId.Values.Distinct())
                     {
                         partyIds.Add(entry);
                     }
@@ -161,9 +174,14 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                 {
                     try
                     {
+                        logger.Log(LogLevel.Info, "gamesession.joinedGameSession.shutdown", $"Removing gamesession {ctx.GameSession.GameSessionId} from party {partyId}.", new { state.UserIdToPartyId });
                         await party.RemovePartyFromGameSession(partyId, ctx.GameSession.GameSessionId, default);
                     }
-                    catch (Exception) { }
+                    catch (Exception) 
+                    {
+                        logger.Log(LogLevel.Warn, "gamesession.joinedGameSession.shutdown", $"An error occured while closing gamesession..", new { ctx.GameSession.GameSessionId });
+
+                    }
                 }
             }
         }

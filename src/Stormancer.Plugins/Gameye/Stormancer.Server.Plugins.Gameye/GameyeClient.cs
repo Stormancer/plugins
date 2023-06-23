@@ -21,7 +21,7 @@ namespace Stormancer.Server.Plugins.Gameye
         public string Image { get; set; } = default!;
         public Dictionary<string, string>? Env { get; set; }
 
-        public IEnumerable<string>? Args { get; set; }
+        public IEnumerable<string> Args { get; set; } = Enumerable.Empty<string>();
 
         public bool Restart { get; set; }
 
@@ -117,12 +117,13 @@ namespace Stormancer.Server.Plugins.Gameye
             client.BaseAddress = new Uri("https://api.gameye.io");
             return client;
         }
+
         private async Task<AuthenticationHeaderValue> GetAuthorizationHeaderAsync()
         {
 
             var token = await _tokenCache.Get(0, async (_) =>
             {
-                var section = _configuration.GetValue<GameyeConfigurationSection>(GameyeConfigurationSection.PATH, new GameyeConfigurationSection());
+                var section = _configuration.GetValue(GameyeConfigurationSection.PATH, new GameyeConfigurationSection());
                 if (section.AuthenticationKeyPath != null)
                 {
                     return (await GetAuthenticationTokenAsync(section.AuthenticationKeyPath), TimeSpan.FromMinutes(section.AuthenticationKeyRefreshTimeSeconds));
@@ -235,7 +236,7 @@ namespace Stormancer.Server.Plugins.Gameye
             request.Headers.Authorization = await GetAuthorizationHeaderAsync();
             using var response = await _httpClient.SendAsync(request, cancellationToken);
 
-            if (response.StatusCode == HttpStatusCode.NoContent)
+            if (response.StatusCode == HttpStatusCode.NoContent || response.StatusCode == HttpStatusCode.Conflict)
             {
                 return Result<GameyeServerError>.Succeeded();
             }

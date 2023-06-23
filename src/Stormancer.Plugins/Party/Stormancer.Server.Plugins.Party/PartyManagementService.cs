@@ -100,11 +100,20 @@ namespace Stormancer.Server.PartyManagement
 
         public async Task<Result<string, string>> CreateConnectionTokenFromPartyId(string partyId, byte[] userData, CancellationToken cancellationToken)
         {
-            var sceneUri = await _serviceLocator.GetSceneId(PartyPlugin.PARTY_SERVICEID, partyId);
-
-            if (sceneUri == null)
+            string? sceneUri;
+            //HACK Windjammers 2. REMOVE
+            if (!partyId.StartsWith("party-"))
             {
-                return Result<string, string>.Failed("notFound");
+                sceneUri = await _serviceLocator.GetSceneId(PartyPlugin.PARTY_SERVICEID, partyId);
+
+                if (sceneUri == null)
+                {
+                    return Result<string, string>.Failed("notFound");
+                }
+            }
+            else
+            {
+                sceneUri = partyId;
             }
 
             var result = await _management.CreateConnectionTokenAsync(sceneUri, userData, "party/userdata", cancellationToken);

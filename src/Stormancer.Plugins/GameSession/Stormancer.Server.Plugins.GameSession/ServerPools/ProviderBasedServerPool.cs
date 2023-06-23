@@ -31,6 +31,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -72,12 +73,16 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                 return false;
             }
             logger.Log(LogLevel.Info, "serverpools", $"Creating provider based pool {id} of type {pId}", new { });
-            pool = new ProviderBasedServerPool(id, provider, logger, scene,_dataProtector);
+            pool = new ProviderBasedServerPool(id, provider, logger, scene, _dataProtector);
             return true;
 
         }
     }
-
+    class GameServerAuthClaims
+    {
+        public string ProviderType { get; set; }
+        public string GameServerId { get; set; }
+    }
     class ProviderBasedServerPool : IServerPool
     {
         private class GameServerRequest
@@ -192,7 +197,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         }
 
 
-   
+
 
         public int ServersReady => _readyServers.Count;
 
@@ -223,11 +228,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             }
             var tcs = new TaskCompletionSource<WaitGameServerResult>();
 
-            var authToken = await _dataProtector.ProtectBase64Url(Encoding.UTF8.GetBytes(gameSessionId), "gameServer");
+            var claims = new GameServerAuthClaims { GameServerId = gameSessionId, ProviderType = provider.Type };
+            var authToken = await _dataProtector.ProtectBase64Url(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(claims)), "gameServer");
 
             record.Pool = this.Id;
             record.PoolType = provider.Type;
-            var result = await provider.TryStartServer(gameSessionId, authToken, this.config,record, cancellationToken);
+            var result = await provider.TryStartServer(gameSessionId, authToken, this.config, record, cancellationToken);
             if (result.Success)
             {
                 var server = new Server { Context = result.Context, GameServer = result.Instance, Id = gameSessionId, Record = record };
@@ -249,7 +255,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                 return new WaitGameServerResult { Success = false };
             }
 
-          
+
         }
 
         public void UpdateConfiguration(JObject config)
@@ -265,7 +271,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         public bool CanManage(Session session, IScenePeerClient peer)
         {
-            return session.platformId.Platform == DedicatedServerAuthProvider.PROVIDER_NAME;
+            return session.platformId.Platform == DedicatedServerAuthProvider.PROVIDER_NAME + "/" + provider.Type;
         }
 
         public async Task<GameServerStartupParameters?> WaitGameSessionAsync(Session session, IScenePeerClient client, CancellationToken cancellationToken)

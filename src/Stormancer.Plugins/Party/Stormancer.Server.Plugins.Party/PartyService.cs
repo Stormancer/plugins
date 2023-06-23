@@ -455,8 +455,7 @@ namespace Stormancer.Server.Plugins.Party
                         newSettingsVersion = _partyState.SettingsVersionNumber + 2;
                     }
 
-                    Log(LogLevel.Info, "UpdateSettings", $"Settings update accepted on party='{this.PartyId}' Version={newSettingsVersion}", partySettingsDto);
-
+                   
                     _partyState.Settings.GameFinderName = partySettingsDto.GameFinderName;
                     _partyState.Settings.CustomData = partySettingsDto.CustomData;
                     _partyState.Settings.OnlyLeaderCanInvite = partySettingsDto.OnlyLeaderCanInvite;
@@ -485,7 +484,7 @@ namespace Stormancer.Server.Plugins.Party
                         _partyState.Settings.PublicServerData = partySettingsDto.PublicServerData;
                     }
                     _partyState.SettingsVersionNumber = newSettingsVersion;
-
+                    Log(LogLevel.Info, "UpdateSettings", $"Updated public server data to party='{this.PartyId}' Version={newSettingsVersion}", partySettingsDto.PublicServerData);
 
                     var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartySettingsUpdated, _scene);
                     partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
@@ -495,12 +494,15 @@ namespace Stormancer.Server.Plugins.Party
                     {
                         await TryCancelPendingGameFinder();
                     }
+                    var msg = new PartySettingsUpdateDto(_partyState);
 
-                    Dictionary<PartyMember, PartySettingsUpdateDto> updates = _partyState.PartyMembers.Values.ToDictionary(m => m, _ => new PartySettingsUpdateDto(_partyState));
+                   
+
+                    Dictionary<PartyMember, PartySettingsUpdateDto> updates = _partyState.PartyMembers.Values.ToDictionary(m => m, _ => msg);
 
                     await handlers.RunEventHandler(h => h.OnSendingSettingsUpdateToMembers(new PartySettingsMemberUpdateCtx(this, updates)),
-                    ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnSendingSettingsToMember", ex));
-
+                    ex => _logger.Log(LogLevel.Error, "party", "An error occurred while running OnSendingSettingsToMember", ex));
+                    Log(LogLevel.Info, "UpdateSettings", $"Sending settings update to party='{this.PartyId}' Version={newSettingsVersion}", msg);
                     await BroadcastStateUpdateRpc(PartySettingsUpdateDto.Route, updates);
                 }
                 finally
