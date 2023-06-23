@@ -65,45 +65,50 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
             {
                 string? partyId = await _userSessions.GetSessionData<string>(ctx.Player.Peer.SessionId, "party", CancellationToken.None);
 
-
+                bool shouldCreate = false;
                 
                 lock (state.syncRoot)
                 {
-                    if (partyId != null)
-                    {
-                        state.UserIdToPartyId[ctx.Player.Player.UserId] = partyId;
-                    }
-                    else
+                   
+                    if(partyId == null)
                     {
                         var party = ctx.GameSession.GetGameSessionConfig().Teams.SelectMany(t => t.Parties).FirstOrDefault(p => p.Players.ContainsKey(ctx.Player.Player.UserId));
 
                         if (party != null)
                         {
-                            if (!state.UserIdToPartyId.Values.Contains(party.PartyId))
-                            {
-                                partyId = party.PartyId;
-                            }
-                            state.UserIdToPartyId[ctx.Player.Player.UserId] = party.PartyId;
+                           
 
                             partyId = party.PartyId;
                         }
                     }
+
+                    if(partyId!=null)
+                    {
+                        if (!state.UserIdToPartyId.Values.Contains(partyId))
+                        {
+                            shouldCreate = true;
+                        }
+                        state.UserIdToPartyId[ctx.Player.Player.UserId] = partyId;
+                    }
                 }
 
-                if (partyId != null && (state.UserIdToPartyId.Values.Where(pId=>pId == partyId).Count() == 1))
+                if (partyId != null)
                 {
-                    try
+                    if (shouldCreate)
                     {
-                        await party.AddPartyToGameSession(partyId,ctx.GameSession.GameSessionId, default);
-                    }
-                    catch(ClientException)
-                    {
-                        //party closed.
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Log(LogLevel.Error, "party", $"Failed to update the party status (id='{partyId}') with gamesession related informations :", ex);
-                        throw;
+                        try
+                        {
+                            await party.AddPartyToGameSession(partyId, ctx.GameSession.GameSessionId, default);
+                        }
+                        catch (ClientException)
+                        {
+                            //party closed.
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Log(LogLevel.Error, "party", $"Failed to update the party status (id='{partyId}') with gamesession related informations :", ex);
+                            throw;
+                        }
                     }
                 }
                 else
