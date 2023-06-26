@@ -344,6 +344,26 @@ namespace Stormancer
 				}
 
 			}
+			
+			std::string to_string(ELobbyType lobbyType)
+			{
+				switch (lobbyType)
+				{
+				case k_ELobbyTypePrivate:
+					return "private";
+				case k_ELobbyTypeFriendsOnly:
+					return "friendsOnly";
+				case k_ELobbyTypePublic:
+					return "public";
+				case k_ELobbyTypeInvisible:
+					return "invisible";
+				case k_ELobbyTypePrivateUnique:
+					return "privateUnique";
+				default:
+					return std::to_string((int)lobbyType);
+				}
+			}
+			
 
 			struct CreateLobbyDto
 			{
@@ -352,6 +372,9 @@ namespace Stormancer
 				bool joinable = false;
 				std::unordered_map<std::string, std::string> metadata;
 
+				
+
+				
 				MSGPACK_DEFINE(lobbyType, maxMembers, joinable, metadata)
 			};
 			struct CreateLobbyResult
@@ -707,6 +730,20 @@ namespace Stormancer
 
 				pplx::task<SteamIDLobby> createLobby(ELobbyType lobbyType = ELobbyType::k_ELobbyTypeFriendsOnly, int maxMembers = 5, bool joinable = true, const std::unordered_map<std::string, std::string> metadata = std::unordered_map<std::string, std::string>(), pplx::cancellation_token ct = pplx::cancellation_token::none()) override
 				{
+
+					std::string log;
+					log += "joinable=" + std::to_string(joinable);
+					log += ",maxMembers=" + std::to_string(0);
+					log += ",lobbyType=" + to_string(lobbyType);
+					log += ",metadata={";
+
+					for (auto& kvp : metadata)
+					{
+						log += kvp.first + "=" + kvp.second + ",";
+					}
+					log += "}";
+					
+					_logger->log(LogLevel::Info, "steam", "Creating steam lobby.", log);
 					auto actionDispatcher = _wActionDispatcher.lock();
 					auto taskOptions = actionDispatcher ? pplx::task_options(actionDispatcher) : pplx::task_options();
 
@@ -752,7 +789,7 @@ namespace Stormancer
 						auto steamApi = wSteamApi.lock();
 
 						auto task = pplx::task_from_result();
-
+						logger->log(LogLevel::Info, "steam", "Steam lobby created", std::to_string(steamIDLobby));
 						if (!joinable)
 						{
 							steamApi->setLobbyJoinable(steamIDLobby, joinable, ct)
@@ -1184,11 +1221,13 @@ namespace Stormancer
 
 				pplx::task<CreateLobbyResult> onCreateLobbyAsync(CreateLobbyDto createLobbyDto, pplx::cancellation_token cancellationToken)
 				{
+					
 					// Create lobby
 					auto wSteamImpl = STORM_WEAK_FROM_THIS();
 					return createLobby(createLobbyDto.lobbyType, createLobbyDto.maxMembers, createLobbyDto.joinable, createLobbyDto.metadata, cancellationToken)
-						.then([wSteamImpl, wUsersApi = _wUsersApi, cancellationToken](SteamIDLobby steamIDLobby)
+						.then([wSteamImpl, wUsersApi = _wUsersApi,logger = _logger, cancellationToken](SteamIDLobby steamIDLobby)
 					{
+						
 						auto steamImpl = wSteamImpl.lock();
 						if (!steamImpl)
 						{
@@ -1413,8 +1452,7 @@ namespace Stormancer
 
 			inline void SteamImpl::onLobbyDataUpdateCallback(LobbyDataUpdate_t* callback)
 			{
-				_logger->log(LogLevel::Trace, "Steam", std::string() + "Lobby data updated", "success=" + std::to_string(callback->m_bSuccess) + " islobby=" + std::to_string(callback->m_ulSteamIDLobby == callback->m_ulSteamIDMember) + " lobby=" + std::to_string(callback->m_ulSteamIDLobby) + " member=" + std::to_string(callback->m_ulSteamIDMember));
-
+				
 				if (!callback || !CSteamID(callback->m_ulSteamIDLobby).IsValid() || !CSteamID(callback->m_ulSteamIDMember).IsValid())
 				{
 					return;
@@ -1433,6 +1471,8 @@ namespace Stormancer
 
 						if (!callback->m_bSuccess)
 						{
+							_logger->log(LogLevel::Error, "Steam", std::string() + "Update lobby data failed","");
+
 							requestLobbyDataTce.set_exception(std::runtime_error("Steam request lobby data failed (success == false)"));
 						}
 
@@ -1452,9 +1492,12 @@ namespace Stormancer
 						}
 						catch (const std::exception& ex)
 						{
+							_logger->log(LogLevel::Error, "Steam", std::string() + "Fill lobby data failed", ex.what());
+
 							requestLobbyDataTce.set_exception(ex);
 							return;
 						}
+						_logger->log(LogLevel::Info, "Steam", std::string() + "Lobby data updated"," islobby=" + std::to_string(callback->m_ulSteamIDLobby == callback->m_ulSteamIDMember) + " lobby=" + std::to_string(callback->m_ulSteamIDLobby) + " member=" + std::to_string(callback->m_ulSteamIDMember));
 
 						requestLobbyDataTce.set(lobby);
 					}
@@ -1501,14 +1544,16 @@ namespace Stormancer
 			{
 				std::lock_guard<std::recursive_mutex> lg(_mutex);
 
-				_logger->log(LogLevel::Trace, "Steam", "Lobby created", std::to_string(callback->m_ulSteamIDLobby));
+				
 
 				if (failure || callback->m_eResult != EResult::k_EResultOK)
 				{
+					_logger->log(LogLevel::Info, "Steam", "Lobby creation failed", convertEResultToString(callback->m_eResult));
+				
 					_lobbyCreatedTce->set_exception(std::runtime_error("Create lobby failed (" + convertEResultToString(callback->m_eResult) + ")"));
 					return;
 				}
-
+				_logger->log(LogLevel::Info, "Steam", "Lobby created", std::to_string(callback->m_ulSteamIDLobby));
 				_lobbyCreatedTce->set(callback->m_ulSteamIDLobby);
 			}
 
