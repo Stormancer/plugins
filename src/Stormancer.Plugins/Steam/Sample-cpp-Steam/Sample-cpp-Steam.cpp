@@ -51,6 +51,7 @@ int main(int argc, char* argv[])
 	{
 		while (!disconnected)
 		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 			actionDispatcher->update(std::chrono::milliseconds(10));
 		}
 	});
@@ -146,13 +147,13 @@ int main(int argc, char* argv[])
 		.then([](pplx::task<void> task)
 	{
 		try
-	{
-		task.get();
-	}
-	catch (const std::exception& ex)
-	{
-		s_logger->log(Stormancer::LogLevel::Error, "SteamSampleMain", "Create party failed", ex.what());
-	}
+		{
+			task.get();
+		}
+		catch (const std::exception& ex)
+		{
+			s_logger->log(Stormancer::LogLevel::Error, "SteamSampleMain", "Create party failed", ex.what());
+		}
 	})
 		.get();
 
@@ -165,7 +166,22 @@ int main(int argc, char* argv[])
 	//		disconnected = true;
 	//	});
 	//});
+	try
+	{
 
+		auto code = partyApi->createInvitationCode().get();
+
+		std::cout << "Invitation code : " + code;
+
+		std::cin >> code;
+		partyApi->leaveParty().get();
+		partyApi->joinPartyByInvitationCode(code).get();
+
+	}
+	catch (std::exception& ex)
+	{
+		std::cout << ex.what();
+	}
 	mainLoop.join();
 
 	return 0;

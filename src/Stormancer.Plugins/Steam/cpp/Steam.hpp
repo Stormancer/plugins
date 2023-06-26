@@ -387,6 +387,14 @@ namespace Stormancer
 				MSGPACK_DEFINE(success, errorId, errorDetails, steamLobbyId)
 			};
 
+			struct VoidSteamOperationResult
+			{
+				bool success;
+				std::string errorId;
+				std::string errorDetails;
+				MSGPACK_DEFINE(success, errorId, errorDetails)
+			};
+
 			struct JoinLobbyDto
 			{
 				SteamIDLobby steamIDLobby;
@@ -524,6 +532,22 @@ namespace Stormancer
 
 						return steamApi->onCreateLobbyAsync(args, ctx->cancellationToken())
 							.then([ctx](CreateLobbyResult result) {
+							ctx->sendValueTemplated(result);
+						});
+					});
+
+					rpc->addProcedure("Steam.JoinLobby", [wSteamImpl](RpcRequestContext_ptr ctx)
+					{
+						auto steamApi = wSteamImpl.lock();
+						if (!steamApi)
+						{
+							STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
+						}
+
+						auto args = ctx->readObject<JoinLobbyDto>();
+
+						return steamApi->onJoinLobbyAsync(args, ctx->cancellationToken())
+							.then([ctx](VoidSteamOperationResult result) {
 							ctx->sendValueTemplated(result);
 						});
 					});
@@ -733,7 +757,7 @@ namespace Stormancer
 
 					std::string log;
 					log += "joinable=" + std::to_string(joinable);
-					log += ",maxMembers=" + std::to_string(0);
+					log += ",maxMembers=" + std::to_string(maxMembers);
 					log += ",lobbyType=" + to_string(lobbyType);
 					log += ",metadata={";
 
@@ -1217,9 +1241,75 @@ namespace Stormancer
 #pragma region private_methods
 
 
+				pplx::task<VoidSteamOperationResult> onJoinLobbyAsync(JoinLobbyDto& joinLobbyDto, pplx::cancellation_token cancellationToken)
+				{
+					auto wSteamImpl = STORM_WEAK_FROM_THIS();
+					std::weak_ptr<Stormancer::Users::UsersApi> wUsersApi = _wUsersApi;
+				
+					auto steamIDLobby = joinLobbyDto.steamIDLobby;
 
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
 
-				pplx::task<CreateLobbyResult> onCreateLobbyAsync(CreateLobbyDto createLobbyDto, pplx::cancellation_token cancellationToken)
+					// Keep steamIDLobby to leave on party leave
+					_partySteamIDLobby = steamIDLobby;
+
+					return inLobby(steamIDLobby, cancellationToken)
+					.then([steamIDLobby, wSteamImpl,cancellationToken](bool inLobby)
+					{
+						if (inLobby)
+						{
+							// We already are in the lobby, do nothing
+							return pplx::task_from_result();
+						}
+						else
+						{
+							// Join lobby
+							auto steamImpl = wSteamImpl.lock();
+							if (!steamImpl)
+							{
+								STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
+							}
+
+							return steamImpl->joinLobby(steamIDLobby, cancellationToken);
+						}
+					})
+					.then([wSteamImpl, wUsersApi, steamIDLobby,cancellationToken]()
+					{
+						auto steamImpl = wSteamImpl.lock();
+						if (!steamImpl)
+						{
+							STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
+						}
+
+						auto usersApi = wUsersApi.lock();
+						if (!usersApi)
+						{
+							STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("UsersApi"), void);
+						}
+
+						auto myUserId = usersApi->userId();
+						return steamImpl->setLobbyMemberData(steamIDLobby, "stormancer.userId", myUserId, cancellationToken);
+					})
+					.then([](pplx::task<void> t)
+					{
+						VoidSteamOperationResult result;
+						try
+						{
+							t.get();
+							result.success = true;
+						}
+						catch (std::exception& ex)
+						{
+							result.success = false;
+							result.errorDetails = ex.what();
+							result.errorId = ex.what();
+						}
+						return result;
+					});
+				
+				}
+
+				pplx::task<CreateLobbyResult> onCreateLobbyAsync(CreateLobbyDto& createLobbyDto, pplx::cancellation_token cancellationToken)
 				{
 					
 					// Create lobby
@@ -1374,7 +1464,7 @@ namespace Stormancer
 					case k_EChatRoomEnterResponseSuccess:
 						return "Success";
 					default:
-						return "Unknow";
+						return "Unknow-"+std::to_string(chatRoomEnterResponse);
 					}
 				}
 
@@ -1564,8 +1654,7 @@ namespace Stormancer
 
 			inline void SteamImpl::onLobbyEnterCallResult(LobbyEnter_t* callback, bool failure)
 			{
-				_logger->log(LogLevel::Trace, "Steam", "Lobby entered", std::to_string(callback->m_ulSteamIDLobby));
-
+				
 				std::lock_guard<std::recursive_mutex> lg(_mutex);
 
 				auto it = _lobbyEnterEventData.find(callback->m_ulSteamIDLobby);
@@ -1573,8 +1662,15 @@ namespace Stormancer
 				{
 					if (failure || callback->m_EChatRoomEnterResponse != k_EChatRoomEnterResponseSuccess)
 					{
-						it->second.tce.set_exception(std::runtime_error("Enter lobby failed (" + convertEChatRoomEnterResponseToString(callback->m_EChatRoomEnterResponse) + ")"));
+						_logger->log(LogLevel::Info, "Steam", "Failed to join steam lobby "+std::to_string(callback->m_ulSteamIDLobby), convertEChatRoomEnterResponseToString(callback->m_EChatRoomEnterResponse));
+
+						it->second.tce.set_exception(std::runtime_error("steam.joinLobbyFailed(" + convertEChatRoomEnterResponseToString(callback->m_EChatRoomEnterResponse) + ")"));
 						return;
+					}
+					else
+					{
+						_logger->log(LogLevel::Info, "Steam", "Joined steam lobby", std::to_string(callback->m_ulSteamIDLobby));
+
 					}
 
 					it->second.tce.set();

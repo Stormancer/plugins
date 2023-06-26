@@ -200,14 +200,9 @@ namespace Stormancer.Server.Plugins.Steam
                 Metadata = new Dictionary<string, string> { { "partyDataToken", partyDataBearerToken } }
             };
 
-            var packet = await _rpc.Rpc("Steam.CreateLobby", leaderPeer, s => _serializer.Serialize(createLobbyParameters, s), Core.PacketPriority.MEDIUM_PRIORITY, cancellationToken);
+            var createSteamLobbyResult = await leaderPeer.RpcTask<CreateLobbyDto,CreateSteamLobbyResult>("Steam.CreateLobby", createLobbyParameters, cancellationToken);
 
-            CreateSteamLobbyResult createSteamLobbyResult;
-            using (packet)
-            {
-                createSteamLobbyResult = packet.ReadObject<CreateSteamLobbyResult>();
-            }
-
+            
 
             if (!createSteamLobbyResult.Success)
             {
@@ -229,9 +224,8 @@ namespace Stormancer.Server.Plugins.Steam
         private async Task<VoidSteamResult> JoinSteamLobbyAsync(IScenePeerClient target, ulong lobbyId, CancellationToken cancellationToken)
         {
             var joinLobbyParameter = new JoinLobbyArgs { SteamIDLobby = lobbyId };
-            using var packet = await _rpc.Rpc("Steam.JoinLobby", target, s => _serializer.Serialize(joinLobbyParameter, s), Core.PacketPriority.MEDIUM_PRIORITY, cancellationToken);
+            var joinSteamLobbyResult = await target.RpcTask<JoinLobbyArgs, VoidSteamResult>("Steam.JoinLobby", joinLobbyParameter, cancellationToken);
 
-            var joinSteamLobbyResult = packet.ReadObject<VoidSteamResult>();
 
             if (!joinSteamLobbyResult.Success)
             {
