@@ -2416,7 +2416,6 @@ namespace Stormancer
 
 					if (_state.settings.settingsVersionNumber != update.settingsVersionNumber)
 					{
-						_logger->log(LogLevel::Info, "PartyService::ApplySettings", "Applying settings update", update.toString());
 						_state.settings = update;
 						updateGameFinder();
 						this->UpdatedPartySettings(_state.settings);
@@ -2429,7 +2428,7 @@ namespace Stormancer
 
 					if (checkVersionNumber(ctx))
 					{
-						_logger->log(LogLevel::Trace, "PartyService::handleSettingsUpdate", "Received settings update, version = " + std::to_string(_state.settings.settingsVersionNumber));
+						_logger->log(LogLevel::Trace, "PartyService::handleSettingsUpdate", "Received settings update, version = " + std::to_string(_state.version));
 						applySettingsUpdate(ctx->readObject<PartySettingsInternal>());
 					}
 
@@ -3065,17 +3064,15 @@ namespace Stormancer
 					});
 				}
 
-				pplx::task<PartyId> normalizePartyId(const PartyId& partyId, pplx::cancellation_token& ct = pplx::cancellation_token::none())
+				pplx::task<PartyId> normalizePartyId(const PartyId& partyId, pplx::cancellation_token ct = pplx::cancellation_token::none())
 				{
-
-					pplx::task<PartyId> partyIdTask;
 					if (partyId.type == PartyId::TYPE_PARTY_ID)
 					{
-						partyIdTask = pplx::task_from_result(partyId);
+						return pplx::task_from_result(partyId);
 					}
 					else if (partyId.type == PartyId::TYPE_SCENE_ID) // TODO : deprecated, we should get a connexion token from a partyId only
 					{
-						partyIdTask = pplx::task_from_result(partyId);
+						return pplx::task_from_result(partyId);
 					}
 					else
 					{
@@ -3957,7 +3954,7 @@ namespace Stormancer
 						std::weak_ptr<InvitationInternal> wThat(this->shared_from_this());
 						_cancellationSubscription = _impl->subscribeOnInvitationCanceled([wThat]
 						{
-							if (const auto that = wThat.lock())
+							if (auto that = wThat.lock())
 							{
 								if (auto party = that->_party.lock())
 								{
@@ -4013,10 +4010,16 @@ namespace Stormancer
 							STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error(PartyError::Str::InvalidInvitation), void);
 						}
 						_isValid = false;
+						auto impl = this->_impl;
+						auto wParty = _party;
 						return party->normalizePartyId(_impl->getPartyId(), ct)
-							.then([this, party, userMetadata, userData, ct](PartyId partyId)
+							.then([wParty, impl, party, userMetadata, userData, ct](PartyId partyId)
 						{
-							auto partyTask = _impl->accept(party)
+							if (party->isInParty() && partyId == party->getPartyId())
+							{
+								throw std::runtime_error(PartyError::Str::AlreadyInSameParty);
+							}
+							auto partyTask = impl->accept(party)
 
 								.then([party, userMetadata, userData, ct](PartyId partyId)
 							{
@@ -4024,7 +4027,6 @@ namespace Stormancer
 
 							});
 							party->setPartySafe(std::make_shared<pplx::task<std::shared_ptr<PartyContainer>>>(partyTask));
-							auto wParty = _party;
 							return partyTask
 								.then([wParty](pplx::task<std::shared_ptr<PartyContainer>> task)
 							{
@@ -4563,7 +4565,7 @@ namespace Stormancer
 					}
 
 
-					PartyId getPartyId()
+					PartyId getPartyId() override
 					{
 						PartyId partyId;
 						partyId.type = PartyId::TYPE_SCENE_ID;

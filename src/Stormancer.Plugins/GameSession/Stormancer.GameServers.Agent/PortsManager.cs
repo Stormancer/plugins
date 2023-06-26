@@ -14,7 +14,7 @@ namespace Stormancer.GameServers.Agent
         {
 
             _options = new DockerAgentConfigurationOptions();
-            configuration.Bind(_options);
+            configuration.Bind(DockerAgentConfigurationOptions.Section, _options);
         }
 
         private HashSet<ushort> _acquiredPorts = new HashSet<ushort>();

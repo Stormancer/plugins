@@ -25,9 +25,9 @@ using MsgPack.Serialization;
 namespace Stormancer.Server.Plugins.Steam
 {
     /// <summary>
-    /// Join lobby dto.
+    ///  Arguments of a steam join lobby operation on the client.
     /// </summary>
-    public class JoinLobbyDto
+    public class JoinLobbyArgs
     {
         /// <summary>
         /// Steam lobby id.
@@ -35,4 +35,11 @@ namespace Stormancer.Server.Plugins.Steam
         [MessagePackMember(0)]
         public ulong SteamIDLobby { get; set; }
     }
+
+    public class LeaveLobbyArgs
+    {
+
+    }
+
+    
 }

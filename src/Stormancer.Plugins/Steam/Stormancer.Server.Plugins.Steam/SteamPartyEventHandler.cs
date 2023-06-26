@@ -23,6 +23,7 @@
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Configuration;
+using Stormancer.Server.Plugins.Models;
 using Stormancer.Server.Plugins.Party;
 using Stormancer.Server.Plugins.Party.Dto;
 using Stormancer.Server.Plugins.ServiceLocator;
@@ -48,25 +49,17 @@ namespace Stormancer.Server.Plugins.Steam
     {
         public TaskQueue TaskQueue { get; } = new();
 
-        public ulong SteamIDLobby { get; set; } = 0;
+        public ulong? SteamIDLobby { get; set; }
         public SessionId CurrentLeaderSessionId { get; set; }
 
-        public int NumMembers { get => _numMembers; }
+        public int NumMembers => UserData.Count;
 
         // UserData[SessionId] => SteamUserData
         public ConcurrentDictionary<SessionId, SteamUserData> UserData { get; set; } = new();
 
-        public int IncrementNumMembers()
-        {
-            return Interlocked.Increment(ref _numMembers);
-        }
 
-        public int DecrementNumMembers()
-        {
-            return Interlocked.Decrement(ref _numMembers);
-        }
 
-        private int _numMembers = 0;
+
         public bool IsJoinable { get; set; }
     }
 
@@ -76,7 +69,7 @@ namespace Stormancer.Server.Plugins.Steam
     [Priority(int.MinValue)]
     public class SteamPartyEventHandler : IPartyEventHandler
     {
-        private static readonly string LobbyPrefix = "Party-";
+        private const string LobbyPrefix = "Party-";
         private const string PartyLobbyKey = "steam.lobby";
 
         private readonly RpcService _rpc;
@@ -116,193 +109,165 @@ namespace Stormancer.Server.Plugins.Steam
             _configuration = configuration;
         }
 
-        /// <summary>
-        /// Steam behavior on party creating.
-        /// </summary>
-        /// <param name="ctx"></param>
-        /// <returns></returns>
-        public Task OnCreatingParty(PartyCreationContext ctx)
-        {
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Steam behavior on party join denied.
-        /// </summary>
-        /// <param name="ctx"></param>
-        /// <returns></returns>
-        public async Task OnJoinDenied(JoinDeniedContext ctx)
-        {
-            await RemoveUserFromLobby(ctx.Party.ServerData, ctx.Session.SessionId);
-        }
-
+    
+      
         /// <summary>
         /// Steam behavior on party joined.
         /// </summary>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        public Task OnJoined(JoinedPartyContext ctx)
-        {
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Steam behavior on party joining.
-        /// </summary>
-        /// <param name="ctx"></param>
-        /// <returns></returns>
-        public async Task OnJoining(JoiningPartyContext ctx)
+        public async Task OnJoined(JoinedPartyContext ctx)
         {
             if (ctx.Session.platformId.Platform != SteamConstants.PLATFORM_NAME)
             {
                 return;
             }
+            var steamId = (ulong)ctx.Session.User!.GetSteamId()!;
+            var data = (SteamPartyData)ctx.Party.ServerData.GetOrAdd(PartyLobbyKey, new SteamPartyData());
 
-            if (ctx.Accept)
+            if (data.SteamIDLobby == null)
             {
-                if (ctx.Party.Settings.ServerSettings.ShouldCreateSteamLobby() == true)
+
+                var result = await CreateSteamLobbyAsync(ctx.Peer, ctx.Session, ctx.Party, CancellationToken.None);
+
+                if (!result.Success)
                 {
-                    var data = (SteamPartyData)ctx.Party.ServerData.GetOrAdd(PartyLobbyKey, new SteamPartyData());
 
-
-                    if (ctx.Session.User == null)
+                    if (ctx.Party.Settings.ServerSettings.DoNotJoinIfSteamLobbyCreationFailed())
                     {
-                        return;
+                        await ctx.Peer.Disconnect("party.joinDenied?reason=" + result.ErrorId);
+                       
                     }
-
-                    try
-                    {
-                        // Get steamId
-                        var steamId = ctx.Session.User.GetSteamId();
-
-                        if (steamId == null)
-                        {
-                            throw new AggregateException("SteamId is invalid");
-                        }
-
-                        // If the Steam lobby does not exist, we create it
-                        if (data.SteamIDLobby == 0)
-                        {
-                            var lobbyName = $"{LobbyPrefix}{ctx.Party.Settings.PartyId}";
-                            var joinable = ctx.Party.Settings.IsJoinable;
-
-                            var maxMembers = ctx.Party.Settings.ServerSettings.SteamMaxMembers() ?? 5;
-                            var lobbyType = ctx.Party.Settings.ServerSettings.SteamLobbyType() ?? LobbyType.FriendsOnly;
-
-                            _logger.Log(LogLevel.Trace, "SteamPartyEventHandler.OnJoining", "Creating steam lobby...", new
-                            {
-                                ctx.Party.Settings.PartyId,
-                                UserId = ctx.Session.User.Id,
-                                ctx.Session.SessionId
-                            });
-
-                            var partyDataBearerToken = await _steamService.CreatePartyDataBearerToken(ctx.Party.Settings.PartyId, ctx.Session.User.Id, (ulong)steamId);
-                            var createLobbyParameters = new CreateLobbyDto
-                            {
-                                LobbyType = lobbyType,
-                                MaxMembers = maxMembers,
-                                Joinable = joinable,
-                                Metadata = new Dictionary<string, string> { { "partyDataToken", partyDataBearerToken } }
-                            };
-
-                            var packet = await _rpc.Rpc("Steam.CreateLobby", ctx.Peer, s => _serializer.Serialize(createLobbyParameters, s), Core.PacketPriority.MEDIUM_PRIORITY, CancellationToken.None);
-
-                            CreateSteamLobbyResult createSteamLobbyResult;
-                            using (packet)
-                            {
-                                createSteamLobbyResult = packet.ReadObject<CreateSteamLobbyResult>();
-                            }
-
-                           
-                            if (createSteamLobbyResult.Success)
-                            {
-                                var steamIDLobby = createSteamLobbyResult.SteamLobbyId;
-
-                                if (steamIDLobby != 0)
-                                {
-                                    _logger.Log(LogLevel.Trace, "SteamPartyEventHandler.OnJoining", "Steam lobby created by client", new
-                                    {
-                                        steamIDLobby,
-                                        ctx.Party.Settings.PartyId,
-                                        UserId = ctx.Session.User.Id,
-                                        ctx.Session.SessionId
-                                    });
-
-                                    var partySettingsDto = new PartySettingsDto(ctx.Party.State);
-                                    if (partySettingsDto.PublicServerData == null)
-                                    {
-                                        partySettingsDto.PublicServerData = new();
-                                    }
-                                    partySettingsDto.PublicServerData["SteamIDLobby"] = steamIDLobby.ToString();
-                                    _ = ctx.Party.UpdateSettings(partySettingsDto, CancellationToken.None);
-                                    data.SteamIDLobby = steamIDLobby;
-                                    data.UserData[ctx.Session.SessionId] = new SteamUserData { SessionId = ctx.Session.SessionId, SteamId = (ulong)steamId };
-                                    data.IncrementNumMembers();
-                                    data.IsJoinable = joinable;
-                                    data.CurrentLeaderSessionId = ctx.Session.SessionId;
-                                }
-                                else
-                                {
-                                    _logger.Log(LogLevel.Error, "SteamPartyEventHandler.OnJoining", "Steam lobby creation failed", new
-                                    {
-                                        ctx.Party.Settings.PartyId,
-                                        UserId = ctx.Session.User.Id,
-                                        ctx.Session.SessionId
-                                    });
-                                    ctx.Accept = false;
-                                }
-                            }
-                            else
-                            {
-                                _logger.Log(LogLevel.Warn, "steam", $"Failed to create Steam lobby : '{createSteamLobbyResult.ErrorId}' : {createSteamLobbyResult.ErrorDetails}", new { });
-                                ctx.Accept = !ctx.Party.Settings.ServerSettings.DoNotJoinIfSteamLobbyCreationFailed();
-                                if(!ctx.Accept)
-                                {
-                                    ctx.Reason = createSteamLobbyResult.ErrorId;
-                                }
-                            }
-                        }
-                        // else we only join the Steam lobby
-                        else
-                        {
-
-
-                            var joinLobbyParameter = new JoinLobbyDto { SteamIDLobby = data.SteamIDLobby };
-
-                            var result = await _userSessions.SendRequest("Steam.JoinLobby", "", ctx.Session.User.Id, joinLobbyParameter, CancellationToken.None);
-
-                            if (result.Success == false)
-                            {
-                                _logger.Log(LogLevel.Warn, "steam", $"Failed to join Steam lobby : '{result.Error}'", new { });
-
-                                if (ctx.Party.Settings.ServerSettings.DoNotJoinIfSteamLobbyCreationFailed())
-                                {
-                                    ctx.Accept = false;
-                                    return;
-                                }
-
-                            }
-                            data.UserData[ctx.Session.SessionId] = new SteamUserData { SessionId = ctx.Session.SessionId, SteamId = (ulong)steamId };
-
-                            data.IncrementNumMembers();
-
-                        }
-                    }
-                    catch (Exception exception)
-                    {
-                        _logger.Log(LogLevel.Error, "SteamPartyEventHandler.OnJoining", "Steam lobby creation or join failed", new
-                        {
-                            exception,
-                            ctx.Party.Settings.PartyId,
-                            UserId = ctx.Session.User.Id,
-                            ctx.Session.SessionId
-                        });
-                        ctx.Accept = false;
-
-                    }
+                    return;
                 }
+                var steamIDLobby = result.SteamLobbyId;
+                data.SteamIDLobby = steamIDLobby;
+                var partySettingsDto = new PartySettingsDto(ctx.Party.State);
+                if (partySettingsDto.PublicServerData == null)
+                {
+                    partySettingsDto.PublicServerData = new();
+                }
+                partySettingsDto.PublicServerData["SteamIDLobby"] = steamIDLobby.ToString();
+                _ = ctx.Party.UpdateSettings(partySettingsDto, CancellationToken.None);
+                data.SteamIDLobby = steamIDLobby;
+                data.UserData[ctx.Session.SessionId] = new SteamUserData { SessionId = ctx.Session.SessionId, SteamId = steamId};
+
+
+                data.IsJoinable = ctx.Party.Settings.IsJoinable;
+                data.CurrentLeaderSessionId = ctx.Session.SessionId;
             }
+            else
+            {
+                var result = await JoinSteamLobbyAsync(ctx.Peer, data.SteamIDLobby.Value, CancellationToken.None);
+
+                if (!result.Success)
+                {
+
+                    if (ctx.Party.Settings.ServerSettings.DoNotJoinIfSteamLobbyCreationFailed())
+                    {
+                        await ctx.Peer.Disconnect("party.joinDenied?reason=" + result.ErrorId);
+                        
+                    }
+                    return;
+                }
+                data.UserData[ctx.Session.SessionId] = new SteamUserData { SessionId = ctx.Session.SessionId, SteamId = steamId };
+
+
+            }
+
         }
+
+        private async Task<CreateSteamLobbyResult> CreateSteamLobbyAsync(IScenePeerClient leaderPeer, Session leaderSession, IPartyService party, CancellationToken cancellationToken)
+        {
+            if (leaderSession.User == null)
+            {
+                throw new InvalidOperationException("The user must be authenticated with steam.");
+            }
+
+            var steamId = leaderSession.User.GetSteamId();
+            var lobbyName = $"{LobbyPrefix}{party.Settings.PartyId}";
+            var joinable = party.Settings.IsJoinable;
+
+            var maxMembers = party.Settings.ServerSettings.SteamMaxMembers() ?? 5;
+            var lobbyType = party.Settings.ServerSettings.SteamLobbyType() ?? LobbyType.FriendsOnly;
+
+            var partyDataBearerToken = await _steamService.CreatePartyDataBearerToken(party.Settings.PartyId, leaderSession.User.Id, (ulong)steamId);
+            var createLobbyParameters = new CreateLobbyDto
+            {
+                LobbyType = lobbyType,
+                MaxMembers = maxMembers,
+                Joinable = joinable,
+                Metadata = new Dictionary<string, string> { { "partyDataToken", partyDataBearerToken } }
+            };
+
+            var packet = await _rpc.Rpc("Steam.CreateLobby", leaderPeer, s => _serializer.Serialize(createLobbyParameters, s), Core.PacketPriority.MEDIUM_PRIORITY, cancellationToken);
+
+            CreateSteamLobbyResult createSteamLobbyResult;
+            using (packet)
+            {
+                createSteamLobbyResult = packet.ReadObject<CreateSteamLobbyResult>();
+            }
+
+
+            if (!createSteamLobbyResult.Success)
+            {
+                _logger.Log(LogLevel.Error, "SteamPartyEventHandler.OnJoining", "Steam lobby creation failed", new
+                {
+                    party.Settings.PartyId,
+                    UserId = leaderSession.User.Id,
+                    createSteamLobbyResult.ErrorId,
+                    createSteamLobbyResult.ErrorDetails
+                });
+
+            }
+
+
+
+            return createSteamLobbyResult;
+        }
+
+        private async Task<VoidSteamResult> JoinSteamLobbyAsync(IScenePeerClient target, ulong lobbyId, CancellationToken cancellationToken)
+        {
+            var joinLobbyParameter = new JoinLobbyArgs { SteamIDLobby = lobbyId };
+            using var packet = await _rpc.Rpc("Steam.JoinLobby", target, s => _serializer.Serialize(joinLobbyParameter, s), Core.PacketPriority.MEDIUM_PRIORITY, cancellationToken);
+
+            var joinSteamLobbyResult = packet.ReadObject<VoidSteamResult>();
+
+            if (!joinSteamLobbyResult.Success)
+            {
+                _logger.Log(LogLevel.Error, "SteamPartyEventHandler.OnJoining", "Steam lobby join failed", new
+                {
+
+                    joinSteamLobbyResult.ErrorId,
+                    joinSteamLobbyResult.ErrorDetails
+                });
+
+
+            }
+            return joinSteamLobbyResult;
+        }
+
+        private async Task<VoidSteamResult> LeaveSteamLobbyAsync(IScenePeerClient target, ulong lobbyId, CancellationToken cancellationToken)
+        {
+            var joinLobbyParameter = new LeaveLobbyArgs {  };
+            using var packet = await _rpc.Rpc("Steam.LeaveLobby", target, s => _serializer.Serialize(joinLobbyParameter, s), Core.PacketPriority.MEDIUM_PRIORITY, cancellationToken);
+
+            var joinSteamLobbyResult = packet.ReadObject<VoidSteamResult>();
+
+            if (!joinSteamLobbyResult.Success)
+            {
+                _logger.Log(LogLevel.Error, "SteamPartyEventHandler.OnJoining", "Steam lobby join failed", new
+                {
+
+                    joinSteamLobbyResult.ErrorId,
+                    joinSteamLobbyResult.ErrorDetails
+                });
+
+
+            }
+            return joinSteamLobbyResult;
+        }
+
 
         /// <summary>
         /// Steam behavior on party player ready state changed.
@@ -349,19 +314,18 @@ namespace Stormancer.Server.Plugins.Steam
             if (serverData.TryGetValue(PartyLobbyKey, out var dataObject))
             {
                 var data = (SteamPartyData)dataObject;
-                if (data != null && data.SteamIDLobby != 0 && data.UserData.TryGetValue(sessionId, out var steamUserData))
+                if (data != null && data.SteamIDLobby != null && data.UserData.TryGetValue(sessionId, out var steamUserData))
                 {
-                    await data.TaskQueue.PushWork(async () =>
-                    {
-                        await _steamService.RemoveUserFromLobby(steamUserData.SteamId, data.SteamIDLobby);
-                        data.DecrementNumMembers();
-                        data.UserData.TryRemove(sessionId, out var _);
 
-                        if (data.UserData.Count == 0)
-                        {
-                            data.SteamIDLobby = 0;
-                        }
-                    });
+                    await _steamService.RemoveUserFromLobby(steamUserData.SteamId, data.SteamIDLobby.Value);
+
+                    data.UserData.TryRemove(sessionId, out var _);
+
+                    if (data.UserData.Count == 0)
+                    {
+                        data.SteamIDLobby = 0;
+                    }
+
                 }
             }
         }

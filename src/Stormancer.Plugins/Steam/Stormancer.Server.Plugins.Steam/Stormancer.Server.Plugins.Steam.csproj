@@ -5,7 +5,7 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>4.2.0</Version>
+		<Version>4.2.0.1</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -52,7 +52,7 @@
 
 	<Target Name="PostPack" AfterTargets="Pack">
 		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
-		<Copy SourceFiles="@(cpp)" DestinationFolder="$(ProjectDir)../../../../output/cpp/Steam" />
+		<!--<Copy SourceFiles="@(cpp)" DestinationFolder="$(ProjectDir)../../../../output/cpp/Steam" />-->
 	</Target>
 
 </Project>

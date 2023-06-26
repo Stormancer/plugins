@@ -308,7 +308,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 _ = RunOperationCompletedEventHandler((service, handlers, scope) =>
                 {
-                    var joinedCtx = new JoinedPartyContext(service, session, partyUser.UserData);
+                    var joinedCtx = new JoinedPartyContext(service,peer, session, partyUser.UserData);
                     return handlers.RunEventHandler(handler => handler.OnJoined(joinedCtx), exception =>
                     {
                         service.Log(LogLevel.Error, "OnConnected", "An exception was thrown by an OnJoined event handler", new { exception }, peer.SessionId.ToString(), user.Id);
