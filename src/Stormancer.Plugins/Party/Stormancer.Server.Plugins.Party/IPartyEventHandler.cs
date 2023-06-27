@@ -474,7 +474,7 @@ namespace Stormancer.Server.Plugins.Party
         /// </remarks>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        Task OnJoined(JoinedPartyContext ctx);
+        Task OnJoined(JoinedPartyContext ctx) => Task.CompletedTask;
 
         /// <summary>
         /// Fired when a member quits the party (for any reason).

@@ -302,7 +302,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 var partyUser = new PartyMember { UserId = user.Id, StatusInParty = PartyMemberStatus.NotReady, Peer = peer, UserData = userData, LocalPlayers = new List<LocalPlayerInfos> { mainLocalUser } };
                 _partyState.PartyMembers.TryAdd(peer.SessionId, partyUser);
-                // Complete existing invtations for the new user. These invitations should all have been completed by now, but this is hard to guarantee.
+                // Complete existing invitations for the new user. These invitations should all have been completed by now, but this is hard to guarantee.
                 if (_partyState.PendingInvitations.TryGetValue(user.Id, out var invitations))
                 {
                     foreach (var invitation in invitations)
