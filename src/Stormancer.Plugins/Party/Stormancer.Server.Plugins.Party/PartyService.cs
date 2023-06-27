@@ -287,7 +287,8 @@ namespace Stormancer.Server.Plugins.Party
 
                 if(errorId !=null)
                 {
-                    await peer.Disconnect(GenericJoinError+"?reason=errorId");
+                    await Task.Delay(1000);
+                    await peer.Disconnect(GenericJoinError+"?reason="+errorId);
                     return;
                 }
               
