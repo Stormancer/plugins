@@ -116,7 +116,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// </summary>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        public async Task OnJoined(JoinedPartyContext ctx)
+        public async Task OnPreJoined(PreJoinedPartyContext ctx)
         {
             if (ctx.Session.platformId.Platform != SteamConstants.PLATFORM_NAME)
             {
@@ -135,8 +135,8 @@ namespace Stormancer.Server.Plugins.Steam
 
                     if (ctx.Party.Settings.ServerSettings.DoNotJoinIfSteamLobbyCreationFailed())
                     {
-                        await ctx.Peer.Disconnect("party.joinDenied?reason=" + result.ErrorId);
-                       
+                        ctx.ErrorId = result.ErrorId;
+
                     }
                     return;
                 }
@@ -165,7 +165,7 @@ namespace Stormancer.Server.Plugins.Steam
 
                     if (ctx.Party.Settings.ServerSettings.DoNotJoinIfSteamLobbyCreationFailed())
                     {
-                        await ctx.Peer.Disconnect("party.joinDenied?reason=" + result.ErrorId);
+                       ctx.ErrorId = result.ErrorId;
                         
                     }
                     return;

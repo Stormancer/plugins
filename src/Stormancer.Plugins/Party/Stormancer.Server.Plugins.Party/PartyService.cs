@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Autofac.Core;
 using Docker.DotNet.Models;
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
@@ -190,15 +191,7 @@ namespace Stormancer.Server.Plugins.Party
             var handlers = _handlers();
             await _partyState.TaskQueue.PushWork(async () =>
             {
-                //Todo jojo later
-                // Quand un utilisateur essais de ce connecter au party.
-                // Il faut : 
-                //  1. Vérifier via une requ�te S2S si il n'est pas d�j� connecter � un party
-                //      1. R�cup�rer en S2S les informations de session dans les UserSessionData
-                //      1. V�rifier si un party est pr�sent
-                //      1. Si il y a un party demande � celui-ci (S2S) si l'utilisateur et bien connecter dessus.
-                //  2. Si il ne l'est pas alors on continue le pipeline normal
-                //  3. Si il l'est alors on selon la config on change du SA on bloque ou on d�connect depuis l'autre scene et on la co � la nouvelle.
+               
 
                 if (_partyState.MemberCount >= _partyState.Settings.ServerSettings.MaxMembers())
                 {
@@ -262,8 +255,10 @@ namespace Stormancer.Server.Plugins.Party
         {
             await _partyState.TaskQueue.PushWork(async () =>
             {
-                _partyState.PendingAcceptedPeers.Remove(peer);
+
+                var userData = peer.ContentType == "party/userdata" ? peer.UserData : new byte[0];
                 var session = await _userSessions.GetSession(peer, CancellationToken.None);
+
 
                 if (session == null)
                 {
@@ -278,8 +273,28 @@ namespace Stormancer.Server.Plugins.Party
                     return;
                 }
 
+                string? errorId = null;
+                await RunOperationCompletedEventHandler(async (service, handlers, scope) =>
+                {
+                    var joinedCtx = new PreJoinedPartyContext(service, peer, session, userData);
+                    await handlers.RunEventHandler(handler => handler.OnPreJoined(joinedCtx), exception =>
+                    {
+                        service.Log(LogLevel.Error, "OnConnected", "An exception was thrown by an OnJoined event handler", new { exception }, peer.SessionId.ToString(), user.Id);
+                    });
+                    errorId = joinedCtx.ErrorId;
+                });
+
+
+                if(errorId !=null)
+                {
+                    await peer.Disconnect(GenericJoinError+"?reason=errorId");
+                }
+                _partyState.PendingAcceptedPeers.Remove(peer);
+               
+
+
                 await _userSessions.UpdateSessionData(peer.SessionId, "party", _partyState.Settings.PartyId, CancellationToken.None);
-                var userData = peer.ContentType == "party/userdata" ? peer.UserData : new byte[0];
+              
 
                 var profile = await _profiles.GetProfile(user.Id, new Dictionary<string, string> { ["user"] = "summary" }, session, CancellationToken.None);
 
@@ -306,7 +321,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 await BroadcastStateUpdateRpc(MemberConnectedRoute, new PartyMemberDto { PartyUserStatus = partyUser.StatusInParty, UserData = partyUser.UserData, UserId = partyUser.UserId, SessionId = partyUser.Peer.SessionId, LocalPlayers = partyUser.LocalPlayers });
 
-                _ = RunOperationCompletedEventHandler((service, handlers, scope) =>
+                await RunOperationCompletedEventHandler((service, handlers, scope) =>
                 {
                     var joinedCtx = new JoinedPartyContext(service,peer, session, partyUser.UserData);
                     return handlers.RunEventHandler(handler => handler.OnJoined(joinedCtx), exception =>

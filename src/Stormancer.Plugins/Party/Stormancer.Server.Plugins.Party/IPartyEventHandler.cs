@@ -232,6 +232,46 @@ namespace Stormancer.Server.Plugins.Party
         }
     }
 
+
+    /// <summary>
+    /// Context object for the <see cref="IPartyEventHandler.OnJoined(JoinedPartyContext)"/> event.
+    /// </summary>
+    public class PreJoinedPartyContext
+    {
+        /// <summary>
+        /// Gets the party the event originates from.
+        /// </summary>
+        public IPartyService Party { get; }
+
+        /// <summary>
+        /// Gets the Session object of the user who joined the party.
+        /// </summary>
+        public Session Session { get; }
+
+        /// <summary>
+        /// Gets the network peer associated with the player who joined the party.
+        /// </summary>
+        public IScenePeerClient Peer { get; }
+
+        /// <summary>
+        /// Gets or sets user data stored with the member.
+        /// </summary>
+        public byte[] UserData { get; set; }
+        internal PreJoinedPartyContext(IPartyService party, IScenePeerClient peer, Session session, byte[] userData)
+        {
+            Party = party;
+            Peer = peer;
+            Session = session;
+            UserData = userData;
+        }
+
+        /// <summary>
+        /// Gets or sets an error that will cancel connection to the party if set to a non null value.
+        /// </summary>
+        public string? ErrorId { get; set; }
+    }
+
+
     public class QuitPartyContext
     {
         public IPartyService Party { get; }
@@ -484,6 +524,6 @@ namespace Stormancer.Server.Plugins.Party
         /// <remarks>An handler code can prevent the reset from occuring by setting <see cref="PartyMemberReadyStateResetContext.ShouldReset"/> to false.</remarks>
         /// <returns></returns>
         Task OnPlayerReadyStateReset(PartyMemberReadyStateResetContext ctx) => Task.CompletedTask;
-        
+        Task OnPreJoined(PreJoinedPartyContext joinedCtx) => Task.CompletedTask;
     }
 }
