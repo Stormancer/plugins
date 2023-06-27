@@ -255,7 +255,7 @@ namespace Stormancer.Server.Plugins.Party
         {
             await _partyState.TaskQueue.PushWork(async () =>
             {
-
+                _partyState.PendingAcceptedPeers.Remove(peer);
                 var userData = peer.ContentType == "party/userdata" ? peer.UserData : new byte[0];
                 var session = await _userSessions.GetSession(peer, CancellationToken.None);
 
@@ -288,8 +288,9 @@ namespace Stormancer.Server.Plugins.Party
                 if(errorId !=null)
                 {
                     await peer.Disconnect(GenericJoinError+"?reason=errorId");
+                    return;
                 }
-                _partyState.PendingAcceptedPeers.Remove(peer);
+              
                
 
 
