@@ -4009,11 +4009,10 @@ namespace Stormancer
 						{
 							STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error(PartyError::Str::InvalidInvitation), void);
 						}
-						_isValid = false;
 						auto impl = this->_impl;
 						auto wParty = _party;
 						return party->normalizePartyId(_impl->getPartyId(), ct)
-							.then([wParty, impl, party, userMetadata, userData, ct](PartyId partyId)
+							.then([wParty, impl, party, userMetadata, userData, ct, invitation = shared_from_this()](PartyId partyId)
 						{
 							if (party->isInParty() && partyId == party->getPartyId())
 							{
@@ -4031,6 +4030,10 @@ namespace Stormancer
 								.then([wParty](pplx::task<std::shared_ptr<PartyContainer>> task)
 							{
 								triggerPartyJoinedEvents(wParty, task);
+							})
+								.then([invitation]() // On success
+							{
+								invitation->_isValid = false;
 							});
 						});
 
@@ -4406,8 +4409,10 @@ namespace Stormancer
 					{
 						return &invite == other.get();
 					});
-					assert(it != _invitationsNew.end());
-					_invitationsNew.erase(it);
+					if (it != _invitationsNew.end())
+					{
+						_invitationsNew.erase(it);
+					}
 				}
 
 				pplx::task<void> joinPartyBySceneId(const std::string& sceneId, const std::vector<byte>& userData, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
