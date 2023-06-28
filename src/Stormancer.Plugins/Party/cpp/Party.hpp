@@ -1951,6 +1951,7 @@ namespace Stormancer
 				Event<PartySettings> UpdatedPartySettings;
 				Event<std::vector<std::string>> UpdatedInviteList;
 				Event<PartyGameFinderFailure> OnGameFinderFailed;
+				Subscription connectionStateChangedSubscription;
 
 				std::vector<PartyUserDto> members() const
 				{
@@ -2047,7 +2048,7 @@ namespace Stormancer
 						}
 					});
 
-					scene->getConnectionStateChangedObservable().subscribe([wThat](ConnectionState state) {
+					connectionStateChangedSubscription = scene->subscribeConnectionStateChanged([wThat](ConnectionState state) {
 						if (auto that = wThat.lock())
 						{
 							try
@@ -2058,6 +2059,8 @@ namespace Stormancer
 								}
 								else if (state == ConnectionState::Disconnected)
 								{
+									//Unsubscribe
+									that->connectionStateChangedSubscription = nullptr;
 									that->_gameFinder->disconnectFromGameFinder(that->_state.settings.gameFinderName)
 										.then([](pplx::task<void> t)
 									{

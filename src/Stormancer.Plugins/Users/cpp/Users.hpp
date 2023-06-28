@@ -405,7 +405,6 @@ namespace Stormancer
 
 			~UsersApi()
 			{
-				_connectionSubscription.unsubscribe();
 			}
 
 			void setAutoReconnect(bool autoReconnect)
@@ -1088,7 +1087,7 @@ namespace Stormancer
 					auto that = wThat.lock();
 					if (that)
 					{
-						that->_connectionSubscription = scene->getConnectionStateChangedObservable().subscribe([wThat](ConnectionState state)
+						that->_connectionSubscription = scene->subscribeConnectionStateChanged([wThat](ConnectionState state)
 						{
 							auto that = wThat.lock();
 							if (that)
@@ -1352,7 +1351,7 @@ namespace Stormancer
 			std::weak_ptr<IClient> _wClient;
 			GameConnectionState _currentConnectionState;
 			std::string _lastError;
-			rxcpp::composite_subscription _connectionSubscription;
+			Subscription _connectionSubscription;
 			ILogger_ptr _logger;
 			LoginCredentialsResult _lastLoginCredentialsResult;
 
