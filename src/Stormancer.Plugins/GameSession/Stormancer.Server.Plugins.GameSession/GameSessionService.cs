@@ -878,6 +878,11 @@ namespace Stormancer.Server.Plugins.GameSession
                 BroadcastClientUpdate(client, userId);
 
                 await EvaluateGameComplete();
+
+                if(_server!=null && _server.GameServerSessionId == peer.SessionId)
+                {
+                    _scene.Shutdown("gamesession.gameServerLeft");
+                }
             }
 
 
