@@ -479,10 +479,7 @@ namespace Stormancer.Server.Plugins.GameSession
             lock (syncRoot)
             {
 
-                if (!_config.Public && !_config.UserIds.Any(u => u == user))
-                {
-                    throw new ClientException("You are not authorized to join this game.");
-                }
+                
             }
 
             var client = new Client(peer);

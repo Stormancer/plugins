@@ -501,7 +501,7 @@ namespace Stormancer.Server.Plugins.Party
                         _partyState.Settings.PublicServerData = partySettingsDto.PublicServerData;
                     }
                     _partyState.SettingsVersionNumber = newSettingsVersion;
-                    Log(LogLevel.Info, "UpdateSettings", $"Updated public server data to party='{this.PartyId}' Version={newSettingsVersion}", partySettingsDto.PublicServerData);
+                    //Log(LogLevel.Info, "UpdateSettings", $"Updated public server data to party='{this.PartyId}' Version={newSettingsVersion}", partySettingsDto.PublicServerData);
 
                     var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartySettingsUpdated, _scene);
                     partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
@@ -519,7 +519,7 @@ namespace Stormancer.Server.Plugins.Party
 
                     await handlers.RunEventHandler(h => h.OnSendingSettingsUpdateToMembers(new PartySettingsMemberUpdateCtx(this, updates)),
                     ex => _logger.Log(LogLevel.Error, "party", "An error occurred while running OnSendingSettingsToMember", ex));
-                    Log(LogLevel.Info, "UpdateSettings", $"Sending settings update to party='{this.PartyId}' Version={newSettingsVersion}", msg);
+                    //Log(LogLevel.Info, "UpdateSettings", $"Sending settings update to party='{this.PartyId}' Version={newSettingsVersion}", msg);
                     await BroadcastStateUpdateRpc(PartySettingsUpdateDto.Route, updates);
                 }
                 finally
