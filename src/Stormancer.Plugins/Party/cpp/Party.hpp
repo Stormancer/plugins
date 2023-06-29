@@ -3089,6 +3089,11 @@ namespace Stormancer
 					{
 						joinPartyTask.get();
 
+						if (!party->isInParty())
+						{
+							return;
+						}
+
 						party->raiseJoinedParty();
 
 						auto members = party->getPartyMembers();
@@ -3182,7 +3187,9 @@ namespace Stormancer
 
 				bool isInParty() const noexcept override
 				{
-					return tryGetParty() != nullptr;
+					PartyUserDto* _;
+					return tryGetLocalMember(_);
+
 				}
 
 				std::shared_ptr<Scene> getPartyScene() const override
@@ -3210,16 +3217,29 @@ namespace Stormancer
 
 				PartyUserDto getLocalMember() const override
 				{
+					PartyUserDto* result;
+					if (tryGetLocalMember(result))
+					{
+						return *result;
+					}
+					else
+					{
+						throw std::runtime_error(PartyError::Str::NotInParty);
+					}
+				}
+
+				bool tryGetLocalMember(PartyUserDto* localMember) const
+				{
 					auto party = tryGetParty();
 					if (!party)
 					{
-						throw std::runtime_error(PartyError::Str::NotInParty);
+						return false;
 					}
 
 					auto users = _wUsers.lock();
 					if (!users)
 					{
-						throw ObjectDeletedException("UsersApi");
+						return false;
 					}
 
 					auto myId = users->userId();
@@ -3231,10 +3251,15 @@ namespace Stormancer
 
 					if (it != members.end())
 					{
-						return *it;
+					
+						localMember = &*it;
+						return true;
 					}
-					assert(false); // Bug!
-					throw std::runtime_error(PartyError::Str::NotInParty);
+					else
+					{
+						return false;
+					}
+					
 				}
 
 				PartySettings getPartySettings() const override
@@ -3989,11 +4014,10 @@ namespace Stormancer
 						{
 							STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error(PartyError::Str::InvalidInvitation), void);
 						}
-						_isValid = false;
 						auto impl = this->_impl;
 						auto wParty = _party;
 						return party->normalizePartyId(_impl->getPartyId(), ct)
-							.then([wParty, impl, party, userMetadata, userData, ct](PartyId partyId)
+							.then([wParty, impl, party, userMetadata, userData, ct, invitation = shared_from_this()](PartyId partyId)
 						{
 							if (party->isInParty() && partyId == party->getPartyId())
 							{
@@ -4011,6 +4035,10 @@ namespace Stormancer
 								.then([wParty](pplx::task<std::shared_ptr<PartyContainer>> task)
 							{
 								triggerPartyJoinedEvents(wParty, task);
+							})
+								.then([invitation]() // On success
+							{
+								invitation->_isValid = false;
 							});
 						});
 
@@ -4386,8 +4414,10 @@ namespace Stormancer
 					{
 						return &invite == other.get();
 					});
-					assert(it != _invitationsNew.end());
-					_invitationsNew.erase(it);
+					if (it != _invitationsNew.end())
+					{
+						_invitationsNew.erase(it);
+					}
 				}
 
 				pplx::task<void> joinPartyBySceneId(const std::string& sceneId, const std::vector<byte>& userData, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
