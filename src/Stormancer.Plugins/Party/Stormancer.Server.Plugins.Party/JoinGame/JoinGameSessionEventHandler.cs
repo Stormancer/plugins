@@ -130,7 +130,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                 string? partyId = null;
                 lock (state.syncRoot)
                 {
-                    logger.Log(LogLevel.Info, "gamesession.joinedGameSession.leaving", $"Player {ctx.Player.Player.UserId} leaving {ctx.GameSession.GameSessionId}.", new { state.UserIdToPartyId });
+                    //logger.Log(LogLevel.Info, "gamesession.joinedGameSession.leaving", $"Player {ctx.Player.Player.UserId} leaving {ctx.GameSession.GameSessionId}.", new { state.UserIdToPartyId });
                     state.UserIdToPartyId.Remove(ctx.Player.Player.UserId, out partyId);
 
                     if (partyId != null && state.UserIdToPartyId.Values.Contains(partyId))
@@ -143,7 +143,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                 {
                     try
                     {
-                        logger.Log(LogLevel.Info, "gamesession.joinedGameSession.leaving", $"Removing  {ctx.GameSession.GameSessionId} from party {partyId}", new { state.UserIdToPartyId });
+                        //logger.Log(LogLevel.Info, "gamesession.joinedGameSession.leaving", $"Removing  {ctx.GameSession.GameSessionId} from party {partyId}", new { state.UserIdToPartyId });
                         await party.RemovePartyFromGameSession(partyId,ctx.GameSession.GameSessionId, default);
                     }
                     catch(InvalidOperationException)
@@ -168,7 +168,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                 var partyIds = new List<string>();
                 lock(state.syncRoot)
                 {
-                    logger.Log(LogLevel.Info, "gamesession.joinedGameSession.shutdown", $"Gamesession {ctx.GameSession.GameSessionId} closing.", new { state.UserIdToPartyId });
+                    //logger.Log(LogLevel.Info, "gamesession.joinedGameSession.shutdown", $"Gamesession {ctx.GameSession.GameSessionId} closing.", new { state.UserIdToPartyId });
                     foreach (var entry in state.UserIdToPartyId.Values.Distinct())
                     {
                         partyIds.Add(entry);
@@ -179,7 +179,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                 {
                     try
                     {
-                        logger.Log(LogLevel.Info, "gamesession.joinedGameSession.shutdown", $"Removing gamesession {ctx.GameSession.GameSessionId} from party {partyId}.", new { state.UserIdToPartyId });
+                        //logger.Log(LogLevel.Info, "gamesession.joinedGameSession.shutdown", $"Removing gamesession {ctx.GameSession.GameSessionId} from party {partyId}.", new { state.UserIdToPartyId });
                         await party.RemovePartyFromGameSession(partyId, ctx.GameSession.GameSessionId, default);
                     }
                     catch (Exception) 

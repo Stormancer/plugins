@@ -676,6 +676,8 @@ namespace Stormancer
 
 			pplx::task<std::shared_ptr<Scene>> getAuthenticationScene(pplx::cancellation_token ct = pplx::cancellation_token::none())
 			{
+				std::lock_guard<std::mutex> lock_gard(_loginMutex);
+
 				if (_wClient.expired())
 				{
 					STORM_RETURN_TASK_FROM_EXCEPTION_OPT(ObjectDeletedException("Client"), _userDispatcher, std::shared_ptr<Scene>);
@@ -1354,6 +1356,7 @@ namespace Stormancer
 			Subscription _connectionSubscription;
 			ILogger_ptr _logger;
 			LoginCredentialsResult _lastLoginCredentialsResult;
+			std::mutex _loginMutex;
 
 			//Task that completes when the user is authenticated.
 			std::shared_ptr<pplx::task<std::shared_ptr<Scene>>> _authTask;

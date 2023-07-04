@@ -215,16 +215,62 @@ namespace Stormancer.Server.Plugins.Party
         public Session Session { get; }
 
         /// <summary>
+        /// Gets the network peer associated with the player who joined the party.
+        /// </summary>
+        public IScenePeerClient Peer { get; }
+
+        /// <summary>
         /// Gets or sets user data stored with the member.
         /// </summary>
         public byte[] UserData { get; set; }
-        internal JoinedPartyContext(IPartyService party, Session session, byte[] userData)
+        internal JoinedPartyContext(IPartyService party, IScenePeerClient peer, Session session, byte[] userData)
         {
             Party = party;
+            Peer = peer;
             Session = session;
             UserData = userData;
         }
     }
+
+
+    /// <summary>
+    /// Context object for the <see cref="IPartyEventHandler.OnJoined(JoinedPartyContext)"/> event.
+    /// </summary>
+    public class PreJoinedPartyContext
+    {
+        /// <summary>
+        /// Gets the party the event originates from.
+        /// </summary>
+        public IPartyService Party { get; }
+
+        /// <summary>
+        /// Gets the Session object of the user who joined the party.
+        /// </summary>
+        public Session Session { get; }
+
+        /// <summary>
+        /// Gets the network peer associated with the player who joined the party.
+        /// </summary>
+        public IScenePeerClient Peer { get; }
+
+        /// <summary>
+        /// Gets or sets user data stored with the member.
+        /// </summary>
+        public byte[] UserData { get; set; }
+        internal PreJoinedPartyContext(IPartyService party, IScenePeerClient peer, Session session, byte[] userData)
+        {
+            Party = party;
+            Peer = peer;
+            Session = session;
+            UserData = userData;
+        }
+
+        /// <summary>
+        /// Gets or sets an error that will cancel connection to the party if set to a non null value.
+        /// </summary>
+        public string? ErrorId { get; set; }
+    }
+
 
     public class QuitPartyContext
     {
@@ -367,7 +413,7 @@ namespace Stormancer.Server.Plugins.Party
         /// </remarks>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        Task OnCreatingParty(PartyCreationContext ctx);
+        Task OnCreatingParty(PartyCreationContext ctx) => Task.CompletedTask;
 
         /// <summary>
         /// Fired when a request to update the party settings is issued by the party leader.
@@ -408,7 +454,7 @@ namespace Stormancer.Server.Plugins.Party
         /// </remarks>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        Task OnJoining(JoiningPartyContext ctx);
+        Task OnJoining(JoiningPartyContext ctx) => Task.CompletedTask;
 
         /// <summary>
         /// Fired when a connecting user has been denied entry, either by an OnJoining handler or an external component.
@@ -418,7 +464,7 @@ namespace Stormancer.Server.Plugins.Party
         /// </remarks>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        Task OnJoinDenied(JoinDeniedContext ctx);
+        Task OnJoinDenied(JoinDeniedContext ctx) => Task.CompletedTask;
 
         /// <summary>
         /// Fired when a new user has entered the party, if they were accepted by <c>OnJoining</c> handlers.
@@ -428,7 +474,7 @@ namespace Stormancer.Server.Plugins.Party
         /// </remarks>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        Task OnJoined(JoinedPartyContext ctx);
+        Task OnJoined(JoinedPartyContext ctx) => Task.CompletedTask;
 
         /// <summary>
         /// Fired when a member quits the party (for any reason).
@@ -478,6 +524,6 @@ namespace Stormancer.Server.Plugins.Party
         /// <remarks>An handler code can prevent the reset from occuring by setting <see cref="PartyMemberReadyStateResetContext.ShouldReset"/> to false.</remarks>
         /// <returns></returns>
         Task OnPlayerReadyStateReset(PartyMemberReadyStateResetContext ctx) => Task.CompletedTask;
-        
+        Task OnPreJoined(PreJoinedPartyContext joinedCtx) => Task.CompletedTask;
     }
 }

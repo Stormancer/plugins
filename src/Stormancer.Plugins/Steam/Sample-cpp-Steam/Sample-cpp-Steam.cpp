@@ -27,10 +27,13 @@ int main(int argc, char* argv[])
 	{
 		config->processLaunchArguments.push_back(argv[argi]);
 	}
+
 	config->additionalParameters[Stormancer::Steam::ConfigurationKeys::AuthenticationEnabled] = "true";
 	config->additionalParameters[Stormancer::Steam::ConfigurationKeys::SteamApiInitialize] = "true";
 	config->additionalParameters[Stormancer::Steam::ConfigurationKeys::SteamApiRunCallbacks] = "true";
 	config->additionalParameters[Stormancer::GameVersion::ConfigurationKeys::ClientVersion] = STORM_CLIENT_VERSION;
+	config->additionalParameters[Stormancer::Steam::ConfigurationKeys::SteamBackendIdentity] = "ravenswatch";
+
 	config->addPlugin(new Stormancer::Users::UsersPlugin());
 	config->addPlugin(new Stormancer::GameFinder::GameFinderPlugin());
 	config->addPlugin(new Stormancer::Party::PartyPlugin());
@@ -48,6 +51,7 @@ int main(int argc, char* argv[])
 	{
 		while (!disconnected)
 		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 			actionDispatcher->update(std::chrono::milliseconds(10));
 		}
 	});
@@ -107,28 +111,28 @@ int main(int argc, char* argv[])
 			throw std::runtime_error("Bad json type: not an object");
 		}
 
-		Stormancer::web::json::value& accountIdValue = jsonValue.as_object().at(Stormancer::utility::conversions::to_string_t("accountId"));
+		Stormancer::web::json::value& accountIdValue = jsonValue.as_object().at(Stormancer::utility::conversions::to_string_t("steamid"));
 		if (accountIdValue.type() != Stormancer::web::json::value::value_type::String)
 		{
 			throw std::runtime_error("Bad json type: not a string");
 		}
 		std::string accountId = Stormancer::utility::conversions::to_utf8string(accountIdValue.as_string());
 
-		Stormancer::web::json::value& productUserIdValue = jsonValue.as_object().at(Stormancer::utility::conversions::to_string_t("productUserId"));
-		if (productUserIdValue.type() != Stormancer::web::json::value::value_type::String)
+		Stormancer::web::json::value& personaNameValue = jsonValue.as_object().at(Stormancer::utility::conversions::to_string_t("personaname"));
+		if (personaNameValue.type() != Stormancer::web::json::value::value_type::String)
 		{
 			throw std::runtime_error("Bad json type: not a string");
 		}
-		std::string productUserId = Stormancer::utility::conversions::to_utf8string(productUserIdValue.as_string());
+		std::string personaName = Stormancer::utility::conversions::to_utf8string(personaNameValue.as_string());
 
-		Stormancer::web::json::value& displayNameValue = jsonValue.as_object().at(Stormancer::utility::conversions::to_string_t("displayName"));
+		Stormancer::web::json::value& displayNameValue = jsonValue.as_object().at(Stormancer::utility::conversions::to_string_t("avatar"));
 		if (displayNameValue.type() != Stormancer::web::json::value::value_type::String)
 		{
 			throw std::runtime_error("Bad json type: not a string");
 		}
 		std::string displayName = Stormancer::utility::conversions::to_utf8string(displayNameValue.as_string());
 
-		s_logger->log(Stormancer::LogLevel::Info, "SampleMain", "Profile retrieved", "AccountId=" + accountId + "; ProductUserId=" + productUserId + "; DisplayName=" + displayName);
+		s_logger->log(Stormancer::LogLevel::Info, "SampleMain", "Profile retrieved", "AccountId=" + accountId + "; personaName=" + personaName + "; DisplayName=" + displayName);
 	}
 	catch (const std::exception& ex)
 	{
@@ -138,17 +142,18 @@ int main(int argc, char* argv[])
 	Stormancer::Party::PartyCreationOptions partyCreationOptions;
 	partyCreationOptions.isJoinable = true;
 	partyCreationOptions.isPublic = true;
+	partyCreationOptions.GameFinderName = STORM_GAMEFINDER_NAME;
 	partyApi->createParty(partyCreationOptions)
 		.then([](pplx::task<void> task)
 	{
 		try
-	{
-		task.get();
-	}
-	catch (const std::exception& ex)
-	{
-		s_logger->log(Stormancer::LogLevel::Error, "SteamSampleMain", "Create party failed", ex.what());
-	}
+		{
+			task.get();
+		}
+		catch (const std::exception& ex)
+		{
+			s_logger->log(Stormancer::LogLevel::Error, "SteamSampleMain", "Create party failed", ex.what());
+		}
 	})
 		.get();
 
@@ -161,7 +166,22 @@ int main(int argc, char* argv[])
 	//		disconnected = true;
 	//	});
 	//});
+	try
+	{
 
+		auto code = partyApi->createInvitationCode().get();
+
+		std::cout << "Invitation code : " + code;
+
+		std::cin >> code;
+		partyApi->leaveParty().get();
+		partyApi->joinPartyByInvitationCode(code).get();
+
+	}
+	catch (std::exception& ex)
+	{
+		std::cout << ex.what();
+	}
 	mainLoop.join();
 
 	return 0;

@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Autofac.Core;
 using Docker.DotNet.Models;
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
@@ -190,15 +191,7 @@ namespace Stormancer.Server.Plugins.Party
             var handlers = _handlers();
             await _partyState.TaskQueue.PushWork(async () =>
             {
-                //Todo jojo later
-                // Quand un utilisateur essais de ce connecter au party.
-                // Il faut : 
-                //  1. Vérifier via une requ�te S2S si il n'est pas d�j� connecter � un party
-                //      1. R�cup�rer en S2S les informations de session dans les UserSessionData
-                //      1. V�rifier si un party est pr�sent
-                //      1. Si il y a un party demande � celui-ci (S2S) si l'utilisateur et bien connecter dessus.
-                //  2. Si il ne l'est pas alors on continue le pipeline normal
-                //  3. Si il l'est alors on selon la config on change du SA on bloque ou on d�connect depuis l'autre scene et on la co � la nouvelle.
+               
 
                 if (_partyState.MemberCount >= _partyState.Settings.ServerSettings.MaxMembers())
                 {
@@ -263,7 +256,9 @@ namespace Stormancer.Server.Plugins.Party
             await _partyState.TaskQueue.PushWork(async () =>
             {
                 _partyState.PendingAcceptedPeers.Remove(peer);
+                var userData = peer.ContentType == "party/userdata" ? peer.UserData : new byte[0];
                 var session = await _userSessions.GetSession(peer, CancellationToken.None);
+
 
                 if (session == null)
                 {
@@ -278,8 +273,30 @@ namespace Stormancer.Server.Plugins.Party
                     return;
                 }
 
+                string? errorId = null;
+                await RunOperationCompletedEventHandler(async (service, handlers, scope) =>
+                {
+                    var joinedCtx = new PreJoinedPartyContext(service, peer, session, userData);
+                    await handlers.RunEventHandler(handler => handler.OnPreJoined(joinedCtx), exception =>
+                    {
+                        service.Log(LogLevel.Error, "OnConnected", "An exception was thrown by an OnJoined event handler", new { exception }, peer.SessionId.ToString(), user.Id);
+                    });
+                    errorId = joinedCtx.ErrorId;
+                });
+
+
+                if(errorId !=null)
+                {
+                    await Task.Delay(1000);
+                    await peer.Disconnect(GenericJoinError+"?reason="+errorId);
+                    return;
+                }
+              
+               
+
+
                 await _userSessions.UpdateSessionData(peer.SessionId, "party", _partyState.Settings.PartyId, CancellationToken.None);
-                var userData = peer.ContentType == "party/userdata" ? peer.UserData : new byte[0];
+              
 
                 var profile = await _profiles.GetProfile(user.Id, new Dictionary<string, string> { ["user"] = "summary" }, session, CancellationToken.None);
 
@@ -287,7 +304,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 var partyUser = new PartyMember { UserId = user.Id, StatusInParty = PartyMemberStatus.NotReady, Peer = peer, UserData = userData, LocalPlayers = new List<LocalPlayerInfos> { mainLocalUser } };
                 _partyState.PartyMembers.TryAdd(peer.SessionId, partyUser);
-                // Complete existing invtations for the new user. These invitations should all have been completed by now, but this is hard to guarantee.
+                // Complete existing invitations for the new user. These invitations should all have been completed by now, but this is hard to guarantee.
                 if (_partyState.PendingInvitations.TryGetValue(user.Id, out var invitations))
                 {
                     foreach (var invitation in invitations)
@@ -306,9 +323,9 @@ namespace Stormancer.Server.Plugins.Party
 
                 await BroadcastStateUpdateRpc(MemberConnectedRoute, new PartyMemberDto { PartyUserStatus = partyUser.StatusInParty, UserData = partyUser.UserData, UserId = partyUser.UserId, SessionId = partyUser.Peer.SessionId, LocalPlayers = partyUser.LocalPlayers });
 
-                _ = RunOperationCompletedEventHandler((service, handlers, scope) =>
+                await RunOperationCompletedEventHandler((service, handlers, scope) =>
                 {
-                    var joinedCtx = new JoinedPartyContext(service, session, partyUser.UserData);
+                    var joinedCtx = new JoinedPartyContext(service,peer, session, partyUser.UserData);
                     return handlers.RunEventHandler(handler => handler.OnJoined(joinedCtx), exception =>
                     {
                         service.Log(LogLevel.Error, "OnConnected", "An exception was thrown by an OnJoined event handler", new { exception }, peer.SessionId.ToString(), user.Id);
@@ -484,7 +501,7 @@ namespace Stormancer.Server.Plugins.Party
                         _partyState.Settings.PublicServerData = partySettingsDto.PublicServerData;
                     }
                     _partyState.SettingsVersionNumber = newSettingsVersion;
-                    Log(LogLevel.Info, "UpdateSettings", $"Updated public server data to party='{this.PartyId}' Version={newSettingsVersion}", partySettingsDto.PublicServerData);
+                    //Log(LogLevel.Info, "UpdateSettings", $"Updated public server data to party='{this.PartyId}' Version={newSettingsVersion}", partySettingsDto.PublicServerData);
 
                     var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartySettingsUpdated, _scene);
                     partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
@@ -502,7 +519,7 @@ namespace Stormancer.Server.Plugins.Party
 
                     await handlers.RunEventHandler(h => h.OnSendingSettingsUpdateToMembers(new PartySettingsMemberUpdateCtx(this, updates)),
                     ex => _logger.Log(LogLevel.Error, "party", "An error occurred while running OnSendingSettingsToMember", ex));
-                    Log(LogLevel.Info, "UpdateSettings", $"Sending settings update to party='{this.PartyId}' Version={newSettingsVersion}", msg);
+                    //Log(LogLevel.Info, "UpdateSettings", $"Sending settings update to party='{this.PartyId}' Version={newSettingsVersion}", msg);
                     await BroadcastStateUpdateRpc(PartySettingsUpdateDto.Route, updates);
                 }
                 finally
@@ -855,34 +872,41 @@ namespace Stormancer.Server.Plugins.Party
             {
                 cts.CancelAfter(_clientRpcTimeout);
 
-                await Task.WhenAll(
-                    dataPerMember.Select(kvp =>
-                        _rpcService.Rpc(
-                            route,
-                            kvp.Key.Peer,
-                            s =>
+                try
+                {
+                    await Task.WhenAll(
+                        dataPerMember.Select(kvp =>
+                            _rpcService.Rpc(
+                                route,
+                                kvp.Key.Peer,
+                                s =>
+                                {
+                                    kvp.Key.Peer.Serializer().Serialize(_partyState.VersionNumber, s);
+                                    kvp.Key.Peer.Serializer().Serialize(kvp.Value, s);
+                                },
+                                PacketPriority.MEDIUM_PRIORITY,
+                                cts.Token
+                            ).LastOrDefaultAsync().ToTask()
+                            .ContinueWith(task =>
                             {
-                                kvp.Key.Peer.Serializer().Serialize(_partyState.VersionNumber, s);
-                                kvp.Key.Peer.Serializer().Serialize(kvp.Value, s);
-                            },
-                            PacketPriority.MEDIUM_PRIORITY,
-                            cts.Token
-                        ).LastOrDefaultAsync().ToTask()
-                        .ContinueWith(task =>
-                        {
-                            if (task.IsFaulted && !(task.Exception?.InnerException is OperationCanceledException))
-                            {
-                                Log(
-                                    LogLevel.Trace,
-                                    "BroadcastStateUpdateRpc",
-                                    $"An error occurred during a client RPC (route: '{route}')",
-                                    new { kvp.Key.UserId, kvp.Key.Peer.SessionId, task.Exception, Route = route },
-                                    kvp.Key.UserId, kvp.Key.Peer.SessionId.ToString()
-                                );
-                            }
-                        })
-                    ) // dataPerMember.Select()
-                ); // Task.WhenAll()
+                                if (task.IsFaulted && !(task.Exception?.InnerException is OperationCanceledException))
+                                {
+                                    Log(
+                                        LogLevel.Trace,
+                                        "BroadcastStateUpdateRpc",
+                                        $"An error occurred during a client RPC (route: '{route}')",
+                                        new { kvp.Key.UserId, kvp.Key.Peer.SessionId, task.Exception, Route = route },
+                                        kvp.Key.UserId, kvp.Key.Peer.SessionId.ToString()
+                                    );
+                                }
+                            })
+                        ) // dataPerMember.Select()
+                    ); // Task.WhenAll()
+                }
+                catch(Exception)
+                {
+                    //Ignore if a peer isn't connected anymore to the scene.
+                }
             } // using cts
         }
 
