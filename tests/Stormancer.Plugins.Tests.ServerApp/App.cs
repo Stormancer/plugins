@@ -47,7 +47,12 @@ namespace Stormancer.Plugins.Tests.ServerApp
                     )
                 );
 
-
+                host.ConfigureGamefinderTemplate("party-noP2P", c => c
+                   .ConfigurePartyGameFinder(b => b
+                       .GameSessionTemplate("gamesession-noP2P")
+                       
+                   )
+               );
 
                 host.ConfigureGamefinderTemplate("replication-test", c => c
                     .ConfigureQuickQueue(b => b
@@ -62,6 +67,9 @@ namespace Stormancer.Plugins.Tests.ServerApp
                     scene.AddReplication();      
                     scene.AddSocket();
                     })
+                );
+                host.ConfigureGameSession("gamesession-noP2P", c => c
+                    .EnablePeerDirectConnection(false)
                 );
 
                 host.ConfigureGamefinderTemplate("joingame-test", c => c
@@ -108,6 +116,8 @@ namespace Stormancer.Plugins.Tests.ServerApp
             };
             ctx.HostStarted += (IHost host) =>
             {
+               
+                 host.AddGamefinder("party-noP2P", "party-noP2P");
                 host.AddGamefinder("server-test", "server-test");
                 host.AddGamefinder("server-test-docker", "server-test-docker");
                 host.AddGamefinder("replication-test", "replication-test");

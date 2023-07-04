@@ -32,7 +32,7 @@ using System.Threading.Tasks;
 namespace Stormancer.Server.Plugins.GameSession
 {
     /// <summary>
-    /// Provides extensisibility points during game session's lifecycles.
+    /// Provides extensibility points during game session's lifecycles.
     /// </summary>
     public interface IGameSessionEventHandler
     {

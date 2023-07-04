@@ -872,34 +872,41 @@ namespace Stormancer.Server.Plugins.Party
             {
                 cts.CancelAfter(_clientRpcTimeout);
 
-                await Task.WhenAll(
-                    dataPerMember.Select(kvp =>
-                        _rpcService.Rpc(
-                            route,
-                            kvp.Key.Peer,
-                            s =>
+                try
+                {
+                    await Task.WhenAll(
+                        dataPerMember.Select(kvp =>
+                            _rpcService.Rpc(
+                                route,
+                                kvp.Key.Peer,
+                                s =>
+                                {
+                                    kvp.Key.Peer.Serializer().Serialize(_partyState.VersionNumber, s);
+                                    kvp.Key.Peer.Serializer().Serialize(kvp.Value, s);
+                                },
+                                PacketPriority.MEDIUM_PRIORITY,
+                                cts.Token
+                            ).LastOrDefaultAsync().ToTask()
+                            .ContinueWith(task =>
                             {
-                                kvp.Key.Peer.Serializer().Serialize(_partyState.VersionNumber, s);
-                                kvp.Key.Peer.Serializer().Serialize(kvp.Value, s);
-                            },
-                            PacketPriority.MEDIUM_PRIORITY,
-                            cts.Token
-                        ).LastOrDefaultAsync().ToTask()
-                        .ContinueWith(task =>
-                        {
-                            if (task.IsFaulted && !(task.Exception?.InnerException is OperationCanceledException))
-                            {
-                                Log(
-                                    LogLevel.Trace,
-                                    "BroadcastStateUpdateRpc",
-                                    $"An error occurred during a client RPC (route: '{route}')",
-                                    new { kvp.Key.UserId, kvp.Key.Peer.SessionId, task.Exception, Route = route },
-                                    kvp.Key.UserId, kvp.Key.Peer.SessionId.ToString()
-                                );
-                            }
-                        })
-                    ) // dataPerMember.Select()
-                ); // Task.WhenAll()
+                                if (task.IsFaulted && !(task.Exception?.InnerException is OperationCanceledException))
+                                {
+                                    Log(
+                                        LogLevel.Trace,
+                                        "BroadcastStateUpdateRpc",
+                                        $"An error occurred during a client RPC (route: '{route}')",
+                                        new { kvp.Key.UserId, kvp.Key.Peer.SessionId, task.Exception, Route = route },
+                                        kvp.Key.UserId, kvp.Key.Peer.SessionId.ToString()
+                                    );
+                                }
+                            })
+                        ) // dataPerMember.Select()
+                    ); // Task.WhenAll()
+                }
+                catch(Exception)
+                {
+                    //Ignore if a peer isn't connected anymore to the scene.
+                }
             } // using cts
         }
 
