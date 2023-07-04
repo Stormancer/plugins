@@ -170,6 +170,38 @@ namespace Stormancer
 			}
 		};
 
+		struct LocalPlayerInfos
+		{
+			std::string stormancerUserId;
+			std::string platform;
+			std::string pseudo;
+			std::string platformId;
+
+			std::string customData;
+
+			int localPlayerIndex;
+
+			MSGPACK_DEFINE(platform, stormancerUserId, pseudo, platformId, customData, localPlayerIndex)
+		};
+
+		struct PartyUserDto
+		{
+			std::string userId;
+			PartyUserStatus partyUserStatus;
+			std::vector<byte> userData;
+			Stormancer::SessionId sessionId;
+
+			std::vector<LocalPlayerInfos> localPlayers;
+
+			bool isLeader = false; // Computed locally
+
+			PartyUserDto(std::string userId) : userId(userId) {}
+			PartyUserDto() = default;
+
+			MSGPACK_DEFINE(userId, partyUserStatus, userData, sessionId, localPlayers);
+		};
+
+
 		/// <summary>
 		/// Abstraction for a party identifier.
 		/// </summary>
@@ -359,19 +391,7 @@ namespace Stormancer
 			MSGPACK_DEFINE(total, hits)
 		};
 
-		struct LocalPlayerInfos
-		{
-			std::string stormancerUserId;
-			std::string platform;
-			std::string pseudo;
-			std::string platformId;
-
-			std::string customData;
-
-			int localPlayerIndex;
-
-			MSGPACK_DEFINE(platform, stormancerUserId, pseudo, platformId, customData, localPlayerIndex)
-		};
+		
 
 		class PartyApi
 		{
@@ -541,9 +561,25 @@ namespace Stormancer
 			/// in the current party members list. Subscribe to the OnUpdatedPartyMembers event to listen to update events.
 			/// </remarks>
 			/// <param name="data">New player data</param>
+			/// <param name="localPlayers">The local players </param>
 			/// <returns>A task that completes when the data has been updated and replicated to other players.</returns>
 			/// <exception cref="std::exception">If you are not in a party.</exception>
 			virtual pplx::task<void> updatePlayerData(std::vector<byte> data, std::vector<LocalPlayerInfos> localPlayers) = 0;
+
+			/// <summary>
+			/// Update the data associated with the local player
+			/// </summary>
+			/// <remarks>
+			/// player data are automatically replicated to other players. The current value is available
+			/// in the current party members list. Subscribe to the OnUpdatedPartyMembers event to listen to update events.
+			/// </remarks>
+			/// <param name="data">New player data</param>
+			/// <returns>A task that completes when the data has been updated and replicated to other players.</returns>
+			/// <exception cref="std::exception">If you are not in a party.</exception>
+			pplx::task<void> updatePlayerData(std::vector<byte> data)
+			{
+				return updatePlayerData(data, this->getLocalMember().localPlayers);
+			}
 
 			/// <summary>
 			/// Check if the local user is the leader of the party.
@@ -964,22 +1000,7 @@ namespace Stormancer
 			std::shared_ptr<details::IPartyInvitationInternal> _internal;
 		};
 
-		struct PartyUserDto
-		{
-			std::string userId;
-			PartyUserStatus partyUserStatus;
-			std::vector<byte> userData;
-			Stormancer::SessionId sessionId;
-
-			std::vector<LocalPlayerInfos> localPlayers;
-
-			bool isLeader = false; // Computed locally
-
-			PartyUserDto(std::string userId) : userId(userId) {}
-			PartyUserDto() = default;
-
-			MSGPACK_DEFINE(userId, partyUserStatus, userData, sessionId, localPlayers);
-		};
+		
 
 		struct PartySettings
 		{
@@ -2957,7 +2978,7 @@ namespace Stormancer
 				pplx::task<std::shared_ptr<PartyContainer>> joinPartyInternal(const PartyId& partyId, const std::vector<byte>& userData, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none())
 				{
 					auto wThat = STORM_WEAK_FROM_THIS();
-
+					
 					return _leavePartyTask
 						.then([wThat, partyId, userData, userMetadata, ct, logger = _logger]()
 					{
@@ -3187,7 +3208,7 @@ namespace Stormancer
 
 				bool isInParty() const noexcept override
 				{
-					PartyUserDto* _;
+					PartyUserDto* _ = nullptr;
 					return tryGetLocalMember(_);
 
 				}
@@ -3217,7 +3238,7 @@ namespace Stormancer
 
 				PartyUserDto getLocalMember() const override
 				{
-					PartyUserDto* result;
+					PartyUserDto* result = nullptr;
 					if (tryGetLocalMember(result))
 					{
 						return *result;
@@ -3969,7 +3990,7 @@ namespace Stormancer
 									// We could have one mutex per invitation instead, but mutexes are a limited resource, esp. on consoles, so we probably shouldn't
 									std::lock_guard<std::recursive_mutex> lg(party->_invitationsMutex);
 									that->_isValid = false;
-									party->removeInvitation(*that);
+									party->removeInvitation((const Stormancer::Party::details::Party_Impl::InvitationInternal&)*that);
 									party->_logger->log(LogLevel::Trace, "InvitationInternal", "Invitation from " + that->_senderId + " was canceled");
 									party->_onInvitationCanceled(that->_senderId);
 								}
@@ -4014,15 +4035,24 @@ namespace Stormancer
 						{
 							STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error(PartyError::Str::InvalidInvitation), void);
 						}
+						
 						auto impl = this->_impl;
 						auto wParty = _party;
 						return party->normalizePartyId(_impl->getPartyId(), ct)
 							.then([wParty, impl, party, userMetadata, userData, ct, invitation = shared_from_this()](PartyId partyId)
 						{
-							if (party->isInParty() && partyId == party->getPartyId())
+							if (party->isInParty())
 							{
-								throw std::runtime_error(PartyError::Str::AlreadyInSameParty);
+								if (partyId == party->getPartyId())
+								{
+									throw std::runtime_error(PartyError::Str::AlreadyInSameParty);
+								}
+								else
+								{
+									party->leaveParty();
+								}
 							}
+							
 							auto partyTask = impl->accept(party)
 
 								.then([party, userMetadata, userData, ct](PartyId partyId)
