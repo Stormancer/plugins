@@ -21,48 +21,59 @@ static void log(std::shared_ptr<Stormancer::IClient> client, Stormancer::LogLeve
 {
 	client->dependencyResolver().resolve<Stormancer::ILogger>()->log(level, "gameplay.test-devserver", msg);
 }
+
 struct GameCustomParameters
 {
 	bool test;
 	MSGPACK_DEFINE_MAP(test);
 };
+
 static pplx::task<bool> StartServerImpl(int id)
 {
 	auto client = Stormancer::IClientFactory::GetClient(id);
 
 	auto pool = client->dependencyResolver().resolve<Stormancer::ServerPools::ServerPools>();
-	
-	pool->setGetStatusCallback([]() { return Stormancer::ServerPools::Status::Ready; });
-	return pool->waitGameSession<GameCustomParameters>().then([client](Stormancer::ServerPools::GameSessionStartupParameters<GameCustomParameters> p)
-		{
-			auto gs = client->dependencyResolver().resolve < Stormancer::GameSessions::GameSession>();
-			return gs->connectToGameSession(p.gameSessionConnectionToken);
-		
-		})
-		.then([client](pplx::task<Stormancer::GameSessions::GameSessionConnectionParameters> t)
-		{
-			auto gs = client->dependencyResolver().resolve < Stormancer::GameSessions::GameSession>();
-			return gs->setPlayerReady();
-		})
-		.then([client](pplx::task<void> t)
-		{
-			try
-			{
-				t.get();
-				return true;
-			}
-			catch (std::exception& ex)
-			{
-				log(client, Stormancer::LogLevel::Error, ex.what());
-				return false;
-			}
+	auto users = client->dependencyResolver().resolve<Stormancer::Users::UsersApi>();
 
+	pool->setGetStatusCallback([]()
+		{
+			return Stormancer::ServerPools::Status::Ready;
 		});
+
+	return users->login()
+		.then([pool]()
+			{
+				return pool->waitGameSession<GameCustomParameters>();
+			})
+		.then([client](Stormancer::ServerPools::GameSessionStartupParameters<GameCustomParameters> p)
+			{
+				auto gs = client->dependencyResolver().resolve < Stormancer::GameSessions::GameSession>();
+				return gs->connectToGameSession(p.gameSessionConnectionToken);
+
+			})
+				.then([client](pplx::task<Stormancer::GameSessions::GameSessionConnectionParameters> t)
+					{
+						auto gs = client->dependencyResolver().resolve < Stormancer::GameSessions::GameSession>();
+						return gs->setPlayerReady();
+					})
+				.then([client](pplx::task<void> t)
+					{
+						try
+						{
+							t.get();
+							return true;
+						}
+						catch (std::exception& ex)
+						{
+							log(client, Stormancer::LogLevel::Error, ex.what());
+							return false;
+						}
+
+					});
 }
+
 static pplx::task<bool> JoinGameImpl(int id)
 {
-
-
 	auto client = Stormancer::IClientFactory::GetClient(id);
 
 	auto users = client->dependencyResolver().resolve<Stormancer::Users::UsersApi>();
@@ -71,7 +82,8 @@ static pplx::task<bool> JoinGameImpl(int id)
 	//The get credentialsCallback provided is automatically called by the library whenever authentication is required (during connection/reconnection)
 	// It returns a task to enable you to return credential asynchronously.
 	// please note that if platform plugins are installed, they automatically provide credentials.
-	users->getCredentialsCallback = []() {
+	users->getCredentialsCallback = []()
+	{
 		Stormancer::Users::AuthParameters authParameters;
 		authParameters.type = "ephemeral";
 		return pplx::task_from_result(authParameters);
@@ -83,14 +95,16 @@ static pplx::task<bool> JoinGameImpl(int id)
 	//Create a task that will complete the next time a game is found.
 	auto gameFoundTask = gameFinder->waitGameFound();
 
-
-
 	Stormancer::Party::PartyCreationOptions request;
 	request.GameFinderName = "server-test";
 	//Name of the matchmaking, defined in Stormancer.Server.TestApp/TestPlugin.cs.
 	//>  host.AddGamefinder("matchmaking", "matchmaking");
 
-	return party->createPartyIfNotJoined(request)
+	return users->login()
+		.then([party, request]()
+			{
+				return party->createPartyIfNotJoined(request);
+			})
 		.then([client]()
 			{
 				log(client, Stormancer::LogLevel::Debug, "connected to party");
@@ -100,20 +114,20 @@ static pplx::task<bool> JoinGameImpl(int id)
 				//Matchmaking starts when all players in the party are ready.
 				return party->updatePlayerStatus(Stormancer::Party::PartyUserStatus::Ready);
 			})
-		.then([gameFoundTask]()
-			{
-				//Wait game found.
-				return gameFoundTask;
-			})
+				.then([gameFoundTask]()
+					{
+						//Wait game found.
+						return gameFoundTask;
+					})
 				.then([client](Stormancer::GameFinder::GameFoundEvent evt)
 					{
 						auto gameSessions = client->dependencyResolver().resolve<Stormancer::GameSessions::GameSession>();
 						return gameSessions->connectToGameSession(evt.data.connectionToken);
 
 					})
-				//Errors flow through continuations that take TResult instead of task<TResult> as argument.
-				//We want to handle errors in the last continuation, so this one takes task<TResult>. Inside we get the result of the task by calling task.get()
-				//inside a try clause. If an error occured  .get() will throw. We return false (error). If it doesn't throw, everything succeeded.
+						//Errors flow through continuations that take TResult instead of task<TResult> as argument.
+						//We want to handle errors in the last continuation, so this one takes task<TResult>. Inside we get the result of the task by calling task.get()
+						//inside a try clause. If an error occured  .get() will throw. We return false (error). If it doesn't throw, everything succeeded.
 						.then([id, client](Stormancer::GameSessions::GameSessionConnectionParameters params)
 							{
 
@@ -177,7 +191,7 @@ TEST(Gameplay, TestDevServer) {
 			config->addPlugin(new Stormancer::GameFinder::GameFinderPlugin());
 			config->addPlugin(new Stormancer::GameSessions::GameSessionsPlugin());
 		}
-		else if(id == 1) // Server
+		else if (id == 1) // Server
 		{
 			config->addPlugin(new Stormancer::Users::UsersPlugin());
 			config->addPlugin(new Stormancer::ServerPools::ServerPoolsPlugin());
