@@ -6,7 +6,7 @@
 #include "party/Party.hpp"
 #include "gameFinder/GameFinder.hpp"
 #include "gameSession/Gamesession.hpp"
-#include "socket/socket.hpp"
+#include "SocketApi/socket.hpp"
 
 #include "stormancer/IActionDispatcher.h"
 #include "stormancer/IClientFactory.h"
