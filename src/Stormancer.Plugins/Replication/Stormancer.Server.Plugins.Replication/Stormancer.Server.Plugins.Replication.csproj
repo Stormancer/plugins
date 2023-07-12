@@ -14,9 +14,11 @@
 		<Description>Provides server services required for object replication.</Description>
 		<Deterministic>true</Deterministic>
 	</PropertyGroup>
+  
 	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
 		<Version>$(Version)-pre</Version>
 	</PropertyGroup>
+  
 	<ItemGroup>
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
 			<PrivateAssets>all</PrivateAssets>
@@ -28,6 +30,7 @@
 	<PropertyGroup>
 		<PackageIcon>icon.png</PackageIcon>
 	</PropertyGroup>
+  
 	<ItemGroup>
 		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
 	</ItemGroup>
@@ -41,9 +44,8 @@
 		<ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj" />
 	</ItemGroup>
 
-
 	<Target Name="PostPack" AfterTargets="Pack">
 		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
-		<Copy SourceFiles="@(cpp)" DestinationFolder="$(ProjectDir)../../../../output/cpp/Replication" />
 	</Target>
+  
 </Project>
