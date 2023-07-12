@@ -264,16 +264,6 @@ namespace Stormancer.Server.Plugins.Steam
 
 
         /// <summary>
-        /// Steam behavior on party player ready state changed.
-        /// </summary>
-        /// <param name="ctx"></param>
-        /// <returns></returns>
-        public Task OnPlayerReadyStateChanged(PlayerReadyStateContext ctx)
-        {
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
         /// Steam behavior on party quit.
         /// </summary>
         /// <param name="ctx"></param>

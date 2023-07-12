@@ -56,23 +56,23 @@ int main(int argc, char* argv[])
 		}
 	});
 
-	auto onvitationReceivedSubscription = partyApi->subscribeOnInvitationReceived([](Stormancer::Party::PartyInvitation partyInvitation)
+	auto invitationReceivedSubscription = partyApi->subscribeOnInvitationReceived([](Stormancer::Party::PartyInvitation partyInvitation)
 	{
 		if (partyInvitation.isValid())
 		{
 			s_logger->log(Stormancer::LogLevel::Info, "SteamSample", "Party invitation received", partyInvitation.getSenderId());
 			partyInvitation.acceptAndJoinParty()
-				.then([](pplx::task<void> task)
+			.then([](pplx::task<void> task)
 			{
 				try
-			{
-				task.get();
-				s_logger->log(Stormancer::LogLevel::Info, "SteamSample", "Party invitation accepted and party joined");
-			}
-			catch (const std::exception& ex)
-			{
-				s_logger->log(Stormancer::LogLevel::Error, "SteamSample", "Fail to join a party after accepting the invitation", ex.what());
-			}
+				{
+					task.get();
+					s_logger->log(Stormancer::LogLevel::Info, "SteamSample", "Party invitation accepted and party joined");
+				}
+				catch (const std::exception& ex)
+				{
+					s_logger->log(Stormancer::LogLevel::Error, "SteamSample", "Fail to join a party after accepting the invitation", ex.what());
+				}
 			});
 		}
 		else

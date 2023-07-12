@@ -426,7 +426,7 @@ namespace Stormancer.Server.Plugins.Party
         /// </remarks>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        Task OnUpdatingSettings(PartySettingsUpdateCtx ctx);
+        Task OnUpdatingSettings(PartySettingsUpdateCtx ctx) => Task.CompletedTask;
 
         /// <summary>
         /// Fired when a settings update has been applied.
@@ -436,7 +436,7 @@ namespace Stormancer.Server.Plugins.Party
         /// </remarks>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        Task OnUpdateSettings(PartySettingsUpdateCtx ctx);
+        Task OnUpdateSettings(PartySettingsUpdateCtx ctx) => Task.CompletedTask;
 
         /// <summary>
         /// Fired when a settings update message is about to be sent to each party member.

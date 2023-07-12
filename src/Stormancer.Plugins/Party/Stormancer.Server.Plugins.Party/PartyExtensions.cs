@@ -22,6 +22,7 @@
 
 using Stormancer.Core;
 using Stormancer.Server.Plugins.Party;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Stormancer
 {
@@ -38,6 +39,30 @@ namespace Stormancer
         {
             scene.Metadata[PartyConstants.METADATA_KEY] = PartyController.PROTOCOL_VERSION;
             scene.Metadata[PartyService.REVISION_METADATA_KEY] = PartyService.REVISION;
+        }
+
+      
+        /// <summary>
+        /// Tries getting the current gamesession id.
+        /// </summary>
+        /// <param name="partyService"></param>
+        /// <param name="gamesessionId"></param>
+        /// <returns></returns>
+        public static bool TryGetCurrentGameSessionId(this IPartyService partyService, [NotNullWhen(true)] out string? gamesessionId)
+        {
+            // partySettings.PublicServerData["stormancer.partyStatus"] = "gamesession";
+            //partySettings.PublicServerData["stormancer.partyStatus.details"] = gamesessionId;
+            if(partyService.Settings.PublicServerData.TryGetValue("stormancer.partyStatus",out var status) 
+                && status == "gamesession"
+                && partyService.Settings.PublicServerData.TryGetValue("stormancer.partyStatus.details",out gamesessionId))
+            {
+                return true;
+            }
+            else
+            {
+                gamesessionId = null;
+                return false;
+            }
         }
     }
 }

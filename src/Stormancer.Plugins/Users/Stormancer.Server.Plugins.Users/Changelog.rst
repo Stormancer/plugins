@@ -15,6 +15,9 @@ Unreleased
 Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
+Added
+*****
+- Dimensions are saved in the analytics system on login.
 
 Added
 *****

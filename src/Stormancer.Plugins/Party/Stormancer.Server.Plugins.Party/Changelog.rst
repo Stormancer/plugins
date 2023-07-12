@@ -18,6 +18,7 @@ Changed
 - Remove current gamesession in party when the gamesession scene shuts down.
 - If party does not exist, CreateConnectionToken returns 'notFound'
 - Removes an error if a user has no profile when entering the party
+- Improved Error logs in case of gamefinder failures.
 
 Fixed
 *****
@@ -30,6 +31,7 @@ Added
 - Added Party Id to PartySettingsUpdateDto
 - Added LocalPlayerCount to party user data to enable party members to be associated to several local players.
 - Added default implementations to several methods of `IPartyEventHandler`
+- Added TryGetGamesessionId extension method to party.
 
 5.0.1.7
 -------

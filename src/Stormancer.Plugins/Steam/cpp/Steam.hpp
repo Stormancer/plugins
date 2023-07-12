@@ -1120,7 +1120,7 @@ namespace Stormancer
 					}
 					else
 					{
-						requestLobbyDataTce.set_exception(std::runtime_error("Steam request lobby data failed"));
+						requestLobbyDataTce.set_exception(std::runtime_error("Steam request lobby data failed : Not connected to Steam."));
 					}
 
 					return pplx::create_task(requestLobbyDataTce, taskOptions);

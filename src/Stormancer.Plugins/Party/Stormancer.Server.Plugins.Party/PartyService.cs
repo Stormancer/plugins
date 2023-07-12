@@ -787,11 +787,13 @@ namespace Stormancer.Server.Plugins.Party
             //Send S2S find match request
             try
             {
-                //var sceneUri = await _locator.GetSceneId("stormancer.plugins.gamefinder", );
+              
+               
                 var findGameResult = await _gameFinderClient.FindGame(_partyState.Settings.GameFinderName, gameFinderRequest, _partyState.FindGameCts?.Token ?? CancellationToken.None);
 
                 if (!findGameResult.Success)
                 {
+                    Log(LogLevel.Error, "FindGame_Impl", "An error occurred during the S2S FindGame request", new { findGameResult.ErrorMsg });
                     BroadcastFFNotification(GameFinderFailedRoute, new GameFinderFailureDto { Reason = findGameResult.ErrorMsg });
                 }
             }
@@ -872,41 +874,44 @@ namespace Stormancer.Server.Plugins.Party
             {
                 cts.CancelAfter(_clientRpcTimeout);
 
-                try
-                {
-                    await Task.WhenAll(
+                await Task.WhenAll(
                         dataPerMember.Select(kvp =>
-                            _rpcService.Rpc(
-                                route,
-                                kvp.Key.Peer,
-                                s =>
-                                {
-                                    kvp.Key.Peer.Serializer().Serialize(_partyState.VersionNumber, s);
-                                    kvp.Key.Peer.Serializer().Serialize(kvp.Value, s);
-                                },
-                                PacketPriority.MEDIUM_PRIORITY,
-                                cts.Token
-                            ).LastOrDefaultAsync().ToTask()
-                            .ContinueWith(task =>
+                        {
+                            try
                             {
-                                if (task.IsFaulted && !(task.Exception?.InnerException is OperationCanceledException))
+                                return _rpcService.Rpc(
+                                    route,
+                                    kvp.Key.Peer,
+                                    s =>
+                                    {
+                                        kvp.Key.Peer.Serializer().Serialize(_partyState.VersionNumber, s);
+                                        kvp.Key.Peer.Serializer().Serialize(kvp.Value, s);
+                                    },
+                                    PacketPriority.MEDIUM_PRIORITY,
+                                    cts.Token
+                                ).LastOrDefaultAsync().ToTask()
+                                .ContinueWith(task =>
                                 {
-                                    Log(
-                                        LogLevel.Trace,
-                                        "BroadcastStateUpdateRpc",
-                                        $"An error occurred during a client RPC (route: '{route}')",
-                                        new { kvp.Key.UserId, kvp.Key.Peer.SessionId, task.Exception, Route = route },
-                                        kvp.Key.UserId, kvp.Key.Peer.SessionId.ToString()
-                                    );
-                                }
-                            })
-                        ) // dataPerMember.Select()
+                                    if (task.IsFaulted && !(task.Exception?.InnerException is OperationCanceledException))
+                                    {
+                                        Log(
+                                            LogLevel.Trace,
+                                            "BroadcastStateUpdateRpc",
+                                            $"An error occurred during a client RPC (route: '{route}')",
+                                            new { kvp.Key.UserId, kvp.Key.Peer.SessionId, task.Exception, Route = route },
+                                            kvp.Key.UserId, kvp.Key.Peer.SessionId.ToString()
+                                        );
+                                    }
+                                });
+                            }
+                            catch(Exception)
+                            {
+                                return Task.CompletedTask;
+                            }
+
+                        }) // dataPerMember.Select()
                     ); // Task.WhenAll()
-                }
-                catch(Exception)
-                {
-                    //Ignore if a peer isn't connected anymore to the scene.
-                }
+                
             } // using cts
         }
 
