@@ -40,7 +40,7 @@ try
     Write-Output "==== Extract account name ===="
     $envConfig = Get-Content "$deployConfigFile" | ConvertFrom-Json
     $account = $envConfig.Account
-
+    Write-Output "Account name = '$account'"
 }
 catch
 {
