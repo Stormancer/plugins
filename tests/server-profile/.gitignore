@@ -1,0 +1,5 @@
+!.gitignore
+.config/*
+.stormancer/*
+bootstrapper.config.json
+default.json
