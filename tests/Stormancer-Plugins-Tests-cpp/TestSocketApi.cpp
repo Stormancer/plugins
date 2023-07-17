@@ -12,7 +12,9 @@
 #include "stormancer/IClientFactory.h"
 #include "stormancer/Logger/VisualStudioLogger.h"
 
-constexpr  char* ServerEndpoint = "http://localhost:8080";//"http://gc3.stormancer.com";
+//static constexpr const char* ServerEndpoint = "http://localhost:8080";
+//static constexpr const char* ServerEndpoint = "http://gc3.stormancer.com";
+static constexpr const char* ServerEndpoint = "http://stormancer-1.stormancer.com:8081";
 constexpr  char* Account = "tests";
 constexpr  char* Application = "test-app";
 
