@@ -1,9 +1,26 @@
 {
-	"dataProtection":{
-		"gameServer":{
-			"provider":"aes-gcm",
-			"key":"tests/test-secrets/gameServer",
-			"createKeyIfNotExists":true
+	"elasticsearch": {
+		"connectionPools": {
+			"default": {
+				"Sniffing": false,
+				"Endpoints": [
+					"https://localhost:9200"
+				],
+				"IgnoreCertificateErrors": true,
+				"Credentials": {
+					"Basic": {
+						"Login": "elastic",
+						"PasswordPath": "karmaloop/secrets/elasticSearch_password"
+					}
+				}
+			}
+		}
+	},
+	"dataProtection": {
+		"gameServer": {
+			"provider": "aes-gcm",
+			"key": "tests/test-secrets/gameServer",
+			"createKeyIfNotExists": true
 		}
 	}
 }

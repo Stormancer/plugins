@@ -1,5 +1,6 @@
 $baseUri = "http://stormancer-1.stormancer.com:9080"
 $deployConfigFile = "stormancer-dev.profile.json"
+$secretsStoreId = "secrets";
 
 function ensureSuccessStatusCode
 {
@@ -40,7 +41,9 @@ try
     Write-Output "==== Extract account name ===="
     $envConfig = Get-Content "$deployConfigFile" | ConvertFrom-Json
     $account = $envConfig.Account
-    Write-Output "Account name = '$account'"
+    $cluster = $envConfig.Cluster
+    Write-Output "Account = '$account'"
+    Write-Output "Cluster = '$cluster'"
 }
 catch
 {
@@ -50,4 +53,11 @@ catch
 
 Write-Output "==== Create account ===="
 $response = Invoke-WebRequest -Method Put -Uri "$baseUri/_account/$account" -ContentType "application/json" -Body "{}"
+ensureSuccessStatusCode($response)
+
+Write-Output "==== Create secrets store ===="
+dotnet tool run stormancer manage secrets-store create --cluster $cluster --account $account --id $secretsStoreId
+
+Write-Output "==== Push secrets ===="
+$response = Invoke-WebRequest -Method Put -Uri "$baseUri/_secrets/$account/$secretsStoreId/elasticSearch_password" -ContentType "text/plain" -InFile "$PSScriptRoot\secrets\elasticSearch_password.txt"
 ensureSuccessStatusCode($response)
