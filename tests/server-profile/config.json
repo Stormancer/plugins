@@ -10,7 +10,7 @@
 				"Credentials": {
 					"Basic": {
 						"Login": "elastic",
-						"PasswordPath": "karmaloop/secrets/elasticSearch_password"
+						"PasswordPath": "tests/secrets/elasticSearch_password"
 					}
 				}
 			}
