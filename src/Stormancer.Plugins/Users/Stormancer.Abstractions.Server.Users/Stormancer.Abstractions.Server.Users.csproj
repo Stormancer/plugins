@@ -42,9 +42,9 @@
 		<Pdbs Include="$(TargetDir)*.pdb" />
 	</ItemGroup>
 
-
 	<Target Name="PostPack" AfterTargets="Pack">
 		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
 		<Copy SourceFiles="@(Pdbs)" DestinationFolder="$(ProjectDir)../../../../output/symbols/$(ConfigurationName)" />
 	</Target>
+  
 </Project>

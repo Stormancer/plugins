@@ -1945,6 +1945,7 @@ namespace Stormancer
 				Event<PartySettings> UpdatedPartySettings;
 				Event<std::vector<std::string>> UpdatedInviteList;
 				Event<PartyGameFinderFailure> OnGameFinderFailed;
+				Subscription connectionStateChangedSubscription;
 
 				std::vector<PartyUserDto> members() const
 				{
@@ -2042,7 +2043,7 @@ namespace Stormancer
 						}
 					});
 
-					scene->getConnectionStateChangedObservable().subscribe([wThat](ConnectionState state) {
+					connectionStateChangedSubscription = scene->subscribeConnectionStateChanged([wThat](ConnectionState state) {
 						if (auto that = wThat.lock())
 						{
 							try
@@ -2054,6 +2055,8 @@ namespace Stormancer
 								else if (state == ConnectionState::Disconnected)
 								{
 									that->failInit(state.reason);
+									//Unsubscribe
+									that->connectionStateChangedSubscription = nullptr;
 									that->_gameFinder->disconnectFromGameFinder(that->_state.settings.gameFinderName)
 										.then([](pplx::task<void> t)
 									{
@@ -3279,7 +3282,7 @@ namespace Stormancer
 					else
 					{
 						return false;
-					}
+				}
 					
 				}
 
@@ -4446,8 +4449,8 @@ namespace Stormancer
 					});
 					if (it != _invitationsNew.end())
 					{
-						_invitationsNew.erase(it);
-					}
+					_invitationsNew.erase(it);
+				}
 				}
 
 				pplx::task<void> joinPartyBySceneId(const std::string& sceneId, const std::vector<byte>& userData, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none()) override

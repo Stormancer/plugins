@@ -15,9 +15,11 @@
 		<PackageReadmeFile>Readme.md</PackageReadmeFile>
 		<Deterministic>true</Deterministic>
 	</PropertyGroup>
+  
 	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
 		<Version>$(Version)-pre</Version>
 	</PropertyGroup>
+  
 	<ItemGroup>
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
 			<PrivateAssets>all</PrivateAssets>
@@ -39,8 +41,6 @@
 		<cpp Include="$(ProjectDir)../cpp/*" />
 	</ItemGroup>
 
-
-
 	<ItemGroup>
 	  <None Include="docs\Readme.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
@@ -57,7 +57,6 @@
 	</ItemGroup>
 	<Target Name="PostPack" AfterTargets="Pack">
 		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
-		<!--<Copy SourceFiles="@(cpp)" DestinationFolder="$(ProjectDir)../../../../output/cpp/Party" />-->
-		
 	</Target>
+  
 </Project>

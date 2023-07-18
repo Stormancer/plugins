@@ -440,14 +440,6 @@ namespace Stormancer
 
 			struct GameFinderContainer
 			{
-				~GameFinderContainer()
-				{
-					if (connectionStateChangedSubscription.is_subscribed())
-					{
-						connectionStateChangedSubscription.unsubscribe();
-					}
-				}
-
 				//Keep game finder scene alive
 				std::shared_ptr<Scene> scene;
 				std::shared_ptr<GameFinderService> service()
@@ -458,7 +450,7 @@ namespace Stormancer
 				Subscription gameFoundSubscription;
 				Subscription gameFinderStateUpdatedSubscription;
 				Subscription findGamefailedSubscription;
-				rxcpp::subscription connectionStateChangedSubscription;
+				Subscription connectionStateChangedSubscription;
 			};
 
 			class GameFinder_Impl : public std::enable_shared_from_this<GameFinder_Impl>, public GameFinderApi
@@ -615,7 +607,7 @@ namespace Stormancer
 						{
 							auto container = std::make_shared<GameFinderContainer>();
 							container->scene = task.get();
-							container->connectionStateChangedSubscription = container->scene->getConnectionStateChangedObservable().subscribe([wThat, gameFinderName](ConnectionState s)
+							container->connectionStateChangedSubscription = container->scene->subscribeConnectionStateChanged([wThat, gameFinderName](ConnectionState s)
 							{
 								if (auto that = wThat.lock())
 								{

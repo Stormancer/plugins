@@ -11,7 +11,7 @@
 		<PackageReference Include="Stormancer.Server.Hosting" Version="1.0.0" />
 		<PackageReference Include="Stormancer.Server.Hosting.SourceGenerator" Version="0.1.0" />
 		<PackageReference Include="Stormancer.Server.Plugins.DataProtection" Version="*-*" />
-		<PackageReference Include="Stormancer.Server.Plugins.Friends" Version="5.0.0.14-pre" />
+		<PackageReference Include="Stormancer.Server.Plugins.Friends" Version="*-*" />
 		<PackageReference Include="Stormancer.Server.Plugins.Queries" Version="*-*" />
 		<PackageReference Include="Stormancer.Server.Plugins.GameFinder" Version="*-*" />
 		<PackageReference Include="Stormancer.Server.Plugins.GameSession" Version="*-*" />

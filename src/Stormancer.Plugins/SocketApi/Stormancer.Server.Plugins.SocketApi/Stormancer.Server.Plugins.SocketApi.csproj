@@ -13,6 +13,7 @@
 		<Description>Provides a API similar to sockets for P2P communication in a scene.</Description>
 		<Deterministic>true</Deterministic>
 	</PropertyGroup>
+  
 	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
 		<Version>$(Version)-pre</Version>
 	</PropertyGroup>
@@ -21,7 +22,6 @@
 		<PackageIcon>icon.png</PackageIcon>
 	</PropertyGroup>
 
-	
 	<ItemGroup>
 		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
 	</ItemGroup>
@@ -44,11 +44,8 @@
 	  <ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj" />
 	</ItemGroup>
 
-
 	<Target Name="PostPack" AfterTargets="Pack">
 		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
-		<Copy SourceFiles="@(cpp)" DestinationFolder="$(ProjectDir)../../../../output/cpp/Socket" />
 	</Target>
-
 
 </Project>

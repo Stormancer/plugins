@@ -52,7 +52,7 @@ namespace Stormancer
 						}
 
 						std::weak_ptr<Scene> wScene = scene;
-						that->_connectionChangedSub = scene->getConnectionStateChangedObservable().subscribe([wThat, wScene, cleanup](ConnectionState state)
+						that->_connectionChangedSub = scene->subscribeConnectionStateChanged([wThat, wScene, cleanup](ConnectionState state)
 						{
 							auto that = wThat.lock();
 							if (!that)
@@ -63,10 +63,7 @@ namespace Stormancer
 							if (state == ConnectionState::Disconnected || state == ConnectionState::Disconnecting)
 							{
 								cleanup(that, wScene.lock());
-								if (that->_connectionChangedSub.is_subscribed())
-								{
-									that->_connectionChangedSub.unsubscribe();
-								}
+								that->_connectionChangedSub = nullptr;
 								that->_scene = nullptr;
 								that->_serviceTask = nullptr;
 							}
@@ -74,11 +71,7 @@ namespace Stormancer
 						if (scene->getCurrentConnectionState() == ConnectionState::Disconnected || scene->getCurrentConnectionState() == ConnectionState::Disconnecting)
 						{
 							cleanup(that, scene);
-
-							if (that->_connectionChangedSub.is_subscribed())
-							{
-								that->_connectionChangedSub.unsubscribe();
-							}
+							that->_connectionChangedSub = nullptr;
 							that->_scene = nullptr;
 							that->_serviceTask = nullptr;
 						}
@@ -99,10 +92,7 @@ namespace Stormancer
 							}
 
 							cleanup(that, nullptr);
-							if (that->_connectionChangedSub.is_subscribed())
-							{
-								that->_connectionChangedSub.unsubscribe();
-							}
+							that->_connectionChangedSub = nullptr;
 							that->_scene = nullptr;
 							that->_serviceTask = nullptr;
 							throw;
@@ -148,6 +138,6 @@ namespace Stormancer
 
 		std::shared_ptr<pplx::task<std::shared_ptr<TService>>> _serviceTask;
 
-		rxcpp::subscription _connectionChangedSub;
+		Subscription _connectionChangedSub;
 	};
 }

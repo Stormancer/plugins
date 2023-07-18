@@ -15,6 +15,7 @@
 		<Deterministic>true</Deterministic>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
+  
 	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
 		<Version>$(Version)-pre</Version>
 	</PropertyGroup>
@@ -52,7 +53,6 @@
 
 	<Target Name="PostPack" AfterTargets="Pack">
 		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
-		<!--<Copy SourceFiles="@(cpp)" DestinationFolder="$(ProjectDir)../../../../output/cpp/Steam" />-->
 	</Target>
 
 </Project>

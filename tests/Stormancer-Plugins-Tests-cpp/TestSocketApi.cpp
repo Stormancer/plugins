@@ -6,13 +6,15 @@
 #include "party/Party.hpp"
 #include "gameFinder/GameFinder.hpp"
 #include "gameSession/Gamesession.hpp"
-#include "socket/socket.hpp"
+#include "SocketApi/socket.hpp"
 
 #include "stormancer/IActionDispatcher.h"
 #include "stormancer/IClientFactory.h"
 #include "stormancer/Logger/VisualStudioLogger.h"
 
-constexpr  char* ServerEndpoint = "http://localhost";//"http://gc3.stormancer.com";
+//static constexpr const char* ServerEndpoint = "http://localhost:8080";
+//static constexpr const char* ServerEndpoint = "http://gc3.stormancer.com";
+static constexpr const char* ServerEndpoint = "http://stormancer-1.stormancer.com:8081";
 constexpr  char* Account = "tests";
 constexpr  char* Application = "test-app";
 
@@ -64,7 +66,7 @@ static void testSocketServer(std::string sceneId, pplx::cancellation_token cance
 	while (!cancellationToken.is_canceled())
 	{
 		auto result = socket->receive(sceneId, receiveBuffer, 10);
-		
+
 		if (result.success)
 		{
 			log(client, Stormancer::LogLevel::Info, "server.received: " + std::to_string(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
@@ -76,8 +78,6 @@ static void testSocketServer(std::string sceneId, pplx::cancellation_token cance
 
 static pplx::task<bool> JoinGameImpl(int id)
 {
-
-
 	auto client = Stormancer::IClientFactory::GetClient(id);
 
 	auto users = client->dependencyResolver().resolve<Stormancer::Users::UsersApi>();
@@ -86,7 +86,8 @@ static pplx::task<bool> JoinGameImpl(int id)
 	//The get credentialsCallback provided is automatically called by the library whenever authentication is required (during connection/reconnection)
 	// It returns a task to enable you to return credential asynchronously.
 	// please note that if platform plugins are installed, they automatically provide credentials.
-	users->getCredentialsCallback = []() {
+	users->getCredentialsCallback = []()
+	{
 		Stormancer::Users::AuthParameters authParameters;
 		authParameters.type = "ephemeral";
 		return pplx::task_from_result(authParameters);
@@ -98,14 +99,16 @@ static pplx::task<bool> JoinGameImpl(int id)
 	//Create a task that will complete the next time a game is found.
 	auto gameFoundTask = gameFinder->waitGameFound();
 
+	return users->login()
+		.then([party]()
+			{
+				Stormancer::Party::PartyCreationOptions request;
+				request.GameFinderName = "replication-test";
+				//Name of the matchmaking, defined in Stormancer.Server.TestApp/TestPlugin.cs.
+				//>  host.AddGamefinder("matchmaking", "matchmaking");
 
-
-	Stormancer::Party::PartyCreationOptions request;
-	request.GameFinderName = "replication-test";
-	//Name of the matchmaking, defined in Stormancer.Server.TestApp/TestPlugin.cs.
-	//>  host.AddGamefinder("matchmaking", "matchmaking");
-
-	return party->createPartyIfNotJoined(request)
+				return party->createPartyIfNotJoined(request);
+			})
 		.then([client]()
 			{
 				log(client, Stormancer::LogLevel::Debug, "connected to party");
@@ -115,24 +118,24 @@ static pplx::task<bool> JoinGameImpl(int id)
 				//Matchmaking starts when all players in the party are ready.
 				return party->updatePlayerStatus(Stormancer::Party::PartyUserStatus::Ready);
 			})
-		.then([gameFoundTask]()
-			{
-				//Wait game found.
-				return gameFoundTask;
-			})
+				.then([gameFoundTask]()
+					{
+						//Wait game found.
+						return gameFoundTask;
+					})
 				.then([client](Stormancer::GameFinder::GameFoundEvent evt)
 					{
 						auto gameSessions = client->dependencyResolver().resolve<Stormancer::GameSessions::GameSession>();
 						return gameSessions->connectToGameSession(evt.data.connectionToken);
 
 					})
-				//Errors flow through continuations that take TResult instead of task<TResult> as argument.
-				//We want to handle errors in the last continuation, so this one takes task<TResult>. Inside we get the result of the task by calling task.get()
-				//inside a try clause. If an error occured  .get() will throw. We return false (error). If it doesn't throw, everything succeeded.
+						//Errors flow through continuations that take TResult instead of task<TResult> as argument.
+						//We want to handle errors in the last continuation, so this one takes task<TResult>. Inside we get the result of the task by calling task.get()
+						//inside a try clause. If an error occured  .get() will throw. We return false (error). If it doesn't throw, everything succeeded.
 						.then([id, client](Stormancer::GameSessions::GameSessionConnectionParameters params)
 							{
 
-								
+
 								//P2P connection established.
 								//In the host, this continuation is executed immediatly.
 								//In clients this continuation is executed only if the host called gameSessions->setPlayerReady() (see below)
@@ -141,8 +144,8 @@ static pplx::task<bool> JoinGameImpl(int id)
 									pplx::create_task([params, client]() {
 										auto gameSessions = client->dependencyResolver().resolve<Stormancer::GameSessions::GameSession>();
 										testSocketServer(gameSessions->scene()->id(), pplx::cancellation_token::none(), client);
-									
-									});
+
+										});
 								}
 								else
 								{
@@ -154,7 +157,8 @@ static pplx::task<bool> JoinGameImpl(int id)
 								auto gameSessions = client->dependencyResolver().resolve<Stormancer::GameSessions::GameSession>();
 								return  gameSessions->setPlayerReady().then([params]() {return params; });
 
-							}).then([client](Stormancer::GameSessions::GameSessionConnectionParameters params)
+							})
+						.then([client](Stormancer::GameSessions::GameSessionConnectionParameters params)
 							{
 								if (!params.isHost)
 								{
@@ -168,52 +172,48 @@ static pplx::task<bool> JoinGameImpl(int id)
 									return pplx::task_from_result();
 								}
 							})
-							.then([client](pplx::task<void> t)
-							{
-								//catch errors
-								try
-								{
-									t.get();
-									
-									return true;
-								}
-								catch (std::exception& ex)
-								{
-									log(client, Stormancer::LogLevel::Error, ex.what());
-									return false;
-								}
-							});
+								.then([client](pplx::task<void> t)
+									{
+										//catch errors
+										try
+										{
+											t.get();
 
-
+											return true;
+										}
+										catch (std::exception& ex)
+										{
+											log(client, Stormancer::LogLevel::Error, ex.what());
+											return false;
+										}
+									});
 }
 
-TEST(Gameplay, TestSocketApi) {
-
+TEST(Gameplay, TestSocketApi)
+{
 	//Create an action dispatcher to dispatch callbacks and continuation in the thread running the method.
 	auto dispatcher = std::make_shared<Stormancer::MainThreadActionDispatcher>();
 
 	//Create a configurator used for all clients.
-	Stormancer::IClientFactory::SetDefaultConfigurator([dispatcher](size_t id) {
+	Stormancer::IClientFactory::SetDefaultConfigurator([dispatcher](size_t id)
+		{
+			//Create a configuration that connects to the test application.
+			auto config = Stormancer::Configuration::create(std::string(ServerEndpoint), std::string(Account), std::string(Application));
 
-		//Create a configuration that connects to the test application.
-		auto config = Stormancer::Configuration::create(std::string(ServerEndpoint), std::string(Account), std::string(Application));
+			//Log in VS output window.
+			config->logger = std::make_shared<Stormancer::VisualStudioLogger>();
 
-		//Log in VS output window.
-		config->logger = std::make_shared<Stormancer::VisualStudioLogger>();
+			//Add plugins required by the test.
+			config->addPlugin(new Stormancer::Users::UsersPlugin());
+			config->addPlugin(new Stormancer::Party::PartyPlugin());
+			config->addPlugin(new Stormancer::GameFinder::GameFinderPlugin());
+			config->addPlugin(new Stormancer::GameSessions::GameSessionsPlugin());
+			config->addPlugin(new Stormancer::Socket::SocketApiPlugin());
 
-		//Add plugins required by the test.
-		config->addPlugin(new Stormancer::Users::UsersPlugin());
-		config->addPlugin(new Stormancer::Party::PartyPlugin());
-		config->addPlugin(new Stormancer::GameFinder::GameFinderPlugin());
-		config->addPlugin(new Stormancer::GameSessions::GameSessionsPlugin());
-		config->addPlugin(new Stormancer::Socket::SocketApiPlugin());
-
-		//Use the dispatcher we created earlier to ensure all callbacks are run on the test main thread.
-		config->actionDispatcher = dispatcher;
-		return config;
+			//Use the dispatcher we created earlier to ensure all callbacks are run on the test main thread.
+			config->actionDispatcher = dispatcher;
+			return config;
 		});
-
-
 
 	std::vector<pplx::task<bool>> tasks;
 	tasks.push_back(JoinGameImpl(0));
@@ -234,10 +234,6 @@ TEST(Gameplay, TestSocketApi) {
 
 	//We are connected to the game session, we can test the socket API.
 
-
-
 	Stormancer::IClientFactory::ReleaseClient(0);
 	Stormancer::IClientFactory::ReleaseClient(1);
-
-
 }
