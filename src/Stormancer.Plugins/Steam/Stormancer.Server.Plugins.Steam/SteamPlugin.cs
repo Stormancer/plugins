@@ -48,7 +48,6 @@ namespace Stormancer.Server.Plugins.Steam
                 builder.Register<SteamKeyStore>().As<IConfigurationChangedEventHandler>().AsSelf().SingleInstance();
                 builder.Register<SteamFriendsEventHandler>().As<IFriendsEventHandler>();
                 builder.Register<SteamPartyEventHandler>().As<IPartyEventHandler>().InstancePerRequest();
-                builder.Register<SteamUserTicketAuthenticator>().As<ISteamUserTicketAuthenticator>();
                 builder.Register<SteamServiceLocator>().As<IServiceLocatorProvider>();
             };
 
@@ -57,7 +56,6 @@ namespace Stormancer.Server.Plugins.Steam
                 if (scene.Template == Constants.SCENE_TEMPLATE)
                 {
                     builder.Register<SteamAuthenticationProvider>().As<IAuthenticationProvider>();
-                    builder.Register<SteamUserTicketAuthenticator>().As<ISteamUserTicketAuthenticator>();
                 }
             };
 

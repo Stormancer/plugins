@@ -30,14 +30,15 @@ namespace Stormancer.Server.Plugins.Steam
     /// </summary>
     public interface ISteamService
     {
-        // ISteamUserAuth
-
+        
         /// <summary>
         /// Authenticate user ticket.
         /// </summary>
         /// <param name="ticket"></param>
+        /// <param name="appId"></param>
+        /// <param name="protocol"></param>
         /// <returns></returns>
-        Task<ulong?> AuthenticateUserTicket(string ticket);
+        Task<(ulong steamId,uint appId)> AuthenticateUserTicket(string ticket, uint? appId, SteamAuthenticationProtocolVersion protocol);
 
         // ISteamUser
 

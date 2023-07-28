@@ -27,6 +27,7 @@ using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -73,7 +74,6 @@ namespace Stormancer.Server.Plugins.Steam
     {
         private ConcurrentDictionary<ulong, string> _vacSessions = new ConcurrentDictionary<ulong, string>();
         private bool _vacEnabled = false;
-        private ISteamUserTicketAuthenticator _authenticator;
         private ILogger _logger;
         private readonly IUserService _users;
         private readonly ISteamService _steam;
@@ -87,12 +87,11 @@ namespace Stormancer.Server.Plugins.Steam
         /// <param name="users"></param>
         /// <param name="steam"></param>
         /// <param name="authenticator"></param>
-        public SteamAuthenticationProvider(IConfiguration configuration, ILogger logger, IUserService users, ISteamService steam, ISteamUserTicketAuthenticator authenticator)
+        public SteamAuthenticationProvider(IConfiguration configuration, ILogger logger, IUserService users, ISteamService steam)
         {
             _logger = logger;
             _users = users;
             _steam = steam;
-            _authenticator = authenticator;
 
             ApplyConfig(configuration.Settings);
 
@@ -154,30 +153,40 @@ namespace Stormancer.Server.Plugins.Steam
         /// <returns></returns>
         public async Task<AuthenticationResult> Authenticate(AuthenticationContext authenticationCtx, CancellationToken ct)
         {
+            AuthenticationResult? result = null;
             var pId = new PlatformId { Platform = SteamConstants.PLATFORM_NAME };
             if (!authenticationCtx.Parameters.TryGetValue("ticket", out var ticket) || string.IsNullOrWhiteSpace(ticket))
             {
                 return AuthenticationResult.CreateFailure("Steam session ticket must not be empty.", pId, authenticationCtx.Parameters);
             }
-
+            uint? appIdParam;
+            if (authenticationCtx.Parameters.TryGetValue("appId", out var appIdStr))
+            {
+                appIdParam = uint.Parse(appIdStr);
+            }
+            else
+            {
+                appIdParam = null;
+            }
+            if (!authenticationCtx.Parameters.TryGetValue("version", out var versionStr))
+            {
+                versionStr = "v0001";
+            }
             try
             {
-                var steamId = await _authenticator.AuthenticateUserTicket(ticket);
+                var (steamId,appId) = await _steam.AuthenticateUserTicket(ticket, appIdParam, versionStr == "v1" ? SteamAuthenticationProtocolVersion.V1 : SteamAuthenticationProtocolVersion.V0001);
 
-                if (steamId == null)
-                {
-                    return AuthenticationResult.CreateFailure("Invalid steam session ticket.", pId, authenticationCtx.Parameters);
-                }
+               
                 pId.PlatformUserId = steamId.ToString()!;
 
                 if (_vacEnabled)
                 {
-                    AuthenticationResult? result = null;
+                   
                     string vacSessionId;
                     try
                     {
-                        vacSessionId = await _steam.OpenVACSession(steamId.Value.ToString());
-                        _vacSessions[steamId.Value] = vacSessionId;
+                        vacSessionId = await _steam.OpenVACSession(steamId.ToString());
+                        _vacSessions[steamId] = vacSessionId;
                     }
                     catch (Exception ex)
                     {
@@ -187,7 +196,7 @@ namespace Stormancer.Server.Plugins.Steam
 
                     try
                     {
-                        if (!await _steam.RequestVACStatusForUser(steamId.Value.ToString(), vacSessionId))
+                        if (!await _steam.RequestVACStatusForUser(steamId.ToString(), vacSessionId))
                         {
                             result = AuthenticationResult.CreateFailure($"Connection refused by VAC.", pId, authenticationCtx.Parameters);
                         }
@@ -200,7 +209,7 @@ namespace Stormancer.Server.Plugins.Steam
 
                     if (result != null) // Failed
                     {
-                        if (_vacSessions.TryRemove(steamId.Value, out _))
+                        if (_vacSessions.TryRemove(steamId, out _))
                         {
                             try
                             {
@@ -215,9 +224,9 @@ namespace Stormancer.Server.Plugins.Steam
                     }
                 }
 
-                var steamIdString = steamId.GetValueOrDefault().ToString();
+                var steamIdString = steamId.ToString();
                 var user = await _users.GetUserByClaim(SteamConstants.PLATFORM_NAME, SteamConstants.ClaimPath, steamIdString);
-                var playerSummary = await _steam.GetPlayerSummary(steamId.Value);
+                var playerSummary = await _steam.GetPlayerSummary(steamId);
                 if (user == null)
                 {
                     var uid = Guid.NewGuid().ToString("N");
@@ -259,8 +268,11 @@ namespace Stormancer.Server.Plugins.Steam
                         await _users.UpdateUserData(user.Id, user.UserData);
                     }
                 }
+                
 
-                return AuthenticationResult.CreateSuccess(user, pId, authenticationCtx.Parameters);
+                result = AuthenticationResult.CreateSuccess(user, pId, authenticationCtx.Parameters);
+                result.OnSessionUpdated += (SessionRecord session) => { session.SessionData["steam.appId"] = Encoding.ASCII.GetBytes(appIdStr); };
+                return result;
             }
             catch (SteamException)
             {

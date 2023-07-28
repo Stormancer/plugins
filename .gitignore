@@ -354,3 +354,4 @@ output
 **/out
 tests/server-profile/data
 src/Stormancer.Plugins/GameSession/Stormancer.GameServers.Agent/appsettings.Development.json
+.stormancer

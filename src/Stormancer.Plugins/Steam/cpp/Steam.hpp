@@ -2126,6 +2126,8 @@ namespace Stormancer
 					context.authParameters->type = type;
 					context.authParameters->parameters["provider"] = provider;
 					context.authParameters->parameters["ticket"] = steamTicketHex;
+					context.authParameters->parameters["version"] = "v1";
+					context.authParameters->parameters["appId"] = std::to_string(SteamUtils()->GetAppID());
 				});
 			}
 
@@ -2135,6 +2137,9 @@ namespace Stormancer
 				{
 					context.response->parameters["provider"] = provider;
 					context.response->parameters["ticket"] = steamTicketHex;
+					context.response->parameters["version"] = "v1";
+					context.response->parameters["appId"] = std::to_string(SteamUtils()->GetAppID());
+
 				});
 			}
 

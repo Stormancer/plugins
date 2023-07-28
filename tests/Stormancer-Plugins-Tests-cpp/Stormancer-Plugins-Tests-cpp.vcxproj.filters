@@ -1,110 +1,35 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClCompile Include="TestBrowseParties.cpp" />
+    <ClCompile Include="TestDevServer.cpp" />
+    <ClCompile Include="TestDisableGameSessionDirectConnection.cpp" />
+    <ClCompile Include="TestFriendsBlock.cpp" />
+    <ClCompile Include="TestParty.cpp" />
     <ClCompile Include="TestSocketApi.cpp" />
     <ClCompile Include="pch.cpp" />
-    <ClCompile Include="TestDevServer.cpp" />
-    <ClCompile Include="TestParty.cpp" />
-    <ClCompile Include="TestDisableGameSessionDirectConnection.cpp" />
-    <ClCompile Include="TestBrowseParties.cpp" />
     <ClCompile Include="TestTunnel.cpp" />
-    <ClCompile Include="TestFriendsBlock.cpp">
-      <Filter>Friends</Filter>
-    </ClCompile>
+    <ClCompile Include="StressTestPartyGamesession.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Analytics\cpp\Analytics.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Friends\cpp\Friends.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\GameFinder\cpp\GameFinder.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\GameSession\cpp\GameSession.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\GameSession\cpp\ServerPools.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Galaxy\cpp\Galaxy.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Limits\cpp\connectionQueue.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Notification\cpp\Notifications.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Party\cpp\Party.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Profile\cpp\Profile.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Replication\cpp\CommandLog.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\SocketApi\cpp\Socket.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Spectate\cpp\Spectate.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Steam\cpp\Steam.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Users\cpp\ClientAPI.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Users\cpp\Users.hpp" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Steam\cpp\Steam.hpp">
-      <Filter>Steam</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\GameSession\cpp\ServerPools.hpp">
-      <Filter>GameSession</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Party\cpp\Party.hpp">
-      <Filter>Party</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\GameFinder\cpp\GameFinder.hpp">
-      <Filter>Gamefinder</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Users\cpp\ClientAPI.hpp">
-      <Filter>Users</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Users\cpp\Users.hpp">
-      <Filter>Users</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\SocketApi\cpp\Socket.hpp">
-      <Filter>Socket</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Galaxy\cpp\Galaxy.hpp">
-      <Filter>Galaxy</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Analytics\cpp\Analytics.hpp">
-      <Filter>Analytics</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Replication\cpp\CommandLog.hpp">
-      <Filter>Replication</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Friends\cpp\Friends.hpp">
-      <Filter>Friends</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Profile\cpp\Profile.hpp">
-      <Filter>Profile</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Spectate\cpp\Spectate.hpp">
-      <Filter>Spectate</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\GameSession\cpp\GameSession.hpp">
-      <Filter>GameSession</Filter>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Limits\cpp\connectionQueue.hpp">
-      <Filter>Limits</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Stormancer.Plugins\Notification\cpp\Notifications.hpp">
-      <Filter>Notifications</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Filter Include="Steam">
-      <UniqueIdentifier>{fc334805-6bf7-4922-9a80-f4e1ced8e548}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="GameSession">
-      <UniqueIdentifier>{80ff9f9a-79cd-4611-a52e-f464cb24f19f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Party">
-      <UniqueIdentifier>{37476903-56ec-49df-b43e-45e846116751}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="GameFinder">
-      <UniqueIdentifier>{3bb5cc69-6d27-4c59-8a6c-3056be010da0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Users">
-      <UniqueIdentifier>{dfd19114-6ba8-4adf-8342-51ec37c17db2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Socket">
-      <UniqueIdentifier>{18af6ac7-cf0c-4cfe-9c8d-65eab0aed4eb}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Galaxy">
-      <UniqueIdentifier>{4990681e-e3a1-4b0b-9804-4bfc32f643bd}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Analytics">
-      <UniqueIdentifier>{2fb6dace-491c-4217-954d-72d1dbdebb23}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Replication">
-      <UniqueIdentifier>{d0b8e35b-2b49-40e7-8055-0488751f9b09}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Friends">
-      <UniqueIdentifier>{a09716fe-039f-4827-a7fd-24a5c6e48a51}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Profile">
-      <UniqueIdentifier>{443214e2-35b5-42a6-b6dd-3fc0812c7f70}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Spectate">
-      <UniqueIdentifier>{df81b003-a2dd-4b01-9e5c-86b60ee1d952}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Limits">
-      <UniqueIdentifier>{e09752e2-ae7e-4a18-b9bf-93aa64d55ef2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Notifications">
-      <UniqueIdentifier>{bab8feb7-d80e-4a42-acc1-0974181f4711}</UniqueIdentifier>
-    </Filter>
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Gameye\cpp\gameye.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
