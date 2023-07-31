@@ -111,8 +111,29 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <param name="ctx"></param>
         /// <returns></returns>
         Task OnGameSessionShutdown(GameSessionShutdownContext ctx) => Task.CompletedTask;
+
+        /// <summary>
+        /// Event fired when the gamesession is reset.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task OnGameSessionReset(GameSessionResetContext ctx) => Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Context class passed to <see cref="IGameSessionEventHandler.OnGameSessionReset(GameSessionResetContext)"/>
+    /// </summary>
+    public class GameSessionResetContext
+    {
+        internal GameSessionResetContext(IGameSessionService gameSession, ISceneHost scene)
+        {
+            GameSession = gameSession;
+            Scene = scene;
+        }
+
+        public IGameSessionService GameSession { get; }
+        public ISceneHost Scene { get; }
+    }
 
     /// <summary>
     /// Context 
