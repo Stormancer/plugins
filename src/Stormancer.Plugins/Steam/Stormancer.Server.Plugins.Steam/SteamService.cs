@@ -324,7 +324,7 @@ namespace Stormancer.Server.Plugins.Steam
             }
         }
 
-        public async Task<string> OpenVACSession(string steamId)
+        public async Task<string> OpenVACSession(uint appId,string steamId)
         {
             var apiKey = await keyStore.GetApiKeyAsync();
             if (string.IsNullOrWhiteSpace(apiKey))
@@ -335,7 +335,7 @@ namespace Stormancer.Server.Plugins.Steam
             const string uri = "ICheatReportingService/StartSecureMultiplayerSession/v0001/";
             var p = new Dictionary<string, string> {
                 {"key", apiKey },
-                {"appid", _configSection.appId.ToString() },
+                {"appid", appId.ToString() },
                 {"steamid", steamId }
             };
 
@@ -355,7 +355,7 @@ namespace Stormancer.Server.Plugins.Steam
             }
         }
 
-        public async Task CloseVACSession(string steamId, string sessionId)
+        public async Task CloseVACSession(uint appId,string steamId, string sessionId)
         {
             var apiKey = await keyStore.GetApiKeyAsync();
             if (string.IsNullOrWhiteSpace(apiKey))
@@ -366,7 +366,7 @@ namespace Stormancer.Server.Plugins.Steam
             const string uri = "ICheatReportingService/EndSecureMultiplayerSession/v0001/";
             var p = new Dictionary<string, string> {
                 {"key", apiKey },
-                {"appid", _configSection.appId.ToString() },
+                {"appid", appId.ToString() },
                 {"steamid", steamId },
                 {"session_id", sessionId }
             };
@@ -384,7 +384,7 @@ namespace Stormancer.Server.Plugins.Steam
             }
         }
 
-        public async Task<bool> RequestVACStatusForUser(string steamId, string sessionId)
+        public async Task<bool> RequestVACStatusForUser(uint appId,string steamId, string sessionId)
         {
             var apiKey = await keyStore.GetApiKeyAsync();
             if (string.IsNullOrWhiteSpace(apiKey))
@@ -395,7 +395,7 @@ namespace Stormancer.Server.Plugins.Steam
             const string uri = "ICheatReportingService/RequestVacStatusForUser/v0001/";
             var p = new Dictionary<string, string> {
                 {"key", apiKey },
-                {"appid", _configSection.appId.ToString() },
+                {"appid", appId.ToString() },
                 {"steamid", steamId },
                 {"session_id", sessionId }
             };
@@ -511,6 +511,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// <summary>
         /// Create a Steam lobby
         /// </summary>
+        /// <param name="appId"></param>
         /// <param name="lobbyName"></param>
         /// <param name="lobbyType"></param>
         /// <param name="maxMembers"></param>
@@ -518,7 +519,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// <param name="lobbyMetadata"></param>
         /// <returns></returns>
         /// <remarks>metadata does not work</remarks>
-        public async Task<SteamCreateLobbyData> CreateLobby(string lobbyName, LobbyType lobbyType, int maxMembers, IEnumerable<ulong>? steamIdInvitedMembers = null, Dictionary<string, string>? lobbyMetadata = null)
+        public async Task<SteamCreateLobbyData> CreateLobby(uint appId,string lobbyName, LobbyType lobbyType, int maxMembers, IEnumerable<ulong>? steamIdInvitedMembers = null, Dictionary<string, string>? lobbyMetadata = null)
         {
             if (string.IsNullOrEmpty(lobbyName))
             {
@@ -568,7 +569,7 @@ namespace Stormancer.Server.Plugins.Steam
             return json.response;
         }
 
-        public async Task RemoveUserFromLobby(ulong steamIdToRemove, ulong steamIDLobby)
+        public async Task RemoveUserFromLobby(uint appId,ulong steamIdToRemove, ulong steamIDLobby)
         {
             if (steamIdToRemove == 0)
             {
@@ -584,7 +585,7 @@ namespace Stormancer.Server.Plugins.Steam
 
             var removeUserFromLobbyInputJson = new
             {
-                appid = _configSection.appId,
+                appid = appId,
                 steamid_to_remove = steamIdToRemove,
                 steamid_lobby = steamIDLobby,
             };

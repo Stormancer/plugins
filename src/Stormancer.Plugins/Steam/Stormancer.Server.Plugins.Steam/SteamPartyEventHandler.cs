@@ -51,7 +51,7 @@ namespace Stormancer.Server.Plugins.Steam
 
         public ulong? SteamIDLobby { get; set; }
         public SessionId CurrentLeaderSessionId { get; set; }
-
+		public uint AppId { get; set; }
         public int NumMembers => UserData.Count;
 
         // UserData[SessionId] => SteamUserData
@@ -123,6 +123,9 @@ namespace Stormancer.Server.Plugins.Steam
                 return;
             }
             var steamId = (ulong)ctx.Session.User!.GetSteamId()!;
+            ctx.Session.TryGetAppId(out var steamAppId);
+
+
             var data = (SteamPartyData)ctx.Party.ServerData.GetOrAdd(PartyLobbyKey, new SteamPartyData());
 
             if (data.SteamIDLobby == null)
@@ -151,7 +154,7 @@ namespace Stormancer.Server.Plugins.Steam
                 _ = ctx.Party.UpdateSettings(partySettingsDto, CancellationToken.None);
                 data.SteamIDLobby = steamIDLobby;
                 data.UserData[ctx.Session.SessionId] = new SteamUserData { SessionId = ctx.Session.SessionId, SteamId = steamId};
-
+                data.AppId = steamAppId;
 
                 data.IsJoinable = ctx.Party.Settings.IsJoinable;
                 data.CurrentLeaderSessionId = ctx.Session.SessionId;
@@ -301,7 +304,7 @@ namespace Stormancer.Server.Plugins.Steam
                 if (data != null && data.SteamIDLobby != null && data.UserData.TryGetValue(sessionId, out var steamUserData))
                 {
 
-                    await _steamService.RemoveUserFromLobby(steamUserData.SteamId, data.SteamIDLobby.Value);
+                    await _steamService.RemoveUserFromLobby(data.AppId,steamUserData.SteamId, data.SteamIDLobby.Value);
 
                     data.UserData.TryRemove(sessionId, out var _);
 
