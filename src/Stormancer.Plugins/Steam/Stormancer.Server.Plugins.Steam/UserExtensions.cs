@@ -20,8 +20,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using J2N;
+using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Steam;
 using Stormancer.Server.Plugins.Users;
+using System;
 
 namespace Stormancer
 {
@@ -47,6 +50,43 @@ namespace Stormancer
             }
 
             return null;
+        }
+
+        public static bool TryGetSteamId(this User user, out ulong steamId)
+        {
+            if (user.Auth.TryGetValue(SteamConstants.PLATFORM_NAME, out var steamAuthSection) && steamAuthSection is JObject steamAuth
+                && steamAuth.TryGetValue(SteamConstants.ClaimPath,out var steamIdToken) && steamIdToken is JValue steamIdValue)
+            {
+                var steamIdString = steamIdValue.ToObject<string>();
+              
+                if (steamIdString != null)
+                {
+                    steamId = ulong.Parse(steamIdString.ToString());
+                    return true;
+                }
+            }
+            steamId = 0;
+            return false;
+        }
+
+        /// <summary>
+        /// gets the 
+        /// </summary>
+        /// <param name="session"></param>
+        /// <param name="appId"></param>
+        /// <returns></returns>
+        public static bool TryGetAppId(this Session session, out uint appId)
+        {
+            if(session.SessionData.TryGetValue("steam.appId",out var bytes))
+            {
+                 appId = BitConverter.ToUInt32(bytes,0);
+                return true;
+            }
+            else
+            {
+                appId = default;
+                return false;
+            }
         }
     }
 }

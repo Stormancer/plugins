@@ -49,7 +49,7 @@ namespace Stormancer.Server.Plugins.Steam
         public TaskQueue TaskQueue { get; } = new();
 
         public ulong SteamIDLobby { get; set; } = 0;
-
+        public uint AppId { get; set; }
         public int NumMembers { get => _numMembers; }
 
         // UserData[SessionId] => SteamUserData
@@ -174,8 +174,8 @@ namespace Stormancer.Server.Plugins.Steam
                         {
                             // Get steamId
                             var steamId = ctx.Session.User.GetSteamId();
-
-                            if (steamId == null)
+                            
+                            if (steamId == null || !ctx.Session.TryGetAppId(out var steamAppId))
                             {
                                 throw new AggregateException("SteamId is invalid");
                             }
@@ -223,6 +223,7 @@ namespace Stormancer.Server.Plugins.Steam
                                     }
                                     partySettingsDto.PublicServerData["SteamIDLobby"] = steamIDLobby.ToString();
                                     _ = ctx.Party.UpdateSettings(partySettingsDto, CancellationToken.None);
+                                    data.AppId = steamAppId;
                                     data.SteamIDLobby = steamIDLobby;
                                     data.IsJoinable = joinable;
                                 }
@@ -326,7 +327,7 @@ namespace Stormancer.Server.Plugins.Steam
                 {
                     await data.TaskQueue.PushWork(async () =>
                     {
-                        await _steamService.RemoveUserFromLobby(steamUserData.SteamId, data.SteamIDLobby);
+                        await _steamService.RemoveUserFromLobby(data.AppId,steamUserData.SteamId, data.SteamIDLobby);
                         data.DecrementNumMembers();
                         data.UserData.TryRemove(sessionId, out var _);
                     });

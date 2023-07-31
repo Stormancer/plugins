@@ -25,6 +25,7 @@ using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Users;
 using System;
+using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
@@ -86,7 +87,6 @@ namespace Stormancer.Server.Plugins.Steam
         /// <param name="logger"></param>
         /// <param name="users"></param>
         /// <param name="steam"></param>
-        /// <param name="authenticator"></param>
         public SteamAuthenticationProvider(IConfiguration configuration, ILogger logger, IUserService users, ISteamService steam)
         {
             _logger = logger;
@@ -130,12 +130,11 @@ namespace Stormancer.Server.Plugins.Steam
         {
             if (ctx.Session.User != null)
             {
-                var steamId = ctx.Session.User.GetSteamId();
-                if (steamId != null && _vacSessions.TryRemove(steamId.Value, out var vacSessionId))
+                if (ctx.Session.User.TryGetSteamId(out var steamId) && ctx.Session.TryGetAppId(out var appId) && _vacSessions.TryRemove(steamId, out var vacSessionId))
                 {
                     try
                     {
-                        await _steam.CloseVACSession(steamId.ToString()!, vacSessionId);
+                        await _steam.CloseVACSession(appId, steamId.ToString(), vacSessionId);
                     }
                     catch (Exception ex)
                     {
@@ -174,18 +173,18 @@ namespace Stormancer.Server.Plugins.Steam
             }
             try
             {
-                var (steamId,appId) = await _steam.AuthenticateUserTicket(ticket, appIdParam, versionStr == "v1" ? SteamAuthenticationProtocolVersion.V1 : SteamAuthenticationProtocolVersion.V0001);
+                var (steamId, appId) = await _steam.AuthenticateUserTicket(ticket, appIdParam, versionStr == "v1" ? SteamAuthenticationProtocolVersion.V1 : SteamAuthenticationProtocolVersion.V0001);
 
-               
+
                 pId.PlatformUserId = steamId.ToString()!;
 
                 if (_vacEnabled)
                 {
-                   
+
                     string vacSessionId;
                     try
                     {
-                        vacSessionId = await _steam.OpenVACSession(steamId.ToString());
+                        vacSessionId = await _steam.OpenVACSession(appId, steamId.ToString());
                         _vacSessions[steamId] = vacSessionId;
                     }
                     catch (Exception ex)
@@ -196,7 +195,7 @@ namespace Stormancer.Server.Plugins.Steam
 
                     try
                     {
-                        if (!await _steam.RequestVACStatusForUser(steamId.ToString(), vacSessionId))
+                        if (!await _steam.RequestVACStatusForUser(appId, steamId.ToString(), vacSessionId))
                         {
                             result = AuthenticationResult.CreateFailure($"Connection refused by VAC.", pId, authenticationCtx.Parameters);
                         }
@@ -213,7 +212,7 @@ namespace Stormancer.Server.Plugins.Steam
                         {
                             try
                             {
-                                await _steam.CloseVACSession(steamId.ToString()!, vacSessionId);
+                                await _steam.CloseVACSession(appId, steamId.ToString()!, vacSessionId);
                             }
                             catch (Exception ex)
                             {
@@ -268,10 +267,10 @@ namespace Stormancer.Server.Plugins.Steam
                         await _users.UpdateUserData(user.Id, user.UserData);
                     }
                 }
-                
+
 
                 result = AuthenticationResult.CreateSuccess(user, pId, authenticationCtx.Parameters);
-                result.OnSessionUpdated += (SessionRecord session) => { session.SessionData["steam.appId"] = Encoding.ASCII.GetBytes(appIdStr); };
+                result.OnSessionUpdated += (SessionRecord session) => { session.SessionData["steam.appId"] = BitConverter.GetBytes(appId); };
                 return result;
             }
             catch (SteamException)
