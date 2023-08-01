@@ -111,12 +111,15 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         private async Task<IEnumerable<X509Certificate2>> LoadSigningCertificates()
         {
             var certs = new List<X509Certificate2>();
-            foreach (var path in _section.AuthCertPaths)
+            if (_section != null)
             {
-                var secret = await _secretsStore.GetSecret(path);
-                if (secret.Value != null)
+                foreach (var path in _section.AuthCertPaths)
                 {
-                    certs.Add(new X509Certificate2(secret.Value));
+                    var secret = await _secretsStore.GetSecret(path);
+                    if (secret.Value != null)
+                    {
+                        certs.Add(new X509Certificate2(secret.Value));
+                    }
                 }
             }
             return certs;

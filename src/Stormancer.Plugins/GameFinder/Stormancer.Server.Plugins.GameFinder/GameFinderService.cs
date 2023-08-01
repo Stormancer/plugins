@@ -196,15 +196,15 @@ namespace Stormancer.Server.Plugins.GameFinder
                 await using (var scope = _scene.DependencyResolver.CreateChild(Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
                 {
                     var sessions = scope.Resolve<IUserSessions>();
-                    peersInGroup = await Task.WhenAll(party.Players.Select(async p =>
+                    peersInGroup = await Task.WhenAll(party.Players.Select(async player =>
                     {
-                        var peer = await sessions.GetPeer(p.Value.UserId, ct);
-
+                        var peer =_scene.RemotePeers.FirstOrDefault(p => p.SessionId.ToString() == player.Value.SessionId);
+                        
                         if (peer == null)
                         {
-                            throw new ClientException($"'{p.Value.UserId} has disconnected.");
+                            throw new ClientException($"'{player.Value.UserId} is not connected to the gamefinder '{_scene.Id}'.");
                         }
-                        return new PlayerPeer { Peer = peer, Player = p.Value };
+                        return new PlayerPeer { Peer = peer, Player = player.Value };
                     }));
                 }
                 var state = new GameFinderRequestState(party);

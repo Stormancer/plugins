@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+*****
+- Added GetOptions() method that returns an IOptions<T> to IConfiguration.
+
 2.1.2.5
 ----------
 - Update dependency to Stormancer.Abstraction.Server 9.0.0

@@ -30,14 +30,15 @@ namespace Stormancer.Server.Plugins.Steam
     /// </summary>
     public interface ISteamService
     {
-        // ISteamUserAuth
-
+        
         /// <summary>
         /// Authenticate user ticket.
         /// </summary>
         /// <param name="ticket"></param>
+        /// <param name="appId"></param>
+        /// <param name="protocol"></param>
         /// <returns></returns>
-        Task<ulong?> AuthenticateUserTicket(string ticket);
+        Task<(ulong steamId,uint appId)> AuthenticateUserTicket(string ticket, uint? appId, SteamAuthenticationProtocolVersion protocol);
 
         // ISteamUser
 
@@ -80,7 +81,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// <param name="steamIdInvitedMembers"></param>
         /// <param name="lobbyMetadata"></param>
         /// <returns></returns>
-        Task<SteamCreateLobbyData> CreateLobby(string lobbyName, LobbyType lobbyType, int maxMembers, IEnumerable<ulong>? steamIdInvitedMembers = null, Dictionary<string, string>? lobbyMetadata = null);
+        Task<SteamCreateLobbyData> CreateLobby(uint appId, string lobbyName, LobbyType lobbyType, int maxMembers, IEnumerable<ulong>? steamIdInvitedMembers = null, Dictionary<string, string>? lobbyMetadata = null);
 
         /// <summary>
         /// Remove a Steam user from the reserved slots of a Steam Lobby.
@@ -88,7 +89,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// <param name="steamIdToRemove"></param>
         /// <param name="steamIDLobby"></param>
         /// <returns></returns>
-        Task RemoveUserFromLobby(ulong steamIdToRemove, ulong steamIDLobby);
+        Task RemoveUserFromLobby(uint appId,ulong steamIdToRemove, ulong steamIDLobby);
 
         // ICheatReportingService
 
@@ -97,7 +98,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// </summary>
         /// <param name="steamId"></param>
         /// <returns></returns>
-        Task<string> OpenVACSession(string steamId);
+        Task<string> OpenVACSession(uint appId, string steamId);
 
         /// <summary>
         /// Close VAC session.
@@ -105,7 +106,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// <param name="steamId"></param>
         /// <param name="sessionId"></param>
         /// <returns></returns>
-        Task CloseVACSession(string steamId, string sessionId);
+        Task CloseVACSession(uint appId, string steamId, string sessionId);
 
         /// <summary>
         /// Request VAC status for user.
@@ -113,7 +114,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// <param name="steamId"></param>
         /// <param name="sessionId"></param>
         /// <returns></returns>
-        Task<bool> RequestVACStatusForUser(string steamId, string sessionId);
+        Task<bool> RequestVACStatusForUser(uint appId, string steamId, string sessionId);
 
         /// <summary>
         /// Decode Lobby metadata bearer token.

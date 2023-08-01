@@ -14,6 +14,7 @@ Unreleased
 Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
+- Do not call IUserSessions.GetPeer to get the peer associated with a player in the gamefinder: the Session id if in the Player object.
 
 8.0.0.4
 -------

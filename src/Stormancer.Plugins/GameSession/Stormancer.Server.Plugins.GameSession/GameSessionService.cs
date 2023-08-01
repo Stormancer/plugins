@@ -479,10 +479,7 @@ namespace Stormancer.Server.Plugins.GameSession
             lock (syncRoot)
             {
 
-                if (!_config.Public && !_config.UserIds.Any(u => u == user))
-                {
-                    throw new ClientException("You are not authorized to join this game.");
-                }
+                
             }
 
             var client = new Client(peer);
@@ -881,6 +878,11 @@ namespace Stormancer.Server.Plugins.GameSession
                 BroadcastClientUpdate(client, userId);
 
                 await EvaluateGameComplete();
+
+                if(_server!=null && _server.GameServerSessionId == peer.SessionId)
+                {
+                    _scene.Shutdown("gamesession.gameServerLeft");
+                }
             }
 
 
@@ -906,7 +908,7 @@ namespace Stormancer.Server.Plugins.GameSession
             }
         }
 
-        public Task Reset()
+        public async Task Reset()
         {
             foreach (var client in _clients.Values)
             {
@@ -915,7 +917,17 @@ namespace Stormancer.Server.Plugins.GameSession
 
             _gameCompleteExecuted = false;
 
-            return Task.FromResult(0);
+            await using (var scope = _scene.CreateRequestScope())
+            {
+                var ctx = new GameSessionResetContext(this, _scene);
+
+               await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.OnGameSessionReset(ctx), ex =>
+                {
+                    _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running gameSession.GameSessionCompleted event handlers", ex);
+                });
+            }
+
+           
         }
 
         public async Task<Action<Stream, ISerializer>> PostResults(Stream inputStream, IScenePeerClient remotePeer)
@@ -942,7 +954,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 }
                 else
                 {
-                    static void NoOp(Stream stream, ISerializer serializer) { };
+                    static void NoOp(Stream _, ISerializer _2) { };
                     return NoOp;
                 }
 

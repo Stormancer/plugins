@@ -31,6 +31,7 @@ namespace Stormancer.Server.Plugins.Users
     {
         public SessionRecord Session { get; set; }
         public IScenePeerClient Client { get; set; }
+        public Dictionary<string,string> Dimensions { get; set; } = new Dictionary<string,string>();
     }
 
     public class LogoutContext

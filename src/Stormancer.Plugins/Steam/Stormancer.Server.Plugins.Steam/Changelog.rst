@@ -17,7 +17,8 @@ Changed
 - Updated dependency to Users to support new abstraction lib.
 Added
 *****
-- Added support for the new Steam Authentication tokens introduced with the Steamworks SDK 1.57
+- Added support for the new Steam Authentication tokens introduced with the Steamworks SDK 1.57. Supports both the new and old authentication protocol. Switch to the new protocol happens by adding a `version` field to the auth parameters with `v1` as the content.
+- Added support for multiple appIds, the client advertises its appId when sending the authentication request. If no appId is set, it defaults to the appId provided in the server configuration (field `steam.appId`). Additional authorized appId are configured by setting the `steam.appIds` server configuration to a list of steam app ids.
 
 4.1.4
 ----------

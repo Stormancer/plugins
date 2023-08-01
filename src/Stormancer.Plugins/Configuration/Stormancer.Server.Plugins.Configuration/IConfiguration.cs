@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Components;
 using System;
@@ -75,6 +76,14 @@ namespace Stormancer.Server.Plugins.Configuration
         T GetValue<T>(string path, T defaultValue = default);
 
         /// <summary>
+        /// Gets a section of the configuration.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        IOptions<T> GetOptions<T>(string path) where T : class, new();
+
+        /// <summary>
         /// Sets a default value for a configuration item.
         /// </summary>
         /// <typeparam name="T"></typeparam>
@@ -84,7 +93,7 @@ namespace Stormancer.Server.Plugins.Configuration
     }
     internal class DefaultConfiguration : IConfiguration
     {
-       
+
         protected readonly IEnvironment _env;
         private readonly ConfigurationNotifier notifier;
 
@@ -124,7 +133,7 @@ namespace Stormancer.Server.Plugins.Configuration
 
             notifier.NotifyConfigChanged();
 
-           
+
         }
 
         public T? GetValue<T>(string path, T defaultValue = default)
@@ -174,7 +183,26 @@ namespace Stormancer.Server.Plugins.Configuration
             value = node.ToObject<T>()!;
             return true;
         }
+
+        public IOptions<T> GetOptions<T>(string path) where T : class, new()
+        {
+            return new Options<T>((path) => GetValue<T>(path), path);
+        }
+
+        private class Options<T> : IOptions<T> where T : class, new()
+        {
+            private readonly Func<string, T?> _valueFactory;
+            private readonly string _path;
+
+            public Options(Func<string, T?> valueFactory, string path)
+            {
+                _valueFactory = valueFactory;
+                _path = path;
+            }
+            public T Value => _valueFactory(_path) ?? new();
+        }
     }
+   
 
 }
 

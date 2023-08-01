@@ -276,7 +276,7 @@ namespace Stormancer.Server.Plugins.Party
         [S2SApi]
         public async Task AddPartyToGameSession(string gamesessionId, CancellationToken cancellationToken)
         {
-            _logger.Log(LogLevel.Info, "party.gamesession", $"Adding gamesession {gamesessionId} from party {_partyService.PartyId}", new { });
+            //_logger.Log(LogLevel.Info, "party.gamesession", $"Adding gamesession {gamesessionId} from party {_partyService.PartyId}", new { });
             await _partyService.UpdateSettings(state =>
             {
 
@@ -292,13 +292,13 @@ namespace Stormancer.Server.Plugins.Party
              
 
             }, cancellationToken);
-            _logger.Log(LogLevel.Info, "party.gamesession", $"Added gamesession {gamesessionId} from party {_partyService.PartyId}", new { });
+            //_logger.Log(LogLevel.Info, "party.gamesession", $"Added gamesession {gamesessionId} from party {_partyService.PartyId}", new { });
         }
 
         [S2SApi]
         public async Task RemovePartyFromGameSession(string gamesessionId,CancellationToken cancellationToken)
         {
-            _logger.Log(LogLevel.Info, "party.gamesession", $"Removing gamesession {gamesessionId} from party {_partyService.PartyId}",new { });
+            //_logger.Log(LogLevel.Info, "party.gamesession", $"Removing gamesession {gamesessionId} from party {_partyService.PartyId}",new { });
             while ((_partyService.Settings.PublicServerData.TryGetValue("stormancer.partyStatus", out var status) && status == "gamesession") 
                 && (_partyService.Settings.PublicServerData.TryGetValue("stormancer.partyStatus.details", out var currentGs) && currentGs == gamesessionId)
                 && !cancellationToken.IsCancellationRequested)
@@ -326,7 +326,7 @@ namespace Stormancer.Server.Plugins.Party
                 }, cancellationToken);
 
             }
-            _logger.Log(LogLevel.Info, "party.gamesession", $"Removed gamesession {gamesessionId} from party {_partyService.PartyId}", new { });
+            //_logger.Log(LogLevel.Info, "party.gamesession", $"Removed gamesession {gamesessionId} from party {_partyService.PartyId}", new { });
         }
 
         protected override Task OnConnecting(IScenePeerClient client)

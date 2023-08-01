@@ -501,7 +501,7 @@ namespace Stormancer.Server.Plugins.Party
                         _partyState.Settings.PublicServerData = partySettingsDto.PublicServerData;
                     }
                     _partyState.SettingsVersionNumber = newSettingsVersion;
-                    Log(LogLevel.Info, "UpdateSettings", $"Updated public server data to party='{this.PartyId}' Version={newSettingsVersion}", partySettingsDto.PublicServerData);
+                    //Log(LogLevel.Info, "UpdateSettings", $"Updated public server data to party='{this.PartyId}' Version={newSettingsVersion}", partySettingsDto.PublicServerData);
 
                     var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartySettingsUpdated, _scene);
                     partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
@@ -519,7 +519,7 @@ namespace Stormancer.Server.Plugins.Party
 
                     await handlers.RunEventHandler(h => h.OnSendingSettingsUpdateToMembers(new PartySettingsMemberUpdateCtx(this, updates)),
                     ex => _logger.Log(LogLevel.Error, "party", "An error occurred while running OnSendingSettingsToMember", ex));
-                    Log(LogLevel.Info, "UpdateSettings", $"Sending settings update to party='{this.PartyId}' Version={newSettingsVersion}", msg);
+                    //Log(LogLevel.Info, "UpdateSettings", $"Sending settings update to party='{this.PartyId}' Version={newSettingsVersion}", msg);
                     await BroadcastStateUpdateRpc(PartySettingsUpdateDto.Route, updates);
                 }
                 finally
@@ -787,11 +787,13 @@ namespace Stormancer.Server.Plugins.Party
             //Send S2S find match request
             try
             {
-                //var sceneUri = await _locator.GetSceneId("stormancer.plugins.gamefinder", );
+              
+               
                 var findGameResult = await _gameFinderClient.FindGame(_partyState.Settings.GameFinderName, gameFinderRequest, _partyState.FindGameCts?.Token ?? CancellationToken.None);
 
                 if (!findGameResult.Success)
                 {
+                    Log(LogLevel.Error, "FindGame_Impl", "An error occurred during the S2S FindGame request", new { findGameResult.ErrorMsg });
                     BroadcastFFNotification(GameFinderFailedRoute, new GameFinderFailureDto { Reason = findGameResult.ErrorMsg });
                 }
             }
@@ -873,33 +875,43 @@ namespace Stormancer.Server.Plugins.Party
                 cts.CancelAfter(_clientRpcTimeout);
 
                 await Task.WhenAll(
-                    dataPerMember.Select(kvp =>
-                        _rpcService.Rpc(
-                            route,
-                            kvp.Key.Peer,
-                            s =>
-                            {
-                                kvp.Key.Peer.Serializer().Serialize(_partyState.VersionNumber, s);
-                                kvp.Key.Peer.Serializer().Serialize(kvp.Value, s);
-                            },
-                            PacketPriority.MEDIUM_PRIORITY,
-                            cts.Token
-                        ).LastOrDefaultAsync().ToTask()
-                        .ContinueWith(task =>
+                        dataPerMember.Select(kvp =>
                         {
-                            if (task.IsFaulted && !(task.Exception?.InnerException is OperationCanceledException))
+                            try
                             {
-                                Log(
-                                    LogLevel.Trace,
-                                    "BroadcastStateUpdateRpc",
-                                    $"An error occurred during a client RPC (route: '{route}')",
-                                    new { kvp.Key.UserId, kvp.Key.Peer.SessionId, task.Exception, Route = route },
-                                    kvp.Key.UserId, kvp.Key.Peer.SessionId.ToString()
-                                );
+                                return _rpcService.Rpc(
+                                    route,
+                                    kvp.Key.Peer,
+                                    s =>
+                                    {
+                                        kvp.Key.Peer.Serializer().Serialize(_partyState.VersionNumber, s);
+                                        kvp.Key.Peer.Serializer().Serialize(kvp.Value, s);
+                                    },
+                                    PacketPriority.MEDIUM_PRIORITY,
+                                    cts.Token
+                                ).LastOrDefaultAsync().ToTask()
+                                .ContinueWith(task =>
+                                {
+                                    if (task.IsFaulted && !(task.Exception?.InnerException is OperationCanceledException))
+                                    {
+                                        Log(
+                                            LogLevel.Trace,
+                                            "BroadcastStateUpdateRpc",
+                                            $"An error occurred during a client RPC (route: '{route}')",
+                                            new { kvp.Key.UserId, kvp.Key.Peer.SessionId, task.Exception, Route = route },
+                                            kvp.Key.UserId, kvp.Key.Peer.SessionId.ToString()
+                                        );
+                                    }
+                                });
                             }
-                        })
-                    ) // dataPerMember.Select()
-                ); // Task.WhenAll()
+                            catch(Exception)
+                            {
+                                return Task.CompletedTask;
+                            }
+
+                        }) // dataPerMember.Select()
+                    ); // Task.WhenAll()
+                
             } // using cts
         }
 
