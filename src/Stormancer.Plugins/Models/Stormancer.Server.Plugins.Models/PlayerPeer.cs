@@ -6,13 +6,13 @@
         {
         }
 
-        public PlayerPeer(IScenePeerClient peer, Player player)
+        public PlayerPeer(SessionId sessionId, Player player)
         {
-            Peer = peer;
+            SessionId = sessionId;
             Player = player;
         }
 
-        public IScenePeerClient Peer { get; set; }
+        public SessionId SessionId { get; set; }
 
         public Player Player { get; set; }
     }
