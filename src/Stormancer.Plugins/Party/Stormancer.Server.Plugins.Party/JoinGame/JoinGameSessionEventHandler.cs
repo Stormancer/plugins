@@ -63,7 +63,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
         {
             if (IsEnabled)
             {
-                string? partyId = await _userSessions.GetSessionData<string>(ctx.Player.Peer.SessionId, "party", CancellationToken.None);
+                string? partyId = await _userSessions.GetSessionData<string>(ctx.Player.SessionId, "party", CancellationToken.None);
 
                 bool shouldCreate = false;
                 
