@@ -205,7 +205,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.G
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GeoIp", "GeoIp", "{E2BC01A9-0A4A-437C-B08E-738479C5A295}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.GeoIp.Maxmind", "GeoIp\Stormancer.Server.Plugins.GeoIp.Maxmind\Stormancer.Server.Plugins.GeoIp.Maxmind.csproj", "{AF016784-3B99-49F5-9BC6-EAF021B07CE0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.GeoIp.Maxmind", "GeoIp\Stormancer.Server.Plugins.GeoIp.Maxmind\Stormancer.Server.Plugins.GeoIp.Maxmind.csproj", "{AF016784-3B99-49F5-9BC6-EAF021B07CE0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Collections", "Collections", "{9CA06DBE-DEE6-4DA1-B830-043494E6C15A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Collections", "Collections\Stormancer.Server.Plugins.Collections\Stormancer.Server.Plugins.Collections.csproj", "{BB26713B-5678-4F5D-906D-54C6338B576E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -784,6 +788,18 @@ Global
 		{AF016784-3B99-49F5-9BC6-EAF021B07CE0}.Release|x64.Build.0 = Release|Any CPU
 		{AF016784-3B99-49F5-9BC6-EAF021B07CE0}.Release|x86.ActiveCfg = Release|Any CPU
 		{AF016784-3B99-49F5-9BC6-EAF021B07CE0}.Release|x86.Build.0 = Release|Any CPU
+		{BB26713B-5678-4F5D-906D-54C6338B576E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB26713B-5678-4F5D-906D-54C6338B576E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB26713B-5678-4F5D-906D-54C6338B576E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{BB26713B-5678-4F5D-906D-54C6338B576E}.Debug|x64.Build.0 = Debug|Any CPU
+		{BB26713B-5678-4F5D-906D-54C6338B576E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{BB26713B-5678-4F5D-906D-54C6338B576E}.Debug|x86.Build.0 = Debug|Any CPU
+		{BB26713B-5678-4F5D-906D-54C6338B576E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB26713B-5678-4F5D-906D-54C6338B576E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB26713B-5678-4F5D-906D-54C6338B576E}.Release|x64.ActiveCfg = Release|Any CPU
+		{BB26713B-5678-4F5D-906D-54C6338B576E}.Release|x64.Build.0 = Release|Any CPU
+		{BB26713B-5678-4F5D-906D-54C6338B576E}.Release|x86.ActiveCfg = Release|Any CPU
+		{BB26713B-5678-4F5D-906D-54C6338B576E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -873,6 +889,8 @@ Global
 		{674FF7A5-CBAB-4C2A-825C-EB25C8B7BFAB} = {0780A7C2-5D87-492C-8DE3-A3C72DAD165B}
 		{E2BC01A9-0A4A-437C-B08E-738479C5A295} = {FD264C24-4E01-4B1E-B5A1-489EC1C376E4}
 		{AF016784-3B99-49F5-9BC6-EAF021B07CE0} = {E2BC01A9-0A4A-437C-B08E-738479C5A295}
+		{9CA06DBE-DEE6-4DA1-B830-043494E6C15A} = {FD264C24-4E01-4B1E-B5A1-489EC1C376E4}
+		{BB26713B-5678-4F5D-906D-54C6338B576E} = {9CA06DBE-DEE6-4DA1-B830-043494E6C15A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}
