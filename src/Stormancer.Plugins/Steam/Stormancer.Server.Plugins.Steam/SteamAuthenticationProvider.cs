@@ -61,10 +61,27 @@ namespace Stormancer
 namespace Stormancer.Server.Plugins.Steam
 {
     /// <summary>
-    /// Configures the steam auth provider.
+    /// Configures the steam authentication provider.
     /// </summary>
     public class SteamAuthConfigurationBuilder : AuthProviderConfigurationBuilderBase<SteamAuthConfigurationBuilder>
     {
+
+        /// <summary>
+        /// Gets or sets the default Steam authentication protocol.
+        /// </summary>
+        public string defaultAuthProtocol { get; set; } = "v0001";
+
+        /// <summary>
+        /// Sets the default steam authentication protocol used by the game.
+        /// </summary>
+        /// <param name="defaultAuthProtocol"></param>
+        /// <returns></returns>
+        /// <remarks>Defaults to <see cref="SteamAuthenticationProtocolVersion.V0001"/> for backward compatibility reasons.</remarks>
+        public SteamAuthConfigurationBuilder DefaultAuthProtocol(SteamAuthenticationProtocolVersion defaultAuthProtocol)
+        {
+            this.defaultAuthProtocol = defaultAuthProtocol.ToString();
+            return this;
+        }
 
     }
 
@@ -75,6 +92,7 @@ namespace Stormancer.Server.Plugins.Steam
     {
         private ConcurrentDictionary<ulong, string> _vacSessions = new ConcurrentDictionary<ulong, string>();
         private bool _vacEnabled = false;
+        private string _defaultAuthProtocol;
         private ILogger _logger;
         private readonly IUserService _users;
         private readonly ISteamService _steam;
@@ -109,6 +127,7 @@ namespace Stormancer.Server.Plugins.Steam
         private void ApplyConfig(dynamic config)
         {
             _vacEnabled = config?.steam?.vac ?? false;
+            _defaultAuthProtocol = config.auth?.steam?.defaultAuthProtocol ?? "v0001";
         }
 
         /// <summary>
@@ -169,11 +188,11 @@ namespace Stormancer.Server.Plugins.Steam
             }
             if (!authenticationCtx.Parameters.TryGetValue("version", out var versionStr))
             {
-                versionStr = "v0001";
+                versionStr = _defaultAuthProtocol;
             }
             try
             {
-                var (steamId, appId) = await _steam.AuthenticateUserTicket(ticket, appIdParam, versionStr == "v1" ? SteamAuthenticationProtocolVersion.V1 : SteamAuthenticationProtocolVersion.V0001);
+                var (steamId, appId) = await _steam.AuthenticateUserTicket(ticket, appIdParam, versionStr.Equals("v1", StringComparison.InvariantCultureIgnoreCase) ? SteamAuthenticationProtocolVersion.V1 : SteamAuthenticationProtocolVersion.V0001);
 
 
                 pId.PlatformUserId = steamId.ToString()!;
