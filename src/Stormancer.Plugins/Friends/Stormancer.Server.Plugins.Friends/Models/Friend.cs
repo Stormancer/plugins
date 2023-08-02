@@ -39,6 +39,7 @@ namespace Stormancer.Server.Plugins.Friends
             Roles = record.Roles;
             Status = record.Status;
             Tags = record.Tags;
+            Expiration = record.Expiration;
         }
 
         [MessagePackMember(0)]
@@ -86,6 +87,7 @@ namespace Stormancer.Server.Plugins.Friends
             Roles = dto.Roles;
             Status = dto.Status;
             Tags = dto.Tags;
+            Expiration = dto.Expiration;
         }
 
         public string Id

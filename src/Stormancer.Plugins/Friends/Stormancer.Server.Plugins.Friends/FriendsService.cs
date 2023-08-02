@@ -24,6 +24,7 @@ using Nest;
 using Stormancer.Core;
 using Stormancer.Core.Helpers;
 using Stormancer.Diagnostics;
+using Stormancer.Management;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Database;
 using Stormancer.Server.Plugins.Users;
@@ -693,7 +694,20 @@ namespace Stormancer.Server.Plugins.Friends
 
                 foreach (var (userId, response) in userIds.Zip(responses))
                 {
-                    dictionary[userId] = response.Documents.Select(doc => doc.FriendId);
+                    var list = new List<string>();
+                    foreach(var doc in response.Documents)
+                    {
+                        if(doc.Expiration == default || doc.Expiration > DateTime.UtcNow)
+                        {
+                            list.Add(doc.FriendId);
+
+                        }
+                        else
+                        {
+                            await Unblock(userId, doc.FriendId, cancellationToken);
+                        }
+                    }
+                    dictionary[userId] = list;
                 }
                 return dictionary;
             }
