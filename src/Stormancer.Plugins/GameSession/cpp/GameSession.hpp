@@ -134,6 +134,8 @@ namespace Stormancer
 			}
 
 			virtual pplx::task<Packetisp_ptr> postResult(const StreamWriter& streamWriter, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
+			
+			virtual pplx::task<void> reset(pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
 
 			virtual pplx::task<std::string> getUserFromBearerToken(const std::string& token, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
 
@@ -941,6 +943,26 @@ namespace Stormancer
 						{
 							auto gameSessionService = scene->dependencyResolver().resolve<GameSessionService>();
 							return gameSessionService->sendGameResults(streamWriter, ct);
+						}
+						else
+						{
+							throw std::runtime_error("Not connected to any game session");
+						}
+					}, taskOptions);
+				}
+
+				pplx::task<void> reset(pplx::cancellation_token ct = pplx::cancellation_token::none()) override
+				{
+					auto dispatcher = _wDispatcher.lock();
+					auto taskOptions = dispatcher ? pplx::task_options(dispatcher) : pplx::task_options();
+
+					return getCurrentGameSession(ct)
+						.then([ct](std::shared_ptr<Scene> scene)
+					{
+						if (scene)
+						{
+							auto gameSessionService = scene->dependencyResolver().resolve<GameSessionService>();
+							return gameSessionService->reset(ct);
 						}
 						else
 						{

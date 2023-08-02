@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Store SessionId and not IScenePeerClient in PlayerPeer.
+
 3.0.3.8
 ----------
 - Update dependency to Stormancer.Abstraction.Server 9.0.0

@@ -75,6 +75,7 @@ namespace Stormancer.Server.Plugins.Party
         private readonly PartyConfigurationService partyConfigurationService;
         private readonly IProfileService _profiles;
         private readonly PartyAnalyticsWorker _analyticsWorker;
+        private readonly ISerializer _serializer;
 
         public IReadOnlyDictionary<SessionId, PartyMember> PartyMembers => _partyState.PartyMembers;
 
@@ -99,7 +100,8 @@ namespace Stormancer.Server.Plugins.Party
             PartyLuceneDocumentStore partyDocumentsStore,
             PartyConfigurationService partyConfigurationService,
             IProfileService profiles,
-            PartyAnalyticsWorker analyticsWorker
+            PartyAnalyticsWorker analyticsWorker,
+            ISerializer serializer
         )
         {
             _handlers = handlers;
@@ -118,6 +120,7 @@ namespace Stormancer.Server.Plugins.Party
             this.partyConfigurationService = partyConfigurationService;
             _profiles = profiles;
             _analyticsWorker = analyticsWorker;
+            _serializer = serializer;
             ApplySettings(configuration.Settings);
         }
 
@@ -191,7 +194,7 @@ namespace Stormancer.Server.Plugins.Party
             var handlers = _handlers();
             await _partyState.TaskQueue.PushWork(async () =>
             {
-               
+
 
                 if (_partyState.MemberCount >= _partyState.Settings.ServerSettings.MaxMembers())
                 {
@@ -285,18 +288,18 @@ namespace Stormancer.Server.Plugins.Party
                 });
 
 
-                if(errorId !=null)
+                if (errorId != null)
                 {
                     await Task.Delay(1000);
-                    await peer.Disconnect(GenericJoinError+"?reason="+errorId);
+                    await peer.Disconnect(GenericJoinError + "?reason=" + errorId);
                     return;
                 }
-              
-               
+
+
 
 
                 await _userSessions.UpdateSessionData(peer.SessionId, "party", _partyState.Settings.PartyId, CancellationToken.None);
-              
+
 
                 var profile = await _profiles.GetProfile(user.Id, new Dictionary<string, string> { ["user"] = "summary" }, session, CancellationToken.None);
 
@@ -325,7 +328,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 await RunOperationCompletedEventHandler((service, handlers, scope) =>
                 {
-                    var joinedCtx = new JoinedPartyContext(service,peer, session, partyUser.UserData);
+                    var joinedCtx = new JoinedPartyContext(service, peer, session, partyUser.UserData);
                     return handlers.RunEventHandler(handler => handler.OnJoined(joinedCtx), exception =>
                     {
                         service.Log(LogLevel.Error, "OnConnected", "An exception was thrown by an OnJoined event handler", new { exception }, peer.SessionId.ToString(), user.Id);
@@ -461,7 +464,7 @@ namespace Stormancer.Server.Plugins.Party
                         throw new ClientException(ctx.ErrorMsg);
                     }
 
-                   
+
                     await handlers.RunEventHandler(h => h.OnUpdateSettings(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnUpdateSettings", ex));
 
                     // If the event handlers have modified the settings, we need to notify the leader to invalidate their local copy.
@@ -472,7 +475,7 @@ namespace Stormancer.Server.Plugins.Party
                         newSettingsVersion = _partyState.SettingsVersionNumber + 2;
                     }
 
-                   
+
                     _partyState.Settings.GameFinderName = partySettingsDto.GameFinderName;
                     _partyState.Settings.CustomData = partySettingsDto.CustomData;
                     _partyState.Settings.OnlyLeaderCanInvite = partySettingsDto.OnlyLeaderCanInvite;
@@ -513,7 +516,7 @@ namespace Stormancer.Server.Plugins.Party
                     }
                     var msg = new PartySettingsUpdateDto(_partyState);
 
-                   
+
 
                     Dictionary<PartyMember, PartySettingsUpdateDto> updates = _partyState.PartyMembers.Values.ToDictionary(m => m, _ => msg);
 
@@ -647,7 +650,7 @@ namespace Stormancer.Server.Plugins.Party
                     ThrowNoSuchMemberError(userId);
                 }
 
-               
+
 
                 var localPlayerCountChanged = !localPlayers.SequenceEqual(partyUser.LocalPlayers);
                 var userDataChanged = !partyUser.UserData.SequenceEqual(data);
@@ -662,7 +665,7 @@ namespace Stormancer.Server.Plugins.Party
                 await using var scope = _scene.CreateRequestScope();
                 var handlers = scope.Resolve<IEnumerable<IPartyEventHandler>>();
 
-                var ctx = new UpdatingPartyMemberDataContext(partyUser, localPlayers, data, _scene,this);
+                var ctx = new UpdatingPartyMemberDataContext(partyUser, localPlayers, data, _scene, this);
                 await handlers.RunEventHandler(h => h.OnUpdatingPartyMemberData(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while running the event 'OnUpdatingPartyMemberData'.", ex));
 
                 if (!ctx.IsUpdateValid)
@@ -787,8 +790,8 @@ namespace Stormancer.Server.Plugins.Party
             //Send S2S find match request
             try
             {
-              
-               
+
+
                 var findGameResult = await _gameFinderClient.FindGame(_partyState.Settings.GameFinderName, gameFinderRequest, _partyState.FindGameCts?.Token ?? CancellationToken.None);
 
                 if (!findGameResult.Success)
@@ -904,14 +907,14 @@ namespace Stormancer.Server.Plugins.Party
                                     }
                                 });
                             }
-                            catch(Exception)
+                            catch (Exception)
                             {
                                 return Task.CompletedTask;
                             }
 
                         }) // dataPerMember.Select()
                     ); // Task.WhenAll()
-                
+
             } // using cts
         }
 
@@ -931,7 +934,8 @@ namespace Stormancer.Server.Plugins.Party
         // This method should be used to broadcast a notification to party members that is not part of the party state.
         private void BroadcastFFNotification<T>(string route, T data)
         {
-            _scene.Broadcast(route, data);
+            var filter = new MatchArrayFilter(_partyState.PartyMembers.Select(p => p.Key));
+            _scene.Send(filter, route, s => _serializer.Serialize(data, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
         }
 
         public async Task SendPartyState(string recipientUserId, CancellationToken ct)

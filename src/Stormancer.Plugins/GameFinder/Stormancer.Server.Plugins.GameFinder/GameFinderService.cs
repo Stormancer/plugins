@@ -196,38 +196,38 @@ namespace Stormancer.Server.Plugins.GameFinder
                 await using (var scope = _scene.DependencyResolver.CreateChild(Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
                 {
                     var sessions = scope.Resolve<IUserSessions>();
-                    peersInGroup = await Task.WhenAll(party.Players.Select(async player =>
+                    peersInGroup = party.Players.Select(player =>
                     {
-                        var peer =_scene.RemotePeers.FirstOrDefault(p => p.SessionId.ToString() == player.Value.SessionId);
+                        //var peer =_scene.RemotePeers.FirstOrDefault(p => p.SessionId.ToString() == player.Value.SessionId);
                         
-                        if (peer == null)
-                        {
-                            throw new ClientException($"'{player.Value.UserId} is not connected to the gamefinder '{_scene.Id}'.");
-                        }
-                        return new PlayerPeer { Peer = peer, Player = player.Value };
-                    }));
+                        //if (peer == null)
+                        //{
+                        //    throw new ClientException($"'{player.Value.UserId} is not connected to the gamefinder '{_scene.Id}'.");
+                        //}
+                        return new PlayerPeer { SessionId = SessionId.From(player.Value.SessionId), Player = player.Value };
+                    }).ToArray();
                 }
                 var state = new GameFinderRequestState(party);
 
                 try
                 {
-                    foreach (var p in peersInGroup)
-                    {
-                        if (p.Peer == null)
-                        {
-                            return new FindGameResult { Success = false, ErrorMsg = $"'{p.Player.UserId} has disconnected." };
-                        }
-                        //If player already waiting just replace infos instead of failing
-                        //if (_data.peersToGroup.ContainsKey(p.Peer.Id))
-                        //{
-                        //    throw new ClientException($"'{p.Player.UserId} is already waiting for a game.");
-                        //}
-                    }
+                    //foreach (var p in peersInGroup)
+                    //{
+                    //    if (p.Peer == null)
+                    //    {
+                    //        return new FindGameResult { Success = false, ErrorMsg = $"'{p.Player.UserId} has disconnected." };
+                    //    }
+                    //    //If player already waiting just replace infos instead of failing
+                    //    //if (_data.peersToGroup.ContainsKey(p.Peer.Id))
+                    //    //{
+                    //    //    throw new ClientException($"'{p.Player.UserId} is already waiting for a game.");
+                    //    //}
+                    //}
 
                     _data.waitingParties[party] = state;
                     foreach (var p in peersInGroup)
                     {
-                        _data.peersToGroup[p.Peer.SessionId] = party;
+                        _data.peersToGroup[p.SessionId] = party;
                     }
 
                     ct.Register(() =>
@@ -277,9 +277,9 @@ namespace Stormancer.Server.Plugins.GameFinder
                 {
                     foreach (var p in peersInGroup)
                     {
-                        if (p?.Peer?.SessionId != null)
+                        if (p?.SessionId != null)
                         {
-                            _data.peersToGroup.TryRemove(p.Peer.SessionId, out _);
+                            _data.peersToGroup.TryRemove(p.SessionId, out _);
                         }
                     }
 

@@ -666,7 +666,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 await _scene.Send(new MatchPeerFilter(peer), "player.update", s => _serializer.Serialize(serverUpdate, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
             }
 
-            var playerConnectedCtx = new ClientConnectedContext(this, new PlayerPeer(peer, new Player(peer.SessionId.ToString(), userId)), _config.HostUserId == userId);
+            var playerConnectedCtx = new ClientConnectedContext(this, new PlayerPeer(peer.SessionId, new Player(peer.SessionId.ToString(), userId)), _config.HostUserId == userId);
             await using var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag);
             await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
                 h => h.OnClientConnected(playerConnectedCtx),
@@ -863,7 +863,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             if (client != null && userId != null)
             {
-                var ctx = new ClientLeavingContext(this, new PlayerPeer(peer, new Player(peer.SessionId.ToString(), userId)), _config.HostUserId == userId);
+                var ctx = new ClientLeavingContext(this, new PlayerPeer(peer.SessionId, new Player(peer.SessionId.ToString(), userId)), _config.HostUserId == userId);
                 await using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
                 {
                     await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.OnClientLeaving(ctx), ex =>
