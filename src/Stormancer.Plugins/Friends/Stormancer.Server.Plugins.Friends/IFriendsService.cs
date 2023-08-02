@@ -59,7 +59,7 @@ namespace Stormancer.Server.Plugins.Friends
 
         Task<MemberDto?> GetRelationship(string userId, string targetUserId, CancellationToken cancellationToken);
 
-        Task Block(string userId, string userIdToBlock, CancellationToken cancellationToken);
+        Task Block(string userId, string userIdToBlock, System.DateTime dateTime, CancellationToken cancellationToken);
 
         Task Unblock(string userId, string userIdToUnblock, CancellationToken cancellationToken);
 

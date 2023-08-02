@@ -527,7 +527,7 @@ namespace Stormancer.Server.Plugins.Friends
             }
         }
 
-        public async Task Block(string userId, string userIdToBlock, CancellationToken cancellationToken)
+        public async Task Block(string userId, string userIdToBlock,DateTime expiration, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(userId))
             {
@@ -563,7 +563,7 @@ namespace Stormancer.Server.Plugins.Friends
 
             if (result.ServerError != null)
             {
-                throw new InvalidOperationException($"An error occured while searching relationship with {userIdToBlock} for user {userId}", result.OriginalException);
+                throw new InvalidOperationException($"An error occurred while searching relationship with {userIdToBlock} for user {userId}", result.OriginalException);
             }
 
             MemberRecord? memberRecord = (result.Found ? result.Source : null);
@@ -580,6 +580,7 @@ namespace Stormancer.Server.Plugins.Friends
             memberRecord.Status = FriendInvitationStatus.Unknow;
             memberRecord.Roles = new List<string> { ROLE_BLOCKED };
             memberRecord.Tags = new List<string>();
+            memberRecord.Expiration = expiration;
 
             if (createRecord)
             {
