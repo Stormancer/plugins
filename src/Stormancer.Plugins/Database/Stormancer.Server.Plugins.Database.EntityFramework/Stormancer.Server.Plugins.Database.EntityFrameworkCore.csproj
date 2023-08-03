@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net6.0</TargetFramework>
@@ -11,7 +11,7 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
-		<Description>Adds a "collection system" to games using Stormancer.</Description>
+		<Description>Provides an modular entity framework core context to the application..</Description>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<Deterministic>true</Deterministic>
 		<PackageReadmeFile>Readme.md</PackageReadmeFile>
