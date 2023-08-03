@@ -118,6 +118,27 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <param name="ctx"></param>
         /// <returns></returns>
         Task OnGameSessionReset(GameSessionResetContext ctx) => Task.CompletedTask;
+
+        /// <summary>
+        /// Event fired when the gamesession determines if it should complete the game.
+        /// </summary>
+        /// <param name="ctx"></param>
+        Task ShouldCompleteGame(ShouldCompleteGameContext ctx)=> Task.CompletedTask;
+    }
+
+    public class ShouldCompleteGameContext
+    {
+      
+
+        internal ShouldCompleteGameContext(bool shouldComplete, IEnumerable<Client> clients)
+        {
+            ShouldComplete = shouldComplete;
+            Clients = clients;
+        }
+
+        public bool ShouldComplete { get; set; }
+
+        public IEnumerable<Client> Clients { get; }
     }
 
     /// <summary>

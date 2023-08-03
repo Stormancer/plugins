@@ -17,7 +17,8 @@ Added
 - Exclude agents for 30s when they failed to create a server
 - Kill agents if they fail twice in succession, indicating they are faulty.
 - Added `IGameSessionEventHandler.OnGameSessionShutdown` event fired during scene shutdown.
-- Added ÌGameSessionEventHandler.OnGameSessionReset` event fired when the gamesession is reset by the host.
+- Added `IGameSessionEventHandler.OnGameSessionReset` event fired when the gamesession is reset by the host.
+- Added `IGameSessionEventHandler.ShouldCompleteGame` event fired to decide if the gamesession should evaluate the results posted with PostResult and complete the game.
 
 Fixed
 *****
