@@ -910,6 +910,9 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async Task Reset()
         {
+            //Force completion of the game.
+            await EvaluateGameComplete(true);
+
             foreach (var client in _clients.Values)
             {
                 client.Reset();
@@ -1022,7 +1025,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public event Action? OnGameSessionCompleted;
 
-        private async Task EvaluateGameComplete()
+        private async Task EvaluateGameComplete(bool force = false)
         {
             Debug.Assert(_config != null);
             var ctx = new GameSessionCompleteCtx(this, _scene, _config, _clients.Select(kvp => new GameSessionResult(kvp.Key, kvp.Value.Peer, kvp.Value.ResultData ?? new MemoryStream())), _clients.Keys);
@@ -1067,7 +1070,7 @@ namespace Stormancer.Server.Plugins.GameSession
             bool shouldRunHandlers = false;
             lock (this)
             {
-                if (!_gameCompleteExecuted && _clients.Values.All(c => c.ResultData != null || c.Peer == null))//All remaining clients sent their data
+                if (!_gameCompleteExecuted && (_clients.Values.All(c => c.ResultData != null || c.Peer == null) || force))//All remaining clients sent their data
                 {
                     _gameCompleteExecuted = true;
 
