@@ -19,7 +19,6 @@ Added
 - Added `IGameSessionEventHandler.OnGameSessionShutdown` event fired during scene shutdown.
 - Added `IGameSessionEventHandler.OnGameSessionReset` event fired when the gamesession is reset by the host.
 - Added `IGameSessionEventHandler.ShouldCompleteGame` event fired to decide if the gamesession should evaluate the results posted with PostResult and complete the game.
-
 Fixed
 *****
 - Fixed infinite loop in the analytics worker loop.
