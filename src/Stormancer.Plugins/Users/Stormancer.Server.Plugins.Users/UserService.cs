@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Microsoft.EntityFrameworkCore;
 using Nest;
 using Newtonsoft.Json.Linq;
 using Server.Plugins.Users;
@@ -27,6 +28,7 @@ using Stormancer.Core.Helpers;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Database;
+using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -43,42 +45,19 @@ namespace Stormancer.Server.Plugins.Users
 
     class UserService : IUserService
     {
-        private readonly IESClientFactory _clientFactory;
+
         private readonly string _indexName;
+        private readonly DbContextAccessor _dbContext;
         private readonly ILogger _logger;
         private readonly Func<IEnumerable<IUserEventHandler>> _handlers;
         private readonly Random _random = new Random();
 
         private static bool _mappingChecked = false;
         private static AsyncLock _mappingCheckedLock = new AsyncLock();
-        private async Task CreateUserMapping()
-        {
 
-            await (await Client<User>()).MapAsync<User>(m => m
-                .DynamicTemplates(templates => templates
-                    .DynamicTemplate("auth", t => t
-                         .PathMatch("auth.*")
-                         .MatchMappingType("string")
-                         .Mapping(ma => ma.Keyword(s => s.Index()))
-                        )
-                    .DynamicTemplate("data", t => t
-                         .PathMatch("userData.*")
-                         .MatchMappingType("string")
-                         .Mapping(ma => ma.Keyword(s => s.Index()))
-                        )
-                     )
-                 );
-
-            await (await Client<PseudoUserRelation>()).MapAsync<PseudoUserRelation>(m => m
-                .Properties(pd => pd
-                    .Keyword(kpd => kpd.Name(record => record.Id).Index())
-                    .Keyword(kpd => kpd.Name(record => record.UserId).Index(false))
-                    )
-                );
-        }
 
         public UserService(
-            Database.IESClientFactory clientFactory,
+            DbContextAccessor dbContext,
             IEnvironment environment,
             ILogger logger,
             Func<IEnumerable<IUserEventHandler>> eventHandlers
@@ -86,37 +65,17 @@ namespace Stormancer.Server.Plugins.Users
         {
             _indexName = (string?)(environment.Configuration.users?.index) ?? "gameData";
             _handlers = eventHandlers;
+            _dbContext = dbContext;
             _logger = logger;
             //_logger.Log(LogLevel.Trace, "users", $"Using index {_indexName}", new { index = _indexName });
 
-            _clientFactory = clientFactory;
 
         }
 
-        private async Task<Nest.IElasticClient> Client<T>()
-        {
-            var client = await _clientFactory.CreateClient<T>(_indexName);
-            if (!_mappingChecked)
-            {
-                using (await _mappingCheckedLock.LockAsync())
-                {
-                    if (!_mappingChecked)
-                    {
-                        _mappingChecked = true;
-                        await CreateUserMapping();
-                    }
-                }
-            }
-            return client;
-        }
 
-        private string GetIndex<T>()
+        public async Task<User> AddAuthentication(User user, string provider, string identifier, Action<dynamic> authDataModifier)
         {
-            return _clientFactory.GetIndex<T>(_indexName);
-        }
-        public async Task<User> AddAuthentication(User user, string provider, Action<dynamic> authDataModifier, Dictionary<string, string> cacheEntries)
-        {
-            var c = await Client<User>();
+            var c = await _dbContext.GetDbContextAsync();
 
             var auth = user.Auth[provider];
             if (auth == null)
@@ -125,59 +84,42 @@ namespace Stormancer.Server.Plugins.Users
                 user.Auth[provider] = auth;
             }
             authDataModifier?.Invoke(auth);
-            foreach (var entry in cacheEntries)
+
+            var userId = Guid.Parse(user.Id);
+            var record = c.Set<UserRecord>().Include(u => u.Identities.Where(i => i.Provider == provider && i.Identity == identifier)).SingleOrDefault(u => u.Id == userId);
+
+            if (!record.Identities.Any())
             {
-                var result = await c.IndexAsync(new AuthenticationClaim { Id = GetCacheId(provider, entry.Key, entry.Value), UserId = user.Id, Provider = provider }, s => s.Index(GetIndex<AuthenticationClaim>()).OpType(Elasticsearch.Net.OpType.Create));
-
-                if (!result.IsValid)
-                {
-                    var r = await c.GetAsync<AuthenticationClaim>(GetCacheId(provider, entry.Key, entry.Value), s => s.Index(GetIndex<AuthenticationClaim>()));
-                    if (r.IsValid && r.Source.UserId != user.Id)
-                    {
-                        if (result.ServerError?.Error?.Type == "version_conflict_engine_exception")
-                        {
-                            throw new ConflictException();
-                        }
-                        else
-                        {
-                            throw new InvalidOperationException(result.ServerError?.Error?.Type ?? result.OriginalException.ToString());
-                        }
-                    }
-                }
+                await c.Set<IdentityRecord>().AddAsync(new IdentityRecord { Provider = provider, Identity = identifier, User = record });
             }
-            try
-            {
-
-                var response = await c.IndexAsync(user, s => s.Index(GetIndex<User>()).Refresh(Elasticsearch.Net.Refresh.WaitFor));
-                if (!response.IsValid)
-                {
-                    throw new InvalidOperationException(response.DebugInformation);
-                }
+            record.Auth = auth.ToString();
 
 
-                var ctx = new AuthenticationChangedCtx { Type = provider, User = user };
-                await _handlers().RunEventHandler(h => h.OnAuthenticationChanged(ctx), ex => _logger.Log(LogLevel.Error, "user.addAuth", "An error occured while running OnAuthenticationChanged event handler", ex));
+            await c.SaveChangesAsync();
 
-                return user;
-            }
-            catch (InvalidOperationException)
-            {
-                foreach (var entry in cacheEntries)
-                {
-                    await c.DeleteAsync<AuthenticationClaim>($"{provider}_{entry.Key}_{entry.Value}", s => s.Index(GetIndex<AuthenticationClaim>()));
-                }
-                throw;
-            }
+            var ctx = new AuthenticationChangedCtx { Type = provider, User = user };
+            await _handlers().RunEventHandler(h => h.OnAuthenticationChanged(ctx), ex => _logger.Log(LogLevel.Error, "user.addAuth", "An error occured while running OnAuthenticationChanged event handler", ex));
+
+            return user;
         }
 
         public async Task<User> RemoveAuthentication(User user, string provider)
         {
-            var c = await Client<User>();
-            user.Auth.Remove(provider);
-            await c.DeleteByQueryAsync<AuthenticationClaim>(s => s.Index(GetIndex<AuthenticationClaim>()).Query(q => q.Term(t => t.Field(record => record.Provider).Value(provider))));
-            await c.IndexAsync(user, s => s.Index(GetIndex<User>()));
+            var c = await _dbContext.GetDbContextAsync();
 
-            var ctx = new AuthenticationChangedCtx { Type = provider, User = user };
+            user.Auth.Remove(provider);
+            var userId = Guid.Parse(user.Id);
+            var record = c.Set<UserRecord>().Include(u => u.Identities.Where(i => i.Provider == provider)).SingleOrDefault(u => u.Id == userId);
+
+            if (record.Identities.Any())
+            {
+                c.Set<IdentityRecord>().RemoveRange(record.Identities);
+            }
+
+            record.Auth = user.Auth.ToString();
+
+            await c.SaveChangesAsync();
+
 
             await _handlers().RunEventHandler(h => h.OnAuthenticationChanged(ctx), ex => _logger.Log(LogLevel.Error, "user.removeAuth", "An error occured while running OnAuthenticationChanged event handler", ex));
 
@@ -187,12 +129,23 @@ namespace Stormancer.Server.Plugins.Users
         public async Task<User> CreateUser(string userId, JObject userData, string currentPlatform = "")
         {
             var user = new User() { Id = userId, LastPlatform = currentPlatform, UserData = userData, };
+            var record = new UserRecord()
+            {
+                Auth = "{}",
+                Channels = "{}",
+                CreatedOn = DateTime.UtcNow,
+                Id = Guid.Parse(userId),
+                Pseudonym = 
+            };
             var esClient = await Client<User>();
             await esClient.IndexAsync(user, s => s.Refresh(Elasticsearch.Net.Refresh.WaitFor));
             return user;
         }
 
+        public Task<string> UpdateUserHandle(string userId, string newHandle, bool appendHash, CancellationToken cancellationToken)
+        {
 
+        }
 
         public class UserLastLoginUpdate
         {
@@ -233,8 +186,6 @@ namespace Stormancer.Server.Plugins.Users
             public User? User { get; set; } = null;
         }
 
-
-        private string GetCacheId(string provider, string claimPath, string login) => $"{provider}_{claimPath}_{login}";
 
 
 

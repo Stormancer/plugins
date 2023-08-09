@@ -213,6 +213,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.C
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Database.EntityFrameworkCore", "Database\Stormancer.Server.Plugins.Database.EntityFramework\Stormancer.Server.Plugins.Database.EntityFrameworkCore.csproj", "{ACEC9A78-FC37-4DB0-8BC1-E1DBC0F2D70B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql", "Database\Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql\Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql.csproj", "{ABABF792-049E-440B-B5EA-E3A2A843BE39}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -814,6 +816,18 @@ Global
 		{ACEC9A78-FC37-4DB0-8BC1-E1DBC0F2D70B}.Release|x64.Build.0 = Release|Any CPU
 		{ACEC9A78-FC37-4DB0-8BC1-E1DBC0F2D70B}.Release|x86.ActiveCfg = Release|Any CPU
 		{ACEC9A78-FC37-4DB0-8BC1-E1DBC0F2D70B}.Release|x86.Build.0 = Release|Any CPU
+		{ABABF792-049E-440B-B5EA-E3A2A843BE39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ABABF792-049E-440B-B5EA-E3A2A843BE39}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ABABF792-049E-440B-B5EA-E3A2A843BE39}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{ABABF792-049E-440B-B5EA-E3A2A843BE39}.Debug|x64.Build.0 = Debug|Any CPU
+		{ABABF792-049E-440B-B5EA-E3A2A843BE39}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{ABABF792-049E-440B-B5EA-E3A2A843BE39}.Debug|x86.Build.0 = Debug|Any CPU
+		{ABABF792-049E-440B-B5EA-E3A2A843BE39}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ABABF792-049E-440B-B5EA-E3A2A843BE39}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ABABF792-049E-440B-B5EA-E3A2A843BE39}.Release|x64.ActiveCfg = Release|Any CPU
+		{ABABF792-049E-440B-B5EA-E3A2A843BE39}.Release|x64.Build.0 = Release|Any CPU
+		{ABABF792-049E-440B-B5EA-E3A2A843BE39}.Release|x86.ActiveCfg = Release|Any CPU
+		{ABABF792-049E-440B-B5EA-E3A2A843BE39}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -906,6 +920,7 @@ Global
 		{9CA06DBE-DEE6-4DA1-B830-043494E6C15A} = {FD264C24-4E01-4B1E-B5A1-489EC1C376E4}
 		{BB26713B-5678-4F5D-906D-54C6338B576E} = {9CA06DBE-DEE6-4DA1-B830-043494E6C15A}
 		{ACEC9A78-FC37-4DB0-8BC1-E1DBC0F2D70B} = {402B76D2-4FBE-4B23-BF8C-19DE49E9D06E}
+		{ABABF792-049E-440B-B5EA-E3A2A843BE39} = {402B76D2-4FBE-4B23-BF8C-19DE49E9D06E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}

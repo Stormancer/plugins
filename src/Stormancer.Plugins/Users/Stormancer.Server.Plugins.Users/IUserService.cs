@@ -34,12 +34,14 @@ namespace Stormancer.Server.Plugins.Users
 
         Task<User?> GetUser(string uid);
 
-        Task<User> AddAuthentication(User user, string provider, Action<dynamic> authDataModifier, Dictionary<string,string> cacheEntries);
+        Task<User> AddAuthentication(User user, string provider,string identifier, Action<dynamic> authDataModifier);
 
         Task<User> RemoveAuthentication(User user, string provider);
 
         Task<User?> GetUserByClaim(string provider, string claimPath, string login);
-        
+
+        Task<string> UpdateUserHandle(string userId, string newHandle, bool appendHash, CancellationToken cancellationToken);
+
         /// <summary>
         /// Gets users by claim (batched)
         /// </summary>

@@ -7,7 +7,7 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore
     {
         public void Run(IAppBuilder builder)
         {
-            builder.AddPlugin(new EntityFrameworkCorePlugin())
+            builder.AddPlugin(new EntityFrameworkCorePlugin());
         }
     }
 

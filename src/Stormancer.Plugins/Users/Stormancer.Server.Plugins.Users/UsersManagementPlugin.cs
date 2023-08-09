@@ -28,7 +28,9 @@ using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.AdminApi;
 using Stormancer.Server.Plugins.Analytics;
 using Stormancer.Server.Plugins.Configuration;
+using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
 using Stormancer.Server.Plugins.ServiceLocator;
+using Stormancer.Server.Plugins.Users.Data;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -121,14 +123,16 @@ namespace Stormancer.Server.Plugins.Users
                     dr.Resolve<ILogger>())
                 ).As<IUserSessions>();
 
-                b.Register<SessionsRepository>(r=>new SessionsRepository()
+                b.Register(r=>new SessionsRepository()
                 ).AsSelf().SingleInstance();
 
-                b.Register<DeviceIdentifierAuthenticationProvider>(r=>new DeviceIdentifierAuthenticationProvider(
+                b.Register(r=>new DeviceIdentifierAuthenticationProvider(
                     r.Resolve<IUserService>(),
                     r.Resolve<ILogger>())
                 ).As<IAuthenticationProvider>();
-
+                
+                b.Register<UserDbModelBuilder>().As<IDbModelBuilder>().SingleInstance();
+                
                 b.Register<LoginPasswordAuthenticationProvider>().As<IAuthenticationProvider>();
                 b.Register<AdminImpersonationAuthenticationProvider>().As<IAuthenticationProvider>();
                 b.Register<EphemeralAuthenticationProvider>().As<IAuthenticationProvider>();
@@ -176,11 +180,11 @@ namespace Stormancer.Server.Plugins.Users
             ).As<IServiceLocatorProvider>();
 
             b.Register(dr=>new UserService(
-                dr.Resolve<Database.IESClientFactory>(),
+                dr.Resolve<DbContextAccessor>(),
                 dr.Resolve<IEnvironment>(),
                 dr.Resolve<ILogger>(), 
                 dr.Resolve<Func<IEnumerable<IUserEventHandler>>>())
-            ).As<IUserService>();
+            ).As<IUserService>().InstancePerRequest();
 
 
             b.Register<UsersAdminController>();

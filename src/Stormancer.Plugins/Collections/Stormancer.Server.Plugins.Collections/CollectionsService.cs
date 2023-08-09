@@ -111,7 +111,7 @@ namespace Stormancer.Server.Plugins.Collections
 
            }
 
-            await _eventHandlers().RunEventHandler(h => h.OnUnlocked(ctx), ex => { });
+            await _eventHandlers().RunEventHandler(h => h.OnUnlocking(ctx), ex => { });
         }
 
         public Task<Dictionary<string,CollectableItemDefinition>> GetItemDefinitionAsync(CancellationToken cancellationToken)
@@ -121,7 +121,7 @@ namespace Stormancer.Server.Plugins.Collections
 
         public async Task<Dictionary<string, IEnumerable<string>>> GetCollectionAsync(IEnumerable<string> userIds, CancellationToken CancellationToken)
         {
-            throw new NotImplementedException();
+        
         }
     }
 }

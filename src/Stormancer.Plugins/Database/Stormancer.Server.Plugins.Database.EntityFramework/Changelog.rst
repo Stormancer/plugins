@@ -12,5 +12,5 @@ This project adheres to semantic versioning.
 Unreleased
 ----------
 Added
-*****
-- initial Collections release
+*******
+- Initial release
