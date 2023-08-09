@@ -18,6 +18,7 @@ Added
 - Kill agents if they fail twice in succession, indicating they are faulty.
 - Added `IGameSessionEventHandler.OnGameSessionShutdown` event fired during scene shutdown.
 - Added `IGameSessionEventHandler.OnGameSessionReset` event fired when the gamesession is reset by the host.
+- Added `IGameSessionEventHandler.ShouldCompleteGame` event fired to decide if the gamesession should evaluate the results posted with PostResult and complete the game.
 - Added property `CreatedOn` on `IGamesessionService` to get the UTC date the gamesession was created.
 
 Fixed
