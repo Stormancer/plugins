@@ -118,6 +118,48 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <param name="ctx"></param>
         /// <returns></returns>
         Task OnGameSessionReset(GameSessionResetContext ctx) => Task.CompletedTask;
+
+        /// <summary>
+        /// Event fired when the gamesession determines if it should complete the game.
+        /// </summary>
+        /// <param name="ctx"></param>
+        Task ShouldCompleteGame(ShouldCompleteGameContext ctx)=> Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Context passed to <see cref="IGameSessionEventHandler.ShouldCompleteGame(ShouldCompleteGameContext)"/>
+    /// </summary>
+    public class ShouldCompleteGameContext
+    {
+      
+
+        internal ShouldCompleteGameContext(ISceneHost scene, IGameSessionService gameSession,bool shouldComplete, IEnumerable<Client> clients)
+        {
+            Scene = scene;
+            GameSession = gameSession;
+            ShouldComplete = shouldComplete;
+            Clients = clients;
+        }
+
+        /// <summary>
+        /// Gets or sets a boolean value indicating whether the game session should complete.
+        /// </summary>
+        public bool ShouldComplete { get; set; }
+
+        /// <summary>
+        /// Gets the list of clients and the result they sent.
+        /// </summary>
+        public IEnumerable<Client> Clients { get; }
+
+        /// <summary>
+        /// Gets the game session this event applies to.
+        /// </summary>
+        public IGameSessionService GameSession { get; set; }
+
+        /// <summary>
+        /// Gets the scene containing the game session.
+        /// </summary>
+        public ISceneHost Scene { get; set; }
     }
 
     /// <summary>
@@ -131,7 +173,14 @@ namespace Stormancer.Server.Plugins.GameSession
             Scene = scene;
         }
 
+        /// <summary>
+        /// Gets the game session being reset.
+        /// </summary>
         public IGameSessionService GameSession { get; }
+
+        /// <summary>
+        /// Gets the scene of the game session being reset.
+        /// </summary>
         public ISceneHost Scene { get; }
     }
 
@@ -141,6 +190,10 @@ namespace Stormancer.Server.Plugins.GameSession
     public class GameSessionShutdownContext
     {
         internal GameSessionShutdownContext(IGameSessionService gameSession) { GameSession = gameSession; }
+
+        /// <summary>
+        /// Gets the game session being shutdown.
+        /// </summary>
         public IGameSessionService GameSession { get; }
     }
     /// <summary>

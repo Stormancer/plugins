@@ -42,9 +42,9 @@ namespace Stormancer.Server.Plugins.Friends
             return proxy.AddNonPersistedFriends(userId, friends, cancellationToken);
         }
 
-        public Task Block(string userId, string userIdToBlock, CancellationToken cancellationToken)
+        public Task Block(string userId, string userIdToBlock,DateTime expiration, CancellationToken cancellationToken)
         {
-            return proxy.Block(userId, userIdToBlock, cancellationToken);
+            return proxy.Block(userId, userIdToBlock,expiration, cancellationToken);
         }
 
         public Task<IEnumerable<string>> GetBlockedList(string userId, CancellationToken cancellationToken)

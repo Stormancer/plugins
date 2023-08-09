@@ -17,7 +17,9 @@ Added
 - Exclude agents for 30s when they failed to create a server
 - Kill agents if they fail twice in succession, indicating they are faulty.
 - Added `IGameSessionEventHandler.OnGameSessionShutdown` event fired during scene shutdown.
-- Added ÌGameSessionEventHandler.OnGameSessionReset` event fired when the gamesession is reset by the host.
+- Added `IGameSessionEventHandler.OnGameSessionReset` event fired when the gamesession is reset by the host.
+- Added `IGameSessionEventHandler.ShouldCompleteGame` event fired to decide if the gamesession should evaluate the results posted with PostResult and complete the game.
+- Added property `CreatedOn` on `IGamesessionService` to get the UTC date the gamesession was created.
 
 Fixed
 *****
@@ -25,6 +27,7 @@ Fixed
 - Fixed an wrong null check on closing servers that could lead to a NullRef exception when updating the game server auditing record.
 - When trying to start a game server, timeout if it takes more than 5s to do a docker start on an agent.
 - Fixed false positives error logs.
+- Resetting a game session force the gamesession to be completed if it wasn't already, exactly as if all players add left it. This guarantees that if only the host sent results, they would be processed on reset, triggering (for instance) a PSN Activity completion.
 
 6.1.1.15
 ----------

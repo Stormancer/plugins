@@ -24,6 +24,7 @@ using Nest;
 using Stormancer.Core;
 using Stormancer.Core.Helpers;
 using Stormancer.Diagnostics;
+using Stormancer.Management;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Database;
 using Stormancer.Server.Plugins.Users;
@@ -527,7 +528,7 @@ namespace Stormancer.Server.Plugins.Friends
             }
         }
 
-        public async Task Block(string userId, string userIdToBlock, CancellationToken cancellationToken)
+        public async Task Block(string userId, string userIdToBlock,DateTime expiration, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(userId))
             {
@@ -563,7 +564,7 @@ namespace Stormancer.Server.Plugins.Friends
 
             if (result.ServerError != null)
             {
-                throw new InvalidOperationException($"An error occured while searching relationship with {userIdToBlock} for user {userId}", result.OriginalException);
+                throw new InvalidOperationException($"An error occurred while searching relationship with {userIdToBlock} for user {userId}", result.OriginalException);
             }
 
             MemberRecord? memberRecord = (result.Found ? result.Source : null);
@@ -580,6 +581,7 @@ namespace Stormancer.Server.Plugins.Friends
             memberRecord.Status = FriendInvitationStatus.Unknow;
             memberRecord.Roles = new List<string> { ROLE_BLOCKED };
             memberRecord.Tags = new List<string>();
+            memberRecord.Expiration = expiration;
 
             if (createRecord)
             {
@@ -692,7 +694,20 @@ namespace Stormancer.Server.Plugins.Friends
 
                 foreach (var (userId, response) in userIds.Zip(responses))
                 {
-                    dictionary[userId] = response.Documents.Select(doc => doc.FriendId);
+                    var list = new List<string>();
+                    foreach(var doc in response.Documents)
+                    {
+                        if(doc.Expiration == default || doc.Expiration > DateTime.UtcNow)
+                        {
+                            list.Add(doc.FriendId);
+
+                        }
+                        else
+                        {
+                            await Unblock(userId, doc.FriendId, cancellationToken);
+                        }
+                    }
+                    dictionary[userId] = list;
                 }
                 return dictionary;
             }

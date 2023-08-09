@@ -163,34 +163,36 @@ namespace Stormancer.Server.Plugins.GameSession
         public string? HostSessionId { get; set; }
     }
 
+    public class Client
+    {
+        internal Client(IScenePeerClient? peer)
+        {
+            Peer = peer;
+            Reset();
+            Status = PlayerStatus.NotConnected;
+        }
+
+        internal void Reset()
+        {
+            GameCompleteTcs?.TrySetCanceled();
+            GameCompleteTcs = new TaskCompletionSource<Action<Stream, ISerializer>>();
+            ResultData = null;
+        }
+
+        public IScenePeerClient? Peer { get; set; }
+
+        public Stream? ResultData { get; set; }
+
+        public PlayerStatus Status { get; set; }
+
+        public string? FaultReason { get; set; }
+
+        public TaskCompletionSource<Action<Stream, ISerializer>>? GameCompleteTcs { get; private set; }
+    }
+
     internal class GameSessionService : IGameSessionService, IConfigurationChangedEventHandler, IAsyncDisposable
     {
-        private class Client
-        {
-            public Client(IScenePeerClient? peer)
-            {
-                Peer = peer;
-                Reset();
-                Status = PlayerStatus.NotConnected;
-            }
-
-            public void Reset()
-            {
-                GameCompleteTcs?.TrySetCanceled();
-                GameCompleteTcs = new TaskCompletionSource<Action<Stream, ISerializer>>();
-                ResultData = null;
-            }
-
-            public IScenePeerClient? Peer { get; set; }
-
-            public Stream? ResultData { get; set; }
-
-            public PlayerStatus Status { get; set; }
-
-            public string? FaultReason { get; set; }
-
-            public TaskCompletionSource<Action<Stream, ISerializer>>? GameCompleteTcs { get; private set; }
-        }
+        
         public int MaxClientsConnected { get; private set; } = 0;
 
         // Constant variable
@@ -910,6 +912,9 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async Task Reset()
         {
+            //Force completion of the game.
+            await EvaluateGameComplete(true);
+
             foreach (var client in _clients.Values)
             {
                 client.Reset();
@@ -997,6 +1002,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public DateTime CreatedOn { get; } = DateTime.UtcNow;
 
+
         private object _syncRoot = new object();
         private Dictionary<string, string> _dimensions = new Dictionary<string, string>();
         public IReadOnlyDictionary<string, string> Dimensions
@@ -1010,6 +1016,8 @@ namespace Stormancer.Server.Plugins.GameSession
             }
         }
 
+        public DateTime OnCreated => throw new NotImplementedException();
+
         public void SetDimension(string dimension, string value)
         {
             lock (_syncRoot)
@@ -1022,7 +1030,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public event Action? OnGameSessionCompleted;
 
-        private async Task EvaluateGameComplete()
+        private async Task EvaluateGameComplete(bool force = false)
         {
             Debug.Assert(_config != null);
             var ctx = new GameSessionCompleteCtx(this, _scene, _config, _clients.Select(kvp => new GameSessionResult(kvp.Key, kvp.Value.Peer, kvp.Value.ResultData ?? new MemoryStream())), _clients.Keys);
@@ -1065,12 +1073,12 @@ namespace Stormancer.Server.Plugins.GameSession
             }
 
             bool shouldRunHandlers = false;
+            var shouldCompleteGame = await ShouldCompleteGame();
             lock (this)
             {
-                if (!_gameCompleteExecuted && _clients.Values.All(c => c.ResultData != null || c.Peer == null))//All remaining clients sent their data
+                if (!_gameCompleteExecuted && (force || shouldCompleteGame))//All remaining clients sent their data
                 {
                     _gameCompleteExecuted = true;
-
 
                     shouldRunHandlers = true;
 
@@ -1081,6 +1089,24 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 await runHandlers();
             }
+        }
+
+        private async Task<bool> ShouldCompleteGame()
+        {
+            var defaultValue = _clients.Values.All(c => c.ResultData != null || c.Peer == null);
+
+            var ctx = new ShouldCompleteGameContext(_scene,this,defaultValue,_clients.Values);
+
+            await using (var scope = _scene.CreateRequestScope())
+            {
+                await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.ShouldCompleteGame(ctx), ex =>
+                {
+                    _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running gameSession.ShouldCompleteGame event handlers", ex);
+                   
+                });
+            }
+
+            return ctx.ShouldComplete;
         }
 
         public async Task<HostInfosMessage> CreateP2PToken(SessionId sessionId)

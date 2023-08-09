@@ -39,6 +39,7 @@ namespace Stormancer.Server.Plugins.Friends
             Roles = record.Roles;
             Status = record.Status;
             Tags = record.Tags;
+            Expiration = record.Expiration;
         }
 
         [MessagePackMember(0)]
@@ -64,6 +65,13 @@ namespace Stormancer.Server.Plugins.Friends
 
         [MessagePackMember(5)]
         public List<string> Tags { get; set; } = new List<string>();
+
+
+        /// <summary>
+        /// Expiration of the record. Only applicable to block records.
+        /// </summary>
+        [MessagePackMember(6)]
+        public DateTime Expiration { get; set; } = default;
     }
 
     public class MemberRecord
@@ -79,6 +87,7 @@ namespace Stormancer.Server.Plugins.Friends
             Roles = dto.Roles;
             Status = dto.Status;
             Tags = dto.Tags;
+            Expiration = dto.Expiration;
         }
 
         public string Id
@@ -98,6 +107,8 @@ namespace Stormancer.Server.Plugins.Friends
         public FriendInvitationStatus Status { get; set; }
 
         public List<string> Tags { get; set; } = new List<string>();
+
+        public DateTime Expiration { get; set; } = default;
     }
 
     public class FriendListConfigRecord

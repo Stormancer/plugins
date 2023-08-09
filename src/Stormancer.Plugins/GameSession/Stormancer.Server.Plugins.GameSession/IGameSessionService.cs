@@ -41,6 +41,12 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Returns the id of the gamesession.
         /// </summary>
         string GameSessionId { get; }
+
+        /// <summary>
+        /// Gets the UTC Date the game session was created.
+        /// </summary>
+        DateTime OnCreated { get; }
+
         void SetConfiguration(dynamic metadata);
 
         /// <summary>

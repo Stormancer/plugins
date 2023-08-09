@@ -25,6 +25,7 @@ using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Users;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -146,7 +147,7 @@ namespace Stormancer.Server.Plugins.Friends
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task Block(RequestContext<IScenePeerClient> ctx)
+        public async Task Block(string userIdToBlock, string expirationDate, RequestContext<IScenePeerClient> ctx)
         {
             var user = await _userSessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
 
@@ -155,9 +156,8 @@ namespace Stormancer.Server.Plugins.Friends
                 throw new ClientException("NotAuthenticated");
             }
 
-            var userIdToBlock = ctx.ReadObject<string>();
 
-            await _friends.Block(user.Id, userIdToBlock, ctx.CancellationToken);
+            await _friends.Block(user.Id, userIdToBlock, !string.IsNullOrEmpty(expirationDate) ? DateTime.Parse(expirationDate) : default, ctx.CancellationToken);
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
@@ -209,9 +209,9 @@ namespace Stormancer.Server.Plugins.Friends
         }
 
         [S2SApi]
-        public Task Block(string userId, string userIdToBlock, CancellationToken cancellationToken)
+        public Task Block(string userId, string userIdToBlock,DateTime expiration, CancellationToken cancellationToken)
         {
-            return _friends.Block(userId, userIdToBlock, cancellationToken);
+            return _friends.Block(userId, userIdToBlock, expiration, cancellationToken);
         }
 
         [S2SApi]
