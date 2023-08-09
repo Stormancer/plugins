@@ -1095,7 +1095,7 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             var defaultValue = _clients.Values.All(c => c.ResultData != null || c.Peer == null);
 
-            var ctx = new ShouldCompleteGameContext(defaultValue,_clients.Values);
+            var ctx = new ShouldCompleteGameContext(_scene,this,defaultValue,_clients.Values);
 
             await using (var scope = _scene.CreateRequestScope())
             {
