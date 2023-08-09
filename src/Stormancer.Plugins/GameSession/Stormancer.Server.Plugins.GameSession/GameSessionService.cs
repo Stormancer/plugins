@@ -1000,6 +1000,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public DateTime CreatedOn { get; } = DateTime.UtcNow;
 
+
         private object _syncRoot = new object();
         private Dictionary<string, string> _dimensions = new Dictionary<string, string>();
         public IReadOnlyDictionary<string, string> Dimensions
@@ -1012,6 +1013,8 @@ namespace Stormancer.Server.Plugins.GameSession
                 }
             }
         }
+
+        public DateTime OnCreated => throw new NotImplementedException();
 
         public void SetDimension(string dimension, string value)
         {

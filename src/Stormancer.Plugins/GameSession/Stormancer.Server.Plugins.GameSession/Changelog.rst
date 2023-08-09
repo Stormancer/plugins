@@ -17,7 +17,8 @@ Added
 - Exclude agents for 30s when they failed to create a server
 - Kill agents if they fail twice in succession, indicating they are faulty.
 - Added `IGameSessionEventHandler.OnGameSessionShutdown` event fired during scene shutdown.
-- Added ÌGameSessionEventHandler.OnGameSessionReset` event fired when the gamesession is reset by the host.
+- Added `IGameSessionEventHandler.OnGameSessionReset` event fired when the gamesession is reset by the host.
+- Added property `CreatedOn` on `IGamesessionService` to get the UTC date the gamesession was created.
 
 Fixed
 *****

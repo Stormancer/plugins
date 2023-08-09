@@ -131,7 +131,14 @@ namespace Stormancer.Server.Plugins.GameSession
             Scene = scene;
         }
 
+        /// <summary>
+        /// Gets the game session being reset.
+        /// </summary>
         public IGameSessionService GameSession { get; }
+
+        /// <summary>
+        /// Gets the scene of the game session being reset.
+        /// </summary>
         public ISceneHost Scene { get; }
     }
 
@@ -141,6 +148,10 @@ namespace Stormancer.Server.Plugins.GameSession
     public class GameSessionShutdownContext
     {
         internal GameSessionShutdownContext(IGameSessionService gameSession) { GameSession = gameSession; }
+
+        /// <summary>
+        /// Gets the game session being shutdown.
+        /// </summary>
         public IGameSessionService GameSession { get; }
     }
     /// <summary>
