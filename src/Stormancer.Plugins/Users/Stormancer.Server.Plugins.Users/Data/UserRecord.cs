@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Nest;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -13,9 +15,38 @@ namespace Stormancer.Server.Plugins.Users
     /// <summary>
     /// User record in the database.
     /// </summary>
-    [Index("Pseudonym", IsUnique = true)]
     public class UserRecord
     {
+        public static User CreateUserFromRecord(UserRecord record)
+        {
+            return new User()
+            {
+                Id = record.Id.ToString(),
+                Auth = JObject.Parse(record.Auth),
+                Channels = JObject.Parse(record.Channels),
+                Pseudonym = record.Pseudonym,
+                UserData = JObject.Parse(record.UserData),
+                CreatedOn = record.CreatedOn,
+                LastLogin = record.LastLogin,
+                LastPlatform = record.LastPlatform
+
+            };
+        }
+        public static UserRecord CreateRecordFromUser(User user)
+        {
+            return new UserRecord()
+            {
+                Auth = user.Auth.ToString(),
+                Channels = user.Channels.ToString(),
+                CreatedOn = user.CreatedOn,
+                Id = Guid.Parse(user.Id),
+                UserData = user.UserData.ToString(),
+                LastPlatform = user.LastPlatform,
+                Pseudonym = user.Pseudonym
+
+
+            };
+        }
         /// <summary>
         /// Gets or sets the id of the user.
         /// </summary>
@@ -54,33 +85,40 @@ namespace Stormancer.Server.Plugins.Users
         /// <summary>
         /// Stores the last platform the user authenticated on.
         /// </summary>
-        public string LastPlatform { get; set; } = "";
+        public string? LastPlatform { get; set; }
 
         /// <summary>
         /// Gets the identities of the user.
         /// </summary>
-        public IEnumerable<IdentityRecord> Identities { get; set; } = default!;
+        public ICollection<IdentityRecord> Identities { get; set; } = default!;
       
-        public string Pseudonym { get; set; }
+        /// <summary>
+        /// The pseudo
+        /// </summary>
+        public string? Pseudonym { get; set; }
     }
 
     public class IdentityRecord
     {
         /// <summary>
-        /// Gets or sets the <see cref="UserRecord"/> whose belongs the <see cref="IdentityRecord"/>.
+        /// Gets or sets the <see cref="UserRecord"/>  the <see cref="IdentityRecord"/> authenticates to.
         /// </summary>
-        public UserRecord User { get; set; }
+        public ICollection<UserRecord> Users { get; set; } = default!;
 
+        /// <summary>
+        /// Gets or sets the main user account associated with this identity. 
+        /// </summary>
+        public UserRecord MainUser { get; set; } = default!;
         /// <summary>
         /// Gets or sets a string representing the identity provider.
         /// </summary>
         [Key]
-        public string Provider { get; set; }
+        public string Provider { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets a string identifying the user for the given provider.
         /// </summary>
         [Key]
-        public string Identity { get; set; }
+        public string Identity { get; set; } = default!;
     }
 }

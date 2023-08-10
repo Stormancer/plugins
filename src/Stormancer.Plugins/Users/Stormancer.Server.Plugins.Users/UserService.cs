@@ -27,6 +27,7 @@ using Server.Plugins.Users;
 using Stormancer.Core.Helpers;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Components;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Database;
 using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
 using System;
@@ -43,6 +44,17 @@ namespace Stormancer.Server.Plugins.Users
     {
     }
 
+    public class UserHandleConfigSection
+    {
+        /// <summary>
+        /// Number of digits in the unique part of the pseudonym.
+        /// </summary>
+        public uint Digits { get; set; } = 4;
+
+        public string Pattern { get; set; } = "^[\\p{Ll}\\p{Lu}\\p{Lt}\\p{Lo}0-9-_.]*$";
+
+        public uint MaxLength { get; set; } = 32;
+    }
     class UserService : IUserService
     {
 
@@ -50,6 +62,7 @@ namespace Stormancer.Server.Plugins.Users
         private readonly DbContextAccessor _dbContext;
         private readonly ILogger _logger;
         private readonly Func<IEnumerable<IUserEventHandler>> _handlers;
+        private readonly IConfiguration _configuration;
         private readonly Random _random = new Random();
 
         private static bool _mappingChecked = false;
@@ -60,11 +73,13 @@ namespace Stormancer.Server.Plugins.Users
             DbContextAccessor dbContext,
             IEnvironment environment,
             ILogger logger,
-            Func<IEnumerable<IUserEventHandler>> eventHandlers
+            Func<IEnumerable<IUserEventHandler>> eventHandlers,
+            IConfiguration configuration
         )
         {
             _indexName = (string?)(environment.Configuration.users?.index) ?? "gameData";
             _handlers = eventHandlers;
+            _configuration = configuration;
             _dbContext = dbContext;
             _logger = logger;
             //_logger.Log(LogLevel.Trace, "users", $"Using index {_indexName}", new { index = _indexName });
@@ -88,16 +103,23 @@ namespace Stormancer.Server.Plugins.Users
             var userId = Guid.Parse(user.Id);
             var record = c.Set<UserRecord>().Include(u => u.Identities.Where(i => i.Provider == provider && i.Identity == identifier)).SingleOrDefault(u => u.Id == userId);
 
-            if (!record.Identities.Any())
+
+            var identity = record.Identities.FirstOrDefault();
+            var added = identity == null;
+            if (identity == null)
             {
-                await c.Set<IdentityRecord>().AddAsync(new IdentityRecord { Provider = provider, Identity = identifier, User = record });
+                identity = new IdentityRecord { Provider = provider, Identity = identifier };
+                identity.Users.Add(record);
+               
+                await c.Set<IdentityRecord>().AddAsync(identity);
             }
+            identity.MainUser = record;
             record.Auth = auth.ToString();
 
 
             await c.SaveChangesAsync();
 
-            var ctx = new AuthenticationChangedCtx { Type = provider, User = user };
+            var ctx = new AuthenticationChangedCtx(added?AuthenticationChangedCtx.AuthenticationUpdateType.Add: AuthenticationChangedCtx.AuthenticationUpdateType.Update,provider, user );
             await _handlers().RunEventHandler(h => h.OnAuthenticationChanged(ctx), ex => _logger.Log(LogLevel.Error, "user.addAuth", "An error occured while running OnAuthenticationChanged event handler", ex));
 
             return user;
@@ -120,7 +142,7 @@ namespace Stormancer.Server.Plugins.Users
 
             await c.SaveChangesAsync();
 
-
+            var ctx = new AuthenticationChangedCtx(AuthenticationChangedCtx.AuthenticationUpdateType.Remove,provider,user);
             await _handlers().RunEventHandler(h => h.OnAuthenticationChanged(ctx), ex => _logger.Log(LogLevel.Error, "user.removeAuth", "An error occured while running OnAuthenticationChanged event handler", ex));
 
             return user;
@@ -129,22 +151,118 @@ namespace Stormancer.Server.Plugins.Users
         public async Task<User> CreateUser(string userId, JObject userData, string currentPlatform = "")
         {
             var user = new User() { Id = userId, LastPlatform = currentPlatform, UserData = userData, };
-            var record = new UserRecord()
-            {
-                Auth = "{}",
-                Channels = "{}",
-                CreatedOn = DateTime.UtcNow,
-                Id = Guid.Parse(userId),
-                Pseudonym = 
-            };
-            var esClient = await Client<User>();
-            await esClient.IndexAsync(user, s => s.Refresh(Elasticsearch.Net.Refresh.WaitFor));
+            var record = UserRecord.CreateRecordFromUser(user);
+
+            var dbContext = await this._dbContext.GetDbContextAsync();
+            await dbContext.Set<UserRecord>().AddAsync(record);
+
+            await dbContext.SaveChangesAsync();
+            
             return user;
         }
 
         public Task<string> UpdateUserHandle(string userId, string newHandle, bool appendHash, CancellationToken cancellationToken)
         {
 
+            // Check handle validity
+            if (!Regex.IsMatch(newHandle, @"^[\p{Ll}\p{Lu}\p{Lt}\p{Lo}0-9-_.]*$"))
+            {
+                throw new ClientException("badHandle?badCharacters");
+            }
+            if (newHandle.Length > _handleMaxNumCharacters)
+            {
+                throw new ClientException($"badHandle?tooLong&maxLength={_handleMaxNumCharacters}");
+            }
+
+            var ctx = new UpdateUserHandleCtx(userId, newHandle);
+            await _eventHandlers().RunEventHandler(handler => handler.OnUpdatingUserHandle(ctx), ex => logger.Log(LogLevel.Error, "usersessions", "An exception was thrown by an OnUpdatingUserHandle event handler", ex));
+
+            if (!ctx.Accept)
+            {
+                throw new ClientException(ctx.ErrorMessage);
+            }
+
+            var session = await GetSessionByUserId(userId, cancellationToken);
+
+            async Task UpdateHandleDatabase()
+            {
+                await EnsureHandleUserMappingCreated();
+                var client = await _esClientFactory.CreateClient<HandleUserRelation>("handleUserRelationClient");
+                var user = await _userService.GetUser(userId);
+                if (user == null)
+                {
+                    throw new ClientException("notFound?user");
+                }
+                var newUserData = user.UserData;
+
+                bool foundUnusedHandle = false;
+                string newHandleWithSuffix;
+                if (appendHash)
+                {
+                    do
+                    {
+                        var suffix = _random.Value.Next(0, _handleSuffixUpperBound);
+                        newHandleWithSuffix = newHandle + "#" + suffix;
+
+                        // Check conflicts
+                        var relation = new HandleUserRelation { Id = newHandleWithSuffix, HandleNum = suffix, HandleWithoutNum = newHandle, UserId = userId };
+                        var response = await client.IndexAsync(relation, d => d.OpType(Elasticsearch.Net.OpType.Create));
+                        foundUnusedHandle = response.IsValid;
+
+                    } while (!foundUnusedHandle);
+                    newUserData[UsersConstants.UserHandleKey] = newHandleWithSuffix;
+                }
+                else
+                {
+                    newUserData[UsersConstants.UserHandleKey] = newHandle;
+                }
+                if (session != null)
+                {
+                    session.User.UserData = newUserData;
+                }
+                await _userService.UpdateUserData(userId, newUserData);
+            }
+
+            //async Task UpdateHandleEphemeral()
+            //{
+            //    var userData = session.User.UserData;
+            //    if (!appendHash)
+            //    {
+            //        userData[UsersConstants.UserHandleKey] = newHandle;
+            //    }
+            //    else
+            //    {
+            //        string newHandleWithSuffix;
+            //        bool added = false;
+            //        do
+            //        {
+            //            var suffix = _random.Value.Next(0, _handleSuffixUpperBound);
+            //            newHandleWithSuffix = newHandle + "#" + suffix;
+            //            // Check conflicts
+            //            added = await _handleUserIndex.TryAdd(newHandleWithSuffix, userId);
+            //        } while (!added);
+
+            //        userData[UsersConstants.UserHandleKey] = newHandleWithSuffix;
+            //    }
+            //    session.User.UserData = userData;
+            //}
+
+            if (session == null || session.User == null)
+            {
+                throw new ClientException("notAuthenticated");
+            }
+
+            if (session.User.UserData.TryGetValue(EphemeralAuthenticationProvider.IsEphemeralKey, out var isEphemeral) && (bool)isEphemeral)
+            {
+                throw new NotSupportedException();
+                //await UpdateHandleEphemeral();
+            }
+            else
+            {
+                await UpdateHandleDatabase();
+            }
+
+            return newHandle;
         }
 
         public class UserLastLoginUpdate
@@ -189,10 +307,20 @@ namespace Stormancer.Server.Plugins.Users
 
 
 
-        public async Task<Dictionary<string, User?>> GetUsersByClaim(string provider, string claimPath, string[] logins)
+        public async Task<Dictionary<string, User?>> GetUsersByIdentities(string provider, IEnumerable<string> identifiers)
         {
-            var c = await Client<User>();
+            var c = await _dbContext.GetDbContextAsync();
 
+            var ids = identifiers.ToList();
+
+            var records = await c.Set<UserRecord>().Where(u => u.Identities.Any(i => i.Provider == provider && ids.Contains(i.Identity))).Include(u=>u.Identities).ToListAsync();
+
+            var result = new Dictionary<string, User?>();
+            foreach(var id in ids)
+            {
+                var record = records.FirstOrDefault(r=>r.Identities.Any(r=>r.Identity == id && r.Provider == provider));
+                result[id] = 
+            }
             // Create datas
             var datas = logins.Select(login => new ClaimUser(login, GetCacheId(provider, claimPath, login))).ToArray();
 

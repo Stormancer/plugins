@@ -81,7 +81,13 @@ namespace Stormancer.Server.Plugins.Users
         /// <summary>
         /// Stores the last platform the user authenticated on.
         /// </summary>
-        public string LastPlatform { get; set; } = "";
+        public string? LastPlatform { get; set; }
+
+        /// <summary>
+        /// Gets or sets the cross platform pseudonym associated to the player, or null if it's not set
+        ///
+        /// </summary>
+        public string? Pseudonym { get; set; }
     }
 
     /// <summary>

@@ -17,28 +17,24 @@ namespace Stormancer.Server.Plugins.Collections
     /// </summary>
     public class CollectableItemDefinition
     {
-        /// <summary>
-        /// Unique id of the item, used for unlocking.
-        /// </summary>
-        [MessagePackMember(0)]
-        public int Id { get; set; }
+
 
         /// <summary>
         /// Name of the item.
         /// </summary>
-        [MessagePackMember(1)]    
-        public string Name { get; set; } = string.Empty;
+        [MessagePackMember(0)]    
+        public string Id { get; set; } = string.Empty;
 
         /// <summary>
         /// Category of the item.
         /// </summary>
-        [MessagePackMember(2)]
+        [MessagePackMember(1)]
         public string Category { get; set; } = string.Empty;
 
         /// <summary>
         /// Get or sets tags associated with the item.
         /// </summary>
-        [MessagePackMember(3)]
+        [MessagePackMember(2)]
         public IEnumerable<string> Tags { get; set; } = Enumerable.Empty<string>();
 
         /// <summary>
@@ -47,48 +43,8 @@ namespace Stormancer.Server.Plugins.Collections
         /// <remarks>
         /// Can be used to store associated game resource, any data used during the unlocking process (for instance resource costs, or prerequisites)
         /// </remarks>
-        [MessagePackMember(4)]
+        [MessagePackMember(3)]
         public JObject Metadata { get; set; } = new JObject();
     }
 
-    public class CollectableItemDefinitionRecord
-    {
-        /// <summary>
-        /// Unique id of the item, used for unlocking.
-        /// </summary>
-        [Key]
-        public int Id { get; set; }
-
-        /// <summary>
-        /// Name of the item.
-        /// </summary>
-
-     
-        [MaxLength(64)]
-        public string Name { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Category of the item.
-        /// </summary>
-
-     
-        [MaxLength(64)]
-        public string Category { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Get or sets tags associated with the item.
-        /// </summary>
-
-        public IEnumerable<string> Tags { get; set; } = Enumerable.Empty<string>();
-
-        /// <summary>
-        /// Gets or sets Metadata associated with the definition
-        /// </summary>
-        /// <remarks>
-        /// Can be used to store associated game resource, any data used during the unlocking process (for instance resource costs, or prerequisites)
-        /// </remarks>
-        [Column(TypeName = "jsonb")]
-        public string Metadata { get; set; } = default!;
-
-    }
 }

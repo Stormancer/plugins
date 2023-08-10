@@ -231,7 +231,7 @@ namespace Stormancer.Server.Plugins.Users
 
                 Debug.Assert(user != null);
 
-                user = await users.AddAuthentication(user, PROVIDER_NAME, claim =>
+                user = await users.AddAuthentication(user, PROVIDER_NAME, login,claim =>
                 {
                     claim[ClaimPath] = JObject.FromObject(new LoginPasswordAuthRecord
                     {
@@ -242,7 +242,7 @@ namespace Stormancer.Server.Plugins.Users
                         algorithm = algorithm.Name,
                         derivedKey = hash
                     });
-                }, new Dictionary<string, string> { { ClaimPath, login } });
+                });
                
             }
          

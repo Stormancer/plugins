@@ -686,63 +686,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public async Task<string> UpdateUserHandle(string userId, string newHandle, bool appendHash, CancellationToken cancellationToken)
         {
-            // Check handle validity
-            if (!Regex.IsMatch(newHandle, @"^[\p{Ll}\p{Lu}\p{Lt}\p{Lo}0-9-_.]*$"))
-            {
-                throw new ClientException("badHandle?badCharacters");
-            }
-            if (newHandle.Length > _handleMaxNumCharacters)
-            {
-                throw new ClientException($"badHandle?tooLong&maxLength={_handleMaxNumCharacters}");
-            }
-
-            var ctx = new UpdateUserHandleCtx(userId, newHandle);
-            await _eventHandlers().RunEventHandler(handler => handler.OnUpdatingUserHandle(ctx), ex => logger.Log(LogLevel.Error, "usersessions", "An exception was thrown by an OnUpdatingUserHandle event handler", ex));
-
-            if (!ctx.Accept)
-            {
-                throw new ClientException(ctx.ErrorMessage);
-            }
-
-            var session = await GetSessionByUserId(userId, cancellationToken);
-
-            async Task UpdateHandleDatabase()
-            {
-                await EnsureHandleUserMappingCreated();
-                var client = await _esClientFactory.CreateClient<HandleUserRelation>("handleUserRelationClient");
-                var user = await _userService.GetUser(userId);
-                if (user == null)
-                {
-                    throw new ClientException("notFound?user");
-                }
-                var newUserData = user.UserData;
-
-                bool foundUnusedHandle = false;
-                string newHandleWithSuffix;
-                if (appendHash)
-                {
-                    do
-                    {
-                        var suffix = _random.Value.Next(0, _handleSuffixUpperBound);
-                        newHandleWithSuffix = newHandle + "#" + suffix;
-
-                        // Check conflicts
-                        var relation = new HandleUserRelation { Id = newHandleWithSuffix, HandleNum = suffix, HandleWithoutNum = newHandle, UserId = userId };
-                        var response = await client.IndexAsync(relation, d => d.OpType(Elasticsearch.Net.OpType.Create));
-                        foundUnusedHandle = response.IsValid;
-
-                    } while (!foundUnusedHandle);
-                    newUserData[UsersConstants.UserHandleKey] = newHandleWithSuffix;
-                }
-                else
-                {
-                    newUserData[UsersConstants.UserHandleKey] = newHandle;
-                }
-                if (session != null)
-                {
-                    session.User.UserData = newUserData;
-                }
-                await _userService.UpdateUserData(userId, newUserData);
+            
             }
 
             //async Task UpdateHandleEphemeral()

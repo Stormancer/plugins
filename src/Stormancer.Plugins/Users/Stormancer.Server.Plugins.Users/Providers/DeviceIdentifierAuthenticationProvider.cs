@@ -121,7 +121,9 @@ namespace Stormancer.Server.Plugins.Users
                 var uid = Guid.NewGuid().ToString("N");
                 user = await _users.CreateUser(uid, JObject.FromObject(new { deviceidentifier = identifier }), DeviceIdentifierConstants.PROVIDER_NAME);
 
-                user = await _users.AddAuthentication(user, DeviceIdentifierConstants.PROVIDER_NAME, claim => claim[DeviceIdentifierConstants.ClaimPath] = identifier, new Dictionary<string, string> { { DeviceIdentifierConstants.ClaimPath, identifier } });
+                user = await _users.AddAuthentication(user, DeviceIdentifierConstants.PROVIDER_NAME, identifier,
+                    claim => claim[DeviceIdentifierConstants.ClaimPath] = identifier
+                    );
             }
             else
             {

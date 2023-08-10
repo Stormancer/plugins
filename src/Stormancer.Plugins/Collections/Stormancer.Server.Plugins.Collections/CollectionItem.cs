@@ -19,7 +19,7 @@ namespace Stormancer.Server.Plugins.Collections
         /// </summary>
         [Required]
         [Key]
-        public CollectableItemDefinitionRecord Item { get; set; } = default!;
+        public string ItemId { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets the user.

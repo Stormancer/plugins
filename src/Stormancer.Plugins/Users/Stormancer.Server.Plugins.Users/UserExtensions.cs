@@ -59,9 +59,9 @@ namespace Stormancer
         /// </summary>
         /// <param name="user"></param>
         /// <returns></returns>
-        public static string GetPseudo(this User user)
+        public static string? GetPseudo(this User user)
         {
-            return user?.UserData?["pseudo"]?.ToObject<string>() ?? "unknown";
+            return user?.Pseudonym;
         }
     }
 }

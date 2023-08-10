@@ -12,7 +12,8 @@ namespace Stormancer.Server.Plugins.Users.Data
     {
         public void OnModelCreating(ModelBuilder modelBuilder, string contextId, Dictionary<string, object> customData)
         {
-            modelBuilder.Entity<UserRecord>();
+            modelBuilder.Entity<UserRecord>().HasIndex(b => b.Pseudonym)
+                .IsUnique();
         }
     }
 }
