@@ -116,7 +116,7 @@ namespace Stormancer.Server.Plugins.Users
             {
                 return AuthenticationResult.CreateFailure("'claimValue' must not be empty.", pId, authenticationCtx.Parameters);
             }
-            var user = await _users.GetUserByClaim(ImpersonatingProvider, ImpersonatingClaimPath, ImpersonatingClaimValue);
+            var user = await _users.GetUserByIdentity(ImpersonatingProvider, ImpersonatingClaimValue);
 
             if (user == null)
             {

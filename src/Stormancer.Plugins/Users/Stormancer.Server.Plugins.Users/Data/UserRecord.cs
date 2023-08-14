@@ -5,8 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
@@ -17,32 +19,48 @@ namespace Stormancer.Server.Plugins.Users
     /// </summary>
     public class UserRecord
     {
-        public static User CreateUserFromRecord(UserRecord record)
+        /// <summary>
+        /// Creates a model from the record.
+        /// </summary>
+        /// <param name="record"></param>
+        /// <returns></returns>
+        [return: NotNullIfNotNull("record")]
+        public static User? CreateUserFromRecord(UserRecord? record)
         {
+            if (record == null) return null;
             return new User()
             {
                 Id = record.Id.ToString(),
-                Auth = JObject.Parse(record.Auth),
-                Channels = JObject.Parse(record.Channels),
-                Pseudonym = record.Pseudonym,
-                UserData = JObject.Parse(record.UserData),
+                Auth = JObject.Parse(record.Auth.ToString()!),
+                Channels = JObject.Parse(record.Channels.ToString()!),
+                Pseudonym = record.UserHandle,
+                UserData = JObject.Parse(record.UserData.ToString()!),
                 CreatedOn = record.CreatedOn,
                 LastLogin = record.LastLogin,
                 LastPlatform = record.LastPlatform
 
             };
         }
-        public static UserRecord CreateRecordFromUser(User user)
+
+
+        /// <summary>
+        /// Creates a record from a model.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
+        [return: NotNullIfNotNull("user")]
+        public static UserRecord? CreateRecordFromUser(User? user)
         {
+            if (user == null) return null;
             return new UserRecord()
             {
-                Auth = user.Auth.ToString(),
-                Channels = user.Channels.ToString(),
+                Auth = JsonDocument.Parse(user.Auth.ToString()),
+                Channels = JsonDocument.Parse(user.Channels.ToString()),
                 CreatedOn = user.CreatedOn,
                 Id = Guid.Parse(user.Id),
-                UserData = user.UserData.ToString(),
+                UserData = JsonDocument.Parse(user.UserData.ToString()),
                 LastPlatform = user.LastPlatform,
-                Pseudonym = user.Pseudonym
+                UserHandle = user.Pseudonym
 
 
             };
@@ -58,13 +76,13 @@ namespace Stormancer.Server.Plugins.Users
         /// Gets or sets the auth informations of the user.
         /// </summary>
         [Column(TypeName = "jsonb")]
-        public string Auth { get; set; } = default!;
+        public JsonDocument Auth { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets custom data about the user.
         /// </summary>
         [Column(TypeName = "jsonb")]
-        public string UserData { get; set; } = default!;
+        public JsonDocument UserData { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets the date the user was created.
@@ -80,7 +98,7 @@ namespace Stormancer.Server.Plugins.Users
         /// Gets or sets informations about the channels the user can be contacted through.
         /// </summary>
         [Column(TypeName = "jsonb")]
-        public string Channels { get; set; } = default!;
+        public JsonDocument Channels { get; set; } = default!;
 
         /// <summary>
         /// Stores the last platform the user authenticated on.
@@ -91,11 +109,11 @@ namespace Stormancer.Server.Plugins.Users
         /// Gets the identities of the user.
         /// </summary>
         public ICollection<IdentityRecord> Identities { get; set; } = default!;
-      
+
         /// <summary>
         /// The pseudo
         /// </summary>
-        public string? Pseudonym { get; set; }
+        public string? UserHandle { get; set; }
     }
 
     public class IdentityRecord

@@ -405,10 +405,7 @@ namespace Stormancer.Server.Plugins.Users
 
                 var logoutContext = new LogoutContext { Session = session, ConnectedOn = session.ConnectedOn, Reason = reason };
                 await _eventHandlers().RunEventHandler(h => h.OnLoggedOut(logoutContext), ex => logger.Log(LogLevel.Error, "usersessions", "An error occured while running LoggedOut event handlers", ex));
-                if (session.User != null)
-                {
-                    await _userService.UpdateLastLoginDate(session.User.Id);
-                }
+                
                 return true;
             }
             else
@@ -684,52 +681,7 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
-        public async Task<string> UpdateUserHandle(string userId, string newHandle, bool appendHash, CancellationToken cancellationToken)
-        {
-            
-            }
-
-            //async Task UpdateHandleEphemeral()
-            //{
-            //    var userData = session.User.UserData;
-            //    if (!appendHash)
-            //    {
-            //        userData[UsersConstants.UserHandleKey] = newHandle;
-            //    }
-            //    else
-            //    {
-            //        string newHandleWithSuffix;
-            //        bool added = false;
-            //        do
-            //        {
-            //            var suffix = _random.Value.Next(0, _handleSuffixUpperBound);
-            //            newHandleWithSuffix = newHandle + "#" + suffix;
-            //            // Check conflicts
-            //            added = await _handleUserIndex.TryAdd(newHandleWithSuffix, userId);
-            //        } while (!added);
-
-            //        userData[UsersConstants.UserHandleKey] = newHandleWithSuffix;
-            //    }
-            //    session.User.UserData = userData;
-            //}
-
-            if (session == null || session.User == null)
-            {
-                throw new ClientException("notAuthenticated");
-            }
-
-            if (session.User.UserData.TryGetValue(EphemeralAuthenticationProvider.IsEphemeralKey, out var isEphemeral) && (bool)isEphemeral)
-            {
-                throw new NotSupportedException();
-                //await UpdateHandleEphemeral();
-            }
-            else
-            {
-                await UpdateHandleDatabase();
-            }
-
-            return newHandle;
-        }
+        
 
         private class PeerRequest : IRemotePipe
         {

@@ -59,12 +59,12 @@ namespace Stormancer.server.Plugins.Firebase
                 var t = await FirebaseAdmin.Auth.FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(token);
 
                 var firebaseUid = t.Uid;
-                var user = await users.GetUserByClaim(Type, ClaimPath, firebaseUid);
+                var user = await users.GetUserByIdentity(Type, firebaseUid);
                 if (user == null)
                 {
                     var uid = Guid.NewGuid().ToString("N");
                     user = await users.CreateUser(uid, JObject.FromObject(new { uid = firebaseUid }), Type);
-                    user = await users.AddAuthentication(user, Type, claim => claim[ClaimPath] = firebaseUid, new Dictionary<string, string> { { ClaimPath, firebaseUid } });
+                    user = await users.AddAuthentication(user, Type, firebaseUid,claim => claim[ClaimPath] = firebaseUid);
                 }
 
                 var pId = new PlatformId { Platform = Type, PlatformUserId = firebaseUid };

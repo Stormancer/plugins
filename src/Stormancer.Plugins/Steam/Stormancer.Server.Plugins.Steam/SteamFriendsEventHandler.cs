@@ -92,7 +92,7 @@ namespace Stormancer.Server.Plugins.Steam
             }
 
             // Get users from friends
-            var users = await _userService.GetUsersByClaim(SteamConstants.PLATFORM_NAME, SteamConstants.ClaimPath, steamFriends.Select(steamFriend => steamFriend.steamid).ToArray());
+            var users = await _userService.GetUsersByIdentity(SteamConstants.PLATFORM_NAME, steamFriends.Select(steamFriend => steamFriend.steamid).ToArray());
 
             // Remove users not found or already present in context friendList
             var friendDatas = steamFriends

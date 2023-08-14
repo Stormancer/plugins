@@ -364,7 +364,7 @@ namespace Stormancer.Server.Plugins.Epic
                     var accountId = payload.sub;
                     pId.PlatformUserId = accountId;
 
-                    var user = await _users.GetUserByClaim(EpicConstants.PLATFORM_NAME, EpicConstants.ACCOUNTID_CLAIMPATH, accountId);
+                    var user = await _users.GetUserByIdentity(EpicConstants.PLATFORM_NAME, accountId);
                     if (user == null)
                     {
                         var userId = Guid.NewGuid().ToString("N");
@@ -376,7 +376,7 @@ namespace Stormancer.Server.Plugins.Epic
                         userData[EpicConstants.PLATFORM_NAME] = epicUserData;
 
                         user = await _users.CreateUser(userId, userData, EpicConstants.PLATFORM_NAME);
-                        user = await _users.AddAuthentication(user, EpicConstants.PLATFORM_NAME, claim => claim[EpicConstants.ACCOUNTID_CLAIMPATH] = accountId, new Dictionary<string, string> { { EpicConstants.ACCOUNTID_CLAIMPATH, accountId } });
+                        user = await _users.AddAuthentication(user, EpicConstants.PLATFORM_NAME, accountId,claim => claim[EpicConstants.ACCOUNTID_CLAIMPATH] = accountId);
                     }
                     else
                     {

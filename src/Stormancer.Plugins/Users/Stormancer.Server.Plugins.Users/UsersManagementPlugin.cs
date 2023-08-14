@@ -158,7 +158,14 @@ namespace Stormancer.Server.Plugins.Users
             //Indices
 
             b.Register<SceneAuthorizationController>();
-            b.Register(dr=> new UserSessionController(dr.Resolve<IUserSessions>(),dr.Resolve<ISerializer>(),dr.Resolve<ISceneHost>(),dr.Resolve<IEnvironment>(),dr.Resolve<ILogger>(),dr.Resolve<IConfiguration>()));
+            b.Register(dr=> new UserSessionController(
+                dr.Resolve<IUserSessions>(),
+                dr.Resolve<IUserService>(),
+                dr.Resolve<ISerializer>(),
+                dr.Resolve<ISceneHost>(),
+                dr.Resolve<IEnvironment>(),
+                dr.Resolve<ILogger>(),
+                dr.Resolve<IConfiguration>()));
             b.Register(dr => new AuthenticationController(
                 dr.Resolve<IAuthenticationService>(), 
                 dr.Resolve<IUserSessions>(), 
@@ -183,7 +190,8 @@ namespace Stormancer.Server.Plugins.Users
                 dr.Resolve<DbContextAccessor>(),
                 dr.Resolve<IEnvironment>(),
                 dr.Resolve<ILogger>(), 
-                dr.Resolve<Func<IEnumerable<IUserEventHandler>>>())
+                dr.Resolve<Func<IEnumerable<IUserEventHandler>>>(),
+                dr.Resolve<IConfiguration>())
             ).As<IUserService>().InstancePerRequest();
 
 

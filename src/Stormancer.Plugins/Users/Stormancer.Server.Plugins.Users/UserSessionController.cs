@@ -49,16 +49,18 @@ namespace Stormancer.Server.Plugins.Users
         private readonly IConfiguration configuration;
         private readonly IEnvironment _environment;
         private readonly IUserSessions _sessions;
+        private readonly IUserService _users;
 
-
-
-        public UserSessionController(IUserSessions sessions, ISerializer serializer, ISceneHost scene, IEnvironment env, ILogger logger, IConfiguration configuration)
+        public UserSessionController(IUserSessions sessions,
+            IUserService users,
+            ISerializer serializer, ISceneHost scene, IEnvironment env, ILogger logger, IConfiguration configuration)
         {
 
             _logger = logger;
             this.configuration = configuration;
             _environment = env;
             _sessions = sessions;
+            _users = users;
             _serializer = serializer;
             _scene = scene;
             if (_key == null)
@@ -192,9 +194,9 @@ namespace Stormancer.Server.Plugins.Users
         }
 
         [S2SApi]
-        public Task<string> UpdateUserHandle(string userId, string newHandle, bool appendHash, CancellationToken cancellationToken)
+        public Task<string?> UpdateUserHandle(string userId, string newHandle, CancellationToken cancellationToken)
         {
-            return _sessions.UpdateUserHandle(userId, newHandle, appendHash, cancellationToken);
+            return _users.UpdateUserHandleAsync(userId, newHandle, cancellationToken);
         }
 
         [S2SApi]

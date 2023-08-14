@@ -63,15 +63,14 @@ namespace Stormancer.Server.Plugins.Users
         /// Gets an user using a claim.
         /// </summary>
         /// <param name="provider"></param>
-        /// <param name="claimPath"></param>
-        /// <param name="claimValue"></param>
+        /// <param name="identifier"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet]
         [Route("getByClaim")]
-        public async Task<User?> GetByClaim(string provider, string claimPath, string claimValue, CancellationToken cancellationToken)
+        public async Task<User?> GetByClaim(string provider, string identifier, CancellationToken cancellationToken)
         {
-            return await _users.GetUserByClaim(provider, claimPath, claimValue);
+            return await _users.GetUserByIdentity(provider, identifier);
         }
 
         /// <summary>

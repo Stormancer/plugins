@@ -243,7 +243,7 @@ namespace Stormancer.Server.Plugins.Steam
                 }
 
                 var steamIdString = steamId.ToString();
-                var user = await _users.GetUserByClaim(SteamConstants.PLATFORM_NAME, SteamConstants.ClaimPath, steamIdString);
+                var user = await _users.GetUserByIdentity(SteamConstants.PLATFORM_NAME,  steamIdString);
                 var playerSummary = await _steam.GetPlayerSummary(steamId);
                 if (user == null)
                 {
@@ -254,7 +254,7 @@ namespace Stormancer.Server.Plugins.Steam
                         { "pseudo", playerSummary?.personaname ?? "" }
                     }), SteamConstants.PLATFORM_NAME);
 
-                    user = await _users.AddAuthentication(user, SteamConstants.PLATFORM_NAME, claim => claim[SteamConstants.ClaimPath] = steamIdString, new Dictionary<string, string> { { SteamConstants.ClaimPath, steamIdString } });
+                    user = await _users.AddAuthentication(user, SteamConstants.PLATFORM_NAME,steamIdString, claim => claim[SteamConstants.ClaimPath] = steamIdString);
                 }
                 else
                 {

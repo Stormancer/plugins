@@ -34,11 +34,10 @@ namespace Stormancer.Server.Plugins.Users
     {
         Task OnAuthenticationChanged(AuthenticationChangedCtx ctx);
 
-        Task OnMergingUsers(IEnumerable<User> users);
-
-        Task<Object> OnMergedUsers(IEnumerable<User> enumerable, User mainUser);
-
-        BulkDescriptor OnBuildMergeQuery(IEnumerable<User> enumerable,User mainUser, object data, BulkDescriptor desc);
+        Task OnUpdatingUserHandle(UpdateUserHandleCtx ctx)
+        {
+            return Task.CompletedTask;
+        }
     }
 
     /// <summary>

@@ -109,7 +109,7 @@ namespace Stormancer.Server.Plugins.Users
                 return AuthenticationResult.CreateFailure("Device identifier must not be empty.", pId, authenticationCtx.Parameters);
             }
 
-            var user = await _users.GetUserByClaim(DeviceIdentifierConstants.PROVIDER_NAME, DeviceIdentifierConstants.ClaimPath, identifier);
+            var user = await _users.GetUserByIdentity(DeviceIdentifierConstants.PROVIDER_NAME, identifier);
 
             if (user != null && authenticationCtx.CurrentSession?.User != null && authenticationCtx.CurrentSession.User.Id != user.Id)
             {

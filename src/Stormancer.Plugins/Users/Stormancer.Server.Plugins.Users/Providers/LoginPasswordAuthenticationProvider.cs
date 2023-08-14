@@ -142,7 +142,7 @@ namespace Stormancer.Server.Plugins.Users
             }
             pId.PlatformUserId = login;
 
-            var user = await users.GetUserByClaim(PROVIDER_NAME, ClaimPath + ".login", login);
+            var user = await users.GetUserByIdentity(PROVIDER_NAME,  login);
 
             
 
@@ -197,7 +197,7 @@ namespace Stormancer.Server.Plugins.Users
 
             pId.PlatformUserId = login;
 
-            var user = await users.GetUserByClaim(PROVIDER_NAME, ClaimPath + ".login", login);
+            var user = await users.GetUserByIdentity(PROVIDER_NAME, login);
             if (user != null)
             {
                 throw new ClientException("auth.loginPassword.create.accountAlreadyExist");
@@ -224,7 +224,7 @@ namespace Stormancer.Server.Plugins.Users
                      
                 if (parameters.TryGetValue("pseudo", out var pseudo))
                 {
-                    await sessions.UpdateUserHandle(uid, pseudo, true,cancellationToken);
+                    await users.UpdateUserHandleAsync(uid, pseudo,cancellationToken);
                     user = await users.GetUser(uid);
                 }
                 var hash = DeriveKey(password, out var iterations, out var salt, out var algorithm);

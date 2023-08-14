@@ -221,9 +221,9 @@ namespace Stormancer.Server.Plugins.Users
             => UserSessions.SendRequestImpl<TArg>(this, serializer, operationName, senderUserId, recipientUserId, arg, cancellationToken);
 
 
-        public Task<string> UpdateUserHandle(string userId, string newHandle, bool appendHash, CancellationToken cancellationToken)
+        public Task<string?> UpdateUserHandle(string userId, string newHandle, CancellationToken cancellationToken)
         {
-            return proxy.UpdateUserHandle(userId, newHandle, appendHash, cancellationToken);
+            return proxy.UpdateUserHandle(userId, newHandle, cancellationToken);
         }
 
         public IAsyncEnumerable<Session> GetSessionsAsync(CancellationToken cancellationToken)

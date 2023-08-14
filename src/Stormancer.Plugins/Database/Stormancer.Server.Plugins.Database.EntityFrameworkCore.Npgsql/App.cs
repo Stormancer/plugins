@@ -6,7 +6,7 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
     {
         public void Run(IAppBuilder builder)
         {
-            builder.AddPlugin(new NpgsqlPlugin())
+            builder.AddPlugin(new NpgsqlPlugin());
         }
     }
 

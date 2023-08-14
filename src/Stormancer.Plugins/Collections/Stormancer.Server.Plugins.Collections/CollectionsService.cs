@@ -1,6 +1,8 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using Stormancer.Abstractions.Server.Components;
 using Stormancer.Server.Plugins.Configuration;
+using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
 using Stormancer.Server.Plugins.Users;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
@@ -77,13 +79,16 @@ namespace Stormancer.Server.Plugins.Collections
     }
     internal class CollectionsService
     {
+
+        private readonly DbContextAccessor _dbContextAccessor;
         private readonly Func<IEnumerable<ICollectionEventHandler>> _eventHandlers;
         private readonly CollectionsRepository _collectionsRepository;
 
-        public CollectionsService(Func<IEnumerable<ICollectionEventHandler>> eventHandlers, CollectionsRepository collectionsRepository)
+        public CollectionsService(Func<IEnumerable<ICollectionEventHandler>> eventHandlers, CollectionsRepository collectionsRepository, DbContextAccessor dbContextAccessor)
         {
             _eventHandlers = eventHandlers;
             _collectionsRepository = collectionsRepository;
+            _dbContextAccessor = dbContextAccessor;
         }
 
         /// <summary>
@@ -119,9 +124,32 @@ namespace Stormancer.Server.Plugins.Collections
             return _collectionsRepository.GetDefinitionsAsync(cancellationToken);
         }
 
-        public async Task<Dictionary<string, IEnumerable<string>>> GetCollectionAsync(IEnumerable<string> userIds, CancellationToken CancellationToken)
+        public async Task<Dictionary<string, IEnumerable<string>>> GetCollectionAsync(IEnumerable<string> userIds, CancellationToken cancellationToken)
         {
-        
+            var definitions = await GetItemDefinitionAsync(cancellationToken);
+
+            var dbContext = await this._dbContextAccessor.GetDbContextAsync("default", cancellationToken);
+
+            var set = dbContext.Set<CollectionItemRecord>();
+
+            var guids = userIds.Select(userId=>Guid.Parse(userId)).ToArray();
+            var items = await set.Where(item => guids.Contains(item.User.Id)).ToListAsync();
+
+            var results = new Dictionary<string, IEnumerable<string>>();
+
+            foreach(var item in items)
+            {
+                if(!results.TryGetValue(item.User.Id.ToString(), out var itemList))
+                {
+                    itemList = new List<string>();
+                    results.Add(item.User.Id.ToString(), itemList);
+                }
+
+                ((List<string>)itemList).Add(item.ItemId);
+
+            }
+
+            return results;
         }
     }
 }

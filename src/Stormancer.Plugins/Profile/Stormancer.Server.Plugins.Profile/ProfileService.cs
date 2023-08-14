@@ -38,17 +38,17 @@ namespace Stormancer.Server.Plugins.Profile
         private readonly IEnumerable<IProfilePartBuilder> _handlers;
         private readonly IEnumerable<ICustomProfilePart> customProfileParts;
         private readonly ILogger _logger;
-        private readonly IUserSessions _sessions;
+        private readonly IUserService _users;
 
         public ProfileService(IEnumerable<IProfilePartBuilder> handlers,
             IEnumerable<ICustomProfilePart> customProfileParts,
             ILogger logger,
-            IUserSessions sessions)
+            IUserService users)
         {
             _handlers = handlers;
             this.customProfileParts = customProfileParts;
             _logger = logger;
-            _sessions = sessions;
+            _users = users;
         }
 
 
@@ -85,9 +85,9 @@ namespace Stormancer.Server.Plugins.Profile
             return customProfileParts.RunEventHandler(p => p.UpdateAsync(userId, partId, version, fromClient, inputStream), ex => _logger.Log(LogLevel.Error, "profile", "An error occured while updating a custom profile part.", ex));
         }
 
-        public Task<string> UpdateUserHandle(string userId, string newHandle, CancellationToken cancellationToken)
+        public Task<string?> UpdateUserHandle(string userId, string newHandle, CancellationToken cancellationToken)
         {
-            return _sessions.UpdateUserHandle(userId, newHandle, true, cancellationToken);
+            return _users.UpdateUserHandleAsync(userId, newHandle, cancellationToken);
         }
     }
 }

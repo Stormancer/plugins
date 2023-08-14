@@ -50,7 +50,7 @@ namespace Stormancer.Server.Plugins.Profile
         /// <param name="newHandle"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<string> UpdateUserHandle(string userId, string newHandle, CancellationToken cancellationToken);
+        Task<string?> UpdateUserHandle(string userId, string newHandle, CancellationToken cancellationToken);
 
         /// <summary>
         /// Updates a custom profile part associated with an user.

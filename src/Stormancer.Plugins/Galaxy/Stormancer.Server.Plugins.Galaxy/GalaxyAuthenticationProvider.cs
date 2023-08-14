@@ -174,7 +174,7 @@ namespace Stormancer.Server.Plugins.Galaxy
 
                 pId.PlatformUserId = galaxyId;
 
-                var user = await _userService.GetUserByClaim(GalaxyConstants.PLATFORM_NAME, GalaxyConstants.GALAXYID_CLAIMPATH, galaxyId);
+                var user = await _userService.GetUserByIdentity(GalaxyConstants.PLATFORM_NAME,  galaxyId);
 
                 if (user == null)
                 {
@@ -187,7 +187,7 @@ namespace Stormancer.Server.Plugins.Galaxy
                     userData[GalaxyConstants.PLATFORM_NAME] = galaxyUserData;
 
                     user = await _userService.CreateUser(userId, userData, GalaxyConstants.PLATFORM_NAME);
-                    user = await _userService.AddAuthentication(user, GalaxyConstants.PLATFORM_NAME, claim => claim[GalaxyConstants.GALAXYID_CLAIMPATH] = galaxyId, new Dictionary<string, string> { { GalaxyConstants.GALAXYID_CLAIMPATH, galaxyId } });
+                    user = await _userService.AddAuthentication(user, GalaxyConstants.PLATFORM_NAME, galaxyId, claim => claim[GalaxyConstants.GALAXYID_CLAIMPATH] = galaxyId);
                 }
                 else
                 {

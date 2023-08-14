@@ -23,6 +23,7 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -38,18 +39,21 @@ namespace Stormancer.Server.Plugins.Users
 
         Task<User> RemoveAuthentication(User user, string provider);
 
-        Task<User?> GetUserByClaim(string provider, string claimPath, string login);
-
-        Task<string> UpdateUserHandle(string userId, string newHandle, bool appendHash, CancellationToken cancellationToken);
+        /// <summary>
+        /// Gets user by an identifier.
+        /// </summary>
+        /// <param name="provider"></param>
+        /// <param name="identifier"></param>
+        /// <returns></returns>
+        Task<User?> GetUserByIdentity(string provider, string identifier);
 
         /// <summary>
         /// Gets users by claim (batched)
         /// </summary>
         /// <param name="provider"></param>
-        /// <param name="claimPath"></param>
-        /// <param name="logins"></param>
+        /// <param name="identifiers"></param>
         /// <returns></returns>
-        Task<Dictionary<string, User?>> GetUsersByClaim(string provider, string claimPath, string[] logins);
+        Task<Dictionary<string, User?>> GetUsersByIdentity(string provider, IEnumerable<string> identifiers);
 
         /// <summary>
         /// Creates an user
@@ -79,11 +83,18 @@ namespace Stormancer.Server.Plugins.Users
 
         Task UpdateUserData<T>(string uid, T data);
 
-        Task UpdateCommunicationChannel(string userId, string channel, JObject data);
+        Task UpdateCommunicationChannel(string userId, string channel, JsonObject data);
 
         Task Delete(string id);
 
-        Task UpdateLastLoginDate(string userId);
+        /// <summary>
+        /// Updates the handle of a player.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="newHandle"> </param>
+        /// <param name="cancellationToken"></param>
+        /// <returns>The new handle, including an unicity hash at the end if configured to generate one.</returns>
+        Task<string?> UpdateUserHandleAsync(string userId,string newHandle,CancellationToken cancellationToken);
 
         Task<Dictionary<string, User?>> GetUsers(IEnumerable<string> userIds, CancellationToken cancellationToken);
     }

@@ -93,10 +93,7 @@ namespace Stormancer.Server.Plugins.Users
 
         Task OnLoggedOut(LogoutContext ctx) => Task.CompletedTask;
 
-        Task OnUpdatingUserHandle(UpdateUserHandleCtx ctx)
-        {
-            return Task.CompletedTask;
-        }
+       
 
         /// <summary>
         /// Called for each peer when a * kick request is performed.

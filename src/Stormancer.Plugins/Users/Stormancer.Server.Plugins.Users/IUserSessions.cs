@@ -243,16 +243,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <returns></returns>
         Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string, string>> query, int take, int skip, CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Updates the user handle, and optionally adds an hash number (ie name#2424) to make ids unique.
-        /// </summary>
-        /// <param name="userId"></param>
-        /// <param name="newHandle"></param>
-        /// <param name="appendHash"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns>The new user handle.</returns>
-        Task<string> UpdateUserHandle(string userId, string newHandle, bool appendHash, CancellationToken cancellationToken);
-
+        
         /// <summary>
         /// Sends a request to an user.
         /// </summary>
