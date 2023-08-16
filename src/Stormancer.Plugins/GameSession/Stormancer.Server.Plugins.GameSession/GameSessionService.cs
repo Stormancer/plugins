@@ -165,11 +165,12 @@ namespace Stormancer.Server.Plugins.GameSession
 
     public class Client
     {
-        internal Client(IScenePeerClient? peer)
+        internal Client(IScenePeerClient? peer, Session session)
         {
             Peer = peer;
             Reset();
             Status = PlayerStatus.NotConnected;
+            Session = session;
         }
 
         internal void Reset()
@@ -181,6 +182,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public IScenePeerClient? Peer { get; set; }
 
+        public Session Session { get; }
         public Stream? ResultData { get; set; }
 
         public PlayerStatus Status { get; set; }
@@ -484,7 +486,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 
             }
 
-            var client = new Client(peer);
+            var client = new Client(peer,session);
             lock (_clients)
             {
                 if (!_clients.TryAdd(user, client))
@@ -975,7 +977,7 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             Debug.Assert(_config != null);
 
-            var ctx = new GameSessionCompleteCtx(this, _scene, _config, new[] { new GameSessionResult("", null, inputStream) }, _clients.Keys);
+            var ctx = new GameSessionCompleteCtx(this, _scene, _config, new[] { new GameSessionResult("", null,null, inputStream) }, _clients.Keys);
             await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.GameSessionCompleted(ctx), ex =>

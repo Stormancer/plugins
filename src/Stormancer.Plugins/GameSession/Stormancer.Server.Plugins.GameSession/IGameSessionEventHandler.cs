@@ -24,6 +24,7 @@ using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Server.Plugins.GameSession.ServerPool;
 using Stormancer.Server.Plugins.Models;
+using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -409,9 +410,10 @@ namespace Stormancer.Server.Plugins.GameSession
     /// </summary>
     public class GameSessionResult
     {
-        internal GameSessionResult(string userId, IScenePeerClient? client, Stream data)
+        internal GameSessionResult(string userId, IScenePeerClient? client,Session? session, Stream data)
         {
             Peer = client;
+            Session = session;
             Data = data;
             UserId = userId;
         }
@@ -420,6 +422,11 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Client peer.
         /// </summary>
         public IScenePeerClient? Peer { get; }
+
+        /// <summary>
+        /// Gets the session of the player.
+        /// </summary>
+        public Session? Session { get; }
 
         /// <summary>
         /// User id of the client.
