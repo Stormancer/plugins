@@ -119,12 +119,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public Task Create(string template, string id, GameSessionConfiguration config, CancellationToken cancellationToken)
         {
-            return TaskHelper.Retry(async () =>
-            {
-                using var cts = new CancellationTokenSource(4000);
-                await management.CreateSceneAsync(id, template, false, false, JObject.FromObject(new { gameSession = config }), cts.Token);
-
-            }, RetryPolicies.IncrementalDelay(4, TimeSpan.FromMilliseconds(500)), cancellationToken);
+            return management.CreateSceneAsync(id, template, false, false, JObject.FromObject(new { gameSession = config }), cancellationToken);
         }
 
         public Task Create(string template, string id, GameSessionConfiguration config)

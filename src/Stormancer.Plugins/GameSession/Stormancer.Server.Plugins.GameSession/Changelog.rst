@@ -22,6 +22,10 @@ Added
 - Added property `CreatedOn` on `IGamesessionService` to get the UTC date the gamesession was created.
 - Added Session to context of `IGameSessionEventHandler.OnGameSessionCompleted`
 
+Changed
+*******
+- Removed a retry when creating a game session
+
 Fixed
 *****
 - Fixed infinite loop in the analytics worker loop.
