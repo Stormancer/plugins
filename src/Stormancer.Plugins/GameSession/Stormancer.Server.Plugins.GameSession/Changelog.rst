@@ -20,11 +20,11 @@ Added
 - Added `IGameSessionEventHandler.OnGameSessionReset` event fired when the gamesession is reset by the host.
 - Added `IGameSessionEventHandler.ShouldCompleteGame` event fired to decide if the gamesession should evaluate the results posted with PostResult and complete the game.
 - Added property `CreatedOn` on `IGamesessionService` to get the UTC date the gamesession was created.
-- Added Session to context of `IGameSessionEventHandler.OnGameSessionCompleted`
+- Added Session to context of `IGameSessionEventHandler.OnGameSessionCompleted`.
 
 Changed
 *******
-- Removed a retry when creating a game session
+- Removed a retry when creating a game session.
 
 Fixed
 *****
