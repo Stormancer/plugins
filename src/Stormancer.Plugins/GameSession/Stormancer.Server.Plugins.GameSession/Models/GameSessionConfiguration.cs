@@ -44,7 +44,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// User id of the game host. In party the host user id value is the party leader.
         /// </summary>
         [MessagePackMember(2)]
-        public string HostUserId { get; set; }
+        public string HostSessionId { get; set; }
 
         /// <summary>
         /// Group connected to gameSession

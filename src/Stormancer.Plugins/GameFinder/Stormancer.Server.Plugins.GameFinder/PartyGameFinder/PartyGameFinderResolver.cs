@@ -88,7 +88,10 @@ namespace Stormancer.Server.Plugins.GameFinder
                 
                 if(partyLeaderIsHost)
                 {
-                    config.HostUserId = gameCtx.Game.AllParties.First().PartyLeaderId;
+                    var party = gameCtx.Game.AllParties.First();
+                    var leaderId = party.PartyLeaderId;
+                    var leader = party.Players[leaderId];
+                    config.HostSessionId = leader.SessionId;
                 }
 
                 

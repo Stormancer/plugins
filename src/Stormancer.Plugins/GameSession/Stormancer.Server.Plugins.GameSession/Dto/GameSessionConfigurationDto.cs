@@ -47,7 +47,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <summary>
         /// User Id of the game session's P2P host, if it has one.
         /// </summary>
-        public string? HostUserId { get; set; }
+        public string? HostSessionId { get; set; }
 
         /// <summary>
         /// GameFinder that created the gamesession.

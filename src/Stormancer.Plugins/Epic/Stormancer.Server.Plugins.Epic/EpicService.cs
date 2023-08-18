@@ -491,7 +491,7 @@ namespace Stormancer.Server.Plugins.Epic
         /// <param name="requestorUserId">For user access only.</param>
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
-        private async Task<string> GetEOSAccessToken(string? requestorUserId = null)
+        private async Task<string> GetEOSAccessToken(SessionId? requestorSessionId = null)
         {
             var deploymentIds = GetConfig().deploymentIds;
             if (deploymentIds == null || !deploymentIds.Any())
@@ -516,9 +516,9 @@ namespace Stormancer.Server.Plugins.Epic
 
             string? nonce = null;
 
-            if (requestorUserId != null)
+            if (requestorSessionId != null)
             {
-                var session = await _userSessions.GetSessionByUserId(requestorUserId, CancellationToken.None);
+                var session = await _userSessions.GetSessionById(requestorSessionId.Value, CancellationToken.None);
                 if (session == null)
                 {
                     throw new InvalidOperationException("Session not found");

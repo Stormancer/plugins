@@ -44,7 +44,7 @@ namespace Stormancer.Server.Plugins.Friends
         private readonly FriendsRepository _channel;
         private readonly ISceneHost _scene;
         private readonly IUserService _users;
-
+        private readonly ISerializer _serializer;
         private readonly ILogger _logger;
         private readonly IESClientFactory _esClient;
 
@@ -57,13 +57,15 @@ namespace Stormancer.Server.Plugins.Friends
             IEnvironment environment,
             ISceneHost scene,
             ILogger logger,
-            IUserService users
+            IUserService users,
+            ISerializer serializer
             )
         {
             _logger = logger;
             _scene = scene;
             _channel = repository;
             _users = users;
+            _serializer = serializer;
             _esClient = clientFactory;
         }
 
@@ -320,7 +322,7 @@ namespace Stormancer.Server.Plugins.Friends
                 ItemId = user.Id,
                 Operation = FriendListUpdateDtoOperation.AddOrUpdate,
                 Data = CreateFriendDtoDetailed(config, user, online)
-            }, 1), friends.Where(f => f.Status == FriendInvitationStatus.Accepted).Select(f => f.FriendId), cancellationToken);
+            }, 1), friends.Where(f => f.Status == FriendInvitationStatus.Accepted).Where(f => !f.Roles.Contains(ROLE_BLOCKED)).Select(f => f.FriendId), cancellationToken);
         }
 
         public async Task Subscribe(IScenePeerClient peer, CancellationToken cancellationToken)
@@ -345,7 +347,7 @@ namespace Stormancer.Server.Plugins.Friends
                 {
                     friends.Add(await CreateFriendDtoDetailed(record));
                 }
-                var ctx = new GetFriendsCtx(user.Id, friends, false);
+                var ctx = new GetFriendsCtx(user.Id,peer.SessionId, friends, false);
 
                 await scope.ResolveAll<IFriendsEventHandler>().RunEventHandler(h => h.OnGetFriends(ctx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", "An error occured while executing the friends event handlers", ex); });
 
@@ -358,7 +360,7 @@ namespace Stormancer.Server.Plugins.Friends
                 var newStatus = ComputeStatus(statusConfig, true);
                 if (newStatus == FriendStatus.Online)
                 {
-                    await Notify(Enumerable.Repeat(new FriendListUpdateDto { ItemId = user.Id, Operation = FriendListUpdateDtoOperation.UpdateStatus, Data = new Friend { Status = newStatus } }, 1), friendsRecords.Select(f => f.FriendId), cancellationToken);
+                    await Notify(Enumerable.Repeat(new FriendListUpdateDto { ItemId = user.Id, Operation = FriendListUpdateDtoOperation.UpdateStatus, Data = new Friend { Status = newStatus } }, 1), friendsRecords.Where(f => !f.Roles.Contains(ROLE_BLOCKED)).Select(f => f.FriendId), cancellationToken);
                 }
             }
         }
@@ -373,7 +375,7 @@ namespace Stormancer.Server.Plugins.Friends
                 {
                     friends.Add(await CreateFriendDtoDetailed(record));
                 }
-                var ctx = new GetFriendsCtx(userId, friends, true);
+                var ctx = new GetFriendsCtx(userId,SessionId.Empty, friends, true);
 
                 await scope.ResolveAll<IFriendsEventHandler>().RunEventHandler(h => h.OnGetFriends(ctx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", "An error occured while executing the friends event handlers", ex); });
 
@@ -390,7 +392,7 @@ namespace Stormancer.Server.Plugins.Friends
                 if (oldStatus != FriendStatus.Disconnected)
                 {
                     var friends = await GetFriendRecords(config.Item2);
-                    await Notify(Enumerable.Repeat(new FriendListUpdateDto { ItemId = config.Item2, Operation = FriendListUpdateDtoOperation.UpdateStatus, Data = new Friend { Status = FriendStatus.Disconnected } }, 1), friends.Select(f => f.FriendId).ToArray(), cancellationToken);
+                    await Notify(Enumerable.Repeat(new FriendListUpdateDto { ItemId = config.Item2, Operation = FriendListUpdateDtoOperation.UpdateStatus, Data = new Friend { Status = FriendStatus.Disconnected } }, 1), friends.Where(f => !f.Roles.Contains(ROLE_BLOCKED)).Select(f => f.FriendId).ToArray(), cancellationToken);
                 }
             }
         }
@@ -488,23 +490,22 @@ namespace Stormancer.Server.Plugins.Friends
             await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 var sessions = scope.Resolve<IUserSessions>();
-                var peers = (await Task.WhenAll(userIds.Select(key => sessions.GetPeer(key, cancellationToken)))).Where(p => p != null);
+                var peers = (await Task.WhenAll(userIds.Select(key => sessions.GetPeers(key, cancellationToken)))).Where(p => p != null);
 
-                BroadcastToPlayers(peers!, "friends.notification", data);
+                BroadcastToPlayers(peers.SelectMany(p => p)!, "friends.notification", data);
             }
         }
 
-        private void BroadcastToPlayers<T>(IEnumerable<IScenePeerClient> peers, string route, T data)
+        private void BroadcastToPlayers<T>(IEnumerable<SessionId> peers, string route, T data)
         {
             BroadcastToPlayers(peers, route, (stream, serializer) => { serializer.Serialize(data, stream); });
         }
 
-        private void BroadcastToPlayers(IEnumerable<IScenePeerClient> peers, string route, Action<System.IO.Stream, ISerializer> writer)
+        private void BroadcastToPlayers(IEnumerable<SessionId> peers, string route, Action<System.IO.Stream, ISerializer> writer)
         {
-            foreach (var group in peers.Where(p => p != null).GroupBy(p => p.Serializer()))
-            {
-                _scene.Send(new MatchArrayFilter(group), route, s => writer(s, group.Key), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
-            }
+
+            _scene.Send(new MatchArrayFilter(peers), route, s => writer(s, _serializer), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
+
         }
 
         public async Task AddNonPersistedFriends(string userId, IEnumerable<Friend> friends, CancellationToken cancellationToken)
@@ -528,7 +529,7 @@ namespace Stormancer.Server.Plugins.Friends
             }
         }
 
-        public async Task Block(string userId, string userIdToBlock,DateTime expiration, CancellationToken cancellationToken)
+        public async Task Block(string userId, string userIdToBlock, DateTime expiration, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(userId))
             {
@@ -695,9 +696,9 @@ namespace Stormancer.Server.Plugins.Friends
                 foreach (var (userId, response) in userIds.Zip(responses))
                 {
                     var list = new List<string>();
-                    foreach(var doc in response.Documents)
+                    foreach (var doc in response.Documents)
                     {
-                        if(doc.Expiration == default || doc.Expiration > DateTime.UtcNow)
+                        if (doc.Expiration == default || doc.Expiration > DateTime.UtcNow)
                         {
                             list.Add(doc.FriendId);
 

@@ -20,6 +20,9 @@ Changed
 Added
 *****
 - Added block list expiration to block API.
+Fixed
+*****
+- Don't notify blocked users for status updates.
 
 5.0.0.14
 ----------

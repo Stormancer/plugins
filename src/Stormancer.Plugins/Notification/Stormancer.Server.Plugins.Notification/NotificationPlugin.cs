@@ -51,7 +51,7 @@ namespace Stormancer.Server.Plugins.Notification
                 builder.Register<InAppNotificationRepository>();
                 builder.Register<ProxyNotificationChannel>().As<INotificationChannel>().InstancePerDependency();
                 builder.Register<NotificationChannelController>();
-                builder.Register<InAppNotificationProvider>().As<INotificationProvider>().AsSelf().InstancePerScene();
+                builder.Register<InAppNotificationProvider>().As<INotificationProvider>().AsSelf().InstancePerRequest();
                 builder.Register<NotificationLocator>().As<IServiceLocatorProvider>();
             };
 

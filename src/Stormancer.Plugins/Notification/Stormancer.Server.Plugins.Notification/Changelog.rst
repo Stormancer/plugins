@@ -15,6 +15,11 @@ Unreleased
 Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
+- Made the plugin compatible with Users 9.0.0.
+
+Fixed
+*****
+- Notification provider is new InstancePerRequest to fix a dependency loading issue with `IUserSession` which is itself InstancePerRequest.
 
 
 3.1.0.10

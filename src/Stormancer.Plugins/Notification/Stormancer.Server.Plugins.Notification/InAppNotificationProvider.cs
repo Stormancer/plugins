@@ -156,10 +156,10 @@ namespace Stormancer.Server.Plugins.Notification
                 var list = new List<SessionId>();
                 foreach (var userId in notif.UserId.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
                 {
-                    var session = await _userSessions.GetSessionByUserId(userId, cancellationToken);
-                    if (session != null)
-                    {
-                        list.Add(session.SessionId);
+                    var sessionIds = await _userSessions.GetPeers(userId, cancellationToken);
+                    foreach(var sessionId in sessionIds)
+                    { 
+                        list.Add(sessionId);
                         sent = true;
                     }
                 }

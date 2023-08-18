@@ -125,11 +125,11 @@ namespace Stormancer.Server.Plugins.GameSession
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task<string> GetGameSessionConnectionUrl(RequestContext<IScenePeerClient> ctx)
         {
-            var id = _service.GetGameSessionConfig().HostUserId;
+            var id = _service.GetGameSessionConfig().HostSessionId;
 
             if (!string.IsNullOrEmpty(id))
             {
-                var session = await _sessions.GetSessionByUserId(id,ctx.CancellationToken);
+                var session = await _sessions.GetSessionById(SessionId.From(id),ctx.CancellationToken);
                 if (session != null)
                 {
                     return "strm." + session.SessionId;

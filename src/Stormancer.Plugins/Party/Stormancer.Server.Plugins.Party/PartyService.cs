@@ -1022,132 +1022,135 @@ namespace Stormancer.Server.Plugins.Party
 
         public async Task<bool> SendInvitation(string senderUserId, string recipientUserId, bool forceStormancerInvite, CancellationToken cancellationToken)
         {
-            PartyMember senderMember;
-            if (!TryGetMemberByUserId(senderUserId, out senderMember))
-            {
-                ThrowNoSuchMemberError(senderUserId);
-            }
+            //Reimplement internal invitation.
+            throw new NotImplementedException();
 
-            User? recipientUser = null;
-            var recipientSession = await _userSessions.GetSessionByUserId(recipientUserId, cancellationToken);
-            if (recipientSession == null)
-            {
-                recipientUser = await _users.GetUser(recipientUserId);
-                if (recipientUser == null)
-                {
-                    ThrowNoSuchUserError(recipientUserId);
-                }
-            }
+            //PartyMember senderMember;
+            //if (!TryGetMemberByUserId(senderUserId, out senderMember))
+            //{
+            //    ThrowNoSuchMemberError(senderUserId);
+            //}
 
-            var senderSession = await _userSessions.GetSession(senderMember.Peer, cancellationToken);
+            //User? recipientUser = null;
+            //var recipientSessions = await _userSessions.GetSessionsByUserId(recipientUserId, cancellationToken);
+            //if (!recipientSessions.Any())
+            //{
+            //    recipientUser = await _users.GetUser(recipientUserId);
+            //    if (recipientUser == null)
+            //    {
+            //        ThrowNoSuchUserError(recipientUserId);
+            //    }
+            //}
 
-            IPartyPlatformSupport? ChooseInvitationPlatform()
-            {
-                if (forceStormancerInvite)
-                {
-                    return _stormancerPartyPlatformSupport;
-                }
+            //var senderSession = await _userSessions.GetSession(senderMember.Peer, cancellationToken);
 
-                IPartyPlatformSupport? platform = null;
-                // If the recipient is connected
-                if (recipientSession != null)
-                {
-                    // If they are on the same platform, choose this platform's handler in priority
-                    if (recipientSession.platformId.Platform == senderSession.platformId.Platform)
-                    {
-                        platform = _platformSupports.FirstOrDefault(platformSupport => platformSupport.PlatformName == senderSession.platformId.Platform);
-                    }
-                    // If they aren't, or if there is no handler for their platform, try a generic one (stormancer)
-                    if (platform == null)
-                    {
-                        platform = _platformSupports.FirstOrDefault(platformSupport =>
-                        platformSupport.IsInvitationCompatibleWith(recipientSession.platformId.Platform) && platformSupport.IsInvitationCompatibleWith(senderSession.platformId.Platform));
-                    }
-                }
-                else if (recipientUser != null)
-                {
-                    if (recipientUser.Auth.ContainsKey(senderSession.platformId.Platform))
-                    {
-                        platform = _platformSupports.FirstOrDefault(platformSupport =>
-                        platformSupport.PlatformName == senderSession.platformId.Platform && platformSupport.CanSendInviteToDisconnectedPlayer);
-                    }
-                    if (platform == null)
-                    {
-                        platform = _platformSupports.FirstOrDefault(platformSupport =>
-                        platformSupport.CanSendInviteToDisconnectedPlayer &&
-                        recipientUser.Auth.Properties().Any(prop => platformSupport.IsInvitationCompatibleWith(prop.Name)) &&
-                        platformSupport.IsInvitationCompatibleWith(senderSession.platformId.Platform));
-                    }
-                }
-                return platform;
-            }
+            //IPartyPlatformSupport? ChooseInvitationPlatform()
+            //{
+            //    if (forceStormancerInvite)
+            //    {
+            //        return _stormancerPartyPlatformSupport;
+            //    }
 
-            var platform = ChooseInvitationPlatform();
-            if (platform == null)
-            {
-                Log(LogLevel.Error, "SendInvitation", "No suitable invitation platform found", new
-                {
-                    senderUserId,
-                    recipientUserId,
-                    senderPlatformId = senderSession.platformId,
-                    recipientPlatformId = recipientSession?.platformId.Platform ?? "<N.A.: recipient is not online>",
-                    recipientAuth = recipientUser?.Auth.Properties().Select(prop => prop.Name),
-                    recipientIsOnline = recipientSession != null
-                }, senderUserId, senderSession.SessionId.ToString(), recipientUserId);
-                throw new Exception("No suitable invitation platform found");
-            }
+            //    IPartyPlatformSupport? platform = null;
+            //    // If the recipient is connected
+            //    if (recipientSessions.Any())
+            //    {
+            //        // If they are on the same platform, choose this platform's handler in priority
+            //        if (recipientSession.platformId.Platform == senderSession.platformId.Platform)
+            //        {
+            //            platform = _platformSupports.FirstOrDefault(platformSupport => platformSupport.PlatformName == senderSession.platformId.Platform);
+            //        }
+            //        // If they aren't, or if there is no handler for their platform, try a generic one (stormancer)
+            //        if (platform == null)
+            //        {
+            //            platform = _platformSupports.FirstOrDefault(platformSupport =>
+            //            platformSupport.IsInvitationCompatibleWith(recipientSession.platformId.Platform) && platformSupport.IsInvitationCompatibleWith(senderSession.platformId.Platform));
+            //        }
+            //    }
+            //    else if (recipientUser != null)
+            //    {
+            //        if (recipientUser.Auth.ContainsKey(senderSession.platformId.Platform))
+            //        {
+            //            platform = _platformSupports.FirstOrDefault(platformSupport =>
+            //            platformSupport.PlatformName == senderSession.platformId.Platform && platformSupport.CanSendInviteToDisconnectedPlayer);
+            //        }
+            //        if (platform == null)
+            //        {
+            //            platform = _platformSupports.FirstOrDefault(platformSupport =>
+            //            platformSupport.CanSendInviteToDisconnectedPlayer &&
+            //            recipientUser.Auth.Properties().Any(prop => platformSupport.IsInvitationCompatibleWith(prop.Name)) &&
+            //            platformSupport.IsInvitationCompatibleWith(senderSession.platformId.Platform));
+            //        }
+            //    }
+            //    return platform;
+            //}
 
-            // Do not block the party's TaskQueue.
-            var invitation = new Invitation(platform.PlatformName, cancellationToken);
-            await _partyState.TaskQueue.PushWork(async () =>
-            {
-                if (TryGetMemberByUserId(recipientUserId, out _))
-                {
-                    invitation.TaskCompletionSource.TrySetResult(true);
-                    return;
-                }
+            //var platform = ChooseInvitationPlatform();
+            //if (platform == null)
+            //{
+            //    Log(LogLevel.Error, "SendInvitation", "No suitable invitation platform found", new
+            //    {
+            //        senderUserId,
+            //        recipientUserId,
+            //        senderPlatformId = senderSession.platformId,
+            //        recipientPlatformId = recipientSession?.platformId.Platform ?? "<N.A.: recipient is not online>",
+            //        recipientAuth = recipientUser?.Auth.Properties().Select(prop => prop.Name),
+            //        recipientIsOnline = recipientSession != null
+            //    }, senderUserId, senderSession.SessionId.ToString(), recipientUserId);
+            //    throw new Exception("No suitable invitation platform found");
+            //}
 
-                if (!_partyState.PendingInvitations.TryGetValue(recipientUserId, out var recipientInvitations))
-                {
-                    recipientInvitations = new ConcurrentDictionary<string, Invitation>();
-                    _partyState.PendingInvitations.Add(recipientUserId, recipientInvitations);
-                }
+            //// Do not block the party's TaskQueue.
+            //var invitation = new Invitation(platform.PlatformName, cancellationToken);
+            //await _partyState.TaskQueue.PushWork(async () =>
+            //{
+            //    if (TryGetMemberByUserId(recipientUserId, out _))
+            //    {
+            //        invitation.TaskCompletionSource.TrySetResult(true);
+            //        return;
+            //    }
 
-                if (recipientInvitations.TryGetValue(senderUserId, out var existingInvitation))
-                {
-                    if (existingInvitation.PlatformName == platform.PlatformName)
-                    {
-                        invitation.TaskCompletionSource = existingInvitation.TaskCompletionSource;
-                        return;
-                    }
-                    else
-                    {
-                        existingInvitation.Cts.Cancel();
-                    }
-                }
-                recipientInvitations[senderUserId] = invitation;
-                _ = platform.SendInvitation(new InvitationContext(this, senderSession, recipientUserId, invitation.Cts.Token))
-                .ContinueWith(task =>
-                {
-                    if (task.Exception != null)
-                    {
-                        invitation.TaskCompletionSource.TrySetException(task.Exception);
-                    }
-                    else if (task.IsCanceled)
-                    {
-                        invitation.TaskCompletionSource.TrySetCanceled();
-                    }
-                    else
-                    {
-                        invitation.TaskCompletionSource.TrySetResult(task.Result);
-                    }
-                    // This line here is the reason recipientInvitations is a concurrent dictionary. This may happen concurrently with the invitee's connection process that iterates over the dic.
-                    recipientInvitations.TryRemove(senderUserId, out _);
-                });
-                await Task.CompletedTask; // Silence warning
-            });
+            //    if (!_partyState.PendingInvitations.TryGetValue(recipientUserId, out var recipientInvitations))
+            //    {
+            //        recipientInvitations = new ConcurrentDictionary<string, Invitation>();
+            //        _partyState.PendingInvitations.Add(recipientUserId, recipientInvitations);
+            //    }
 
-            return await invitation.TaskCompletionSource.Task;
+            //    if (recipientInvitations.TryGetValue(senderUserId, out var existingInvitation))
+            //    {
+            //        if (existingInvitation.PlatformName == platform.PlatformName)
+            //        {
+            //            invitation.TaskCompletionSource = existingInvitation.TaskCompletionSource;
+            //            return;
+            //        }
+            //        else
+            //        {
+            //            existingInvitation.Cts.Cancel();
+            //        }
+            //    }
+            //    recipientInvitations[senderUserId] = invitation;
+            //    _ = platform.SendInvitation(new InvitationContext(this, senderSession, recipientUserId, invitation.Cts.Token))
+            //    .ContinueWith(task =>
+            //    {
+            //        if (task.Exception != null)
+            //        {
+            //            invitation.TaskCompletionSource.TrySetException(task.Exception);
+            //        }
+            //        else if (task.IsCanceled)
+            //        {
+            //            invitation.TaskCompletionSource.TrySetCanceled();
+            //        }
+            //        else
+            //        {
+            //            invitation.TaskCompletionSource.TrySetResult(task.Result);
+            //        }
+            //        // This line here is the reason recipientInvitations is a concurrent dictionary. This may happen concurrently with the invitee's connection process that iterates over the dic.
+            //        recipientInvitations.TryRemove(senderUserId, out _);
+            //    });
+            //    await Task.CompletedTask; // Silence warning
+            //});
+
+            //return await invitation.TaskCompletionSource.Task;
         }
 
         public bool CanSendInvitation(string senderUserId)

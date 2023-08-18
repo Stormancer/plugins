@@ -30,9 +30,10 @@ namespace Stormancer.Server.Plugins.Friends
     /// </summary>
     public class GetFriendsCtx
     {
-        internal GetFriendsCtx(string userId, List<Friend> friends, bool fromServer)
+        internal GetFriendsCtx(string userId, SessionId sessionId,List<Friend> friends, bool fromServer)
         {
             UserId = userId;
+            SessionId = sessionId;
             Friends = friends;
             FromServer = fromServer;
         }
@@ -40,6 +41,7 @@ namespace Stormancer.Server.Plugins.Friends
         /// Gets the user id friends are requested for.
         /// </summary>
         public string UserId { get; }
+        public SessionId SessionId { get; }
 
         /// <summary>
         /// Gets the current friends list.
