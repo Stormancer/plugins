@@ -5,7 +5,7 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>6.2.0.3</Version>
+		<Version>6.2.0.4</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -41,7 +41,6 @@
 		<PackageReference Include="Stormancer.Abstractions.Server" Version="9.3.0" />
 		<PackageReference Include="System.Interactive.Async" Version="5.0.0" />
 		<PackageReference Include="System.Linq.Async" Version="6.0.1" />
-		<PackageReference Include="Stormancer.Server.Plugins.Users" Version="8.1.0.2-pre" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -50,7 +49,7 @@
 		<ProjectReference Include="..\..\DataProtection\Stormancer.Server.Plugins.DataProtection\Stormancer.Server.Plugins.DataProtection.csproj" />
 		<ProjectReference Include="..\..\Management\Stormancer.Server.Plugins.Management\Stormancer.Server.Plugins.Management.csproj" />
 		<ProjectReference Include="..\..\Models\Stormancer.Server.Plugins.Models\Stormancer.Server.Plugins.Models.csproj" />
-		<!--<ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />-->
+		<ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

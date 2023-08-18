@@ -149,7 +149,7 @@ namespace Stormancer.Server.Plugins.Steam
         {
             if (ctx.Session.User != null)
             {
-                if (ctx.Session.User.TryGetSteamId(out var steamId) && ctx.Session.TryGetAppId(out var appId) && _vacSessions.TryRemove(steamId, out var vacSessionId))
+                if (ctx.Session.User.TryGetSteamId(out var steamId) && ctx.Session.TryGetSteamAppId(out var appId) && _vacSessions.TryRemove(steamId, out var vacSessionId))
                 {
                     try
                     {

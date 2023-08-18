@@ -70,12 +70,12 @@ namespace Stormancer
         }
 
         /// <summary>
-        /// gets the 
+        /// gets the steam App id the player is connected to.
         /// </summary>
         /// <param name="session"></param>
         /// <param name="appId"></param>
         /// <returns></returns>
-        public static bool TryGetAppId(this Session session, out uint appId)
+        public static bool TryGetSteamAppId(this Session session, out uint appId)
         {
             if(session.SessionData.TryGetValue("steam.appId",out var bytes))
             {

@@ -123,7 +123,7 @@ namespace Stormancer.Server.Plugins.Steam
                 return;
             }
             var steamId = (ulong)ctx.Session.User!.GetSteamId()!;
-            ctx.Session.TryGetAppId(out var steamAppId);
+            ctx.Session.TryGetSteamAppId(out var steamAppId);
 
 
             var data = (SteamPartyData)ctx.Party.ServerData.GetOrAdd(PartyLobbyKey, new SteamPartyData());
