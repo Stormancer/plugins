@@ -169,7 +169,8 @@ namespace Stormancer.Server.Plugins.Users
             b.Register(dr => new AuthenticationController(
                 dr.Resolve<IAuthenticationService>(), 
                 dr.Resolve<IUserSessions>(), 
-                dr.Resolve<RpcService>())
+                dr.Resolve<RpcService>(),
+                dr.Resolve<ISceneHost>())
             ).InstancePerRequest();
 
             b.Register(dr=>new AuthenticationService(

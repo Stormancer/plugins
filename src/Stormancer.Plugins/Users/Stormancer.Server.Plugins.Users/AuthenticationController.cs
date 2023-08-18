@@ -39,13 +39,15 @@ namespace Stormancer.Server.Plugins.Users
         private readonly IAuthenticationService _auth;
         private readonly IUserSessions sessions;
         private readonly RpcService rpc;
+        private readonly ISceneHost _scene;
 
-        public AuthenticationController(IAuthenticationService auth, IUserSessions sessions, RpcService rpc)
+        public AuthenticationController(IAuthenticationService auth, IUserSessions sessions, RpcService rpc, ISceneHost scene)
         {
 
             _auth = auth;
             this.sessions = sessions;
             this.rpc = rpc;
+            _scene = scene;
         }
         protected override async Task OnDisconnected(DisconnectedArgs args)
         {
@@ -66,7 +68,7 @@ namespace Stormancer.Server.Plugins.Users
                         break;
                 }
 
-                await s.LogOut(args.Peer, reason);
+                await s.LogOut(args.Peer.SessionId, reason);
             }
 
         }
@@ -111,7 +113,8 @@ namespace Stormancer.Server.Plugins.Users
         [Api(ApiAccess.Public, ApiType.Rpc, Route = "sendRequest")]
         public async Task SendRequest(string userId, RequestContext<IScenePeerClient> ctx)
         {
-            var peer = await sessions.GetPeer(userId, ctx.CancellationToken);
+            var sessionIds = await sessions.GetPeers(userId, ctx.CancellationToken);
+            var peer = _scene.RemotePeers.FirstOrDefault(p => p.SessionId == sessionIds.FirstOrDefault());
             var sender = await sessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
 
             if (peer == null)

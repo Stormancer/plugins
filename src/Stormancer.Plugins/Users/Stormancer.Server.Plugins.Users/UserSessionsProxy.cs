@@ -57,22 +57,13 @@ namespace Stormancer.Server.Plugins.Users
             return proxy.GetAuthenticatedUsersCount(cancellationToken);
         }
 
-        public Task<PlatformId> GetPlatformId(string userId, CancellationToken cancellationToken)
-        {
-            return proxy.GetPlatformId(userId, cancellationToken);
-        }
+      
 
         public Task<Session?> GetSession(IScenePeerClient peer, CancellationToken cancellationToken)
         {
             return GetSessionById(peer.SessionId, cancellationToken);
         }
 
-        public async Task<Session?> GetSession(PlatformId platformId, CancellationToken cancellationToken)
-        {
-
-            var r = await GetSessions(Enumerable.Repeat(platformId, 1), cancellationToken);
-            return r.FirstOrDefault().Value;
-        }
 
         public Task<Session?> GetSessionById(SessionId sessionId, CancellationToken cancellationToken)
         {
@@ -101,11 +92,7 @@ namespace Stormancer.Server.Plugins.Users
             return proxy.GetSessionData(sessionId, key, cancellationToken);
         }
 
-        public Task<Dictionary<PlatformId, Session?>> GetSessions(IEnumerable<PlatformId> platformIds, CancellationToken cancellationToken)
-        {
-
-            return proxy.GetSessionsByPlatformIds(platformIds, cancellationToken);
-        }
+       
 
         public async Task<Dictionary<SessionId, Session?>> GetSessions(IEnumerable<SessionId> sessionIds, CancellationToken cancellationToken)
         {
@@ -186,21 +173,16 @@ namespace Stormancer.Server.Plugins.Users
 
         }
 
-        public async Task<IScenePeerClient?> GetPeer(string userId, CancellationToken cancellationToken)
+        public async Task<IEnumerable<SessionId>> GetPeers(string userId, CancellationToken cancellationToken)
         {
-            var session = await GetSessionByUserId(userId, cancellationToken);
-            if (session == null)
-            {
-                return default;
-            }
-
-            return scene.RemotePeers.FirstOrDefault(p => p.SessionId == session.SessionId);
+           return await GetPeers(userId, cancellationToken);
+         
 
         }
 
-        public Task<Session?> GetSessionByUserId(string userId, CancellationToken cancellationToken)
+        public Task<IEnumerable<Session>> GetSessionsByUserId(string userId, CancellationToken cancellationToken)
         {
-            return proxy.GetSessionByUserId(userId, cancellationToken);
+            return proxy.GetSessionsByUserId(userId, cancellationToken);
         }
 
 

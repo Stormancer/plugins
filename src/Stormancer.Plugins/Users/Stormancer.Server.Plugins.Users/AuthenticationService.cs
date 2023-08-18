@@ -126,31 +126,38 @@ namespace Stormancer.Server.Plugins.Users
 
                     if (authResult.AuthenticatedUser != null)
                     {
-                        var oldPeer = await _sessions.GetPeer(authResult.AuthenticatedUser.Id, ct);
-                        if (oldPeer != null && oldPeer.SessionId != peer.SessionId)
+                        var oldSessionIds = await _sessions.GetPeers(authResult.AuthenticatedUser.Id, ct);
+                        var alreadyLoggedIn = false;
+                        foreach(var sessionId in oldSessionIds)
                         {
-                            try
+                            if (sessionId != peer.SessionId)
                             {
-                                await sessions.LogOut(oldPeer, DisconnectionReason.NewConnection);
-                                await oldPeer.DisconnectFromServer("auth.login.new_connection");
+                                await sessions.LogOut(sessionId, DisconnectionReason.NewConnection);
+                                var oldPeer = _scene.RemotePeers.FirstOrDefault(p=>p.SessionId == sessionId);
+                                if(oldPeer != null)
+                                {
+                                    await oldPeer.DisconnectFromServer("auth.login.new_connection");
+                                }
                             }
-                            catch (Exception)
+                            else
                             {
-
+                                alreadyLoggedIn = true;
                             }
-
-                            await sessions.Login(peer, authResult.AuthenticatedUser, authResult.PlatformId, authResult.initialSessionData);
                         }
-                        if (oldPeer == null)
+                        
+                        if (!alreadyLoggedIn)
                         {
                             await sessions.Login(peer, authResult.AuthenticatedUser, authResult.PlatformId, authResult.initialSessionData);
                         }
                     }
+                    else
+                    {
+                        await sessions.Login(peer, authResult.AuthenticatedUser, authResult.PlatformId, authResult.initialSessionData);
+                    }
 
+                 
 
-                    await sessions.Login(peer, authResult.AuthenticatedUser, authResult.PlatformId, authResult.initialSessionData);
-
-                    sessions.UpdateSession(peer.SessionId, s =>
+                    await sessions.UpdateSession(peer.SessionId, s =>
                     {
                         s.Identities[provider.Type] = authResult.PlatformId.ToString();
                         if (authResult.ExpirationDate.HasValue)

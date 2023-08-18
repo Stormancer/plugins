@@ -102,7 +102,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="userId"></param>
         /// <param name="cancellationToken"></param>
         /// <returns>A peer instance of null if no peer is currently authenticated with this identity.</returns>
-        Task<IScenePeerClient?> GetPeer(string userId, CancellationToken cancellationToken);
+        Task<IEnumerable<SessionId>> GetPeers(string userId, CancellationToken cancellationToken);
 
         /// <summary>
         /// Updates data associated with the user.
@@ -123,20 +123,12 @@ namespace Stormancer.Server.Plugins.Users
         Task<bool> IsAuthenticated(IScenePeerClient peer, CancellationToken cancellationToken);
 
         /// <summary>
-        /// Gets the main platform id the user id is associated with.
-        /// </summary>
-        /// <param name="userId"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        Task<PlatformId> GetPlatformId(string userId, CancellationToken cancellationToken);
-
-        /// <summary>
         /// Gets a session by the user id (returns null if user isn't currently connected to the scene)
         /// </summary>
         /// <param name="userId"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<Session?> GetSessionByUserId(string userId, CancellationToken cancellationToken);
+        Task<IEnumerable<Session>> GetSessionsByUserId(string userId, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the session associated with a peer.
@@ -154,21 +146,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <returns></returns>
         Task<Session?> GetSessionById(SessionId sessionId, CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Get the session of a connected user through their platform-specific Id.
-        /// </summary>
-        /// <param name="platformId">Platform-specific Id of the user</param>
-        /// <param name="cancellationToken"><c>true</c> to bypass the scene-local session cache</param>
-        /// <returns>The session for <paramref name="platformId"/>. <c>null</c> if the session could not be found.</returns>
-        Task<Session?> GetSession(PlatformId platformId, CancellationToken cancellationToken);
-
-        /// <summary>
-        /// Get sessions of connected users from their platform-specific Ids.
-        /// </summary>
-        /// <param name="platformIds">Platform-specific Ids of users to retrieve the sessions of</param>
-        /// <param name="cancellationToken"></param>
-        /// <returns>List of PlatformId => Session pairs. If one or more sessions could not be found, the corresponding pairs will not be present in the dictionary.</returns>
-        Task<Dictionary<PlatformId, Session?>> GetSessions(IEnumerable<PlatformId> platformIds, CancellationToken cancellationToken);
+     
 
         /// <summary>
         /// Gets sessions from session ids.

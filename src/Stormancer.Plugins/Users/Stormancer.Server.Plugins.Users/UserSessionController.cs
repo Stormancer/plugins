@@ -89,12 +89,12 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [S2SApi(GeneratePrivateImpl = true)]
-        public async Task<SessionId> GetPeer(string userId, CancellationToken cancellationToken)
+        public async Task<IEnumerable<SessionId>> GetPeers(string userId, CancellationToken cancellationToken)
         {
 
-            var result = await _sessions.GetPeer(userId, cancellationToken);
+            var result = await _sessions.GetPeers(userId, cancellationToken);
 
-            return result?.SessionId ?? SessionId.Empty;
+            return result;
         }
 
 
@@ -126,16 +126,12 @@ namespace Stormancer.Server.Plugins.Users
             return _sessions.UpdateUserData(peer, data, cancellationToken);
         }
 
-        [S2SApi]
-        public Task<PlatformId> GetPlatformId(string userId, CancellationToken cancellationToken)
-        {
-            return _sessions.GetPlatformId(userId, cancellationToken);
-        }
+     
 
         [S2SApi]
-        public Task<Session?> GetSessionByUserId(string userId, CancellationToken cancellationToken)
+        public Task<IEnumerable<Session>> GetSessionsByUserId(string userId, CancellationToken cancellationToken)
         {
-            return _sessions.GetSessionByUserId(userId, cancellationToken);
+            return _sessions.GetSessionsByUserId(userId, cancellationToken);
         }
 
         [S2SApi]
@@ -151,11 +147,7 @@ namespace Stormancer.Server.Plugins.Users
             return session!;
         }
 
-        [S2SApi]
-        public Task<Dictionary<PlatformId, Session?>> GetSessionsByPlatformIds(IEnumerable<PlatformId> platformIds, CancellationToken cancellationToken)
-        {
-            return _sessions.GetSessions(platformIds, cancellationToken);
-        }
+       
 
         [S2SApi]
         public Task<Dictionary<SessionId, Session?>> GetSessionsbySessionIds(IEnumerable<SessionId> sessionIds, CancellationToken cancellationToken)
