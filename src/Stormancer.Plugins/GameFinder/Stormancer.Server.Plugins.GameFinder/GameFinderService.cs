@@ -516,24 +516,22 @@ namespace Stormancer.Server.Plugins.GameFinder
                     }
                 }
 
-                foreach (var player in await GetPlayers(gameCandidate.AllParties(), cancellationToken))
+                foreach (var player in GetPlayers(gameCandidate.AllParties(), cancellationToken))
                 {
                     try
                     {
                         using (var stream = new MemoryStream())
                         {
-                            var writerContext = new GameFinderResolutionWriterContext(player.Serializer(), stream, player);
+                            var peer = _scene.RemotePeers.FirstOrDefault(p => p.SessionId == player);
+                            var writerContext = new GameFinderResolutionWriterContext(_serializer, stream, peer);
                             // Write the connection token first, if a scene was created by the resolver, or if joining an existing session
                             if (!string.IsNullOrEmpty(gameSceneId))
                             {
                                 await using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
                                 {
                                     var gameSessions = scope.Resolve<IGameSessions>();
-                                    var token = ClientSupportsV3Token(player) switch
-                                    {
-                                        true => await gameSessions.CreateConnectionToken(gameSceneId, player.SessionId, TokenVersion.V3),
-                                        false => await gameSessions.CreateConnectionToken(gameSceneId, player.SessionId, TokenVersion.V1)
-                                    };
+                                    var token = await gameSessions.CreateConnectionToken(gameSceneId, player, TokenVersion.V3);
+                                   
                                     writerContext.WriteObjectToStream(token);
                                 }
                             }
@@ -546,7 +544,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                             {
                                 await resolutionAction(writerContext);
                             }
-                            await _scene.Send(new MatchPeerFilter(player.SessionId), UPDATE_NOTIFICATION_ROUTE, s =>
+                            await _scene.Send(new MatchPeerFilter(player), UPDATE_NOTIFICATION_ROUTE, s =>
                             {
                                 s.WriteByte((byte)GameFinderStatusUpdate.Success);
                                 stream.Seek(0, SeekOrigin.Begin);
@@ -558,7 +556,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                     catch (Exception ex)
                     {
                         _logger.Log(LogLevel.Error, "gamefinder", "An error occured while trying to resolve a game for a player", ex);
-                        await _scene.Send(new MatchPeerFilter(player.SessionId), UPDATE_NOTIFICATION_ROUTE, s =>
+                        await _scene.Send(new MatchPeerFilter(player), UPDATE_NOTIFICATION_ROUTE, s =>
                         {
                             s.WriteByte((byte)GameFinderStatusUpdate.Failed);
                         }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
@@ -704,27 +702,23 @@ namespace Stormancer.Server.Plugins.GameFinder
             return RunEventHandlerInRequestScope<IGameFinderEventHandler>(_scene, h => h.OnEnd(sectx), ex => _logger.Log(LogLevel.Error, LOG_CATEGORY, "an error occured while running OnEnd event handler.", ex));
         }
 
-        private async Task<IScenePeerClient?> GetPlayer(Player member, CancellationToken cancellationToken)
+        private SessionId GetPlayer(Player member, CancellationToken cancellationToken)
         {
-            await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
-            {
-                var sessions = scope.Resolve<IUserSessions>();
-                return await sessions.GetPeer(member.UserId, cancellationToken);
-            }
+            return SessionId.From(member.SessionId);
+           
         }
 
-        private async Task<IEnumerable<IScenePeerClient>> GetPlayers(Party party, CancellationToken cancellationToken)
+        private  IEnumerable<SessionId> GetPlayers(Party party, CancellationToken cancellationToken)
         {
 
-            var peers = await Task.WhenAll(party.Players.Values.Select(p => GetPlayer(p, cancellationToken)));
-            return peers.Where(p => p != null)!;
+            return party.Players.Values.Select(p => GetPlayer(p, cancellationToken));
         }
 
-        private async Task<IEnumerable<IScenePeerClient>> GetPlayers(IEnumerable<Party> parties, CancellationToken cancellationToken)
+        private IEnumerable<SessionId> GetPlayers(IEnumerable<Party> parties, CancellationToken cancellationToken)
         {
-            var peers = await Task.WhenAll(parties.SelectMany(g => g.Players.Values).Select(p => GetPlayer(p, cancellationToken)));
+            return parties.SelectMany(g => g.Players.Values).Select(p => GetPlayer(p, cancellationToken));
 
-            return peers.Where(p => p != null)!;
+        
         }
 
         private Task BroadcastToPlayers(IGameCandidate game, string route, Action<System.IO.Stream, ISerializer> writer, CancellationToken cancellationToken)
@@ -739,11 +733,10 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         private async Task BroadcastToPlayers(IEnumerable<Party> parties, string route, Action<System.IO.Stream, ISerializer> writer, CancellationToken cancellationToken)
         {
-            var peers = await GetPlayers(parties, cancellationToken);
-            foreach (var party in peers.Where(p => p != null).GroupBy(p => p.Serializer()))
-            {
-                await _scene.Send(new MatchArrayFilter(party), route, s => writer(s, party.Key), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
-            }
+            var peers = GetPlayers(parties, cancellationToken);
+           
+            await _scene.Send(new MatchArrayFilter(peers), route, s => writer(s, _serializer), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+            
         }
 
         public async ValueTask<Dictionary<string, int>> GetMetrics()
