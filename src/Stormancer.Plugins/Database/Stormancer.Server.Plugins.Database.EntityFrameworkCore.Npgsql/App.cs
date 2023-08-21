@@ -16,7 +16,7 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
-                builder.Register<NpgSQLConfigurator>();
+                builder.Register<NpgSQLConfigurator>().As< IDbContextLifecycleHandler>();
 
             };
         }
