@@ -52,19 +52,19 @@ namespace Stormancer.Server.Plugins.Notification
             _userSessions = userSessions;
 
 
-            _scene.Connected.Add(OnConnected);
+            //_scene.Connected.Add(OnConnected);
 
-            _scene.AddProcedure("inappnotification.acknowledgenotification", async (RequestContext<IScenePeerClient> ctx) =>
-            {
-                var notificationId = ctx.ReadObject<string>();
+            //_scene.AddProcedure("inappnotification.acknowledgenotification", async (RequestContext<IScenePeerClient> ctx) =>
+            //{
+            //    var notificationId = ctx.ReadObject<string>();
 
-                if (string.IsNullOrEmpty(notificationId))
-                {
-                    throw new ClientException("Bad notificationId.");
-                }
+            //    if (string.IsNullOrEmpty(notificationId))
+            //    {
+            //        throw new ClientException("Bad notificationId.");
+            //    }
 
-                await AcknowledgeNotification(notificationId);
-            });
+            //    await AcknowledgeNotification(notificationId);
+            //});
         }
 
         public async Task AcknowledgeNotification(string notificationId)
