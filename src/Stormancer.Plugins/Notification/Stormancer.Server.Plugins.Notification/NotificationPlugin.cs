@@ -69,7 +69,7 @@ namespace Stormancer.Server.Plugins.Notification
                 {
                     scene.AddController<NotificationChannelController>();
                     // Instantiate InAppNotificationProvider singleton to subscribe to scene events
-                    scene.DependencyResolver.Resolve<InAppNotificationProvider>();
+                    //scene.DependencyResolver.Resolve<InAppNotificationProvider>();
                 }
             };
         }
