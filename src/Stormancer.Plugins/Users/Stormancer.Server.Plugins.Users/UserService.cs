@@ -116,7 +116,10 @@ namespace Stormancer.Server.Plugins.Users
             if (identity == null)
             {
                 identity = new IdentityRecord { Provider = provider, Identity = identifier };
-                identity.Users.Add(record);
+                identity.Users = new List<UserRecord>
+                {
+                    record
+                };
 
                 await c.Set<IdentityRecord>().AddAsync(identity);
             }
@@ -203,7 +206,7 @@ namespace Stormancer.Server.Plugins.Users
             var guid = Guid.Parse(userId);
             var record = await dbContext.Set<UserRecord>().SingleOrDefaultAsync(u => u.Id == guid);
 
-            var userData = JObject.Parse(record.UserData.ToString()!);
+            var userData = JObject.Parse(record.UserData.RootElement.GetRawText()!);
             if (userData.TryGetValue(EphemeralAuthenticationProvider.IsEphemeralKey, out var isEphemeral) && (bool)isEphemeral)
             {
                 throw new NotSupportedException();
@@ -389,6 +392,7 @@ namespace Stormancer.Server.Plugins.Users
             var dbContext = await _dbContext.GetDbContextAsync();
 
             var guid = Guid.Parse(id);
+
             var record = await dbContext.Set<UserRecord>().SingleOrDefaultAsync(u => u.Id == guid);
 
             if (record != null)
@@ -401,9 +405,11 @@ namespace Stormancer.Server.Plugins.Users
 
         public async Task<Dictionary<string, User?>> GetUsers(IEnumerable<string> userIds, CancellationToken cancellationToken)
         {
+            
             var dbContext = await _dbContext.GetDbContextAsync();
 
-            var guids = userIds.Select(id => Guid.Parse(id));
+            
+            var guids = userIds.Select(Guid.Parse).ToArray();
             var records = await dbContext.Set<UserRecord>().Where(u => guids.Contains(u.Id)).ToListAsync();
             var results = new Dictionary<string, User?>();
             foreach (var id in userIds)

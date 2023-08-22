@@ -17,7 +17,7 @@ namespace Stormancer.Server.Plugins.Users
     /// <summary>
     /// User record in the database.
     /// </summary>
-    public class UserRecord
+    public partial class UserRecord
     {
         /// <summary>
         /// Creates a model from the record.
@@ -31,10 +31,10 @@ namespace Stormancer.Server.Plugins.Users
             return new User()
             {
                 Id = record.Id.ToString(),
-                Auth = JObject.Parse(record.Auth.ToString()!),
-                Channels = JObject.Parse(record.Channels.ToString()!),
+                Auth = JObject.Parse(record.Auth.RootElement.GetRawText()!),
+                Channels = JObject.Parse(record.Channels.RootElement.GetRawText()!),
                 Pseudonym = record.UserHandle,
-                UserData = JObject.Parse(record.UserData.ToString()!),
+                UserData = JObject.Parse(record.UserData.RootElement.GetRawText()!),
                 CreatedOn = record.CreatedOn,
                 LastLogin = record.LastLogin,
                 LastPlatform = record.LastPlatform
@@ -114,14 +114,16 @@ namespace Stormancer.Server.Plugins.Users
         /// The pseudo
         /// </summary>
         public string? UserHandle { get; set; }
+        public ICollection<IdentityRecord> MainIdentities { get; set; }
     }
 
-    public class IdentityRecord
+    [PrimaryKey("Provider","Identity")]
+    public partial class IdentityRecord
     {
         /// <summary>
         /// Gets or sets the <see cref="UserRecord"/>  the <see cref="IdentityRecord"/> authenticates to.
         /// </summary>
-        public ICollection<UserRecord> Users { get; set; } = default!;
+        public virtual ICollection<UserRecord> Users { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets the main user account associated with this identity. 
@@ -130,13 +132,13 @@ namespace Stormancer.Server.Plugins.Users
         /// <summary>
         /// Gets or sets a string representing the identity provider.
         /// </summary>
-        [Key]
+        
         public string Provider { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets a string identifying the user for the given provider.
         /// </summary>
-        [Key]
+       
         public string Identity { get; set; } = default!;
     }
 }

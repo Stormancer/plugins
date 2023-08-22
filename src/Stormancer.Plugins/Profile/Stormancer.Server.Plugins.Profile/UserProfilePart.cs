@@ -66,9 +66,9 @@ namespace Stormancer.Server.Plugins.Profile
 
                         if (!j.ContainsKey("pseudo"))
                         {
-                            if (user.UserData.ContainsKey("pseudo"))
+                            if (user.Pseudonym != null)
                             {
-                                j["pseudo"] = user.UserData["pseudo"];
+                                j["pseudo"] = user.Pseudonym;
                             }
                             else if (user.UserData.ContainsKey("handle"))
                             {

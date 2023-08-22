@@ -1,5 +1,7 @@
 ﻿
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.AdminApi;
+using Stormancer.Server.Plugins.Users;
 
 namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore
 {
@@ -18,7 +20,7 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
                 builder.Register<DbContextAccessor>().InstancePerRequest();
-               
+                builder.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
             };
         }
     }

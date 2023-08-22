@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Microsoft.EntityFrameworkCore.ValueGeneration.Internal;
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
@@ -83,11 +84,13 @@ namespace Stormancer.Server.Plugins.Users
                     // Push authenticated users count
                     scene.RunTask(async ct =>
                     {
-                        var analytics = scene.DependencyResolver.Resolve<IAnalyticsService>();
-                        var sessions = scene.DependencyResolver.Resolve<IUserSessions>() as UserSessions;
-                        var logger = scene.DependencyResolver.Resolve<ILogger>();
+                       
                         while (!ct.IsCancellationRequested)
                         {
+                            await using var scope = scene.CreateRequestScope();
+                            var analytics = scope.Resolve<IAnalyticsService>();
+                            var sessions = scope.Resolve<IUserSessions>() as UserSessions;
+                            var logger = scope.Resolve<ILogger>();
                             var authenticatedUsersCount = sessions?.AuthenticatedUsersCount ?? 0;
                             analytics.Push("user", "sessions", JObject.FromObject(new { AuthenticatedUsersCount = authenticatedUsersCount }));
                             await Task.Delay(1000);
@@ -121,7 +124,7 @@ namespace Stormancer.Server.Plugins.Users
                     dr.Resolve<Database.IESClientFactory>(),
                     dr.Resolve<IEnvironment>(), scene,
                     dr.Resolve<ILogger>())
-                ).As<IUserSessions>();
+                ).As<IUserSessions>().InstancePerRequest();
 
                 b.Register(r=>new SessionsRepository()
                 ).AsSelf().SingleInstance();
@@ -131,7 +134,7 @@ namespace Stormancer.Server.Plugins.Users
                     r.Resolve<ILogger>())
                 ).As<IAuthenticationProvider>();
                 
-                b.Register<UserDbModelBuilder>().As<IDbModelBuilder>().SingleInstance();
+              
                 
                 b.Register<LoginPasswordAuthenticationProvider>().As<IAuthenticationProvider>();
                 b.Register<AdminImpersonationAuthenticationProvider>().As<IAuthenticationProvider>();
@@ -156,7 +159,7 @@ namespace Stormancer.Server.Plugins.Users
         private void RegisterDependencies(IDependencyBuilder b)
         {
             //Indices
-
+            b.Register<UserDbModelBuilder>().As<IDbModelBuilder>();
             b.Register<SceneAuthorizationController>();
             b.Register(dr=> new UserSessionController(
                 dr.Resolve<IUserSessions>(),

@@ -17,7 +17,7 @@ namespace Stormancer.Server.Plugins.GeoIp.Maxmind
         public const string CONFIG_SECTION = "geoip.maxmind";
 
         public int AccountId { get; set; }
-        public string LicenseKeyPath { get; set; }
+        public string? LicenseKeyPath { get; set; }
     }
     internal class MaxMindGeoIpService : IGeoIpService
     {
@@ -58,7 +58,13 @@ namespace Stormancer.Server.Plugins.GeoIp.Maxmind
         }
         public async Task<GeoIpCountryResult?> GetCountryAsync(string ip, CancellationToken cancellationToken = default)
         {
+            
             var configSection = _options.Value;
+
+            if (configSection.LicenseKeyPath == null)
+            {
+                return null;
+            }
             var licenseKey = await GetLicenseKey(configSection.LicenseKeyPath);
             if(licenseKey == null)
             {

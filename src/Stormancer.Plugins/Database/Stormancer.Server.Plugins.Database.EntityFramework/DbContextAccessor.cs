@@ -139,8 +139,10 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore
             _lifecycleHandlers = lifecycleHandlers;
         }
 
+       
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
+            
             foreach (var handler in _lifecycleHandlers)
             {
                 handler.OnConfiguring(optionsBuilder,Id,_customData);
