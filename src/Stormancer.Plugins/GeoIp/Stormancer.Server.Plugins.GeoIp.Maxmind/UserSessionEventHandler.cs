@@ -30,8 +30,8 @@ namespace Stormancer.Server.Plugins.GeoIp.Maxmind
         {
             var details = await _peerInfosService.GetPeerDetails(ctx.Client);
             var countryResult = await _geoIpService.GetCountryAsync(details.IPAddress);
-            var countryCode = countryResult.Country ?? string.Empty;
-            var continentCode = countryResult.Continent ?? string.Empty;
+            var countryCode = countryResult?.Country ?? string.Empty;
+            var continentCode = countryResult?.Continent ?? string.Empty;
 
             ctx.Session.SessionData["geoIp.countryCode"] = Encoding.ASCII.GetBytes(countryCode);
             ctx.Session.SessionData["geoIp.continent"] = Encoding.ASCII.GetBytes(continentCode);
