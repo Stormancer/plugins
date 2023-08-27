@@ -47,11 +47,11 @@ namespace Stormancer.Server.Plugins.Friends
             {
                 if (scene.Metadata.ContainsKey(METADATA_KEY))
                 {
-                    builder.Register<FriendsService>().As<IFriendsService>().InstancePerScene();
+                    builder.Register<FriendsService>().As<IFriendsService>().InstancePerRequest();
                 }
                 else
                 {
-                    builder.Register<FriendsServiceProxy>().As<IFriendsService>();
+                    builder.Register(dr=>new FriendsServiceProxy(dr.Resolve<FriendsProxy>())).As<IFriendsService>().InstancePerRequest();
                 }
             };
 
