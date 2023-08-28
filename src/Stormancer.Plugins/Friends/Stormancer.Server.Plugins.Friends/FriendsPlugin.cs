@@ -80,7 +80,7 @@ namespace Stormancer.Server.Plugins.Friends
             {
                 if (scene.Metadata.ContainsKey(METADATA_KEY))
                 {
-                    scene.DependencyResolver.Resolve<IFriendsService>();
+                    //scene.DependencyResolver.Resolve<IFriendsService>();
                 }
             };
         }
