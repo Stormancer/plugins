@@ -175,7 +175,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public async Task<IEnumerable<SessionId>> GetPeers(string userId, CancellationToken cancellationToken)
         {
-           return await GetPeers(userId, cancellationToken);
+           return await proxy.GetPeers(userId, cancellationToken);
          
 
         }
