@@ -15,9 +15,12 @@ Unreleased
 Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
+- Change the format of custom profile part ids.
+
 Added
 *****
 - Added 'userId' field to the user profile part.
+
 
 4.0.0.3
 -------
