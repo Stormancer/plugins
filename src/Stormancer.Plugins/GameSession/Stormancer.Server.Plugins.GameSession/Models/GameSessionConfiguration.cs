@@ -96,5 +96,15 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         [MessagePackMember(7)]
         public string? GameFinder { get; set; }
+
+
+        /// <summary>
+        /// List of preferred regions for the game session.
+        /// </summary>
+        /// <remarks>
+        /// Empty for any region.
+        /// </remarks>
+        [MessagePackMember(8)]
+        public IEnumerable<string> PreferredRegions { get; set; } = Enumerable.Empty<string>();
     }
 }

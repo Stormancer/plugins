@@ -554,7 +554,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         public bool ShuttingDown { get; private set; }
 
-        public async Task<StartGameServerResult> TryStartServer(string id, string authenticationToken, JObject config, GameServerRecord record, CancellationToken ct)
+        public async Task<StartGameServerResult> TryStartServer(string id, string authenticationToken, JObject config, GameServerRecord record, IEnumerable<string> regions, CancellationToken ct)
         {
 
             var agentConfig = config.ToObject<AgentPoolConfigurationSection>();
@@ -593,7 +593,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             while (tries < 4)
             {
                 tries++;
-                var agent = FindAgent(agentConfig.reservedCpu, agentConfig.reservedMemory);
+                var agent = FindAgent(agentConfig.reservedCpu, agentConfig.reservedMemory,regions);
 
                 if (agent != null)
                 {
@@ -629,7 +629,11 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                         record.CustomData["agent"] = agent.Id;
                         record.CustomData["containerId"] = response.Container.ContainerId;
 
-                        return new StartGameServerResult(true, new GameServerInstance { Id = agent.Id + "/" + response.Container.ContainerId }, (agent.Id, response.Container.ContainerId));
+                        return new StartGameServerResult(true,
+                            new GameServerInstance { Id = agent.Id + "/" + response.Container.ContainerId }, (agent.Id, response.Container.ContainerId))
+                        {
+                            Region = agent.Description.Region
+                        };
                     }
                     else
                     {
@@ -648,14 +652,36 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         }
 
-        private DockerAgent? FindAgent(float cpuRequirement, long memoryRequirement)
+        private DockerAgent? FindAgent(float cpuRequirement, long memoryRequirement, IEnumerable<string> regions)
         {
             lock (_syncRoot)
             {
-                foreach (var (id, agent) in _agents)
+                foreach (var region in regions)
                 {
-                    
-                    if ((!agent.Faulted || (agent.FaultExpiration !=null && agent.FaultExpiration < DateTime.UtcNow)) && agent.IsActive && agent.TotalCpu - agent.ReservedCpu >= cpuRequirement && agent.TotalMemory - agent.ReservedMemory >= memoryRequirement)
+                    foreach (var (id, agent) in _agents)
+                    {
+
+                        if ((!agent.Faulted ||
+                            (agent.FaultExpiration != null &&
+                            agent.FaultExpiration < DateTime.UtcNow)) &&
+                            agent.IsActive && agent.TotalCpu - agent.ReservedCpu >= cpuRequirement &&
+                            agent.TotalMemory - agent.ReservedMemory >= memoryRequirement
+                            && agent.Description.Region == region)
+                        {
+                            return agent;
+                        }
+                    }
+                }
+
+                foreach (var (id, agent) in _agents) //If no agent was found in one of the preferred region, select an agent without any region.
+                {
+
+                    if ((!agent.Faulted ||
+                        (agent.FaultExpiration != null &&
+                        agent.FaultExpiration < DateTime.UtcNow)) &&
+                        agent.IsActive && agent.TotalCpu - agent.ReservedCpu >= cpuRequirement &&
+                        agent.TotalMemory - agent.ReservedMemory >= memoryRequirement
+                        && agent.Description.Region == null)
                     {
                         return agent;
                     }

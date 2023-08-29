@@ -22,6 +22,8 @@
 
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
@@ -47,11 +49,16 @@ namespace Stormancer.Server.Plugins.GameSession
         public bool Success { get; }
         public GameServerInstance? Instance { get; }
         public object? Context { get; set; }
+
+        /// <summary>
+        /// Gets or sets the region the game server was created in.
+        /// </summary>
+        public string? Region { get; set; }
     }
     public interface IGameServerProvider
     {
         string Type { get; }
-        Task<StartGameServerResult> TryStartServer(string id,string authToken, JObject config, GameServerRecord record, CancellationToken ct);
+        Task<StartGameServerResult> TryStartServer(string id,string authToken, JObject config, GameServerRecord record,IEnumerable<string> preferredRegions, CancellationToken ct);
 
         Task StopServer(string id, object? context);
     }

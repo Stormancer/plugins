@@ -17,6 +17,8 @@ namespace Stormancer.Server.Plugins.Gameye
         public string? Image { get; set; }
         public string Region { get; set; } = "europe";
 
+        public Dictionary<string, string> RegionsMapping { get; set; }
+
         public override string type => "fromProvider";
     }
 
@@ -40,24 +42,38 @@ namespace Stormancer.Server.Plugins.Gameye
 
 
 
-        public async Task<GameSession.StartGameServerResult> TryStartServer(string id, string authToken, JObject config, GameServerRecord record, CancellationToken cancellationToken)
+        public async Task<GameSession.StartGameServerResult> TryStartServer(string id, string authToken, JObject config, GameServerRecord record, IEnumerable<string> regions, CancellationToken cancellationToken)
         {
             var agentConfig = config.ToObject<GameyePoolConfigurationSection>();
             if (agentConfig == null || agentConfig.Image == null)
             {
                 return new GameSession.StartGameServerResult(false, null, null);
             }
+            string? gameyeLocation = null;
+
+            foreach (var region in regions)
+            {
+                if (agentConfig.RegionsMapping.TryGetValue(region, out gameyeLocation))
+                {
+                    break;
+                }
+            }
+
+            if(gameyeLocation == null)
+            {
+                gameyeLocation = agentConfig.Region;
+            }
 
 
             var appInfos = await _environment.GetApplicationInfos();
             var fed = await _environment.GetFederation();
             var endpoints = string.Join(',', fed.current.endpoints);
-            
+
             var args = new StartGameServerParameters
             {
                 Id = id,
                 Image = agentConfig.Image,
-                Location =agentConfig.Region,
+                Location = gameyeLocation,
                 Env = new Dictionary<string, string> {
 
                     { "Stormancer_Server_ClusterEndpoints", endpoints },

@@ -233,10 +233,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
             record.Pool = this.Id;
             record.PoolType = provider.Type;
-            var result = await provider.TryStartServer(gameSessionId, authToken, this.config, record, cancellationToken);
+            var result = await provider.TryStartServer(gameSessionId, authToken, this.config, record, gsConfig.PreferredRegions, cancellationToken);
             if (result.Success)
             {
-                var server = new Server { Context = result.Context, GameServer = result.Instance, Id = gameSessionId, Record = record };
+                var server = new Server { Context = result.Context, GameServer = result.Instance, Id = gameSessionId, Record = record, Region = result.Region };
                 _startingServers.TryAdd(gameSessionId, server);
                 server.Context = result.Context;
                 server.GameServer = result.Instance;

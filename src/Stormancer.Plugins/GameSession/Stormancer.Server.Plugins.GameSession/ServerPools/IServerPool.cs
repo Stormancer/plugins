@@ -47,6 +47,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         public TaskCompletionSource<WaitGameServerResult> RequestCompletedCompletionSource { get; internal set; }
         public GameServerRecord Record { get; internal set; }
 
+        /// <summary>
+        /// Gets or sets the region the game server was created in.
+        /// </summary>
+        public string? Region { get; set; }
         public void Dispose()
         {
         }
@@ -68,6 +72,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         /// </summary>
         [MessagePackMember(1)]
         public GameServerId GameServerId { get; set; } = default!;
+
+        /// <summary>
+        /// Gets or sets the region of hte game server.
+        /// </summary>
+        [MessagePackMember(2)]
+        public string? Region { get; set; }
     }
 
     public class WaitGameServerResult
