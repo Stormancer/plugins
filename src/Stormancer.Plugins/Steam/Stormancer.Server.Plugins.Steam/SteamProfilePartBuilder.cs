@@ -64,16 +64,16 @@ namespace Stormancer.Server.Plugins.Steam
             {
                 return;
             }
-
+            var steamIds = users.Where(u => u.UserData.ContainsKey(SteamConstants.STEAM_ID)).ToDictionary(u=>u.Id,u => u.GetSteamId()??0);
+            var steamProfiles = await _steam.GetPlayerSummaries(steamIds.Values);
+            
             if (hasProfilePartSteam)
             {
                 if (ctx.DisplayOptions[SteamConstants.PLATFORM_NAME] == "details")
                 {
-                    var steamProfiles = await _steam.GetPlayerSummaries(users.Select(u => (ulong)(u.UserData[SteamConstants.STEAM_ID] ?? 0)));
-
                     foreach (var user in users)
                     {
-                        if (user != null)
+                        if (user != null && steamIds.ContainsKey(user.Id))
                         {
                             ctx.UpdateProfileData(user.Id, SteamConstants.PLATFORM_NAME, j =>
                             {
@@ -114,8 +114,8 @@ namespace Stormancer.Server.Plugins.Steam
                 {
                     if (user != null)
                     {
-                        var steamId = user.GetSteamId()?.ToString();
-                        if (!string.IsNullOrWhiteSpace(steamId))
+                        var steamId = user.GetSteamId();
+                        if (steamId!=null)
                         {
                             ctx.UpdateProfileData(user.Id, "user", data =>
                             {
@@ -125,6 +125,10 @@ namespace Stormancer.Server.Plugins.Steam
                                 }
                                 data["platforms"]![SteamConstants.PLATFORM_NAME] = new JObject();
                                 data["platforms"]![SteamConstants.PLATFORM_NAME]![SteamConstants.STEAM_ID] = steamId;
+                                if(!data.ContainsKey("pseudo") && steamProfiles.TryGetValue(steamId.Value,out var steamProfile))
+                                {
+                                    data["pseudo"] = steamProfile.personaname;
+                                }
                                 return data;
                             });
                         }
