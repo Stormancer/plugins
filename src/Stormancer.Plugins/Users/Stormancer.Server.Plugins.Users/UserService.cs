@@ -124,7 +124,7 @@ namespace Stormancer.Server.Plugins.Users
                 await c.Set<IdentityRecord>().AddAsync(identity);
             }
             identity.MainUser = record;
-            record.Auth = JsonDocument.Parse(auth.ToString());
+            record.Auth = JsonDocument.Parse(user.Auth.ToString());
 
 
             await c.SaveChangesAsync();

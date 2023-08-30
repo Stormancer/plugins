@@ -64,73 +64,76 @@ namespace Stormancer.Server.Plugins.Steam
             {
                 return;
             }
-            var steamIds = users.Where(u => u.UserData.ContainsKey(SteamConstants.STEAM_ID)).ToDictionary(u=>u.Id,u => u.GetSteamId()??0);
-            var steamProfiles = await _steam.GetPlayerSummaries(steamIds.Values);
-            
-            if (hasProfilePartSteam)
+            if (hasProfilePartSteam || hasProfilePartUser)
             {
-                if (ctx.DisplayOptions[SteamConstants.PLATFORM_NAME] == "details")
+                var steamIds = users.Where(u => u.UserData.ContainsKey(SteamConstants.STEAM_ID)).ToDictionary(u => u.Id, u => u.GetSteamId() ?? 0);
+                var steamProfiles = await _steam.GetPlayerSummaries(steamIds.Values);
+
+                if (hasProfilePartSteam)
                 {
-                    foreach (var user in users)
+                    if (ctx.DisplayOptions[SteamConstants.PLATFORM_NAME] == "details")
                     {
-                        if (user != null && steamIds.ContainsKey(user.Id))
+                        foreach (var user in users)
                         {
-                            ctx.UpdateProfileData(user.Id, SteamConstants.PLATFORM_NAME, j =>
+                            if (user != null && steamIds.ContainsKey(user.Id))
                             {
-                                var steamId = (ulong?)user.UserData[SteamConstants.STEAM_ID] ?? 0UL;
-                                var steamProfile = steamProfiles[steamId];
-                                if (steamProfile != null)
+                                ctx.UpdateProfileData(user.Id, SteamConstants.PLATFORM_NAME, j =>
                                 {
-                                    j["steamid"] = steamId.ToString();
-                                    j["personaname"] = steamProfile.personaname;
-                                    j["personastate"] = steamProfile.personastate;
-                                    j["avatar"] = steamProfile.avatarfull;
-                                    j["profileurl"] = steamProfile.profileurl;
-                                }
-                                return j;
-                            });
+                                    var steamId = (ulong?)user.UserData[SteamConstants.STEAM_ID] ?? 0UL;
+                                    var steamProfile = steamProfiles[steamId];
+                                    if (steamProfile != null)
+                                    {
+                                        j["steamid"] = steamId.ToString();
+                                        j["personaname"] = steamProfile.personaname;
+                                        j["personastate"] = steamProfile.personastate;
+                                        j["avatar"] = steamProfile.avatarfull;
+                                        j["profileurl"] = steamProfile.profileurl;
+                                    }
+                                    return j;
+                                });
+                            }
+                        }
+                    }
+                    else
+                    {
+                        foreach (var user in users)
+                        {
+                            if (user != null)
+                            {
+                                ctx.UpdateProfileData(user.Id, SteamConstants.PLATFORM_NAME, j =>
+                                {
+                                    j["steamid"] = (ulong?)user.UserData[SteamConstants.STEAM_ID] ?? 0UL;
+                                    return j;
+                                });
+                            }
                         }
                     }
                 }
-                else
+
+                if (hasProfilePartUser)
                 {
                     foreach (var user in users)
                     {
                         if (user != null)
                         {
-                            ctx.UpdateProfileData(user.Id, SteamConstants.PLATFORM_NAME, j =>
+                            var steamId = user.GetSteamId();
+                            if (steamId != null)
                             {
-                                j["steamid"] = (ulong?)user.UserData[SteamConstants.STEAM_ID] ?? 0UL;
-                                return j;
-                            });
-                        }
-                    }
-                }
-            }
-
-            if (hasProfilePartUser)
-            {
-                foreach (var user in users)
-                {
-                    if (user != null)
-                    {
-                        var steamId = user.GetSteamId();
-                        if (steamId!=null)
-                        {
-                            ctx.UpdateProfileData(user.Id, "user", data =>
-                            {
-                                if (!data.ContainsKey("platforms"))
+                                ctx.UpdateProfileData(user.Id, "user", data =>
                                 {
-                                    data["platforms"] = new JObject();
-                                }
-                                data["platforms"]![SteamConstants.PLATFORM_NAME] = new JObject();
-                                data["platforms"]![SteamConstants.PLATFORM_NAME]![SteamConstants.STEAM_ID] = steamId;
-                                if(!data.ContainsKey("pseudo") && steamProfiles.TryGetValue(steamId.Value,out var steamProfile))
-                                {
-                                    data["pseudo"] = steamProfile.personaname;
-                                }
-                                return data;
-                            });
+                                    if (!data.ContainsKey("platforms"))
+                                    {
+                                        data["platforms"] = new JObject();
+                                    }
+                                    data["platforms"]![SteamConstants.PLATFORM_NAME] = new JObject();
+                                    data["platforms"]![SteamConstants.PLATFORM_NAME]![SteamConstants.STEAM_ID] = steamId;
+                                    if (!data.ContainsKey("pseudo") && steamProfiles.TryGetValue(steamId.Value, out var steamProfile))
+                                    {
+                                        data["pseudo"] = steamProfile.personaname;
+                                    }
+                                    return data;
+                                });
+                            }
                         }
                     }
                 }
