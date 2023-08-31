@@ -673,18 +673,21 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                     }
                 }
 
-                foreach (var (id, agent) in _agents) //If no agent was found in one of the preferred region, select an agent without any region.
+                if (!regions.Any())
                 {
-
-                    if ((!agent.Faulted ||
-                        (agent.FaultExpiration != null &&
-                        agent.FaultExpiration < DateTime.UtcNow)) &&
-                        agent.IsActive && agent.TotalCpu - agent.ReservedCpu >= cpuRequirement &&
-                        agent.TotalMemory - agent.ReservedMemory >= memoryRequirement
-                        && agent.Description.Region == null)
+                    foreach (var (id, agent) in _agents) //If no preferred region, take any of them.
                     {
-                        return agent;
+
+                        if ((!agent.Faulted ||
+                            (agent.FaultExpiration != null &&
+                            agent.FaultExpiration < DateTime.UtcNow)) &&
+                            agent.IsActive && agent.TotalCpu - agent.ReservedCpu >= cpuRequirement &&
+                            agent.TotalMemory - agent.ReservedMemory >= memoryRequirement)
+                        {
+                            return agent;
+                        }
                     }
+
                 }
             }
 

@@ -226,6 +226,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             {
                 throw new InvalidOperationException("Pool not running");
             }
+
             var tcs = new TaskCompletionSource<WaitGameServerResult>();
 
             var claims = new GameServerAuthClaims { GameServerId = gameSessionId, ProviderType = provider.Type };
@@ -234,6 +235,11 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             record.Pool = this.Id;
             record.PoolType = provider.Type;
             var result = await provider.TryStartServer(gameSessionId, authToken, this.config, record, gsConfig.PreferredRegions, cancellationToken);
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            using var cts2 = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, cancellationToken);
+
+
             if (result.Success)
             {
                 var server = new Server { Context = result.Context, GameServer = result.Instance, Id = gameSessionId, Record = record, Region = result.Region };
@@ -248,6 +254,15 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                     _readyServers.TryRemove(gameSessionId, out _);
                     _runningServers.TryRemove(gameSessionId, out _);
                 };
+
+                using var registration = cts2.Token.Register(() =>
+                {
+                    if (tcs.TrySetResult(new WaitGameServerResult { Success = false }))
+                    {
+                        server.GameServer.OnClosed();
+                    }
+
+                });
                 return await tcs.Task;
             }
             else
