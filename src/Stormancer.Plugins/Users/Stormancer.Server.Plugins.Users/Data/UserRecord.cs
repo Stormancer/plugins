@@ -30,7 +30,7 @@ namespace Stormancer.Server.Plugins.Users
             if (record == null) return null;
             return new User()
             {
-                Id = record.Id.ToString(),
+                Id = record.Id.ToString("N"),
                 Auth = JObject.Parse(record.Auth.RootElement.GetRawText()!),
                 Channels = JObject.Parse(record.Channels.RootElement.GetRawText()!),
                 Pseudonym = record.UserHandle,
