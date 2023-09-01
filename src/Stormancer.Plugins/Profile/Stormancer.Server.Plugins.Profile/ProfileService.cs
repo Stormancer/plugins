@@ -58,7 +58,7 @@ namespace Stormancer.Server.Plugins.Profile
            
             var ctx = new ProfileCtx(userIds, dic, displayOptions, requestingUser);
 
-            await _handlers.RunEventHandler(h => h.GetProfiles(ctx, cancellationToken), ex => _logger.Log(LogLevel.Error, "profile", "An error occured while getting profiles.", ex));
+            await _handlers.RunEventHandler(h => h.GetProfiles(ctx, cancellationToken), ex => _logger.Log(LogLevel.Error, "profile", "An error occurred while getting profiles.", ex));
 
             var result = new Dictionary<string, Dictionary<string, JObject>?>();
             foreach(var id in userIds)

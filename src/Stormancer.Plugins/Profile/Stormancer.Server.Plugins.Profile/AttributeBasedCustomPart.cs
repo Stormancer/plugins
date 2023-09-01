@@ -50,10 +50,10 @@ namespace Stormancer.Server.Plugins.Profile
         }
 
         Task<IElasticClient> GetClient(string partId) => clientFactory.CreateClient(partId, "profileParts");
-        private string GetProfilePartId(string userId, string partId) => $"{userId}_{partId}";
+        private string GetProfilePartId(string userId, string partId) => $"{userId}-{partId}";
         private (string, string) ParseProfilePartId(string id)
         {
-            var index = id.IndexOf('_');
+            var index = id.IndexOf('-');
             return (id.Substring(0, index), id.Substring(index + 1));
         }
         private string GetIndex(string partId) => clientFactory.GetIndex(partId, "profileParts");
