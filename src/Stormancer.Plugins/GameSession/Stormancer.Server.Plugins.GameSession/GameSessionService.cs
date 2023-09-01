@@ -784,7 +784,7 @@ namespace Stormancer.Server.Plugins.GameSession
                         {
                             try
                             {
-                                await Task.Delay(1000 * 60, ct);
+                                await Task.Delay(1000 * 30, ct);
                                 if(_server !=null && _serverPeer == null) //Server requested but it didn't connect to the game session in 60 seconds.
                                 {
                                     await using (var scope = _scene.CreateRequestScope())
@@ -801,7 +801,7 @@ namespace Stormancer.Server.Plugins.GameSession
                                     }
                                     return;
                                 }
-                                await Task.Delay(1000 * 60 * 4, ct);
+                                await Task.Delay(1000 * 60 * 5, ct);
 
                                 if (!_playerConnectedOnce && !ct.IsCancellationRequested)
                                 {

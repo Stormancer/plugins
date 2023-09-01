@@ -236,7 +236,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             record.PoolType = provider.Type;
             var result = await provider.TryStartServer(gameSessionId, authToken, this.config, record, gsConfig.PreferredRegions, cancellationToken);
 
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
             using var cts2 = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, cancellationToken);
 
 
