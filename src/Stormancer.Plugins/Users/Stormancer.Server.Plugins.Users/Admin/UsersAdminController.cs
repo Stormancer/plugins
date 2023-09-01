@@ -41,8 +41,7 @@ namespace Stormancer.Server.Plugins.Users
     [Route("_users")]
     public class UsersAdminController : ControllerBase
     {
-        private readonly IUserService _users;
-
+        
         private readonly ISceneHost scene;
 
         /// <summary>
@@ -50,10 +49,8 @@ namespace Stormancer.Server.Plugins.Users
         /// </summary>
         /// <param name="users"></param>
         /// <param name="scene"></param>
-        public UsersAdminController(IUserService users, ISceneHost scene)
+        public UsersAdminController(ISceneHost scene)
         {
-            _users = users;
-
             this.scene = scene;
 
         }
@@ -70,7 +67,9 @@ namespace Stormancer.Server.Plugins.Users
         [Route("getByClaim")]
         public async Task<User?> GetByClaim(string provider, string identifier, CancellationToken cancellationToken)
         {
-            return await _users.GetUserByIdentity(provider, identifier);
+            await using var scope = scene.CreateRequestScope();
+            var users = scope.Resolve<IUserService>();
+            return await users.GetUserByIdentity(provider, identifier);
         }
 
         /// <summary>
@@ -84,6 +83,8 @@ namespace Stormancer.Server.Plugins.Users
         [Route("")]
         public async Task<IEnumerable<UserViewModel>> Search(int take = 20, int skip = 0, CancellationToken cancellationToken = default)
         {
+            await using var scope = scene.CreateRequestScope();
+            var _users = scope.Resolve<IUserService>();
             var query = Request.Query.Where(s => s.Key != "take" && s.Key != "skip").Where(s => s.Value.Any()).ToDictionary(s => s.Key, s => s.Value.First());
             var users = await _users.Query(query, take, skip, cancellationToken);
 
@@ -97,9 +98,11 @@ namespace Stormancer.Server.Plugins.Users
         /// <returns></returns>
         [HttpGet]
         [Route("{id}")]
-        public Task<User?> Get(string id)
+        public async Task<User?> Get(string id)
         {
-            return _users.GetUser(id);
+            await using var scope = scene.CreateRequestScope();
+            var _users = scope.Resolve<IUserService>();
+            return await _users.GetUser(id);
         }
 
         /// <summary>
@@ -109,9 +112,11 @@ namespace Stormancer.Server.Plugins.Users
         /// <returns></returns>
         [HttpDelete]
         [Route("{id}")]
-        public Task Delete(string id)
+        public async Task Delete(string id)
         {
-            return _users.Delete(id);
+            await using var scope = scene.CreateRequestScope();
+            var _users = scope.Resolve<IUserService>();
+            await _users.Delete(id);
         }
 
         /// <summary>
@@ -124,13 +129,15 @@ namespace Stormancer.Server.Plugins.Users
         [Route("{userId}/_auth/{provider}")]
         public async Task Unlink(string userId, string provider)
         {
+            await using var scope = scene.CreateRequestScope();
+            var _users = scope.Resolve<IUserService>();
             var user = await _users.GetUser(userId);
             if (user == null)
             {
                 throw new ClientException("NotFound");
             }
 
-            await using var scope = scene.CreateRequestScope();
+          
             var auth = scope.Resolve<IAuthenticationService>();
             await auth.Unlink(user, provider);
         }
