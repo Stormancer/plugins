@@ -409,15 +409,23 @@ namespace Stormancer.Server.Plugins.Users
             
             var dbContext = await _dbContext.GetDbContextAsync();
 
-            
-            var guids = userIds.Select(Guid.Parse).ToArray();
-            var records = await dbContext.Set<UserRecord>().Where(u => guids.Contains(u.Id)).ToListAsync();
-            var results = new Dictionary<string, User?>();
-            foreach (var id in userIds)
+
+            try
             {
-                results[id] = UserRecord.CreateUserFromRecord(records.FirstOrDefault(r => r.Id == Guid.Parse(id)));
+                var guids = userIds.Select(Guid.Parse).ToArray();
+                var records = await dbContext.Set<UserRecord>().Where(u => guids.Contains(u.Id)).ToListAsync();
+                var results = new Dictionary<string, User?>();
+                foreach (var id in userIds)
+                {
+                    results[id] = UserRecord.CreateUserFromRecord(records.FirstOrDefault(r => r.Id == Guid.Parse(id)));
+                }
+                return results;
             }
-            return results;
+            catch(FormatException ex)
+            {
+                _logger.Log(LogLevel.Error,"users", $"Failed to parse userIds ({string.Join(",", userIds)})", ex);
+                throw;
+            }
         }
 
 
