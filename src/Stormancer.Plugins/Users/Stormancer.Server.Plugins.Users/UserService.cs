@@ -223,6 +223,7 @@ namespace Stormancer.Server.Plugins.Users
                     {
                         record.UserHandle = GenerateUserHandleWithHash(newHandle, section);
                         await dbContext.SaveChangesAsync();
+                        success = true;
                     }
                     catch (Exception)
                     {
