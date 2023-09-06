@@ -129,6 +129,10 @@ namespace Stormancer.Server.Plugins.Collections
 
                     await dbContext.Set<CollectionItemRecord>().AddAsync(new CollectionItemRecord { ItemId =itemId, UserId = guid  });
                 }
+                else
+                {
+                    throw new ClientException(ctx.ErrorId??"failedToUnlockItem");
+                }
 
                 var unlockedCtx = new UnlockedContext(definition, user,dbContext);
                 await _eventHandlers().RunEventHandler(h => h.OnUnlocked(unlockedCtx), ex => { });
