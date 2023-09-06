@@ -83,7 +83,38 @@ namespace Stormancer.Server.Plugins.Collections
             return (definitions.Items, _configSection.CacheDuration);
         }
     }
-    internal class CollectionsService
+
+    /// <summary>
+    /// Provides item collection related services.
+    /// </summary>
+    public interface ICollectionService
+    {
+        /// <summary>
+        /// Unlock a collection item for an user.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="itemId"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task UnlockAsync(User user, string itemId, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Gets the item collections of a list of users.
+        /// </summary>
+        /// <param name="userIds"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<Dictionary<string, IEnumerable<string>>> GetCollectionAsync(IEnumerable<string> userIds, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Gets the item definitions known by the server.
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<Dictionary<string, CollectableItemDefinition>> GetItemDefinitionsAsync(CancellationToken cancellationToken);
+
+    }
+    internal class CollectionsService : ICollectionService
     {
 
         private readonly DbContextAccessor _dbContextAccessor;
@@ -106,7 +137,7 @@ namespace Stormancer.Server.Plugins.Collections
         /// <returns></returns>
         public async Task UnlockAsync(User user, string itemId, CancellationToken cancellationToken)
         {
-            var definitions = await GetItemDefinitionAsync(cancellationToken);
+            var definitions = await GetItemDefinitionsAsync(cancellationToken);
 
             if(!definitions.TryGetValue(itemId,out var definition))
             {
@@ -142,14 +173,14 @@ namespace Stormancer.Server.Plugins.Collections
             }
         }
 
-        public Task<Dictionary<string,CollectableItemDefinition>> GetItemDefinitionAsync(CancellationToken cancellationToken)
+        public Task<Dictionary<string,CollectableItemDefinition>> GetItemDefinitionsAsync(CancellationToken cancellationToken)
         {
             return _collectionsRepository.GetDefinitionsAsync(cancellationToken);
         }
 
         public async Task<Dictionary<string, IEnumerable<string>>> GetCollectionAsync(IEnumerable<string> userIds, CancellationToken cancellationToken)
         {
-            var definitions = await GetItemDefinitionAsync(cancellationToken);
+            var definitions = await GetItemDefinitionsAsync(cancellationToken);
 
             var dbContext = await this._dbContextAccessor.GetDbContextAsync("default", cancellationToken);
 
