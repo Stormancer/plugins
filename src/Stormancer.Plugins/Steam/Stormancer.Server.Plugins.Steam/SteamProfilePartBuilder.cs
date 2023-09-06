@@ -56,7 +56,7 @@ namespace Stormancer.Server.Plugins.Steam
 
             var allUsers = await _users.GetUsers(ctx.Users, cancellationToken);
             var users = allUsers
-                .Where(kvp => kvp.Value?.UserData.ContainsKey(SteamConstants.STEAM_ID)??false)
+                .Where(kvp => kvp.Value?.TryGetSteamId(out _) ?? false)
                 .Select(kvp => kvp.Value!)
                 .ToList();
 
@@ -66,7 +66,7 @@ namespace Stormancer.Server.Plugins.Steam
             }
             if (hasProfilePartSteam || hasProfilePartUser)
             {
-                var steamIds = users.Where(u => u.UserData.ContainsKey(SteamConstants.STEAM_ID)).ToDictionary(u => u.Id, u => u.GetSteamId() ?? 0);
+                var steamIds = users.ToDictionary(u => u.Id, u => u.TryGetSteamId(out var steamId) ? steamId : 0);
                 var steamProfiles = await _steam.GetPlayerSummaries(steamIds.Values);
 
                 if (hasProfilePartSteam)
@@ -127,7 +127,9 @@ namespace Stormancer.Server.Plugins.Steam
                                     }
                                     data["platforms"]![SteamConstants.PLATFORM_NAME] = new JObject();
                                     data["platforms"]![SteamConstants.PLATFORM_NAME]![SteamConstants.STEAM_ID] = steamId;
-                                    if (!data.ContainsKey("pseudo") && steamProfiles.TryGetValue(steamId.Value, out var steamProfile))
+
+                                    if(user.GetSelectedPlatformForPseudo() == "steam")
+                                    if (steamProfiles.TryGetValue(steamId.Value, out var steamProfile))
                                     {
                                         data["pseudo"] = steamProfile.personaname;
                                     }

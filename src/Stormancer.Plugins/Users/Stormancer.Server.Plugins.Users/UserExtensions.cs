@@ -63,6 +63,25 @@ namespace Stormancer
         {
             return user?.Pseudonym;
         }
+
+
+        /// <summary>
+        /// Gets the id of the platform the profile system should use to obtain the pseudonym of the user.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
+        public static string? GetSelectedPlatformForPseudo(this User user)
+        {
+
+            if(user.UserData.TryGetValue("selectedPlatform",out var data) && data.Type == Newtonsoft.Json.Linq.JTokenType.String)
+            {
+                return data.ToObject<string>();
+            }
+            else
+            {
+                return user.LastPlatform;
+            }
+        }
     }
 }
 

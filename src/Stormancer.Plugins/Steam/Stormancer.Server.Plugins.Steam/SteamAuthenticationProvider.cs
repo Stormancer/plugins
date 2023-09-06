@@ -265,26 +265,26 @@ namespace Stormancer.Server.Plugins.Steam
                     }
 
                     bool updateUserData = false;
-                    if (playerSummary != null)
-                    {
-                        var userDataSteamId = user.UserData[SteamConstants.STEAM_ID];
-                        if (userDataSteamId == null || userDataSteamId.ToObject<ulong>() != playerSummary.steamid)
-                        {
-                            user.UserData[SteamConstants.STEAM_ID] = playerSummary.steamid;
-                            updateUserData = true;
-                        }
+                    //if (playerSummary != null)
+                    //{
+                    //    var userDataSteamId = user.UserData[SteamConstants.STEAM_ID];
+                    //    if (userDataSteamId == null || userDataSteamId.ToObject<ulong>() != playerSummary.steamid)
+                    //    {
+                    //        user.UserData[SteamConstants.STEAM_ID] = playerSummary.steamid;
+                    //        updateUserData = true;
+                    //    }
 
-                        var userDataPseudo = user.UserData["pseudo"];
-                        if (userDataPseudo == null || userDataPseudo.ToString() != playerSummary.personaname)
-                        {
-                            user.UserData["pseudo"] = playerSummary.personaname;
-                            updateUserData = true;
-                        }
-                    }
-                    if (updateUserData)
-                    {
-                        await _users.UpdateUserData(user.Id, user.UserData);
-                    }
+                    //    var userDataPseudo = user.UserData["pseudo"];
+                    //    if (userDataPseudo == null || userDataPseudo.ToString() != playerSummary.personaname)
+                    //    {
+                    //        user.UserData["pseudo"] = playerSummary.personaname;
+                    //        updateUserData = true;
+                    //    }
+                    //}
+                    //if (updateUserData)
+                    //{
+                    //    await _users.UpdateUserData(user.Id, user.UserData);
+                    //}
                 }
 
 

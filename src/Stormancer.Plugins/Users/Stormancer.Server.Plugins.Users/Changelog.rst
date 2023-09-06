@@ -15,9 +15,11 @@ Unreleased
 Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
+- Use postgresql to store user data.
 Added
 *****
-- Dimensions are saved in the analytics system on login.
+- Dimensions are saved in the analytics system on login
+- Added GetSelectedPlatformForPseudo to get the platform the profile system should use when computing the pseudonym.
 
 Added
 *****
