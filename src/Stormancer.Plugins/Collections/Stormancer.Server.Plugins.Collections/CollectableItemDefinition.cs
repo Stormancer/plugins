@@ -13,6 +13,16 @@ using System.Threading.Tasks;
 namespace Stormancer.Server.Plugins.Collections
 {
     /// <summary>
+    /// Contains item definitions.
+    /// </summary>
+    public class CollectableItemDefinitions
+    {
+        /// <summary>
+        /// map of item definitions, keyed by id.
+        /// </summary>
+        public Dictionary<string, CollectableItemDefinition> Items { get; set; } = new Dictionary<string, CollectableItemDefinition>();
+    }
+    /// <summary>
     /// The definition of a collectible.
     /// </summary>
     public class CollectableItemDefinition

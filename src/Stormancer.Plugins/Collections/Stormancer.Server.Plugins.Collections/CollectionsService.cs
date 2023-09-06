@@ -74,7 +74,13 @@ namespace Stormancer.Server.Plugins.Collections
             }
             var readResult = await blob.Reader.ReadAtLeastAsync(10 * 1024 * 1024);
             var json =Encoding.UTF8.GetString(readResult.Buffer);
-            return (JsonConvert.DeserializeObject<Dictionary<string,CollectableItemDefinition>>(json), _configSection.CacheDuration);
+            var definitions = JsonConvert.DeserializeObject<CollectableItemDefinitions>(json)?? new CollectableItemDefinitions();
+
+            foreach(var (key,value) in definitions.Items)
+            {
+                value.Id = key;
+            }
+            return (definitions.Items, _configSection.CacheDuration);
         }
     }
     internal class CollectionsService
@@ -106,17 +112,30 @@ namespace Stormancer.Server.Plugins.Collections
             {
                 throw new ClientException($"itemNotFound?itemId={itemId}");
             }
+            using var dbContext = await _dbContextAccessor.GetDbContextAsync();
 
-            var ctx = new UnlockingContext(definition, user);
+            var guid = Guid.Parse(user.Id);
+            var item = await dbContext.Set<CollectionItemRecord>().FindAsync(itemId,guid);
 
-            await _eventHandlers().RunEventHandler(h => h.OnUnlocking(ctx), ex => { });
+            if (item == null)
+            {
+                var ctx = new UnlockingContext(definition, user);
 
-           if(ctx.Success)
-           {
 
-           }
+                await _eventHandlers().RunEventHandler(h => h.OnUnlocking(ctx), ex => { });
 
-            await _eventHandlers().RunEventHandler(h => h.OnUnlocking(ctx), ex => { });
+                if (ctx.Success)
+                {
+
+                    await dbContext.Set<CollectionItemRecord>().AddAsync(new CollectionItemRecord { ItemId =itemId, UserId = guid  });
+                }
+
+                var unlockedCtx = new UnlockedContext(definition, user,dbContext);
+                await _eventHandlers().RunEventHandler(h => h.OnUnlocked(unlockedCtx), ex => { });
+
+
+                await dbContext.SaveChangesAsync();
+            }
         }
 
         public Task<Dictionary<string,CollectableItemDefinition>> GetItemDefinitionAsync(CancellationToken cancellationToken)

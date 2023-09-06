@@ -1,4 +1,5 @@
-﻿using Stormancer.Server.Plugins.Users;
+﻿using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
+using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,13 +14,52 @@ namespace Stormancer.Server.Plugins.Collections
     public interface ICollectionEventHandler
     {
         /// <summary>
-        /// Fired when a player
+        /// Fired when a player is trying to unlock a collectable item.
         /// </summary>
         /// <param name="context"></param>
+        /// <remarks>
+        /// Set Success to false to cancel the unlocking process.
+        /// </remarks>
         /// <returns></returns>
         public Task OnUnlocking(UnlockingContext context);
+
+        /// <summary>
+        /// Fired when unlocking has been accepted.
+        /// </summary>
+        /// <param name="context"></param>
+        /// <remarks>Changes performed on the database using <see cref="UnlockedContext.DbContext"/> are part of the unlocking transaction.</remarks>
+        /// <returns></returns>
+        public Task OnUnlocked(UnlockedContext context);
     }
 
+    /// <summary>
+    /// Context for <see cref="ICollectionEventHandler.OnUnlocked(UnlockedContext)"/>
+    /// </summary>
+    public class UnlockedContext
+    {
+        internal UnlockedContext(CollectableItemDefinition item, User user,AppDbContext appDbContext)
+        {
+            Item = item;
+            User = user;
+            DbContext = appDbContext;
+        }
+
+
+        /// <summary>
+        /// Gets the item the player is unlocking
+        /// </summary>
+        public CollectableItemDefinition Item { get; }
+
+        /// <summary>
+        /// User performing the action.
+        /// </summary>
+        public User User { get; }
+
+        /// <summary>
+        /// Gets the Database context to use to perform any updates associated with the operation.
+        /// </summary>
+        public AppDbContext DbContext { get; }
+    }
     /// <summary>
     /// Context passed to <see cref="ICollectionEventHandler.OnUnlocking"/>
     /// </summary>

@@ -12,7 +12,7 @@ namespace Stormancer.Server.Plugins.Collections
     {
         public void OnModelCreating(ModelBuilder modelBuilder, string contextId, Dictionary<string, object> customData)
         {
-          
+
             modelBuilder.Entity<CollectionItemRecord>();
         }
     }
