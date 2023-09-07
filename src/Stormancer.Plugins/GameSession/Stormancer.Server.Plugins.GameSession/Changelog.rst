@@ -21,7 +21,7 @@ Added
 - Added `IGameSessionEventHandler.ShouldCompleteGame` event fired to decide if the gamesession should evaluate the results posted with PostResult and complete the game.
 - Added property `CreatedOn` on `IGamesessionService` to get the UTC date the gamesession was created.
 - Added Session to context of `IGameSessionEventHandler.OnGameSessionCompleted`.
-
+- Added support for regions.
 Changed
 *******
 - Removed a retry when creating a game session.
