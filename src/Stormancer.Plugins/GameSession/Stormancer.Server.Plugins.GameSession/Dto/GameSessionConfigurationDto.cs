@@ -23,6 +23,7 @@
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Models;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
@@ -50,8 +51,14 @@ namespace Stormancer.Server.Plugins.GameSession
         public string? HostSessionId { get; set; }
 
         /// <summary>
-        /// GameFinder that created the gamesession.
+        /// GameFinder that created the game session.
         /// </summary>
         public string? GameFinder { get; set; }
+
+
+        /// <summary>
+        /// Gets the preferred regions for hosting this game session.
+        /// </summary>
+        public IEnumerable<string> PreferredRegions { get;  set; } = Enumerable.Empty<string>();
     }
 }

@@ -1204,7 +1204,7 @@ namespace Stormancer.Server.Plugins.GameSession
             }
             else
             {
-                return new GameSessionConfigurationDto { Teams = _config.TeamsList, Parameters = _config.Parameters, UserIds = _config.UserIds, HostSessionId = _config.HostSessionId, GameFinder = _config.GameFinder };
+                return new GameSessionConfigurationDto { Teams = _config.TeamsList, Parameters = _config.Parameters, UserIds = _config.UserIds, HostSessionId = _config.HostSessionId, GameFinder = _config.GameFinder, PreferredRegions = _config.PreferredRegions };
             }
 
         }
