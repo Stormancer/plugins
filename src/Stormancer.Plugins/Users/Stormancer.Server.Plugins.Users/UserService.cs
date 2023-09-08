@@ -336,8 +336,16 @@ namespace Stormancer.Server.Plugins.Users
             }
             else
             {
-                record.UserData = JsonSerializer.SerializeToDocument(data!);
+                if (data is JObject jObject)
+                {
+                    record.UserData = JsonDocument.Parse(jObject.ToString());
+                }
+                else
+                {
+                    record.UserData = JsonSerializer.SerializeToDocument(data!);
+                }
 
+                
                 await dbContext.SaveChangesAsync();
             }
         }
