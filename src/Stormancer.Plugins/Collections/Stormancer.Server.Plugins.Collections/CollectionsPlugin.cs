@@ -21,7 +21,7 @@ namespace Stormancer.Server.Plugins.Collections
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
                 builder.Register<CollectionsController>().InstancePerRequest();
-                builder.Register<CollectionsService>().InstancePerRequest();
+                builder.Register<CollectionsService>().As<ICollectionService>().InstancePerRequest();
                 builder.Register<CollectionsRepository>().SingleInstance();
                 builder.Register<CollectionProfilePartBuilder>().As<IProfilePartBuilder>().InstancePerRequest();
                 builder.Register<CollectionServiceLocator>().As<IServiceLocatorProvider>();
