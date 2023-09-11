@@ -11,9 +11,9 @@ namespace Stormancer.Server.Plugins.Collections
 {
     internal class CollectionProfilePartBuilder : IProfilePartBuilder
     {
-        private readonly CollectionsService _service;
+        private readonly ICollectionService _service;
 
-        public CollectionProfilePartBuilder(CollectionsService service)
+        public CollectionProfilePartBuilder(ICollectionService service)
         {
             _service = service;
         }
