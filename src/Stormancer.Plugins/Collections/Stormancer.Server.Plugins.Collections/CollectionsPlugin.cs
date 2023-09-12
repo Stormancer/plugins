@@ -1,6 +1,7 @@
 ﻿using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Configuration;
+using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
 using Stormancer.Server.Plugins.Profile;
 using Stormancer.Server.Plugins.ServiceLocator;
 using System;
@@ -26,6 +27,7 @@ namespace Stormancer.Server.Plugins.Collections
                 builder.Register<CollectionsRepository>().As<IConfigurationChangedEventHandler>().AsSelf().SingleInstance();
                 builder.Register<CollectionProfilePartBuilder>().As<IProfilePartBuilder>().InstancePerRequest();
                 builder.Register<CollectionServiceLocator>().As<IServiceLocatorProvider>();
+                builder.Register<CollectionsModelConfiguration>().As<IDbModelBuilder>();
             };
 
             ctx.HostStarting += (IHost host) =>
