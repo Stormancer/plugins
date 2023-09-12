@@ -771,9 +771,9 @@ namespace Stormancer.Server.Plugins.GameSession
                     catch (Exception ex)
                     {
                         _logger.Log(LogLevel.Error, "gamesession.gameserverFailure", "Failed to start game server", ex);
-                        _gameCompleteCts.Cancel();
-                        _repository.RemoveGameSession(this);
-                        _scene.Shutdown("gameserver.failure");
+                        //_gameCompleteCts.Cancel();
+                        //_repository.RemoveGameSession(this);
+                        //_scene.Shutdown("gameserver.failure");
                     }
                 }
                 if (_server != null)
