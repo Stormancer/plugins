@@ -28,20 +28,22 @@ namespace Stormancer.Server.Plugins.GameFinder
     /// <summary>
     /// This class contains information about the resolution of an open game session ticket.
     /// </summary>
-    public class JoinOpenGameContext
+    public class JoinExistingGameContext
     {
         /// <summary>
         /// The ticket to the open game session.
         /// </summary>
-        public OpenGameSessionTicket GameSessionTicket { get; }
+        public ExistingGame Game { get; }
+        public string GameFinderId { get; }
 
-        internal JoinOpenGameContext(OpenGameSessionTicket gameSessionTicket)
+        internal JoinExistingGameContext(ExistingGame existingGame,string gameFinderId)
         {
-            GameSessionTicket = gameSessionTicket;
+            Game = existingGame;
+            GameFinderId = gameFinderId;
         }
 
         /// <summary>
-        /// An optional resolution action to be executed for the players enlisted on the <see cref="GameSessionTicket"/>.
+        /// An optional resolution action to be executed for the players enlisted on the <see cref="ExistingGame"/>.
         /// </summary>
         /// <remarks>
         /// Players will always be sent a connection token to the game session first, regardless of the contents of this member.

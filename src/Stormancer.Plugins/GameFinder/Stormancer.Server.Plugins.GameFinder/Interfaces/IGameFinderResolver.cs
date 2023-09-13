@@ -41,7 +41,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </remarks>
         /// <param name="joinGameCtx">Object containing information about the ticket.</param>
         /// <returns></returns>
-        Task ResolveJoinOpenGame(JoinOpenGameContext joinGameCtx)
+        Task ResolveJoinOpenGame(JoinExistingGameContext joinGameCtx)
         {
             return Task.CompletedTask;
         }

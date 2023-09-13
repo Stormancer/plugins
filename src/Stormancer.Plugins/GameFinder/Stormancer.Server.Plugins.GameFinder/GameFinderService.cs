@@ -459,15 +459,13 @@ namespace Stormancer.Server.Plugins.GameFinder
 
                     await RunEventHandlerInRequestScope<IGameFinderEventHandler>(_scene, h => h.OnGameStarted(ctx), ex => _logger.Log(LogLevel.Error, LOG_CATEGORY, "an error occured while running OnGameStarted event handler.", ex));
                 }
-                else if (gameCandidate is OpenGameSessionTicket)
+                else if (gameCandidate is ExistingGame existingGame)
                 {
-                    var ticket = (OpenGameSessionTicket)gameCandidate;
-                    var ctx = new JoinOpenGameContext(ticket);
+                    var ctx = new JoinExistingGameContext(existingGame, _data.kind);
                     await resolver.ResolveJoinOpenGame(ctx);
                     resolutionAction = ctx.ResolutionAction;
-                    gameSceneId = ctx.GameSessionTicket.Id;
                 }
-                else
+                else 
                 {
                     gameSceneId = gameCandidate.Id;
                     resolutionAction = _ => Task.CompletedTask;
