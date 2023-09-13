@@ -193,7 +193,7 @@ namespace Stormancer.Server.Plugins.Collections
 
             foreach(var item in items)
             {
-                if(!results.TryGetValue(item.User.Id.ToString(), out var itemList))
+                if(!results.TryGetValue(item.User.Id.ToString("N"), out var itemList))
                 {
                     itemList = new List<string>();
                     results.Add(item.User.Id.ToString("N"), itemList);
