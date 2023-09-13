@@ -187,7 +187,7 @@ namespace Stormancer.Server.Plugins.Collections
             var set = dbContext.Set<CollectionItemRecord>();
 
             var guids = userIds.Select(userId=>Guid.Parse(userId)).ToArray();
-            var items = await set.Where(item => guids.Contains(item.User.Id)).ToListAsync();
+            var items = await set.Where(item => guids.Contains(item.User.Id)).Include(item=>item.User).ToListAsync();
 
             var results = new Dictionary<string, IEnumerable<string>>();
 
