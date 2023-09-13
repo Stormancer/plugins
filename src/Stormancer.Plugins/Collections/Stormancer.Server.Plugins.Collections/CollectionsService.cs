@@ -196,7 +196,7 @@ namespace Stormancer.Server.Plugins.Collections
                 if(!results.TryGetValue(item.User.Id.ToString(), out var itemList))
                 {
                     itemList = new List<string>();
-                    results.Add(item.User.Id.ToString(), itemList);
+                    results.Add(item.User.Id.ToString("N"), itemList);
                 }
 
                 ((List<string>)itemList).Add(item.ItemId);
