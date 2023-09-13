@@ -27,6 +27,7 @@ using Server.Plugins.Users;
 using Stormancer.Core.Helpers;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Components;
+using Stormancer.Server.Plugins.Analytics;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Database;
 using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
@@ -70,6 +71,7 @@ namespace Stormancer.Server.Plugins.Users
         private readonly ILogger _logger;
         private readonly Func<IEnumerable<IUserEventHandler>> _handlers;
         private readonly IConfiguration _configuration;
+        private readonly IAnalyticsService _analytics;
         private readonly Random _random = new Random();
 
         private static bool _mappingChecked = false;
@@ -81,12 +83,14 @@ namespace Stormancer.Server.Plugins.Users
             IEnvironment environment,
             ILogger logger,
             Func<IEnumerable<IUserEventHandler>> eventHandlers,
-            IConfiguration configuration
+            IConfiguration configuration,
+            IAnalyticsService analytics
         )
         {
             _indexName = (string?)(environment.Configuration.users?.index) ?? "gameData";
             _handlers = eventHandlers;
             _configuration = configuration;
+            _analytics = analytics;
             _dbContext = dbContext;
             _logger = logger;
             //_logger.Log(LogLevel.Trace, "users", $"Using index {_indexName}", new { index = _indexName });
@@ -167,7 +171,7 @@ namespace Stormancer.Server.Plugins.Users
             await dbContext.Set<UserRecord>().AddAsync(record);
 
             await dbContext.SaveChangesAsync();
-
+            _analytics.Push("user", "create", JObject.FromObject(new { UserId=user.Id, Platform = currentPlatform }));
             return user;
         }
 

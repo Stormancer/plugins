@@ -190,12 +190,13 @@ namespace Stormancer.Server.Plugins.Users
             b.Register<LocatorProvider>(r=>new LocatorProvider(r.Resolve<IConfiguration>())
             ).As<IServiceLocatorProvider>();
 
-            b.Register(dr=>new UserService(
+            b.Register(dr => new UserService(
                 dr.Resolve<DbContextAccessor>(),
                 dr.Resolve<IEnvironment>(),
-                dr.Resolve<ILogger>(), 
+                dr.Resolve<ILogger>(),
                 dr.Resolve<Func<IEnumerable<IUserEventHandler>>>(),
-                dr.Resolve<IConfiguration>())
+                dr.Resolve<IConfiguration>(),
+                dr.Resolve<IAnalyticsService>())
             ).As<IUserService>().InstancePerRequest();
 
 
