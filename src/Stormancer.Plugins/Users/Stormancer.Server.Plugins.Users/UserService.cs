@@ -171,7 +171,7 @@ namespace Stormancer.Server.Plugins.Users
             await dbContext.Set<UserRecord>().AddAsync(record);
 
             await dbContext.SaveChangesAsync();
-            _analytics.Push("user", "create", JObject.FromObject(new { UserId=user.Id, Platform = currentPlatform }));
+            _analytics.Push("user", "create", JObject.FromObject(new { UserId=user.Id, Platform = currentPlatform, createdOn = DateTime.UtcNow }));
             return user;
         }
 
