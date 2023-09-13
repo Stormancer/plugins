@@ -20,6 +20,9 @@ Changed
 Fixed
 *****
 - Made the plugin compatible with Users 9.0.0
+Added
+*****
+- Added a context that can be used during resolution to NewGame and ExistingGame objects.
 
 8.0.0.4
 -------

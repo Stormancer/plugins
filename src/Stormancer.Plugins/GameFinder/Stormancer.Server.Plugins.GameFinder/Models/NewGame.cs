@@ -30,32 +30,49 @@ using System.Linq;
 namespace Stormancer.Server.Plugins.GameFinder
 {
     /// <summary>
-    /// Use when a the party(ies) are joining an existing gamesession.
+    /// Use when a the party(ies) are joining an existing game session.
     /// </summary>
     public class ExistingGame : IGameCandidate
     {
+        /// <summary>
+        /// Creates a new <see cref="ExistingGame"/> instance.
+        /// </summary>
+        /// <param name="id"></param>
         public ExistingGame(string id)
         {
             Id = id;
         }
+
+        /// <summary>
+        /// Gets the id of the game.
+        /// </summary>
         public string Id { get; }
 
+        /// <summary>
+        /// Gets or sets the list of teams added to the game.
+        /// </summary>
         public List<Team> Teams { get; set; } = new List<Team>();
+
+        /// <summary>
+        /// Gets or sets a custom context object that is not serialized but is passed to the <see cref="IGameFinderResolver"/>.
+        /// </summary>
+        public object? CustomContext { get; set; }
     }
 
     /// <summary>
-    /// Use when the party(ies) are joining a new gamesession.
+    /// Use when the party(ies) are joining a new game session.
     /// </summary>
     public class NewGame : IGameCandidate
     {
-        #region constructors
+        /// <summary>
+        /// Creates a new <see cref="NewGame"/> object.
+        /// </summary>
         public NewGame()
         {
             Id = Guid.NewGuid().ToString();
         }
 
 
-        #endregion
 
         /// <summary>
         /// Id of the game.
@@ -67,14 +84,14 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// Public custom data associated with the game.
         /// </summary>
         [MessagePackMember(1)]
-        public JObject PublicCustomData { get; set; }
+        public JObject PublicCustomData { get; set; } = new JObject();
 
       
         /// <summary>
         /// private custom data associated with the game.
         /// </summary>
         [MessagePackIgnore]
-        public JObject PrivateCustomData { get; set; }
+        public JObject PrivateCustomData { get; set; } = new JObject();
 
         /// <summary>
         /// Gets or sets the teams of players in the game.
@@ -96,5 +113,11 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         [MessagePackIgnore]
         public IEnumerable<Player> AllPlayers => Teams.SelectMany(team => team.AllPlayers);
+
+        /// <summary>
+        /// Gets or sets a custom context object that is not serialized but is passed to the <see cref="IGameFinderResolver"/>.
+        /// </summary>
+        [MessagePackIgnore]
+        public object? CustomContext { get; set; }
     }
 }
