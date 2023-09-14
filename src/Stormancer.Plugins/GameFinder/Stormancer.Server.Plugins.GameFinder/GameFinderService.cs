@@ -443,7 +443,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             try
             {
                 Func<IGameFinderResolutionWriterContext, Task>? resolutionAction = null;
-                string gameSceneId = gameCandidate.Id;
+                string? gameSceneId = null;
                 // I do not use 'if (gameCandidate is Game game)' so that 'game' does not leak in the outer scope
                 if (gameCandidate is NewGame)
                 {
@@ -451,7 +451,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                     var resolverCtx = new GameResolverContext(game, _data.kind);
                     await resolver.ResolveGame(resolverCtx);
                     resolutionAction = resolverCtx.ResolutionAction;
-                   
+                    gameSceneId = resolverCtx.GameSceneId;
 
                     var ctx = new GameStartedContext();
                     ctx.GameFinderId = this._scene.Id;
@@ -463,7 +463,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 {
                     var ctx = new JoinExistingGameContext(existingGame, _data.kind);
                     await resolver.ResolveJoinOpenGame(ctx);
-                 
+                    gameSceneId = existingGame.Id;
 
                     resolutionAction = ctx.ResolutionAction;
                 }
