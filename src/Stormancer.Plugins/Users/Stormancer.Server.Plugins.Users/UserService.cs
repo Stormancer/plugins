@@ -171,7 +171,7 @@ namespace Stormancer.Server.Plugins.Users
             await dbContext.Set<UserRecord>().AddAsync(record);
 
             await dbContext.SaveChangesAsync();
-            _analytics.Push("user", "create", JObject.FromObject(new { UserId=user.Id, Platform = currentPlatform, createdOn = DateTime.UtcNow }));
+            _analytics.Push("user", "create", JObject.FromObject(new { UserId = user.Id, Platform = currentPlatform, createdOn = DateTime.UtcNow }));
             return user;
         }
 
@@ -349,7 +349,7 @@ namespace Stormancer.Server.Plugins.Users
                     record.UserData = JsonSerializer.SerializeToDocument(data!);
                 }
 
-                
+
                 await dbContext.SaveChangesAsync();
             }
         }
@@ -418,13 +418,13 @@ namespace Stormancer.Server.Plugins.Users
 
         public async Task<Dictionary<string, User?>> GetUsers(IEnumerable<string> userIds, CancellationToken cancellationToken)
         {
-            
+
             var dbContext = await _dbContext.GetDbContextAsync();
 
 
             try
             {
-                var guids = userIds.Select(Guid.Parse).ToArray();
+                var guids = userIds.Select(id => Guid.TryParse(id, out var guid) ? guid : default).Where(guid => guid != Guid.Empty).ToArray();
                 var records = await dbContext.Set<UserRecord>().Where(u => guids.Contains(u.Id)).ToListAsync();
                 var results = new Dictionary<string, User?>();
                 foreach (var id in userIds)
@@ -433,9 +433,9 @@ namespace Stormancer.Server.Plugins.Users
                 }
                 return results;
             }
-            catch(FormatException ex)
+            catch (FormatException ex)
             {
-                _logger.Log(LogLevel.Error,"users", $"Failed to parse userIds ({string.Join(",", userIds)})", ex);
+                _logger.Log(LogLevel.Error, "users", $"Failed to parse userIds ({string.Join(",", userIds)})", ex);
                 throw;
             }
         }

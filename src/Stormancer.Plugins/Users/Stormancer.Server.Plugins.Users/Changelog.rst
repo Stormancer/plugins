@@ -20,6 +20,9 @@ Added
 *****
 - Dimensions are saved in the analytics system on login
 - Added GetSelectedPlatformForPseudo to get the platform the profile system should use when computing the pseudonym.
+Fixed
+*****
+- GetUsers doesn't crash when receiving invalid user ids.
 
 Added
 *****
