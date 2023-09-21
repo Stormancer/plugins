@@ -23,6 +23,7 @@
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.AdminApi;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Queries;
 using Stormancer.Server.Plugins.ServiceLocator;
@@ -64,6 +65,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 builder.Register<GameFinderData>().AsSelf().InstancePerScene();
                 builder.Register<ServiceLocationProvider>().As<IServiceLocatorProvider>();
                 builder.Register<QuickQueueGameSessionEventHandler>().As<GameSession.IGameSessionEventHandler>().InstancePerScene();
+                builder.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
             };
             ctx.SceneCreated += SceneCreated;
 

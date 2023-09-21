@@ -70,9 +70,9 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <returns></returns>
         [S2SApi]
-        public async Task<Dictionary<string, int>> GetMetrics()
+        public async Task<JObject> GetStatus()
         {
-            return await _gameFinderService.GetMetrics();
+            return await _gameFinderService.GetStatus(true);
         }
 
         /// <summary>
@@ -100,10 +100,10 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// Gets the matchmaking metrics from the client.
         /// </summary>
         /// <returns></returns>
-        [Api(ApiAccess.Public, ApiType.Rpc, Route = "gamefinder.getmetrics")]
-        public async Task<Dictionary<string, int>> GetMetricsClient()
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task<JObject> GetPublicStatus()
         {
-            return await _gameFinderService.GetMetrics();
+            return await _gameFinderService.GetStatus(false);
         }
     
 

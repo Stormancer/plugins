@@ -23,6 +23,7 @@ Fixed
 Added
 *****
 - Added a context that can be used during resolution to NewGame and ExistingGame objects.
+- Added GetStatus Admin and plus Apis to get customizable information about the operation of a gamefinder.
 
 8.0.0.4
 -------

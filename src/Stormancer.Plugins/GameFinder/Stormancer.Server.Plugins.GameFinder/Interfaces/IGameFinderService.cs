@@ -64,11 +64,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <returns></returns>
         Task CancelGame(IScenePeerClient peer, bool playerRequest);
 
-        /// <summary>
-        /// Gets metrics about the game finder.
-        /// </summary>
-        /// <returns></returns>
-        ValueTask<Dictionary<string, int>> GetMetrics();
+      
 
         /// <summary>
         /// Advertises a game session in the gamefinder.
@@ -94,5 +90,12 @@ namespace Stormancer.Server.Plugins.GameFinder
         {
             return AreCompatibleAsync(Enumerable.Repeat(candidate, 1)).FirstAsync();
         }
+
+        /// <summary>
+        /// Gets the status of the game finder.
+        /// </summary>
+        /// <param name="isAdmin"></param>
+        /// <returns></returns>
+        Task<JObject> GetStatus(bool isAdmin);
     }
 }

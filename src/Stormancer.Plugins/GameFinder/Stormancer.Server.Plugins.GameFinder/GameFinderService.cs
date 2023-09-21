@@ -739,11 +739,11 @@ namespace Stormancer.Server.Plugins.GameFinder
             
         }
 
-        public async ValueTask<Dictionary<string, int>> GetMetrics()
+        public async Task<JObject> GetStatus(bool isAdmin)
         {
             await using (var scope = _scene.CreateRequestScope())
             {
-                return scope.Resolve<IGameFinderAlgorithm>().GetMetrics();
+                return scope.Resolve<IGameFinderAlgorithm>().GetStatus(isAdmin);
             }
 
         }

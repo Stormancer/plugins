@@ -57,5 +57,12 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <param name="config">the current gamefinder config section.</param>
         /// <param name="id">Id of the gamefinder config.</param>
         void RefreshConfig(string id,dynamic config);
+
+        /// <summary>
+        /// Gets the current status of the gamefinder.
+        /// </summary>
+        /// <param name="isAdmin"></param>
+        /// <returns></returns>
+        JObject GetStatus(bool isAdmin) => new JObject();
     }
 }
