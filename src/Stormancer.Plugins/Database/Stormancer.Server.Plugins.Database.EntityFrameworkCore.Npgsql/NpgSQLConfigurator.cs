@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using static Lucene.Net.Documents.Field;
 
 namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
 {
@@ -50,35 +51,101 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
         [MemberNotNullWhen(true, nameof(Host))]
         internal bool IsValid => !string.IsNullOrEmpty(Host) && !string.IsNullOrEmpty(Username) && !string.IsNullOrEmpty(Password) && !string.IsNullOrEmpty(Database);
     }
-
-    internal class NpgSQLConfigurator : IDbContextLifecycleHandler
+    internal class NpgSQLConfiguratorState : IConfigurationChangedEventHandler
     {
-        private readonly ISecretsStore _store;
-        private readonly IConfiguration _configuration;
-
-        public NpgSQLConfigurator(ISecretsStore store, IConfiguration configuration)
-        {
+        public NpgSQLConfiguratorState(ISecretsStore store, IConfiguration configuration) {
             _store = store;
             _configuration = configuration;
         }
+        private readonly object _lock = new object();
+        private readonly ISecretsStore _store;
+        private readonly IConfiguration _configuration;
+
+        public Task<NpgsqlDataSource?> GetDataSource() 
+        { 
+            lock(_lock)
+            {
+                if(_dataSourceTask ==null)
+                {
+                    async Task<NpgsqlDataSource?> CreateDataSource()
+                    {
+                        var section = _configuration.GetValue(NpgSQLConfigurationSection.SECTION_PATH, new NpgSQLConfigurationSection());
+
+                        if (section.PasswordPath != null)
+                        {
+                            var secret = await _store.GetSecret(section.PasswordPath);
+
+                            if (secret != null && secret.Value != null)
+                            {
+                                section.Password = Encoding.UTF8.GetString(secret.Value);
+                            }
+                        }
+
+                        if (section.IsValid)
+                        {
+                            var builder = new DbConnectionStringBuilder
+                            {
+                                { "Host", section.Host },
+                                { "Database", section.Database },
+                                {"Username",section.Username },
+                                {"Password",section.Password }
+                            };
+
+                            var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.ConnectionString);
+                            dataSourceBuilder.UseNodaTime();
+
+                            return dataSourceBuilder.Build();
+                        }
+                        else
+                        {
+                            return null;
+                        }
+
+                    }
+                    _dataSourceTask = CreateDataSource();
+                }
+
+                return _dataSourceTask;
+            }
+        }
+
+        public void OnConfigurationChanged()
+        {
+            async Task DisposeAsync(Task<NpgsqlDataSource?>? task)
+            {
+                if(task!=null)
+                {
+                    using (await task)
+                    {
+                    }
+                }
+            }
+            lock(_lock)
+            {
+                _ = DisposeAsync(_dataSourceTask);
+                _dataSourceTask = null;
+            }
+           
+        }
+
+        private Task<NpgsqlDataSource?>? _dataSourceTask;
+    }
+    internal class NpgSQLConfigurator : IDbContextLifecycleHandler
+    {
+        private readonly NpgSQLConfiguratorState _state;
+
+        public NpgSQLConfigurator(NpgSQLConfiguratorState state)
+        {
+            
+            _state = state;
+        }
         public void OnConfiguring(DbContextOptionsBuilder optionsBuilder, string contextId, Dictionary<string, object> customData)
         {
-            if (customData.TryGetValue("npgsql", out var npgsqlData) && npgsqlData is NpgSQLConfigurationSection config && config.IsValid)
+            if (customData.TryGetValue("npgsql", out var npgsqlData) && npgsqlData is NpgsqlDataSource source)
             {
-                var builder = new DbConnectionStringBuilder
-                {
-                    { "Host", config.Host },
-                    { "Database", config.Database },
-                    {"Username",config.Username },
-                    {"Password",config.Password }
-                };
-
-                var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.ConnectionString);
-                dataSourceBuilder.UseNodaTime();
                
-                var dataSource = dataSourceBuilder.Build();
                 optionsBuilder
-                    .UseNpgsql(dataSource, o => o.UseNodaTime())
+                    .UseNpgsql(source, o => o.UseNodaTime())
                     .UseSnakeCaseNamingConvention();
                     
             }
@@ -86,22 +153,13 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
 
         public async Task OnPreInit(InitializeDbContext ctx)
         {
-            var section = _configuration.GetValue(NpgSQLConfigurationSection.SECTION_PATH, new NpgSQLConfigurationSection());
-
-            if (section.PasswordPath != null)
+            var source = await _state.GetDataSource();
+            if(source != null)
             {
-                var secret = await _store.GetSecret(section.PasswordPath);
-
-                if (secret != null && secret.Value != null)
-                {
-                    section.Password = Encoding.UTF8.GetString(secret.Value);
-                }
+                ctx.CustomData["npgsql"] = source;
             }
-
-            if (section.IsValid)
-            {
-                ctx.CustomData["npgsql"] = section;
-            }
+           
+            
 
 
         }
