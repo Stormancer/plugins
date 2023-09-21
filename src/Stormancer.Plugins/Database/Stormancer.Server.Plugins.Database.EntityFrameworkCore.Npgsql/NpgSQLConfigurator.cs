@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Secrets;
 using System.Collections.Generic;
@@ -71,9 +72,15 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
                     {"Username",config.Username },
                     {"Password",config.Password }
                 };
+
+                var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.ConnectionString);
+                dataSourceBuilder.UseNodaTime();
+               
+                var dataSource = dataSourceBuilder.Build();
                 optionsBuilder
-                    .UseNpgsql(builder.ConnectionString)
+                    .UseNpgsql(dataSource, o => o.UseNodaTime())
                     .UseSnakeCaseNamingConvention();
+                    
             }
         }
 
