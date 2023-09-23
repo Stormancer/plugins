@@ -5,13 +5,13 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>5.2.0</Version>
+		<Version>0.1.0</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
-		<Description>Provides Party related features to a Stormancer server application.</Description>
+		<Description>Enables party merging according to customizable algorithms.</Description>
 		<PackageReadmeFile>Readme.md</PackageReadmeFile>
 		<Deterministic>true</Deterministic>
 	</PropertyGroup>
@@ -50,9 +50,11 @@
 		<ProjectReference Include="..\..\GameFinder\Stormancer.Server.Plugins.GameFinder\Stormancer.Server.Plugins.GameFinder.csproj" />
 		<ProjectReference Include="..\..\GameSession\Stormancer.Server.Plugins.GameSession\Stormancer.Server.Plugins.GameSession.csproj" />
 		<ProjectReference Include="..\..\Management\Stormancer.Server.Plugins.Management\Stormancer.Server.Plugins.Management.csproj" />
+		<ProjectReference Include="..\..\Models\Stormancer.Server.Plugins.Models\Stormancer.Server.Plugins.Models.csproj" />
 		<ProjectReference Include="..\..\Profile\Stormancer.Server.Plugins.Profile\Stormancer.Server.Plugins.Profile.csproj" />
 		<ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />
 		<ProjectReference Include="..\..\Utilities\Stormancer.Server.Plugins.Utilities\Stormancer.Server.Plugins.Utilities.csproj" />
+		<ProjectReference Include="..\Stormancer.Server.Plugins.Party\Stormancer.Server.Plugins.Party.csproj" />
 		
 	</ItemGroup>
 	<Target Name="PostPack" AfterTargets="Pack">
