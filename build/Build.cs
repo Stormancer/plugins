@@ -187,7 +187,7 @@ class Build : NukeBuild
             var versionString = packagePath.Substring(startIndex, packagePath.Length - startIndex - ".nupkg".Length);
             var currentPackageVersion = new NuGetVersion(versionString);
             var versionStr = await NuGetPackageResolver.GetLatestPackageVersion(project.Name, Configuration == "Debug");
-            await _channel.SendMessageAsync($"*[{BuildType} {Configuration}]* `{project.Name}` : Current package on nuget: {versionStr}.");
+            //await _channel.SendMessageAsync($"*[{BuildType} {Configuration}]* `{project.Name}` : Current package on nuget: {versionStr}.");
 
             var version = versionStr != null ? new NuGetVersion(versionStr) : null;
 
@@ -222,36 +222,42 @@ class Build : NukeBuild
                     .SetProperty("PackageReleaseNotes", MsBuildEscape(changeLogRelease.Description))
                     .EnableNoBuild()
                     );
-                    DotNetNuGetPush(s => s
-                        .SetApiKey(NugetSecretKey)
-                        .SetTargetPath(packagePath)
-                        .SetSource(ReleaseNugetSource)
-                        .SetSkipDuplicate(true)
-
-                        );
-
-                    var sourceBranch = Environment.GetEnvironmentVariable("BUILD_SOURCEBRANCH")?.Substring("refs/heads/".Length);
-                    //git($"checkout {sourceBranch}");
-
-                    //try
-                    //{
-                    //    git($"tag -d {Path.GetFileNameWithoutExtension(packagePath)}");
-                    //}
-                    //catch (Exception)
-                    //{ }
-
-                    git($"tag {Path.GetFileNameWithoutExtension(packagePath)}");
-
-                    if (sourceBranch == null)
+                    try
                     {
-                        git($"push origin --tags");
-                    }
-                    else
-                    {
-                        git($"push origin HEAD:{sourceBranch} --tags");
-                    }
+                        DotNetNuGetPush(s => s
+                            .SetApiKey(NugetSecretKey)
+                            .SetTargetPath(packagePath)
+                            .SetSource(ReleaseNugetSource)
 
-                    await _channel.SendMessageAsync($"*[{BuildType} {Configuration}]* Published https://www.nuget.org/packages/{project.Name}/{currentPackageVersion}");
+                            );
+
+                        var sourceBranch = Environment.GetEnvironmentVariable("BUILD_SOURCEBRANCH")?.Substring("refs/heads/".Length);
+                        //git($"checkout {sourceBranch}");
+
+                        //try
+                        //{
+                        //    git($"tag -d {Path.GetFileNameWithoutExtension(packagePath)}");
+                        //}
+                        //catch (Exception)
+                        //{ }
+
+                        git($"tag {Path.GetFileNameWithoutExtension(packagePath)}");
+
+                        if (sourceBranch == null)
+                        {
+                            git($"push origin --tags");
+                        }
+                        else
+                        {
+                            git($"push origin HEAD:{sourceBranch} --tags");
+                        }
+
+                        await _channel.SendMessageAsync($"*[{BuildType} {Configuration}]* Published https://www.nuget.org/packages/{project.Name}/{currentPackageVersion}");
+                    }
+                    catch( Exception)
+                    {
+                        await _channel.SendMessageAsync($"*[{BuildType} {Configuration}]* An error occurred while pushing `{project.Name}` version `{currentPackageVersion}`.");
+                    }
                 }
             }
         }
