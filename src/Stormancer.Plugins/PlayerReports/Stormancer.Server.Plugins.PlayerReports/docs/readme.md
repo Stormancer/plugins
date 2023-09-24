@@ -1,0 +1,1 @@
+This plugin adds a client API to report users and admin API for game studios to query for reported users.
