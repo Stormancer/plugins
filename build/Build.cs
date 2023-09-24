@@ -187,7 +187,7 @@ class Build : NukeBuild
             var versionString = packagePath.Substring(startIndex, packagePath.Length - startIndex - ".nupkg".Length);
             var currentPackageVersion = new NuGetVersion(versionString);
             var versionStr = await NuGetPackageResolver.GetLatestPackageVersion(project.Name, Configuration == "Debug");
-
+            await _channel.SendMessageAsync($"*[{BuildType} {Configuration}]* `{project.Name}` : Current package on nuget: {versionStr}.");
 
             var version = versionStr != null ? new NuGetVersion(versionStr) : null;
 
@@ -195,7 +195,7 @@ class Build : NukeBuild
 
             if (version == null || currentPackageVersion > version)
             {
-                await _channel.SendMessageAsync($"*[{BuildType} {Configuration}]* Current package on nuget: {version}. New Package version : {currentPackageVersion}");
+                await _channel.SendMessageAsync($"*[{BuildType} {Configuration}]* `{project.Name}` : Current package on nuget: {version}. New Package version : {currentPackageVersion}");
                 ChangeLogRelease? changeLogRelease = null;
                 if (Configuration == "Release")
                 {
