@@ -1,16 +1,16 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFramework>net6.0</TargetFramework>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>0.1.1.9</Version>
+		<Version>0.1.0</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
-		<Description>Adds a "collection system" to games using Stormancer.</Description>
+		<Description>Adds a way for players to report other players, with a custom context.</Description>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<Deterministic>true</Deterministic>
 		<PackageReadmeFile>Readme.md</PackageReadmeFile>

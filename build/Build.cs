@@ -225,6 +225,7 @@ class Build : NukeBuild
                         .SetApiKey(NugetSecretKey)
                         .SetTargetPath(packagePath)
                         .SetSource(ReleaseNugetSource)
+                        .SetSkipDuplicate(true)
 
                         );
 
