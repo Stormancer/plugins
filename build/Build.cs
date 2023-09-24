@@ -195,6 +195,7 @@ class Build : NukeBuild
 
             if (version == null || currentPackageVersion > version)
             {
+                Logger.Info($"Current package on nuget: {currentPackageVersion}. New Package version : {version}");
                 ChangeLogRelease? changeLogRelease = null;
                 if (Configuration == "Release")
                 {
