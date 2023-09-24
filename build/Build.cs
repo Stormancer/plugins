@@ -195,7 +195,7 @@ class Build : NukeBuild
 
             if (version == null || currentPackageVersion > version)
             {
-                Logger.Warn($"Current package on nuget: {currentPackageVersion}. New Package version : {version}");
+                await _channel.SendMessageAsync($"*[{BuildType} {Configuration}]* Current package on nuget: {version}. New Package version : {currentPackageVersion}");
                 ChangeLogRelease? changeLogRelease = null;
                 if (Configuration == "Release")
                 {
