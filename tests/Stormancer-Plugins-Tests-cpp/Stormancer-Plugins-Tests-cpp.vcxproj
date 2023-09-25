@@ -31,6 +31,7 @@
     <ClInclude Include="..\..\src\Stormancer.Plugins\Limits\cpp\connectionQueue.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Notification\cpp\Notifications.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Party\cpp\Party.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\PlayerReports\cpp\PlayerReports.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Profile\cpp\Profile.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Replication\cpp\CommandLog.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\SocketApi\cpp\Socket.hpp" />

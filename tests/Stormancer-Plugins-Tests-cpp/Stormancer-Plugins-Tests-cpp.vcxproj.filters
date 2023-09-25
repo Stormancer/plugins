@@ -30,6 +30,7 @@
     <ClInclude Include="..\..\src\Stormancer.Plugins\Users\cpp\Users.hpp" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Gameye\cpp\gameye.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\PlayerReports\cpp\PlayerReports.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

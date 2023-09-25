@@ -6,3 +6,6 @@ mklink /J output\cpp\Steam src\Stormancer.Plugins\Steam\cpp
 
 rmdir output\cpp\gamesession
 mklink /J output\cpp\gamesession src\Stormancer.Plugins\GameSession\cpp
+
+rmdir output\cpp\playerReports
+mklink /J output\cpp\playerReports src\Stormancer.Plugins\PlayerReports\cpp
