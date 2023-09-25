@@ -29,31 +29,6 @@ namespace Stormancer
 	namespace Reports
 	{
 
-		struct ReportsDocument
-		{
-			/// <summary>
-			/// Type of the event
-			/// </summary>
-			std::string type;
-
-			/// <summary>
-			/// Json content of the document.
-			/// </summary>
-			std::string content;
-
-			/// <summary>
-			/// Category
-			/// </summary>
-			std::string category;
-
-			/// <summary>
-			/// timestamp
-			/// </summary>
-			long event_timestamp;
-
-			MSGPACK_DEFINE(type, content, category, event_timestamp)
-		};
-
 
 		class ReportsPlugin;
 

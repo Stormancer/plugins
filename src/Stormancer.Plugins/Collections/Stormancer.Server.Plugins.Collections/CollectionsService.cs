@@ -113,6 +113,26 @@ namespace Stormancer.Server.Plugins.Collections
         /// <returns></returns>
         Task<Dictionary<string, CollectableItemDefinition>> GetItemDefinitionsAsync(CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Resets the collection of a player.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="cancellationToken"></param>
+        /// <remarks>
+        /// The operation cannot be undone!
+        /// </remarks>
+        /// <returns></returns>
+        Task ResetAsync(string userId, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Locks an item which was unlocked by the user.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="itemId"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task LockAsync(string userId,string itemId, CancellationToken cancellationToken);
+
     }
     internal class CollectionsService : ICollectionService
     {
@@ -204,6 +224,28 @@ namespace Stormancer.Server.Plugins.Collections
             }
 
             return results;
+        }
+
+        public async Task ResetAsync(string userId, CancellationToken cancellationToken)
+        {
+            var guid = Guid.Parse(userId);
+            var dbContext = await this._dbContextAccessor.GetDbContextAsync("default", cancellationToken);
+
+            var set = dbContext.Set<CollectionItemRecord>();
+            await set.Where(item => item.UserId == guid).ExecuteDeleteAsync(cancellationToken);
+
+            await dbContext.SaveChangesAsync();
+        }
+
+        public async Task LockAsync(string userId, string itemId, CancellationToken cancellationToken)
+        {
+            var guid = Guid.Parse(userId);
+            var dbContext = await this._dbContextAccessor.GetDbContextAsync("default", cancellationToken);
+
+            var set = dbContext.Set<CollectionItemRecord>();
+            await set.Where(item => item.UserId == guid && item.ItemId == itemId).ExecuteDeleteAsync(cancellationToken);
+
+            await dbContext.SaveChangesAsync();
         }
     }
 }

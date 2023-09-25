@@ -14,3 +14,4 @@ Unreleased
 Added
 *****
 - initial Collections release
+- Unlock, lock and reset items in the collection.
