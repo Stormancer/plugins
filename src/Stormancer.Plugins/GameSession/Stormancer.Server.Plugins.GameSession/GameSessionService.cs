@@ -1052,7 +1052,7 @@ namespace Stormancer.Server.Plugins.GameSession
             }
         }
 
-        public DateTime OnCreated => throw new NotImplementedException();
+        public DateTime OnCreated { get; }= DateTime.UtcNow;
 
         public void SetDimension(string dimension, string value)
         {
