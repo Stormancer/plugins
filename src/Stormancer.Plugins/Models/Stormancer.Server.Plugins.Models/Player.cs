@@ -31,17 +31,17 @@ namespace Stormancer.Server.Plugins.Models
     /// </summary>
     public class Player
     {
-      
+
         public Player()
         {
         }
 
-        public Player(string sessionId, string userId, byte[] data = null)
+        public Player(string sessionId, string userId, byte[]? data = null)
         {
             UserId = userId;
             SessionId = sessionId;
-            
-            if(data== null)
+
+            if (data == null)
             {
                 Data = Array.Empty<byte>();
             }
@@ -49,7 +49,7 @@ namespace Stormancer.Server.Plugins.Models
             {
                 Data = data;
             }
-            
+
         }
 
         [MessagePackMember(0)]
