@@ -298,23 +298,23 @@ namespace Stormancer.Server.Plugins.Steam
 
         private async Task RemoveUserFromLobby(ConcurrentDictionary<string, object> serverData, SessionId sessionId)
         {
-            if (serverData.TryGetValue(PartyLobbyKey, out var dataObject))
-            {
-                var data = (SteamPartyData)dataObject;
-                if (data != null && data.SteamIDLobby != null && data.UserData.TryGetValue(sessionId, out var steamUserData))
-                {
+            //if (serverData.TryGetValue(PartyLobbyKey, out var dataObject))
+            //{
+            //    var data = (SteamPartyData)dataObject;
+            //    if (data != null && data.SteamIDLobby != null && data.UserData.TryGetValue(sessionId, out var steamUserData))
+            //    {
 
-                    await _steamService.RemoveUserFromLobby(data.AppId,steamUserData.SteamId, data.SteamIDLobby.Value);
+            //        await _steamService.RemoveUserFromLobby(data.AppId,steamUserData.SteamId, data.SteamIDLobby.Value);
 
-                    data.UserData.TryRemove(sessionId, out var _);
+            //        data.UserData.TryRemove(sessionId, out var _);
 
-                    if (data.UserData.Count == 0)
-                    {
-                        data.SteamIDLobby = 0;
-                    }
+            //        if (data.UserData.Count == 0)
+            //        {
+            //            data.SteamIDLobby = 0;
+            //        }
 
-                }
-            }
+            //    }
+            //}
         }
     }
 }
