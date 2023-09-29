@@ -17,6 +17,7 @@ namespace Stormancer.Server.Plugins.PlayerReports
             _sessions = sessions;
         }
 
+        [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task CreatePlayerReport(string targetUserId,string message, JObject customData, RequestContext<IScenePeerClient> ctx)
         {
             var session = await _sessions.GetSession(ctx.RemotePeer,ctx.CancellationToken);
