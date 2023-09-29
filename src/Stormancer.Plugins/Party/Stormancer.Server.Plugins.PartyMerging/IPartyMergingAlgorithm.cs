@@ -1,4 +1,5 @@
-﻿using Stormancer.Server.Plugins.Models;
+﻿using Newtonsoft.Json.Linq;
+using Stormancer.Server.Plugins.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,6 +8,25 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.PartyMerging
 {
+    /// <summary>
+    /// A Party merging command.
+    /// </summary>
+    public class MergingCommand
+    {
+        internal MergingCommand(Models.Party from, Models.Party into, JObject customData)
+        {
+            From = from;
+            Into = into;
+            CustomData = customData;
+        }
+        public Models.Party From { get;  }
+        public Models.Party Into { get; }
+        public JObject CustomData { get; }
+    }
+
+    /// <summary>
+    /// Context passed to a Party merging algorithm.
+    /// </summary>
     public class PartyMergingContext
     {
         internal PartyMergingContext(IEnumerable<Models.Party> parties)
@@ -22,16 +42,17 @@ namespace Stormancer.Server.Plugins.PartyMerging
         /// <summary>
         /// Party merging commands that should be attempted
         /// </summary>
-        internal Dictionary<string, string> MergingCommands { get; } = new Dictionary<string, string>();
+        public Dictionary<string, MergingCommand> MergingCommands { get; } = new Dictionary<string, MergingCommand>();
 
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="from"></param>
-        /// <param name="into"></param>
-        public void TryMerge(Models.Party from, Models.Party into)
+        /// <param name="from">Party the players are moved from as part of the merging operation.</param>
+        /// <param name="into">Party the players are moved to as part of the merging operation.</param>
+        /// <param name="customData">Custom data passed to the into party when a reservation for the players from the 'from' party is created.</param>
+        public void Merge(Models.Party from, Models.Party into, JObject customData)
         {
-            MergingCommands.Add(from.PartyId, into.PartyId);
+            MergingCommands.Add(from.PartyId, new MergingCommand(from,into, customData));
         }
     }
 

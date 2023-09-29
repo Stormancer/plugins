@@ -388,7 +388,7 @@ namespace Stormancer.Server.Plugins.Party
 
     public class PartyReservation
     { 
-        public IEnumerable<Models.Player> PartyMember { get; set; }
+        public IEnumerable<Models.Player> PartyMembers { get; set; }
 
         public JObject CustomData { get; set; }
     }

@@ -1,6 +1,10 @@
-﻿using Stormancer.Core;
+﻿using Newtonsoft.Json.Linq;
+using Stormancer.Core;
+using Stormancer.Server.Plugins.Models;
+using Stormancer.Server.Plugins.Party;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -16,22 +20,32 @@ namespace Stormancer.Server.Plugins.PartyMerging
         {
             public PartyMergingState(string partyId, CancellationToken cancellationToken)
             {
-                _partyId = partyId;
+                PartyId = partyId;
                 LinkCancellationToken(cancellationToken);
             }
-            private readonly TaskCompletionSource _completedTcs = new TaskCompletionSource( TaskCreationOptions.RunContinuationsAsynchronously);
-            private readonly string _partyId;
+            private readonly TaskCompletionSource<string> _completedTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
             private CancellationTokenSource _cts;
-            public Task WhenCompletedAsync()
+
+            public string PartyId { get; }
+
+            public bool IsCancellationRequested => _cts.IsCancellationRequested;
+            public Task<string> WhenCompletedAsync()
             {
                 return _completedTcs.Task;
+            }
+
+            public void Complete()
+            {
+                _completedTcs.TrySetResult();
             }
             public void Dispose()
             {
                 _completedTcs.TrySetException(new OperationCanceledException());
                 _cts.Dispose();
             }
-            
+
+            [MemberNotNull("_cts")]
             internal void LinkCancellationToken(CancellationToken cancellationToken)
             {
                 if (_cts != null)
@@ -42,20 +56,23 @@ namespace Stormancer.Server.Plugins.PartyMerging
                 {
                     _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 }
-                _cts.Regi
+
             }
         }
         private readonly ISceneHost _scene;
-
+        private readonly IPartyMergingAlgorithm _algorithm;
+        private readonly PartyProxy _parties;
         private readonly object _syncRoot = new object();
         private readonly Dictionary<string, PartyMergingState> _states = new Dictionary<string, PartyMergingState>();
 
-        public PartyMergingService(ISceneHost scene)
+        public PartyMergingService(ISceneHost scene, IPartyMergingAlgorithm algorithm, PartyProxy parties)
         {
             _scene = scene;
+            _algorithm = algorithm;
+            _parties = parties;
         }
 
-        public async Task StartMergeParty(string partyId, CancellationToken cancellationToken)
+        public async Task<string> StartMergeParty(string partyId, CancellationToken cancellationToken)
         {
             try
             {
@@ -76,17 +93,43 @@ namespace Stormancer.Server.Plugins.PartyMerging
                 using (state)
                 {
 
-                    await state.WhenCompletedAsync();
+                    return await state.WhenCompletedAsync();
                 }
-                
+
             }
             finally
             {
-                lock(_syncRoot)
+                lock (_syncRoot)
                 {
                     _states.Remove(partyId);
                 }
             }
+        }
+
+
+        public async Task Merge(CancellationToken cancellationToken)
+        {
+            IEnumerable<Task<Models.Party>> tasks;
+            lock (_syncRoot)
+            {
+
+
+                tasks = _states.Where(kvp => !kvp.Value.IsCancellationRequested).Select(kvp => _parties.GetModel(kvp.Key, cancellationToken))
+             }
+
+            var models = await Task.WhenAll(tasks);
+
+
+            var ctx = new PartyMergingContext(models);
+            await _algorithm.Merge(ctx);
+
+            
+        }
+
+        private async Task MergeAsync(Models.Party partyFrom, Models.Party partyTo, JObject customData,CancellationToken cancellationToken)
+        {
+            var reservation = new PartyReservation { PartyMembers = partyFrom.Players.Values, CustomData = customData   };
+            await  _parties.CreateReservation(partyTo.PartyId, reservation, cancellationToken);
         }
     }
 }
