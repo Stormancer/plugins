@@ -222,7 +222,7 @@ namespace Stormancer.Server.Plugins.GameSession
         private readonly ConcurrentDictionary<string, Client> _clients = new();
         private ServerStatus _status = ServerStatus.WaitingPlayers;
         // A source that is canceled when the game session is complete
-        private readonly CancellationTokenSource _gameCompleteCts = new();
+        private CancellationTokenSource? _gameCompleteCts = new();
 
         //set to true to indicate a player connected to the session at least once.
         private bool _playerConnectedOnce = false;
@@ -732,7 +732,7 @@ namespace Stormancer.Server.Plugins.GameSession
                                 await using (var scope = _scene.CreateRequestScope())
                                 {
                                     var pools = scope.Resolve<ServerPoolProxy>();
-                                    _gameCompleteCts.Cancel();
+                                    _gameCompleteCts?.Cancel();
                                     await pools.CloseServer(_server.GameServerId, CancellationToken.None);
                                     _repository.RemoveGameSession(this);
                                     _scene.Shutdown("gamesession.empty");
@@ -744,7 +744,7 @@ namespace Stormancer.Server.Plugins.GameSession
                         {
                             if (!_scene.RemotePeers.Any())
                             {
-                                _gameCompleteCts.Cancel();
+                                _gameCompleteCts?.Cancel();
                                 _repository.RemoveGameSession(this);
                                 _scene.Shutdown("gamesession.empty");
                             }
@@ -758,7 +758,10 @@ namespace Stormancer.Server.Plugins.GameSession
                 await using (var scope = _scene.CreateRequestScope())
                 {
                     var pools = scope.Resolve<ServerPoolProxy>();
-
+                    if(_gameCompleteCts == null)
+                    {
+                        return false;
+                    }
                     try
                     {
                         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
@@ -794,10 +797,15 @@ namespace Stormancer.Server.Plugins.GameSession
                                         {
                                             await pools.CloseServer(_server.GameServerId, CancellationToken.None);
                                         }
-
-                                        _gameCompleteCts.Cancel();
                                         _repository.RemoveGameSession(this);
-                                        _scene.Shutdown("gameserver.didnotconnect");
+                                        if (_gameCompleteCts != null)
+                                        {
+                                            _gameCompleteCts?.Cancel();
+                                            _scene.Shutdown("gameserver.didnotconnect");
+                                        }
+                                        
+                                        _repository.RemoveGameSession(this);
+                                       
                                     }
                                     return;
                                 }
@@ -813,9 +821,14 @@ namespace Stormancer.Server.Plugins.GameSession
                                             await pools.CloseServer(_server.GameServerId, CancellationToken.None);
                                         }
 
-                                        _gameCompleteCts.Cancel();
+                                        if (_gameCompleteCts != null)
+                                        {
+                                            _gameCompleteCts?.Cancel();
+                                            _scene.Shutdown("gamesession.empty");
+                                        }
+
                                         _repository.RemoveGameSession(this);
-                                        _scene.Shutdown("gamesession.empty");
+                                      
                                     }
                                 }
                             }
@@ -1029,8 +1042,11 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private void RaiseGameCompleted()
         {
-            _gameCompleteCts.Cancel();
-            OnGameSessionCompleted?.Invoke();
+            if (_gameCompleteCts != null)
+            {
+                _gameCompleteCts.Cancel();
+                OnGameSessionCompleted?.Invoke();
+            }
         }
 
 
@@ -1190,7 +1206,10 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async ValueTask DisposeAsync()
         {
+            _repository.RemoveGameSession(this);
             _gameCompleteCts?.Dispose();
+            _gameCompleteCts = null;
+
             _reservationCleanupTimer?.Dispose();
             GetServerTcs().TrySetCanceled();
             await CloseGameServer();
@@ -1334,6 +1353,10 @@ namespace Stormancer.Server.Plugins.GameSession
         private bool _reservationCleanupRunning = false;
         private async Task ReservationCleanupCallback(object? userState)
         {
+            if(_gameCompleteCts == null)
+            {
+                return;
+            }
             if (!_reservationCleanupRunning && !_gameCompleteCts.IsCancellationRequested)
             {
                 _reservationCleanupRunning = true;

@@ -17,7 +17,7 @@ namespace Stormancer.Server.Plugins.Gameye
         public string? Image { get; set; }
         public string Region { get; set; } = "europe";
 
-        public Dictionary<string, string> RegionsMapping { get; set; }
+        public Dictionary<string, string> RegionsMapping { get; set; } = new Dictionary<string, string>();
 
         public override string type => "fromProvider";
     }

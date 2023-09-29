@@ -79,7 +79,7 @@ namespace Stormancer.Server.Plugins.PlayerReports
         /// <summary>
         /// Id of the scene hosting the reports service.
         /// </summary>
-        public const string SCENE_ID = "stormancer.reports";
+        public const string SCENE_ID = "stormancer-reports";
 
         /// <summary>
         /// Id the template of the reports service scene.
