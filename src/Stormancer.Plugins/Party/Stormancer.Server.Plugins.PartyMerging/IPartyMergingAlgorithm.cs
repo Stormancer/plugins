@@ -42,7 +42,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
         /// <summary>
         /// Party merging commands that should be attempted
         /// </summary>
-        public Dictionary<string, MergingCommand> MergingCommands { get; } = new Dictionary<string, MergingCommand>();
+        public Dictionary<string, MergingCommand> MergeCommands { get; } = new Dictionary<string, MergingCommand>();
 
         /// <summary>
         /// 
@@ -52,7 +52,17 @@ namespace Stormancer.Server.Plugins.PartyMerging
         /// <param name="customData">Custom data passed to the into party when a reservation for the players from the 'from' party is created.</param>
         public void Merge(Models.Party from, Models.Party into, JObject customData)
         {
-            MergingCommands.Add(from.PartyId, new MergingCommand(from,into, customData));
+            MergeCommands.Add(from.PartyId, new MergingCommand(from,into, customData));
+        }
+
+        /// <summary>
+        /// Returns a boolean indicating whether the party in argument as already been merged during the current pass.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <returns></returns>
+        public bool IsMerged(Models.Party from)
+        {
+            return MergeCommands.ContainsKey(from.PartyId);
         }
     }
 

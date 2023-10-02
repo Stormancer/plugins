@@ -26,7 +26,7 @@ using System;
 namespace Stormancer.Server.Plugins.GameFinder
 {
     /// <summary>
-    /// Config for gamefinders.
+    /// Config for game finders.
     /// </summary>
     public class GameFinderConfig
     {

@@ -216,10 +216,10 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql", "Database\Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql\Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql.csproj", "{ABABF792-049E-440B-B5EA-E3A2A843BE39}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.PartyMerging", "Party\Stormancer.Server.Plugins.PartyMerging\Stormancer.Server.Plugins.PartyMerging.csproj", "{DC85B852-8EEF-4456-A49A-4E98F98E58E7}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PlayerReports", "PlayerReports", "{DFE41F7E-E806-4B1E-8942-9DDE4432E2F7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.PlayerReports", "PlayerReports\Stormancer.Server.Plugins.PlayerReports\Stormancer.Server.Plugins.PlayerReports.csproj", "{317DACE8-36D3-498F-8B4E-51BF328A7CA6}"
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.PartyMerging", "Party\Stormancer.Server.Plugins.PartyMerging\Stormancer.Server.Plugins.PartyMerging.csproj", "{DC85B852-8EEF-4456-A49A-4E98F98E58E7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.PlayerReports", "PlayerReports\Stormancer.Server.Plugins.PlayerReports\Stormancer.Server.Plugins.PlayerReports.csproj", "{317DACE8-36D3-498F-8B4E-51BF328A7CA6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -858,18 +858,6 @@ Global
 		{317DACE8-36D3-498F-8B4E-51BF328A7CA6}.Release|x64.Build.0 = Release|Any CPU
 		{317DACE8-36D3-498F-8B4E-51BF328A7CA6}.Release|x86.ActiveCfg = Release|Any CPU
 		{317DACE8-36D3-498F-8B4E-51BF328A7CA6}.Release|x86.Build.0 = Release|Any CPU
-		{DC85B852-8EEF-4456-A49A-4E98F98E58E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DC85B852-8EEF-4456-A49A-4E98F98E58E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DC85B852-8EEF-4456-A49A-4E98F98E58E7}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{DC85B852-8EEF-4456-A49A-4E98F98E58E7}.Debug|x64.Build.0 = Debug|Any CPU
-		{DC85B852-8EEF-4456-A49A-4E98F98E58E7}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{DC85B852-8EEF-4456-A49A-4E98F98E58E7}.Debug|x86.Build.0 = Debug|Any CPU
-		{DC85B852-8EEF-4456-A49A-4E98F98E58E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DC85B852-8EEF-4456-A49A-4E98F98E58E7}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DC85B852-8EEF-4456-A49A-4E98F98E58E7}.Release|x64.ActiveCfg = Release|Any CPU
-		{DC85B852-8EEF-4456-A49A-4E98F98E58E7}.Release|x64.Build.0 = Release|Any CPU
-		{DC85B852-8EEF-4456-A49A-4E98F98E58E7}.Release|x86.ActiveCfg = Release|Any CPU
-		{DC85B852-8EEF-4456-A49A-4E98F98E58E7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -966,7 +954,6 @@ Global
 		{DC85B852-8EEF-4456-A49A-4E98F98E58E7} = {B3DAD533-ED3E-47F8-848F-9D864267C349}
 		{DFE41F7E-E806-4B1E-8942-9DDE4432E2F7} = {FD264C24-4E01-4B1E-B5A1-489EC1C376E4}
 		{317DACE8-36D3-498F-8B4E-51BF328A7CA6} = {DFE41F7E-E806-4B1E-8942-9DDE4432E2F7}
-		{DC85B852-8EEF-4456-A49A-4E98F98E58E7} = {B3DAD533-ED3E-47F8-848F-9D864267C349}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}

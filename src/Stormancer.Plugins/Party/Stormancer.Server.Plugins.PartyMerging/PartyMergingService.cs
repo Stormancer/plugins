@@ -62,14 +62,16 @@ namespace Stormancer.Server.Plugins.PartyMerging
         private readonly ISceneHost _scene;
         private readonly IPartyMergingAlgorithm _algorithm;
         private readonly PartyProxy _parties;
+        private readonly IPartyManagementService _partyManagement;
         private readonly object _syncRoot = new object();
         private readonly Dictionary<string, PartyMergingState> _states = new Dictionary<string, PartyMergingState>();
 
-        public PartyMergingService(ISceneHost scene, IPartyMergingAlgorithm algorithm, PartyProxy parties)
+        public PartyMergingService(ISceneHost scene, IPartyMergingAlgorithm algorithm, PartyProxy parties, IPartyManagementService partyManagement)
         {
             _scene = scene;
             _algorithm = algorithm;
             _parties = parties;
+            _partyManagement = partyManagement;
         }
 
         public async Task<string> StartMergeParty(string partyId, CancellationToken cancellationToken)
@@ -114,7 +116,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
             {
 
 
-                tasks = _states.Where(kvp => !kvp.Value.IsCancellationRequested).Select(kvp => _parties.GetModel(kvp.Key, cancellationToken))
+                tasks = _states.Where(kvp => !kvp.Value.IsCancellationRequested).Select(kvp => _parties.GetModel(kvp.Key, cancellationToken));
              }
 
             var models = await Task.WhenAll(tasks);
@@ -123,13 +125,22 @@ namespace Stormancer.Server.Plugins.PartyMerging
             var ctx = new PartyMergingContext(models);
             await _algorithm.Merge(ctx);
 
-            
+            var completedPartyIds = new List<string>();
+            foreach(var mergeCommand in ctx.MergeCommands)
+            {
+                MergeAsync(mergeCommand.Value.From, mergeCommand.Value.Into)
+            }
         }
 
-        private async Task MergeAsync(Models.Party partyFrom, Models.Party partyTo, JObject customData,CancellationToken cancellationToken)
+        private async Task<Result<string,string>> MergeAsync(Models.Party partyFrom, Models.Party partyTo, JObject customData,CancellationToken cancellationToken)
         {
             var reservation = new PartyReservation { PartyMembers = partyFrom.Players.Values, CustomData = customData   };
             await  _parties.CreateReservation(partyTo.PartyId, reservation, cancellationToken);
+
+            return await _partyManagement.CreateConnectionTokenFromPartyId(partyTo.PartyId, Memory<byte>.Empty, cancellationToken);
+
+           
+            
         }
     }
 }

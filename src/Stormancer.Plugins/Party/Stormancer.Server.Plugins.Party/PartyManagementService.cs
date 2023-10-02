@@ -93,12 +93,12 @@ namespace Stormancer.Server.PartyManagement
         }
 
 
-        public Task<string?> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode, byte[] userData, CancellationToken cancellationToken)
+        public Task<string?> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode, Memory<byte> userData, CancellationToken cancellationToken)
         {
-            return invitationCodes.CreateConnectionTokenFromInvitationCodeAsync(invitationCode, userData, cancellationToken);
+            return invitationCodes.CreateConnectionTokenFromInvitationCodeAsync(invitationCode, userData.ToArray(), cancellationToken);
         }
 
-        public async Task<Result<string, string>> CreateConnectionTokenFromPartyId(string partyId, byte[] userData, CancellationToken cancellationToken)
+        public async Task<Result<string, string>> CreateConnectionTokenFromPartyId(string partyId, Memory<byte> userData, CancellationToken cancellationToken)
         {
             string? sceneUri;
             //HACK Windjammers 2. REMOVE
@@ -116,7 +116,7 @@ namespace Stormancer.Server.PartyManagement
                 sceneUri = partyId;
             }
 
-            var result = await _management.CreateConnectionTokenAsync(sceneUri, userData, "party/userdata", cancellationToken);
+            var result = await _management.CreateConnectionTokenAsync(sceneUri, userData.ToArray(), "party/userdata", cancellationToken);
 
             if (result.Success)
             {
