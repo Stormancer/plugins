@@ -25,6 +25,7 @@ Added
 Changed
 *******
 - Removed a retry when creating a game session.
+- Declared game servers as "service" clients to disable client related features, for instance version checking.
 
 Fixed
 *****
