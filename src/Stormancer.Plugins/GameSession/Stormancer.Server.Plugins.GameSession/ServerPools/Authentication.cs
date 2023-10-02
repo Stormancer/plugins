@@ -48,6 +48,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             //result.Add("provider.dedicatedServer", "enabled");
         }
 
+        public Task Authenticating(LoggingInCtx loggingInCtx)
+        {
+            loggingInCtx.Context = "service";
+            return Task.CompletedTask;
+        }
+
         public async Task<AuthenticationResult> Authenticate(AuthenticationContext authenticationCtx, CancellationToken ct)
         {
             var token = authenticationCtx.Parameters["token"];
@@ -100,6 +106,13 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         {
 
         }
+
+        public Task Authenticating(LoggingInCtx loggingInCtx)
+        {
+            loggingInCtx.Context = "service";
+            return Task.CompletedTask;
+        }
+
 
         public void AddMetadata(Dictionary<string, string> result)
         {
