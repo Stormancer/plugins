@@ -211,6 +211,10 @@ namespace Stormancer.Server.Plugins.Collections
 
             var results = new Dictionary<string, IEnumerable<string>>();
 
+            foreach(var userId in userIds)
+            {
+                results.Add(userId, new List<string>());
+            }
             foreach(var item in items)
             {
                 if(!results.TryGetValue(item.User.Id.ToString("N"), out var itemList))

@@ -15,3 +15,7 @@ Added
 *****
 - initial Collections release
 - Unlock, lock and reset items in the collection.
+
+Fixed
+*****
+- GetCollectionsAsync should always return an entry per provided user id, even if no unlocked items were found for this entry.
