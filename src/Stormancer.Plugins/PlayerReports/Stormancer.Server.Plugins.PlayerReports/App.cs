@@ -50,7 +50,8 @@ namespace Stormancer.Server.Plugins.PlayerReports
             };
             ctx.SceneCreating += (ISceneHost scene) =>
             {
-                if(scene.Metadata.ContainsKey(PlayerReportsConstants.METADATA_ID))
+                scene.DependencyResolver.Resolve<ILogger>().Log(LogLevel.Error, "test", "Adding player reports controller.", new { sceneId = scene.Id, metadata = scene.Metadata });
+                if (scene.Metadata.ContainsKey(PlayerReportsConstants.METADATA_ID))
                 {
                     scene.DependencyResolver.Resolve<ILogger>().Log(LogLevel.Error,"test", "Added player reports controller.", new { });
                     scene.AddController<ReportsController>();
