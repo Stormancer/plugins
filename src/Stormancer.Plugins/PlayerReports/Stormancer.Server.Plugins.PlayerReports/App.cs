@@ -50,13 +50,13 @@ namespace Stormancer.Server.Plugins.PlayerReports
             {
                 host.EnsureSceneExists(PlayerReportsConstants.SCENE_ID, PlayerReportsConstants.TEMPLATE_ID, false, true);
             };
-            ctx.SceneCreating += (ISceneHost scene) =>
+            ctx.SceneCreated += (ISceneHost scene) =>
             {
 
-                _host?.DependencyResolver.Resolve<ILogger>().Log(LogLevel.Error, "test", "Adding player reports controller.", new { sceneId = scene.Id, metadata = scene.Metadata });
+                //_host?.DependencyResolver.Resolve<ILogger>().Log(LogLevel.Error, "test", "Adding player reports controller.", new { sceneId = scene.Id, metadata = scene.Metadata });
                 if (scene.Metadata.ContainsKey(PlayerReportsConstants.METADATA_ID))
                 {
-                    _host?.DependencyResolver.Resolve<ILogger>().Log(LogLevel.Error,"test", "Added player reports controller.", new { });
+                    //_host?.DependencyResolver.Resolve<ILogger>().Log(LogLevel.Error,"test", "Added player reports controller.", new { });
                     scene.AddController<ReportsController>();
                 }
             
