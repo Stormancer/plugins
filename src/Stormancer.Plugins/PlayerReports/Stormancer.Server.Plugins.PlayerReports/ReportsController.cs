@@ -24,6 +24,7 @@ namespace Stormancer.Server.Plugins.PlayerReports
             await _reports.CreatePlayerReportAsync(session.User.Id, targetUserId, message, customData, ctx.CancellationToken);
         }
 
+        [Api(ApiAccess.Public, ApiType.Rpc)]
         public Task CreateBugReport(string message, JObject customData, RequestContext<IScenePeerClient> ctx)
         {
             throw new ClientException("notImplemented");
