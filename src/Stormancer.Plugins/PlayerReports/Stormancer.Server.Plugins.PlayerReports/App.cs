@@ -5,6 +5,7 @@ using Stormancer.Core;
 using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
 using Stormancer.Server.Plugins.ServiceLocator;
 using System.Threading.Tasks;
+using Stormancer.Diagnostics;
 
 namespace Stormancer.Server.Plugins.PlayerReports
 {
@@ -51,6 +52,7 @@ namespace Stormancer.Server.Plugins.PlayerReports
             {
                 if(scene.Metadata.ContainsKey(PlayerReportsConstants.METADATA_ID))
                 {
+                    scene.DependencyResolver.Resolve<ILogger>().Log(LogLevel.Error,"test", "Added player reports controller.", new { });
                     scene.AddController<ReportsController>();
                 }
             
