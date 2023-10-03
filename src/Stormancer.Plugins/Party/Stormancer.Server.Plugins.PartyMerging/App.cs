@@ -37,7 +37,7 @@ namespace Stormancer.Server.Plugins.PartyFinder
             {
                 host.AddSceneTemplate(PartyMergingConstants.PARTYMERGER_TEMPLATE, scene =>
                 {
-                    scene.Metadata.Add(PartyMergingConstants.MERGER_METADATA_KEY,);
+                    scene.Metadata.Add(PartyMergingConstants.MERGER_METADATA_KEY, PartyMergingConstants.GetVersion());
                 });
             };
             PartyMergingConfigurationRepository? configs = null;
@@ -62,7 +62,7 @@ namespace Stormancer.Server.Plugins.PartyFinder
             {
                 if (scene.Metadata.TryGetValue(PartyConstants.METADATA_KEY, out _))
                 {
-                    scene.Metadata.Add(PartyMergingConstants.PARTY_METADATA_KEY,)
+                    scene.Metadata.Add(PartyMergingConstants.PARTY_METADATA_KEY, PartyMergingConstants.GetVersion());
                     }
             };
             ctx.SceneCreated += (ISceneHost scene) =>
@@ -110,7 +110,7 @@ namespace Stormancer.Server.Plugins.PartyFinder
         /// Gets the version of the party merging plugin.
         /// </summary>
         /// <returns></returns>
-        public string GetVersion()
+        public static string GetVersion()
         {
             return Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";
         }

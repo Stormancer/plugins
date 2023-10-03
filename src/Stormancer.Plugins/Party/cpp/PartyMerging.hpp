@@ -43,10 +43,10 @@ namespace Stormancer
 				}
 
 				template<class T>
-				pplx::task<void> start()
+				pplx::task<void> start(pplx::cancellation_token cancellationToken)
 				{
 					auto rpc = _rpc.lock();
-					return rpc->rpc("PartyMerging.Start", targetUserId, message, customContext);
+					return rpc->rpc("PartyMerging.Start",cancellationToken, targetUserId, message, customContext);
 
 				}
 
@@ -82,13 +82,14 @@ namespace Stormancer
 			friend class PartyMergingPlugin;
 		public:
 
-			PartyMergingApi(std::weak_ptr<Users::UsersApi> users)
+			PartyMergingApi(std::shared_ptr<Party::PartyApi> party)
+				:_partyApi(party)
 			{
 
 			}
-			pplx::task<void> start(pplx::cancellation_token = pplx::cancellation_token::none())
+			pplx::task<void> start(pplx::cancellation_token cancellationToken = pplx::cancellation_token::none())
 			{
-
+				return _partyApi.lock()->getPartyScene()->dependencyResolver().resolve<details::PartyMergingService>()->start(cancellationToken);
 			}
 
 			Stormancer::Event<std::string> onPartyConnectionTokenReceived;
@@ -105,7 +106,7 @@ namespace Stormancer
 
 
 		private:
-
+			std::weak_ptr<Party::PartyApi> _partyApi;
 		};
 
 		class PartyMergingPlugin : public Stormancer::IPlugin
@@ -138,7 +139,7 @@ namespace Stormancer
 			}
 			void registerClientDependencies(Stormancer::ContainerBuilder& builder) override
 			{
-				builder.registerDependency<Stormancer::PartyMerging::PartyMergingApi, Stormancer::Users::UsersApi>().as<Stormancer::PartyMerging::PartyMergingApi>().singleInstance();
+				builder.registerDependency<Stormancer::Party::PartyMergingApi, Stormancer::Users::UsersApi>().as<Stormancer::Party::PartyMergingApi>().singleInstance();
 			}
 
 
