@@ -33,7 +33,7 @@ namespace Stormancer
 
 		namespace details
 		{
-			class PartyMergingService
+			class PartyMergingService : public std::enable_shared_from_this<PartyMergingService>
 			{
 			public:
 
@@ -50,10 +50,26 @@ namespace Stormancer
 
 				}
 
+				void initialize(std::shared_ptr<Stormancer::Scene> scene)
+				{
+					std::weak_ptr<PartyMergingService> wThat = this->shared_from_this();
+					scene->addRoute("dt.playersConnected", [wThat](Packetisp_ptr packet) {
+						if (auto that = wThat.lock())
+						{
+							Serializer serializer;
+							auto connectionToken = serializer.deserializeOne<std::string>(packet->stream);
 
+							that->raiseConnectionTokenReceived(connectionToken);
+						}
+					});
+				}
 
 			private:
 
+				void raiseConnectionTokenReceived(std::string connectionToken)
+				{
+
+				}
 
 				std::weak_ptr<RpcService> _rpc;
 			};
