@@ -43,17 +43,17 @@ namespace Stormancer
 				}
 
 				template<class T>
-				pplx::task<void> createPlayerReport(std::string targetUserId, std::string message, T& customContext)
+				pplx::task<void> start()
 				{
 					auto rpc = _rpc.lock();
-					return rpc->rpc("PartyMerging.CreatePlayerReport", targetUserId, message, customContext);
+					return rpc->rpc("PartyMerging.Start", targetUserId, message, customContext);
 
 				}
 
 				void initialize(std::shared_ptr<Stormancer::Scene> scene)
 				{
 					std::weak_ptr<PartyMergingService> wThat = this->shared_from_this();
-					scene->addRoute("dt.playersConnected", [wThat](Packetisp_ptr packet) {
+					scene->addRoute("partyMerging.connectionToken", [wThat](Packetisp_ptr packet) {
 						if (auto that = wThat.lock())
 						{
 							Serializer serializer;
@@ -64,11 +64,12 @@ namespace Stormancer
 					});
 				}
 
+				Stormancer::Event<std::string> onPartyConnectionTokenReceived;
 			private:
 
 				void raiseConnectionTokenReceived(std::string connectionToken)
 				{
-
+					onPartyConnectionTokenReceived(connectionToken);
 				}
 
 				std::weak_ptr<RpcService> _rpc;
