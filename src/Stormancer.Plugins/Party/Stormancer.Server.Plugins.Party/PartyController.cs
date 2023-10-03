@@ -365,6 +365,7 @@ namespace Stormancer.Server.Plugins.Party
         
     }
 
+ 
     /// <summary>
     /// Advertised party status.
     /// </summary>

@@ -1178,6 +1178,14 @@ namespace Stormancer.Server.Plugins.Party
             invitationCodes.CancelCode(this._scene);
         }
 
+        public Task<Models.Party> GetModel()
+        {
+            throw new NotImplementedException();
+        }
 
+        public Task<bool> CreateReservation(PartyReservation reservation)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

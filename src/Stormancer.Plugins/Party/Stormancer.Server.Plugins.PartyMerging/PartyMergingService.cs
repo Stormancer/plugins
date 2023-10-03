@@ -2,6 +2,7 @@
 using Stormancer.Core;
 using Stormancer.Server.Plugins.Models;
 using Stormancer.Server.Plugins.Party;
+using Stormancer.Server.Plugins.Utilities.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -23,21 +24,21 @@ namespace Stormancer.Server.Plugins.PartyMerging
                 PartyId = partyId;
                 LinkCancellationToken(cancellationToken);
             }
-            private readonly TaskCompletionSource<string> _completedTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+            private readonly TaskCompletionSource<string?> _completedTcs = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             private CancellationTokenSource _cts;
 
             public string PartyId { get; }
 
             public bool IsCancellationRequested => _cts.IsCancellationRequested;
-            public Task<string> WhenCompletedAsync()
+            public Task<string?> WhenCompletedAsync()
             {
                 return _completedTcs.Task;
             }
 
-            public void Complete()
+            public void Complete(string? connectionToken)
             {
-                _completedTcs.TrySetResult();
+                _completedTcs.TrySetResult(connectionToken);
             }
             public void Dispose()
             {
@@ -74,7 +75,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
             _partyManagement = partyManagement;
         }
 
-        public async Task<string> StartMergeParty(string partyId, CancellationToken cancellationToken)
+        public async Task<string?> StartMergeParty(string partyId, CancellationToken cancellationToken)
         {
             try
             {
@@ -125,22 +126,44 @@ namespace Stormancer.Server.Plugins.PartyMerging
             var ctx = new PartyMergingContext(models);
             await _algorithm.Merge(ctx);
 
-            var completedPartyIds = new List<string>();
-            foreach(var mergeCommand in ctx.MergeCommands)
+
+            var results = await Task.WhenAll(ctx.MergeCommands.Select(cmd => MergeAsync(cmd.Value.From, cmd.Value.Into, cmd.Value.CustomData, cancellationToken)));
+
+
+            foreach(var partyId in results.Distinct().WhereNotNull())
             {
-                MergeAsync(mergeCommand.Value.From, mergeCommand.Value.Into)
+                if (_states.TryGetValue(partyId, out var state))
+                {
+                    state.Complete(null);
+                }
             }
         }
 
-        private async Task<Result<string,string>> MergeAsync(Models.Party partyFrom, Models.Party partyTo, JObject customData,CancellationToken cancellationToken)
+        private async Task<string?> MergeAsync(Models.Party partyFrom, Models.Party partyTo, JObject customData,CancellationToken cancellationToken)
         {
-            var reservation = new PartyReservation { PartyMembers = partyFrom.Players.Values, CustomData = customData   };
-            await  _parties.CreateReservation(partyTo.PartyId, reservation, cancellationToken);
+            var result = await _partyManagement.CreateConnectionTokenFromPartyId(partyTo.PartyId, Memory<byte>.Empty, cancellationToken);
 
-            return await _partyManagement.CreateConnectionTokenFromPartyId(partyTo.PartyId, Memory<byte>.Empty, cancellationToken);
-
-           
             
+           
+            if(result.Success)
+            {
+                var reservation = new PartyReservation { PartyMembers = partyFrom.Players.Values, CustomData = customData };
+                await _parties.CreateReservation(partyTo.PartyId, reservation, cancellationToken);
+
+
+                lock (_syncRoot)
+                {
+                    if(_states.TryGetValue(partyFrom.PartyId, out var state))
+                    {
+                        state.Complete(result.Value);
+                    }
+                    return partyTo.PartyId;
+                }
+            }
+            else
+            {
+                return null;
+            }
         }
     }
 }

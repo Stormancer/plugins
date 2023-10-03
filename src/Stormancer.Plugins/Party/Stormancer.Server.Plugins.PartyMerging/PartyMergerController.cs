@@ -1,7 +1,9 @@
-﻿using Stormancer.Plugins;
+﻿using Stormancer.Core;
+using Stormancer.Plugins;
 using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Party;
 using Stormancer.Server.Plugins.Party.Dto;
+using Stormancer.Server.Plugins.PartyFinder;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,8 +16,8 @@ namespace Stormancer.Server.Plugins.PartyMerging
     /// <summary>
     /// Controller exposing the internal APIs of party merger scenes.
     /// </summary>
-    [Service(Named =true,ServiceType ="Stormancer.PartyMerger")]
-    internal class PartyMergerController
+    [Service(Named =true,ServiceType = PartyMergingConstants.PARTYMERGER_SERVICE_TYPE)]
+    internal class PartyMergerController : ControllerBase
     {
         private readonly PartyMergingService _service;
 
@@ -25,7 +27,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
         }
 
         [S2SApi]
-        public  Task Merge(string partyId, CancellationToken cancellationToken)
+        public  Task<string?> Merge(string partyId, CancellationToken cancellationToken)
         {
             return _service.StartMergeParty(partyId, cancellationToken);
         }
@@ -35,15 +37,19 @@ namespace Stormancer.Server.Plugins.PartyMerging
     /// <summary>
     /// Controller providing party merging APIs  to clients on parties.
     /// </summary>
-    internal class PartyMergingController
+    internal class PartyMergingController : ControllerBase
     {
         private readonly IPartyService _party;
         private readonly PartyMergerProxy _partyMerger;
+        private readonly ISceneHost _scene;
+        private readonly ISerializer _serializer;
 
-        public PartyMergingController(IPartyService party, PartyMergerProxy partyMerger)
+        public PartyMergingController(IPartyService party, PartyMergerProxy partyMerger, ISceneHost scene, ISerializer serializer)
         {
             _party = party;
             _partyMerger = partyMerger;
+            _scene = scene;
+            _serializer = serializer;
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
@@ -72,7 +78,12 @@ namespace Stormancer.Server.Plugins.PartyMerging
                     }, cancellationToken);
 
 
-                    await _partyMerger.Merge(partyMergerId, _party.PartyId, cancellationToken);
+                    var connectionToken = await _partyMerger.Merge(partyMergerId, _party.PartyId, cancellationToken);
+
+                    await _scene.Send(new MatchArrayFilter(_party.PartyMembers.Where(kvp => kvp.Value.ConnectionStatus == Party.Model.PartyMemberConnectionStatus.Connected).Select(kvp => kvp.Key)),
+                        "partyMerging.connectionToken",
+                        s=>_serializer.Serialize(connectionToken,s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+                   
 
                     await _party.UpdateSettings(state =>
                     {

@@ -67,5 +67,14 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// Number of players represented by this user.
         /// </summary>
         public List<LocalPlayerInfos> LocalPlayers { get; set; } = default!;
+
+        public PartyMemberConnectionStatus ConnectionStatus { get; set; }
+    }
+
+    public enum PartyMemberConnectionStatus
+    {
+        Disconnected = 0,
+        Reservation = 1,
+        Connected = 2
     }
 }
