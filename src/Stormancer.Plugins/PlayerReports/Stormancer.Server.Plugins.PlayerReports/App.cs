@@ -37,8 +37,10 @@ namespace Stormancer.Server.Plugins.PlayerReports
                 builder.Register<PlayerReportsServiceLocator>().As<IServiceLocatorProvider>();
 
             };
+            IHost? _host = null;
             ctx.HostStarting += (IHost host) =>
             {
+                _host = host;
                 host.AddSceneTemplate(PlayerReportsConstants.TEMPLATE_ID, scene =>
                 {
                     scene.Metadata.Add(PlayerReportsConstants.METADATA_ID, Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0");
@@ -50,10 +52,11 @@ namespace Stormancer.Server.Plugins.PlayerReports
             };
             ctx.SceneCreating += (ISceneHost scene) =>
             {
-                scene.DependencyResolver.Resolve<ILogger>().Log(LogLevel.Error, "test", "Adding player reports controller.", new { sceneId = scene.Id, metadata = scene.Metadata });
+
+                _host?.DependencyResolver.Resolve<ILogger>().Log(LogLevel.Error, "test", "Adding player reports controller.", new { sceneId = scene.Id, metadata = scene.Metadata });
                 if (scene.Metadata.ContainsKey(PlayerReportsConstants.METADATA_ID))
                 {
-                    scene.DependencyResolver.Resolve<ILogger>().Log(LogLevel.Error,"test", "Added player reports controller.", new { });
+                    _host?.DependencyResolver.Resolve<ILogger>().Log(LogLevel.Error,"test", "Added player reports controller.", new { });
                     scene.AddController<ReportsController>();
                 }
             
