@@ -22,10 +22,12 @@ Added
 - Added property `CreatedOn` on `IGamesessionService` to get the UTC date the gamesession was created.
 - Added Session to context of `IGameSessionEventHandler.OnGameSessionCompleted`.
 - Added support for regions.
+
 Changed
 *******
 - Removed a retry when creating a game session.
 - Declared game servers as "service" clients to disable client related features, for instance version checking.
+- Compatibility with Player models 4.0.0
 
 Fixed
 *****

@@ -42,11 +42,11 @@ namespace Stormancer
 				{
 				}
 
-				template<class T>
+
 				pplx::task<void> start(pplx::cancellation_token cancellationToken)
 				{
 					auto rpc = _rpc.lock();
-					return rpc->rpc("PartyMerging.Start",cancellationToken, targetUserId, message, customContext);
+					return rpc->rpc("PartyMerging.Start", cancellationToken);
 
 				}
 
@@ -77,7 +77,7 @@ namespace Stormancer
 		}
 
 		class PartyMergingPlugin;
-		class PartyMergingApi 
+		class PartyMergingApi : public std::enable_shared_from_this<PartyMergingApi>
 		{
 			friend class PartyMergingPlugin;
 		public:
@@ -93,20 +93,54 @@ namespace Stormancer
 			}
 
 			Stormancer::Event<std::string> onPartyConnectionTokenReceived;
-			
+			Stormancer::Event<std::string> onMergePartyError;
+			Stormancer::Event<> onMergePartyComplete;
 
-			template<class T>
-			pplx::task<void> createPlayerReport(std::string targetUserId, std::string message, T& customContext)
-			{
-				return getService().then([targetUserId, message, customContext](std::shared_ptr<details::PartyMergingService> service)
-				{
-					return service->createPlayerReport(targetUserId, message, customContext);
-				});
-			}
 
 
 		private:
+			void initialize(std::shared_ptr<details::PartyMergingService> service)
+			{
+				auto wPartyApi = _partyApi;
+				std::weak_ptr<PartyMergingApi> wThis = this->shared_from_this();
+				onPartyConnectionTokenReceivedSubscription = service->onPartyConnectionTokenReceived.subscribe([wPartyApi, wThis](std::string connectionToken)
+				{
+					auto party = wPartyApi.lock();
+					
+
+					if (party != nullptr)
+					{
+
+						party->joinParty(connectionToken).then([wThis](pplx::task<void> t)
+						{
+							try
+							{
+								t.get();
+								if (auto that = wThis.lock())
+								{
+									that->onMergePartyComplete();
+								}
+							}
+							catch (std::exception& ex)
+							{
+								if (auto that = wThis.lock())
+								{
+									that->onMergePartyError(ex.what());
+								}
+							}
+
+						});
+
+					}
+				});
+			}
+			void shutdown()
+			{
+				onPartyConnectionTokenReceivedSubscription.reset();
+			}
 			std::weak_ptr<Party::PartyApi> _partyApi;
+
+			Stormancer::Subscription onPartyConnectionTokenReceivedSubscription;
 		};
 
 		class PartyMergingPlugin : public Stormancer::IPlugin
@@ -139,9 +173,38 @@ namespace Stormancer
 			}
 			void registerClientDependencies(Stormancer::ContainerBuilder& builder) override
 			{
-				builder.registerDependency<Stormancer::Party::PartyMergingApi, Stormancer::Users::UsersApi>().as<Stormancer::Party::PartyMergingApi>().singleInstance();
+				builder.registerDependency<Stormancer::Party::PartyMergingApi, Stormancer::Party::PartyApi>().as<Stormancer::Party::PartyMergingApi>().singleInstance();
 			}
 
+			void sceneConnected(std::shared_ptr<Scene> scene) override
+			{
+				if (scene)
+				{
+					auto name = scene->getHostMetadata("stormancer.partyMerging");
+
+					if (!name.empty())
+					{
+						auto service = scene->dependencyResolver().resolve<details::PartyMergingService>();
+						auto api = scene->dependencyResolver().resolve<PartyMergingApi>();
+						api->initialize(service);
+					}
+				}
+			}
+
+			void sceneDisconnecting(std::shared_ptr<Scene> scene) override
+			{
+				if (scene)
+				{
+					auto name = scene->getHostMetadata("stormancer.partyMerging");
+
+					if (!name.empty())
+					{
+
+						auto api = scene->dependencyResolver().resolve<PartyMergingApi>();
+						api->shutdown();
+					}
+				}
+			}
 
 
 		};

@@ -75,7 +75,7 @@ namespace Stormancer.Server.Plugins.PartyFinder
                 }
                 if (scene.Metadata.TryGetValue(PartyConstants.METADATA_KEY, out _))
                 {
-                    scene.Metadata.Add(PartyMergingConstants.)
+                    scene.Metadata.Add(PartyMergingConstants.PARTY_METADATA_KEY,PartyMergingConstants.GetVersion());
                     scene.AddController<PartyMergingController>();
                 }
             };

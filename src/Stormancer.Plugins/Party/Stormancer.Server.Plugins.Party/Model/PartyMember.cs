@@ -22,6 +22,7 @@
 
 using MsgPack.Serialization;
 using Stormancer.Server.Plugins.Party.Dto;
+using System;
 using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.Party.Model
@@ -51,7 +52,7 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// <summary>
         /// The client peer corresponding to this user
         /// </summary>
-        public IScenePeerClient Peer { get; set; } = default!;
+        public IScenePeerClient? Peer { get; set; } = default!;
 
         /// <summary>
         /// Set to true when a player are ready to find match
@@ -66,9 +67,11 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// <summary>
         /// Number of players represented by this user.
         /// </summary>
-        public List<LocalPlayerInfos> LocalPlayers { get; set; } = default!;
+        public List<Models.LocalPlayerInfos> LocalPlayers { get; set; } = default!;
 
         public PartyMemberConnectionStatus ConnectionStatus { get; set; }
+
+        public DateTime CreatedOnUtc { get; set; } = DateTime.UtcNow;
     }
 
     public enum PartyMemberConnectionStatus

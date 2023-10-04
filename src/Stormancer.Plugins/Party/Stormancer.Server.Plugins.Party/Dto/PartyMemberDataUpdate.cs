@@ -21,7 +21,9 @@
 // SOFTWARE.
 
 using MsgPack.Serialization;
+using Stormancer.Server.Plugins.Party.Model;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Stormancer.Server.Plugins.Party.Dto
 {
@@ -52,6 +54,12 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// Local players associated with the party member.
         /// </summary>
         [MessagePackMember(2)]
-        public IEnumerable<LocalPlayerInfos> LocalPlayers { get;  set; }
+        public IEnumerable<Models.LocalPlayerInfos> LocalPlayers { get;  set; } = Enumerable.Empty<Models.LocalPlayerInfos>();
+
+        /// <summary>
+        /// Represents the connection status of the member.
+        /// </summary>
+        [MessagePackMember(3)]
+        public PartyMemberConnectionStatus ConnectionStatus { get; set; }
     }
 }

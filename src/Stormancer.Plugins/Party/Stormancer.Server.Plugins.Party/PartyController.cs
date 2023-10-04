@@ -88,7 +88,7 @@ namespace Stormancer.Server.Plugins.Party
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public Task UpdatePartyUserData2(byte[] data, List<LocalPlayerInfos> localPlayers, RequestContext<IScenePeerClient> ctx)
+        public Task UpdatePartyUserData2(byte[] data, List<Models.LocalPlayerInfos> localPlayers, RequestContext<IScenePeerClient> ctx)
         {
             if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
             {

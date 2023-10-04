@@ -60,6 +60,12 @@ namespace Stormancer
 			NotReady = 0,
 			Ready = 1
 		};
+		enum class PartyUserConnectionStatus
+		{
+			Disconnected = 0,
+			Reservation = 1,
+			Connected = 2
+		};
 
 		enum class PartyGameFinderStatus
 		{
@@ -193,12 +199,14 @@ namespace Stormancer
 
 			std::vector<LocalPlayerInfos> localPlayers;
 
+			PartyUserConnectionStatus connectionStatus;
+
 			bool isLeader = false; // Computed locally
 
 			PartyUserDto(std::string userId) : userId(userId) {}
 			PartyUserDto() = default;
 
-			MSGPACK_DEFINE(userId, partyUserStatus, userData, sessionId, localPlayers);
+			MSGPACK_DEFINE(userId, partyUserStatus, userData, sessionId, localPlayers,connectionStatus);
 		};
 
 
@@ -449,13 +457,13 @@ namespace Stormancer
 			virtual pplx::task<void> joinPartyByInvitationCode(const std::string& invitationCode, const std::vector<byte>& userData = {}, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
 
 			/// <summary>
-			/// Gets a boolean indicating if the party is currently in a gamesession.
+			/// Gets a boolean indicating if the party is currently in a game session.
 			/// </summary>
 			/// <returns></returns>
 			virtual bool isInGameSession() = 0;
 
 			/// <summary>
-			/// If the party is in a gamesession, gets a token to connect to it.
+			/// If the party is in a game session, gets a token to connect to it.
 			/// </summary>
 			/// <param name="ct"></param>
 			/// <returns></returns>
@@ -4725,3 +4733,4 @@ namespace Stormancer
 
 MSGPACK_ADD_ENUM(Stormancer::Party::PartyUserStatus);
 MSGPACK_ADD_ENUM(Stormancer::Party::MemberDisconnectionReason);
+MSGPACK_ADD_ENUM(Stormancer::Party::PartyUserConnectionStatus);

@@ -42,7 +42,7 @@ namespace Stormancer.Server.Plugins.Profile
         /// <param name="requestingUser"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public static async Task<Dictionary<string, JObject>?> GetProfile(this IProfileService service, string userId, Dictionary<string, string> displayOptions, Session requestingUser, CancellationToken cancellationToken)
+        public static async Task<Dictionary<string, JObject>?> GetProfile(this IProfileService service, string userId, Dictionary<string, string> displayOptions, Session? requestingUser, CancellationToken cancellationToken)
         {
             var result = await service.GetProfiles(Enumerable.Repeat(userId, 1), displayOptions, requestingUser, cancellationToken);
             if(result.TryGetValue(userId,out var r))

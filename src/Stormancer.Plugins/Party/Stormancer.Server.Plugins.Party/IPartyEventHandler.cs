@@ -354,7 +354,7 @@ namespace Stormancer.Server.Plugins.Party
     /// </summary>
     public class UpdatingPartyMemberDataContext
     {
-        internal UpdatingPartyMemberDataContext(PartyMember member,IEnumerable<LocalPlayerInfos> localPlayers, byte[] newData, ISceneHost scene, IPartyService party)
+        internal UpdatingPartyMemberDataContext(PartyMember member,IEnumerable<Models.LocalPlayerInfos> localPlayers, byte[] newData, ISceneHost scene, IPartyService party)
         {
             PartyScene = scene;
             Party = party;
@@ -370,7 +370,7 @@ namespace Stormancer.Server.Plugins.Party
         /// <summary>
         /// Number of local players on the party member.
         /// </summary>
-        public IEnumerable<LocalPlayerInfos> LocalPlayers { get; }
+        public IEnumerable<Models.LocalPlayerInfos> LocalPlayers { get; }
 
         /// <summary>
         /// Gets or sets the new content that should replace the current party member data.
@@ -378,7 +378,7 @@ namespace Stormancer.Server.Plugins.Party
         public byte[] NewUserData { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating wether the update should happen or be denied.
+        /// Gets or sets a value indicating whether the update should happen or be denied.
         /// </summary>
         public bool IsUpdateValid { get; set; } = true;
 

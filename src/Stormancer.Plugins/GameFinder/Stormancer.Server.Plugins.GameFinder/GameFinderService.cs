@@ -204,7 +204,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                         //{
                         //    throw new ClientException($"'{player.Value.UserId} is not connected to the gamefinder '{_scene.Id}'.");
                         //}
-                        return new PlayerPeer { SessionId = SessionId.From(player.Value.SessionId), Player = player.Value };
+                        return new PlayerPeer { SessionId = player.Value.SessionId, Player = player.Value };
                     }).ToArray();
                 }
                 var state = new GameFinderRequestState(party);
@@ -702,21 +702,21 @@ namespace Stormancer.Server.Plugins.GameFinder
             return RunEventHandlerInRequestScope<IGameFinderEventHandler>(_scene, h => h.OnEnd(sectx), ex => _logger.Log(LogLevel.Error, LOG_CATEGORY, "an error occured while running OnEnd event handler.", ex));
         }
 
-        private SessionId GetPlayer(Player member, CancellationToken cancellationToken)
+        private SessionId GetPlayer(Player member)
         {
-            return SessionId.From(member.SessionId);
+            return member.SessionId;
            
         }
 
         private  IEnumerable<SessionId> GetPlayers(Party party, CancellationToken cancellationToken)
         {
 
-            return party.Players.Values.Select(p => GetPlayer(p, cancellationToken));
+            return party.Players.Values.Select(p => GetPlayer(p));
         }
 
         private IEnumerable<SessionId> GetPlayers(IEnumerable<Party> parties, CancellationToken cancellationToken)
         {
-            return parties.SelectMany(g => g.Players.Values).Select(p => GetPlayer(p, cancellationToken));
+            return parties.SelectMany(g => g.Players.Values).Select(p => GetPlayer(p));
 
         
         }

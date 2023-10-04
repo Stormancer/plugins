@@ -22,6 +22,7 @@
 
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Utilities;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -127,6 +128,11 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// Null if not searchable.
         /// </remarks>
         public JObject? SearchDocument { get; set; }
+
+        /// <summary>
+        /// Gets a <see cref="DateTime"/> object representing the date the scene was created in UTC.
+        /// </summary>
+        public DateTime CreatedOnUtc { get; } = DateTime.UtcNow;
 
     }
 }
