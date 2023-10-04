@@ -22,6 +22,8 @@ Changed
 Fixed
 *****
 - Made the plugin compatible with Users 9.0.0
+- Fixed missing GameFinder admin API.
+
 Added
 *****
 - Added a context that can be used during resolution to NewGame and ExistingGame objects.

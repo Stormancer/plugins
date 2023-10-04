@@ -61,6 +61,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
                 builder.Register<GameFinderController>();
+                builder.Register<AdminApi.GameFinderAdminController>();
                 builder.Register<QuickQueueGameSessionsLuceneStore>().AsSelf().As<ILuceneDocumentStore>().SingleInstance();
                 builder.Register<GameFinderData>().AsSelf().InstancePerScene();
                 builder.Register<ServiceLocationProvider>().As<IServiceLocatorProvider>();
