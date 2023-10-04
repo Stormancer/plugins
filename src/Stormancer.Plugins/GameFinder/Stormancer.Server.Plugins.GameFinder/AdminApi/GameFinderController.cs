@@ -43,13 +43,15 @@ namespace Stormancer.Server.Plugins.GameFinder.AdminApi
             _scene = scene;
         }
 
-        public async Task<IActionResult> GetStatus(string gamefinderId, CancellationToken cancellationToken)
+        [HttpGet]
+        [Route("{gameFinderId}/status")]
+        public async Task<IActionResult> GetStatus(string gameFinderId, CancellationToken cancellationToken)
         {
             await using var scope = _scene.CreateRequestScope();
 
             var gameFinder = scope.Resolve<GameFinderProxy>();
 
-            var metrics = await gameFinder.GetStatus(gamefinderId, cancellationToken);
+            var metrics = await gameFinder.GetStatus(gameFinderId, cancellationToken);
 
             return Ok(metrics);
 

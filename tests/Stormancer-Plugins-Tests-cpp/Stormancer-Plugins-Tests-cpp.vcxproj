@@ -49,6 +49,7 @@
     <ClCompile Include="TestDisableGameSessionDirectConnection.cpp" />
     <ClCompile Include="TestFriendsBlock.cpp" />
     <ClCompile Include="TestParty.cpp" />
+    <ClCompile Include="TestPartyMerger.cpp" />
     <ClCompile Include="TestSocketApi.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

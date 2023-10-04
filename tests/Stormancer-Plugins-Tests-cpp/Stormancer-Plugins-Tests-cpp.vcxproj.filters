@@ -10,6 +10,7 @@
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="TestTunnel.cpp" />
     <ClCompile Include="StressTestPartyGamesession.cpp" />
+    <ClCompile Include="TestPartyMerger.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\Stormancer.Plugins\Analytics\cpp\Analytics.hpp" />

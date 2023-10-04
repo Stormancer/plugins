@@ -1,6 +1,7 @@
 ﻿using Stormancer.Server;
 using Stormancer.Server.Plugins.GameFinder;
 using Stormancer.Server.Plugins.Party;
+using Stormancer.Server.Plugins.PartyMerging;
 
 namespace Stormancer.Plugins.Tests.ServerApp
 {
@@ -111,7 +112,7 @@ namespace Stormancer.Plugins.Tests.ServerApp
                 );
 
 
-
+                host.ConfigurePartyMerger("duo", c => c.Algorithm(dr=>new SimplePartyMergingAlgorithm(2)));
 
             };
             ctx.HostStarted += (IHost host) =>
