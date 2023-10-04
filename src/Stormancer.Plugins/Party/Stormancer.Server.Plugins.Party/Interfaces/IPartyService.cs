@@ -74,7 +74,7 @@ namespace Stormancer.Server.Plugins.Party
         /// <param name="data"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        Task UpdatePartyUserData(string userId, byte[] data, List<LocalPlayerInfos> localPlayers, CancellationToken ct);
+        Task UpdatePartyUserData(string userId, byte[] data, List<Models.LocalPlayerInfos> localPlayers, CancellationToken ct);
 
         /// <summary>
         /// Promotes an user as leader.
@@ -173,5 +173,18 @@ namespace Stormancer.Server.Plugins.Party
         /// </summary>
         void CancelInvitationCode();
 
+        /// <summary>
+        /// Gets a representation of the party.
+        /// </summary>
+        /// <returns></returns>
+        Task<Models.Party> GetModel();
+
+        /// <summary>
+        /// Tries to create a reservation in the party for a list of players.
+        /// </summary>
+        /// <remarks> </remarks>
+        /// <param name="reservation"></param>
+        /// <returns>Returns true if successful, false if the reservation couldn't be done because the players are incompatibles with the party (for instance it's full, or the OnCreatingReservation custom event failed)</returns>
+        Task<bool> CreateReservation(PartyReservation reservation);
     }
 }

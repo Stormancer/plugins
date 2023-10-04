@@ -14,6 +14,10 @@ Unreleased
 Changed
 *******
 - Store SessionId and not IScenePeerClient in PlayerPeer.
+Added
+*****
+- Added Local players info in Party member.
+
 
 3.0.3.8
 ----------

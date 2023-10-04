@@ -31,17 +31,17 @@ namespace Stormancer.Server.Plugins.Models
     /// </summary>
     public class Player
     {
-      
+
         public Player()
         {
         }
 
-        public Player(string sessionId, string userId, byte[] data = null)
+        public Player(SessionId sessionId, string userId, byte[]? data = null)
         {
             UserId = userId;
             SessionId = sessionId;
-            
-            if(data== null)
+
+            if (data == null)
             {
                 Data = Array.Empty<byte>();
             }
@@ -49,22 +49,85 @@ namespace Stormancer.Server.Plugins.Models
             {
                 Data = data;
             }
-            
+
         }
 
         [MessagePackMember(0)]
         public byte[] Data { get; set; }
 
         [MessagePackMember(1)]
-        public string SessionId { get; set; }
+        public SessionId SessionId { get; set; }
 
         [MessagePackMember(2)]
         public string UserId { get; set; }
+
+        [MessagePackMember(3)]
+        public List<LocalPlayerInfos> LocalPlayers { get; set; }
+
 
         /// <summary>
         /// Temporary data storage
         /// </summary>
         [MessagePackIgnore]
         public Dictionary<string, object> CacheStorage { get; } = new Dictionary<string, object>();
+       
+    }
+
+    /// <summary>
+    /// A local player in a party member.
+    /// </summary>
+    public class LocalPlayerInfos : IEquatable<LocalPlayerInfos?>
+    {
+        /// <summary>
+        /// Gets or sets the platform of the player.
+        /// </summary>
+        [MessagePackMember(0)]
+        public string Platform { get; set; } = default!;
+
+        [MessagePackMember(1)]
+        public string StormancerUserId { get; set; } = default!;
+
+        [MessagePackMember(2)]
+        public string Pseudo { get; set; } = default!;
+
+        [MessagePackMember(3)]
+        public string PlatformId { get; set; } = default!;
+
+        [MessagePackMember(4)]
+        public string CustomData { get; set; } = default!;
+
+        [MessagePackMember(5)]
+        public int LocalPlayerIndex { get; set; }
+
+        public override bool Equals(object? obj)
+        {
+            return Equals(obj as LocalPlayerInfos);
+        }
+
+        public bool Equals(LocalPlayerInfos? other)
+        {
+            return other is not null &&
+                   Platform == other.Platform &&
+                   StormancerUserId == other.StormancerUserId &&
+                   Pseudo == other.Pseudo &&
+                   PlatformId == other.PlatformId &&
+                   CustomData == other.CustomData &&
+                   LocalPlayerIndex == other.LocalPlayerIndex;
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Platform, StormancerUserId, Pseudo, PlatformId, CustomData, LocalPlayerIndex);
+        }
+
+        public static bool operator ==(LocalPlayerInfos? left, LocalPlayerInfos? right)
+        {
+            return EqualityComparer<LocalPlayerInfos>.Default.Equals(left, right);
+        }
+
+        public static bool operator !=(LocalPlayerInfos? left, LocalPlayerInfos? right)
+        {
+            return !(left == right);
+        }
     }
 }

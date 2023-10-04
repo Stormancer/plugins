@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
@@ -87,7 +88,7 @@ namespace Stormancer.Server.Plugins.Party
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public Task UpdatePartyUserData2(byte[] data, List<LocalPlayerInfos> localPlayers, RequestContext<IScenePeerClient> ctx)
+        public Task UpdatePartyUserData2(byte[] data, List<Models.LocalPlayerInfos> localPlayers, RequestContext<IScenePeerClient> ctx)
         {
             if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
             {
@@ -329,6 +330,18 @@ namespace Stormancer.Server.Plugins.Party
             //_logger.Log(LogLevel.Info, "party.gamesession", $"Removed gamesession {gamesessionId} from party {_partyService.PartyId}", new { });
         }
 
+        [S2SApi]
+        public Task<bool> CreateReservation(PartyReservation reservation)
+        {
+            return _partyService.CreateReservation(reservation);
+        }
+
+        [S2SApi]
+        public Task<Models.Party> GetModel()
+        {
+            return _partyService.GetModel();
+        }
+
         protected override Task OnConnecting(IScenePeerClient client)
         {
             return (_partyService as PartyService)!.OnConnecting(client);
@@ -352,6 +365,7 @@ namespace Stormancer.Server.Plugins.Party
         
     }
 
+ 
     /// <summary>
     /// Advertised party status.
     /// </summary>
@@ -371,5 +385,12 @@ namespace Stormancer.Server.Plugins.Party
         /// Version of the party status.
         /// </summary>
         public ulong Version { get; set; } = 0;
+    }
+
+    public class PartyReservation
+    { 
+        public IEnumerable<Models.Player> PartyMembers { get; set; }
+
+        public JObject CustomData { get; set; }
     }
 }

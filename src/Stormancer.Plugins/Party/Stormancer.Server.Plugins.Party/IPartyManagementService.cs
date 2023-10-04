@@ -20,15 +20,41 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Party
 {
-    interface IPartyManagementService
+    /// <summary>
+    /// Provides APIs to create or join parties.
+    /// </summary>
+    public interface IPartyManagementService
     {
-        Task<string> CreateParty(PartyRequestDto partyRequest, string leaderUserIdserId);
-        Task<string?> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode,byte[] userData, CancellationToken cancellationToken);
-        Task<Result<string, string>> CreateConnectionTokenFromPartyId(string partyId, byte[] userData, CancellationToken cancellationToken);
+        /// <summary>
+        /// Creates a party.
+        /// </summary>
+        /// <param name="partyRequest"></param>
+        /// <param name="leaderUserId"></param>
+        /// <returns></returns>
+        Task<string> CreateParty(PartyRequestDto partyRequest, string leaderUserId);
+
+        /// <summary>
+        /// Creates a connection token to a party using an invitation code.
+        /// </summary>
+        /// <param name="invitationCode"></param>
+        /// <param name="userData"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<string?> CreateConnectionTokenFromInvitationCodeAsync(string invitationCode,Memory<byte> userData, CancellationToken cancellationToken);
+        
+        /// <summary>
+        /// Creates a connection token to a party using a party id.
+        /// </summary>
+        /// <param name="partyId"></param>
+        /// <param name="userData"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<Result<string, string>> CreateConnectionTokenFromPartyId(string partyId, Memory<byte> userData, CancellationToken cancellationToken);
     }
 }

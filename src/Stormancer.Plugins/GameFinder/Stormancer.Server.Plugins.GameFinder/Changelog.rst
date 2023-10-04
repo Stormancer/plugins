@@ -17,6 +17,8 @@ Changed
 - Do not call IUserSessions.GetPeer to get the peer associated with a player in the gamefinder: the Session id if in the Player object.
 - Support updated Player models.
 - Removed a dependency to Notifications that wasn't needed.
+- Compatibility with Player models 4.0.0
+
 Fixed
 *****
 - Made the plugin compatible with Users 9.0.0

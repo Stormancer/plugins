@@ -58,58 +58,14 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// 
         /// </summary>
         [MessagePackMember(4)]
-        public List<LocalPlayerInfos> LocalPlayers { get; set; } = default!;
-    }
+        public List<Models.LocalPlayerInfos> LocalPlayers { get; set; } = default!;
 
-    public class LocalPlayerInfos : IEquatable<LocalPlayerInfos?>
-    {
-        [MessagePackMember(0)]
-        public string Platform { get; set; }
-
-        [MessagePackMember(1)]
-        public string StormancerUserId { get; set; }
-
-        [MessagePackMember(2)]
-        public string Pseudo { get; set; }
-
-        [MessagePackMember(3)]
-        public string PlatformId { get; set; }
-
-        [MessagePackMember(4)]
-        public string CustomData { get; set; }
-
+        /// <summary>
+        /// Represents the connection status of the member.
+        /// </summary>
         [MessagePackMember(5)]
-        public int LocalPlayerIndex { get; set; }
-
-        public override bool Equals(object? obj)
-        {
-            return Equals(obj as LocalPlayerInfos);
-        }
-
-        public bool Equals(LocalPlayerInfos? other)
-        {
-            return other is not null &&
-                   Platform == other.Platform &&
-                   StormancerUserId == other.StormancerUserId &&
-                   Pseudo == other.Pseudo &&
-                   PlatformId == other.PlatformId &&
-                   CustomData == other.CustomData &&
-                   LocalPlayerIndex == other.LocalPlayerIndex;
-        }
-
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(Platform, StormancerUserId, Pseudo, PlatformId, CustomData, LocalPlayerIndex);
-        }
-
-        public static bool operator ==(LocalPlayerInfos? left, LocalPlayerInfos? right)
-        {
-            return EqualityComparer<LocalPlayerInfos>.Default.Equals(left, right);
-        }
-
-        public static bool operator !=(LocalPlayerInfos? left, LocalPlayerInfos? right)
-        {
-            return !(left == right);
-        }
+        public PartyMemberConnectionStatus ConnectionStatus { get; set; }
     }
+
+    
 }
