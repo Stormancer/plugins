@@ -5,6 +5,7 @@
 #include "users/Users.hpp"
 #include "party/Party.hpp"
 #include "party/PartyMerging.hpp"
+#include "gamefinder/GameFinder.hpp"
 
 #include "stormancer/IActionDispatcher.h"
 #include "stormancer/IClientFactory.h"
@@ -48,7 +49,7 @@ static pplx::task<bool> CreateParty(int id)
 		return party->createPartyIfNotJoined(request);
 	}).then([merger]() 
 	{
-		return merger->start();
+		return merger->start("duo");
 
 	}).then([party]()
 	{
@@ -76,7 +77,8 @@ TEST(Gameplay, TestPartyMerger) {
 		//Add plugins required by the test.
 		config->addPlugin(new Stormancer::Users::UsersPlugin());
 		config->addPlugin(new Stormancer::Party::PartyPlugin());
-
+		config->addPlugin(new Stormancer::GameFinder::GameFinderPlugin());
+		config->addPlugin(new Stormancer::Party::PartyMergingPlugin());
 
 		//Use the dispatcher we created earlier to ensure all callbacks are run on the test main thread.
 		config->actionDispatcher = dispatcher;

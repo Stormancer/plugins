@@ -1,7 +1,9 @@
 ﻿using Newtonsoft.Json.Linq;
 using Stormancer.Core;
+using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Models;
 using Stormancer.Server.Plugins.Party;
+using Stormancer.Server.Plugins.PartyFinder;
 using Stormancer.Server.Plugins.Utilities.Extensions;
 using System;
 using System.Collections.Generic;
@@ -14,62 +16,99 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.PartyMerging
 {
+    internal class PartyMergingState
+    {
+        public readonly object _syncRoot = new object();
+        public readonly Dictionary<string, PartyMergingPartyState> _states = new Dictionary<string, PartyMergingPartyState>();
+
+        public PartyMergingState(ISceneHost scene)
+        {
+            scene.RunTask(async (ct) =>
+            {
+                using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+
+                while (!ct.IsCancellationRequested)
+                {
+                    await timer.WaitForNextTickAsync(ct);
+                    await using var scope = scene.CreateRequestScope();
+                    try
+                    {
+                        using var timeoutCts = new CancellationTokenSource(10000);
+                        using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, ct);
+                        await scope.Resolve<PartyMergingService>().Merge(cts.Token);
+
+                    }
+                    catch (Exception ex)
+                    {
+                        if (PartyMergingConstants.TryGetMergerId(scene, out var mergerId))
+                        {
+                            scope.Resolve<ILogger>().Log(LogLevel.Error, "partyMerger", $"An error occurred while running the party merger {mergerId}.", ex);
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+
+    internal class PartyMergingPartyState : IDisposable
+    {
+        public PartyMergingPartyState(string partyId, CancellationToken cancellationToken)
+        {
+            PartyId = partyId;
+            LinkCancellationToken(cancellationToken);
+        }
+        private readonly TaskCompletionSource<string?> _completedTcs = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        private CancellationTokenSource _cts;
+
+        public string PartyId { get; }
+
+        public bool IsCancellationRequested => _cts.IsCancellationRequested;
+        public Task<string?> WhenCompletedAsync()
+        {
+            return _completedTcs.Task;
+        }
+
+        public void Complete(string? connectionToken)
+        {
+            _completedTcs.TrySetResult(connectionToken);
+        }
+        public void Dispose()
+        {
+            _completedTcs.TrySetException(new OperationCanceledException());
+            _cts.Dispose();
+        }
+
+        [MemberNotNull("_cts")]
+        internal void LinkCancellationToken(CancellationToken cancellationToken)
+        {
+            if (_cts != null)
+            {
+                _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
+            }
+            else
+            {
+                _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            }
+
+        }
+    }
 
     internal class PartyMergingService
     {
-        private class PartyMergingState : IDisposable
-        {
-            public PartyMergingState(string partyId, CancellationToken cancellationToken)
-            {
-                PartyId = partyId;
-                LinkCancellationToken(cancellationToken);
-            }
-            private readonly TaskCompletionSource<string?> _completedTcs = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            private CancellationTokenSource _cts;
-
-            public string PartyId { get; }
-
-            public bool IsCancellationRequested => _cts.IsCancellationRequested;
-            public Task<string?> WhenCompletedAsync()
-            {
-                return _completedTcs.Task;
-            }
-
-            public void Complete(string? connectionToken)
-            {
-                _completedTcs.TrySetResult(connectionToken);
-            }
-            public void Dispose()
-            {
-                _completedTcs.TrySetException(new OperationCanceledException());
-                _cts.Dispose();
-            }
-
-            [MemberNotNull("_cts")]
-            internal void LinkCancellationToken(CancellationToken cancellationToken)
-            {
-                if (_cts != null)
-                {
-                    _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
-                }
-                else
-                {
-                    _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                }
-
-            }
-        }
+        
         private readonly ISceneHost _scene;
+        private readonly PartyMergingState _state;
         private readonly IPartyMergingAlgorithm _algorithm;
         private readonly PartyProxy _parties;
         private readonly IPartyManagementService _partyManagement;
-        private readonly object _syncRoot = new object();
-        private readonly Dictionary<string, PartyMergingState> _states = new Dictionary<string, PartyMergingState>();
+       
 
-        public PartyMergingService(ISceneHost scene, IPartyMergingAlgorithm algorithm, PartyProxy parties, IPartyManagementService partyManagement)
+        public PartyMergingService(ISceneHost scene, PartyMergingState state, IPartyMergingAlgorithm algorithm, PartyProxy parties, IPartyManagementService partyManagement)
         {
             _scene = scene;
+            _state = state;
             _algorithm = algorithm;
             _parties = parties;
             _partyManagement = partyManagement;
@@ -79,17 +118,18 @@ namespace Stormancer.Server.Plugins.PartyMerging
         {
             try
             {
-                PartyMergingState state;
-                lock (_syncRoot)
+                PartyMergingPartyState state;
+                lock (_state._syncRoot)
                 {
-                    if (_states.TryGetValue(partyId, out var currentState))
+                    if (_state._states.TryGetValue(partyId, out var currentState))
                     {
                         state = currentState;
                         state.LinkCancellationToken(cancellationToken);
                     }
                     else
                     {
-                        state = new PartyMergingState(partyId, cancellationToken);
+                        state = new PartyMergingPartyState(partyId, cancellationToken);
+                        _state._states.Add(partyId, state);
                     }
                 }
 
@@ -102,9 +142,9 @@ namespace Stormancer.Server.Plugins.PartyMerging
             }
             finally
             {
-                lock (_syncRoot)
+                lock (_state._syncRoot)
                 {
-                    _states.Remove(partyId);
+                    _state._states.Remove(partyId);
                 }
             }
         }
@@ -113,11 +153,11 @@ namespace Stormancer.Server.Plugins.PartyMerging
         public async Task Merge(CancellationToken cancellationToken)
         {
             IEnumerable<Task<Models.Party>> tasks;
-            lock (_syncRoot)
+            lock (_state._syncRoot)
             {
 
 
-                tasks = _states.Where(kvp => !kvp.Value.IsCancellationRequested).Select(kvp => _parties.GetModel(kvp.Key, cancellationToken));
+                tasks = _state._states.Where(kvp => !kvp.Value.IsCancellationRequested).Select(kvp => _parties.GetModel(kvp.Key, cancellationToken));
              }
 
             var models = await Task.WhenAll(tasks);
@@ -132,7 +172,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
             foreach(var partyId in results.Distinct().WhereNotNull())
             {
-                if (_states.TryGetValue(partyId, out var state))
+                if (_state._states.TryGetValue(partyId, out var state))
                 {
                     state.Complete(null);
                 }
@@ -151,9 +191,9 @@ namespace Stormancer.Server.Plugins.PartyMerging
                 await _parties.CreateReservation(partyTo.PartyId, reservation, cancellationToken);
 
 
-                lock (_syncRoot)
+                lock (_state._syncRoot)
                 {
-                    if(_states.TryGetValue(partyFrom.PartyId, out var state))
+                    if(_state._states.TryGetValue(partyFrom.PartyId, out var state))
                     {
                         state.Complete(result.Value);
                     }

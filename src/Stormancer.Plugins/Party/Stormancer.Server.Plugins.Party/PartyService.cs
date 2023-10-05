@@ -219,17 +219,19 @@ namespace Stormancer.Server.Plugins.Party
             await _partyState.TaskQueue.PushWork(async () =>
             {
 
-
-                if (_partyState.MemberCount >= _partyState.Settings.ServerSettings.MaxMembers())
+                if (!_partyState.PartyMembers.ContainsKey(peer.SessionId))
                 {
-                    Log(LogLevel.Trace, "OnConnecting", "Party join denied because the party is full.", peer.SessionId);
-                    throw new ClientException(JoinDeniedError + "?reason=partyFull");
-                }
+                    if (_partyState.MemberCount >= _partyState.Settings.ServerSettings.MaxMembers())
+                    {
+                        Log(LogLevel.Trace, "OnConnecting", "Party join denied because the party is full.", peer.SessionId);
+                        throw new ClientException(JoinDeniedError + "?reason=partyFull");
+                    }
 
-                if (!_partyState.Settings.IsJoinable)
-                {
-                    Log(LogLevel.Trace, "OnConnecting", "Party join denied because the party is not joinable.", peer.SessionId);
-                    throw new ClientException(JoinDeniedError + "?reason=notJoinable");
+                    if (!_partyState.Settings.IsJoinable)
+                    {
+                        Log(LogLevel.Trace, "OnConnecting", "Party join denied because the party is not joinable.", peer.SessionId);
+                        throw new ClientException(JoinDeniedError + "?reason=notJoinable");
+                    }
                 }
 
                 var session = await _userSessions.GetSession(peer, CancellationToken.None);
@@ -248,6 +250,9 @@ namespace Stormancer.Server.Plugins.Party
                     {
                         message += $"?reason={ctx.Reason}";
                     }
+
+                    _partyState.PartyMembers.TryRemove(peer.SessionId, out _);
+
                     throw new ClientException(message);
                 }
 
@@ -1036,7 +1041,7 @@ namespace Stormancer.Server.Plugins.Party
                 LeaderId = _partyState.Settings.PartyLeaderId,
                 Settings = new PartySettingsUpdateDto(_partyState),
                 PartyMembers = _partyState.PartyMembers.Values.Select(member =>
-                    new PartyMemberDto { PartyUserStatus = member.StatusInParty, UserData = member.UserData, UserId = member.UserId, SessionId = member.Peer.SessionId, LocalPlayers = member.LocalPlayers }).ToList(),
+                    new PartyMemberDto { PartyUserStatus = member.StatusInParty, UserData = member.UserData, UserId = member.UserId, SessionId = member.Peer.SessionId, LocalPlayers = member.LocalPlayers, ConnectionStatus = member.ConnectionStatus }).ToList(),
                 Version = _partyState.VersionNumber
             };
 
@@ -1245,7 +1250,7 @@ namespace Stormancer.Server.Plugins.Party
                     var partyUser = new PartyMember { UserId = r.UserId, StatusInParty = PartyMemberStatus.NotReady, Peer = null, UserData = r.Data, LocalPlayers = r.LocalPlayers, ConnectionStatus = PartyMemberConnectionStatus.Reservation };
                     _partyState.PartyMembers.TryAdd(r.SessionId, partyUser);
 
-                    await BroadcastStateUpdateRpc(MemberConnectedRoute, new PartyMemberDto { PartyUserStatus = partyUser.StatusInParty, UserData = partyUser.UserData, UserId = partyUser.UserId, SessionId = r.SessionId, LocalPlayers = partyUser.LocalPlayers, ConnectionStatus = PartyMemberConnectionStatus.Connected });
+                    await BroadcastStateUpdateRpc(MemberConnectedRoute, new PartyMemberDto { PartyUserStatus = partyUser.StatusInParty, UserData = partyUser.UserData, UserId = partyUser.UserId, SessionId = r.SessionId, LocalPlayers = partyUser.LocalPlayers, ConnectionStatus = PartyMemberConnectionStatus.Reservation });
 
 
                 }

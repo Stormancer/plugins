@@ -74,6 +74,7 @@ namespace Stormancer.Server.Plugins.Party.Model
         public DateTime CreatedOnUtc { get; set; } = DateTime.UtcNow;
     }
 
+    [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
     public enum PartyMemberConnectionStatus
     {
         Disconnected = 0,

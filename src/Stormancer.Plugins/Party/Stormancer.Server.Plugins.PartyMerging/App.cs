@@ -26,7 +26,8 @@ namespace Stormancer.Server.Plugins.PartyFinder
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
-                builder.Register<PartyMergingService>().InstancePerScene();
+                builder.Register<PartyMergingService>().InstancePerRequest();
+                builder.Register<PartyMergingState>().InstancePerScene();
                 builder.Register<PartyMergerController>().InstancePerRequest();
                 builder.Register<PartyMergingController>().InstancePerRequest();
                 builder.Register<PartyMergingConfigurationRepository>().SingleInstance();
@@ -79,6 +80,7 @@ namespace Stormancer.Server.Plugins.PartyFinder
                     scene.AddController<PartyMergingController>();
                 }
             };
+            
         }
     }
 

@@ -5,7 +5,7 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>0.1.0.5</Version>
+		<Version>0.1.0.6</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -35,8 +35,8 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0-preview.4" />
-		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NodaTime" Version="8.0.0-preview.4" />
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.11" />
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NodaTime" Version="7.0.11" />
 		<PackageReference Include="Stormancer.Abstractions.Server" Version="9.3.0" />
 	</ItemGroup>
 	<ItemGroup>
