@@ -34,7 +34,7 @@ namespace Stormancer.Server.Plugins.GameFinder.AdminApi
 
     [ApiController]
     [Route("_gamefinder")]
-    internal class GameFinderAdminController : ControllerBase
+    public class GameFinderAdminController : ControllerBase
     {
         private readonly ISceneHost _scene;
 
