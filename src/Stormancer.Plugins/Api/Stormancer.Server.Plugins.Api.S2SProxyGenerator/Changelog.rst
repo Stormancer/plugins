@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Fixed
+*****
+- Complete the S2S request writer after writing the arguments if the writer is not needed by the caller to prevent a soft lock if there are no arguments.
+
 1.0.3.6
 ----------
 Changed

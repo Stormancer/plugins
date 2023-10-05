@@ -59,6 +59,7 @@ namespace Stormancer
 							Serializer serializer;
 							auto connectionToken = serializer.deserializeOne<std::string>(packet->stream);
 
+							
 							that->raiseConnectionTokenReceived(connectionToken);
 						}
 					});
@@ -110,8 +111,13 @@ namespace Stormancer
 
 					if (party != nullptr)
 					{
-
-						party->joinParty(connectionToken).then([wThis](pplx::task<void> t)
+						Stormancer::taskIf(party->isInParty(), [party]() {
+							return party->leaveParty();
+						})
+							.then([party, connectionToken]()
+						{
+							return party->joinParty(connectionToken);
+						}).then([wThis](pplx::task<void> t)
 						{
 							try
 							{
@@ -176,6 +182,20 @@ namespace Stormancer
 				builder.registerDependency<Stormancer::Party::PartyMergingApi, Stormancer::Party::PartyApi>().as<Stormancer::Party::PartyMergingApi>().singleInstance();
 			}
 
+			void sceneCreated(std::shared_ptr<Scene> scene) override
+			{
+				if (scene)
+				{
+					auto name = scene->getHostMetadata("stormancer.partyMerging");
+
+					if (!name.empty())
+					{
+						auto service = scene->dependencyResolver().resolve<details::PartyMergingService>();
+						service->initialize(scene);
+					}
+				}
+				
+			}
 			void sceneConnected(std::shared_ptr<Scene> scene) override
 			{
 				if (scene)
@@ -187,6 +207,7 @@ namespace Stormancer
 						auto service = scene->dependencyResolver().resolve<details::PartyMergingService>();
 						auto api = scene->dependencyResolver().resolve<PartyMergingApi>();
 						api->initialize(service);
+						
 					}
 				}
 			}

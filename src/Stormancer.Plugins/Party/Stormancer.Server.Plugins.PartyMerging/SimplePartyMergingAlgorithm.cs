@@ -33,9 +33,9 @@ namespace Stormancer.Server.Plugins.PartyMerging
                         return into.Players.Count + currentFrom.Sum(p=>p.Players.Count);
                     }
                         
-                    foreach(var fromParty in ctx.WaitingParties.Where(p=>!ctx.IsMerged(p)).OrderBy(p=>p.Players.Count))
+                    foreach(var fromParty in ctx.WaitingParties.Where(p=>!ctx.IsMerged(p) && p.PartyId != party.PartyId).OrderBy(p=>p.Players.Count))
                     {
-                        if(getCurrentPartySize(party,mergeList) + fromParty.Players.Count < _partySize)
+                        if(getCurrentPartySize(party,mergeList) + fromParty.Players.Count <= _partySize)
                         {
                             mergeList.Add(fromParty);
                         }

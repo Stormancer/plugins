@@ -129,6 +129,7 @@ namespace Stormancer.Server
                 rq = await requestTask;
 
                 await argsWriter(rq.Writer);
+
                 await inputPipe.Reader.CopyToAsync(rq.Writer, cancellationToken);
 
                 inputPipe.Reader.Complete();

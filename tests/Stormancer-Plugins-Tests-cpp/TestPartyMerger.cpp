@@ -51,9 +51,40 @@ static pplx::task<bool> CreateParty(int id)
 	{
 		return merger->start("duo");
 
+	}).then([]()
+	{
+	
+		using namespace std::chrono_literals;
+		return Stormancer::taskDelay(1000ms);
 	}).then([party]()
 	{
-		return party->getPartyMembers().size() == 2;
+		using namespace std::chrono_literals;
+		pplx::cancellation_token_source cts;
+		return Stormancer::withRetries<bool>([party](pplx::cancellation_token ct)
+		{
+			auto size = party->getPartyMembers().size();
+			if (size == 2)
+			{
+				return pplx::task_from_result(true);
+			}
+			else
+			{
+				throw std::runtime_error("notJoined");
+			}
+
+		}, 1000ms, 10, [](const std::exception&) {return true; },pplx::get_ambient_scheduler(),cts.get_token());
+		
+	}).then([client](pplx::task<bool> t)
+	{
+		try
+		{
+			return t.get();
+		}
+		catch (std::exception& ex)
+		{
+			log(client, Stormancer::LogLevel::Error, ex.what());
+			return false;
+		}
 	});
 		
 }
@@ -100,7 +131,8 @@ TEST(Gameplay, TestPartyMerger) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 	
-	EXPECT_TRUE(t0.get() && t1.get());
+	EXPECT_TRUE(t0.get());
+	EXPECT_TRUE(t1.get());
 	//We are connected to the game session, we can test the socket API.
 
 

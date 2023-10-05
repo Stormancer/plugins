@@ -67,7 +67,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
         public bool IsCancellationRequested => _cts.IsCancellationRequested;
         public Task<string?> WhenCompletedAsync()
         {
-            return _completedTcs.Task;
+            return _completedTcs.Task.WaitAsync(_cts.Token);
         }
 
         public void Complete(string? connectionToken)
@@ -97,13 +97,13 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
     internal class PartyMergingService
     {
-        
+
         private readonly ISceneHost _scene;
         private readonly PartyMergingState _state;
         private readonly IPartyMergingAlgorithm _algorithm;
         private readonly PartyProxy _parties;
         private readonly IPartyManagementService _partyManagement;
-       
+
 
         public PartyMergingService(ISceneHost scene, PartyMergingState state, IPartyMergingAlgorithm algorithm, PartyProxy parties, IPartyManagementService partyManagement)
         {
@@ -158,7 +158,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
 
                 tasks = _state._states.Where(kvp => !kvp.Value.IsCancellationRequested).Select(kvp => _parties.GetModel(kvp.Key, cancellationToken));
-             }
+            }
 
             var models = await Task.WhenAll(tasks);
 
@@ -170,22 +170,26 @@ namespace Stormancer.Server.Plugins.PartyMerging
             var results = await Task.WhenAll(ctx.MergeCommands.Select(cmd => MergeAsync(cmd.Value.From, cmd.Value.Into, cmd.Value.CustomData, cancellationToken)));
 
 
-            foreach(var partyId in results.Distinct().WhereNotNull())
+            foreach (var partyId in results.Distinct().WhereNotNull())
             {
-                if (_state._states.TryGetValue(partyId, out var state))
+                lock (_state._syncRoot)
                 {
-                    state.Complete(null);
+                    if (_state._states.TryGetValue(partyId, out var state))
+                    {
+                        state.Complete(null);
+                        _state._states.Remove(partyId);
+                    }
                 }
             }
         }
 
-        private async Task<string?> MergeAsync(Models.Party partyFrom, Models.Party partyTo, JObject customData,CancellationToken cancellationToken)
+        private async Task<string?> MergeAsync(Models.Party partyFrom, Models.Party partyTo, JObject customData, CancellationToken cancellationToken)
         {
             var result = await _partyManagement.CreateConnectionTokenFromPartyId(partyTo.PartyId, Memory<byte>.Empty, cancellationToken);
 
-            
-           
-            if(result.Success)
+
+
+            if (result.Success)
             {
                 var reservation = new PartyReservation { PartyMembers = partyFrom.Players.Values, CustomData = customData };
                 await _parties.CreateReservation(partyTo.PartyId, reservation, cancellationToken);
@@ -193,9 +197,12 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
                 lock (_state._syncRoot)
                 {
-                    if(_state._states.TryGetValue(partyFrom.PartyId, out var state))
+                    if (_state._states.TryGetValue(partyFrom.PartyId, out var state))
                     {
                         state.Complete(result.Value);
+
+                        _state._states.Remove(partyFrom.PartyId);
+
                     }
                     return partyTo.PartyId;
                 }

@@ -52,6 +52,10 @@ namespace Stormancer.Server.Plugins.PartyMerging
         /// <param name="customData">Custom data passed to the into party when a reservation for the players from the 'from' party is created.</param>
         public void Merge(Models.Party from, Models.Party into, JObject customData)
         {
+            if(from.PartyId == into.PartyId)
+            {
+                throw new InvalidOperationException($"Cannot merge {from.PartyId} into itself.");
+            }
             MergeCommands.Add(from.PartyId, new MergingCommand(from,into, customData));
         }
 

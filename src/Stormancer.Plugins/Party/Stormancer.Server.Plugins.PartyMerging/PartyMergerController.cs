@@ -80,14 +80,6 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
                     var connectionToken = await _partyMerger.Merge(partyMergerId, _party.PartyId, cancellationToken);
 
-                    if(connectionToken != null)
-                    {
-                        await _scene.Send(new MatchArrayFilter(_party.PartyMembers.Where(kvp => kvp.Value.ConnectionStatus == Party.Model.PartyMemberConnectionStatus.Connected).Select(kvp => kvp.Key)),
-                       "partyMerging.connectionToken",
-                       s => _serializer.Serialize(connectionToken, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
-
-                    }
-
 
                     await _party.UpdateSettings(state =>
                     {
@@ -103,8 +95,26 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
 
                     }, cancellationToken);
+
+
+
+                    if (connectionToken != null)
+                    {
+
+                        async Task Send()
+                        {
+                            var sessionIds = _party.PartyMembers.Where(kvp => kvp.Value.ConnectionStatus == Party.Model.PartyMemberConnectionStatus.Connected).Select(kvp => kvp.Key);
+                            await _scene.Send(new MatchArrayFilter(sessionIds),
+                           "partyMerging.connectionToken",
+                           s => _serializer.Serialize(connectionToken, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+                        }
+
+                        _ = Send();
+
+                    }
+
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     await _party.UpdateSettings(state =>
                     {

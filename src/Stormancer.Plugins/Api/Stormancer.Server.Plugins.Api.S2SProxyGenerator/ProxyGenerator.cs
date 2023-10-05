@@ -306,6 +306,13 @@ using Stormancer.Server.Plugins.ServiceLocator;
                         buffer.Append(@"
             }, cancellationToken);
 ");
+
+                        if(!requestUsageContext.HasFlag( S2SRequestContextUsage.Write))
+                        {
+                            buffer.Append(@"            result.Writer.Complete();
+");
+                        }
+                        
                       
                         switch (resultType)
                         {

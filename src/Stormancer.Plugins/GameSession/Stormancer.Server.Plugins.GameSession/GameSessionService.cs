@@ -997,20 +997,21 @@ namespace Stormancer.Server.Plugins.GameSession
                 var memStream = new MemoryStream();
                 inputStream.CopyTo(memStream);
                 memStream.Seek(0, SeekOrigin.Begin);
-                _clients[userId].ResultData = memStream;
-
-                await EvaluateGameComplete();
-
-                var tcs = _clients[userId].GameCompleteTcs;
-                if (tcs != null)
+                if(_clients.TryGetValue(userId, out var client))
                 {
-                    return await tcs.Task;
+                   client.ResultData = memStream;
+
+                    await EvaluateGameComplete();
+
+                    var tcs = client.GameCompleteTcs;
+                    if (tcs != null)
+                    {
+                        return await tcs.Task;
+                    }
+                   
                 }
-                else
-                {
-                    static void NoOp(Stream _, ISerializer _2) { };
-                    return NoOp;
-                }
+                static void NoOp(Stream _, ISerializer _2) { };
+                return NoOp;
 
             }
             else

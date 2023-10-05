@@ -37,6 +37,7 @@ Fixed
 - Fixed false positives error logs.
 - Resetting a game session force the gamesession to be completed if it wasn't already, exactly as if all players add left it. This guarantees that if only the host sent results, they would be processed on reset, triggering (for instance) a PSN Activity completion.
 - Made the plugin compatible with Users 9.0.0
+- Do not try getting the client in PostResults if it is not in the list of clients.
 
 6.1.1.15
 ----------

@@ -135,9 +135,9 @@ namespace Stormancer.Server.Plugins.Party
                         await _partyState.TaskQueue.PushWork(async () =>
                         {
 
-                            foreach (var (sessionId,expiredReservation) in _partyState.PartyMembers.Where(p => p.Value.ConnectionStatus == PartyMemberConnectionStatus.Reservation && p.Value.CreatedOnUtc + TimeSpan.FromSeconds(10) < DateTime.UtcNow).ToArray())
+                            foreach (var (sessionId, expiredReservation) in _partyState.PartyMembers.Where(p => p.Value.ConnectionStatus == PartyMemberConnectionStatus.Reservation && p.Value.CreatedOnUtc + TimeSpan.FromSeconds(10) < DateTime.UtcNow).ToArray())
                             {
-                                if(_partyState.PartyMembers.TryRemove(sessionId,out _))
+                                if (_partyState.PartyMembers.TryRemove(sessionId, out _))
                                 {
                                     await BroadcastStateUpdateRpc(PartyMemberDisconnection.Route, new PartyMemberDisconnection { UserId = expiredReservation.UserId, Reason = PartyDisconnectionReason.Left });
                                 }
@@ -333,7 +333,7 @@ namespace Stormancer.Server.Plugins.Party
                 if (_partyState.PartyMembers.TryGetValue(peer.SessionId, out var partyUser))
                 {
                     partyUser.ConnectionStatus = PartyMemberConnectionStatus.Connected;
-
+                    partyUser.Peer = peer;
                     await BroadcastStateUpdateRpc(PartyMemberDataUpdate.Route, new PartyMemberDataUpdate { UserId = partyUser.UserId, UserData = partyUser.UserData, LocalPlayers = partyUser.LocalPlayers, ConnectionStatus = partyUser.ConnectionStatus });
                 }
                 else
@@ -343,7 +343,7 @@ namespace Stormancer.Server.Plugins.Party
 
                     var mainLocalUser = new Models.LocalPlayerInfos { StormancerUserId = user.Id, Platform = session.platformId.Platform, PlatformId = session.platformId.OnlineId, Pseudo = profile?["user"]?["pseudo"]?.ToObject<string>() ?? "anonymous" };
 
-                    partyUser = new PartyMember { UserId = user.Id, StatusInParty = PartyMemberStatus.NotReady, Peer = peer, UserData = userData, LocalPlayers = new List<Models.LocalPlayerInfos> { mainLocalUser } };
+                    partyUser = new PartyMember { UserId = user.Id, StatusInParty = PartyMemberStatus.NotReady, Peer = peer, UserData = userData, LocalPlayers = new List<Models.LocalPlayerInfos> { mainLocalUser }, ConnectionStatus = PartyMemberConnectionStatus.Connected };
                     _partyState.PartyMembers.TryAdd(peer.SessionId, partyUser);
 
                     await BroadcastStateUpdateRpc(MemberConnectedRoute, new PartyMemberDto { PartyUserStatus = partyUser.StatusInParty, UserData = partyUser.UserData, UserId = partyUser.UserId, SessionId = partyUser.Peer.SessionId, LocalPlayers = partyUser.LocalPlayers, ConnectionStatus = PartyMemberConnectionStatus.Connected });
@@ -917,7 +917,7 @@ namespace Stormancer.Server.Plugins.Party
                 cts.CancelAfter(_clientRpcTimeout);
 
                 await Task.WhenAll(
-                        dataPerMember.Select(kvp =>
+                        dataPerMember.Where(kvp => kvp.Key.Peer != null).Select(kvp =>
                         {
                             try
                             {
