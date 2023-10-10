@@ -1098,20 +1098,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     client.GameCompleteTcs?.TrySetResult(ctx.ResultsWriter);
                 }
 
-                async Task DelayAndComplete()
-                {
-                    await Task.Delay(5000);
-
-                    // Update : Do not disconnect players to allow them to restart a game.
-                    // By uncommenting the next line, you can encounter RPC failures if EvaluateGameComplete was called from an RPC called by the client (for example postResults).
-                    //await Task.WhenAll(_scene.RemotePeers.Select(user => user.Disconnect("gamesession.completed")));
-
-                    RaiseGameCompleted();
-
-                    await _scene.KeepAlive(TimeSpan.Zero);
-                };
-
-                _ = DelayAndComplete();
+               
 
             }
 
