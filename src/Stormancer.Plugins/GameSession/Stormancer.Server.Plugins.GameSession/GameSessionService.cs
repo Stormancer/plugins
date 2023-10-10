@@ -266,6 +266,7 @@ namespace Stormancer.Server.Plugins.GameSession
             analyticsWorker.AddGameSession(this);
             scene.Shuttingdown.Add(async args =>
             {
+                await this.EvaluateGameComplete(true);
                 analyticsWorker.RemoveGameSession(this);
                 _repository.RemoveGameSession(this);
                 _sceneCts.Cancel();
@@ -1034,21 +1035,10 @@ namespace Stormancer.Server.Plugins.GameSession
                 });
             }
 
-            // FIXME: Temporary workaround to issue where disconnections cause large increases in CPU/Memory usage
-            //await Task.WhenAll(_scene.RemotePeers.Select(user => user.Disconnect("Game complete")));
-
-            RaiseGameCompleted();
-            await _scene.KeepAlive(TimeSpan.Zero);
+            
         }
 
-        private void RaiseGameCompleted()
-        {
-            if (_gameCompleteCts != null)
-            {
-                _gameCompleteCts.Cancel();
-                OnGameSessionCompleted?.Invoke();
-            }
-        }
+      
 
 
         public string GameSessionId => _scene.Id;
