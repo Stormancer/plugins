@@ -27,26 +27,56 @@ using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.Party.Model
 {
+    /// <summary>
+    /// Possible party member status regarding game finding.
+    /// </summary>
     [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
     public enum PartyMemberStatus
     {
+        /// <summary>
+        /// The player is not ready to start a game.
+        /// </summary>
         NotReady = 0,
+
+        /// <summary>
+        /// The player is ready.
+        /// </summary>
         Ready = 1
     }
 
+    /// <summary>
+    /// Possible reasons the party member was disconnected.
+    /// </summary>
     [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
     public enum PartyDisconnectionReason
     {
+        /// <summary>
+        /// The player left the party on their own.
+        /// </summary>
         Left = 0,
+
+        /// <summary>
+        /// The player was kicked from the party.
+        /// </summary>
         Kicked = 1
     }
 
+
+    /// <summary>
+    /// A party member.
+    /// </summary>
     public class PartyMember
     {
         /// <summary>
         /// Current User ID
         /// </summary>
         public string UserId { get; set; } = default!;
+
+
+        /// <summary>
+        /// Gets the current session id of the player.
+        /// </summary>
+        public SessionId SessionId { get; set; } = default;
 
 
         /// <summary>
@@ -69,16 +99,36 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// </summary>
         public List<Models.LocalPlayerInfos> LocalPlayers { get; set; } = default!;
 
+        /// <summary>
+        /// Gets the party member current connection status.
+        /// </summary>
         public PartyMemberConnectionStatus ConnectionStatus { get; set; }
 
+        /// <summary>
+        /// Gets the date the party member was added to the party.
+        /// </summary>
         public DateTime CreatedOnUtc { get; set; } = DateTime.UtcNow;
     }
 
+    /// <summary>
+    /// Possible party member connection states.
+    /// </summary>
     [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
     public enum PartyMemberConnectionStatus
     {
+        /// <summary>
+        /// The party member is disconnected from the party. 
+        /// </summary>
         Disconnected = 0,
+
+        /// <summary>
+        /// The party member reserved a slot in the party but is still not connected.
+        /// </summary>
         Reservation = 1,
+
+        /// <summary>
+        /// The party member is connected to the party.
+        /// </summary>
         Connected = 2
     }
 }

@@ -90,7 +90,10 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
         public async Task<string?> JoinInParty(string partyId, SessionId sessionId, CancellationToken cancellationToken)
         {
             var config = gameSession.GetGameSessionConfig();
-
+            if(config == null)
+            {
+                return null;
+            }
             var tuple = config.Teams.SelectMany(t => t.Parties.Select(party => new { party, team = t })).FirstOrDefault(p => p.party.PartyId == partyId);
             if (tuple == null)
             {

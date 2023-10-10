@@ -521,9 +521,15 @@ namespace Stormancer.Server.Plugins.Party
         /// Event fired when the ready status of a player will be automatically reset to NotReady. 
         /// </summary>
         /// <param name="ctx"></param>
-        /// <remarks>An handler code can prevent the reset from occuring by setting <see cref="PartyMemberReadyStateResetContext.ShouldReset"/> to false.</remarks>
+        /// <remarks>An handler code can prevent the reset from occurring by setting <see cref="PartyMemberReadyStateResetContext.ShouldReset"/> to false.</remarks>
         /// <returns></returns>
         Task OnPlayerReadyStateReset(PartyMemberReadyStateResetContext ctx) => Task.CompletedTask;
+
+        /// <summary>
+        /// Event fired just before the effective joining process is executed.
+        /// </summary>
+        /// <param name="joinedCtx"></param>
+        /// <returns></returns>
         Task OnPreJoined(PreJoinedPartyContext joinedCtx) => Task.CompletedTask;
     }
 }

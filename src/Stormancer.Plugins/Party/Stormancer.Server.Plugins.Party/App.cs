@@ -22,8 +22,15 @@
 
 namespace Stormancer.Server.Plugins.Party
 {
+    /// <summary>
+    /// Entry point class for the plugin Party.
+    /// </summary>
     public class App
     {
+        /// <summary>
+        /// Entry point of the plugin.
+        /// </summary>
+        /// <param name="builder"></param>
         public void Run(IAppBuilder builder)
         {
             builder.AddPlugin(new PartyPlugin());

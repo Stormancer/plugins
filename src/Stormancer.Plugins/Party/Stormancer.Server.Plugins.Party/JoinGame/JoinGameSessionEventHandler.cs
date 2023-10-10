@@ -90,6 +90,10 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                         }
                         state.UserIdToPartyId[ctx.Player.Player.UserId] = partyId;
                     }
+                    else
+                    {
+                        logger.Log(LogLevel.Error, "party.gamesession.join", "Failed to find party for player.", new { ctx.GameSession.GameSessionId, ctx.Player.Player.UserId });
+                    }
                 }
 
                 if (partyId != null)
@@ -143,6 +147,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                 {
                     try
                     {
+                        
                         //logger.Log(LogLevel.Info, "gamesession.joinedGameSession.leaving", $"Removing  {ctx.GameSession.GameSessionId} from party {partyId}", new { state.UserIdToPartyId });
                         await party.RemovePartyFromGameSession(partyId,ctx.GameSession.GameSessionId, default);
                     }
