@@ -521,7 +521,13 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private async Task SignalHostReady(IScenePeerClient peer, string? userId)
         {
-            _logger.Log(LogLevel.Info, _scene.Id, "Signal host ready", new { peer.SessionId, userId });
+            _logger.Log(LogLevel.Info, _scene.Id, "Signal host ready", new { peer.SessionId, userId, server = _server != null });
+            
+            if(_server == null)
+            {
+                await TryStart();
+            }
+
             var sessionId = peer.SessionId;
             GetServerTcs().TrySetResult(peer);
             _status = ServerStatus.Started;
