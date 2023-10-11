@@ -7,3 +7,5 @@ The matchmaking system works by offering members of one or several of the partie
 # Usage
 ## Server
 
+# Getting the current party merging status.
+

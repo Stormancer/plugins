@@ -16,7 +16,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
     /// <summary>
     /// Controller exposing the internal APIs of party merger scenes.
     /// </summary>
-    [Service(Named =true,ServiceType = PartyMergingConstants.PARTYMERGER_SERVICE_TYPE)]
+    [Service(Named = true, ServiceType = PartyMergingConstants.PARTYMERGER_SERVICE_TYPE)]
     internal class PartyMergerController : ControllerBase
     {
         private readonly PartyMergingService _service;
@@ -27,7 +27,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
         }
 
         [S2SApi]
-        public  Task<string?> Merge(string partyId, CancellationToken cancellationToken)
+        public Task<string?> Merge(string partyId, CancellationToken cancellationToken)
         {
             return _service.StartMergeParty(partyId, cancellationToken);
         }
@@ -53,11 +53,11 @@ namespace Stormancer.Server.Plugins.PartyMerging
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task Start(string partyMergerId,RequestContext<IScenePeerClient> request)
+        public async Task Start(string partyMergerId, RequestContext<IScenePeerClient> request)
         {
             var cancellationToken = request.CancellationToken;
-            
-            if(_party.PartyMembers.TryGetValue(request.RemotePeer.SessionId,out var member) && member.UserId == _party.State.Settings.PartyLeaderId)
+
+            if (_party.PartyMembers.TryGetValue(request.RemotePeer.SessionId, out var member) && member.UserId == _party.State.Settings.PartyLeaderId)
             {
                 try
                 {
@@ -98,20 +98,19 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
 
 
-                    if (connectionToken != null)
+
+                    async Task Send()
                     {
-
-                        async Task Send()
-                        {
-                            var sessionIds = _party.PartyMembers.Where(kvp => kvp.Value.ConnectionStatus == Party.Model.PartyMemberConnectionStatus.Connected).Select(kvp => kvp.Key);
-                            await _scene.Send(new MatchArrayFilter(sessionIds),
-                           "partyMerging.connectionToken",
-                           s => _serializer.Serialize(connectionToken, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
-                        }
-
-                        _ = Send();
-
+                        var sessionIds = _party.PartyMembers.Where(kvp => kvp.Value.ConnectionStatus == Party.Model.PartyMemberConnectionStatus.Connected).Select(kvp => kvp.Key);
+                        await _scene.Send(new MatchArrayFilter(sessionIds),
+                       "partyMerging.connectionToken",
+                       s => _serializer.Serialize(connectionToken, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
                     }
+
+                    _ = Send();
+
+
+
 
                 }
                 catch (Exception ex)
@@ -133,7 +132,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
                     }, cancellationToken);
                     throw;
                 }
-            
+
             }
             else
             {
