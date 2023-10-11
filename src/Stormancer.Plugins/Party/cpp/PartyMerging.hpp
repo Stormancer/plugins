@@ -106,15 +106,27 @@ namespace Stormancer
 				std::weak_ptr<PartyMergingApi> wThis = this->shared_from_this();
 				onPartyConnectionTokenReceivedSubscription = service->onPartyConnectionTokenReceived.subscribe([wPartyApi, wThis](std::string connectionToken)
 				{
-					auto party = wPartyApi.lock();
-					
+				
+					auto that = wThis.lock();
+					if (that == nullptr)
+					{
+						return;
+					}
 
+					auto party = wPartyApi.lock();
 					if (party != nullptr)
 					{
+						if (connectionToken.empty())
+						{
+							that->onMergePartyComplete();
+							return;
+						}
+
+						that->onPartyConnectionTokenReceived(connectionToken);
+						
 						Stormancer::taskIf(party->isInParty(), [party]() {
 							return party->leaveParty();
-						})
-							.then([party, connectionToken]()
+						}).then([party, connectionToken]()
 						{
 							return party->joinParty(connectionToken);
 						}).then([wThis](pplx::task<void> t)
