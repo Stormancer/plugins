@@ -618,7 +618,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             // If the host is not defined a P2P was sent with "" to notify client is host.
             _logger.Log(LogLevel.Trace, "gamesession", $"Gamesession {_scene.Id} evaluating {userId} as host (expected host :{_config.HostSessionId})", new { });
-            if (!serverFound && (string.IsNullOrEmpty(_config.HostSessionId) || _config.HostSessionId == userId))
+            if (!serverFound && (string.IsNullOrEmpty(_config.HostSessionId) || _config.HostSessionId == peer.SessionId.ToString()))
             {
                 _config.HostSessionId = peer.SessionId.ToString();
                 if (GetServerTcs().TrySetResult(peer))

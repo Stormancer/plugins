@@ -38,6 +38,7 @@ Fixed
 - Resetting a game session force the gamesession to be completed if it wasn't already, exactly as if all players add left it. This guarantees that if only the host sent results, they would be processed on reset, triggering (for instance) a PSN Activity completion.
 - Made the plugin compatible with Users 9.0.0
 - Do not try getting the client in PostResults if it is not in the list of clients.
+- Fixed host couldn't be found in gamesessions if specified in the game session config because SessionId was compared with the user id.
 
 6.1.1.15
 ----------
