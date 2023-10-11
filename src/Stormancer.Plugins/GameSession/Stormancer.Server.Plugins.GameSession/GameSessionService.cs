@@ -704,153 +704,161 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private async Task<bool> Start()
         {
-            Debug.Assert(_config != null);
-            _analytics.StartGamesession(this);
-            var ctx = new GameSessionContext(this._scene, _config, this);
-
-            await using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
+            try
             {
-                await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(h => h.GameSessionStarting(ctx), ex => _logger.Log(LogLevel.Error, "gameSession", "An error occurred while executing GameSessionStarting event", ex));
-            }
+                Debug.Assert(_config != null);
+                _analytics.StartGamesession(this);
+                var ctx = new GameSessionContext(this._scene, _config, this);
 
-
-            var poolId = state.GameServerPool();
-
-
-            if (poolId != null)
-            {
-
-                if (!state.IsServerPersistent())
+                await using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
                 {
-                    _scene.Disconnected.Add(async (args) =>
-                    {
-                        if (this._server != null)
-                        {
+                    await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(h => h.GameSessionStarting(ctx), ex => _logger.Log(LogLevel.Error, "gameSession", "An error occurred while executing GameSessionStarting event", ex));
+                }
 
-                            //If the only peer remaining is the server, close it and destroy the gamesession.
-                            if (!_scene.RemotePeers.Any(p => p.SessionId != _server.GameServerSessionId))
+
+                var poolId = state.GameServerPool();
+
+
+                if (poolId != null)
+                {
+
+                    if (!state.IsServerPersistent())
+                    {
+                        _scene.Disconnected.Add(async (args) =>
+                        {
+                            if (this._server != null)
                             {
-                                await using (var scope = _scene.CreateRequestScope())
+
+                                //If the only peer remaining is the server, close it and destroy the gamesession.
+                                if (!_scene.RemotePeers.Any(p => p.SessionId != _server.GameServerSessionId))
                                 {
-                                    var pools = scope.Resolve<ServerPoolProxy>();
+                                    await using (var scope = _scene.CreateRequestScope())
+                                    {
+                                        var pools = scope.Resolve<ServerPoolProxy>();
+                                        _gameCompleteCts?.Cancel();
+                                        await pools.CloseServer(_server.GameServerId, CancellationToken.None);
+                                        _repository.RemoveGameSession(this);
+                                        _scene.Shutdown("gamesession.empty");
+                                    }
+
+                                }
+                            }
+                            else
+                            {
+                                if (!_scene.RemotePeers.Any())
+                                {
                                     _gameCompleteCts?.Cancel();
-                                    await pools.CloseServer(_server.GameServerId, CancellationToken.None);
                                     _repository.RemoveGameSession(this);
                                     _scene.Shutdown("gamesession.empty");
                                 }
-
                             }
-                        }
-                        else
-                        {
-                            if (!_scene.RemotePeers.Any())
-                            {
-                                _gameCompleteCts?.Cancel();
-                                _repository.RemoveGameSession(this);
-                                _scene.Shutdown("gamesession.empty");
-                            }
-                        }
 
 
-                    });
-
-                }
-
-                await using (var scope = _scene.CreateRequestScope())
-                {
-                    var pools = scope.Resolve<ServerPoolProxy>();
-                    if(_gameCompleteCts == null)
-                    {
-                        return false;
-                    }
-                    try
-                    {
-                        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-                        using var cts2 = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, _gameCompleteCts.Token);
-                        _server = await pools.TryStartGameServer(poolId, GameSessionId, _config, cts2.Token);
-                        _serverRequestedOn = DateTime.UtcNow;
-
-                       
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Log(LogLevel.Error, "gamesession.gameserverFailure", "Failed to start game server", ex);
-                        //_gameCompleteCts.Cancel();
-                        //_repository.RemoveGameSession(this);
-                        //_scene.Shutdown("gameserver.failure");
-                    }
-                }
-                if (_server != null)
-                {
-                    if (!state.IsServerPersistent())
-                    {
-                        _ = _scene.RunTask(async ct =>
-                        {
-                            try
-                            {
-                                await Task.Delay(1000 * 30, ct);
-                                if(_server !=null && _serverPeer == null) //Server requested but it didn't connect to the game session in 60 seconds.
-                                {
-                                    await using (var scope = _scene.CreateRequestScope())
-                                    {
-                                        var pools = scope.Resolve<ServerPoolProxy>();
-                                        if (_server != null)
-                                        {
-                                            await pools.CloseServer(_server.GameServerId, CancellationToken.None);
-                                        }
-                                        _repository.RemoveGameSession(this);
-                                        if (_gameCompleteCts != null)
-                                        {
-                                            _gameCompleteCts?.Cancel();
-                                            _scene.Shutdown("gameserver.didnotconnect");
-                                        }
-                                        
-                                        _repository.RemoveGameSession(this);
-                                       
-                                    }
-                                    return;
-                                }
-                                await Task.Delay(1000 * 60 * 5, ct);
-
-                                if (!_playerConnectedOnce && !ct.IsCancellationRequested)
-                                {
-                                    await using (var scope = _scene.CreateRequestScope())
-                                    {
-                                        var pools = scope.Resolve<ServerPoolProxy>();
-                                        if (_server != null)
-                                        {
-                                            await pools.CloseServer(_server.GameServerId, CancellationToken.None);
-                                        }
-
-                                        if (_gameCompleteCts != null)
-                                        {
-                                            _gameCompleteCts?.Cancel();
-                                            _scene.Shutdown("gamesession.empty");
-                                        }
-
-                                        _repository.RemoveGameSession(this);
-                                      
-                                    }
-                                }
-                            }
-                            catch (OperationCanceledException) { }
                         });
+
                     }
+
+                    await using (var scope = _scene.CreateRequestScope())
+                    {
+                        var pools = scope.Resolve<ServerPoolProxy>();
+                        if (_gameCompleteCts == null)
+                        {
+                            return false;
+                        }
+                        try
+                        {
+                            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                            using var cts2 = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, _gameCompleteCts.Token);
+                            _server = await pools.TryStartGameServer(poolId, GameSessionId, _config, cts2.Token);
+                            _serverRequestedOn = DateTime.UtcNow;
+
+
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Log(LogLevel.Error, "gamesession.gameserverFailure", "Failed to start game server", ex);
+                            //_gameCompleteCts.Cancel();
+                            //_repository.RemoveGameSession(this);
+                            //_scene.Shutdown("gameserver.failure");
+                        }
+                    }
+                    if (_server != null)
+                    {
+                        if (!state.IsServerPersistent())
+                        {
+                            _ = _scene.RunTask(async ct =>
+                            {
+                                try
+                                {
+                                    await Task.Delay(1000 * 30, ct);
+                                    if (_server != null && _serverPeer == null) //Server requested but it didn't connect to the game session in 60 seconds.
+                                    {
+                                        await using (var scope = _scene.CreateRequestScope())
+                                        {
+                                            var pools = scope.Resolve<ServerPoolProxy>();
+                                            if (_server != null)
+                                            {
+                                                await pools.CloseServer(_server.GameServerId, CancellationToken.None);
+                                            }
+                                            _repository.RemoveGameSession(this);
+                                            if (_gameCompleteCts != null)
+                                            {
+                                                _gameCompleteCts?.Cancel();
+                                                _scene.Shutdown("gameserver.didnotconnect");
+                                            }
+
+                                            _repository.RemoveGameSession(this);
+
+                                        }
+                                        return;
+                                    }
+                                    await Task.Delay(1000 * 60 * 5, ct);
+
+                                    if (!_playerConnectedOnce && !ct.IsCancellationRequested)
+                                    {
+                                        await using (var scope = _scene.CreateRequestScope())
+                                        {
+                                            var pools = scope.Resolve<ServerPoolProxy>();
+                                            if (_server != null)
+                                            {
+                                                await pools.CloseServer(_server.GameServerId, CancellationToken.None);
+                                            }
+
+                                            if (_gameCompleteCts != null)
+                                            {
+                                                _gameCompleteCts?.Cancel();
+                                                _scene.Shutdown("gamesession.empty");
+                                            }
+
+                                            _repository.RemoveGameSession(this);
+
+                                        }
+                                    }
+                                }
+                                catch (OperationCanceledException) { }
+                            });
+                        }
+                    }
+
+
                 }
 
+                if (poolId != null)
+                {
+                    this.SetDimension("pool", poolId);
+                }
+                this.SetDimension("hostType", _server != null ? "server" : "client");
+                SetDimension("gamefinder", _config?.GameFinder ?? "");
+                SetDimension("template", _scene.Template);
+                _repository.AddGameSession(this);
 
+                return _server != null;
             }
-
-            if (poolId != null)
+            catch(Exception ex)
             {
-                this.SetDimension("pool", poolId);
+                _logger.Log(LogLevel.Error, "gamesession.gameserverFailure", "Failed to start game server", ex);
+                return false;
             }
-            this.SetDimension("hostType", _server != null ? "server" : "client");
-            SetDimension("gamefinder", _config?.GameFinder ?? "");
-            SetDimension("template", _scene.Template);
-            _repository.AddGameSession(this);
-
-            return _server != null;
         }
 
         private TaskCompletionSource<IScenePeerClient> GetServerTcs()

@@ -21,6 +21,8 @@
 // SOFTWARE.
 using Stormancer.Core;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.AdminApi;
+using Stormancer.Server.Plugins.Profile.Admin;
 using Stormancer.Server.Plugins.ServiceLocator;
 
 namespace Stormancer.Server.Plugins.Profile
@@ -40,6 +42,8 @@ namespace Stormancer.Server.Plugins.Profile
                 builder.Register<CustomPartBuilder>().As<IProfilePartBuilder>();
                 builder.Register<AttributeBasedCustomPart>().As<ICustomProfilePart>().SingleInstance();
                 builder.Register<ProfileServiceLocator>().As<IServiceLocatorProvider>();
+                builder.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
+                builder.Register<ProfilesAdminController>();
             };
 
             ctx.SceneCreated += (ISceneHost scene) =>

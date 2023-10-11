@@ -20,6 +20,7 @@ Changed
 Added
 *****
 - Added 'userId' field to the user profile part.
+- Added admin API to manage profiles.
 
 
 4.0.0.3
