@@ -90,7 +90,7 @@ namespace Stormancer.Server.Plugins.Profile
 
                 bool found = _customProfilePartTypescache.TryGetValue(partId, out type);
 
-                if(!found)
+                if(!found && partId == "inferno") //DEBUG CODE
                 {
                     _logger.Log(Diagnostics.LogLevel.Warn, "profiles", $"No profile part type found for partId {partId}", new { partId, parts = _customProfilePartTypescache?.Keys ?? Enumerable.Empty<string>() });
                 }
