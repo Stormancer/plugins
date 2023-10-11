@@ -40,13 +40,13 @@ namespace Stormancer.Server.Plugins.Profile
     {
         private readonly IESClientFactory clientFactory;
         private readonly ISerializer serializer;
-        private readonly ILogger logger;
+        private readonly ILogger _logger;
 
         public AttributeBasedCustomPart(IESClientFactory client, ISerializer serializer, ILogger logger)
         {
             this.clientFactory = client;
             this.serializer = serializer;
-            this.logger = logger;
+            this._logger = logger;
         }
 
         Task<IElasticClient> GetClient(string partId) => clientFactory.CreateClient(partId, "profileParts");
@@ -78,7 +78,7 @@ namespace Stormancer.Server.Plugins.Profile
                             }
                             catch (Exception ex)
                             {
-                                logger.Log(Diagnostics.LogLevel.Error, "profile.customParts", $"Failed to get exported types from {a}", ex);
+                                _logger.Log(Diagnostics.LogLevel.Error, "profile.customParts", $"Failed to get exported types from {a}", ex);
                                 return Enumerable.Empty<Type>();
                             }
                         })
@@ -88,7 +88,13 @@ namespace Stormancer.Server.Plugins.Profile
 
                 }
 
-                return _customProfilePartTypescache.TryGetValue(partId, out type);
+                bool found = _customProfilePartTypescache.TryGetValue(partId, out type);
+
+                if(!found)
+                {
+                    _logger.Log(Diagnostics.LogLevel.Warn, "profiles", $"No profile part type found for partId {partId}", new { partId, parts = _customProfilePartTypescache?.Keys ?? Enumerable.Empty<string>() });
+                }
+                return found;
             }
         }
 
@@ -150,6 +156,9 @@ namespace Stormancer.Server.Plugins.Profile
                 var result = await client.IndexAsync(jObj, rq => rq.Id(GetProfilePartId(userId, partId)));
 
             }
+           
+               
+            
         }
     }
 
