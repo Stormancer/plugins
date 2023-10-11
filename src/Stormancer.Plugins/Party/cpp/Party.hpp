@@ -3246,10 +3246,10 @@ namespace Stormancer
 
 				PartyUserDto getLocalMember() const override
 				{
-					PartyUserDto* result = nullptr;
-					if (tryGetLocalMember(result))
+					PartyUserDto result;
+					if (tryGetLocalMember(&result))
 					{
-						return *result;
+						return result;
 					}
 					else
 					{
@@ -3281,7 +3281,10 @@ namespace Stormancer
 					if (it != members.end())
 					{
 					
-						localMember = &*it;
+						if (localMember)
+						{
+							*localMember = *it;
+						}
 						return true;
 					}
 					else
