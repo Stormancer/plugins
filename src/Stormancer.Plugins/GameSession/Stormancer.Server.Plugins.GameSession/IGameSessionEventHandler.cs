@@ -131,7 +131,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        Task PostingGameResults(PostingGameResultsCtx ctx);
+        Task PostingGameResults(PostingGameResultsCtx ctx) => Task.CompletedTask;
     }
 
     /// <summary>
