@@ -1222,7 +1222,7 @@ namespace Stormancer.Server.Plugins.Party
 
         public Task<Models.Party> GetModel()
         {
-            var party = new Models.Party() { PartyId = this.PartyId, CreationTimeUtc = this.State.CreatedOnUtc, PartyLeaderId = this.Settings.PartyLeaderId };
+            var party = new Models.Party() { PartyId = this.PartyId, CreationTimeUtc = this.State.CreatedOnUtc, PartyLeaderId = this.Settings.PartyLeaderId, CustomData = this.Settings.CustomData };
 
             foreach (var member in this.PartyMembers)
             {
