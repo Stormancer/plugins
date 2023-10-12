@@ -125,6 +125,59 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         /// <param name="ctx"></param>
         Task ShouldCompleteGame(ShouldCompleteGameContext ctx)=> Task.CompletedTask;
+
+        /// <summary>
+        /// Event fired whenever a player sends results.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task PostingGameResults(PostingGameResultsCtx ctx);
+    }
+
+    /// <summary>
+    /// Context passed to <see cref="IGameSessionEventHandler.PostingGameResults(PostingGameResultsCtx)"/>
+    /// </summary>
+    public class PostingGameResultsCtx : IDisposable
+    {
+        internal PostingGameResultsCtx(IGameSessionService service, ISceneHost scene, IScenePeerClient peer, Stream data)
+        {
+            Service = service;
+            Scene = scene;
+            Peer = peer;
+            SessionId = peer.SessionId;
+            Data = data;
+        }
+
+
+        /// <summary>
+        /// Gets the game session service that fired the event.
+        /// </summary>
+        public IGameSessionService Service { get; }
+
+        /// <summary>
+        /// Gets the scene associated to the game session that fired the event.
+        /// </summary>
+        public ISceneHost Scene { get; }
+
+        /// <summary>
+        /// Gets the peer that sent the results.
+        /// </summary>
+        public IScenePeerClient Peer { get; }
+
+        /// <summary>
+        /// Gets the session id of the player who sent the result data.
+        /// </summary>
+        public SessionId SessionId { get; }
+
+        /// <summary>
+        /// Gets the data sent by the player.
+        /// </summary>
+        public Stream Data { get; }
+
+        void IDisposable.Dispose()
+        {
+          Data.Seek(0, SeekOrigin.Begin);
+        }
     }
 
     /// <summary>

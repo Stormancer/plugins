@@ -22,6 +22,7 @@ Added
 - Added property `CreatedOn` on `IGamesessionService` to get the UTC date the gamesession was created.
 - Added Session to context of `IGameSessionEventHandler.OnGameSessionCompleted`.
 - Added support for regions.
+- Added PostingGameResults event fired whenever a client sends results to the game session.
 
 Changed
 *******

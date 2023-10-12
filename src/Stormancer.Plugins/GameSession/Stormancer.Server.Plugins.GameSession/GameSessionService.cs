@@ -1026,6 +1026,17 @@ namespace Stormancer.Server.Plugins.GameSession
             if (userId != null)
             {
 
+                using var ctx = new PostingGameResultsCtx(this, _scene, remotePeer,inputStream);
+                await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+                {
+                    await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.PostingGameResults(ctx), ex =>
+                    {
+                        _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running gameSession.PostingGameResults event handlers", ex);
+                    });
+                }
+
+
+
                 var memStream = new MemoryStream();
                 inputStream.CopyTo(memStream);
                 memStream.Seek(0, SeekOrigin.Begin);
@@ -1053,21 +1064,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         }
 
-        private async Task EvaluateGameComplete(Stream inputStream)
-        {
-            Debug.Assert(_config != null);
-
-            var ctx = new GameSessionCompleteCtx(this, _scene, _config, new[] { new GameSessionResult("", null, null, inputStream) }, _clients.Keys);
-            await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
-            {
-                await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.GameSessionCompleted(ctx), ex =>
-                {
-                    _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running gameSession.GameSessionCompleted event handlers", ex);
-                });
-            }
-
-
-        }
+     
 
 
 
@@ -1148,6 +1145,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             if (shouldRunHandlers)
             {
+                _logger.Log(LogLevel.Info, "gameSession", "Completing game session", new { results = _clients.Select(kvp=>new { client = kvp.Key, resultReceived = kvp.Value.ResultData!=null }) });
                 await runHandlers();
             }
         }
