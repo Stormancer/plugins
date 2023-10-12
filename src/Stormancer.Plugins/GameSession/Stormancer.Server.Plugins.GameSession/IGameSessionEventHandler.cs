@@ -139,13 +139,15 @@ namespace Stormancer.Server.Plugins.GameSession
     /// </summary>
     public class PostingGameResultsCtx : IDisposable
     {
-        internal PostingGameResultsCtx(IGameSessionService service, ISceneHost scene, IScenePeerClient peer, Stream data)
+        internal PostingGameResultsCtx(IGameSessionService service, ISceneHost scene, IScenePeerClient peer, Session session, Stream data)
         {
             Service = service;
             Scene = scene;
             Peer = peer;
+            Session = session;
             SessionId = peer.SessionId;
             Data = data;
+            
         }
 
 
@@ -163,6 +165,11 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Gets the peer that sent the results.
         /// </summary>
         public IScenePeerClient Peer { get; }
+
+        /// <summary>
+        /// Gets the user session associated with the peer which sent the result data. 
+        /// </summary>
+        public Session Session { get; }
 
         /// <summary>
         /// Gets the session id of the player who sent the result data.

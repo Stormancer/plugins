@@ -1022,11 +1022,11 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 throw new ClientException($"Unable to post result before game session start. Server status is {this._status}");
             }
-            var userId = await GetUserId(remotePeer);
-            if (userId != null)
+            var session = await GetSessionAsync(remotePeer);
+            if (session != null)
             {
 
-                using var ctx = new PostingGameResultsCtx(this, _scene, remotePeer,inputStream);
+                using var ctx = new PostingGameResultsCtx(this, _scene, remotePeer,session, inputStream);
                 await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
                 {
                     await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.PostingGameResults(ctx), ex =>
@@ -1040,7 +1040,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 var memStream = new MemoryStream();
                 inputStream.CopyTo(memStream);
                 memStream.Seek(0, SeekOrigin.Begin);
-                if (_clients.TryGetValue(userId, out var client))
+                if (_clients.TryGetValue(session.User.Id, out var client))
                 {
                     client.ResultData = memStream;
 
