@@ -61,13 +61,14 @@ namespace Stormancer.Server.Plugins.PartyMerging
         private readonly TaskCompletionSource<string?> _completedTcs = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         private CancellationTokenSource _cts;
-
+        private CancellationTokenRegistration _registration;
+        private List<CancellationToken> _cancellationTokens = new List<CancellationToken>();
         public string PartyId { get; }
 
         public bool IsCancellationRequested => _cts.IsCancellationRequested;
         public Task<string?> WhenCompletedAsync()
         {
-            return _completedTcs.Task.WaitAsync(_cts.Token);
+            return _completedTcs.Task;
         }
 
         public void Complete(string? connectionToken)
@@ -77,20 +78,36 @@ namespace Stormancer.Server.Plugins.PartyMerging
         public void Dispose()
         {
             _completedTcs.TrySetException(new OperationCanceledException());
+           
+            _registration.Unregister();
             _cts.Dispose();
+
         }
 
         [MemberNotNull("_cts")]
         internal void LinkCancellationToken(CancellationToken cancellationToken)
         {
+            _cancellationTokens.Add(cancellationToken);
             if (_cts != null)
             {
-                _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
+
+                var currentCts = _cts;
+                var currentRegistration = _registration;
+               
+                _cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokens.ToArray());
+                
+                _registration = _cts.Token.Register(() => { _completedTcs.TrySetCanceled(); });
+
+                currentRegistration.Unregister();
+                currentCts.Dispose();
+
             }
             else
             {
                 _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                _registration = _cts.Token.Register(() => { _completedTcs.TrySetCanceled(); });
             }
+           
 
         }
     }

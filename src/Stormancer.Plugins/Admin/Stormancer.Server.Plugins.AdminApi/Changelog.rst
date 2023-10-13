@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Swashbuckle dependency updated.
+
 3.0.0.5
 ----------
 - Update dependency to Stormancer.Abstraction.Server 9.0.0

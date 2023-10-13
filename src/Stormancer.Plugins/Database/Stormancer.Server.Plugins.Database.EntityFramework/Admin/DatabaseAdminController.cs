@@ -56,29 +56,29 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore
         }
 
 
-        /// <summary>
-        /// Create the database
-        /// </summary>
-        /// <returns></returns>
-        [HttpPost]
-        [Route("create")]
-        public async Task Create()
-        {
-            await using var scope = scene.CreateRequestScope();
-            var ctx = await scope.Resolve<DbContextAccessor>().GetDbContextAsync();
+        ///// <summary>
+        ///// Create the database
+        ///// </summary>
+        ///// <returns></returns>
+        //[HttpPost]
+        //[Route("create")]
+        //public async Task Create()
+        //{
+        //    await using var scope = scene.CreateRequestScope();
+        //    var ctx = await scope.Resolve<DbContextAccessor>().GetDbContextAsync();
             
-            await ctx.Database.EnsureCreatedAsync();
-        }
+        //    await ctx.Database.EnsureCreatedAsync();
+        //}
 
-        [Route("drop")]
-        [HttpPost]
-        public async Task Drop()
-        {
-            await using var scope = scene.CreateRequestScope();
-            var ctx = await scope.Resolve<DbContextAccessor>().GetDbContextAsync();
+        //[Route("drop")]
+        //[HttpPost]
+        //public async Task Drop()
+        //{
+        //    await using var scope = scene.CreateRequestScope();
+        //    var ctx = await scope.Resolve<DbContextAccessor>().GetDbContextAsync();
 
-            await ctx.Database.EnsureDeletedAsync();
-        }
+        //    await ctx.Database.EnsureDeletedAsync();
+        //}
        
 
 

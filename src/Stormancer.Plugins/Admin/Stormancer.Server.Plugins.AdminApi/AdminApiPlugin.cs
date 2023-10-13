@@ -82,6 +82,7 @@ namespace Stormancer.Server.Plugins.AdminApi
                         
                         c.SwaggerDoc("v3", new OpenApiInfo { Title = "Stormancer Admin web API", Version = "v3"    });
                     });
+                    services.AddSwaggerGenNewtonsoftSupport();
                 });
 
                 host.AddWebApiConfiguration((app, env, scene) =>

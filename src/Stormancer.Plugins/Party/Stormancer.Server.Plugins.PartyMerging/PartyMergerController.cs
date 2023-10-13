@@ -72,6 +72,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
                         }
                         partySettings.PublicServerData["stormancer.partyMerging.status"] = "InProgress";
                         partySettings.PublicServerData["stormancer.partyMerging.merger"] = partyMergerId;
+                        partySettings.PublicServerData.Remove("stormancer.partyMerging.lastError");
                         return partySettings;
 
 
@@ -115,21 +116,42 @@ namespace Stormancer.Server.Plugins.PartyMerging
                 }
                 catch (Exception ex)
                 {
-                    await _party.UpdateSettings(state =>
+                    if (cancellationToken.IsCancellationRequested)
                     {
-
-
-                        var partySettings = new PartySettingsDto(state);
-                        if (partySettings.PublicServerData == null)
+                        await _party.UpdateSettings(state =>
                         {
-                            partySettings.PublicServerData = new System.Collections.Generic.Dictionary<string, string>();
-                        }
-                        partySettings.PublicServerData["stormancer.partyMerging.status"] = "Error";
-                        partySettings.PublicServerData["stormancer.partyMerging.lastError"] = ex.Message;
-                        return partySettings;
 
 
-                    }, cancellationToken);
+                            var partySettings = new PartySettingsDto(state);
+                            if (partySettings.PublicServerData == null)
+                            {
+                                partySettings.PublicServerData = new System.Collections.Generic.Dictionary<string, string>();
+                            }
+                            partySettings.PublicServerData["stormancer.partyMerging.status"] = "Cancelled";
+                            return partySettings;
+
+
+                        }, CancellationToken.None);
+                        throw new ClientException("cancelled");
+                    }
+                    else
+                    {
+                        await _party.UpdateSettings(state =>
+                        {
+
+
+                            var partySettings = new PartySettingsDto(state);
+                            if (partySettings.PublicServerData == null)
+                            {
+                                partySettings.PublicServerData = new System.Collections.Generic.Dictionary<string, string>();
+                            }
+                            partySettings.PublicServerData["stormancer.partyMerging.status"] = "Error";
+                            partySettings.PublicServerData["stormancer.partyMerging.lastError"] = ex.Message;
+                            return partySettings;
+
+
+                        }, CancellationToken.None);
+                    }
                     throw;
                 }
 

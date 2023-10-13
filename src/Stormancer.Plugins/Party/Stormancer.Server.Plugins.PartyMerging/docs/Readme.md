@@ -9,3 +9,33 @@ The matchmaking system works by offering members of one or several of the partie
 
 # Getting the current party merging status.
 
+The current status of the party merging system is available in the public server data of the party.
+
+    auto party = tryGetParty();
+    if (party != nullptr)
+    {
+        const auto& serverData = party->settings().publicServerData;
+        auto it = serverData.find("stormancer.partyMerging.status");
+        
+        if(it != serverData.end())
+        {
+            std::string status = it->second; //InProgress, Completed, Cancelled or Error.
+        }
+    }
+    else
+    {
+       //Not in a party
+    }
+
+Fields related to the party merging plugin in public server data are:
+
+`stormancer.partyMerging.status` contains the status of the current or last merging operation. Possible values are:
+
+- InProgress
+- Completed
+- Error
+- Cancelled
+
+`stormancer.partyMerging.merger` contains the id of the last merger used.
+
+`stormancer.partyMerging.lastError` contains the message associated with the last error encountered while running a merger.
