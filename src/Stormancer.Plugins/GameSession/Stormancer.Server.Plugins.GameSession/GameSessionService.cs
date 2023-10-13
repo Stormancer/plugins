@@ -744,43 +744,6 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 if (poolId != null)
                 {
-
-                    if (!state.IsServerPersistent())
-                    {
-                        _scene.Disconnected.Add(async (args) =>
-                        {
-                            if (this._server != null)
-                            {
-
-                                //If the only peer remaining is the server, close it and destroy the gamesession.
-                                if (!_scene.RemotePeers.Any(p => p.SessionId != _server.GameServerSessionId))
-                                {
-                                    await using (var scope = _scene.CreateRequestScope())
-                                    {
-                                        var pools = scope.Resolve<ServerPoolProxy>();
-                                        _gameCompleteCts?.Cancel();
-                                        await pools.CloseServer(_server.GameServerId, CancellationToken.None);
-                                        _repository.RemoveGameSession(this);
-                                        _scene.Shutdown("gamesession.empty");
-                                    }
-
-                                }
-                            }
-                            else
-                            {
-                                if (!_scene.RemotePeers.Any())
-                                {
-                                    _gameCompleteCts?.Cancel();
-                                    _repository.RemoveGameSession(this);
-                                    _scene.Shutdown("gamesession.empty");
-                                }
-                            }
-
-
-                        });
-
-                    }
-
                     await using (var scope = _scene.CreateRequestScope())
                     {
                         var pools = scope.Resolve<ServerPoolProxy>();
@@ -1390,6 +1353,34 @@ namespace Stormancer.Server.Plugins.GameSession
                         }
 
 
+                    }
+
+                    if (!state.IsServerPersistent() && _playerConnectedOnce)
+                    {
+                        if (_server != null)
+                        {
+                            if (!_scene.RemotePeers.Any(p => p.SessionId != _server.GameServerSessionId) )
+                            {
+                                await using (var scope = _scene.CreateRequestScope())
+                                {
+                                    var pools = scope.Resolve<ServerPoolProxy>();
+                                    _gameCompleteCts?.Cancel();
+                                    await pools.CloseServer(_server.GameServerId, CancellationToken.None);
+                                    _repository.RemoveGameSession(this);
+                                    _scene.Shutdown("gamesession.empty");
+                                }
+
+                            }
+                        }
+                        else
+                        {
+                            if (!_scene.RemotePeers.Any() && !_reservationStates.Any(r => r.Value.ExpiresOn > DateTime.UtcNow))
+                            {
+                                _gameCompleteCts?.Cancel();
+                                _repository.RemoveGameSession(this);
+                                _scene.Shutdown("gamesession.empty");
+                            }
+                        }
                     }
                 }
                 finally

@@ -40,6 +40,7 @@ Fixed
 - Made the plugin compatible with Users 9.0.0
 - Do not try getting the client in PostResults if it is not in the list of clients.
 - Fixed host couldn't be found in gamesessions if specified in the game session config because SessionId was compared with the user id.
+- Don't shutdown the game session if there is no player but pending reservations.
 
 6.1.1.15
 ----------
