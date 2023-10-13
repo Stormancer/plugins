@@ -1359,7 +1359,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     {
                         if (_server != null)
                         {
-                            if (!_scene.RemotePeers.Any(p => p.SessionId != _server.GameServerSessionId) )
+                            if (!_scene.RemotePeers.Any(p => p.SessionId != _server.GameServerSessionId) && !_reservationStates.Any(r => r.Value.ExpiresOn > DateTime.UtcNow))
                             {
                                 await using (var scope = _scene.CreateRequestScope())
                                 {
