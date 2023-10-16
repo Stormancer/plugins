@@ -80,9 +80,15 @@ namespace Stormancer.Server.Plugins.Profile
             return customProfileParts.RunEventHandler(p => p.DeleteAsync(userId, partId, fromClient), ex => _logger.Log(LogLevel.Error, "profile", "An error occured while deleting a custom part.", ex));
         }
 
-        public Task UpdateCustomProfilePart(string userId, string partId, string version, bool fromClient, Stream inputStream)
+        public async Task UpdateCustomProfilePart(string userId, string partId, string version, bool fromClient, Stream inputStream)
         {
-            return customProfileParts.RunEventHandler(p => p.UpdateAsync(userId, partId, version, fromClient, inputStream), ex => _logger.Log(LogLevel.Error, "profile", "An error occured while updating a custom profile part.", ex));
+            var ctx = new UpdateCustomProfilePartContext(userId, partId, version, fromClient, inputStream);
+            await  customProfileParts.RunEventHandler(p => p.UpdateAsync(ctx), ex => _logger.Log(LogLevel.Error, "profile", "An error occured while updating a custom profile part.", ex));
+
+            if(ctx.Processed == false)
+            {
+                _logger.Log(LogLevel.Warn, "profiles.customParts", $"A custom profile part update was received, but not processed : {partId}", new { userId, partId, version, fromClient });
+            }
         }
 
         public Task<string?> UpdateUserHandle(string userId, string newHandle, CancellationToken cancellationToken)

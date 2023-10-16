@@ -33,13 +33,9 @@ namespace Stormancer.Server.Plugins.Profile
         /// <summary>
         /// Updates a part.
         /// </summary>
-        /// <param name="userId"></param>
-        /// <param name="partId"></param>
-        /// <param name="formatVersion"></param>
-        /// <param name="fromClient"></param>
-        /// <param name="data"></param>
+        /// <param name="ctx"></param>
         /// <returns></returns>
-        Task UpdateAsync(string userId, string partId, string formatVersion,bool fromClient, Stream data);
+        Task UpdateAsync(UpdateCustomProfilePartContext ctx);
 
         /// <summary>
         /// Gets data about a part.
@@ -57,5 +53,26 @@ namespace Stormancer.Server.Plugins.Profile
         /// <returns></returns>
         Task DeleteAsync(string userId, string partId, bool fromClient);
 
+    }
+
+    public class UpdateCustomProfilePartContext
+    {
+        internal UpdateCustomProfilePartContext(string userId, string partId, string formatVersion, bool fromClient, Stream data)
+        {
+            UserId = userId;
+            PartId = partId;
+            FormatVersion = formatVersion;
+            FromClient = fromClient;
+            Data = data;
+        }
+        public string UserId { get; }
+        public string PartId { get; }
+
+        public string FormatVersion { get; }
+        public bool FromClient { get; }
+
+        public Stream Data { get; }
+
+        public bool Processed { get; set; }
     }
 }

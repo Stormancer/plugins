@@ -21,6 +21,7 @@ Added
 *****
 - Added 'userId' field to the user profile part.
 - Added admin API to manage profiles.
+- Added warning and error logs when issues prevent a custom profile part from being updated.
 
 
 4.0.0.3

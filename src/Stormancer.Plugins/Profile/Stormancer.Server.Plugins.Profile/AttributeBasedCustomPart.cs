@@ -67,24 +67,37 @@ namespace Stormancer.Server.Plugins.Profile
             {
                 if (_customProfilePartTypescache == null)
                 {
+                    try
+                    {
+                        _customProfilePartTypescache = AssemblyLoadContext.Default.Assemblies
+                            .Where(a => !a.IsDynamic)
+                            .SelectMany(a =>
+                            {
+                                try
+                                {
+                                    return a.GetExportedTypes();
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.Log(Diagnostics.LogLevel.Error, "profile.customParts", $"Failed to get exported types from {a}", ex);
+                                    return Enumerable.Empty<Type>();
+                                }
+                            })
+                            .Select(t => new { type = t, attr = t.GetCustomAttribute<CustomProfilePartAttribute>() })
+                            .Where(t => t.attr != null)
+                            .ToDictionary(t => t.attr!.PartId, t => t.type) ?? new Dictionary<string, Type>();
 
-                    _customProfilePartTypescache = AssemblyLoadContext.Default.Assemblies
-                        .Where(a => !a.IsDynamic)
-                        .SelectMany(a =>
-                        {
-                            try
-                            {
-                                return a.GetExportedTypes();
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.Log(Diagnostics.LogLevel.Error, "profile.customParts", $"Failed to get exported types from {a}", ex);
-                                return Enumerable.Empty<Type>();
-                            }
-                        })
-                        .Select(t => new { type = t, attr = t.GetCustomAttribute<CustomProfilePartAttribute>() })
-                        .Where(t => t.attr != null)
-                        .ToDictionary(t => t.attr!.PartId, t => t.type) ?? new Dictionary<string, Type>();
+                        _logger.Log(Diagnostics.LogLevel.Info, "profiles.customParts", "Custom profile parts definitions loaded", new { types = _customProfilePartTypescache.Select(kvp=>new { id = kvp.Key, type = kvp.Value.ToString() } )});
+                    }
+                    catch(Exception ex)
+                    {
+                        _logger.Log(Diagnostics.LogLevel.Info, "profiles.customParts", "Failed to load custom profile part definitions.", ex);
+
+                        type = null;
+                        return false;
+                    }
+
+               
 
                 }
 
@@ -92,7 +105,7 @@ namespace Stormancer.Server.Plugins.Profile
 
                 if(!found && partId == "inferno") //DEBUG CODE
                 {
-                    _logger.Log(Diagnostics.LogLevel.Warn, "profiles", $"No profile part type found for partId {partId}", new { partId, parts = _customProfilePartTypescache?.Keys ?? Enumerable.Empty<string>() });
+                    _logger.Log(Diagnostics.LogLevel.Warn, "profiles.customParts", $"No profile part type found for partId {partId}", new { partId, parts = _customProfilePartTypescache?.Keys ?? Enumerable.Empty<string>() });
                 }
                 return found;
             }
@@ -145,20 +158,19 @@ namespace Stormancer.Server.Plugins.Profile
             }
         }
 
-        public async Task UpdateAsync(string userId, string partId, string formatVersion, bool fromClient, Stream data)
+
+        public async Task UpdateAsync(UpdateCustomProfilePartContext ctx)
         {
-            if (TryGetCustomProfilePart(partId, out var type))
+            if (TryGetCustomProfilePart(ctx.PartId, out var type))
             {
                 var client = await GetClient(type.GetCustomAttribute<CustomProfilePartAttribute>()!.PartId);
 
-                var json = serializer.Deserialize<string>(data);
+                var json = serializer.Deserialize<string>(ctx.Data);
                 var jObj = JObject.Parse(json);
-                var result = await client.IndexAsync(jObj, rq => rq.Id(GetProfilePartId(userId, partId)));
-
+                var result = await client.IndexAsync(jObj, rq => rq.Id(GetProfilePartId(ctx.UserId, ctx.PartId)));
+                ctx.Data.Seek(0, SeekOrigin.Begin);
+                ctx.Processed = true;
             }
-           
-               
-            
         }
     }
 
