@@ -14,12 +14,14 @@
     <Description>Synchronizes a section of the server app configuration with peers (clients and servers).</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Deterministic>true</Deterministic>
+	  <PackageReadmeFile>Readme.md</PackageReadmeFile>
   </PropertyGroup>
 
   <PropertyGroup>
     <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
   <ItemGroup>
+	  <None Include="docs\Readme.md" Pack="true" PackagePath="\" />
     <None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
   </ItemGroup>
 
