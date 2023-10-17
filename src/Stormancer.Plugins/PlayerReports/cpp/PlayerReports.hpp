@@ -38,8 +38,9 @@ namespace Stormancer
 			{
 			public:
 
-				ReportsService(std::weak_ptr<RpcService> rpc)
-					: _rpc(rpc)
+				ReportsService(std::weak_ptr<RpcService> rpc, std::shared_ptr<Serializer> serializer)
+					: _serializer(serializer)
+					, _rpc(rpc)
 				{
 				}
 
@@ -52,10 +53,22 @@ namespace Stormancer
 				}
 
 
+				template<class T>
+				pplx::task<void> createBugReport(const std::string message, const T& customContext, const char* data, const int length)
+				{
+					auto rpc = _rpc.lock();
+					auto serializer = _serializer;
+					return rpc->rpc("Reports.CreateBugReport", [serializer, message, customContext, data, length](obytestream& stream)
+					{
+						serializer->serialize(stream, message, customContext, length);
+						stream.write(data, length);
+					});
+				}
+
 
 			private:
 
-				
+				std::shared_ptr<Serializer> _serializer;
 				std::weak_ptr<RpcService> _rpc;
 			};
 		}
@@ -72,19 +85,32 @@ namespace Stormancer
 
 			}
 
-			
+
 			template<class T>
-			pplx::task<void> createPlayerReport(std::string targetUserId, std::string message,T& customContext)
+			pplx::task<void> createPlayerReport(std::string targetUserId, std::string message, T& customContext)
 			{
-				return getService().then([targetUserId, message, customContext](std::shared_ptr<details::ReportsService> service) 
+				return getService().then([targetUserId, message, customContext](std::shared_ptr<details::ReportsService> service)
 				{
 					return service->createPlayerReport(targetUserId, message, customContext);
 				});
 			}
-			
+
+			template<class T>
+			pplx::task<void> createBugReport(const std::string message, const T& customContext, const char* data, const int length)
+			{
+				if (length > 500 * 1024)//500ko max
+				{
+					rturn pplx::task_from_exception<bool>(std::runtime_error("data connot be more than 500kb"));
+				}
+				return getService().then([message, customContext, data, length](std::shared_ptr<details::ReportsService> service)
+				{
+					return service->createBugReport(message, customContext, data, length);
+				});
+			}
+
 
 		private:
-			
+
 		};
 
 		class ReportsPlugin : public Stormancer::IPlugin
@@ -110,18 +136,18 @@ namespace Stormancer
 
 					if (!name.empty())
 					{
-						builder.registerDependency<Stormancer::Reports::details::ReportsService, RpcService>().singleInstance();
+						builder.registerDependency<Stormancer::Reports::details::ReportsService, RpcService, Serializer>().singleInstance();
 					}
 				}
 
 			}
 			void registerClientDependencies(Stormancer::ContainerBuilder& builder) override
 			{
-				builder.registerDependency<Stormancer::Reports::ReportsApi,Stormancer::Users::UsersApi>().as<Stormancer::Reports::ReportsApi>().singleInstance();
+				builder.registerDependency<Stormancer::Reports::ReportsApi, Stormancer::Users::UsersApi>().as<Stormancer::Reports::ReportsApi>().singleInstance();
 			}
 
-		
-			
+
+
 		};
 
 	}

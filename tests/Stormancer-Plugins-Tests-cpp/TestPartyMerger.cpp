@@ -142,3 +142,52 @@ TEST(Gameplay, TestPartyMerger) {
 
 
 }
+
+TEST(Gameplay, TestPartyMergerCancellation) {
+
+	//Create an action dispatcher to dispatch callbacks and continuation in the thread running the method.
+	auto dispatcher = std::make_shared<Stormancer::MainThreadActionDispatcher>();
+
+	//Create a configurator used for all clients.
+	Stormancer::IClientFactory::SetDefaultConfigurator([dispatcher](size_t id) {
+
+		//Create a configuration that connects to the test application.
+		auto config = Stormancer::Configuration::create(std::string(ServerEndpoint), std::string(Account), std::string(Application));
+
+		//Log in VS output window.
+		config->logger = std::make_shared<Stormancer::VisualStudioLogger>();
+
+
+		//Add plugins required by the test.
+		config->addPlugin(new Stormancer::Users::UsersPlugin());
+		config->addPlugin(new Stormancer::Party::PartyPlugin());
+		config->addPlugin(new Stormancer::GameFinder::GameFinderPlugin());
+		config->addPlugin(new Stormancer::Party::PartyMergingPlugin());
+
+		//Use the dispatcher we created earlier to ensure all callbacks are run on the test main thread.
+		config->actionDispatcher = dispatcher;
+		return config;
+	});
+
+	auto t0 = CreateParty(0);
+	auto t1 = CreateParty(1);
+
+	//loop until test is completed and run library events.
+	while (!(t0.is_done() && t1.is_done()))
+	{
+		//Runs the  callbacks and continuations waiting to be executed (mostly user code) for max 5ms.
+		dispatcher->update(std::chrono::milliseconds(5));
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	}
+
+	EXPECT_TRUE(t0.get());
+	EXPECT_TRUE(t1.get());
+	//We are connected to the game session, we can test the socket API.
+
+
+
+	Stormancer::IClientFactory::ReleaseClient(0);
+	Stormancer::IClientFactory::ReleaseClient(1);
+
+
+}

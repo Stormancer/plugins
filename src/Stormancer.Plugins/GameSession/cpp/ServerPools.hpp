@@ -120,8 +120,8 @@ namespace Stormancer
 
 					/// Stormancer.Server.ClusterEndpoints	: Comma separated list of endpoints the server should use to communicate with the Stormancer cluster.
 
-					auto serverEndpoints = std::getenv("Stormancer_Server_ClusterEndpoints");
-					if (serverEndpoints)
+					std::string serverEndpoints;// = std::getenv("Stormancer_Server_ClusterEndpoints");
+					if (tryGetEnvironmentVariable("Stormancer_Server_ClusterEndpoints",serverEndpoints))
 					{
 						_logger->log(Stormancer::LogLevel::Info, "initialization", "Stormancer_Server_ClusterEndpoints set", serverEndpoints);
 						_config->clearServerEndpoints();
@@ -137,26 +137,26 @@ namespace Stormancer
 						_config->discoveryEnabled = false;
 					}
 
-					auto transportEndpointStr = std::getenv("Stormancer_Server_TransportEndpoint");
+					std::string transportEndpointStr;// = std::getenv("Stormancer_Server_TransportEndpoint");
 
-					if (transportEndpointStr)
+					if (tryGetEnvironmentVariable("Stormancer_Server_TransportEndpoint",transportEndpointStr))
 					{
 						_logger->log(Stormancer::LogLevel::Info, "initialization", "Stormancer_Server_TransportEndpoint set", transportEndpointStr);
 						_config->forceTransportEndpoint = transportEndpointStr;
 					}
 
 					/// Stormancer.Server.Port		: The local port the transport should bind to.
-					auto port = std::getenv("Stormancer_Server_Port");
+					std::string port;// = std::getenv("Stormancer_Server_Port");
 
-					if (port)
+					if (tryGetEnvironmentVariable("Stormancer_Server_Port",port))
 					{
 						_logger->log(Stormancer::LogLevel::Info, "initialization", "Stormancer_Server_Port set", port);
-						_config->port = std::atoi(port);
+						_config->port = std::atoi(port.c_str());
 					}
 
 					/// Stormancer.Server.PublishedEndpoint	: The public endpoint the players can use to communicate with this server.
-					auto publishedAddresses = std::getenv("Stormancer_Server_PublishedAddresses");
-					if (publishedAddresses)
+					std::string publishedAddresses;// = std::getenv("Stormancer_Server_PublishedAddresses");
+					if (tryGetEnvironmentVariable("Stormancer_Server_PublishedAddresses", publishedAddresses))
 					{
 						_logger->log(Stormancer::LogLevel::Info, "initialization", "Stormancer_Server_PublishedAddresses set", publishedAddresses);
 						//If there is a published address, the peer is directly reachable. We disable nat traversal. 
@@ -169,12 +169,12 @@ namespace Stormancer
 							_config->publishedAddresses.push_back(s);
 						}
 						/// Stormancer.Server.PublishedPort			: The public port mapped to the port the client is bound to.
-						auto publishedPort = std::getenv("Stormancer_Server_PublishedPort");
+						std::string publishedPort;// = std::getenv("Stormancer_Server_PublishedPort");
 
-						if (publishedPort)
+						if (tryGetEnvironmentVariable("Stormancer_Server_PublishedPort",publishedPort))
 						{
 							_logger->log(Stormancer::LogLevel::Info, "initialization", "Stormancer_Server_PublishedPort set", publishedPort);
-							_config->publishedPort = std::atoi(publishedPort);
+							_config->publishedPort = std::atoi(publishedPort.c_str());
 						}
 						else
 						{
@@ -184,27 +184,27 @@ namespace Stormancer
 					}
 
 					/// Stormancer.Server.AuthenticationToken	: Server authentication token.
-					auto authTokenStr = std::getenv("Stormancer_Server_AuthenticationToken");
+					std::string authTokenStr;// = std::getenv("Stormancer_Server_AuthenticationToken");
 
-					if (authTokenStr)
+					if (tryGetEnvironmentVariable("Stormancer_Server_AuthenticationToken",authTokenStr))
 					{
 						_logger->log(Stormancer::LogLevel::Info, "initialization", "Stormancer_Server_AuthenticationToken set", "*******");
 						this->authToken = authTokenStr;
 					}
 
 					/// Stormancer.Server.AuthenticationToken	: Server authentication token.
-					auto accountStr = std::getenv("Stormancer_Server_Account");
+					std::string accountStr;// = std::getenv("Stormancer_Server_Account");
 
-					if (accountStr)
+					if (tryGetEnvironmentVariable("Stormancer_Server_Account",accountStr))
 					{
 						_logger->log(Stormancer::LogLevel::Info, "initialization", "Stormancer_Server_Account set", accountStr);
 						_config->account = accountStr;
 					}
 
 					/// Stormancer.Server.AuthenticationToken	: Server authentication token.
-					auto appStr = std::getenv("Stormancer_Server_Application");
+					std::string appStr;// = std::getenv("Stormancer_Server_Application");
 
-					if (appStr)
+					if (tryGetEnvironmentVariable("Stormancer_Server_Application",appStr))
 					{
 						_logger->log(Stormancer::LogLevel::Info, "initialization", "Stormancer_Server_Application set", appStr);
 						_config->application = appStr;
@@ -219,6 +219,35 @@ namespace Stormancer
 				bool getConfigFromEnvironmentVariables = false;
 
 			private:
+				bool tryGetEnvironmentVariable(const char* key, std::string& result)
+				{
+#if _WIN32
+					char* buffer = nullptr;
+					size_t size = 0;
+					if (_dupenv_s(&buffer, &size, key) == 0 && buffer != nullptr)
+					{
+						result = buffer;
+						return true;
+						free(buffer);
+					}
+					else
+					{
+						return false;
+					}
+							
+#else
+					char* buffer = std::getenv(key);
+					if (buffer != nullptr)
+					{
+						result = buffer;
+						return true;
+					}
+					else
+					{
+						return false;
+					}
+#endif
+				}
 				std::shared_ptr<Stormancer::Configuration> _config;
 				std::shared_ptr<Stormancer::ILogger> _logger;
 			};

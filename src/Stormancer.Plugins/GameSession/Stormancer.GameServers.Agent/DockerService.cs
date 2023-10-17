@@ -266,9 +266,12 @@ namespace Stormancer.GameServers.Agent
                 serverContainer.DockerContainerId = response.ID;
                 serverContainer.AddResource(portReservation);
 
-                var startResponse = await _docker.Containers.StartContainerAsync(response.ID, new ContainerStartParameters { });
+                var startResponse = await _docker.Containers.StartContainerAsync(response.ID, new ContainerStartParameters {  });
 
-
+                if(startResponse == false)
+                {
+                    throw new InvalidOperationException($"Docker container '{name}' failed to start.");
+                }
                 return new StartContainerResult { Success = true, Container = serverContainer };
 
             }

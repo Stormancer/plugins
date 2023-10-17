@@ -42,5 +42,10 @@ namespace Stormancer.Server.Plugins.PlayerReports
 
             await ctx.SaveChangesAsync();
         }
+
+        internal async Task CreateBugReportAsync(string reporterUserId, string message, JObject customData, ReadOnlyMemory<byte> data)
+        {
+
+        }
     }
 }

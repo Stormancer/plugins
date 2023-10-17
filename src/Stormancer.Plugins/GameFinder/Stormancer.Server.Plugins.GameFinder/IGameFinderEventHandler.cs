@@ -106,6 +106,9 @@ namespace Stormancer.Server.Plugins.GameFinder
         public NewGame Game { get; set; } = default!;
     }
 
+    /// <summary>
+    /// Context as argument for <see cref="IGameFinderEventHandler.AreCompatibleAsync(AreCompatibleContext)"/>
+    /// </summary>
     public class AreCompatibleContext
     {
         internal AreCompatibleContext(IEnumerable<Parties> parties)
@@ -118,22 +121,38 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
         }
 
+        /// <summary>
+        /// Parties to check for compatibility.
+        /// </summary>
         public Parties[] Parties { get; }
 
+        /// <summary>
+        /// Compatibility results.
+        /// </summary>
         public bool[] Results { get; }
 
+        /// <summary>
+        /// Gets the compatibility result of a party.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         public bool GetResult(int id)
         {
             return Results[id];
         }
 
+        /// <summary>
+        /// Sets the compatibility result of a party.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="result"></param>
         public void SetResult(int id, bool result)
         {
             Results[id] &= result;
         }
     }
     /// <summary>
-    /// Provides implementer way to handle events in the gamefinder pipeline.
+    /// Provides implementer way to handle events in the game finder pipeline.
     /// </summary>
     public interface IGameFinderEventHandler
     {
