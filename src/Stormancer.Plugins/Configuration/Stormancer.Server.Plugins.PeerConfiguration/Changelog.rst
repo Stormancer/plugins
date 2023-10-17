@@ -14,6 +14,9 @@ Unreleased
 Changed
 *******
 - Don't send config updates if it didn't change.
+Added
+*****
+- Added a readme file.
 
 0.1.0.7
 ----------

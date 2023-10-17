@@ -13,4 +13,24 @@ The client configuration is set as a section of the server app configuration. It
 
 ## Receiving the configuration on the client
 
+### Adding the plugin
+
     #include "configuration/PeerConfiguration.hpp"
+
+    ...
+    //Add the plugin to the stormancer client.
+    conf->addPlugin(new Stormancer::PeerConfiguration::PeerConfigurationPlugin());
+
+### API
+
+    //Gets a boolean indicating whether the configuration is currently available.
+    //The configuration is first sent just after authentication, so isAvailable returns false before that,
+    //or if the plugin is not enabled on the server.
+    bool isAvailable()
+
+    //Get the current configuration as a json string. Returns an empty string if the configuration is not available.
+    std::string get()
+
+    //Subscribes to changes to the configuration.
+    Stormancer::Subscription subscribe(std::function<void(std::string)> callback, bool /*includeAlreadyReceived*/ = true)
+
