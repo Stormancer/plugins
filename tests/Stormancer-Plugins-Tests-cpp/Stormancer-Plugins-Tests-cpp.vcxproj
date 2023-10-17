@@ -22,6 +22,7 @@
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
     <ClInclude Include="..\..\src\Stormancer.Plugins\Analytics\cpp\Analytics.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Configuration\cpp\PeerConfiguration.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Friends\cpp\Friends.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\GameFinder\cpp\GameFinder.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\GameSession\cpp\GameSession.hpp" />

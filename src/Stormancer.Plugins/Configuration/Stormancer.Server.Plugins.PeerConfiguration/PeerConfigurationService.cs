@@ -85,24 +85,47 @@ namespace Stormancer.Server.Plugins.PeerConfiguration
             var handlers = GetEventHandlers(scope);
 
             var peers = scene.RemotePeers
-                .Where(p => p.Metadata.ContainsKey(PeerConfigurationPlugin.METADATA_KEY))
+                //.Where(p => p.Metadata.ContainsKey(PeerConfigurationPlugin.METADATA_KEY))
                 .Select(p => (GetGroup(p, handlers), p)).ToList();
 
-            foreach(var (t,p) in peers)
+            foreach (var (t, p) in peers)
             {
                 await t;
             }
 
             var groups = peers.GroupBy(tuple => tuple.Item1.Result, tuple => tuple.p);
-            foreach(var group in groups)
+            foreach (var group in groups)
             {
                 var config = await GetConfigurationForGroup(group.Key, handlers);
 
-                await scene.Send(new MatchArrayFilter(group), "peerConfig.update", s => serializer.Serialize(config.ToString(), s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
+                bool shouldUpdate = false;
+                lock (_syncRoot)
+                {
+                    if (_currentConfiguration.TryGetValue(group.Key, out var currentConfig))
+                    {
+                        if (!JToken.DeepEquals(config, currentConfig))
+                        {
+                            _currentConfiguration[group.Key] = config;
+                            shouldUpdate = true;
+                        }
+                    }
+                    else
+                    {
+                        _currentConfiguration[group.Key] = config;
+                        shouldUpdate = true;
+                    }
+                }
+                if (shouldUpdate)
+                {
+                    var json = config.ToString();
+                    await scene.Send(new MatchArrayFilter(group), "peerConfig.update", s => serializer.Serialize(json, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
+                }
             }
-            
+
         }
 
+        private object _syncRoot = new object();
+        private Dictionary<string, JObject> _currentConfiguration = new Dictionary<string, JObject>();
         private ValueTask<string> GetGroup(IScenePeerClient peer, IEnumerable<IPeerConfigurationEventHandler> handlers)
         {
             if (peer.Metadata.TryGetValue(PeerConfigurationPlugin.METADATA_GROUP_KEY, out var group))
@@ -147,9 +170,9 @@ namespace Stormancer.Server.Plugins.PeerConfiguration
 
             var handlers = GetEventHandlers(scope);
 
-            var group = await GetGroup(client,handlers);
+            var group = await GetGroup(client, handlers);
 
-            var config = await GetConfigurationForGroup(group,handlers);
+            var config = await GetConfigurationForGroup(group, handlers);
 
             await scene.Send(new MatchPeerFilter(client), "peerConfig.update", s => serializer.Serialize(config.ToString(), s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
 

@@ -33,6 +33,7 @@
     <ClInclude Include="..\..\src\Stormancer.Plugins\Gameye\cpp\gameye.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\PlayerReports\cpp\PlayerReports.hpp" />
     <ClInclude Include="..\..\src\Stormancer.Plugins\Party\cpp\PartyMerging.hpp" />
+    <ClInclude Include="..\..\src\Stormancer.Plugins\Configuration\cpp\PeerConfiguration.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

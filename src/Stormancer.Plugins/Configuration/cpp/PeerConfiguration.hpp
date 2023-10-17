@@ -64,7 +64,7 @@ namespace Stormancer
 				void initialize(std::shared_ptr<Scene> scene)
 				{
 					std::weak_ptr<PeerConfigurationService> wThat = this->shared_from_this();
-					scene->addRoute("inappnotification.push", [wThat](Packetisp_ptr packet) {
+					scene->addRoute("peerConfig.update", [wThat](Packetisp_ptr packet) {
 						if (auto that = wThat.lock())
 						{
 							Serializer serializer;
@@ -113,8 +113,8 @@ namespace Stormancer
 			Stormancer::Subscription subscribe(std::function<void(std::string)> callback, bool /*includeAlreadyReceived*/ = true)
 			{
 				auto sub = configurationReceived.subscribe(callback);
-				auto current = get();
-				if (current.size() > 0)
+				
+				if (isAvailable())
 				{
 					callback(get());
 				}
@@ -125,9 +125,9 @@ namespace Stormancer
 			/// Gets a boolean indicating if the client is connected to the notification service.
 			/// </summary>
 			/// <returns></returns>
-			bool available()
+			bool isAvailable()
 			{
-				return service != nullptr;
+				return !currentConfiguration.empty();
 			}
 
 			std::string get()
