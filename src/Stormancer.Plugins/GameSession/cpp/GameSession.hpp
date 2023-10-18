@@ -763,7 +763,20 @@ namespace Stormancer
 							{
 								auto token = task.get();
 								logger->log(LogLevel::Debug, "GameSession", "Initialize P2Ps", "");
-								return service->initializeP2P(token, openTunnel, cancellationToken);
+
+								if (!token.isHost)
+								{
+									auto hostReadyTce = c->_hostIsReadyTce;
+									auto hostReadyTask = pplx::create_task(hostReadyTce, cancellationToken);
+									return hostReadyTask.then([service, token, openTunnel, cancellationToken]()
+									{
+										return service->initializeP2P(token, openTunnel, cancellationToken);
+									}, cancellationToken);
+								}
+								else
+								{
+									return service->initializeP2P(token, openTunnel, cancellationToken);
+								}
 							}
 							catch (std::exception& e)
 							{

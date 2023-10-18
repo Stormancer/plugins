@@ -90,7 +90,14 @@ namespace Stormancer
 			}
 			pplx::task<void> start(std::string mergerId,pplx::cancellation_token cancellationToken = pplx::cancellation_token::none())
 			{
-				return _partyApi.lock()->getPartyScene()->dependencyResolver().resolve<details::PartyMergingService>()->start(mergerId,cancellationToken);
+				try
+				{
+					return _partyApi.lock()->getPartyScene()->dependencyResolver().resolve<details::PartyMergingService>()->start(mergerId,cancellationToken);
+				}
+				catch (const std::exception& ex)
+				{
+					return pplx::task_from_exception<void>(ex);
+				}
 			}
 
 			Stormancer::Event<std::string> onPartyConnectionTokenReceived;
