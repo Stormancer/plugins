@@ -2,6 +2,7 @@
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Users;
+using System.Buffers;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.PlayerReports
@@ -36,7 +37,7 @@ namespace Stormancer.Server.Plugins.PlayerReports
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task CreateBugReport(string message, JObject customData, int length, RequestContext<IScenePeerClient> ctx)
+        public async Task CreateBugReport(string message, JObject customData,string contentType, int length, RequestContext<IScenePeerClient> ctx)
         {
             if(length > 50*1024)
             {
@@ -48,6 +49,10 @@ namespace Stormancer.Server.Plugins.PlayerReports
             {
                 throw new ClientException("notAuthenticated");
             }
+
+            using var owner = MemoryPool<byte>.Shared.Rent(length);
+            ctx.InputStream.Read(owner.Memory.Span.Slice(0,length));
+            await _reports.CreateBugReportAsync(session.User.Id, message, customData, contentType, owner.Memory);
         }
 
     }
