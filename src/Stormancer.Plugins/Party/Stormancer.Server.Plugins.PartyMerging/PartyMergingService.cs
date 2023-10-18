@@ -66,6 +66,9 @@ namespace Stormancer.Server.Plugins.PartyMerging
         public string PartyId { get; }
 
         public bool IsCancellationRequested => _cts.IsCancellationRequested;
+
+        public Dictionary<string, object> CacheStorage { get; } = new Dictionary<string, object>();
+
         public Task<string?> WhenCompletedAsync()
         {
             return _completedTcs.Task;
@@ -78,7 +81,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
         public void Dispose()
         {
             _completedTcs.TrySetException(new OperationCanceledException());
-           
+
             _registration.Unregister();
             _cts.Dispose();
 
@@ -93,9 +96,9 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
                 var currentCts = _cts;
                 var currentRegistration = _registration;
-               
+
                 _cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokens.ToArray());
-                
+
                 _registration = _cts.Token.Register(() => { _completedTcs.TrySetCanceled(); });
 
                 currentRegistration.Unregister();
@@ -107,7 +110,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
                 _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 _registration = _cts.Token.Register(() => { _completedTcs.TrySetCanceled(); });
             }
-           
+
 
         }
     }
@@ -174,7 +177,12 @@ namespace Stormancer.Server.Plugins.PartyMerging
             {
 
 
-                tasks = _state._states.Where(kvp => !kvp.Value.IsCancellationRequested).Select(kvp => _parties.GetModel(kvp.Key, cancellationToken));
+                tasks = _state._states.Where(kvp => !kvp.Value.IsCancellationRequested).Select(async kvp =>
+                {
+                    var model = await _parties.GetModel(kvp.Key, cancellationToken);
+                    model.CacheStorage = kvp.Value.CacheStorage;
+                    return model;
+                });
             }
 
             var models = await Task.WhenAll(tasks);

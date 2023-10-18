@@ -93,6 +93,6 @@ namespace Stormancer.Server.Plugins.Models
         /// Temporary data storage
         /// </summary>
         [MessagePackIgnore]
-        public Dictionary<string, object> CacheStorage { get; } = new Dictionary<string, object>();
+        public Dictionary<string, object> CacheStorage { get; set; } = new Dictionary<string, object>();
     }
 }
