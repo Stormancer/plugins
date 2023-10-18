@@ -1241,12 +1241,6 @@ namespace Stormancer.Server.Plugins.Party
                     return false;
                 }
 
-                if (!_partyState.Settings.IsJoinable)
-                {
-
-                    return false;
-                }
-
                 foreach (var r in reservation.PartyMembers)
                 {
 
