@@ -281,9 +281,18 @@ namespace Stormancer.Server.Plugins.GameSession
 
             });
 
+            _scene.RunTask(async cancellationToken =>
+            {
+                using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+
+                while (cancellationToken.IsCancellationRequested)
+                {
+                    await ReservationCleanupCallback(null);
+                    await timer.WaitForNextTickAsync(cancellationToken);
+                }
+            });
 
 
-            _reservationCleanupTimer = new Timer((_) => _ = ReservationCleanupCallback(null), null, 5000, 5000);
         }
 
         private void ApplySettings()
@@ -522,8 +531,8 @@ namespace Stormancer.Server.Plugins.GameSession
         private async Task SignalHostReady(IScenePeerClient peer, string? userId)
         {
             _logger.Log(LogLevel.Info, _scene.Id, "Signal host ready", new { peer.SessionId, userId, server = _server != null });
-            
-            if(_server == null)
+
+            if (_server == null)
             {
                 await TryStart();
             }
@@ -989,7 +998,7 @@ namespace Stormancer.Server.Plugins.GameSession
             if (session != null)
             {
 
-                using var ctx = new PostingGameResultsCtx(this, _scene, remotePeer,session, inputStream);
+                using var ctx = new PostingGameResultsCtx(this, _scene, remotePeer, session, inputStream);
                 await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
                 {
                     await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.PostingGameResults(ctx), ex =>
@@ -1027,7 +1036,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         }
 
-     
+
 
 
 
@@ -1108,7 +1117,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             if (shouldRunHandlers)
             {
-                _logger.Log(LogLevel.Info, "gameSession", "Completing game session", new { results = _clients.Select(kvp=>new { client = kvp.Key, resultReceived = kvp.Value.ResultData!=null }) });
+                _logger.Log(LogLevel.Info, "gameSession", "Completing game session", new { results = _clients.Select(kvp => new { client = kvp.Key, resultReceived = kvp.Value.ResultData != null }) });
                 await runHandlers();
             }
         }
@@ -1180,7 +1189,7 @@ namespace Stormancer.Server.Plugins.GameSession
             _gameCompleteCts?.Dispose();
             _gameCompleteCts = null;
 
-            _reservationCleanupTimer?.Dispose();
+           
             GetServerTcs().TrySetCanceled();
             await CloseGameServer();
         }
@@ -1365,6 +1374,7 @@ namespace Stormancer.Server.Plugins.GameSession
                                 {
                                     var pools = scope.Resolve<ServerPoolProxy>();
                                     _gameCompleteCts?.Cancel();
+                                    _server = null;
                                     await pools.CloseServer(_server.GameServerId, CancellationToken.None);
                                     _repository.RemoveGameSession(this);
                                     _scene.Shutdown("gamesession.empty");
@@ -1432,7 +1442,7 @@ namespace Stormancer.Server.Plugins.GameSession
         }
 
         private ConcurrentDictionary<Guid, ReservationState> _reservationStates = new ConcurrentDictionary<Guid, ReservationState>();
-        private Timer _reservationCleanupTimer;
+      
         private GameServer? _server;
         private DateTime _serverRequestedOn;
 
