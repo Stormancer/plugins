@@ -92,6 +92,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
                             partySettings.PublicServerData = new System.Collections.Generic.Dictionary<string, string>();
                         }
                         partySettings.PublicServerData["stormancer.partyMerging.status"] = "Completed";
+                        partySettings.PublicServerData["stormancer.partyMerging.merged"] = "true";
                         return partySettings;
 
 

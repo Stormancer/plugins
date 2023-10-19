@@ -39,3 +39,5 @@ Fields related to the party merging plugin in public server data are:
 `stormancer.partyMerging.merger` contains the id of the last merger used.
 
 `stormancer.partyMerging.lastError` contains the message associated with the last error encountered while running a merger.
+
+`stormancer.partyMerging.merged` exists if the merger has been successfully run on this party once.

@@ -571,7 +571,16 @@ namespace Stormancer.Server.Plugins.Party
 
         public Task UpdateSettings(PartySettingsDto partySettingsDto, CancellationToken ct)
         {
-            return UpdateSettings(_ => partySettingsDto, ct);
+            return UpdateSettings(state =>
+                new PartySettingsDto(state)
+                {
+                    CustomData = partySettingsDto.CustomData,
+                    GameFinderName = partySettingsDto.GameFinderName,
+                    IndexedDocument = partySettingsDto.IndexedDocument,
+                    IsJoinable = partySettingsDto.IsJoinable,
+                    OnlyLeaderCanInvite = partySettingsDto.OnlyLeaderCanInvite,
+                }
+             , ct);
 
         }
 
@@ -789,7 +798,7 @@ namespace Stormancer.Server.Plugins.Party
                     }
 
 
-                    _partyState.PartyMembers.TryRemove( partyUser.SessionId, out _);
+                    _partyState.PartyMembers.TryRemove(partyUser.SessionId, out _);
 
 
                     Log(LogLevel.Trace, "KickPlayerByLeader", $"Kicked a player, userId: {partyUser.UserId}", partyUser.SessionId, partyUser.UserId);
