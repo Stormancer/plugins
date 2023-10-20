@@ -313,7 +313,7 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
 
-                while (cancellationToken.IsCancellationRequested)
+                while (!cancellationToken.IsCancellationRequested)
                 {
                     try
                     {
