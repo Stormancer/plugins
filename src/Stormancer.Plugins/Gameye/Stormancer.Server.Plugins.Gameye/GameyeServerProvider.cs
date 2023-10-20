@@ -42,7 +42,7 @@ namespace Stormancer.Server.Plugins.Gameye
 
 
 
-        public async Task<GameSession.StartGameServerResult> TryStartServer(string id, string authToken, JObject config, GameServerRecord record, IEnumerable<string> regions, CancellationToken cancellationToken)
+        public async Task<GameSession.StartGameServerResult> TryStartServer(string id, string authToken, JObject config, GameServerEvent record, IEnumerable<string> regions, CancellationToken cancellationToken)
         {
             var agentConfig = config.ToObject<GameyePoolConfigurationSection>();
             if (agentConfig == null || agentConfig.Image == null)
