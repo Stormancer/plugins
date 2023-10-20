@@ -554,7 +554,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         public bool ShuttingDown { get; private set; }
 
-        public async Task<StartGameServerResult> TryStartServer(string id, string authenticationToken, JObject config, GameServerRecord record, IEnumerable<string> regions, CancellationToken ct)
+        public async Task<StartGameServerResult> TryStartServer(string id, string authenticationToken, JObject config, GameServerEvent record, IEnumerable<string> regions, CancellationToken ct)
         {
 
             var agentConfig = config.ToObject<AgentPoolConfigurationSection>();

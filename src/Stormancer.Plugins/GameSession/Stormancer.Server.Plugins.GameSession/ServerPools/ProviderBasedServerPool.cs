@@ -220,7 +220,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             isRunning = false;
         }
 
-        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gsConfig, GameServerRecord record, CancellationToken cancellationToken)
+        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gsConfig, GameServerEvent record, CancellationToken cancellationToken)
         {
             if (!isRunning)
             {
@@ -232,8 +232,8 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             var claims = new GameServerAuthClaims { GameServerId = gameSessionId, ProviderType = provider.Type };
             var authToken = await _dataProtector.ProtectBase64Url(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(claims)), "gameServer");
 
-            record.Pool = this.Id;
-            record.PoolType = provider.Type;
+            record.CustomData["Pool"] = this.Id;
+            record.CustomData["PoolType"] = provider.Type;
             var result = await provider.TryStartServer(gameSessionId, authToken, this.config, record, gsConfig.PreferredRegions, cancellationToken);
 
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
@@ -323,7 +323,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             }
         }
 
-        public async Task OnGameServerDisconnected(string serverId, GameServerRecord gameServerRecord)
+        public async Task OnGameServerDisconnected(string serverId, GameServerEvent gameServerRecord)
         {
 
             if (_runningServers.TryRemove(serverId, out var server))

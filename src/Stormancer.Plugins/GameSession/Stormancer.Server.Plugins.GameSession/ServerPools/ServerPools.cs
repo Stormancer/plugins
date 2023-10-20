@@ -179,17 +179,17 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             }
             if (pool != null)
             {
-                var client = await _eSClientFactory.CreateClient<GameServerRecord>("gameservers");
+                var client = await _eSClientFactory.CreateClient<GameServerEvent>("gameservers");
 
-                var record = client.Get<GameServerRecord>(serverId);
+                var record = client.Get<GameServerEvent>(serverId);
                 if (record.Source != null)
                 {
-                    record.Source.ClosedOn = DateTime.UtcNow;
+                    //record.Source.ClosedOn = DateTime.UtcNow;
                 }
                 await pool.OnGameServerDisconnected(serverId,record?.Source);
                 if (record.Source != null)
                 {
-                    record.Source.RunTimeInSeconds = (record.Source.ClosedOn - record.Source.StartedOn).Seconds;
+                   // record.Source.RunTimeInSeconds = (record.Source.ClosedOn - record.Source.StartedOn).Seconds;
                     await client.IndexAsync(record.Source, desc => desc.Id(record.Id));
                 }
             }
@@ -224,13 +224,13 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         {
             if (TryGetPool(poolId, out var pool))
             {
-                var record = new GameServerRecord() {  Id = gameSessionId, Pool = poolId, StartedOn = DateTime.UtcNow };
+                var record = new GameServerEvent() {  Id = gameSessionId, EventTime = DateTime.UtcNow };
 
                 var result = await pool.TryWaitGameServerAsync(gameSessionId, config,record, cancellationToken);
 
-                var client =await _eSClientFactory.CreateClient<GameServerRecord>("gameservers");
+                var client =await _eSClientFactory.CreateClient<GameServerEvent>("gameservers");
 
-                record.ServerFound = result.Success;
+                record.CustomData["ServerFound"] = result.Success;
               
                 await client.IndexAsync(record,desc=>desc.Id(record.Id));
                 if (result.Success)

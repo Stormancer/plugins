@@ -144,9 +144,16 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         }
 
         [S2SApi]
-        public Task CloseServer(GameServerId id)
+        public async Task CloseServer(GameServerId id)
         {
-            return pools.CloseServer(id);
+            try
+            {
+                await pools.CloseServer(id);
+            }
+            catch(Exception ex)
+            {
+               
+            }
         }
     }
 }

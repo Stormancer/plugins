@@ -315,7 +315,14 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 while (cancellationToken.IsCancellationRequested)
                 {
-                    await ReservationCleanupCallback(null);
+                    try
+                    {
+                        await ReservationCleanupCallback(null);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Log(LogLevel.Error, "gamesession", "An error occurred while running the gamesession cleanup method.", ex);
+                    }
                     await timer.WaitForNextTickAsync(cancellationToken);
                 }
             });

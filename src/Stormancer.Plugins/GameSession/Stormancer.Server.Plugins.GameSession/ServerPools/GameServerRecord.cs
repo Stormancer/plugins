@@ -7,18 +7,11 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
-    public class GameServerRecord
+    public class GameServerEvent
     {
         public string Id { get; set; }
-
-        public string Pool { get; set; }
-
+        public DateTime EventTime { get; set; } = DateTime.UtcNow;
+ 
         public JObject CustomData { get; set; } = new JObject();
-
-        public DateTime StartedOn { get; set; }
-        public DateTime ClosedOn { get; set; }
-        public string PoolType { get; set; }
-        public int RunTimeInSeconds { get; set; }
-        public bool ServerFound { get; set; }
     }
 }

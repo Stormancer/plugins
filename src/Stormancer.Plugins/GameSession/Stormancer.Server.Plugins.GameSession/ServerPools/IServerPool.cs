@@ -45,7 +45,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         public object? Context { get; internal set; }
         public GameSessionConfiguration GameSessionConfiguration { get; internal set; }
         public TaskCompletionSource<WaitGameServerResult> RequestCompletedCompletionSource { get; internal set; }
-        public GameServerRecord Record { get; internal set; }
+        public GameServerEvent Record { get; internal set; }
 
         /// <summary>
         /// Gets or sets the region the game server was created in.
@@ -117,7 +117,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         /// <param name="gameSessionId"></param>
         /// <param name="gameSessionConfig"></param>
         /// <returns></returns>
-        Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gameSessionConfig,GameServerRecord record, CancellationToken cancellationToken);
+        Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gameSessionConfig,GameServerEvent record, CancellationToken cancellationToken);
 
         void UpdateConfiguration(JObject config);
 
@@ -132,7 +132,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         bool CanManage(Session session, IScenePeerClient peer);
         Task<GameServerStartupParameters?> WaitGameSessionAsync(Session session, IScenePeerClient client, CancellationToken cancellationToken);
-        Task OnGameServerDisconnected(string serverId, GameServerRecord gameServerRecord);
+        Task OnGameServerDisconnected(string serverId, GameServerEvent gameServerRecord);
         Task CloseServer(string serverId);
     }
 }

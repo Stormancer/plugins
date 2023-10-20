@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using Stormancer.Server.Plugins.Database;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,17 +15,17 @@ namespace Stormancer.Server.Plugins.GameSession
     public class GameSessionsMonitoringService
     {
         private readonly GameSessionProxy _gameSessionProxy;
-        private readonly GameServerMonitoringRepository _gameServerRepository;
+        private readonly GameServerEventsRepository _gameServerEvents;
 
         /// <summary>
         /// Creates a new <see cref="GameSessionsMonitoringService"/> object.
         /// </summary>
         /// <param name="gameSessionProxy"></param>
-        /// <param name="gameServerRepository"></param>
-        public GameSessionsMonitoringService(GameSessionProxy gameSessionProxy,GameServerMonitoringRepository gameServerRepository)
+        /// <param name="gameServerEvents"></param>
+        public GameSessionsMonitoringService(GameSessionProxy gameSessionProxy,GameServerEventsRepository gameServerEvents)
         {
             _gameSessionProxy = gameSessionProxy;
-            _gameServerRepository = gameServerRepository;
+            _gameServerEvents = gameServerEvents;
         }
         public IAsyncEnumerable<string> GetLogsAsync(string gameSessionId, DateTime? since, DateTime? until, uint size, CancellationToken cancellationToken)
         {
@@ -40,7 +41,7 @@ namespace Stormancer.Server.Plugins.GameSession
             }
             catch (Exception)
             {
-
+                status.GameServerEvents = await _gameServerEvents.GetEventsAsync(gameSessionId, cancellationToken);
             }
 
 
@@ -53,9 +54,20 @@ namespace Stormancer.Server.Plugins.GameSession
     }
 
 
-    public class GameServerMonitoringRepository
+    public class GameServerEventsRepository
     {
+        private readonly IESClientFactory _esClientFactory;
 
+        public GameServerEventsRepository(IESClientFactory clientFactory)
+        {
+            _esClientFactory = clientFactory;
+        }
+        internal async Task<IEnumerable<GameServerEvent>> GetEventsAsync(string gameSessionId, CancellationToken cancellationToken)
+        {
+            var client = await _esClientFactory.CreateClient<GameServerEvent>("gameservers");
+
+            throw new NotImplementedException();
+        }
     }
     public class GameSessionStatus
     {
@@ -64,6 +76,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         }
         public InspectLiveGameSessionResult GameSession { get; set; }
+        public IEnumerable<GameServerEvent> GameServerEvents { get;  set; }
     }
 
 

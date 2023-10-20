@@ -99,7 +99,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         }
 
-        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration config, GameServerRecord record, CancellationToken cancellationToken)
+        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration config, GameServerEvent record, CancellationToken cancellationToken)
         {
 
             foreach (var subPool in _subPools)
@@ -143,7 +143,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             throw new NotSupportedException();
         }
 
-        public async Task OnGameServerDisconnected(string serverId, GameServerRecord gameServerRecord)
+        public async Task OnGameServerDisconnected(string serverId, GameServerEvent gameServerRecord)
         {
             foreach (var pool in SubPools)
             {
