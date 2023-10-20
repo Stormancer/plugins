@@ -57,6 +57,7 @@ namespace Stormancer.Server.Plugins.Users
                 Auth = JsonDocument.Parse(user.Auth.ToString()),
                 Channels = JsonDocument.Parse(user.Channels.ToString()),
                 CreatedOn = user.CreatedOn,
+                LastLogin = user.LastLogin,
                 Id = Guid.Parse(user.Id),
                 UserData = JsonDocument.Parse(user.UserData.ToString()),
                 LastPlatform = user.LastPlatform,

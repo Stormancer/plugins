@@ -164,7 +164,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public async Task<User> CreateUser(string userId, JObject userData, string currentPlatform = "")
         {
-            var user = new User() { Id = userId, LastPlatform = currentPlatform, UserData = userData, LastLogin = string.IsNullOrEmpty(currentPlatform) ? new DateTime() : DateTime.UtcNow };
+            var user = new User() { Id = userId, LastPlatform = currentPlatform, UserData = userData };
             var record = UserRecord.CreateRecordFromUser(user);
 
             var dbContext = await this._dbContext.GetDbContextAsync();
