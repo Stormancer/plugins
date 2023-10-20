@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using MsgPack.Serialization;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 
@@ -56,6 +57,7 @@ namespace Stormancer.Server.Plugins.Models
         public byte[] Data { get; set; }
 
         [MessagePackMember(1)]
+        [JsonProperty(ItemConverterType = typeof(SessionIdJsonConverter))]
         public SessionId SessionId { get; set; }
 
         [MessagePackMember(2)]

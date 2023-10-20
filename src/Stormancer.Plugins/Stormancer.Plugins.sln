@@ -231,6 +231,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Azure", "Azure", "{A6047D62
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Azure", "Azure\Stormancer.Server.Plugins.Azure\Stormancer.Server.Plugins.Azure.csproj", "{D2A9CE03-7AE6-47EF-8031-3C3DF8475B18}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.NewtonsoftJson", "Utilities\Stormancer.NewtonsoftJson\Stormancer.NewtonsoftJson.csproj", "{BE4023A3-D5E4-44F1-8BC3-67F535681B16}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -902,6 +904,18 @@ Global
 		{D2A9CE03-7AE6-47EF-8031-3C3DF8475B18}.Release|x64.Build.0 = Release|Any CPU
 		{D2A9CE03-7AE6-47EF-8031-3C3DF8475B18}.Release|x86.ActiveCfg = Release|Any CPU
 		{D2A9CE03-7AE6-47EF-8031-3C3DF8475B18}.Release|x86.Build.0 = Release|Any CPU
+		{BE4023A3-D5E4-44F1-8BC3-67F535681B16}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BE4023A3-D5E4-44F1-8BC3-67F535681B16}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BE4023A3-D5E4-44F1-8BC3-67F535681B16}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{BE4023A3-D5E4-44F1-8BC3-67F535681B16}.Debug|x64.Build.0 = Debug|Any CPU
+		{BE4023A3-D5E4-44F1-8BC3-67F535681B16}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{BE4023A3-D5E4-44F1-8BC3-67F535681B16}.Debug|x86.Build.0 = Debug|Any CPU
+		{BE4023A3-D5E4-44F1-8BC3-67F535681B16}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BE4023A3-D5E4-44F1-8BC3-67F535681B16}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BE4023A3-D5E4-44F1-8BC3-67F535681B16}.Release|x64.ActiveCfg = Release|Any CPU
+		{BE4023A3-D5E4-44F1-8BC3-67F535681B16}.Release|x64.Build.0 = Release|Any CPU
+		{BE4023A3-D5E4-44F1-8BC3-67F535681B16}.Release|x86.ActiveCfg = Release|Any CPU
+		{BE4023A3-D5E4-44F1-8BC3-67F535681B16}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1003,6 +1017,7 @@ Global
 		{46E2AA48-7E41-4BF8-8A9D-E2DC85D220EC} = {070BFFD9-7E54-4ADE-801A-04C8346DA6E4}
 		{A6047D62-B5DE-4570-93FA-CB5C5D33EEAC} = {FD264C24-4E01-4B1E-B5A1-489EC1C376E4}
 		{D2A9CE03-7AE6-47EF-8031-3C3DF8475B18} = {A6047D62-B5DE-4570-93FA-CB5C5D33EEAC}
+		{BE4023A3-D5E4-44F1-8BC3-67F535681B16} = {548AD42A-A006-483A-8213-BDF68F16BAE2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}

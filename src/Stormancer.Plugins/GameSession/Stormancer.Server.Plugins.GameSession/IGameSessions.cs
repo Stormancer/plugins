@@ -49,12 +49,12 @@ namespace Stormancer.Server.Plugins.GameSession
     }
 
     /// <summary>
-    /// Provides functions to create game sessions and connections tokens to gamesessions.
+    /// Provides functions to create game sessions and connections tokens to game sessions.
     /// </summary>
     public interface IGameSessions
     {
         /// <summary>
-        /// Creates a gamesession.
+        /// Creates a game session.
         /// </summary>
         /// <param name="template"></param>
         /// <param name="id"></param>
@@ -82,7 +82,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
 
         /// <summary>
-        /// Tries to reserve a slot in a gamesession for a team.
+        /// Tries to reserve a slot in a game session for a team.
         /// </summary>
         /// <param name="gameSessionId"></param>
         /// <param name="team"></param>
@@ -92,7 +92,7 @@ namespace Stormancer.Server.Plugins.GameSession
         Task<GameSessionReservation?> CreateReservation(string gameSessionId, Plugins.Models.Team team, JObject args, CancellationToken cancellationToken);
 
         /// <summary>
-        /// Cancels a reservation from a gamesession.
+        /// Cancels a reservation from a game session.
         /// </summary>
         /// <param name="gameSessionId"></param>
         /// <param name="id"></param>

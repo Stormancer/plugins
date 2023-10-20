@@ -932,12 +932,14 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 BroadcastClientUpdate(client, userId, peer.SessionId);
 
-                await EvaluateGameComplete();
 
                 if (_server != null && _server.GameServerSessionId == peer.SessionId)
                 {
                     _scene.Shutdown("gamesession.gameServerLeft");
                 }
+
+                await EvaluateGameComplete();
+
             }
 
 
@@ -1458,6 +1460,18 @@ namespace Stormancer.Server.Plugins.GameSession
         public Task<string> CreateP2PToken(SessionId callerSessionId, SessionId remotePeerSessionId)
         {
             return _scene.DependencyResolver.Resolve<IPeerInfosService>().CreateP2pToken(remotePeerSessionId, _scene.Id);
+        }
+
+        public async Task<InspectLiveGameSessionResult> InspectAsync(CancellationToken cancellationToken)
+        {
+            var result = new InspectLiveGameSessionResult();
+
+            await using var scope = _scene.CreateRequestScope();
+
+            var handlers = scope.Resolve<IEnumerable<IGameSessionEventHandler>>();
+
+            await handlers.RunEventHandler(h => h.OnInspectingGameSession(result), ex => _logger.Log(LogLevel.Error, "gamesession", $"An error occurred while running {nameof(IGameSessionEventHandler.OnInspectingGameSession)}",ex));
+            return result;
         }
         #endregion
 

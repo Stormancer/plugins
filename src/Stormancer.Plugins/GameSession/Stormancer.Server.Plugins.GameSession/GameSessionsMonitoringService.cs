@@ -20,7 +20,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public GameSessionStatus InspectGameSession(string gameSessionId)
         {
-            throw new NotImplementedException();
+           
         }
     }
     public class GameSessionStatus

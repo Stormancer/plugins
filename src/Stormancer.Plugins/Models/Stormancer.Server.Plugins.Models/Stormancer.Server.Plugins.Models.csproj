@@ -38,6 +38,10 @@
     <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\Utilities\Stormancer.NewtonsoftJson\Stormancer.NewtonsoftJson.csproj" />
+  </ItemGroup>
+
   <Target Name="PostPack" AfterTargets="Pack">
     <Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
   </Target>

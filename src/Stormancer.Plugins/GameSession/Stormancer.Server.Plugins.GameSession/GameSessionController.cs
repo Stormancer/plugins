@@ -158,6 +158,12 @@ namespace Stormancer.Server.Plugins.GameSession
             return _service.CancelReservationAsync(id,cancellationToken);
         }
 
+        [S2SApi]
+        public Task<InspectLiveGameSessionResult> Inspect(CancellationToken cancellationToken)
+        {
+            return _service.InspectAsync(cancellationToken);
+        }
+
         [Api(ApiAccess.Public, ApiType.FireForget, Route ="player.ready")]
         public Task SetPlayerReady(string data, Packet<IScenePeerClient> packet)
         {
@@ -181,5 +187,21 @@ namespace Stormancer.Server.Plugins.GameSession
     {
         public DateTime ExpiresOn { get; set; }
         public string ReservationId { get; set; }
+    }
+    public class InspectLiveGameSessionResult
+    {
+        public string GameSessionId { get; set; }
+
+        public DateTime CreatedOnUtc { get; set; }
+
+        public int PlayersCount { get; set; }
+
+        public SessionId? HostSessionId { get; set; }
+
+
+        /// <summary>
+        /// Gets data about the game session.
+        /// </summary>
+        public JObject Data { get; set; }
     }
 }

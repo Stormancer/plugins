@@ -190,5 +190,12 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <param name="dimension"></param>
         /// <param name="value"></param>
         public void SetDimension(string dimension, string value);
+
+        /// <summary>
+        /// Returns realtime information about the game session.
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<InspectLiveGameSessionResult> InspectAsync(CancellationToken cancellationToken);
     }
 }

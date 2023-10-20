@@ -132,6 +132,13 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <param name="ctx"></param>
         /// <returns></returns>
         Task PostingGameResults(PostingGameResultsCtx ctx) => Task.CompletedTask;
+
+        /// <summary>
+        /// Adds custom data to the result of an inspect game session request.
+        /// </summary>
+        /// <param name="result"></param>
+        /// <returns></returns>
+        Task OnInspectingGameSession(InspectLiveGameSessionResult result) => Task.CompletedTask;
     }
 
     /// <summary>
