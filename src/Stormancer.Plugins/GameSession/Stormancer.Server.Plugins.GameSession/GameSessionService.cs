@@ -1415,12 +1415,14 @@ namespace Stormancer.Server.Plugins.GameSession
                                 {
                                     var pools = scope.Resolve<ServerPoolProxy>();
                                     _gameCompleteCts?.Cancel();
-                                   
-                                    await pools.CloseServer(_server.GameServerId, CancellationToken.None);
-                                    _server = null;
 
                                     _repository.RemoveGameSession(this);
                                     _scene.Shutdown("gamesession.empty");
+
+                                    _ = pools.CloseServer(_server.GameServerId, CancellationToken.None);
+                                    _server = null;
+
+                                    
                                 }
 
                             }
