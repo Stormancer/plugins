@@ -156,7 +156,7 @@ namespace Stormancer.Server.Plugins.Users
         }
 
         [S2SApi(GeneratePrivateImpl = true)]
-        public Task UpdateSessionData(SessionId sessionId, string key, [S2SContextUsage(S2SRequestContextUsage.Read)] IS2SRequestContext ctx)
+        public Task UpdateSessionData(SessionId sessionId, string key, [S2SContextUsage(S2SRequestContextUsage.Write)] IS2SRequestContext ctx)
         {
 
             using var memoryStream = new MemoryStream();
