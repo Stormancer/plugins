@@ -1760,9 +1760,9 @@ namespace Stormancer
 					}
 
 					// Apply settings locally immediately. If the update RPC fails, we will re-sync the party state.
-					PartySettingsInternal update = PartySettingsInternal::fromPartySettings(newPartySettings);
+					/*PartySettingsInternal update = PartySettingsInternal::fromPartySettings(newPartySettings);
 					update.settingsVersionNumber = _state.settings.settingsVersionNumber + 1;
-					applySettingsUpdate(update);
+					applySettingsUpdate(update);*/
 
 					std::weak_ptr<PartyService> wThat = this->shared_from_this();
 					static const int newInvitationsProtocolVersion = parseVersion(NEW_INVITATIONS_VERSION);

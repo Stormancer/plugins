@@ -163,6 +163,9 @@ namespace Stormancer.Server.Plugins.GameSession
         public string? HostSessionId { get; set; }
     }
 
+    /// <summary>
+    /// A client in the game session.
+    /// </summary>
     public class Client
     {
         internal Client(IScenePeerClient peer, SessionId sessionId, Session session)
@@ -181,15 +184,40 @@ namespace Stormancer.Server.Plugins.GameSession
             ResultData = null;
         }
 
+        /// <summary>
+        /// Gets or sets the peer representing the client.
+        /// </summary>
         public IScenePeerClient? Peer { get; set; }
+
+        /// <summary>
+        /// Gets or sets the client's session id.
+        /// </summary>
         public SessionId SessionId { get; }
+
+        /// <summary>
+        /// Gets or sets the client's session, if the client is connected to the game session.
+        /// </summary>
         public Session Session { get; }
+
+        /// <summary>
+        /// Gets or sets the client's results as sent by them.
+        /// </summary>
         public Stream? ResultData { get; set; }
 
+        /// <summary>
+        /// Gets or sets the client's status.
+        /// </summary>
         public PlayerStatus Status { get; set; }
+
+        /// <summary>
+        /// If the client is faulted, gets or sets the reason.
+        /// </summary>
 
         public string? FaultReason { get; set; }
 
+        /// <summary>
+        /// Gets a completion event triggered when the results of the clients were sent.
+        /// </summary>
         public TaskCompletionSource<Action<Stream, ISerializer>>? GameCompleteTcs { get; private set; }
     }
 
@@ -391,7 +419,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 if (IsHost(peer.SessionId) && _p2pToken == null)
                 {
-                    await SignalHostReady(peer, session.User.Id);
+                    await SignalHostReady(peer, session.User!.Id);
 
                 }
             }
@@ -421,7 +449,7 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             Debug.Assert(_config != null);
 
-            _scene.Broadcast("player.update", new PlayerUpdate { UserId = userId, Status = (byte)client.Status, Data = data ?? "", IsHost = (SessionId.From(_config.HostSessionId) == sessionId) }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
+            _scene.Broadcast("player.update", new PlayerUpdate { UserId = userId, Status = (byte)client.Status, Data = data ?? "", IsHost = (HostSessionId == sessionId) }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
         }
 
         public async Task SetPeerFaulted(IScenePeerClient peer)
@@ -650,9 +678,9 @@ namespace Stormancer.Server.Plugins.GameSession
 
             // If the host is not defined a P2P was sent with "" to notify client is host.
             _logger.Log(LogLevel.Trace, "gamesession", $"Gamesession {_scene.Id} evaluating {userId} as host (expected host :{_config.HostSessionId})", new { });
-            if (!serverFound && (string.IsNullOrEmpty(_config.HostSessionId) || _config.HostSessionId == peer.SessionId.ToString()))
+            if (!serverFound && (_config.HostSessionId == null || _config.HostSessionId == peer.SessionId))
             {
-                _config.HostSessionId = peer.SessionId.ToString();
+                HostSessionId = peer.SessionId;
                 if (GetServerTcs().TrySetResult(peer))
                 {
                     _logger.Log(LogLevel.Debug, LOG_CATEOGRY, "Host defined and connecting", userId);
@@ -705,7 +733,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 await _scene.Send(new MatchPeerFilter(peer), "player.update", s => _serializer.Serialize(serverUpdate, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED);
             }
 
-            var playerConnectedCtx = new ClientConnectedContext(this, new PlayerPeer(peer.SessionId, new Player(peer.SessionId, userId)), SessionId.From(_config.HostSessionId) == peer.SessionId);
+            var playerConnectedCtx = new ClientConnectedContext(this, new PlayerPeer(peer.SessionId, new Player(peer.SessionId, userId)), HostSessionId == peer.SessionId);
             await using var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag);
             await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
                 h => h.OnClientConnected(playerConnectedCtx),
@@ -718,6 +746,8 @@ namespace Stormancer.Server.Plugins.GameSession
                 MaxClientsConnected = count;
             }
         }
+
+        public SessionId HostSessionId { get; private set; }
 
         private Task<bool>? _serverStartTask = null;
 
@@ -918,7 +948,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             if (client != null && userId != null)
             {
-                var ctx = new ClientLeavingContext(this, new PlayerPeer(peer.SessionId, new Player(peer.SessionId, userId)), SessionId.From(_config.HostSessionId) == peer.SessionId);
+                var ctx = new ClientLeavingContext(this, new PlayerPeer(peer.SessionId, new Player(peer.SessionId, userId)), HostSessionId == peer.SessionId);
                 await using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
                 {
                     await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.OnClientLeaving(ctx), ex =>
@@ -932,14 +962,12 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 BroadcastClientUpdate(client, userId, peer.SessionId);
 
+                await EvaluateGameComplete();
 
-                if (_server != null && _server.GameServerSessionId == peer.SessionId)
+                if (HostSessionId == peer.SessionId)
                 {
                     _scene.Shutdown("gamesession.gameServerLeft");
                 }
-
-                await EvaluateGameComplete();
-
             }
 
 
@@ -997,26 +1025,30 @@ namespace Stormancer.Server.Plugins.GameSession
                 throw new ClientException($"Unable to post result before game session start. Server status is {this._status}");
             }
             var session = await GetSessionAsync(remotePeer);
-            if (session != null)
+            if (session != null && session.User !=null)
             {
 
-                using var ctx = new PostingGameResultsCtx(this, _scene, remotePeer, session, inputStream);
-                await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
-                {
-                    await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.PostingGameResults(ctx), ex =>
-                    {
-                        _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running gameSession.PostingGameResults event handlers", ex);
-                    });
-                }
+               
 
 
 
                 var memStream = new MemoryStream();
                 inputStream.CopyTo(memStream);
                 memStream.Seek(0, SeekOrigin.Begin);
+
                 if (_clients.TryGetValue(session.User.Id, out var client))
                 {
                     client.ResultData = memStream;
+
+                    using var ctx = new PostingGameResultsCtx(this, _scene, remotePeer, session, memStream);
+                    await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+                    {
+                        await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.PostingGameResults(ctx), ex =>
+                        {
+                            _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running gameSession.PostingGameResults event handlers", ex);
+                        });
+                    }
+                    memStream.Seek(0, SeekOrigin.Begin);
 
                     await EvaluateGameComplete();
 
@@ -1191,7 +1223,7 @@ namespace Stormancer.Server.Plugins.GameSession
             _gameCompleteCts?.Dispose();
             _gameCompleteCts = null;
 
-           
+
             GetServerTcs().TrySetCanceled();
             await CloseGameServer();
         }
@@ -1376,8 +1408,10 @@ namespace Stormancer.Server.Plugins.GameSession
                                 {
                                     var pools = scope.Resolve<ServerPoolProxy>();
                                     _gameCompleteCts?.Cancel();
-                                    _server = null;
+                                   
                                     await pools.CloseServer(_server.GameServerId, CancellationToken.None);
+                                    _server = null;
+
                                     _repository.RemoveGameSession(this);
                                     _scene.Shutdown("gamesession.empty");
                                 }
@@ -1444,7 +1478,7 @@ namespace Stormancer.Server.Plugins.GameSession
         }
 
         private ConcurrentDictionary<Guid, ReservationState> _reservationStates = new ConcurrentDictionary<Guid, ReservationState>();
-      
+
         private GameServer? _server;
         private DateTime _serverRequestedOn;
 
@@ -1464,13 +1498,21 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async Task<InspectLiveGameSessionResult> InspectAsync(CancellationToken cancellationToken)
         {
-            var result = new InspectLiveGameSessionResult();
+            var result = new InspectLiveGameSessionResult
+            {
+                Configuration = GetGameSessionConfig(),
+                CreatedOnUtc = CreatedOn,
+                Data = new JObject(),
+                GameSessionId = GameSessionId,
+                PlayersCount = _clients.Count(),
+                HostSessionId = HostSessionId
+            };
 
             await using var scope = _scene.CreateRequestScope();
 
             var handlers = scope.Resolve<IEnumerable<IGameSessionEventHandler>>();
 
-            await handlers.RunEventHandler(h => h.OnInspectingGameSession(result), ex => _logger.Log(LogLevel.Error, "gamesession", $"An error occurred while running {nameof(IGameSessionEventHandler.OnInspectingGameSession)}",ex));
+            await handlers.RunEventHandler(h => h.OnInspectingGameSession(result), ex => _logger.Log(LogLevel.Error, "gamesession", $"An error occurred while running {nameof(IGameSessionEventHandler.OnInspectingGameSession)}", ex));
             return result;
         }
         #endregion

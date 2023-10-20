@@ -35,7 +35,7 @@ namespace Stormancer.Server.Plugins.GameSession
         public IEnumerable<Team> Teams { get; set; } = new List<Team>();
 
         /// <summary>
-        /// Gamesession parameters like map to launch, gameType and everything can be useful to 
+        /// Game session parameters like map to launch, gameType and everything can be useful to 
         /// dedicated server.
         /// </summary>
         public JObject Parameters { get; set; } = new JObject();
@@ -43,12 +43,12 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <summary>
         /// List of players expected in the game session.
         /// </summary>
-        public IEnumerable<string> UserIds { get; set; }
+        public IEnumerable<string> UserIds { get; set; } = Enumerable.Empty<string>();
 
         /// <summary>
         /// User Id of the game session's P2P host, if it has one.
         /// </summary>
-        public string? HostSessionId { get; set; }
+        public SessionId? HostSessionId { get; set; }
 
         /// <summary>
         /// GameFinder that created the game session.

@@ -13,15 +13,49 @@ namespace Stormancer.Server.Plugins.GameSession
     /// </summary>
     public class GameSessionsMonitoringService
     {
+        private readonly GameSessionProxy _gameSessionProxy;
+        private readonly GameServerMonitoringRepository _gameServerRepository;
+
+        /// <summary>
+        /// Creates a new <see cref="GameSessionsMonitoringService"/> object.
+        /// </summary>
+        /// <param name="gameSessionProxy"></param>
+        /// <param name="gameServerRepository"></param>
+        public GameSessionsMonitoringService(GameSessionProxy gameSessionProxy,GameServerMonitoringRepository gameServerRepository)
+        {
+            _gameSessionProxy = gameSessionProxy;
+            _gameServerRepository = gameServerRepository;
+        }
         public IAsyncEnumerable<string> GetLogsAsync(string gameSessionId, DateTime? since, DateTime? until, uint size, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }
 
-        public GameSessionStatus InspectGameSession(string gameSessionId)
+        public async Task<GameSessionStatus> InspectGameSessionAsync(string gameSessionId, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var status = new GameSessionStatus();
+            try
+            {
+                status.GameSession = await _gameSessionProxy.Inspect(gameSessionId, cancellationToken);
+            }
+            catch (Exception)
+            {
+
+            }
+
+
+            return status;
+
+
         }
+
+       
+    }
+
+
+    public class GameServerMonitoringRepository
+    {
+
     }
     public class GameSessionStatus
     {
@@ -29,36 +63,8 @@ namespace Stormancer.Server.Plugins.GameSession
         {
 
         }
-        public GameSessionHostStatus GameServer { get; set; }
-        public GameSessionConfigurationDto Configuration { get;  }
-        public JObject CurrentStatus { get; set; }
+        public InspectLiveGameSessionResult GameSession { get; set; }
     }
 
-    /// <summary>
-    /// Informations about the host of a game session.
-    /// </summary>
-    public class GameSessionHostStatus
-    {
-       
-        internal GameSessionHostStatus(bool isP2P, SessionId hostSessionId,string? serverPool)
-        {
-            IsP2P = isP2P;
-        }
-        /// <summary>
-        /// Is the game a P2P game
-        /// </summary>
-        public bool IsP2P { get; }
 
-        /// <summary>
-        /// Gets the session id of the host.
-        /// </summary>
-        public SessionId HostSessionId { get; }
-
-        /// <summary>
-        /// Gets the pool of the server, if the host is a server.
-        /// </summary>
-        public string? ServerPool { get; }
-
-       
-    }
 }

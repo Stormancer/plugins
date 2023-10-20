@@ -55,7 +55,7 @@ namespace Stormancer.Server.Plugins.GameSession
         protected override Task OnConnecting(IScenePeerClient client)
         {
             return _service.OnPeerConnecting(client);
-           
+
         }
 
         protected override Task OnConnected(IScenePeerClient peer)
@@ -80,7 +80,7 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 await ctx.SendValue(s =>
                 {
-                    
+
                     writer(s, ctx.RemotePeer.Serializer());
                 });
             }
@@ -112,7 +112,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async Task GetGameSessionSettings(RequestContext<IScenePeerClient> ctx)
         {
-            var user = await _sessions.GetUser(ctx.RemotePeer,ctx.CancellationToken);
+            var user = await _sessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
 
             var config = _service.GetGameSessionConfig();
             if (string.IsNullOrEmpty(config.UserIds.FirstOrDefault(id => id == user?.Id)))
@@ -125,11 +125,11 @@ namespace Stormancer.Server.Plugins.GameSession
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task<string> GetGameSessionConnectionUrl(RequestContext<IScenePeerClient> ctx)
         {
-            var id = _service.GetGameSessionConfig().HostSessionId;
+            var id = _service.HostSessionId;
 
-            if (!string.IsNullOrEmpty(id))
+            if (!id.IsEmpty())
             {
-                var session = await _sessions.GetSessionById(SessionId.From(id),ctx.CancellationToken);
+                var session = await _sessions.GetSessionById(id, ctx.CancellationToken);
                 if (session != null)
                 {
                     return "strm." + session.SessionId;
@@ -139,23 +139,23 @@ namespace Stormancer.Server.Plugins.GameSession
             throw new ClientException("no host configured in gameSession.");
         }
 
-        [Api(ApiAccess.Public,ApiType.Rpc)]
+        [Api(ApiAccess.Public, ApiType.Rpc)]
         public System.Collections.Generic.IEnumerable<Team> GetTeams()
         {
             return _service.GetGameSessionConfig().Teams;
         }
 
         [S2SApi]
-        public Task<GameSessionReservation?> CreateReservation(Team team, JObject args,CancellationToken cancellationToken)
+        public Task<GameSessionReservation?> CreateReservation(Team team, JObject args, CancellationToken cancellationToken)
         {
-           
-           return  _service.CreateReservationAsync(team, args,cancellationToken);
+
+            return _service.CreateReservationAsync(team, args, cancellationToken);
         }
 
         [S2SApi]
         public Task CancelReservation(string id, CancellationToken cancellationToken)
         {
-            return _service.CancelReservationAsync(id,cancellationToken);
+            return _service.CancelReservationAsync(id, cancellationToken);
         }
 
         [S2SApi]
@@ -164,11 +164,11 @@ namespace Stormancer.Server.Plugins.GameSession
             return _service.InspectAsync(cancellationToken);
         }
 
-        [Api(ApiAccess.Public, ApiType.FireForget, Route ="player.ready")]
+        [Api(ApiAccess.Public, ApiType.FireForget, Route = "player.ready")]
         public Task SetPlayerReady(string data, Packet<IScenePeerClient> packet)
         {
-            
-            return _service.SetPlayerReady(packet.Connection,data);
+
+            return _service.SetPlayerReady(packet.Connection, data);
         }
         [Api(ApiAccess.Public, ApiType.FireForget, Route = "player.faulted")]
         public Task SetFaulted(Packet<IScenePeerClient> packet)
@@ -179,29 +179,65 @@ namespace Stormancer.Server.Plugins.GameSession
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public Task<string> CreateP2PToken(SessionId remotePeerSessionId)
         {
-            return _service.CreateP2PToken(Request.RemotePeer.SessionId, remotePeerSessionId);
+            return _service.CreateP2PToken(Request!.RemotePeer.SessionId, remotePeerSessionId);
         }
     }
 
+    /// <summary>
+    /// A reservation in the game session.
+    /// </summary>
     public class GameSessionReservation
     {
+        /// <summary>
+        /// Gets or sets the date the reservation expires on.
+        /// </summary>
         public DateTime ExpiresOn { get; set; }
-        public string ReservationId { get; set; }
+
+        /// <summary>
+        /// Gets the id of the reservation.
+        /// </summary>
+        public string ReservationId { get; set; } = default!;
     }
+
+    /// <summary>
+    /// Result of an inspect session request.
+    /// </summary>
     public class InspectLiveGameSessionResult
     {
-        public string GameSessionId { get; set; }
+        /// <summary>
+        /// Gets the id of the game session.
+        /// </summary>
+        public string GameSessionId { get; set; } = default!;
 
+        /// <summary>
+        /// Gets the date the game session was created.
+        /// </summary>
         public DateTime CreatedOnUtc { get; set; }
 
+
+        /// <summary>
+        /// Gets the current player count in the game session.
+        /// </summary>
         public int PlayersCount { get; set; }
 
+
+        /// <summary>
+        /// Gets the id of the host' session, if it exist.
+        /// </summary>
         public SessionId? HostSessionId { get; set; }
 
+        public bool IsP2P { get; set; }
+
+        public string ServerPool { get; set; }
 
         /// <summary>
         /// Gets data about the game session.
         /// </summary>
-        public JObject Data { get; set; }
+        public JObject Data { get; set; } = default!;
+
+        /// <summary>
+        /// Gets the configuration of the game session.
+        /// </summary>
+        public GameSessionConfigurationDto? Configuration { get; set; }
     }
 }

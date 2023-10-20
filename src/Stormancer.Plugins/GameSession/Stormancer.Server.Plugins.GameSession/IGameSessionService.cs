@@ -38,7 +38,7 @@ namespace Stormancer.Server.Plugins.GameSession
     public interface IGameSessionService
     {
         /// <summary>
-        /// Returns the id of the gamesession.
+        /// Returns the id of the game session.
         /// </summary>
         string GameSessionId { get; }
 
@@ -50,7 +50,7 @@ namespace Stormancer.Server.Plugins.GameSession
         void SetConfiguration(dynamic metadata);
 
         /// <summary>
-        /// Posts gameresults.
+        /// Posts game results.
         /// </summary>
         /// <param name="inputStream"></param>
         /// <param name="remotePeer"></param>
@@ -66,38 +66,43 @@ namespace Stormancer.Server.Plugins.GameSession
         Task UpdateShutdownMode(ShutdownModeParameters shutdown);
 
         /// <summary>
-        /// Resets the gamesession.
+        /// Resets the game session.
         /// </summary>
         /// <returns></returns>
         Task Reset();
 
         /// <summary>
-        /// Gets the gamesession configuration.
+        /// Gets the session id of the game's host.
+        /// </summary>
+        SessionId HostSessionId { get; }
+
+        /// <summary>
+        /// Gets the game session configuration.
         /// </summary>
         /// <returns></returns>
         GameSessionConfigurationDto? GetGameSessionConfig();
 
         /// <summary>
-        /// Create a P2P token to connect to the gamesession's host.
+        /// Create a P2P token to connect to the game session's host.
         /// </summary>
         /// <param name="sessionId"></param>
         /// <returns></returns>
         Task<HostInfosMessage> CreateP2PToken(SessionId sessionId);
 
         /// <summary>
-        /// Performs an update action on the gamesession config.
+        /// Performs an update action on the game session config.
         /// </summary>
         /// <param name="gameSessionConfigUpdater"></param>
         void UpdateGameSessionConfig(Action<GameSessionConfiguration> gameSessionConfigUpdater);
 
         /// <summary>
-        /// Tries to start the gamesession.
+        /// Tries to start the game session.
         /// </summary>
         /// <returns></returns>
         Task<bool> TryStart();
 
         /// <summary>
-        /// Sets a peer as ready in the gamesession.
+        /// Sets a peer as ready in the game session.
         /// </summary>
         /// <param name="peer"></param>
         /// <param name="customData"></param>
@@ -105,28 +110,28 @@ namespace Stormancer.Server.Plugins.GameSession
         Task SetPlayerReady(IScenePeerClient peer,string customData);
 
         /// <summary>
-        /// Disconnects the peer from the gameSession
+        /// Disconnects the peer from the game session
         /// </summary>
         /// <param name="peer"></param>
         /// <returns></returns>
         Task OnPeerDisconnecting(IScenePeerClient peer);
 
         /// <summary>
-        /// The peer is disconnecting from the gamesession.
+        /// The peer is disconnecting from the game session.
         /// </summary>
         /// <param name="peer"></param>
         /// <returns></returns>
         Task OnPeerConnecting(IScenePeerClient peer);
 
         /// <summary>
-        /// The peer connection was rejected by the gamesession.
+        /// The peer connection was rejected by the game session.
         /// </summary>
         /// <param name="peer"></param>
         /// <returns></returns>
         Task OnPeerConnectionRejected(IScenePeerClient peer);
 
         /// <summary>
-        /// The peer successfully connected to the gamesession.
+        /// The peer successfully connected to the game session.
         /// </summary>
         /// <param name="peer"></param>
         /// <returns></returns>
@@ -192,7 +197,7 @@ namespace Stormancer.Server.Plugins.GameSession
         public void SetDimension(string dimension, string value);
 
         /// <summary>
-        /// Returns realtime information about the game session.
+        /// Returns real time information about the game session.
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
