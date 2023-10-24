@@ -118,4 +118,38 @@ namespace Stormancer.Server.Plugins.Steam
     }
 
 
+    /// <summary>
+    /// Result of a join steam lobby operation
+    /// </summary>
+    public class GetLobbyLeaderSteamResult
+    {
+        /// <summary>
+        /// Was the operation successful
+        /// </summary>
+        [MessagePackMember(0)]
+        [MemberNotNullWhen(false, "ErrorId")]
+        [MemberNotNullWhen(false, "ErrorDetails")]
+        public bool Success { get; set; }
+
+        /// <summary>
+        /// Id of the error if the operation failed.
+        /// </summary>
+        [MessagePackMember(1)]
+        public string? ErrorId { get; set; }
+
+        /// <summary>
+        /// Details about the error if the operation failed.
+        /// </summary>
+        [MessagePackMember(2)]
+        public string? ErrorDetails { get; set; }
+
+        /// <summary>
+        /// Gets or sets the steam id of the lobby leader.
+        /// </summary>
+        [MessagePackMember(3)]
+        public ulong SteamId { get; set; }
+
+    }
+
+
 }

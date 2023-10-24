@@ -36,10 +36,29 @@ namespace Stormancer.Server.Plugins.Steam
         public ulong SteamIDLobby { get; set; }
     }
 
+    /// <summary>
+    /// Argument of a leave lobby RPC sent to the client.
+    /// </summary>
     public class LeaveLobbyArgs
     {
 
     }
+    /// <summary>
+    /// Arguments of an update lobby joinable RPC sent to the client.
+    /// </summary>
+    public class UpdateLobbyJoinableArgs
+    {
+        /// <summary>
+        /// Gets or sets the target Steam lobby id.
+        /// </summary>
+        [MessagePackMember(0)]
+        public ulong SteamIDLobby { get; set; }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        [MessagePackMember(1)]
+        public bool Joinable { get; set; }
+    }
     
 }

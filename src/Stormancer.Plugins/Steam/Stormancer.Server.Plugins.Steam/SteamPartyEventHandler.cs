@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Org.BouncyCastle.Asn1.X509;
+using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Configuration;
@@ -32,6 +34,7 @@ using Stormancer.Server.Plugins.Utilities;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -59,8 +62,15 @@ namespace Stormancer.Server.Plugins.Steam
 
 
 
-
         public bool IsJoinable { get; set; }
+    }
+
+    internal class SteamLobby
+    {
+        public SessionId CurrentLeaderSessionId { get; set; }
+        public ulong SteamIDLobby { get; set; }
+
+        public bool IsJoinable { get; set; } = true;
     }
 
     /// <summary>
@@ -76,6 +86,7 @@ namespace Stormancer.Server.Plugins.Steam
         private readonly IUserSessions _userSessions;
         private readonly ISteamService _steamService;
         private readonly ILogger _logger;
+        private readonly ISceneHost _scene;
         private readonly ISerializer _serializer;
         private readonly IServiceLocator _serviceLocator;
         private readonly IConfiguration _configuration;
@@ -86,6 +97,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// <param name="sessions"></param>
         /// <param name="steam"></param>
         /// <param name="logger"></param>
+        /// <param name="scene"></param>
         /// <param name="rpc"></param>
         /// <param name="serializer"></param>
         /// <param name="locator"></param>
@@ -94,6 +106,7 @@ namespace Stormancer.Server.Plugins.Steam
             IUserSessions sessions,
             ISteamService steam,
             ILogger logger,
+            ISceneHost scene,
             RpcService rpc,
             ISerializer serializer,
             IServiceLocator locator,
@@ -104,6 +117,7 @@ namespace Stormancer.Server.Plugins.Steam
             _userSessions = sessions;
             _steamService = steam;
             _logger = logger;
+            _scene = scene;
             _serializer = serializer;
             _serviceLocator = locator;
             _configuration = configuration;
@@ -271,6 +285,85 @@ namespace Stormancer.Server.Plugins.Steam
         }
 
 
+        private async Task<IScenePeerClient?> GetLobbyLeaderAsync(ulong steamLobbyId, SteamPartyData data, CancellationToken cancellationToken)
+        {
+            var peer = _scene.RemotePeers.FirstOrDefault(p => p.SessionId == data.CurrentLeaderSessionId);
+            if (peer == null)
+            {
+                return await UpdateLobbyLeaderAsync(steamLobbyId, data, cancellationToken);
+            }
+            else
+            {
+                return peer;
+            }
+        }
+
+        private async Task<IScenePeerClient?> UpdateLobbyLeaderAsync(ulong steamLobbyId, SteamPartyData data, CancellationToken cancellationToken)
+        {
+            var peer = _scene.RemotePeers.FirstOrDefault(p => data.UserData.ContainsKey(p.SessionId));
+            if (peer == null)
+            {
+                return null;
+            }
+            else
+            {
+                using var packet = await _rpc.Rpc("Steam.GetLobbyOwner", peer, s => { }, Core.PacketPriority.MEDIUM_PRIORITY, cancellationToken);
+                var result = packet.ReadObject<GetLobbyLeaderSteamResult>();
+                if (!result.Success)
+                {
+                    _logger.Log(LogLevel.Error, "SteamPartyEventHandler.GetLobbyLeader", "get Steam lobby leader failed", new
+                    {
+
+                        result.ErrorId,
+                        result.ErrorDetails
+                    });
+                    return null;
+
+                }
+                else
+                {
+                    var (leaderSessionId, leaderUserData) = data.UserData.FirstOrDefault(kvp => kvp.Value.SteamId == result.SteamId);
+                    if (!leaderSessionId.IsEmpty())
+                    {
+                        data.CurrentLeaderSessionId = leaderSessionId;
+                        return _scene.RemotePeers.FirstOrDefault(p => p.SessionId == leaderSessionId);
+
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }
+            }
+        }
+
+        private async Task<VoidSteamResult> SetLobbyJoinableAsync(ulong steamLobbyId, bool joinable, SteamPartyData data, CancellationToken cancellationToken)
+        {
+            var target = await GetLobbyLeaderAsync(steamLobbyId, data, cancellationToken);
+            if (target == null)
+            {
+                return new VoidSteamResult { Success = false, ErrorDetails = "leader not found" };
+            }
+
+            var args = new UpdateLobbyJoinableArgs { Joinable = joinable, SteamIDLobby = steamLobbyId };
+            using var packet = await _rpc.Rpc("Steam.UpdateLobbyJoinable", target, s => _serializer.Serialize(args, s), Core.PacketPriority.MEDIUM_PRIORITY, cancellationToken);
+
+            var result = packet.ReadObject<VoidSteamResult>();
+
+            if (!result.Success)
+            {
+                _logger.Log(LogLevel.Error, "SteamPartyEventHandler.SetLobbyJoinableAsync", "Steam lobby set joinable failed", new
+                {
+
+                    result.ErrorId,
+                    result.ErrorDetails
+                });
+
+
+            }
+            return result;
+        }
+
         /// <summary>
         /// Steam behavior on party quit.
         /// </summary>
@@ -281,10 +374,10 @@ namespace Stormancer.Server.Plugins.Steam
             if (ctx.Party.ServerData.TryGetValue(PartyLobbyKey, out var dataObject))
             {
                 var data = (SteamPartyData)dataObject;
-                if (data != null && data.SteamIDLobby != null && data.SteamIDLobby!=null)
+                if (data != null && data.SteamIDLobby != null && data.SteamIDLobby != null)
                 {
                     data.UserData.TryRemove(ctx.Args.Peer.SessionId, out _);
-                    await LeaveSteamLobbyAsync(ctx.Args.Peer,data.SteamIDLobby!.Value, CancellationToken.None);
+                    await LeaveSteamLobbyAsync(ctx.Args.Peer, data.SteamIDLobby!.Value, CancellationToken.None);
                 }
             }
         }
@@ -294,9 +387,25 @@ namespace Stormancer.Server.Plugins.Steam
         /// </summary>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        public Task OnUpdateSettings(PartySettingsUpdateCtx ctx)
+        public async Task OnUpdateSettings(PartySettingsUpdateCtx ctx)
         {
-            return Task.CompletedTask;
+            if (ctx.Party.ServerData.TryGetValue(PartyLobbyKey, out var dataObject))
+            {
+                var data = (SteamPartyData)dataObject;
+                if (data.SteamIDLobby != null)
+                {
+                    if (ctx.Party.Settings.IsJoinable != data.IsJoinable)
+                    {
+                        var result = await SetLobbyJoinableAsync(data.SteamIDLobby.Value, ctx.Party.Settings.IsJoinable, data, CancellationToken.None);
+
+                        if (result.Success)
+                        {
+                            data.IsJoinable = ctx.Party.Settings.IsJoinable;
+                        }
+                    }
+                }
+            }
+
         }
 
         /// <summary>
