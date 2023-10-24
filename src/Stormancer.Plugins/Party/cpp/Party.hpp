@@ -206,7 +206,7 @@ namespace Stormancer
 			PartyUserDto(std::string userId) : userId(userId) {}
 			PartyUserDto() = default;
 
-			MSGPACK_DEFINE(userId, partyUserStatus, userData, sessionId, localPlayers,connectionStatus);
+			MSGPACK_DEFINE(userId, partyUserStatus, userData, sessionId, localPlayers, connectionStatus);
 		};
 
 
@@ -399,7 +399,7 @@ namespace Stormancer
 			MSGPACK_DEFINE(total, hits)
 		};
 
-		
+
 
 		class PartyApi
 		{
@@ -1008,7 +1008,7 @@ namespace Stormancer
 			std::shared_ptr<details::IPartyInvitationInternal> _internal;
 		};
 
-		
+
 
 		struct PartySettings
 		{
@@ -1369,7 +1369,7 @@ namespace Stormancer
 					return pplx::task_from_result(std::vector<AdvertisedParty>{});
 				}
 
-				
+
 
 				/// <summary>
 				/// Show a platform-specific UI to send invitations to the current party
@@ -1574,8 +1574,8 @@ namespace Stormancer
 					result += "isJoinable=" + std::to_string(isJoinable);
 					result += "versionSettings=" + std::to_string(settingsVersionNumber);
 					result += "publicServerData={";
-				
-					for(auto& it: publicServerData)
+
+					for (auto& it : publicServerData)
 					{
 						result += it.first + "=" + it.second + ",";
 					}
@@ -1976,7 +1976,7 @@ namespace Stormancer
 				{
 					std::weak_ptr<PartyService> wThat = this->shared_from_this();
 					auto scene = _scene.lock();
-					
+
 					auto rpcService = scene->dependencyResolver().resolve<RpcService>();
 
 					rpcService->addProcedure("party.getPartyStateResponse", [wThat](RpcRequestContext_ptr ctx)
@@ -2986,7 +2986,7 @@ namespace Stormancer
 				pplx::task<std::shared_ptr<PartyContainer>> joinPartyInternal(const PartyId& partyId, const std::vector<byte>& userData, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none())
 				{
 					auto wThat = STORM_WEAK_FROM_THIS();
-					
+
 					return _leavePartyTask
 						.then([wThat, partyId, userData, userMetadata, ct, logger = _logger]()
 					{
@@ -3280,7 +3280,7 @@ namespace Stormancer
 
 					if (it != members.end())
 					{
-					
+
 						if (localMember)
 						{
 							*localMember = *it;
@@ -3291,7 +3291,7 @@ namespace Stormancer
 					{
 						return false;
 					}
-					
+
 				}
 
 				PartySettings getPartySettings() const override
@@ -3778,7 +3778,13 @@ namespace Stormancer
 				{
 					if (!ctx.error.empty())
 					{
-						_onPartyError(PartyError(PartyError::Api::JoinParty, ctx.error.c_str()));
+						auto that = this->shared_from_this();
+
+						auto str = ctx.error;
+						_dispatcher->post([that, str]() {
+							that->_onPartyError(PartyError(PartyError::Api::JoinParty, str.c_str()));
+						});
+
 						return;
 					}
 
@@ -4046,7 +4052,7 @@ namespace Stormancer
 						{
 							STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error(PartyError::Str::InvalidInvitation), void);
 						}
-						
+
 						auto impl = this->_impl;
 						auto wParty = _party;
 						return party->normalizePartyId(_impl->getPartyId(), ct)
@@ -4063,7 +4069,7 @@ namespace Stormancer
 									party->leaveParty();
 								}
 							}
-							
+
 							auto partyTask = impl->accept(party)
 
 								.then([party, userMetadata, userData, ct](PartyId partyId)
@@ -4484,7 +4490,7 @@ namespace Stormancer
 					}
 				}
 
-				
+
 
 				std::shared_ptr<ILogger> _logger;
 				// This mutex mainly protects the _party member
@@ -4557,7 +4563,7 @@ namespace Stormancer
 					return pplx::task_from_result(std::vector<AdvertisedParty>());
 				};
 
-				
+
 
 				bool tryShowSystemInvitationUI(std::shared_ptr<PartyApi>) override { return false; }
 
@@ -4729,7 +4735,7 @@ namespace Stormancer
 				auto logger = client->dependencyResolver().resolve<ILogger>();
 				logger->log(LogLevel::Info, "PartyPlugin", "Registered Party plugin, revision", PLUGIN_REVISION);
 			}
-		
+
 		};
 	}
 }
