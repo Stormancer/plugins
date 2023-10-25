@@ -192,7 +192,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
             await _algorithm.Merge(ctx);
 
 
-            var results = await Task.WhenAll(ctx.MergeCommands.Select(cmd => MergeAsync(cmd.Value.From, cmd.Value.Into, cmd.Value.CustomData, cancellationToken)));
+            var results = await Task.WhenAll(ctx.MergeCommands.Select(cmd => MergeAsync(cmd.From, cmd.Into, cmd.CustomData, cancellationToken)));
 
 
             foreach (var partyId in results.Distinct().WhereNotNull())
