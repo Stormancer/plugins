@@ -70,6 +70,8 @@ namespace Stormancer.Server.Plugins.GameSession
                 builder.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
                 builder.Register<DockerAgentAdminController>();
                 builder.Register<GameSessionsRepository>().SingleInstance();
+                builder.Register<GameSessionEventsRepository>().SingleInstance();
+                builder.Register<GameSessionsMonitoringService>().InstancePerRequest();
 
             };
 
@@ -125,7 +127,8 @@ namespace Stormancer.Server.Plugins.GameSession
                             d.Resolve<ILogger>(),
                             d.Resolve<RpcService>(),
                             d.Resolve<GameSessionsRepository>(),
-                            d.Resolve<ISerializer>())
+                            d.Resolve<ISerializer>(),
+                            d.Resolve<GameSessionEventsRepository>())
                     )
                     .As<IGameSessionService>()
                     .As<IConfigurationChangedEventHandler>()

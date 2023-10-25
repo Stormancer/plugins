@@ -1,10 +1,13 @@
 ﻿
 using Docker.DotNet;
 using Docker.DotNet.Models;
+using Microsoft.AspNetCore.Mvc.TagHelpers;
 using Microsoft.Extensions.Configuration;
 using MsgPack.Serialization;
+using Newtonsoft.Json;
 using RakNet;
 using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
@@ -103,24 +106,43 @@ namespace Stormancer.GameServers.Agent
             var containers = await _docker.Containers.ListContainersAsync(new ContainersListParameters { All = true });
             foreach (var container in containers)
             {
-                if (container.Labels.TryGetValue("stormancer.agent", out var agentId) && AgentId == agentId)
+
+
+                try
                 {
-                    try
+                    if (container.State.Contains("running", StringComparison.InvariantCultureIgnoreCase))
                     {
-                        if (container.State == "running ")
+                        //labels["stormancer.agent.clientId"] = agentId.ToString();
+                        //labels["stormancer.reservedMemory"] = reservedMemory.ToString();
+                        //labels["stormancer.reservedCpu"] = reservedCpu.ToString();
+                        //labels["stormancer.crashReportConfig"] = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(crashReportConfiguration)));
+
+                        var reservedMemory = container.Labels.TryGetValue("stormancer.reservedMemory", out var str) ? int.TryParse(str, out var mem) ? mem : 0 : 0;
+                        var reservedCpu = container.Labels.TryGetValue("stormancer.reservedCpu", out str) ? float.TryParse(str, out var cpu) ? cpu : 0 : 0;
+
+                        Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration? crashReportConfiguration = null;
+                        try
                         {
-                            await _docker.Containers.KillContainerAsync(container.ID, new ContainerKillParameters { Signal = "SIGKILL" });
+                            crashReportConfiguration = JsonConvert.DeserializeObject<Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration>(Encoding.UTF8.GetString(Convert.FromBase64String(container.Labels["stormancer.crashReportConfig"])));
                         }
-                        else
+                        catch(Exception ex) { }
+
+                        var serverContainer = new ServerContainer(0, container.Names.First(), container.Image, container.Created, reservedMemory, reservedCpu, crashReportConfiguration ?? new Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration());
+                        foreach (var port in container.Ports)
                         {
-                            await _docker.Containers.RemoveContainerAsync(container.ID, new ContainerRemoveParameters());
+                            _portsManager.AcquirePort(port.PublicPort);
                         }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        _logger.Log(LogLevel.Error, "An error occurred while trying to destroy container '{containerId}' state={state}, ex={ex}", container.ID, container.State, ex);
+
                     }
                 }
+                catch (Exception ex)
+                {
+                    _logger.Log(LogLevel.Error, "An error occurred while trying to destroy container '{containerId}' state={state}, ex={ex}", container.ID, container.State, ex);
+                }
+
             }
 
         }
@@ -220,6 +242,11 @@ namespace Stormancer.GameServers.Agent
                 labels["stormancer.agent"] = AgentId;
                 labels["stormancer.agent.userId"] = agentUserId;
                 labels["stormancer.agent.clientId"] = agentId.ToString();
+                labels["stormancer.reservedMemory"] = reservedMemory.ToString();
+                labels["stormancer.reservedCpu"] = reservedCpu.ToString();
+                labels["stormancer.crashReportConfig"] = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(crashReportConfiguration)));
+
+
                 CreateContainerParameters parameters = new CreateContainerParameters()
                 {
                     Image = image,
@@ -266,9 +293,9 @@ namespace Stormancer.GameServers.Agent
                 serverContainer.DockerContainerId = response.ID;
                 serverContainer.AddResource(portReservation);
 
-                var startResponse = await _docker.Containers.StartContainerAsync(response.ID, new ContainerStartParameters {  });
+                var startResponse = await _docker.Containers.StartContainerAsync(response.ID, new ContainerStartParameters { });
 
-                if(startResponse == false)
+                if (startResponse == false)
                 {
                     throw new InvalidOperationException($"Docker container '{name}' failed to start.");
                 }
@@ -507,7 +534,7 @@ namespace Stormancer.GameServers.Agent
                         _logger.Log(LogLevel.Information, "Docker container {id} stopped.", value.ID);
 
 
-                        _ = CreateCrashReportIfNecessary(server,CancellationToken.None);
+                        _ = CreateCrashReportIfNecessary(server, CancellationToken.None);
                         this.OnContainerStateChanged?.Invoke(new ServerContainerStateChange { Container = server, Status = ContainerEventType.Stop });
                         _messager.PostServerStoppedMessage(server);
 
@@ -551,21 +578,21 @@ namespace Stormancer.GameServers.Agent
                     }
                 }
 
-                foreach(var file in server.CrashReportConfiguration.AdditionalContainerFiles)
+                foreach (var file in server.CrashReportConfiguration.AdditionalContainerFiles)
                 {
                     if (file.StartsWith('/'))
                     {
                         var containerFile = await GetContainerFile(server.DockerContainerId, file, cancellationToken);
-                        if (containerFile !=null )
+                        if (containerFile != null)
                         {
                             var entry = archive.CreateEntry($"container{file}.tar", CompressionLevel.SmallestSize);
 
-                            await containerFile.Stream.CopyToAsync(entry.Open(),cancellationToken);
+                            await containerFile.Stream.CopyToAsync(entry.Open(), cancellationToken);
                         }
                     }
                 }
 
-                if(server.CrashReportConfiguration.IncludeDump && _options.CorePath !=null )
+                if (server.CrashReportConfiguration.IncludeDump && _options.CorePath != null)
                 {
                     var containerFile = await GetContainerFile(server.DockerContainerId, _options.CorePath, cancellationToken);
                     if (containerFile != null)

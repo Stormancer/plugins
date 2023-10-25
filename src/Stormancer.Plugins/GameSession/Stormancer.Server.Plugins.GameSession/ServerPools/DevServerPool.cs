@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,19 +16,21 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
     class DevServerPoolProvider : IServerPoolProvider
     {
 
-     
-        private readonly ILogger logger;
 
-        public DevServerPoolProvider(ILogger logger)
+        private readonly ILogger logger;
+        private readonly GameSessionEventsRepository _events;
+
+        public DevServerPoolProvider(ILogger logger, GameSessionEventsRepository events)
         {
 
             this.logger = logger;
+            _events = events;
         }
         public bool TryCreate(string id, JObject config, [NotNullWhen(true)] out IServerPool? pool)
         {
             if (config["type"]?.ToObject<string>() == "dev")
             {
-                pool = new DevServerPool(id, logger);
+                pool = new DevServerPool(id, logger, _events);
                 return true;
             }
             else
@@ -41,9 +44,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
     internal class DevServerPool : IServerPool
     {
-        public DevServerPool(string id, ILogger logger)
+        public DevServerPool(string id, ILogger logger, GameSessionEventsRepository events)
         {
             Id = id;
+            _events = events;
         }
         public string Id { get; }
 
@@ -103,7 +107,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
             public async Task<WaitGameServerResult> WaitForServerAsync()
             {
-                var s =  await tcs.Task;
+                var s = await tcs.Task;
                 return new WaitGameServerResult { Value = s, Success = true };
             }
 
@@ -156,50 +160,76 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         private Queue<GetServerPendingRequest> _requests = new Queue<GetServerPendingRequest>();
         private Queue<RunningGameServer> _waitingServers = new Queue<RunningGameServer>();
         private Dictionary<string, IScenePeerClient> _connectedServers = new Dictionary<string, IScenePeerClient>();
+        private readonly GameSessionEventsRepository _events;
 
-
-        public Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gameSessionConfig, GameServerEvent record, CancellationToken cancellationToken)
+        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gameSessionConfig, CancellationToken cancellationToken)
         {
-            
-            var request = new GetServerPendingRequest(gameSessionId, gameSessionConfig);
-            if (cancellationToken.IsCancellationRequested)
-            {
-                throw new TaskCanceledException();
-            }
-            lock (_syncRoot)
-            {
+            var record = new GameSessionEvent() { GameSessionId = gameSessionId, Type = "gameserver.starting" };
+            record.CustomData["pool"] = this.Id;
+            record.CustomData["PoolType"] = "dev";
+            _events.PostEventAsync(record);
 
-                while (_waitingServers.TryDequeue(out var gameServer))
+            record = new GameSessionEvent() { GameSessionId = gameSessionId, Type = "gameserver.started" };
+            record.CustomData["pool"] = this.Id;
+            bool success = true;
+            try
+            {
+                var request = new GetServerPendingRequest(gameSessionId, gameSessionConfig);
+                if (cancellationToken.IsCancellationRequested)
                 {
-                    if (gameServer.Session is not null)
-                    {
-                        gameServer.SetGameFound(gameSessionId, gameSessionConfig);
-                        gameServer.CancellationTokenRegistration.Unregister();
-                        record.CustomData["pool"] = this.Id;
-                        record.CustomData["PoolType"] = "dev";
-                        return Task.FromResult(new WaitGameServerResult { Success = true, Value = new GameServer { GameServerId = new GameServerId { PoolId = this.Id, Id = gameSessionId }, GameServerSessionId = gameServer.Session.SessionId } });
-
-                    }
+                    throw new TaskCanceledException();
                 }
-
-                request.CancellationTokenRegistration = cancellationToken.Register(() =>
+                lock (_syncRoot)
                 {
 
-                    lock (_syncRoot)
+                    while (_waitingServers.TryDequeue(out var gameServer))
                     {
-                        foreach (var rq in _requests)
+                        if (gameServer.Session is not null)
                         {
-                            if (rq.GameSessionId == gameSessionId)
-                            {
-                                rq.Cancel();
-                            }
+                            gameServer.SetGameFound(gameSessionId, gameSessionConfig);
+                            gameServer.CancellationTokenRegistration.Unregister();
+
+                            return new WaitGameServerResult { Success = true, Value = new GameServer { GameServerId = new GameServerId { PoolId = this.Id, Id = gameSessionId }, GameServerSessionId = gameServer.Session.SessionId } };
+
                         }
                     }
-                });
 
-                _requests.Enqueue(request);
-                return request.WaitForServerAsync();
+                    request.CancellationTokenRegistration = cancellationToken.Register(() =>
+                    {
 
+                        lock (_syncRoot)
+                        {
+                            foreach (var rq in _requests)
+                            {
+                                if (rq.GameSessionId == gameSessionId)
+                                {
+                                    rq.Cancel();
+                                }
+                            }
+                        }
+                    });
+
+                    _requests.Enqueue(request);
+
+
+                }
+                var result = await request.WaitForServerAsync();
+                success = result.Success;
+                return result;
+            }
+            catch (Exception ex)
+            {
+                success = false;
+                record.CustomData["error"] = ex.ToString();
+                return new WaitGameServerResult { Success = false };
+               
+
+            }
+            finally
+            {
+
+                record.CustomData["success"] = success;
+                _events.PostEventAsync(record);
             }
 
         }
@@ -207,9 +237,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         /// <summary>
         /// Triggered if the game server disconnects from the app.
         /// </summary>
-        /// <param name="sessionId"></param>
+        /// <param name="serverId"></param>
         /// <returns></returns>
-        public Task OnGameServerDisconnected(string serverId, GameServerEvent gameServer)
+        public Task OnGameServerDisconnected(string serverId)
         {
             lock (_syncRoot)
             {
@@ -281,11 +311,29 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             {
                 _connectedServers.TryGetValue(serverId, out client);
             }
-            if(client!=null)
+            if (client != null)
             {
                 await client.Send("ServerPool.Shutdown", _ => { }, Core.PacketPriority.MEDIUM_PRIORITY, Core.PacketReliability.RELIABLE);
                 await client.DisconnectFromServer("server.shutdown");
             }
+        }
+
+        /// <summary>
+        /// Queries the logs of a game servers. 
+        /// </summary>
+        /// <remarks>
+        /// Not supported.
+        /// </remarks>
+        /// <param name="gameSessionId"></param>
+        /// <param name="since"></param>
+        /// <param name="until"></param>
+        /// <param name="size"></param>
+        /// <param name="follow"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public IAsyncEnumerable<string> QueryLogsAsync(string gameSessionId, DateTime? since, DateTime? until, uint size, bool follow,CancellationToken cancellationToken)
+        {
+            return AsyncEnumerable.Empty<string>();
         }
     }
 }

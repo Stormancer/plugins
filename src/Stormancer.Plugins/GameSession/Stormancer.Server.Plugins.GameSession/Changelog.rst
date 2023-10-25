@@ -23,6 +23,8 @@ Added
 - Added Session to context of `IGameSessionEventHandler.OnGameSessionCompleted`.
 - Added support for regions.
 - Added PostingGameResults event fired whenever a client sends results to the game session.
+- Added Admin API to get events and live state about a gamesession.
+- Added Admin API to retrive the server logs of a gamesession.
 
 Changed
 *******

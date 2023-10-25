@@ -26,7 +26,7 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
         /// Creates a new <see cref="DockerAgentAdminController"/> object.
         /// </summary>
         /// <param name="provider"></param>
-        /// <param name="agentServerApi"></param>
+        /// <param name="scene"></param>
         public DockerAgentAdminController(AgentBasedGameServerProvider provider, ISceneHost scene)
         {
             _provider = provider;
@@ -66,26 +66,6 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
             return Ok(new GetContainersResponse { Containers = response });
         }
 
-        /// <summary>
-        /// Gets the logs of a game server.
-        /// </summary>
-        /// <param name="agentId"></param>
-        /// <param name="containerId"></param>
-        /// <param name="since"></param>
-        /// <param name="until"></param>
-        /// <param name="size"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        [HttpGet]
-        [Route("containers/{agentId}/{containerId}/logs")]
-        [ProducesResponseType(200, Type = typeof(GetContainerLogsResponse))]
-        public async Task<IActionResult> GetContainerLogs(string agentId, string containerId, DateTime? since, DateTime? until, uint size, CancellationToken cancellationToken)
-        {
-            var logs = await _provider.GetLogsAsync(agentId, containerId, false, since, until, size, cancellationToken).ToListAsync();
-
-
-            return Ok(new GetContainerLogsResponse { Logs = logs.SelectMany(b => b) });
-        }
 
         /// <summary>
         /// Disables an agent, preventing it from being used to host new game server instances.
@@ -101,31 +81,72 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
         }
     }
 
+    /// <summary>
+    /// Response to a Get agent request.
+    /// </summary>
     public class GetAgentsResponse
     {
-        public IEnumerable<AgentDocument> Agents { get; set; }
+        /// <summary>
+        /// Gets the list of game server hosting agents connected to the application.
+        /// </summary>
+        public IEnumerable<AgentDocument> Agents { get; set; } = Enumerable.Empty<AgentDocument>();
     }
+
+    /// <summary>
+    /// A game server hosting agent.
+    /// </summary>
     public class AgentDocument
     {
+        /// <summary>
+        /// Gets a boolean indicating whether the agent is in a faulted state.
+        /// </summary>
         public bool Faulted { get; set; }
-        public IEnumerable<string> Faults { get; set; }
 
-        public AgentDescription Description { get; set; }
+        /// <summary>
+        /// Gets the agent's faults.
+        /// </summary>
+        public IEnumerable<string> Faults { get; set; } = Enumerable.Empty<string>();
 
+        /// <summary>
+        /// Gets informations about the agent.
+        /// </summary>
+        public AgentDescription Description { get; set; } = default!;
+
+        /// <summary>
+        /// Gets a boolean indicating if the agent is considered for new game servers.
+        /// </summary>
         public bool Active { get; set; }
 
+        /// <summary>
+        /// Gets the number of CPU cores reserved on the agent.
+        /// </summary>
         public float ReservedCpu { get; set; }
+
+        /// <summary>
+        /// Gets the amount of RAM reserved on the agent.
+        /// </summary>
         public long ReservedMemory { get; set; }
+
+        /// <summary>
+        /// Gets the max amount of RAM that can be reserved on the agent.
+        /// </summary>
         public long TotalMemory { get; set; }
+
+        /// <summary>
+        /// Gets the max number of CPU cores that can be reserved on the agent.
+        /// </summary>
         public float TotalCpu { get; set; }
     }
+
+    /// <summary>
+    /// Response to a Get containers query.
+    /// </summary>
     public class GetContainersResponse
     {
-        public IEnumerable<ContainerDescription> Containers { get; internal set; }
+        /// <summary>
+        /// List of containers.
+        /// </summary>
+        public IEnumerable<ContainerDescription> Containers { get; internal set; } = Enumerable.Empty<ContainerDescription>();
     }
 
-    public class GetContainerLogsResponse
-    {
-        public IEnumerable<string> Logs { get; set; }
-    }
 }

@@ -43,14 +43,16 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         private readonly ILogger logger;
         private readonly ISceneHost scene;
         private readonly IDataProtector _dataProtector;
+        private readonly GameSessionEventsRepository _events;
         private readonly IGameSessions gameSessions;
 
-        public ProviderBasedServerPoolProvider(IEnumerable<IGameServerProvider> serverProviders, ILogger logger, ISceneHost scene, IDataProtector dataProtector)
+        public ProviderBasedServerPoolProvider(IEnumerable<IGameServerProvider> serverProviders, ILogger logger, ISceneHost scene, IDataProtector dataProtector, GameSessionEventsRepository events)
         {
             this.serverProviders = serverProviders;
             this.logger = logger;
             this.scene = scene;
             _dataProtector = dataProtector;
+            _events = events;
         }
         public bool TryCreate(string id, JObject config, [NotNullWhen(true)] out IServerPool? pool)
         {
@@ -73,7 +75,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                 return false;
             }
             logger.Log(LogLevel.Info, "serverpools", $"Creating provider based pool {id} of type {pId}", new { });
-            pool = new ProviderBasedServerPool(id, provider, logger, scene, _dataProtector);
+            pool = new ProviderBasedServerPool(id, provider, logger, scene, _dataProtector, _events);
             return true;
 
         }
@@ -97,6 +99,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         private readonly ILogger logger;
         private readonly ISceneHost _scene;
         private readonly IDataProtector _dataProtector;
+        private readonly GameSessionEventsRepository _events;
         private JObject config;
         private ConcurrentDictionary<string, Server> _startingServers = new ConcurrentDictionary<string, Server>();
         private ConcurrentDictionary<string, Server> _readyServers = new ConcurrentDictionary<string, Server>();
@@ -105,13 +108,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         private bool isRunning = true;
         public string Id { get; }
-        public ProviderBasedServerPool(string id, IGameServerProvider provider, ILogger logger, ISceneHost scene, IDataProtector dataProtector)
+        public ProviderBasedServerPool(string id, IGameServerProvider provider, ILogger logger, ISceneHost scene, IDataProtector dataProtector, GameSessionEventsRepository events)
         {
             Id = id;
             this.provider = provider;
             this.logger = logger;
             _scene = scene;
             _dataProtector = dataProtector;
+            _events = events;
             //Task.Run(async () =>
             //{
             //    isRunning = true;
@@ -220,7 +224,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             isRunning = false;
         }
 
-        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gsConfig, GameServerEvent record, CancellationToken cancellationToken)
+        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gsConfig, CancellationToken cancellationToken)
         {
             if (!isRunning)
             {
@@ -232,17 +236,22 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             var claims = new GameServerAuthClaims { GameServerId = gameSessionId, ProviderType = provider.Type };
             var authToken = await _dataProtector.ProtectBase64Url(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(claims)), "gameServer");
 
-            record.CustomData["Pool"] = this.Id;
-            record.CustomData["PoolType"] = provider.Type;
-            var result = await provider.TryStartServer(gameSessionId, authToken, this.config, record, gsConfig.PreferredRegions, cancellationToken);
+            var record = new GameSessionEvent() { GameSessionId = gameSessionId, Type = "gameserver.starting" };
+
+            record.CustomData["pool"] = this.Id;
+            record.CustomData["poolType"] = provider.Type;
+            _events.PostEventAsync(record);
+            var result = await provider.TryStartServer(gameSessionId, authToken, this.config, gsConfig.PreferredRegions, cancellationToken);
 
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
             using var cts2 = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, cancellationToken);
 
+            record = new GameSessionEvent() { GameSessionId = gameSessionId, Type = "gameserver.started" };
+            record.CustomData["pool"] = this.Id;
 
             if (result.Success)
             {
-                var server = new Server { Context = result.Context, GameServer = result.Instance, Id = gameSessionId, Record = record, Region = result.Region };
+                var server = new Server { Context = result.Context, GameServer = result.Instance, Id = gameSessionId,  Region = result.Region };
                 _startingServers.TryAdd(gameSessionId, server);
                 server.Context = result.Context;
                 server.GameServer = result.Instance;
@@ -263,10 +272,17 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                     }
 
                 });
-                return await tcs.Task;
+                var waitGameServerResult = await tcs.Task;
+                
+                record.CustomData["region"] = server.Region;
+                record.CustomData["success"] = true;
+                _events.PostEventAsync(record);
+                return waitGameServerResult;
+
             }
             else
             {
+                record.CustomData["success"] = false;
                 return new WaitGameServerResult { Success = false };
             }
 
@@ -323,7 +339,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             }
         }
 
-        public async Task OnGameServerDisconnected(string serverId, GameServerEvent gameServerRecord)
+        public async Task OnGameServerDisconnected(string serverId)
         {
 
             if (_runningServers.TryRemove(serverId, out var server))
@@ -340,6 +356,28 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             {
                 await server.Peer.Send("ServerPool.Shutdown", _ => { }, Core.PacketPriority.MEDIUM_PRIORITY, Core.PacketReliability.RELIABLE);
                 await provider.StopServer(server.Id, server.Context);
+            }
+        }
+
+        /// <summary>
+        /// Queries the logs of a game servers. 
+        /// </summary>
+        /// <param name="gameSessionId"></param>
+        /// <param name="since"></param>
+        /// <param name="until"></param>
+        /// <param name="size"></param>
+        /// <param name="follow"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public IAsyncEnumerable<string> QueryLogsAsync(string gameSessionId, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken)
+        {
+            if (_runningServers.TryGetValue(gameSessionId, out var server))
+            {
+                return provider.QueryLogsAsync(server.Id,server.Context, since, until, size, follow, cancellationToken);
+            }
+            else
+            {
+                return AsyncEnumerable.Empty<string>();
             }
         }
     }

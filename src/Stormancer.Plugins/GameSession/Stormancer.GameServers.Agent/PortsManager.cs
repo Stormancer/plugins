@@ -19,16 +19,31 @@ namespace Stormancer.GameServers.Agent
 
         private HashSet<ushort> _acquiredPorts = new HashSet<ushort>();
         private object _syncRoot = new object();
-        public PortReservation AcquirePort()
+        public PortReservation AcquirePort(ushort port = 0)
         {
             lock (_syncRoot)
             {
-                for (ushort port = (ushort)_options.MinPort; port <= _options.MaxPort; port++)
+                if (port != 0)
                 {
                     if (!_acquiredPorts.Contains(port))
                     {
                         _acquiredPorts.Add(port);
                         return new PortReservation(port, this);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException($"Port {port} unavailable.");
+                    }
+                }
+                else
+                {
+                    for (port = (ushort)_options.MinPort; port <= _options.MaxPort; port++)
+                    {
+                        if (!_acquiredPorts.Contains(port))
+                        {
+                            _acquiredPorts.Add(port);
+                            return new PortReservation(port, this);
+                        }
                     }
                 }
             }

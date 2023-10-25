@@ -30,14 +30,33 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
+    /// <summary>
+    /// A game server instance.
+    /// </summary>
     public class GameServerInstance
     {
-        public string Id { get; set; }
-        public Action OnClosed { get; set; }
+        /// <summary>
+        /// Gets or sets the id of the server.
+        /// </summary>
+        public string Id { get; set; } = default!;
+
+        /// <summary>
+        /// Gets or sets an action executed when the game server is closed.
+        /// </summary>
+        public Action? OnClosed { get; set; }
     }
 
+    /// <summary>
+    /// The result of a call to <see cref="IGameServerProvider.TryStartServer(string, string, JObject, IEnumerable{string}, CancellationToken)"/>.
+    /// </summary>
     public class StartGameServerResult
     {
+        /// <summary>
+        /// Creates a new <see cref="StartGameServerResult"/> object.
+        /// </summary>
+        /// <param name="success"></param>
+        /// <param name="instance"></param>
+        /// <param name="context"></param>
         public StartGameServerResult(bool success, GameServerInstance? instance, object? context )
         {
             Success = success;
@@ -45,21 +64,70 @@ namespace Stormancer.Server.Plugins.GameSession
             Context = context;
         }
 
+        /// <summary>
+        /// Gets a boolean indicating whether  the request was successful.
+        /// </summary>
         [MemberNotNullWhen(true,"Instance")]
         public bool Success { get; }
+
+        /// <summary>
+        /// Gets the <see cref="GameServerInstance"/> object that contains details about the started game server.
+        /// </summary>
         public GameServerInstance? Instance { get; }
-        public object? Context { get; set; }
+
+        /// <summary>
+        /// Gets an optional context passed to <see cref="IGameServerProvider.StopServer(string, object?)"/>.
+        /// </summary>
+        public object? Context { get; }
 
         /// <summary>
         /// Gets or sets the region the game server was created in.
         /// </summary>
         public string? Region { get; set; }
     }
+
+
+    /// <summary>
+    /// Provides a way to host game servers.
+    /// </summary>
     public interface IGameServerProvider
     {
+        /// <summary>
+        /// Gets the id of the provider.
+        /// </summary>
         string Type { get; }
-        Task<StartGameServerResult> TryStartServer(string id,string authToken, JObject config, GameServerEvent record,IEnumerable<string> preferredRegions, CancellationToken ct);
 
+        /// <summary>
+        /// Tries to start a server on a region.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="authToken"></param>
+        /// <param name="config"></param>
+        /// <param name="preferredRegions"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        Task<StartGameServerResult> TryStartServer(string id,string authToken, JObject config,IEnumerable<string> preferredRegions, CancellationToken ct);
+
+        /// <summary>
+        /// Stops a server.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="context"></param>
+        /// <returns></returns>
         Task StopServer(string id, object? context);
+
+
+        /// <summary>
+        /// Queries logs of the server.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="ctx"></param>
+        /// <param name="since"></param>
+        /// <param name="until"></param>
+        /// <param name="size"></param>
+        /// <param name="follow"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        IAsyncEnumerable<string> QueryLogsAsync(string id, object? ctx, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken);
     }
 }

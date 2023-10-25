@@ -24,6 +24,7 @@ using MsgPack.Serialization;
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Users;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
@@ -45,8 +46,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         public object? Context { get; internal set; }
         public GameSessionConfiguration GameSessionConfiguration { get; internal set; }
         public TaskCompletionSource<WaitGameServerResult> RequestCompletedCompletionSource { get; internal set; }
-        public GameServerEvent Record { get; internal set; }
-
+       
         /// <summary>
         /// Gets or sets the region the game server was created in.
         /// </summary>
@@ -107,8 +107,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         public string Id { get; set; } = default!;
     }
     
+    /// <summary>
+    /// A pool that manages game servers.
+    /// </summary>
     public interface IServerPool: IDisposable
     {
+        /// <summary>
+        /// Gets the id of the pool.
+        /// </summary>
         string Id { get; }
 
         /// <summary>
@@ -116,8 +122,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         /// </summary>
         /// <param name="gameSessionId"></param>
         /// <param name="gameSessionConfig"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gameSessionConfig,GameServerEvent record, CancellationToken cancellationToken);
+        Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gameSessionConfig, CancellationToken cancellationToken);
 
         void UpdateConfiguration(JObject config);
 
@@ -132,7 +139,8 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         bool CanManage(Session session, IScenePeerClient peer);
         Task<GameServerStartupParameters?> WaitGameSessionAsync(Session session, IScenePeerClient client, CancellationToken cancellationToken);
-        Task OnGameServerDisconnected(string serverId, GameServerEvent gameServerRecord);
+        Task OnGameServerDisconnected(string serverId);
         Task CloseServer(string serverId);
+        IAsyncEnumerable<string> QueryLogsAsync(string gameSessionId, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken);
     }
 }

@@ -332,12 +332,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         private readonly IEnvironment _environment;
         private readonly IDataProtector _dataProtector;
         private readonly ILogger _logger;
+        private readonly GameSessionEventsRepository _events;
         private readonly Task<ApplicationInfos> _applicationInfos;
-        public AgentBasedGameServerProvider(IEnvironment environment, IDataProtector dataProtector, ILogger logger)
+        public AgentBasedGameServerProvider(IEnvironment environment, IDataProtector dataProtector, ILogger logger, GameSessionEventsRepository events)
         {
             _environment = environment;
             _dataProtector = dataProtector;
             _logger = logger;
+            _events = events;
             _applicationInfos = _environment.GetApplicationInfos();
             _environment.ActiveDeploymentChanged += OnActiveDeploymentChanged;
         }
@@ -523,38 +525,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             return agent.Peer.RpcTask<ContainerStopParameters, ContainerStopResponse>("agent.stopContainer", new ContainerStopParameters { ContainerId = containerId });
         }
 
-        public IAsyncEnumerable<IEnumerable<string>> GetLogsAsync(string agentId, string containerId, bool follow, DateTime? since = null, DateTime? until = null, uint size = 0, CancellationToken cancellationToken = default)
-        {
-            DockerAgent? agent;
-            lock (_syncRoot)
-            {
-                if (!_agents.TryGetValue(agentId, out agent))
-                {
-                    throw new InvalidOperationException("Agent not found");
-                }
-            }
-
-            var observable = agent.Peer.Rpc<GetContainerLogsParameters, IEnumerable<string>>("agent.getLogs", new GetContainerLogsParameters
-            {
-                ContainerId = containerId,
-                Follow = follow,
-                Since = since,
-                Until = until,
-                Size = size
-
-            }, cancellationToken);
-
-
-            return observable.ToAsyncEnumerable();
-
-        }
-
 
         public string Type => GameServerAgentConstants.TYPE;
 
         public bool ShuttingDown { get; private set; }
 
-        public async Task<StartGameServerResult> TryStartServer(string id, string authenticationToken, JObject config, GameServerEvent record, IEnumerable<string> regions, CancellationToken ct)
+        public async Task<StartGameServerResult> TryStartServer(string id, string authenticationToken, JObject config, IEnumerable<string> regions, CancellationToken ct)
         {
 
             var agentConfig = config.ToObject<AgentPoolConfigurationSection>();
@@ -626,8 +602,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
                     if (response.Success)
                     {
+                        var record = new GameSessionEvent { GameSessionId = id, Type = "dockerAgent" };
                         record.CustomData["agent"] = agent.Id;
                         record.CustomData["containerId"] = response.Container.ContainerId;
+                        _events.PostEventAsync(record);
 
                         return new StartGameServerResult(true,
                             new GameServerInstance { Id = agent.Id + "/" + response.Container.ContainerId }, (agent.Id, response.Container.ContainerId))
@@ -703,6 +681,39 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
 
 
+        }
+
+        public async IAsyncEnumerable<string> QueryLogsAsync(string id, object ctx, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken)
+        {
+            DockerAgent? agent;
+            (string agentId, string containerId) = (ValueTuple<string, string>)(ctx);
+            lock (_syncRoot)
+            {
+              
+                if (!_agents.TryGetValue(agentId, out agent))
+                {
+                    throw new InvalidOperationException("Agent not found");
+                }
+            }
+
+            var observable = agent.Peer.Rpc<GetContainerLogsParameters, IEnumerable<string>>("agent.getLogs", new GetContainerLogsParameters
+            {
+                ContainerId = containerId,
+                Follow = follow,
+                Since = since,
+                Until = until,
+                Size = size
+
+            }, cancellationToken);
+
+
+            await foreach(var block in observable.ToAsyncEnumerable())
+            {
+                foreach(var log in block)
+                {
+                    yield return log;
+                }
+            }
         }
     }
 

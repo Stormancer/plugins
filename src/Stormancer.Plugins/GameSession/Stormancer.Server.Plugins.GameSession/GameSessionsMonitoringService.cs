@@ -1,9 +1,11 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Database;
+using Stormancer.Server.Plugins.GameSession.ServerPool;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,23 +17,66 @@ namespace Stormancer.Server.Plugins.GameSession
     public class GameSessionsMonitoringService
     {
         private readonly GameSessionProxy _gameSessionProxy;
-        private readonly GameServerEventsRepository _gameServerEvents;
+        private readonly IServerPools _pools;
+        private readonly GameSessionEventsRepository _gameServerEvents;
 
         /// <summary>
         /// Creates a new <see cref="GameSessionsMonitoringService"/> object.
         /// </summary>
         /// <param name="gameSessionProxy"></param>
+        /// <param name="pools"></param>
         /// <param name="gameServerEvents"></param>
-        public GameSessionsMonitoringService(GameSessionProxy gameSessionProxy,GameServerEventsRepository gameServerEvents)
+        public GameSessionsMonitoringService(GameSessionProxy gameSessionProxy, IServerPools pools, GameSessionEventsRepository gameServerEvents)
         {
             _gameSessionProxy = gameSessionProxy;
+            _pools = pools;
             _gameServerEvents = gameServerEvents;
         }
-        public IAsyncEnumerable<string> GetLogsAsync(string gameSessionId, DateTime? since, DateTime? until, uint size, CancellationToken cancellationToken)
+
+        /// <summary>
+        /// Queries the logs of a game server. 
+        /// </summary>
+        /// <param name="gameSessionId"></param>
+        /// <param name="since"></param>
+        /// <param name="until"></param>
+        /// <param name="size"></param>
+        /// <param name="follow"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public async IAsyncEnumerable<string> QueryGameServerLogsAsync(string gameSessionId, DateTime? since, DateTime? until, uint size,bool follow,[EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var events = await _gameServerEvents.GetEventsAsync(gameSessionId, cancellationToken);
+
+            var startedEvt = events.FirstOrDefault(evt => evt.Type == "gameserver.started");
+            if (startedEvt == null)
+            {
+                yield break;
+            }
+
+            var poolId = startedEvt.CustomData["pool"]?.ToObject<string>();
+            if (poolId == null)
+            {
+                yield break;
+            }
+
+            if(!_pools.TryGetPool(poolId,out var pool))
+            {
+                yield break;
+            }
+
+            await foreach (var log in pool.QueryLogsAsync(gameSessionId, since, until, size, follow, cancellationToken))
+            {
+                yield return log;
+            }
+
         }
 
+        /// <summary>
+        /// Gets live informations about a game session.
+        /// </summary>
+        /// <param name="gameSessionId"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         public async Task<GameSessionStatus> InspectGameSessionAsync(string gameSessionId, CancellationToken cancellationToken)
         {
             var status = new GameSessionStatus();
@@ -41,42 +86,116 @@ namespace Stormancer.Server.Plugins.GameSession
             }
             catch (Exception)
             {
-                status.GameServerEvents = await _gameServerEvents.GetEventsAsync(gameSessionId, cancellationToken);
+              
             }
-
+            status.GameServerEvents = await _gameServerEvents.GetEventsAsync(gameSessionId, cancellationToken);
 
             return status;
 
 
         }
 
-       
+
     }
 
-
-    public class GameServerEventsRepository
+    /// <summary>
+    /// Manages the game session events.
+    /// </summary>
+    public class GameSessionEventsRepository : IDisposable
     {
         private readonly IESClientFactory _esClientFactory;
+        private readonly ILogger _logger;
+        private readonly PeriodicTimer _timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+        private bool _disposed;
 
-        public GameServerEventsRepository(IESClientFactory clientFactory)
+        /// <summary>
+        /// Creates a new <see cref="GameSessionEventsRepository"/> object.
+        /// </summary>
+        /// <param name="clientFactory"></param>
+        /// <param name="logger"></param>
+        public GameSessionEventsRepository(IESClientFactory clientFactory, ILogger logger)
         {
             _esClientFactory = clientFactory;
+            _logger = logger;
+            _ = Run();
         }
-        internal async Task<IEnumerable<GameServerEvent>> GetEventsAsync(string gameSessionId, CancellationToken cancellationToken)
-        {
-            var client = await _esClientFactory.CreateClient<GameServerEvent>("gameservers");
 
-            throw new NotImplementedException();
+        private async Task Run()
+        {
+            var events = new List<GameSessionEvent>();
+            while (!_disposed)
+            {
+                try
+                {
+                    events.Clear();
+
+                    var client = await _esClientFactory.CreateClient<GameSessionEvent>("gameservers");
+
+
+                    while (_events.TryDequeue(out var evt))
+                    {
+                        events.Add(evt);
+                    }
+                    await foreach (var response in client.BulkAll(events, d => d.ContinueAfterDroppedDocuments(true)).ToAsyncEnumerable())
+                    {
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    _logger.Log(LogLevel.Error, "gamesessions.events", "An error occurred while storing the game session events.", ex);
+                }
+            }
+        }
+
+        private ConcurrentQueue<GameSessionEvent> _events = new ConcurrentQueue<GameSessionEvent>();
+        void IDisposable.Dispose()
+        {
+            _disposed = true;
+            _timer.Dispose();
+        }
+
+        /// <summary>
+        /// Queries the game server events.
+        /// </summary>
+        /// <param name="gameSessionId"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public async Task<IEnumerable<GameSessionEvent>> GetEventsAsync(string gameSessionId, CancellationToken cancellationToken)
+        {
+            var client = await _esClientFactory.CreateClient<GameSessionEvent>("gameservers");
+
+            var result = await client.SearchAsync<GameSessionEvent>(d => d.Query(q => q.Term("gameSessionId.keyword", gameSessionId)));
+
+            return result.Hits.Select(h => h.Source);
+        }
+
+        /// <summary>
+        /// Posts a game session monitoring event.
+        /// </summary>
+        /// <param name="evt"></param>
+        public void PostEventAsync(GameSessionEvent evt)
+        {
+
+            _events.Enqueue(evt);
         }
     }
+
+    /// <summary>
+    /// Status of a game session.
+    /// </summary>
     public class GameSessionStatus
     {
-        internal GameSessionStatus()
-        {
+       
+        /// <summary>
+        /// Gets the result of the inspect live game session request.
+        /// </summary>
+        public InspectLiveGameSessionResult? GameSession { get; set; }
 
-        }
-        public InspectLiveGameSessionResult GameSession { get; set; }
-        public IEnumerable<GameServerEvent> GameServerEvents { get;  set; }
+        /// <summary>
+        /// Gets the events stored for the game session.
+        /// </summary>
+        public IEnumerable<GameSessionEvent> GameServerEvents { get; set; } = Enumerable.Empty<GameSessionEvent>();
     }
 
 

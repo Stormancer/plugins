@@ -99,14 +99,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         }
 
-        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration config, GameServerEvent record, CancellationToken cancellationToken)
+        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration config, CancellationToken cancellationToken)
         {
 
             foreach (var subPool in _subPools)
             {
                 if (pools().TryGetPool(subPool, out var pool))
                 {
-                    var result = await pool.TryWaitGameServerAsync(gameSessionId, config, record, cancellationToken);
+                    var result = await pool.TryWaitGameServerAsync(gameSessionId, config, cancellationToken);
                     if (result.Success)
                     {
                         return result;
@@ -143,11 +143,11 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             throw new NotSupportedException();
         }
 
-        public async Task OnGameServerDisconnected(string serverId, GameServerEvent gameServerRecord)
+        public async Task OnGameServerDisconnected(string serverId)
         {
             foreach (var pool in SubPools)
             {
-                await pool.OnGameServerDisconnected(serverId, gameServerRecord);
+                await pool.OnGameServerDisconnected(serverId);
             }
         }
 
@@ -157,6 +157,24 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             {
                 await pool.CloseServer(serverId);
             }
+        }
+
+        /// <summary>
+        /// Queries the logs of a game servers. 
+        /// </summary>
+        /// <remarks>
+        /// Not supported.
+        /// </remarks>
+        /// <param name="gameSessionId"></param>
+        /// <param name="since"></param>
+        /// <param name="until"></param>
+        /// <param name="size"></param>
+        /// <param name="follow"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public IAsyncEnumerable<string> QueryLogsAsync(string gameSessionId, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken)
+        {
+            return AsyncEnumerable.Empty<string>();
         }
     }
 }

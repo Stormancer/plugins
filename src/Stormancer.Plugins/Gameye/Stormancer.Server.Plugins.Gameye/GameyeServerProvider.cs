@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.GameSession;
 using Stormancer.Server.Plugins.GameSession.ServerProviders;
@@ -26,14 +25,16 @@ namespace Stormancer.Server.Plugins.Gameye
     {
         private readonly GameyeClient _client;
         private readonly IEnvironment _environment;
+        private readonly GameSessionEventsRepository _events;
 
         public string Type => "gameye";
 
 
-        public GameyeServerProvider(GameyeClient client, IEnvironment environment)
+        public GameyeServerProvider(GameyeClient client, IEnvironment environment, GameSessionEventsRepository events)
         {
             _client = client;
             _environment = environment;
+            _events = events;
         }
         public async Task StopServer(string id, object? context)
         {
@@ -42,7 +43,7 @@ namespace Stormancer.Server.Plugins.Gameye
 
 
 
-        public async Task<GameSession.StartGameServerResult> TryStartServer(string id, string authToken, JObject config, GameServerEvent record, IEnumerable<string> regions, CancellationToken cancellationToken)
+        public async Task<GameSession.StartGameServerResult> TryStartServer(string id, string authToken, JObject config, IEnumerable<string> regions, CancellationToken cancellationToken)
         {
             var agentConfig = config.ToObject<GameyePoolConfigurationSection>();
             if (agentConfig == null || agentConfig.Image == null)
@@ -59,7 +60,7 @@ namespace Stormancer.Server.Plugins.Gameye
                 }
             }
 
-            if(gameyeLocation == null)
+            if (gameyeLocation == null)
             {
                 gameyeLocation = agentConfig.Region;
             }
@@ -90,6 +91,11 @@ namespace Stormancer.Server.Plugins.Gameye
             };
             var r = await _client.StartGameServerAsync(args, cancellationToken);
 
+            var evt = new GameSessionEvent{ GameSessionId = id, Type = "gameye.startserver"};
+            evt.CustomData["success"] = r.Success;
+            evt.CustomData["gameye-location"] = args.Location;
+            evt.CustomData["gameye-image"] = args.Image;
+          
             if (r.Success)
             {
                 return new GameSession.StartGameServerResult(true, new GameServerInstance { Id = id }, null);
@@ -98,6 +104,12 @@ namespace Stormancer.Server.Plugins.Gameye
             {
                 return new GameSession.StartGameServerResult(false, null, null);
             }
+        }
+
+   
+        public IAsyncEnumerable<string> QueryLogsAsync(string id, object? ctx, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -242,7 +242,7 @@ namespace Stormancer.Server.Plugins.GameSession
         private readonly RpcService _rpc;
         private readonly GameSessionsRepository _repository;
         private readonly ISerializer _serializer;
-
+        private readonly GameSessionEventsRepository _events;
         private TimeSpan _gameSessionTimeout = TimeSpan.MaxValue;
         private GameSessionConfiguration? _config;
         private readonly CancellationTokenSource _sceneCts = new();
@@ -275,7 +275,8 @@ namespace Stormancer.Server.Plugins.GameSession
             ILogger logger,
             RpcService rpc,
             GameSessionsRepository repository,
-            ISerializer serializer)
+            ISerializer serializer,GameSessionEventsRepository events
+            )
         {
             _management = management;
             this.state = state;
@@ -288,13 +289,14 @@ namespace Stormancer.Server.Plugins.GameSession
             _rpc = rpc;
             _repository = repository;
             _serializer = serializer;
-
-
+            _events = events;
             ApplySettings();
 
+            events.PostEventAsync(new GameSessionEvent() { GameSessionId = scene.Id, Type = "gamesessionCreated" });
             analyticsWorker.AddGameSession(this);
             scene.Shuttingdown.Add(async args =>
             {
+                events.PostEventAsync(new GameSessionEvent() { GameSessionId = scene.Id, Type = "gamesessionShutdown" });
                 await this.EvaluateGameComplete(true);
                 analyticsWorker.RemoveGameSession(this);
                 _repository.RemoveGameSession(this);
@@ -321,7 +323,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     }
                     catch (Exception ex)
                     {
-                        _logger.Log(LogLevel.Error, "gamesession", "An error occurred while running the gamesession cleanup method.", ex);
+                        _logger.Log(LogLevel.Error, "gamesession", "An error occurred while running the game session cleanup method.", ex);
                     }
                     await timer.WaitForNextTickAsync(cancellationToken);
                 }

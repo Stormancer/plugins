@@ -48,16 +48,17 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         /// <returns></returns>
         bool TryGetPool(string id, [NotNullWhen(true)] out IServerPool? pool);
 
-       
+
     }
 
     internal class ServerPools : IServerPools, IConfigurationChangedEventHandler
     {
         private readonly ILogger logger;
         private readonly IConfiguration configuration;
-    
+
         private readonly IEnumerable<IServerPoolProvider> providers;
-        private readonly IESClientFactory _eSClientFactory;
+        private readonly GameSessionEventsRepository _events;
+
         private readonly Dictionary<string, IServerPool> _pools = new Dictionary<string, IServerPool>();
         private object _poolsSyncRoot = new object();
 
@@ -65,13 +66,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         private object _gameServersSyncRoot = new object();
         private Dictionary<string, GameServerConnectionInfo> _gameServers = new Dictionary<string, GameServerConnectionInfo>();
 
-        public ServerPools(ILogger logger, IConfiguration config, IEnumerable<IServerPoolProvider> providers, Database.IESClientFactory eSClientFactory)
+        public ServerPools(ILogger logger, IConfiguration config, IEnumerable<IServerPoolProvider> providers, GameSessionEventsRepository events)
         {
             this.logger = logger;
             this.configuration = config;
-           
+
             this.providers = providers;
-            _eSClientFactory = eSClientFactory;
+            _events = events;
+
             ApplySettings();
         }
 
@@ -94,10 +96,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         private void ApplySettings()
         {
             var config = configuration.Settings;
-            var configs = ((JObject?)config.serverPools)?.ToObject<Dictionary<string,JObject>>();
+            var configs = ((JObject?)config.serverPools)?.ToObject<Dictionary<string, JObject>>();
             var destroyedPools = new List<string>();
 
-            if(configs == null)
+            if (configs == null)
             {
                 return;
             }
@@ -131,7 +133,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                     _pools.Remove(id, out _);
                 }
 
-                
+
             }
         }
 
@@ -143,7 +145,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             {
                 foreach (var (poolId, pool) in _pools)
                 {
-                    if(pool.CanManage(session, peer))
+                    if (pool.CanManage(session, peer))
                     {
                         selectedPool = pool;
                         _gameServers[session.platformId.PlatformUserId] = new GameServerConnectionInfo(session.SessionId, poolId);
@@ -152,10 +154,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                 }
             }
 
-            if(selectedPool!=null)
+            if (selectedPool != null)
             {
-               var parameters = await selectedPool.WaitGameSessionAsync(session, peer,cancellationToken);
-               
+                var parameters = await selectedPool.WaitGameSessionAsync(session, peer, cancellationToken);
+
                 return parameters;
 
             }
@@ -169,31 +171,23 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         internal async Task RemoveGameServer(string serverId)
         {
             IServerPool? pool = null;
-            lock(_poolsSyncRoot)
+            lock (_poolsSyncRoot)
             {
-                if(_gameServers.Remove(serverId,out var infos))
+                if (_gameServers.Remove(serverId, out var infos))
                 {
                     TryGetPool(infos.poolId, out pool);
-                   
+
                 }
             }
             if (pool != null)
             {
-                var client = await _eSClientFactory.CreateClient<GameServerEvent>("gameservers");
+                var evt = new GameSessionEvent { GameSessionId = serverId, Type = "gameserver.disconnected" };
 
-                var record = client.Get<GameServerEvent>(serverId);
-                if (record.Source != null)
-                {
-                    //record.Source.ClosedOn = DateTime.UtcNow;
-                }
-                await pool.OnGameServerDisconnected(serverId,record?.Source);
-                if (record.Source != null)
-                {
-                   // record.Source.RunTimeInSeconds = (record.Source.ClosedOn - record.Source.StartedOn).Seconds;
-                    await client.IndexAsync(record.Source, desc => desc.Id(record.Id));
-                }
+                _events.PostEventAsync(evt);
+                await pool.OnGameServerDisconnected(serverId);
+               
             }
-           
+
         }
 
         private JObject? GetConfiguration(string id)
@@ -224,15 +218,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         {
             if (TryGetPool(poolId, out var pool))
             {
-                var record = new GameServerEvent() {  Id = gameSessionId, EventTime = DateTime.UtcNow };
+               
+                var result = await pool.TryWaitGameServerAsync(gameSessionId, config, cancellationToken);
+                
 
-                var result = await pool.TryWaitGameServerAsync(gameSessionId, config,record, cancellationToken);
 
-                var client =await _eSClientFactory.CreateClient<GameServerEvent>("gameservers");
-
-                record.CustomData["ServerFound"] = result.Success;
-              
-                await client.IndexAsync(record,desc=>desc.Id(record.Id));
+             
                 if (result.Success)
                 {
                     return result.Value;
