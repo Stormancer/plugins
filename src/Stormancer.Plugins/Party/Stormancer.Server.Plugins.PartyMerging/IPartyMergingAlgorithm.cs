@@ -19,8 +19,23 @@ namespace Stormancer.Server.Plugins.PartyMerging
             Into = into;
             CustomData = customData;
         }
+
+        /// <summary>
+        /// Gets the party that should be merged into the another one as part of this command.
+        /// </summary>
         public Models.Party From { get;  }
+
+        /// <summary>
+        /// Gets the party into which another party should be merged as part of this command.
+        /// </summary>
         public Models.Party Into { get; }
+
+        /// <summary>
+        /// Gets custom data associated with the merge command.
+        /// </summary>
+        /// <remarks>
+        /// This data is sent to the into party as part of the reservation request.
+        /// </remarks>
         public JObject CustomData { get; }
     }
 
