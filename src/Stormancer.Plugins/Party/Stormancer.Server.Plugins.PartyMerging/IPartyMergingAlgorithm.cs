@@ -42,7 +42,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
         /// <summary>
         /// Party merging commands that should be attempted
         /// </summary>
-        public Dictionary<string, MergingCommand> MergeCommands { get; } = new Dictionary<string, MergingCommand>();
+        public List<MergingCommand> MergeCommands { get; } = new List<MergingCommand>();
 
         /// <summary>
         /// 
@@ -56,7 +56,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
             {
                 throw new InvalidOperationException($"Cannot merge {from.PartyId} into itself.");
             }
-            MergeCommands.Add(from.PartyId, new MergingCommand(from,into, customData));
+            MergeCommands.Add(new MergingCommand(from,into, customData));
         }
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
         /// <returns></returns>
         public bool IsMerged(Models.Party from)
         {
-            return MergeCommands.ContainsKey(from.PartyId);
+            return MergeCommands.Any(p => (p.From.PartyId == from.PartyId || p.Into.PartyId == from.PartyId));
         }
     }
 
