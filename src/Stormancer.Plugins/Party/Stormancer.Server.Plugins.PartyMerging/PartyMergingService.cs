@@ -78,9 +78,13 @@ namespace Stormancer.Server.Plugins.PartyMerging
         {
             _completedTcs.TrySetResult(connectionToken);
         }
+        public void Cancel()
+        {
+            _completedTcs.TrySetCanceled();
+        }
         public void Dispose()
         {
-            _completedTcs.TrySetException(new OperationCanceledException());
+            Cancel();
 
             _registration.Unregister();
             _cts.Dispose();
@@ -99,7 +103,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
                 _cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokens.ToArray());
 
-                _registration = _cts.Token.Register(() => { _completedTcs.TrySetCanceled(); });
+                _registration = _cts.Token.Register(() =>  Cancel());
 
                 currentRegistration.Unregister();
                 currentCts.Dispose();
@@ -144,7 +148,10 @@ namespace Stormancer.Server.Plugins.PartyMerging
                     if (_state._states.TryGetValue(partyId, out var currentState))
                     {
                         state = currentState;
-                        state.LinkCancellationToken(cancellationToken);
+                        if (cancellationToken.CanBeCanceled)
+                        {
+                            state.LinkCancellationToken(cancellationToken);
+                        }
                     }
                     else
                     {
@@ -165,6 +172,18 @@ namespace Stormancer.Server.Plugins.PartyMerging
                 lock (_state._syncRoot)
                 {
                     _state._states.Remove(partyId);
+                }
+            }
+        }
+
+        public void StopMergeParty(string partyId)
+        {
+            lock(_state._syncRoot)
+            {
+                if (_state._states.TryGetValue(partyId, out var state))
+                {
+
+                    state.Cancel();
                 }
             }
         }

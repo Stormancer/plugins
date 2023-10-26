@@ -27,9 +27,15 @@ namespace Stormancer.Server.Plugins.PartyMerging
         }
 
         [S2SApi]
-        public Task<string?> Merge(string partyId, CancellationToken cancellationToken)
+        public Task<string?> StartMerge(string partyId)
         {
-            return _service.StartMergeParty(partyId, cancellationToken);
+            return _service.StartMergeParty(partyId,CancellationToken.None);
+        }
+
+        [S2SApi]
+        public void StopMerge(string partyId)
+        {
+
         }
     }
 
@@ -57,6 +63,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
         {
             var cancellationToken = request.CancellationToken;
 
+          
             if (_party.PartyMembers.TryGetValue(request.RemotePeer.SessionId, out var member) && member.UserId == _party.State.Settings.PartyLeaderId)
             {
                 try
@@ -78,38 +85,46 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
                     }, cancellationToken);
 
-
-                    var connectionToken = await _partyMerger.Merge(partyMergerId, _party.PartyId, cancellationToken);
-
-
-                    await _party.UpdateSettings(state =>
+                    if(!cancellationToken.IsCancellationRequested)
                     {
+                        using var subscription = cancellationToken.Register(() => {
+                            _ = _partyMerger.StopMerge(partyMergerId, _party.PartyId,CancellationToken.None);
+                        });
+                  
+                        var connectionToken = await _partyMerger.StartMerge(partyMergerId, _party.PartyId,cancellationToken);
 
 
-                        var partySettings = new PartySettingsDto(state);
-                        if (partySettings.PublicServerData == null)
+                        await _party.UpdateSettings(state =>
                         {
-                            partySettings.PublicServerData = new System.Collections.Generic.Dictionary<string, string>();
+
+
+                            var partySettings = new PartySettingsDto(state);
+                            if (partySettings.PublicServerData == null)
+                            {
+                                partySettings.PublicServerData = new System.Collections.Generic.Dictionary<string, string>();
+                            }
+                            partySettings.PublicServerData["stormancer.partyMerging.status"] = "Completed";
+                            partySettings.PublicServerData["stormancer.partyMerging.merged"] = "true";
+                            return partySettings;
+
+
+                        }, cancellationToken);
+
+
+
+
+                        async Task Send()
+                        {
+                            var sessionIds = _party.PartyMembers.Where(kvp => kvp.Value.ConnectionStatus == Party.Model.PartyMemberConnectionStatus.Connected).Select(kvp => kvp.Key);
+                            await _scene.Send(new MatchArrayFilter(sessionIds),
+                           "partyMerging.connectionToken",
+                           s => _serializer.Serialize(connectionToken, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
                         }
-                        partySettings.PublicServerData["stormancer.partyMerging.status"] = "Completed";
-                        partySettings.PublicServerData["stormancer.partyMerging.merged"] = "true";
-                        return partySettings;
 
-
-                    }, cancellationToken);
-
-
-
-
-                    async Task Send()
-                    {
-                        var sessionIds = _party.PartyMembers.Where(kvp => kvp.Value.ConnectionStatus == Party.Model.PartyMemberConnectionStatus.Connected).Select(kvp => kvp.Key);
-                        await _scene.Send(new MatchArrayFilter(sessionIds),
-                       "partyMerging.connectionToken",
-                       s => _serializer.Serialize(connectionToken, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+                        _ = Send();
                     }
 
-                    _ = Send();
+                  
 
 
 
