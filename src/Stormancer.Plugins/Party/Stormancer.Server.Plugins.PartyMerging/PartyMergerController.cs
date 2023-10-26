@@ -35,7 +35,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
         [S2SApi]
         public void StopMerge(string partyId)
         {
-
+            _service.StopMergeParty(partyId);
         }
     }
 
