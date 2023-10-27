@@ -5,7 +5,7 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>0.1.1.2</Version>
+		<Version>0.1.1.3</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -47,12 +47,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api.S2SProxyGenerator\Stormancer.Server.Plugins.Api.S2SProxyGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\..\GameFinder\Stormancer.Server.Plugins.GameFinder\Stormancer.Server.Plugins.GameFinder.csproj" />
-		<ProjectReference Include="..\..\GameSession\Stormancer.Server.Plugins.GameSession\Stormancer.Server.Plugins.GameSession.csproj" />
-		<ProjectReference Include="..\..\Management\Stormancer.Server.Plugins.Management\Stormancer.Server.Plugins.Management.csproj" />
 		<ProjectReference Include="..\..\Models\Stormancer.Server.Plugins.Models\Stormancer.Server.Plugins.Models.csproj" />
-		<ProjectReference Include="..\..\Profile\Stormancer.Server.Plugins.Profile\Stormancer.Server.Plugins.Profile.csproj" />
-		<ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />
 		<ProjectReference Include="..\..\Utilities\Stormancer.Server.Plugins.Utilities\Stormancer.Server.Plugins.Utilities.csproj" />
 		<ProjectReference Include="..\Stormancer.Server.Plugins.Party\Stormancer.Server.Plugins.Party.csproj" />
 		
