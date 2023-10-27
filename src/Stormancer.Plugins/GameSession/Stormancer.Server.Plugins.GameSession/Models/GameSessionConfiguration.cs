@@ -46,7 +46,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         [MessagePackMember(2)]
         [JsonProperty(ItemConverterType = typeof(SessionIdJsonConverter))]
-        public SessionId? HostSessionId { get; set; }
+        public SessionId HostSessionId { get; set; }
 
         /// <summary>
         /// Group connected to gameSession
