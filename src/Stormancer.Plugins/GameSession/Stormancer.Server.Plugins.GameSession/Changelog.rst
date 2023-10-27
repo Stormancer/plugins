@@ -31,6 +31,7 @@ Changed
 - Removed a retry when creating a game session.
 - Declared game servers as "service" clients to disable client related features, for instance version checking.
 - Compatibility with Player models 4.0.0
+- If Configuration.HostSessionId exists but is empty, the game session now takes the first connected peer as host.
 
 Fixed
 *****
