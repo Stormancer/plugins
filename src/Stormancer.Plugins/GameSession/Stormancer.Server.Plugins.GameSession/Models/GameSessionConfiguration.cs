@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using MsgPack.Serialization;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Models;
 using System.Collections.Concurrent;
@@ -44,6 +45,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// User id of the game host. In party the host user id value is the party leader.
         /// </summary>
         [MessagePackMember(2)]
+        [JsonProperty(ItemConverterType = typeof(SessionIdJsonConverter))]
         public SessionId? HostSessionId { get; set; }
 
         /// <summary>
