@@ -125,6 +125,12 @@ namespace Stormancer.Server.Plugins.GameSession
             var events = new List<GameSessionEvent>();
             while (!_disposed)
             {
+                await _timer.WaitForNextTickAsync();
+                if(_disposed)
+                {
+                    return;
+                }
+
                 try
                 {
                     events.Clear();
@@ -136,8 +142,11 @@ namespace Stormancer.Server.Plugins.GameSession
                     {
                         events.Add(evt);
                     }
-                    await foreach (var response in client.BulkAll(events, d => d.ContinueAfterDroppedDocuments(true)).ToAsyncEnumerable())
+                    if (events.Any())
                     {
+                        await foreach (var response in client.BulkAll(events, d => d.ContinueAfterDroppedDocuments(true)).ToAsyncEnumerable())
+                        {
+                        }
                     }
 
                 }
