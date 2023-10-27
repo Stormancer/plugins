@@ -45,8 +45,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// User id of the game host. In party the host user id value is the party leader.
         /// </summary>
         [MessagePackMember(2)]
-        [JsonProperty(ItemConverterType = typeof(SessionIdJsonConverter))]
-        public SessionId HostSessionId { get; set; }
+        public string? HostSessionId { get; set; }
 
         /// <summary>
         /// Group connected to gameSession
@@ -58,9 +57,6 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <summary>
         /// The teams that are part of this game session.
         /// </summary>
-        /// <remarks>
-        /// This needs to be concurrent because it can be modified during a call to <see cref="IGameSessionService.OpenToGameFinder"/>, while being read from by other code.
-        /// </remarks>
         [MessagePackMember(3)]
         public List<Team> Teams { get; set; } = new List<Team>();
 
