@@ -109,7 +109,7 @@ namespace Stormancer.Server.Plugins.Gameye
    
         public IAsyncEnumerable<string> QueryLogsAsync(string id, object? ctx, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            return _client.QueryLogsAsync(id, since, until, size, follow, cancellationToken);
         }
     }
 }

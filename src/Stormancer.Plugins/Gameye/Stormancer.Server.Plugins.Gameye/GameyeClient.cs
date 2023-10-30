@@ -249,6 +249,11 @@ namespace Stormancer.Server.Plugins.Gameye
 
             }
         }
+
+        internal IAsyncEnumerable<string> QueryLogsAsync(string id, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken)
+        {
+            return AsyncEnumerable.Empty<string>();
+        }
     }
 
     //internal class GameyeHttpClientHandler : DelegatingHandler

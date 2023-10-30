@@ -9,11 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-
 Unreleased
 ----------
 Added
 *******
 - Added a provider for the Stormancer gameserver system which enables running game servers on Gameye.
+- Added support for container logs retrieval.
 
 
