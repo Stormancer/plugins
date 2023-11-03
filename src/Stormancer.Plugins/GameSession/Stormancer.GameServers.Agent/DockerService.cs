@@ -125,7 +125,7 @@ namespace Stormancer.GameServers.Agent
                         {
                             crashReportConfiguration = JsonConvert.DeserializeObject<Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration>(Encoding.UTF8.GetString(Convert.FromBase64String(container.Labels["stormancer.crashReportConfig"])));
                         }
-                        catch(Exception ex) { }
+                        catch (Exception ex) { }
 
                         var serverContainer = new ServerContainer(0, container.Names.First(), container.Image, container.Created, reservedMemory, reservedCpu, crashReportConfiguration ?? new Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration());
                         foreach (var port in container.Ports)
@@ -255,8 +255,11 @@ namespace Stormancer.GameServers.Agent
 
                     HostConfig = new HostConfig()
                     {
-
-                        DNS = new[] { "8.8.8.8", "8.8.4.4" },//Use Google DNS. 
+                        NetworkMode = "host",
+                        DNS = new[] {
+                            "8.8.8.8",
+                            "8.8.4.4"
+                        },//Use Google DNS. 
                         PortBindings = new Dictionary<string, IList<PortBinding>>
                         {
                             [portReservation.Port + "/udp"] = new List<PortBinding>
@@ -272,9 +275,12 @@ namespace Stormancer.GameServers.Agent
                         Memory = memoryLimit,
                         CPUPeriod = 100000,
                         CPUQuota = (long)(100000 * cpuLimit),
-                        Ulimits = new List<Ulimit> { new Ulimit { Name = "core", Hard = -1, Soft = -1 } }
+                        Ulimits = new List<Ulimit> {
+                            new Ulimit { Name = "core", Hard = -1, Soft = -1 }
+                        }
 
                     },
+
 
                     Tty = true,
                     ExposedPorts = new Dictionary<string, EmptyStruct> { { portReservation.Port + "/udp", new EmptyStruct() } },
