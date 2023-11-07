@@ -17,6 +17,7 @@ namespace Stormancer.Server.Plugins.GameSession
     public class GameSessionsMonitoringService
     {
         private readonly GameSessionProxy _gameSessionProxy;
+        private readonly ServerPoolProxy _serverPoolProxy;
         private readonly IServerPools _pools;
         private readonly GameSessionEventsRepository _gameServerEvents;
 
@@ -24,11 +25,13 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Creates a new <see cref="GameSessionsMonitoringService"/> object.
         /// </summary>
         /// <param name="gameSessionProxy"></param>
+        /// <param name="serverPoolProxy"></param>
         /// <param name="pools"></param>
         /// <param name="gameServerEvents"></param>
-        public GameSessionsMonitoringService(GameSessionProxy gameSessionProxy, IServerPools pools, GameSessionEventsRepository gameServerEvents)
+        public GameSessionsMonitoringService(GameSessionProxy gameSessionProxy, ServerPoolProxy serverPoolProxy, IServerPools pools, GameSessionEventsRepository gameServerEvents)
         {
             _gameSessionProxy = gameSessionProxy;
+            _serverPoolProxy = serverPoolProxy;
             _pools = pools;
             _gameServerEvents = gameServerEvents;
         }
@@ -59,12 +62,8 @@ namespace Stormancer.Server.Plugins.GameSession
                 yield break;
             }
 
-            if(!_pools.TryGetPool(poolId,out var pool))
-            {
-                yield break;
-            }
 
-            await foreach (var log in pool.QueryLogsAsync(gameSessionId, since, until, size, follow, cancellationToken))
+            await foreach (var log in _serverPoolProxy.QueryServerLogsAsync(poolId, gameSessionId, since, until,size,follow,cancellationToken))
             {
                 yield return log;
             }

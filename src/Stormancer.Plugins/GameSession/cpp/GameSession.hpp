@@ -755,10 +755,16 @@ namespace Stormancer
 						std::weak_ptr<GameSessionContainer> wContainer = that->_currentGameSession;
 						logger->log(LogLevel::Debug, "GameSession", "Requesting P2P token", "");
 						return that->requestP2PToken(scene, cancellationToken)
-							.then([scene, openTunnel, cancellationToken](pplx::task<HostInfosMessage> task)
+							.then([scene, openTunnel,wThat, cancellationToken](pplx::task<HostInfosMessage> task)
 						{
 							auto service = scene->dependencyResolver().resolve<GameSessionService>();
 							auto logger = scene->dependencyResolver().resolve<ILogger>();
+							auto that = wThat.lock();
+
+							if (!that)
+							{
+								throw ObjectDeletedException("GameSession");
+							}
 							try
 							{
 								auto token = task.get();
@@ -766,7 +772,7 @@ namespace Stormancer
 
 								if (!token.isHost)
 								{
-									auto hostReadyTce = c->_hostIsReadyTce;
+									auto hostReadyTce = that->_currentGameSession->_hostIsReadyTce;
 									auto hostReadyTask = pplx::create_task(hostReadyTce, cancellationToken);
 									return hostReadyTask.then([service, token, openTunnel, cancellationToken]()
 									{

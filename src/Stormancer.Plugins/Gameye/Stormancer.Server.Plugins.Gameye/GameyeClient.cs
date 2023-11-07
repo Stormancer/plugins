@@ -255,23 +255,4 @@ namespace Stormancer.Server.Plugins.Gameye
             return AsyncEnumerable.Empty<string>();
         }
     }
-
-    //internal class GameyeHttpClientHandler : DelegatingHandler
-    //{
-    //    private readonly string? _parameters;
-
-    //    public GameyeHttpClientHandler(string? parameters)
-    //    {
-    //        _parameters = parameters;
-    //    }
-    //    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-    //    {
-    //        if (_parameters != null)
-    //        {
-    //            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _parameters);
-    //        }
-
-    //        return base.SendAsync(request, cancellationToken);
-    //    }
-    //}
 }

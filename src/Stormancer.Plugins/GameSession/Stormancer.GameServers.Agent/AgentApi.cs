@@ -21,8 +21,8 @@ namespace Stormancer.GameServers.Agent
 
         public async Task StartAgent(int id, ApplicationConfigurationOptions applicationConfiguration, CancellationToken stoppingToken)
         {
-            //_client.Configuration.Application = applicationConfiguration.StormancerApplication;
-            //_client.Configuration.Account = applicationConfiguration.StormancerAccount;
+            _client.Configuration.Application = applicationConfiguration.StormancerApplication;
+            _client.Configuration.Account = applicationConfiguration.StormancerAccount;
             _client.Configuration.ServerEndpoints.Clear();
             _client.Configuration.ServerEndpoints.Add(applicationConfiguration.StormancerEndpoint);
 

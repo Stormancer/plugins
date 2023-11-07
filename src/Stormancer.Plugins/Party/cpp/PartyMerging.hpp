@@ -53,13 +53,14 @@ namespace Stormancer
 				void initialize(std::shared_ptr<Stormancer::Scene> scene)
 				{
 					std::weak_ptr<PartyMergingService> wThat = this->shared_from_this();
+
 					scene->addRoute("partyMerging.connectionToken", [wThat](Packetisp_ptr packet) {
 						if (auto that = wThat.lock())
 						{
 							Serializer serializer;
 							auto connectionToken = serializer.deserializeOne<std::string>(packet->stream);
 
-							
+
 							that->raiseConnectionTokenReceived(connectionToken);
 						}
 					});
@@ -88,11 +89,11 @@ namespace Stormancer
 			{
 
 			}
-			pplx::task<void> start(std::string mergerId,pplx::cancellation_token cancellationToken = pplx::cancellation_token::none())
+			pplx::task<void> start(std::string mergerId, pplx::cancellation_token cancellationToken = pplx::cancellation_token::none())
 			{
 				try
 				{
-					return _partyApi.lock()->getPartyScene()->dependencyResolver().resolve<details::PartyMergingService>()->start(mergerId,cancellationToken);
+					return _partyApi.lock()->getPartyScene()->dependencyResolver().resolve<details::PartyMergingService>()->start(mergerId, cancellationToken);
 				}
 				catch (const std::exception& ex)
 				{
@@ -106,14 +107,18 @@ namespace Stormancer
 
 
 
+
 		private:
+
+			bool _isProcessingMergeResponse = false;
+
 			void initialize(std::shared_ptr<details::PartyMergingService> service)
 			{
 				auto wPartyApi = _partyApi;
 				std::weak_ptr<PartyMergingApi> wThis = this->shared_from_this();
 				onPartyConnectionTokenReceivedSubscription = service->onPartyConnectionTokenReceived.subscribe([wPartyApi, wThis](std::string connectionToken)
 				{
-				
+
 					auto that = wThis.lock();
 					if (that == nullptr)
 					{
@@ -123,14 +128,19 @@ namespace Stormancer
 					auto party = wPartyApi.lock();
 					if (party != nullptr)
 					{
-						if (connectionToken.empty())
+						if (connectionToken.empty()) 
 						{
-							that->onMergePartyComplete();
+							//We don't want to process if we didn't synchronized the party data yet, or if we are already processing a merge response.
+							if (party->isInParty() && !that->_isProcessingMergeResponse)
+							{
+								that->onMergePartyComplete();
+							}
+
 							return;
 						}
-
+						that->_isProcessingMergeResponse = true;
 						that->onPartyConnectionTokenReceived(connectionToken);
-						
+
 						Stormancer::taskIf(party->isInParty(), [party]() {
 							return party->leaveParty();
 						}).then([party, connectionToken]()
@@ -143,16 +153,21 @@ namespace Stormancer
 								t.get();
 								if (auto that = wThis.lock())
 								{
+									that->_isProcessingMergeResponse = false;
 									that->onMergePartyComplete();
+									
 								}
 							}
 							catch (std::exception& ex)
 							{
 								if (auto that = wThis.lock())
 								{
+									that->_isProcessingMergeResponse = false;
 									that->onMergePartyError(ex.what());
+									
 								}
 							}
+							
 
 						});
 
@@ -213,7 +228,7 @@ namespace Stormancer
 						service->initialize(scene);
 					}
 				}
-				
+
 			}
 			void sceneConnected(std::shared_ptr<Scene> scene) override
 			{
@@ -226,7 +241,7 @@ namespace Stormancer
 						auto service = scene->dependencyResolver().resolve<details::PartyMergingService>();
 						auto api = scene->dependencyResolver().resolve<PartyMergingApi>();
 						api->initialize(service);
-						
+
 					}
 				}
 			}

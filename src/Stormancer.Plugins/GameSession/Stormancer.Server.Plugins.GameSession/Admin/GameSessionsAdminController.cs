@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession.Admin
@@ -25,30 +26,53 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
         public uint Skip { get; set; } = 0;
         public uint Size { get; set; } = 20;
     }
-    public class GameSessionsAdminController
+
+    [ApiController]
+    [Route("_gamesessions")]
+    public class GameSessionsAdminController : ControllerBase
     {
         private readonly ISceneHost _scene;
 
-        public GameSessionsAdminController(ISceneHost scene) 
+        public GameSessionsAdminController(ISceneHost scene)
         {
             _scene = scene;
         }
 
-        public async Task<QueryGameSessionsResponse> QueryGamesessions([FromBody] GameSessionsQuery query)
+        /// <summary>
+        /// Gets informations about a game session.
+        /// </summary>
+        /// <param name="id">Id of the game session</param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        [HttpGet]
+        [Route("{id}")]
+        public async Task<ActionResult<GameSessionStatus>> GetGameSession(string id, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            await using var scope = _scene.CreateRequestScope();
+
+            var service = scope.Resolve<GameSessionsMonitoringService>();
+            return Ok(await service.InspectGameSessionAsync(id, cancellationToken));
         }
+
 
         /// <summary>
         /// Gets Game session server logs if they are available.
         /// </summary>
         /// <param name="gameSessionId"></param>
         /// <returns></returns>
-        public async Task<ActionResult<GetGameSessionLogsResult>> GetGameSessionServerLogs(string gameSessionId)
+        [HttpGet]
+        [Route("{id}/logs")]
+        public async Task<ActionResult<GetGameSessionLogsResult>> GetGameSessionServerLogs(string gameSessionId, CancellationToken cancellationToken)
         {
-            await using var request = _scene.CreateRequestScope();
+            await using var scope = _scene.CreateRequestScope();
 
-            throw new NotImplementedException();
+            var service = scope.Resolve<GameSessionsMonitoringService>();
+
+            var logs = await service.QueryGameServerLogsAsync(gameSessionId, null, null, 0, false, cancellationToken).ToListAsync();
+
+
+            return Ok(new GetGameSessionLogsResult { GameSessionId = gameSessionId, Logs = logs });
         }
     }
 

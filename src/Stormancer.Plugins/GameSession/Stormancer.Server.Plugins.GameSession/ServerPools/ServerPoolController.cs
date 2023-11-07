@@ -28,6 +28,8 @@ using Stormancer.Server.Plugins.GameSession.ServerProviders;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -153,6 +155,20 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             catch(Exception ex)
             {
                
+            }
+        }
+
+        [S2SApi]
+        public async IAsyncEnumerable<string> QueryServerLogsAsync(string poolId, string gameSessionId,DateTime? since,DateTime? until,uint size,bool follow,[EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            if (!pools.TryGetPool(poolId, out var pool))
+            {
+                yield break;
+            }
+
+            await foreach (var log in pool.QueryLogsAsync(gameSessionId, since, until, size, follow, cancellationToken))
+            {
+                yield return log;
             }
         }
     }
