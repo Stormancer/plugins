@@ -21,6 +21,10 @@ Changed
 *******
 - When receiving a client analytic event, use "milliseconds since epoch" as the date format.
 
+Fixed
+*****
+- Don't cache locally the result of GetFederation and GetAppInfos in case they return an error.
+
 2.0.6.1
 ----------
 Changed

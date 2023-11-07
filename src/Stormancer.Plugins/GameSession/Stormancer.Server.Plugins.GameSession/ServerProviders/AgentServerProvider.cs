@@ -698,7 +698,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
             var observable = agent.Peer.Rpc<GetContainerLogsParameters, IEnumerable<string>>("agent.getLogs", new GetContainerLogsParameters
             {
-                ContainerId = containerId,
+                ContainerId = id,
                 Follow = follow,
                 Since = since,
                 Until = until,

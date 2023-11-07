@@ -84,7 +84,7 @@ namespace Stormancer.Server.Plugins.GameSession
             {
               
             }
-            status.GameServerEvents = await _gameServerEvents.GetEventsAsync(gameSessionId, cancellationToken);
+            status.GameServerEvents = (await _gameServerEvents.GetEventsAsync(gameSessionId, cancellationToken)).OrderBy(evt=>evt.EventTime);
 
             return status;
 
@@ -134,7 +134,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     var client = await _esClientFactory.CreateClient<GameSessionEvent>("gameservers");
 
 
-                    while (_events.TryDequeue(out var evt))
+                    while (_events.TryDequeue(out var evt) && events.Count < 100)
                     {
                         events.Add(evt);
                     }

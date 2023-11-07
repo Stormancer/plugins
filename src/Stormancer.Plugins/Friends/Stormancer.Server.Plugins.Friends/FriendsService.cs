@@ -644,6 +644,10 @@ namespace Stormancer.Server.Plugins.Friends
         {
             var result = new Dictionary<string, IEnumerable<string>>();
 
+            foreach(var userId in userIds)
+            {
+                result.Add(userId, Enumerable.Empty<string>());
+            }
             var batch = userIds.Chunk(100).SelectMany(chunk =>
             {
                 var task = GetBlockedListsImpl(chunk, cancellationToken);
@@ -739,7 +743,10 @@ namespace Stormancer.Server.Plugins.Friends
             {
                 return blockedUserIds;
             }
-            throw new InvalidOperationException("Invalid UserId");
+            else
+            {
+                return Enumerable.Empty<string>();
+            }
         }
     }
 }

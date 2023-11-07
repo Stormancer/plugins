@@ -41,8 +41,6 @@ namespace Stormancer.Server.Plugins.Analytics
         private readonly ConcurrentDictionary<string, ConcurrentQueue<AnalyticsDocument>> _documents = new ConcurrentDictionary<string, ConcurrentQueue<AnalyticsDocument>>();
         private readonly IESClientFactory _cFactory;
         private readonly IEnvironment _environment;
-        private readonly Task<ApplicationInfos> _applicationInfosTask;
-        private readonly Task<FederationViewModel> _federation;
 
         
         private ILogger _logger;
@@ -59,8 +57,7 @@ namespace Stormancer.Server.Plugins.Analytics
             _environment = environment;
             _logger = logger;
             this.outputs = outputs;
-            _applicationInfosTask = _environment.GetApplicationInfos();
-            _federation = _environment.GetFederation();
+          
         }
         
        
@@ -86,8 +83,8 @@ namespace Stormancer.Server.Plugins.Analytics
                 List<AnalyticsDocument> documents = new List<AnalyticsDocument>();
                 while (queue.TryDequeue(out var doc))
                 {
-                    var appInfos = await _applicationInfosTask;
-                    var fed = await _federation;
+                    var appInfos = await _environment.GetApplicationInfos();
+                    var fed = await _environment.GetFederation();
                     doc.AccountId = appInfos.AccountId;
                     doc.App = appInfos.ApplicationName;
                     doc.Cluster = fed.current.id;
