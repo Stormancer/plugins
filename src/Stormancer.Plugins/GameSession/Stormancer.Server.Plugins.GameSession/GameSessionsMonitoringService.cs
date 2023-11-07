@@ -18,7 +18,6 @@ namespace Stormancer.Server.Plugins.GameSession
     {
         private readonly GameSessionProxy _gameSessionProxy;
         private readonly ServerPoolProxy _serverPoolProxy;
-        private readonly IServerPools _pools;
         private readonly GameSessionEventsRepository _gameServerEvents;
 
         /// <summary>
@@ -26,13 +25,11 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         /// <param name="gameSessionProxy"></param>
         /// <param name="serverPoolProxy"></param>
-        /// <param name="pools"></param>
         /// <param name="gameServerEvents"></param>
-        public GameSessionsMonitoringService(GameSessionProxy gameSessionProxy, ServerPoolProxy serverPoolProxy, IServerPools pools, GameSessionEventsRepository gameServerEvents)
+        public GameSessionsMonitoringService(GameSessionProxy gameSessionProxy, ServerPoolProxy serverPoolProxy, GameSessionEventsRepository gameServerEvents)
         {
             _gameSessionProxy = gameSessionProxy;
             _serverPoolProxy = serverPoolProxy;
-            _pools = pools;
             _gameServerEvents = gameServerEvents;
         }
 
