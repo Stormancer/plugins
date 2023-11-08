@@ -121,13 +121,12 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Queries logs of the server.
         /// </summary>
         /// <param name="id"></param>
-        /// <param name="ctx"></param>
         /// <param name="since"></param>
         /// <param name="until"></param>
         /// <param name="size"></param>
         /// <param name="follow"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        IAsyncEnumerable<string> QueryLogsAsync(string id, object? ctx, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken);
+        IAsyncEnumerable<string> QueryLogsAsync(string id, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken);
     }
 }

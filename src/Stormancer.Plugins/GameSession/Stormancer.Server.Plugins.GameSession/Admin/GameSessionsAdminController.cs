@@ -27,12 +27,19 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
         public uint Size { get; set; } = 20;
     }
 
+    /// <summary>
+    /// Monitor game sessions.
+    /// </summary>
     [ApiController]
     [Route("_gamesessions")]
     public class GameSessionsAdminController : ControllerBase
     {
         private readonly ISceneHost _scene;
 
+        /// <summary>
+        /// Creates a new instance of <see cref="GameSessionsAdminController"/>
+        /// </summary>
+        /// <param name="scene"></param>
         public GameSessionsAdminController(ISceneHost scene)
         {
             _scene = scene;
@@ -59,25 +66,26 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
         /// <summary>
         /// Gets Game session server logs if they are available.
         /// </summary>
-        /// <param name="gameSessionId"></param>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet]
         [Route("{id}/logs")]
-        public async Task<ActionResult<GetGameSessionLogsResult>> GetGameSessionServerLogs(string gameSessionId, CancellationToken cancellationToken)
+        public async Task<ActionResult<GetGameSessionLogsResult>> GetGameSessionServerLogs(string id, CancellationToken cancellationToken)
         {
             await using var scope = _scene.CreateRequestScope();
 
             var service = scope.Resolve<GameSessionsMonitoringService>();
 
-            var logs = await service.QueryGameServerLogsAsync(gameSessionId, null, null, 0, false, cancellationToken).ToListAsync();
+            var logs = await service.QueryGameServerLogsAsync(id, null, null, 0, false, cancellationToken).ToListAsync();
 
 
-            return Ok(new GetGameSessionLogsResult { GameSessionId = gameSessionId, Logs = logs });
+            return Ok(new GetGameSessionLogsResult { GameSessionId = id, Logs = logs });
         }
     }
 
     /// <summary>
-    /// Result of <see cref="GameSessionsAdminController.GetGameSessionServerLogs(string)"/>
+    /// Result of <see cref="GameSessionsAdminController.GetGameSessionServerLogs(string,CancellationToken)"/>
     /// </summary>
     public class GetGameSessionLogsResult
     {

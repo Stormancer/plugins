@@ -371,14 +371,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         /// <returns></returns>
         public IAsyncEnumerable<string> QueryLogsAsync(string gameSessionId, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken)
         {
-            if (_runningServers.TryGetValue(gameSessionId, out var server))
-            {
-                return provider.QueryLogsAsync(server.Id,server.Context, since, until, size, follow, cancellationToken);
-            }
-            else
-            {
-                return AsyncEnumerable.Empty<string>();
-            }
+           
+                return provider.QueryLogsAsync(gameSessionId, since, until, size, follow, cancellationToken);
+          
         }
     }
 }

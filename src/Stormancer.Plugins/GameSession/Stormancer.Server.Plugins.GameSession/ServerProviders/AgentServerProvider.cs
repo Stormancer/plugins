@@ -683,10 +683,19 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         }
 
-        public async IAsyncEnumerable<string> QueryLogsAsync(string id, object ctx, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken)
+        public async IAsyncEnumerable<string> QueryLogsAsync(string id, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken)
         {
+            var events = await _events.GetEventsAsync(id, cancellationToken);
+            var evt = events.FirstOrDefault(evt => evt.CustomData.ContainsKey("agent"));
+
+            var agentId = evt?.CustomData["agent"]?.ToObject<string>();
+            
+            if(agentId == null)
+            {
+                throw new ClientException("Agent id not found.");
+            }
+
             DockerAgent? agent;
-            (string agentId, string containerId) = (ValueTuple<string, string>)(ctx);
             lock (_syncRoot)
             {
               
