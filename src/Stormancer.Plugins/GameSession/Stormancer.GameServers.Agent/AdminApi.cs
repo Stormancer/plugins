@@ -13,9 +13,14 @@ namespace Stormancer.GameServers.Agent
     {
         public static void Map(IEndpointRouteBuilder endpoints)
         {
-            endpoints.MapPost("/applications/connect", async (ApplicationConfigurationOptions parameters, [FromServices] ClientsManager clientsManager) =>
+            endpoints.MapPost("/clients/connect", async (ApplicationConfigurationOptions parameters, [FromServices] ClientsManager clientsManager) =>
             {
                 await clientsManager.ConnectAsync(parameters, false);
+            }).RequireAuthorization();
+
+            endpoints.MapPost("/clients/stop", async (ApplicationConfigurationOptions parameters, [FromServices] ClientsManager clientsManager) =>
+            {
+                await clientsManager.StopAsync(parameters);
             }).RequireAuthorization();
         }
     }

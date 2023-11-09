@@ -47,8 +47,8 @@ IHost host = Host.CreateDefaultBuilder()
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints => {
-                
-                
+
+                AdminApi.Map(endpoints);
                 endpoints.MapGet("/", () =>
                 {
                     return Results.Ok();

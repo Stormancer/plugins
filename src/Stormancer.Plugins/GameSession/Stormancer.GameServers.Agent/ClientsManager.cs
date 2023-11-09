@@ -50,7 +50,7 @@ namespace Stormancer.GameServers.Agent
             {
                 _logger.Log(LogLevel.Information, "Connecting to application {app}", applicationConfiguration);
                 Stormancer.Client client;
-               
+
                 lock (_syncRoot)
                 {
                     i = _nextClientId++;
@@ -66,7 +66,7 @@ namespace Stormancer.GameServers.Agent
             }
             catch (Exception ex)
             {
-                lock(_syncRoot)
+                lock (_syncRoot)
                 {
                     if (i != -1)
                     {
@@ -76,6 +76,23 @@ namespace Stormancer.GameServers.Agent
                 _logger.Log(LogLevel.Error, "failed to connect to application {app}. Error: {ex}", applicationConfiguration, ex);
             }
         }
+
+        internal async Task StopAsync(ApplicationConfigurationOptions parameters)
+        {
+            AgentClient? found = default;
+            lock (_syncRoot)
+            {
+                found = _clients.Values.FirstOrDefault(c => c.Configuration == parameters);
+            }
+
+            if (found != default)
+            {
+                found.Client.Disconnect();
+                await Task.Delay(1000);
+                RemoveClient(found.Index);
+            }
+        }
+
 
         internal void RemoveClient(int clientId)
         {
@@ -116,10 +133,6 @@ namespace Stormancer.GameServers.Agent
             }
         }
 
-        private async Task RunAppAsync(ApplicationConfigurationOptions applicationConfiguration)
-        {
-
-        }
 
     }
 }
