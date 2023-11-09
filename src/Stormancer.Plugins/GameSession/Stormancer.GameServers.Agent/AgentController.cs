@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reactive.Subjects;
+using System.Runtime.CompilerServices;
 
 namespace Stormancer.GameServers.Agent
 {
@@ -108,7 +109,7 @@ namespace Stormancer.GameServers.Agent
             };
         }
 
-        internal async IAsyncEnumerable<GetContainerStatsResponse> GetContainerStats(int agentId, GetContainerStatsParameters args, CancellationToken cancellationToken)
+        internal async IAsyncEnumerable<GetContainerStatsResponse> GetContainerStats(int agentId, GetContainerStatsParameters args,[EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await foreach (var item in _docker.GetContainerStatsAsync(agentId, args.ContainerId, args.Stream, args.OneShot, cancellationToken))
             {

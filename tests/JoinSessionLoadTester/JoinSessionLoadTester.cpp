@@ -255,7 +255,7 @@ int main(int argc, char* argv[])
 		auto config = Stormancer::Configuration::create(endpoint, account, app);
 
 	//Log in VS output window.
-	config->logger = std::make_shared<Stormancer::NullLogger>();
+	config->logger = std::make_shared<Stormancer::VisualStudioLogger>();
 
 
 	//Add plugins required by the test.
@@ -294,5 +294,5 @@ int main(int argc, char* argv[])
 	auto end = std::chrono::system_clock::now();
 
 	auto elapsedmilliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-	printf("{'total':%d, 'success':%d, 'elapsedms':%d}", nbPairs * nbGames, result, elapsedmilliseconds.count());
+	printf("{'total':%d, 'success':%d, 'elapsedms':%d}", nbPairs * nbGames, result, (int)elapsedmilliseconds.count());
 }

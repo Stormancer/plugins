@@ -88,11 +88,13 @@ namespace Stormancer.Plugins.Tests.ServerApp
                        scene.AddReplication();
                        scene.AddSocket();
                    })
+                   
                    .EnablePeerDirectConnection(false)
                 );
 
                 host.ConfigureGamefinderTemplate("joinpartygame-test", c => c
                     .ConfigurePartyGameFinder(b => b
+                        .PartyLeaderIsHost(true)
                         .GameSessionTemplate("gamesession-partygame")
                     )
                 );
@@ -123,6 +125,7 @@ namespace Stormancer.Plugins.Tests.ServerApp
                 host.AddGamefinder("server-test-docker", "server-test-docker");
                 host.AddGamefinder("replication-test", "replication-test");
                 host.AddGamefinder("joingame-test", "joingame-test");
+                host.AddGamefinder("joinpartygame-test", "joinpartygame-test");
                 host.AddGamefinder("disable-direct-connection-test", "disable-direct-connection-test");
             };
         }

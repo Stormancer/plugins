@@ -13,7 +13,8 @@
 
 constexpr  char* ServerEndpoint = "http://localhost";//"http://gc3.stormancer.com";
 constexpr  char* Account = "tests";
-constexpr  char* Application = "test-app";
+constexpr  char* Application = "test-grid";
+constexpr char* GameFinder = "joinpartygame-test";// "disable-direct-connection-test";
 
 
 static void log(std::shared_ptr<Stormancer::IClient> client, Stormancer::LogLevel level, std::string msg)
@@ -44,77 +45,77 @@ static pplx::task<bool> JoinGameImpl(int id)
 
 	//Create a task that will complete the next time a game is found.
 	auto gameFoundTask = gameFinder->waitGameFound();
-
-
+	
 
 	Stormancer::Party::PartyCreationOptions request;
-	request.GameFinderName = "disable-direct-connection-test";
+	request.GameFinderName = GameFinder;
 	//Name of the matchmaking, defined in Stormancer.Server.TestApp/TestPlugin.cs.
 	//>  host.AddGamefinder("matchmaking", "matchmaking");
+	return users->login().then([party,request]() 
+	{
+		return party->createPartyIfNotJoined(request);
+	}).then([client]()
+	{
+		log(client, Stormancer::LogLevel::Debug, "connected to party");
+		auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
 
-	return party->createPartyIfNotJoined(request)
-		.then([client]()
+		//Triggers matchmking by setting the player as ready.
+		//Matchmaking starts when all players in the party are ready.
+		return party->updatePlayerStatus(Stormancer::Party::PartyUserStatus::Ready);
+	})
+			.then([gameFoundTask]()
+		{
+			//Wait game found.
+			return gameFoundTask;
+		})
+			.then([client](Stormancer::GameFinder::GameFoundEvent evt)
+		{
+			auto gameSessions = client->dependencyResolver().resolve<Stormancer::GameSessions::GameSession>();
+			return gameSessions->connectToGameSession(evt.data.connectionToken, "", false);
+
+		})
+			//Errors flow through continuations that take TResult instead of task<TResult> as argument.
+			//We want to handle errors in the last continuation, so this one takes task<TResult>. Inside we get the result of the task by calling task.get()
+			//inside a try clause. If an error occured  .get() will throw. We return false (error). If it doesn't throw, everything succeeded.
+			.then([id, client](Stormancer::GameSessions::GameSessionConnectionParameters params)
+		{
+
+
+			//P2P connection established.
+			//In the host, this continuation is executed immediatly.
+			//In clients this continuation is executed only if the host called gameSessions->setPlayerReady() (see below)
+			if (params.isHost)
 			{
-				log(client, Stormancer::LogLevel::Debug, "connected to party");
-				auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
-
-				//Triggers matchmking by setting the player as ready.
-				//Matchmaking starts when all players in the party are ready.
-				return party->updatePlayerStatus(Stormancer::Party::PartyUserStatus::Ready);
-			})
-		.then([gameFoundTask]()
+				log(client, Stormancer::LogLevel::Info, "host=true");
+				//Start the game host. To communicate with clients, either:
+				//- Use the scene API to send and listen to messages.
+				//- Start a datagram socket and bind to the port specified in config->severGamePort
+			}
+			else
 			{
-				//Wait game found.
-				return gameFoundTask;
-			})
-				.then([client](Stormancer::GameFinder::GameFoundEvent evt)
-					{
-						auto gameSessions = client->dependencyResolver().resolve<Stormancer::GameSessions::GameSession>();
-						return gameSessions->connectToGameSession(evt.data.connectionToken,"",false);
+				log(client, Stormancer::LogLevel::Info, "host=false");
+				//The host called "setPlayerReady". It should be ready to accept messages. To communicate with the server, either:
+				//- Use the scene API to send and listen to messages.
+				//- Start a socket on a random port (port 0) and send UDP datagrams to the endpoint specified in 'params.endpoint'.
+				// They will be automatically routed to the socket bound by the host as described above.
+			}
+			auto gameSessions = client->dependencyResolver().resolve<Stormancer::GameSessions::GameSession>();
+			return  gameSessions->setPlayerReady();
 
-					})
-				//Errors flow through continuations that take TResult instead of task<TResult> as argument.
-				//We want to handle errors in the last continuation, so this one takes task<TResult>. Inside we get the result of the task by calling task.get()
-				//inside a try clause. If an error occured  .get() will throw. We return false (error). If it doesn't throw, everything succeeded.
-						.then([id, client](Stormancer::GameSessions::GameSessionConnectionParameters params)
-							{
-
-
-								//P2P connection established.
-								//In the host, this continuation is executed immediatly.
-								//In clients this continuation is executed only if the host called gameSessions->setPlayerReady() (see below)
-								if (params.isHost)
-								{
-									log(client, Stormancer::LogLevel::Info, "host=true");
-									//Start the game host. To communicate with clients, either:
-									//- Use the scene API to send and listen to messages.
-									//- Start a datagram socket and bind to the port specified in config->severGamePort
-								}
-								else
-								{
-									log(client, Stormancer::LogLevel::Info, "host=false");
-									//The host called "setPlayerReady". It should be ready to accept messages. To communicate with the server, either:
-									//- Use the scene API to send and listen to messages.
-									//- Start a socket on a random port (port 0) and send UDP datagrams to the endpoint specified in 'params.endpoint'.
-									// They will be automatically routed to the socket bound by the host as described above.
-								}
-								auto gameSessions = client->dependencyResolver().resolve<Stormancer::GameSessions::GameSession>();
-								return  gameSessions->setPlayerReady();
-
-							}).then([client](pplx::task<void> t)
-								{
-									//catch errors
-									try
-									{
-										t.get();
-										return true;
-									}
-									catch (std::exception& ex)
-									{
-										log(client, Stormancer::LogLevel::Error,ex.what());
-										return false;
-									}
-								});
+		}).then([client](pplx::task<void> t)
+		{
+			//catch errors
+			try
+			{
+				t.get();
+				return true;
+			}
+			catch (std::exception& ex)
+			{
+				log(client, Stormancer::LogLevel::Error, ex.what());
+				return false;
+			}
+		});
 
 
 }
@@ -142,7 +143,7 @@ TEST(Gameplay, TestDisableGameSessionDirectConnection) {
 		//Use the dispatcher we created earlier to ensure all callbacks are run on the test main thread.
 		config->actionDispatcher = dispatcher;
 		return config;
-		});
+	});
 
 
 

@@ -23,6 +23,8 @@ The client configuration is set as a section of the server app configuration. It
 
 ### API
 
+The API is exposed by ```
+
     //Gets a boolean indicating whether the configuration is currently available.
     //The configuration is first sent just after authentication, so isAvailable returns false before that,
     //or if the plugin is not enabled on the server.

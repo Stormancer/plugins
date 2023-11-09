@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
 using Stormancer.Server.Plugins.Users;
 using System;
@@ -14,10 +15,14 @@ namespace Stormancer.Server.Plugins.PlayerReports
     internal class ReportsService
     {
         private readonly DbContextAccessor _dbContextAccessor;
+        private readonly IEnumerable<IBugReportingBackend> _backends;
+        private readonly ILogger _logger;
 
-        public ReportsService(DbContextAccessor dbContextAccessor)
+        public ReportsService(DbContextAccessor dbContextAccessor, IEnumerable<IBugReportingBackend> backends, ILogger logger)
         {
             _dbContextAccessor = dbContextAccessor;
+            _backends = backends;
+            _logger = logger;
         }
         internal async Task CreatePlayerReportAsync(string reporterUserId, string reportedUserId, string message, JObject customData, CancellationToken cancellationToken)
         {
@@ -43,9 +48,21 @@ namespace Stormancer.Server.Plugins.PlayerReports
             await ctx.SaveChangesAsync();
         }
 
-        internal async Task CreateBugReportAsync(string reporterUserId, string message, JObject customData,string contentType, ReadOnlyMemory<byte> data)
+        public async Task SaveBugReportAsync(string reporterId, string message, JObject customData, IEnumerable<BugReportAttachmentContent> attachments)
         {
-
+            foreach(var backend in _backends)
+            {
+                try
+                {
+                    await backend.ProcessBugReportAsync(reporterId, message, customData, attachments);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Log(LogLevel.Error, "bugReports", "An error occurred while reporting a bug.", ex);
+                }
+            }
         }
+
+        
     }
 }

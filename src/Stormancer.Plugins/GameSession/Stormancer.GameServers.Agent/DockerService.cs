@@ -172,8 +172,10 @@ namespace Stormancer.GameServers.Agent
 
                 }
 
-                while ()
+                while (containersToKill.TryDequeue(out var tuple))
                 {
+
+                    var (id, container) = tuple;
                     try
                     {
                         await StopContainer(container.AgentId, id, 10);
