@@ -1,5 +1,6 @@
 ﻿using Stormancer.Plugins;
 using Stormancer.Server.Plugins.GameSession.ServerProviders;
+using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -33,6 +34,13 @@ namespace Stormancer.GameServers.Agent
                 Containers = containers.Select(c => GetDesc(c))
             };
             return response;
+        }
+
+        internal Task<KeepAliveContainerResponse> KeepAlive(int agentId, KeepAliveContainerParameters args)
+        {
+            var result =  _docker.KeepAlive(agentId, args.ContainerId, DateTime.UtcNow + TimeSpan.FromSeconds(args.KeepAliveSeconds));
+
+            return Task.FromResult(new KeepAliveContainerResponse { Success = result });
         }
 
         internal async Task<ContainerStopResponse> StopContainer(int agentId, ContainerStopParameters args)
@@ -83,6 +91,7 @@ namespace Stormancer.GameServers.Agent
                 args.cpuLimit,
                 args.reservedMemory,
                 args.reservedCpu,
+                DateTime.UtcNow + TimeSpan.FromSeconds(args.KeepAliveSeconds),
                 args.CrashReportConfiguration?? new(),
                 cancellationToken);
 

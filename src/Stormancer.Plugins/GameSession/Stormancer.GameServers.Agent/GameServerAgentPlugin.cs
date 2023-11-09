@@ -60,6 +60,13 @@ namespace Stormancer.GameServers.Agent
 
                     });
 
+                    scene.AddProcedure("agent.keepContainerAlive", async ctx =>
+                    {
+                        var args = ctx.ReadObject<KeepAliveContainerParameters>();
+
+                        ctx.SendValue(await controller.KeepAlive(api.AgentGuid,args));
+                    });
+
                     scene.AddProcedure("agent.tryStartContainer", async ctx => {
                         var args = ctx.ReadObject<ContainerStartParameters>();
 

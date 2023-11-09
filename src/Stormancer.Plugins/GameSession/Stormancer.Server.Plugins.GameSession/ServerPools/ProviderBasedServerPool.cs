@@ -375,5 +375,17 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                 return provider.QueryLogsAsync(gameSessionId, since, until, size, follow, cancellationToken);
           
         }
+
+        public Task<bool> KeepServerAlive(string gameSessionId)
+        {
+            if (_runningServers.TryGetValue(gameSessionId, out var server))
+            {
+                return provider.KeepServerAliveAsync(gameSessionId,server.Context);
+            }
+            else
+            {
+                return Task.FromResult(false);
+            }
+        }
     }
 }

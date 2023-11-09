@@ -128,5 +128,13 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         IAsyncEnumerable<string> QueryLogsAsync(string id, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken);
+        
+        /// <summary>
+        /// Extend the life duration of the server.
+        /// </summary>
+        /// <param name="gameSessionId"></param>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        Task<bool> KeepServerAliveAsync(string gameSessionId, object? context);
     }
 }

@@ -70,5 +70,6 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             }
             return Task.FromResult(result);
         }
+
     }
 }

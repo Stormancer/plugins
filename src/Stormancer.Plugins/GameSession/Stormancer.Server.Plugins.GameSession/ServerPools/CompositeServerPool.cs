@@ -176,5 +176,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         {
             return AsyncEnumerable.Empty<string>();
         }
+
+        public Task<bool> KeepServerAlive(string gameSessionId)
+        {
+            return Task.FromResult(false);
+        }
     }
 }

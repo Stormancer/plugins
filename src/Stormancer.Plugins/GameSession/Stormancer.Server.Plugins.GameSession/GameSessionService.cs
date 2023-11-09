@@ -266,6 +266,8 @@ namespace Stormancer.Server.Plugins.GameSession
         private ShutdownMode _shutdownMode;
         private DateTime _shutdownDate;
 
+        private DateTime _lastServerKeepAlive;
+
         public GameSessionService(
             GameSessionState state,
             GameSessionAnalyticsWorker analyticsWorker,
@@ -276,7 +278,7 @@ namespace Stormancer.Server.Plugins.GameSession
             ILogger logger,
             RpcService rpc,
             GameSessionsRepository repository,
-            ISerializer serializer,GameSessionEventsRepository events
+            ISerializer serializer, GameSessionEventsRepository events
             )
         {
             _management = management;
@@ -321,6 +323,8 @@ namespace Stormancer.Server.Plugins.GameSession
                     try
                     {
                         await ReservationCleanupCallback(null);
+
+                        await UpdateServerKeepAliveAsync(cancellationToken);
                     }
                     catch (Exception ex)
                     {
@@ -331,6 +335,40 @@ namespace Stormancer.Server.Plugins.GameSession
             });
 
 
+        }
+
+        private Task UpdateServerKeepAliveAsync(CancellationToken cancellationToken)
+        {
+            if (_server != null && _lastServerKeepAlive < DateTime.UtcNow + TimeSpan.FromSeconds(GameSessionPlugin.SERVER_KEEPALIVE_INTERVAL_SECONDS))
+            {
+                _lastServerKeepAlive = DateTime.UtcNow;
+                return ServerKeepAliveAsync(cancellationToken);
+            }
+            else
+            {
+                return Task.CompletedTask;
+            }
+        }
+
+        private async Task ServerKeepAliveAsync(CancellationToken cancellationToken)
+        {
+            await using (var scope = _scene.CreateRequestScope())
+            {
+                var pools = scope.Resolve<ServerPoolProxy>();
+                
+                try
+                {
+                    if (_server != null)
+                    {
+                        await pools.KeepAlive(_server.GameServerId.PoolId, _server.GameServerId.Id, cancellationToken);
+                    }
+
+                }
+                catch (Exception)
+                {
+
+                }
+            }
         }
 
         private void ApplySettings()
@@ -688,7 +726,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             // If the host is not defined a P2P was sent with "" to notify client is host.
             _logger.Log(LogLevel.Trace, "gamesession", $"Gamesession {_scene.Id} evaluating {userId} as host (expected host :{_config.HostSessionId})", new { });
-            if (HostSessionId.IsEmpty() && !serverFound && ((string.IsNullOrEmpty(_config.HostSessionId))|| _config.HostSessionId == peer.SessionId.ToString()))
+            if (HostSessionId.IsEmpty() && !serverFound && ((string.IsNullOrEmpty(_config.HostSessionId)) || _config.HostSessionId == peer.SessionId.ToString()))
             {
                 HostSessionId = peer.SessionId;
                 if (GetServerTcs().TrySetResult(peer))
@@ -1035,10 +1073,10 @@ namespace Stormancer.Server.Plugins.GameSession
                 throw new ClientException($"Unable to post result before game session start. Server status is {this._status}");
             }
             var session = await GetSessionAsync(remotePeer);
-            if (session != null && session.User !=null)
+            if (session != null && session.User != null)
             {
 
-               
+
 
 
 
@@ -1425,7 +1463,7 @@ namespace Stormancer.Server.Plugins.GameSession
                                     _ = pools.CloseServer(_server.GameServerId, CancellationToken.None);
                                     _server = null;
 
-                                    
+
                                 }
 
                             }

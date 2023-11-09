@@ -119,7 +119,7 @@ namespace Stormancer.GameServers.Agent
 
                         var reservedMemory = container.Labels.TryGetValue("stormancer.reservedMemory", out var str) ? int.TryParse(str, out var mem) ? mem : 0 : 0;
                         var reservedCpu = container.Labels.TryGetValue("stormancer.reservedCpu", out str) ? float.TryParse(str, out var cpu) ? cpu : 0 : 0;
-
+                        var expiresOn = container.Labels.TryGetValue("stormancer.expiresOn", out str) ? DateTime.TryParse(str, out var date) ? date : DateTime.UtcNow : DateTime.UtcNow;
                         Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration? crashReportConfiguration = null;
                         try
                         {
@@ -127,7 +127,7 @@ namespace Stormancer.GameServers.Agent
                         }
                         catch (Exception ex) { }
 
-                        var serverContainer = new ServerContainer(0, container.Names.First(), container.Image, container.Created, reservedMemory, reservedCpu, crashReportConfiguration ?? new Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration());
+                        var serverContainer = new ServerContainer(0, container.Names.First(), container.Image, container.Created, reservedMemory, reservedCpu, crashReportConfiguration ?? new Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration(), expiresOn);
                         foreach (var port in container.Ports)
                         {
                             _portsManager.AcquirePort(port.PublicPort);
@@ -145,6 +145,47 @@ namespace Stormancer.GameServers.Agent
 
             }
 
+            _ = RunAsync(cancellationToken);
+
+        }
+
+
+        private async Task RunAsync(CancellationToken cancellationToken)
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+            var containersToKill = new Queue<(string id, ServerContainer container)>();
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                await timer.WaitForNextTickAsync(cancellationToken);
+
+
+                lock (_lock)
+                {
+                    foreach (var (id, container) in _trackedContainers)
+                    {
+                        if (container.ExpiresOn < DateTime.UtcNow)
+                        {
+                            containersToKill.Enqueue((id, container));
+                        }
+                    }
+
+
+                }
+
+                while ()
+                {
+                    try
+                    {
+                        await StopContainer(container.AgentId, id, 10);
+                    }
+
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "An error occurred while trying to kill the expired container '{containerId}'", id);
+                    }
+                }
+
+            }
         }
 
         private Dictionary<string, ServerContainer> _trackedContainers = new Dictionary<string, ServerContainer>();
@@ -188,6 +229,7 @@ namespace Stormancer.GameServers.Agent
             float cpuLimit,
             long reservedMemory,
             float reservedCpu,
+            DateTime expiresOn,
             Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration crashReportConfiguration,
             CancellationToken cancellationToken)
         {
@@ -203,7 +245,7 @@ namespace Stormancer.GameServers.Agent
                 {
                     return new StartContainerResult { Success = false, Error = "unableToSatisfyResourceReservation" };
                 }
-                serverContainer = new ServerContainer(agentId, name, image, DateTime.UtcNow, reservedMemory, reservedCpu, crashReportConfiguration);
+                serverContainer = new ServerContainer(agentId, name, image, DateTime.UtcNow, reservedMemory, reservedCpu, crashReportConfiguration, expiresOn);
                 _trackedContainers.Add(name, serverContainer);
             }
 
@@ -245,7 +287,7 @@ namespace Stormancer.GameServers.Agent
                 labels["stormancer.reservedMemory"] = reservedMemory.ToString();
                 labels["stormancer.reservedCpu"] = reservedCpu.ToString();
                 labels["stormancer.crashReportConfig"] = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(crashReportConfiguration)));
-
+                labels["stormancer.expiresOn"] = expiresOn.ToString();
 
                 CreateContainerParameters parameters = new CreateContainerParameters()
                 {
@@ -327,10 +369,16 @@ namespace Stormancer.GameServers.Agent
                 {
                     return false;
                 }
+
             }
             _logger.Log(LogLevel.Information, "Stopping docker container {containerId}.", id);
-            return await _docker.Containers.StopContainerAsync(id, new Docker.DotNet.Models.ContainerStopParameters { WaitBeforeKillSeconds = waitBeforeKillSeconds });
+            var result = await _docker.Containers.StopContainerAsync(id, new Docker.DotNet.Models.ContainerStopParameters { WaitBeforeKillSeconds = waitBeforeKillSeconds });
 
+            lock (_lock)
+            {
+                _trackedContainers.Remove(id);
+            }
+            return result;
         }
 
         public async IAsyncEnumerable<ServerContainer> ListContainers(int agentId)
@@ -652,6 +700,19 @@ namespace Stormancer.GameServers.Agent
                 };
             }
         }
+
+        internal bool KeepAlive(int agentId, string containerId, DateTime newExpirationTime)
+        {
+            if (_trackedContainers.TryGetValue(containerId, out var container))
+            {
+                container.ExpiresOn = newExpirationTime;
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
     }
 
     public class AgentStatus
@@ -677,7 +738,7 @@ namespace Stormancer.GameServers.Agent
 
     public class ServerContainer : IDisposable
     {
-        internal ServerContainer(int agentId, string name, string image, DateTime created, long memory, float cpuCount, Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration crashReportConfiguration)
+        internal ServerContainer(int agentId, string name, string image, DateTime created, long memory, float cpuCount, Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration crashReportConfiguration, DateTime expiresOn)
         {
             AgentId = agentId;
             Name = name;
@@ -686,6 +747,7 @@ namespace Stormancer.GameServers.Agent
             Memory = memory;
             CpuQuota = cpuCount;
             CrashReportConfiguration = crashReportConfiguration;
+            ExpiresOn = expiresOn;
         }
 
         public int AgentId { get; }
@@ -697,6 +759,11 @@ namespace Stormancer.GameServers.Agent
         public float CpuQuota { get; }
         public Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration CrashReportConfiguration { get; }
 
+        /// <summary>
+        /// Gets or sets the time the container expires on.
+        /// </summary>
+        public DateTime ExpiresOn { get; set; }
+
         public void AddResource(IDisposable resource)
         {
             _resources.Add(resource);
@@ -704,7 +771,7 @@ namespace Stormancer.GameServers.Agent
 
         private List<IDisposable> _resources = new List<IDisposable>();
 
-
+        /// <inheritdoc/>
         public void Dispose()
         {
             foreach (var resource in _resources)

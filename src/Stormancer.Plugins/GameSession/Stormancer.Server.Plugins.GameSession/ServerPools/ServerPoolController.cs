@@ -171,5 +171,22 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                 yield return log;
             }
         }
+
+        /// <summary>
+        /// Keeps a server alive for a longer duration.
+        /// </summary>
+        /// <param name="poolId"></param>
+        /// <param name="gameSessionId"></param>
+        /// <returns>Returns true </returns>
+        [S2SApi]
+        public Task<bool> KeepAlive(string poolId, string gameSessionId)
+        {
+            if (!pools.TryGetPool(poolId, out var pool))
+            {
+                return Task.FromResult(false);
+            }
+
+            return pool.KeepServerAlive(gameSessionId);
+        }
     }
 }

@@ -142,5 +142,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         Task OnGameServerDisconnected(string serverId);
         Task CloseServer(string serverId);
         IAsyncEnumerable<string> QueryLogsAsync(string gameSessionId, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken);
+        
+        /// <summary>
+        /// Extends the lifetime of a game server, if supported.
+        /// </summary>
+        /// <param name="gameSessionId"></param>
+        /// <returns></returns>
+        Task<bool> KeepServerAlive(string gameSessionId);
     }
 }

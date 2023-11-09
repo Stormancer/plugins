@@ -47,6 +47,9 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public const string POOL_SCENEID = "gamesession-serverpool";
 
+        public const int SERVER_KEEPALIVE_SECONDS = 60 * 60;
+        public const int SERVER_KEEPALIVE_INTERVAL_SECONDS = 25 * 60;
+
         public void Build(HostPluginBuildContext ctx)
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>

@@ -12,7 +12,9 @@ using Stormancer.Server.Plugins.Users;
 using Stormancer.Server.Secrets;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -23,28 +25,64 @@ using static System.Net.Mime.MediaTypeNames;
 namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 {
     /// <summary>
-    /// Configuration section for gameserver agents.
+    /// Configuration section for game server agents.
     /// </summary>
-    public class GameServerAgentConfigurationSection
+    public class GameServerAgentsConfigurationSection
     {
         /// <summary>
         /// List of paths in the cluster secret stores containing valid public keys for authenticating game server agents.
         /// </summary>
         public IEnumerable<string> AuthCertPaths { get; set; } = Enumerable.Empty<string>();
+
+        /// <summary>
+        /// List of urls to agents that should be connected to this app to host game servers.
+        /// </summary>
+        public IEnumerable<string> AgentUrls { get; set; } = Enumerable.Empty<string>();
+
+        /// <summary>
+        /// Gets or sets the clientId to use for tokens.
+        /// </summary>
+        public string? ClientId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the path  to the client secret in the secret store.
+        /// </summary>
+        public string? ClientSecretPath { get; set; }
+
+        /// <summary>
+        /// Gets or sets the issuer used to get access tokens for agent management.
+        /// </summary>
+        public string? Issuer { get; set; }
     }
+    
 
     /// <summary>
-    /// Configuration class for the Agent based gameserver hosting pools
+    /// Configuration class for the Agent based game server hosting pools
     /// </summary>
     public class AgentPoolConfigurationSection : PoolConfiguration
     {
-        public string Image { get; set; }
+        /// <summary>
+        /// Gets or sets the docker image to use when starting a server in this pool.
+        /// </summary>
+        public string? Image { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
         public Dictionary<string, string>? EnvironmentVariables { get; set; }
 
-        public uint TimeoutSeconds { get; set; }
+        /// <summary>
+        /// Get or sets the maximum time a game server is authorized to run.
+        /// </summary>
+        /// <remarks>
+        /// Set to 0 for unlimited duration.
+        /// </remarks>
+        public uint MaxDuration { get; set; }
 
+        ///<inheritdoc/>
         public override string type => "fromProvider";
 
+        ///<inheritdoc/>
         public string provider { get; set; } = GameServerAgentConstants.TYPE;
 
         /// <summary>
@@ -89,22 +127,25 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
     }
 
 
-
-    internal class GameServerAgentConfiguration : IConfigurationChangedEventHandler
+    /// <summary>
+    /// Configuration manager for docker agent integration.
+    /// </summary>
+    public class GameServerAgentConfiguration : IConfigurationChangedEventHandler
     {
         private readonly IConfiguration _configuration;
         private readonly ISecretsStore _secretsStore;
-        private GameServerAgentConfigurationSection _section;
+        private GameServerAgentsConfigurationSection _section;
 
         /// <summary>
-        /// Constructor
+        /// Creates a new <see cref="GameServerAgentConfiguration"/>
         /// </summary>
         /// <param name="configuration"></param>
+        /// <param name="secretsStore"></param>
         public GameServerAgentConfiguration(IConfiguration configuration, ISecretsStore secretsStore)
         {
             _configuration = configuration;
             _secretsStore = secretsStore;
-            _section = _configuration.GetValue<GameServerAgentConfigurationSection>("gameservers.agents") ?? new GameServerAgentConfigurationSection();
+            _section = _configuration.GetValue<GameServerAgentsConfigurationSection>("gameservers.agents") ?? new GameServerAgentsConfigurationSection();
             _certificates = LoadSigningCertificates();
         }
 
@@ -125,20 +166,38 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             return certs;
         }
 
-        public void OnConfigurationChanged()
+
+        void IConfigurationChangedEventHandler.OnConfigurationChanged()
         {
-            _section = _configuration.GetValue<GameServerAgentConfigurationSection>("gameservers.agents");
+            _section = _configuration.GetValue<GameServerAgentsConfigurationSection>("gameservers.agents");
             _certificates = LoadSigningCertificates();
         }
 
-        public GameServerAgentConfigurationSection ConfigurationSection => _section;
+        /// <summary>
+        /// Gets the configuration object.
+        /// </summary>
+        public GameServerAgentsConfigurationSection ConfigurationSection => _section;
 
         private Task<IEnumerable<X509Certificate2>> _certificates;
 
+        /// <summary>
+        /// Gets the certificate of the agent.
+        /// </summary>
+        /// <param name="thumbprint"></param>
+        /// <returns></returns>
         public async Task<X509Certificate2?> GetSigningCertificate(string thumbprint)
         {
             var certs = await _certificates;
             return certs.FirstOrDefault(cert => cert.Thumbprint == thumbprint);
+        }
+
+        public async Task<string?> GetClientSecret()
+        {
+            if(_section.ClientSecretPath != null)
+            {
+                var secret = await _secretsStore.GetSecret(_section.ClientSecretPath);
+            }
+            _section.ClientSecretPath
         }
     }
     internal class GameServerAgentAuthenticationProvider : IAuthenticationProvider
@@ -224,6 +283,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// </summary>
         public const string AGENT_AUTH_TYPE = "stormancer.gameserver.agent";
 
+        /// <summary>
+        /// Type of the game server pool provider.
+        /// </summary>
+
         public const string TYPE = "docker-agent";
     }
 
@@ -289,7 +352,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// <summary>
         /// Error state of the agent.
         /// </summary>
-        public bool Faulted => Faults.Count !=0;
+        public bool Faulted => Faults.Count != 0;
 
         public DateTime? FaultExpiration { get; set; }
 
@@ -325,7 +388,11 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// </summary>
         public bool IsActive { get; set; } = true;
     }
-    public class AgentBasedGameServerProvider : IGameServerProvider
+
+    /// <summary>
+    /// Provides integration with docker server hosting agents.
+    /// </summary>
+    public class AgentBasedGameServerProvider : IGameServerProvider, IDisposable
     {
         private object _syncRoot = new object();
         private Dictionary<string, DockerAgent> _agents = new();
@@ -333,17 +400,61 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         private readonly IDataProtector _dataProtector;
         private readonly ILogger _logger;
         private readonly GameSessionEventsRepository _events;
+        private readonly GameServerAgentConfiguration _configuration;
         private readonly Task<ApplicationInfos> _applicationInfos;
-        public AgentBasedGameServerProvider(IEnvironment environment, IDataProtector dataProtector, ILogger logger, GameSessionEventsRepository events)
+
+        /// <summary>
+        /// Creates an <see cref="AgentBasedGameServerProvider"/>
+        /// </summary>
+        /// <param name="environment"></param>
+        /// <param name="dataProtector"></param>
+        /// <param name="logger"></param>
+        /// <param name="events"></param>
+        /// <param name="configuration"></param>
+        public AgentBasedGameServerProvider(
+            IEnvironment environment, 
+            IDataProtector dataProtector, 
+            ILogger logger, 
+            GameSessionEventsRepository events,
+            GameServerAgentConfiguration configuration)
         {
             _environment = environment;
             _dataProtector = dataProtector;
             _logger = logger;
             _events = events;
+            _configuration = configuration;
             _applicationInfos = _environment.GetApplicationInfos();
             _environment.ActiveDeploymentChanged += OnActiveDeploymentChanged;
+            _disposedCts = new CancellationTokenSource();
+            _disposedCancellationToken = _disposedCts.Token;
+            _ = RunAsync();
         }
+        private CancellationTokenSource _disposedCts;
+        private CancellationToken _disposedCancellationToken;
+        
+        public void Dispose()
+        {
+            _disposedCts.Cancel();
+        }
+        private async Task RunAsync()
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(4));
+            while(!_disposedCancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    await timer.WaitForNextTickAsync(_disposedCancellationToken);
 
+                    _configuration.
+                    
+               
+                }
+                catch(Exception)
+                {
+
+                }
+            }
+        }
         private void OnActiveDeploymentChanged(object? sender, ActiveDeploymentChangedEventArgs e)
         {
             ShuttingDown = true;
@@ -506,12 +617,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 AppDeploymentId = appInfos.DeploymentId,
                 cpuLimit = cpuLimit,
                 memoryLimit = memoryLimit,
-                CrashReportConfiguration = crashReportConfiguration
+                CrashReportConfiguration = crashReportConfiguration,
+                KeepAliveSeconds = GameSessionPlugin.SERVER_KEEPALIVE_SECONDS,
 
             }, cancellationToken);
         }
 
-        public Task<ContainerStopResponse> StopContainer(string agentId, string containerId)
+
+        private Task<ContainerStopResponse> StopContainer(string agentId, string containerId)
         {
             DockerAgent? agent;
             lock (_syncRoot)
@@ -522,7 +635,30 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 }
             }
 
-            return agent.Peer.RpcTask<ContainerStopParameters, ContainerStopResponse>("agent.stopContainer", new ContainerStopParameters { ContainerId = containerId });
+            return agent.Peer.RpcTask<ContainerStopParameters, ContainerStopResponse>("agent.stopContainer", new ContainerStopParameters
+            {
+                ContainerId = containerId
+            });
+        }
+
+        private async Task<bool> KeepContainerAliveAsync(string agentId, string gameSessionId)
+        {
+            DockerAgent? agent;
+            lock (_syncRoot)
+            {
+                if (!_agents.TryGetValue(agentId, out agent))
+                {
+                    throw new InvalidOperationException("Agent not found");
+                }
+            }
+
+            var result = await agent.Peer.RpcTask<KeepAliveContainerParameters, KeepAliveContainerResponse>("agent.keepContainerAlive", new KeepAliveContainerParameters
+            {
+                ContainerId = gameSessionId,
+                KeepAliveSeconds = GameSessionPlugin.SERVER_KEEPALIVE_SECONDS
+            });
+
+            return result.Success;
         }
 
 
@@ -533,7 +669,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public async Task<StartGameServerResult> TryStartServer(string id, string authenticationToken, JObject config, IEnumerable<string> regions, CancellationToken ct)
         {
 
-            var agentConfig = config.ToObject<AgentPoolConfigurationSection>();
+            var agentConfig = config.ToObject<AgentPoolConfigurationSection>() ?? new AgentPoolConfigurationSection();
             var applicationInfo = await _environment.GetApplicationInfos();
             var fed = await _environment.GetFederation();
             var node = await _environment.GetNodeInfos();
@@ -569,7 +705,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             while (tries < 4)
             {
                 tries++;
-                var agent = FindAgent(agentConfig.reservedCpu, agentConfig.reservedMemory,regions);
+                var agent = FindAgent(agentConfig.reservedCpu, agentConfig.reservedMemory, regions);
 
                 if (agent != null)
                 {
@@ -582,10 +718,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                         agent.Faults.Clear();
                         agent.FaultExpiration = null;
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
-                      
-                        if(agent.Faults.Count > 0)
+
+                        if (agent.Faults.Count > 0)
                         {
                             await agent.Peer.DisconnectFromServer("faulted");
                         }
@@ -669,28 +805,30 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 }
             }
 
-            
+
             return null;
         }
-
-        public async Task StopServer(string id, object ctx)
+        /// <inheritdoc/>
+        public async Task StopServer(string id, object? ctx)
         {
+            Debug.Assert(ctx != null);
             (string agentId, string containerId) = (ValueTuple<string, string>)(ctx);
 
-            var response = await StopContainer(agentId, containerId);
+            var response = await StopContainer(containerId, agentId);
 
 
 
         }
 
-        public async IAsyncEnumerable<string> QueryLogsAsync(string id, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken)
+        /// <inheritdoc/>
+        public async IAsyncEnumerable<string> QueryLogsAsync(string id, DateTime? since, DateTime? until, uint size, bool follow, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             var events = await _events.GetEventsAsync(id, cancellationToken);
             var evt = events.FirstOrDefault(evt => evt.CustomData.ContainsKey("agent"));
 
             var agentId = evt?.CustomData["agent"]?.ToObject<string>();
-            
-            if(agentId == null)
+
+            if (agentId == null)
             {
                 throw new ClientException("Agent id not found.");
             }
@@ -698,7 +836,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             DockerAgent? agent;
             lock (_syncRoot)
             {
-              
+
                 if (!_agents.TryGetValue(agentId, out agent))
                 {
                     throw new InvalidOperationException("Agent not found");
@@ -716,13 +854,22 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             }, cancellationToken);
 
 
-            await foreach(var block in observable.ToAsyncEnumerable())
+            await foreach (var block in observable.ToAsyncEnumerable())
             {
-                foreach(var log in block)
+                foreach (var log in block)
                 {
                     yield return log;
                 }
             }
+        }
+
+        /// <inheritdoc/>
+        public Task<bool> KeepServerAliveAsync(string gameSessionId, object? ctx)
+        {
+            Debug.Assert(ctx != null);
+            (string agentId, string containerId) = (ValueTuple<string, string>)(ctx);
+
+            return KeepContainerAliveAsync(agentId, gameSessionId);
         }
     }
 

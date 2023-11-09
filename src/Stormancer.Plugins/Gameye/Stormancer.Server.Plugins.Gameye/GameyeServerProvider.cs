@@ -111,5 +111,10 @@ namespace Stormancer.Server.Plugins.Gameye
         {
             return _client.QueryLogsAsync(id, since, until, size, follow, cancellationToken);
         }
+
+        public Task<bool> KeepServerAliveAsync(string gameSessionId, object? context)
+        {
+            return Task.FromResult(false);
+        }
     }
 }
