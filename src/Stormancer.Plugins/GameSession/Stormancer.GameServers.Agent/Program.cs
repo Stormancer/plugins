@@ -2,6 +2,7 @@ using Docker.DotNet.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Stormancer.GameServers.Agent;
 
 DockerAgentConfigurationOptions? options = null;
@@ -30,6 +31,9 @@ IHost host = Host.CreateDefaultBuilder()
         services.AddSingleton<DockerService>();
         services.AddSingleton<PortsManager>();
         services.AddSingleton<AgentController>();
+        services.AddSingleton<ClientsManager>();
+        services.AddAuthentication().AddJwtBearer();
+        services.AddAuthorization();
         
     })
     .ConfigureWebHostDefaults(webBuilder=>
@@ -38,9 +42,13 @@ IHost host = Host.CreateDefaultBuilder()
         webBuilder.Configure(app =>
         {
             app.UseRouting();
+            
+            app.UseAuthentication();
+            app.UseAuthorization();
+
             app.UseEndpoints(endpoints => {
-
-
+                
+                
                 endpoints.MapGet("/", () =>
                 {
                     return Results.Ok();

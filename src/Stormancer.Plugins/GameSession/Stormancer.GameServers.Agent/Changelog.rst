@@ -16,6 +16,7 @@ Added
 *****
 - Create server crash reports and store them locally.
 - Added APIs and systems to support best region detection.
+- Added web API to 
 
 0.3.0.8
 -------

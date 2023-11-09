@@ -1,8 +1,10 @@
-﻿using Stormancer.Plugins;
+﻿using Stormancer.Networking;
+using Stormancer.Plugins;
 using Stormancer.Server.Plugins.GameSession.ServerProviders;
 using System;
 using System.CodeDom;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,14 +16,14 @@ namespace Stormancer.GameServers.Agent
         private readonly DockerAgentConfigurationOptions _options;
         private readonly AgentController _controller;
         private readonly DockerService _docker;
-        private readonly Worker _worker;
+        private readonly ClientsManager _clientsManager;
 
-        public GameServerAgentPlugin(DockerAgentConfigurationOptions options,AgentController controller, DockerService docker, Worker worker)
+        public GameServerAgentPlugin(DockerAgentConfigurationOptions options,AgentController controller, DockerService docker, ClientsManager clientsManager)
         {
             _options = options;
             _controller = controller;
             this._docker = docker;
-            _worker = worker;
+            _clientsManager = clientsManager;
         }
         public void Build(PluginBuildContext ctx)
         {
@@ -38,8 +40,9 @@ namespace Stormancer.GameServers.Agent
             };
             ctx.ClientDisconnecting += (client) =>
             {
-                AgentApi api = client.DependencyResolver.ResolveOptional<AgentApi>();
-                _worker.DestroyAgent(api.AgentGuid);
+                AgentApi? api = client.DependencyResolver.Resolve<AgentApi>();
+              
+                _clientsManager.RemoveClient(api.AgentGuid);
             };
 
             ctx.SceneCreated += (Scene scene) =>
@@ -47,7 +50,7 @@ namespace Stormancer.GameServers.Agent
                 if (scene.Id == "gamesession-serverpool")
                 {
                     var controller = scene.DependencyResolver.Resolve<AgentController>();
-                    var api = scene.DependencyResolver.ResolveOptional<AgentApi>();
+                    var api = scene.DependencyResolver.Resolve<AgentApi>();
                     api.ServerPoolsScene = scene;
                     controller.UserApi = scene.DependencyResolver.Resolve<UserApi>();
                     scene.AddProcedure("agent.getRunningContainers",async ctx => {
@@ -102,7 +105,7 @@ namespace Stormancer.GameServers.Agent
 
                     scene.AddRoute("agent.UpdateActiveApp", p => {
                         var activeDeploymentId = p.ReadObject<string>();
-                        _worker.AppDeploymentUpdated(api.AgentGuid, activeDeploymentId);
+                        _clientsManager.AppDeploymentUpdated(api.AgentGuid, activeDeploymentId);
                     });
                 }
             };

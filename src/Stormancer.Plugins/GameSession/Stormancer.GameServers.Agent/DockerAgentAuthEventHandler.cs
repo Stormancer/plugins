@@ -17,8 +17,8 @@ namespace Stormancer.GameServers.Agent
 
         public Task RetrieveCredentials(CredentialsContext ctx)
         {
-            ArgumentNullException.ThrowIfNull(_agentApi.ApplicationConfiguration.PrivateKeyPath);
-            var privateKey = new X509Certificate2(_agentApi.ApplicationConfiguration.PrivateKeyPath, _agentApi.ApplicationConfiguration.PrivateKeyPassword);
+            ArgumentNullException.ThrowIfNull(_agentOptions.PrivateKeyPath);
+            var privateKey = new X509Certificate2(_agentOptions.PrivateKeyPath, _agentOptions.PrivateKeyPassword);
 
             var claims = new Dictionary<string, string>();
             foreach (var attr in _agentOptions.Attributes)

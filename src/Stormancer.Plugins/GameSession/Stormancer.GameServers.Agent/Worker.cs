@@ -7,22 +7,24 @@ namespace Stormancer.GameServers.Agent
     {
         private readonly ILogger<Worker> _logger;
         private readonly DockerService _dockerService;
+        private readonly ClientsManager _clientsManager;
         private readonly DockerAgentConfigurationOptions _options;
 
-        public Worker(ILogger<Worker> logger, IConfiguration configuration, AgentController controller, DockerService dockerService)
+        public Worker(ILogger<Worker> logger, IConfiguration configuration, AgentController controller, DockerService dockerService, ClientsManager clientsManager)
         {
             _logger = logger;
             _dockerService = dockerService;
+            _clientsManager = clientsManager;
             _options = new DockerAgentConfigurationOptions();
             configuration.Bind(DockerAgentConfigurationOptions.Section, _options);
 
 
             ClientFactory.SetConfigFactory(() =>
             {
-                var config = Stormancer.ClientConfiguration.Create("", "","");
+                var config = ClientConfiguration.Create("", "","");
                 config.Logger = new Logger(logger);
-                config.Plugins.Add(new GameServerAgentPlugin(_options, controller, dockerService, this));
-                config.Plugins.Add(new Stormancer.Plugins.AuthenticationPlugin());
+                config.Plugins.Add(new GameServerAgentPlugin(_options, controller, dockerService, _clientsManager));
+                config.Plugins.Add(new AuthenticationPlugin());
                 return config;
             });
 
@@ -35,7 +37,7 @@ namespace Stormancer.GameServers.Agent
 
 
             await _dockerService.StartAgent(stoppingToken);
-
+            _clientsManager.StoppingToken = stoppingToken;
 
 
             while (!stoppingToken.IsCancellationRequested)
@@ -43,16 +45,8 @@ namespace Stormancer.GameServers.Agent
 
                 foreach(var (id, app) in _options.Applications)
                 {
-                    bool found = false;
-                    lock(_syncRoot)
-                    {
-                        found = _agents.Values.Any(c => c.AppConfiguration == app);
-                    }
-
-                    if(!found)
-                    {
-                        _ =RunAppAsync(app, stoppingToken);
-                    }
+                    _clientsManager.EnsureRunning(app);
+                   
                 }
                 await Task.Delay(1000, stoppingToken);
             }
@@ -60,64 +54,13 @@ namespace Stormancer.GameServers.Agent
 
         }
 
-        private object _syncRoot = new object();
-        private int _currentAgentId = int.MinValue;
-        private async Task RunAppAsync(ApplicationConfigurationOptions applicationConfiguration, CancellationToken stoppingToken)
-        {
-            try
-            {
-                _logger.Log(LogLevel.Information, "Connecting to application {app}", applicationConfiguration);
-                Stormancer.Client client;
-                int i;
-                lock (_syncRoot)
-                {
-                    i = _currentAgentId++;
-                    client = ClientFactory.GetClient(i);
-                    
-                    _agents[i] = new AgentContainer(i, client, applicationConfiguration);
-                }
+       
+       
+       
 
-                await client.DependencyResolver.Resolve<AgentApi>().StartAgent(i, applicationConfiguration, stoppingToken);
 
-            }
-            catch(Exception ex) 
-            {
-                _logger.Log(LogLevel.Error, "failed to connect to application {app}. Error: {ex}", applicationConfiguration,ex);
-            }
-        }
-
-        internal void AppDeploymentUpdated(int agentId, string activeDeploymentId)
-        {
-            lock (_syncRoot)
-            {
-                if (_agents.TryGetValue(agentId, out var agent))
-                {
-                    var app = agent.AppConfiguration;
-                    //Reconnect
-                    _= RunAppAsync(app, CancellationToken.None);
-                }
-            }
-        }
-
-        internal void DestroyAgent(int agentId)
-        {
-            lock (_syncRoot)
-            {
-                if (_agents.Remove(agentId, out var container))
-                {
-                    ClientFactory.ReleaseClient(container.Index);
-                }
-
-            }
-        }
-
-        private Dictionary<int, AgentContainer> _agents = new Dictionary<int, AgentContainer>();
+       
     }
 
-    internal record AgentContainer
-    (
-        int Index,
-        Stormancer.Client Client,
-        ApplicationConfigurationOptions AppConfiguration
-    );
+   
 }
