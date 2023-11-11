@@ -8,8 +8,13 @@ using System.Threading.Tasks;
 namespace Stormancer.GameServers.Agent
 {
 
-    internal class ClientsManager(ILogger logger)
+    internal class ClientsManager
     {
+        public ClientsManager(ILogger logger)
+        {
+            _logger = logger;
+        }
+
         private class AgentClient
         {
 
@@ -31,7 +36,7 @@ namespace Stormancer.GameServers.Agent
         object _syncRoot = new object();
         private int _nextClientId = 0;
         private Dictionary<int, AgentClient> _clients = new Dictionary<int, AgentClient>();
-        private readonly ILogger _logger = logger;
+        private readonly ILogger _logger;
 
         public CancellationToken StoppingToken { get; set; } = CancellationToken.None;
 
