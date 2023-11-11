@@ -28,7 +28,8 @@ namespace Stormancer.GameServers.Agent
 
             claims.Add("quotas.maxMemory", _agentOptions.MaxMemory.ToString());
             claims.Add("quotas.maxCpu", _agentOptions.MaxCpu.ToString());
-            claims.Add("id", _agentOptions.Id);
+            claims.Add("name", _agentOptions.Name);
+            claims.Add("uid", _agentApi.AgentUid);
             if (_agentOptions.Region != null)
             {
                 claims.Add("agent.region", _agentOptions.Region);

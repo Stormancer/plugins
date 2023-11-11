@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Stormancer.Server.Plugins.GameSession.ServerProviders;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,44 +7,7 @@ using System.Threading.Tasks;
 
 namespace Stormancer.GameServers.Agent
 {
-    /// <summary>
-    /// An application the agent should connect to.
-    /// </summary>
-    public class ApplicationConfigurationOptions : IEquatable<ApplicationConfigurationOptions>
-    {
-        /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"{StormancerEndpoint}/{StormancerAccount}/{StormancerApplication}";
-        }
-
-        /// <inheritdoc/>
-        public bool Equals(ApplicationConfigurationOptions? other)
-        {
-            if (other == null) return false;
-            if (StormancerEndpoint != other.StormancerEndpoint) return false;
-            if (StormancerAccount != other.StormancerAccount) return false;
-            if (StormancerApplication != other.StormancerApplication) return false;
-
-            return true;
-        }
-
-        /// <summary>
-        /// Gets or sets the endpoint to connect to.
-        /// </summary>
-        public string? StormancerEndpoint { get; set; }
-
-        /// <summary>
-        /// Gets or sets the account of the app to connect to.
-        /// </summary>
-        public string? StormancerAccount { get; set; }
-
-        /// <summary>
-        /// Gets or sets the name of the app to connect to.
-        /// </summary>
-        public string? StormancerApplication { get; set; }
-
-    }
+  
     public class DockerAgentConfigurationOptions
     {
         public static string Section => "agent";
@@ -59,7 +23,7 @@ namespace Stormancer.GameServers.Agent
         /// <summary>
         /// gets or sets the name of the agent.
         /// </summary>
-        public string Id { get; set; } = Environment.MachineName;
+        public string Name { get; set; } = Environment.MachineName;
 
         /// <summary>
         /// Gets or sets the path to the private key used to authentify the agent to applications.

@@ -381,4 +381,49 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
 
     }
+
+
+    /// <summary>
+    /// An application the agent should connect to.
+    /// </summary>
+    public class ApplicationConfigurationOptions : IEquatable<ApplicationConfigurationOptions>
+    {
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return $"{StormancerEndpoint}/{StormancerAccount}/{StormancerApplication}";
+        }
+
+        /// <inheritdoc/>
+        public bool Equals(ApplicationConfigurationOptions? other)
+        {
+            if (other == null) return false;
+            if (StormancerEndpoint != other.StormancerEndpoint) return false;
+            if (StormancerAccount != other.StormancerAccount) return false;
+            if (StormancerApplication != other.StormancerApplication) return false;
+
+            return true;
+        }
+
+        /// <summary>
+        /// Gets or sets the endpoint to connect to.
+        /// </summary>
+        public string? StormancerEndpoint { get; set; }
+
+        /// <summary>
+        /// Gets or sets the account of the app to connect to.
+        /// </summary>
+        public string? StormancerAccount { get; set; }
+
+        /// <summary>
+        /// Gets or sets the name of the app to connect to.
+        /// </summary>
+        public string? StormancerApplication { get; set; }
+
+        /// <summary>
+        /// Gets or sets the userId the agent should use.
+        /// </summary>
+        public string? UserId { get; set; }
+
+    }
 }

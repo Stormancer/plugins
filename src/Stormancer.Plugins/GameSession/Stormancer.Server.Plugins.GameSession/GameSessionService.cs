@@ -52,6 +52,7 @@ using System.Reactive.Subjects;
 using Docker.DotNet.Models;
 using System.Collections.Immutable;
 using SmartFormat.Utilities;
+using Microsoft.AspNetCore.Components.Web;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
@@ -325,6 +326,7 @@ namespace Stormancer.Server.Plugins.GameSession
                         await ReservationCleanupCallback(null);
 
                         await UpdateServerKeepAliveAsync(cancellationToken);
+                        await EvaluateShutdown();
                     }
                     catch (Exception ex)
                     {
@@ -546,7 +548,11 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async Task OnPeerConnecting(IScenePeerClient peer)
         {
+            if (!TryResetShutdown())
+            {
+                throw new ClientException("sceneShutdown");
 
+            }
 
             if (peer == null)
             {
@@ -665,7 +671,11 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async Task OnPeerConnected(IScenePeerClient peer)
         {
-
+            if (!TryResetShutdown())
+            {
+                await peer.Disconnect("sceneShutdown");
+                return;
+            }
 
             Debug.Assert(_config != null);
 
@@ -850,20 +860,19 @@ namespace Stormancer.Server.Plugins.GameSession
                         catch (Exception ex)
                         {
                             _logger.Log(LogLevel.Error, "gamesession.gameserverFailure", "Failed to start game server", ex);
-                            //_gameCompleteCts.Cancel();
-                            //_repository.RemoveGameSession(this);
-                            //_scene.Shutdown("gameserver.failure");
+
                         }
                     }
                     if (_server != null)
                     {
                         if (!state.IsServerPersistent())
                         {
+                            
                             _ = _scene.RunTask(async ct =>
                             {
                                 try
                                 {
-                                    await Task.Delay(1000 * 30, ct);
+                                    await Task.Delay(1000 * 45, ct);
                                     if (_server != null && _serverPeer == null) //Server requested but it didn't connect to the game session in 60 seconds.
                                     {
                                         await using (var scope = _scene.CreateRequestScope())
@@ -873,6 +882,7 @@ namespace Stormancer.Server.Plugins.GameSession
                                             {
                                                 await pools.CloseServer(_server.GameServerId, CancellationToken.None);
                                             }
+
                                             _repository.RemoveGameSession(this);
                                             if (_gameCompleteCts != null)
                                             {
@@ -880,32 +890,16 @@ namespace Stormancer.Server.Plugins.GameSession
                                                 _scene.Shutdown("gameserver.didnotconnect");
                                             }
 
-                                            _repository.RemoveGameSession(this);
+
 
                                         }
                                         return;
                                     }
-                                    await Task.Delay(1000 * 60 * 5, ct);
+                                    await Task.Delay(1000 * 15 * 5, ct);
 
                                     if (!_playerConnectedOnce && !ct.IsCancellationRequested)
                                     {
-                                        await using (var scope = _scene.CreateRequestScope())
-                                        {
-                                            var pools = scope.Resolve<ServerPoolProxy>();
-                                            if (_server != null)
-                                            {
-                                                await pools.CloseServer(_server.GameServerId, CancellationToken.None);
-                                            }
-
-                                            if (_gameCompleteCts != null)
-                                            {
-                                                _gameCompleteCts?.Cancel();
-                                                _scene.Shutdown("gamesession.empty");
-                                            }
-
-                                            _repository.RemoveGameSession(this);
-
-                                        }
+                                        await RequestShutdown("gamesession.empty");
                                     }
                                 }
                                 catch (OperationCanceledException) { }
@@ -1014,7 +1008,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 if (HostSessionId == peer.SessionId)
                 {
-                    _scene.Shutdown("gamesession.gameServerLeft");
+                    await RequestShutdown("gamesession.gameServerLeft", TimeSpan.Zero, false);
                 }
             }
 
@@ -1333,7 +1327,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
                 h => h.OnCreatingReservation(ctx),
-                ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing OnCreatingReservation event", ex));
+                ex => _logger.Log(LogLevel.Error, "gameSession", "An error occurred while executing OnCreatingReservation event", ex));
 
 
             if (ctx.Accept)
@@ -1405,7 +1399,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
                    h => h.OnReservationCancelled(new ReservationCancelledContext(reservationState.ReservationId, players)),
-                   ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing OnReservationCancelled event", ex));
+                   ex => _logger.Log(LogLevel.Error, "gameSession", "An error occurred while executing OnReservationCancelled event", ex));
 
             }
 
@@ -1440,7 +1434,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
                             await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
                                h => h.OnReservationCancelled(new ReservationCancelledContext(reservationState.ReservationId, players)),
-                               ex => _logger.Log(LogLevel.Error, "gameSession", "An error occured while executing OnReservationCancelled event", ex));
+                               ex => _logger.Log(LogLevel.Error, "gameSession", "An error occurred while executing OnReservationCancelled event", ex));
                         }
 
 
@@ -1452,19 +1446,8 @@ namespace Stormancer.Server.Plugins.GameSession
                         {
                             if (!_scene.RemotePeers.Any(p => p.SessionId != _server.GameServerSessionId) && !_reservationStates.Any(r => r.Value.ExpiresOn > DateTime.UtcNow))
                             {
-                                await using (var scope = _scene.CreateRequestScope())
-                                {
-                                    var pools = scope.Resolve<ServerPoolProxy>();
-                                    _gameCompleteCts?.Cancel();
 
-                                    _repository.RemoveGameSession(this);
-                                    _scene.Shutdown("gamesession.empty");
-
-                                    _ = pools.CloseServer(_server.GameServerId, CancellationToken.None);
-                                    _server = null;
-
-
-                                }
+                                await RequestShutdown("gamesession.empty");
 
                             }
                         }
@@ -1472,9 +1455,7 @@ namespace Stormancer.Server.Plugins.GameSession
                         {
                             if (!_scene.RemotePeers.Any() && !_reservationStates.Any(r => r.Value.ExpiresOn > DateTime.UtcNow))
                             {
-                                _gameCompleteCts?.Cancel();
-                                _repository.RemoveGameSession(this);
-                                _scene.Shutdown("gamesession.empty");
+                                await RequestShutdown("gamesession.empty");
                             }
                         }
                     }
@@ -1487,6 +1468,70 @@ namespace Stormancer.Server.Plugins.GameSession
 
 
         }
+
+        private DateTime _shuttingDownTime = DateTime.MaxValue;
+
+
+        private bool _shutdown = false;
+        private string? _shutdownReason;
+
+
+        public bool ShouldShutdown([NotNullWhen(true)] out string? reason)
+        {
+            reason = _shutdownReason;
+
+            return !_shutdown && _shuttingDownTime < DateTime.UtcNow;
+
+        }
+
+        private bool TryResetShutdown()
+        {
+            if (_shutdown)
+            {
+                return false;
+            }
+            else
+            {
+                _shuttingDownTime = DateTime.MaxValue;
+                _shutdownReason = null;
+                return true;
+            }
+        }
+        private async Task RequestShutdown(string shutdownReason, TimeSpan keepAlive = default, bool runEvents = true)
+        {
+            await using var scope = _scene.CreateRequestScope();
+            var ctx = new ShuttingDownContext(this, _scene, shutdownReason);
+            ctx.KeepAlive = keepAlive;
+            if (runEvents)
+            {
+                await scope.Resolve<IEnumerable<IGameSessionEventHandler>>().RunEventHandler(h => h.OnShuttingDown(ctx), ex => _logger.Log(LogLevel.Error, "gamesession", $"An error occurred while running {nameof(IGameSessionEventHandler.OnShuttingDown)}", ex));
+            }
+            _shutdownReason = ctx.ShutdownReason;
+            _shuttingDownTime = DateTime.UtcNow + ctx.KeepAlive;
+        }
+
+        private async Task EvaluateShutdown()
+        {
+            if (ShouldShutdown(out var reason))
+            {
+                _repository.RemoveGameSession(this);
+                await using var scope = _scene.CreateRequestScope();
+
+                if (_server != null)
+                {
+                    var pools = scope.Resolve<ServerPoolProxy>();
+                    await pools.CloseServer(_server.GameServerId, CancellationToken.None);
+                    _server = null;
+                }
+
+                _gameCompleteCts?.Cancel();
+
+                _scene.Shutdown(reason);
+
+                _shutdown = true;
+            }
+        }
+
 
         private bool TryRemoveUserFromConfig(string userId, [NotNullWhen(true)] out string? teamId, [NotNullWhen(true)] out Player? player)
         {

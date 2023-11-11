@@ -107,6 +107,16 @@ namespace Stormancer.Server.Plugins.GameSession
         Task OnReservationCancelled(ReservationCancelledContext ctx) => Task.CompletedTask;
 
         /// <summary>
+        /// Event fired when the game session is shutting down.
+        /// </summary>
+        /// <remarks>
+        /// Call <see cref="ShuttingDownContext.KeepAlive(TimeSpan)"/> during this event to cancel shutdown. 
+        /// </remarks>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task OnShuttingDown(ShuttingDownContext ctx) => Task.CompletedTask;
+
+        /// <summary>
         /// Event fired when the scene shuts down.
         /// </summary>
         /// <param name="ctx"></param>
@@ -114,17 +124,17 @@ namespace Stormancer.Server.Plugins.GameSession
         Task OnGameSessionShutdown(GameSessionShutdownContext ctx) => Task.CompletedTask;
 
         /// <summary>
-        /// Event fired when the gamesession is reset.
+        /// Event fired when the game session is reset.
         /// </summary>
         /// <param name="ctx"></param>
         /// <returns></returns>
         Task OnGameSessionReset(GameSessionResetContext ctx) => Task.CompletedTask;
 
         /// <summary>
-        /// Event fired when the gamesession determines if it should complete the game.
+        /// Event fired when the game session determines if it should complete the game.
         /// </summary>
         /// <param name="ctx"></param>
-        Task ShouldCompleteGame(ShouldCompleteGameContext ctx)=> Task.CompletedTask;
+        Task ShouldCompleteGame(ShouldCompleteGameContext ctx) => Task.CompletedTask;
 
         /// <summary>
         /// Event fired whenever a player sends results.
@@ -139,8 +149,47 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <param name="result"></param>
         /// <returns></returns>
         Task OnInspectingGameSession(InspectLiveGameSessionResult result) => Task.CompletedTask;
+
+
     }
 
+    /// <summary>
+    /// Context object passed to <see cref="IGameSessionEventHandler.OnShuttingDown"/>.
+    /// </summary>
+    public class ShuttingDownContext
+    {
+        internal ShuttingDownContext(IGameSessionService service, ISceneHost scene, string shutdownReason)
+        {
+            Service = service;
+            Scene = scene;
+            ShutdownReason = shutdownReason;
+        }
+
+        /// <summary>
+        /// Gets the game session service which is shutting down.
+        /// </summary>
+        public IGameSessionService Service { get; }
+
+        /// <summary>
+        /// Gets the scene which is shutting down.
+        /// </summary>
+        public ISceneHost Scene { get; }
+
+        /// <summary>
+        /// Gets the current shutdown reason.
+        /// </summary>
+        public string ShutdownReason { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <remarks>
+        /// If a client connects to the game session after a shutdown was postponed by setting <see cref="KeepAlive"/>, 
+        /// the shutdown is canceled and the keep alive period is reset. Therefore <see cref="IGameSessionEventHandler.OnShuttingDown(ShuttingDownContext)"/>
+        /// can be called again quicker than the specified duration.
+        /// </remarks>
+        public TimeSpan KeepAlive { get; set; } = TimeSpan.Zero;
+    }
     /// <summary>
     /// Context passed to <see cref="IGameSessionEventHandler.PostingGameResults(PostingGameResultsCtx)"/>
     /// </summary>
@@ -154,7 +203,7 @@ namespace Stormancer.Server.Plugins.GameSession
             Session = session;
             SessionId = peer.SessionId;
             Data = data;
-            
+
         }
 
 
@@ -190,7 +239,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         void IDisposable.Dispose()
         {
-          Data.Seek(0, SeekOrigin.Begin);
+            Data.Seek(0, SeekOrigin.Begin);
         }
     }
 
@@ -199,9 +248,9 @@ namespace Stormancer.Server.Plugins.GameSession
     /// </summary>
     public class ShouldCompleteGameContext
     {
-      
 
-        internal ShouldCompleteGameContext(ISceneHost scene, IGameSessionService gameSession,bool shouldComplete, IEnumerable<Client> clients)
+
+        internal ShouldCompleteGameContext(ISceneHost scene, IGameSessionService gameSession, bool shouldComplete, IEnumerable<Client> clients)
         {
             Scene = scene;
             GameSession = gameSession;
@@ -354,7 +403,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         public Guid ReservationId { get; }
 
-      
+
     }
 
 
@@ -477,7 +526,7 @@ namespace Stormancer.Server.Plugins.GameSession
     /// </summary>
     public class GameSessionResult
     {
-        internal GameSessionResult(string userId, IScenePeerClient? client,Session? session, Stream data)
+        internal GameSessionResult(string userId, IScenePeerClient? client, Session? session, Stream data)
         {
             Peer = client;
             Session = session;

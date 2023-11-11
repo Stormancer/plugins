@@ -72,7 +72,7 @@ namespace Stormancer.GameServers.Agent
 
 
 
-        public string AgentId => _options.Id;
+        public string AgentId => _options.Name;
         public async Task<bool> IsDockerRunning()
         {
             try

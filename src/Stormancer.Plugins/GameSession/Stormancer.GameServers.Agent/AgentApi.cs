@@ -3,6 +3,7 @@ using Stormancer.Diagnostics;
 using System.Threading.Tasks;
 using System.Threading;
 using Stormancer.Core;
+using Stormancer.Server.Plugins.GameSession.ServerProviders;
 
 namespace Stormancer.GameServers.Agent
 {
@@ -19,14 +20,15 @@ namespace Stormancer.GameServers.Agent
             this._logger = logger;
         }
 
-        public async Task StartAgent(int id, ApplicationConfigurationOptions applicationConfiguration, CancellationToken stoppingToken)
+        public async Task StartAgent(int id, string uid, ApplicationConfigurationOptions applicationConfiguration, CancellationToken stoppingToken)
         {
             _client.Configuration.Application = applicationConfiguration.StormancerApplication;
             _client.Configuration.Account = applicationConfiguration.StormancerAccount;
             _client.Configuration.ServerEndpoints.Clear();
             _client.Configuration.ServerEndpoints.Add(applicationConfiguration.StormancerEndpoint);
 
-            AgentGuid = id;
+            Id = id;
+            AgentUid = uid;
             ApplicationConfiguration = applicationConfiguration;
             _userApi.OnGameConnectionStateChanged += OnConnectionStateChanged;
 
@@ -39,7 +41,9 @@ namespace Stormancer.GameServers.Agent
 
         }
         public IScene ServerPoolsScene { get; internal set; }
-        public int AgentGuid { get; private set; }
+
+        public int Id { get;private set; }
+        public string AgentUid { get; private set; }
         public ApplicationConfigurationOptions ApplicationConfiguration { get; private set; }
 
         public void OnConnectionStateChanged(GameConnectionStateCtx ctx)

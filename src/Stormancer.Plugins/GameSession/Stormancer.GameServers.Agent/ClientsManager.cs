@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Stormancer.Server.Plugins.GameSession.ServerProviders;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -59,7 +60,7 @@ namespace Stormancer.GameServers.Agent
                     _clients[i] = new AgentClient(i, autoUpdate, client, applicationConfiguration);
                 }
 
-                await client.DependencyResolver.Resolve<AgentApi>().StartAgent(i, applicationConfiguration, StoppingToken);
+                await client.DependencyResolver.Resolve<AgentApi>().StartAgent(i, applicationConfiguration.UserId ?? Guid.NewGuid().ToString(), applicationConfiguration, StoppingToken);
 
 
 

@@ -14,6 +14,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
@@ -39,6 +41,18 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// </summary>
         public IEnumerable<string> AgentUrls { get; set; } = Enumerable.Empty<string>();
 
+
+        /// <summary>
+        /// Gets or sets OAuth credentials used to authenticate the app with the agents.
+        /// </summary>
+        public OAuthClientCredentials? ClientCredentials { get; set; }
+    }
+
+    /// <summary>
+    /// OAuth client credentials.
+    /// </summary>
+    public class OAuthClientCredentials : IEquatable<OAuthClientCredentials>
+    {
         /// <summary>
         /// Gets or sets the clientId to use for tokens.
         /// </summary>
@@ -53,8 +67,49 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// Gets or sets the issuer used to get access tokens for agent management.
         /// </summary>
         public string? Issuer { get; set; }
+
+        /// <summary>
+        /// Gets or sets the audience 
+        /// </summary>
+        public string? Audience { get; set; }
+
+        /// <inheritdoc/>
+        public bool Equals(OAuthClientCredentials? other)
+        {
+            if (other == null)
+            {
+                return false;
+            }
+            else
+            {
+                return other.ClientId == ClientId && other.ClientSecretPath == ClientSecretPath && other.Audience == Audience && other.Issuer == Issuer;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object? obj)
+        {
+            return Equals(obj as OAuthClientCredentials);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(ClientId, ClientSecretPath, Issuer, Audience);
+        }
+
+        /// <inheritdoc/>
+        public static bool operator ==(OAuthClientCredentials? left, OAuthClientCredentials? right)
+        {
+            return EqualityComparer<OAuthClientCredentials>.Default.Equals(left, right);
+        }
+
+        /// <inheritdoc/>
+        public static bool operator !=(OAuthClientCredentials? left, OAuthClientCredentials? right)
+        {
+            return !(left == right);
+        }
     }
-    
 
     /// <summary>
     /// Configuration class for the Agent based game server hosting pools
@@ -126,6 +181,21 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
     }
 
+    /// <summary>
+    /// Response of a get access token request.
+    /// </summary>
+    public class ExchangeClientCredentialsResponse
+    {
+        /// <summary>
+        /// Gets the access token.
+        /// </summary>
+        public string access_token { get; set; } = default!;
+
+        /// <summary>
+        /// Gets the type of the token ("Bearer")
+        /// </summary>
+        public string token_type { get; set; } = default!;
+    }
 
     /// <summary>
     /// Configuration manager for docker agent integration.
@@ -134,6 +204,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
     {
         private readonly IConfiguration _configuration;
         private readonly ISecretsStore _secretsStore;
+        private readonly IHttpClientFactory _httpClientFactory;
         private GameServerAgentsConfigurationSection _section;
 
         /// <summary>
@@ -141,12 +212,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// </summary>
         /// <param name="configuration"></param>
         /// <param name="secretsStore"></param>
-        public GameServerAgentConfiguration(IConfiguration configuration, ISecretsStore secretsStore)
+        public GameServerAgentConfiguration(IConfiguration configuration, ISecretsStore secretsStore, IHttpClientFactory httpClientFactory)
         {
             _configuration = configuration;
             _secretsStore = secretsStore;
+            _httpClientFactory = httpClientFactory;
             _section = _configuration.GetValue<GameServerAgentsConfigurationSection>("gameservers.agents") ?? new GameServerAgentsConfigurationSection();
             _certificates = LoadSigningCertificates();
+
         }
 
         private async Task<IEnumerable<X509Certificate2>> LoadSigningCertificates()
@@ -171,6 +244,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         {
             _section = _configuration.GetValue<GameServerAgentsConfigurationSection>("gameservers.agents");
             _certificates = LoadSigningCertificates();
+
+            if (_currentClientCredentials != _section.ClientCredentials)
+            {
+                _accessToken = null;
+                _currentClientCredentials = _section.ClientCredentials;
+            }
         }
 
         /// <summary>
@@ -180,6 +259,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         private Task<IEnumerable<X509Certificate2>> _certificates;
 
+        private DateTime _lastAccessTokenRequest = DateTime.MinValue;
+        private Task<string?>? _accessToken;
+        private OAuthClientCredentials? _currentClientCredentials;
+
         /// <summary>
         /// Gets the certificate of the agent.
         /// </summary>
@@ -187,17 +270,99 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// <returns></returns>
         public async Task<X509Certificate2?> GetSigningCertificate(string thumbprint)
         {
-            var certs = await _certificates;
-            return certs.FirstOrDefault(cert => cert.Thumbprint == thumbprint);
+            try
+            {
+                var certs = await _certificates;
+                return certs.FirstOrDefault(cert => cert.Thumbprint == thumbprint);
+            }
+            catch (Exception)
+            {
+                _certificates = LoadSigningCertificates();
+                throw;
+            }
         }
 
-        public async Task<string?> GetClientSecret()
+        private async Task<string?> GetClientSecret()
         {
-            if(_section.ClientSecretPath != null)
+            var clientSecretPath = _currentClientCredentials?.ClientSecretPath;
+            if (clientSecretPath != null)
             {
-                var secret = await _secretsStore.GetSecret(_section.ClientSecretPath);
+                var secret = await _secretsStore.GetSecret(clientSecretPath);
+                if (secret.Value != null)
+                {
+                    return Encoding.UTF8.GetString(secret.Value);
+                }
+                else
+                {
+                    return null;
+                }
             }
-            _section.ClientSecretPath
+            else
+            {
+                return null;
+            }
+        }
+
+
+        private async Task<string?> CreateAccessToken()
+        {
+
+            var secret = await GetClientSecret();
+            var cred = _currentClientCredentials;
+            if (secret != null && cred != null && cred.Issuer != null && cred.Audience != null && cred.ClientId != null) 
+            {
+                return await CreateJwtFromClientCredentials(_httpClientFactory.CreateClient(), new Uri(cred.Issuer), cred.Audience, cred.ClientId, secret);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        private static async Task<string> CreateJwtFromClientCredentials(HttpClient client, Uri issuer, string audience, string clientId, string clientSecret)
+        {
+            var result = await client.PostAsJsonAsync(new Uri(issuer, "/oauth/token"), new
+            {
+                client_id = clientId,
+                client_secret = clientSecret,
+                audience = audience,
+                grant_type = "client_credentials"
+            });
+
+            result.EnsureSuccessStatusCode();
+
+            var jwtResponse = await result.Content.ReadFromJsonAsync<ExchangeClientCredentialsResponse>();
+
+            Debug.Assert(jwtResponse != null);
+
+            return jwtResponse.access_token;
+
+        }
+
+
+        private void EnsureAccessTokenUpdated()
+        {
+            if (_currentClientCredentials == null)
+            {
+                return;
+            }
+            if (_accessToken == null || _lastAccessTokenRequest < DateTime.UtcNow - TimeSpan.FromHours(23))
+            {
+                _lastAccessTokenRequest = DateTime.UtcNow;
+                _accessToken = CreateAccessToken();
+            }
+        }
+        internal Task<string?> GetAccessToken()
+        {
+            EnsureAccessTokenUpdated();
+            if (_accessToken != null)
+            {
+                return _accessToken;
+            }
+            else
+            {
+                return Task.FromResult<string?>(null);
+            }
         }
     }
     internal class GameServerAgentAuthenticationProvider : IAuthenticationProvider
@@ -241,9 +406,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             var claims = Jose.JWT.Decode<Dictionary<string, string>>(jwt, certificate.GetRSAPublicKey());
 
             id.Platform = GameServerAgentConstants.AGENT_AUTH_TYPE;
-            id.PlatformUserId = claims["id"];
+            id.PlatformUserId = claims["name"];
 
-            var user = new User { Id = Guid.NewGuid().ToString() };
+            var user = new User { Id = claims.TryGetValue("uid", out var uid) ? uid : Guid.NewGuid().ToString() };
 
             user.UserData["claims"] = JObject.FromObject(claims);
 
@@ -398,6 +563,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         private Dictionary<string, DockerAgent> _agents = new();
         private readonly IEnvironment _environment;
         private readonly IDataProtector _dataProtector;
+        private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger _logger;
         private readonly GameSessionEventsRepository _events;
         private readonly GameServerAgentConfiguration _configuration;
@@ -412,14 +578,16 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// <param name="events"></param>
         /// <param name="configuration"></param>
         public AgentBasedGameServerProvider(
-            IEnvironment environment, 
-            IDataProtector dataProtector, 
-            ILogger logger, 
+            IEnvironment environment,
+            IDataProtector dataProtector,
+            IHttpClientFactory httpClientFactory,
+            ILogger logger,
             GameSessionEventsRepository events,
             GameServerAgentConfiguration configuration)
         {
             _environment = environment;
             _dataProtector = dataProtector;
+            _httpClientFactory = httpClientFactory;
             _logger = logger;
             _events = events;
             _configuration = configuration;
@@ -431,7 +599,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         }
         private CancellationTokenSource _disposedCts;
         private CancellationToken _disposedCancellationToken;
-        
+
         public void Dispose()
         {
             _disposedCts.Cancel();
@@ -439,22 +607,50 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         private async Task RunAsync()
         {
             using var timer = new PeriodicTimer(TimeSpan.FromSeconds(4));
-            while(!_disposedCancellationToken.IsCancellationRequested)
+            var fed = await _environment.GetFederation();
+            while (!_disposedCancellationToken.IsCancellationRequested)
             {
                 try
                 {
                     await timer.WaitForNextTickAsync(_disposedCancellationToken);
 
-                    _configuration.
-                    
-               
+                    var token = await _configuration.GetAccessToken();
+
+                    var client = _httpClientFactory.CreateClient();
+                    if (token != null)
+                    {
+                        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                        foreach (var url in _configuration.ConfigurationSection.AgentUrls)
+                        {
+                            if (!IsConnected(url))
+                            {
+                                client.BaseAddress = new Uri(url);
+                                var appInfos = await _applicationInfos;
+                                var result = await client.PostAsJsonAsync("/clients/connect", new ApplicationConfigurationOptions
+                                {
+                                    UserId = url,
+                                    StormancerAccount = appInfos.AccountId,
+                                    StormancerApplication = appInfos.ApplicationName,
+                                    StormancerEndpoint = fed.current.endpoints.First()
+                                }, _disposedCancellationToken);
+                            }
+                        }
+                    }
+
                 }
-                catch(Exception)
+                catch (Exception)
                 {
 
                 }
             }
         }
+
+        private bool IsConnected(string url)
+        {
+            return _agents.ContainsKey(url);
+        }
+
         private void OnActiveDeploymentChanged(object? sender, ActiveDeploymentChangedEventArgs e)
         {
             ShuttingDown = true;
