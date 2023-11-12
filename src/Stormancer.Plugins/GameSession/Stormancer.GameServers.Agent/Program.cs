@@ -34,6 +34,7 @@ IHost host = Host.CreateDefaultBuilder()
         services.AddSingleton<ClientsManager>();
         services.AddAuthentication().AddJwtBearer();
         services.AddAuthorization();
+        services.AddLogging();
         
     })
     .ConfigureWebHostDefaults(webBuilder=>

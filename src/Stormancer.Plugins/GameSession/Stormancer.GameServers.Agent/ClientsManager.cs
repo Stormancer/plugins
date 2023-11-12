@@ -10,7 +10,7 @@ namespace Stormancer.GameServers.Agent
 
     internal class ClientsManager
     {
-        public ClientsManager(ILogger logger)
+        public ClientsManager(ILogger<ClientsManager> logger)
         {
             _logger = logger;
         }
