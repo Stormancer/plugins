@@ -7,7 +7,8 @@ using Stormancer.GameServers.Agent;
 
 DockerAgentConfigurationOptions? options = null;
 
-IHost host = Host.CreateDefaultBuilder()
+var builder = Host.CreateDefaultBuilder();
+IHost host = builder
     .ConfigureHostConfiguration((configBuilder)=>
     {
         configBuilder.Sources.Clear();
@@ -32,7 +33,11 @@ IHost host = Host.CreateDefaultBuilder()
         services.AddSingleton<PortsManager>();
         services.AddSingleton<AgentController>();
         services.AddSingleton<ClientsManager>();
-        services.AddAuthentication("Bearer").AddJwtBearer();
+        services.AddAuthentication("Bearer").AddJwtBearer(jwtOptions => 
+        {
+            jwtOptions.Audience = options.Audience;
+            jwtOptions.Authority = options.Authority;
+        });
         services.AddAuthorization();
         services.AddLogging();
         

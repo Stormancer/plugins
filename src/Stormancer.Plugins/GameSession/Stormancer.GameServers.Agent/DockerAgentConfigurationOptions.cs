@@ -70,6 +70,15 @@ namespace Stormancer.GameServers.Agent
 
 
         }
+        /// <summary>
+        /// Gets or sets the audience of JWT tokens.
+        /// </summary>
+        public string? Audience { get; set; }
+
+        /// <summary>
+        /// Gets or sets the authority for JWT tokens.
+        /// </summary>
+        public string? Authority { get; set; }
 
     }
 
