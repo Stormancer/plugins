@@ -610,7 +610,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         {
             using var timer = new PeriodicTimer(TimeSpan.FromSeconds(4));
             var fed = await _environment.GetFederation();
-            while (!_disposedCancellationToken.IsCancellationRequested)
+            while (!_disposedCancellationToken.IsCancellationRequested || ShuttingDown)
             {
                 try
                 {
@@ -664,6 +664,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         private void OnActiveDeploymentChanged(object? sender, ActiveDeploymentChangedEventArgs e)
         {
             ShuttingDown = true;
+            _disposedCts.Cancel();
             if (!e.IsActive)
             {
                 lock (_syncRoot)
@@ -678,6 +679,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         public void AgentConnected(IScenePeerClient peer, Session agentSession)
         {
+            if(ShuttingDown)
+            {
+                peer.DisconnectFromServer("shuttingDown");
+            }
             lock (_syncRoot)
             {
                 var agent = new DockerAgent(peer, agentSession);

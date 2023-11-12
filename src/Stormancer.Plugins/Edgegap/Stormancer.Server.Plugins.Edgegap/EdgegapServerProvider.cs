@@ -9,14 +9,14 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.Gameye
+namespace Stormancer.Server.Plugins.Edgegap
 {
     public class EdgegapPoolConfigurationSection : PoolConfiguration
     {
-        public string? Image { get; set; }
-        public string Region { get; set; } = "europe";
+        public string? AppName { get; set; }
+        public string? AppVersion { get; set; }
 
-        public Dictionary<string, string> RegionsMapping { get; set; } = new Dictionary<string, string>();
+        public Dictionary<string, IEnumerable<Filter>> RegionsMapping { get; set; } = new Dictionary<string, IEnumerable<Filter>>();
 
         public override string type => "fromProvider";
     }
@@ -38,7 +38,7 @@ namespace Stormancer.Server.Plugins.Gameye
         }
         public async Task StopServer(string id, object? context)
         {
-            await _client.StopGameServerAsync(id, CancellationToken.None);
+            await _client.StopGameServerAsync((string)context, CancellationToken.None);
         }
 
 
@@ -46,23 +46,18 @@ namespace Stormancer.Server.Plugins.Gameye
         public async Task<GameSession.StartGameServerResult> TryStartServer(string id, string authToken, JObject config, IEnumerable<string> regions, CancellationToken cancellationToken)
         {
             var agentConfig = config.ToObject<EdgegapPoolConfigurationSection>();
-            if (agentConfig == null || agentConfig.Image == null)
+            if (agentConfig == null || agentConfig.AppName == null)
             {
                 return new GameSession.StartGameServerResult(false, null, null);
             }
-            string? gameyeLocation = null;
+            IEnumerable<Filter>? edgegapCountries = null;
 
             foreach (var region in regions)
             {
-                if (agentConfig.RegionsMapping.TryGetValue(region, out gameyeLocation))
+                if (agentConfig.RegionsMapping.TryGetValue(region, out edgegapCountries))
                 {
                     break;
                 }
-            }
-
-            if (gameyeLocation == null)
-            {
-                gameyeLocation = agentConfig.Region;
             }
 
 
@@ -72,41 +67,50 @@ namespace Stormancer.Server.Plugins.Gameye
 
             var args = new StartGameServerParameters
             {
-                Id = id,
-                Image = agentConfig.Image,
-                Location = gameyeLocation,
-                Env = new Dictionary<string, string> {
 
-                    { "Stormancer_Server_ClusterEndpoints", endpoints },
-                    { "Stormancer_Server_AuthenticationToken", authToken },
-                    { "Stormancer_Server_Account", appInfos.AccountId },
-                    { "Stormancer_Server_Application", appInfos.ApplicationName },
+                app_name = agentConfig.AppName,
+                version_name = agentConfig.AppVersion,
+                filters = edgegapCountries,
+
+                env_vars = new List<EnvironmentVariable>{
+                     new EnvironmentVariable{ key= "Stormancer_Server_ClusterEndpoints", value= endpoints },
+                     new EnvironmentVariable{ key=  "Stormancer_Server_AuthenticationToken", value= authToken },
+                     new EnvironmentVariable{ key=  "Stormancer_Server_Account",  value=appInfos.AccountId },
+                     new EnvironmentVariable{ key=  "Stormancer_Server_Application", value= appInfos.ApplicationName },
 
                 },
-                Labels = new Dictionary<string, string>
+                tags = new List<string>
                 {
-                    ["cluster"] = fed.current.id,
-                    ["app"] = $"{appInfos.AccountId}/{appInfos.ApplicationName}"
+                    "cluster:"+ fed.current.id,
+                    $"app:{appInfos.AccountId}/{appInfos.ApplicationName}",
+                    "id:"+id
                 }
             };
+
+
             var r = await _client.StartGameServerAsync(args, cancellationToken);
 
-            var evt = new GameSessionEvent{ GameSessionId = id, Type = "gameye.startserver"};
+            var evt = new GameSessionEvent { GameSessionId = id, Type = "gameye.startserver" };
             evt.CustomData["success"] = r.Success;
-            evt.CustomData["gameye-location"] = args.Location;
-            evt.CustomData["gameye-image"] = args.Image;
-          
+            evt.CustomData["gameye-location"] = JObject.FromObject(edgegapCountries ?? Enumerable.Empty<Filter>());
+            evt.CustomData["edgegap-app"] = args.app_name;
+            evt.CustomData["edgegap-version"] = args.version_name;
+
+
             if (r.Success)
             {
-                return new GameSession.StartGameServerResult(true, new GameServerInstance { Id = id }, null);
+                evt.CustomData["edgegap-requestId"] = r.Value.request_id;
+                evt.CustomData["edgegap-success"] = true;
+                return new GameSession.StartGameServerResult(true, new GameServerInstance { Id = id }, r.Value.request_id);
             }
             else
             {
+                evt.CustomData["edgegap-success"] = false;
                 return new GameSession.StartGameServerResult(false, null, null);
             }
         }
 
-   
+
         public IAsyncEnumerable<string> QueryLogsAsync(string id, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken)
         {
             return _client.QueryLogsAsync(id, since, until, size, follow, cancellationToken);

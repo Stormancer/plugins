@@ -12,23 +12,32 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.Gameye
+namespace Stormancer.Server.Plugins.Edgegap
 {
-    public class StartGameServerParameters
+    public class EnvironmentVariable
     {
-        public string Id { get; set; } = default!;
-        public string Location { get; set; } = default!;
-        public string Image { get; set; } = default!;
-        public Dictionary<string, string>? Env { get; set; }
-
-        public IEnumerable<string> Args { get; set; } = Enumerable.Empty<string>();
-
-        public bool Restart { get; set; }
-
-        public Dictionary<string, string>? Labels { get; set; }
+        public string key { get; set; }
+        public string value { get; set; }
+        public bool is_hidden { get; set; }
+    }
+    public class Filter
+    {
+        public string field { get; set; }
+        public IEnumerable<string> values { get; set; }
+        public string filter_type { get; set; }
     }
 
-    public class GameyeServerError
+    public class StartGameServerParameters
+    {
+        public string app_name { get; set; } = default!;
+        public string version_name { get; set; } = default!;
+        public IEnumerable<EnvironmentVariable> env_vars { get; set; } = Enumerable.Empty<EnvironmentVariable>();
+
+        public IEnumerable<Filter> filters { get; set; } = Enumerable.Empty<Filter>();
+        public IEnumerable<string>? tags { get; set; }
+    }
+
+    public class EdgegapServerError
     {
         public HttpStatusCode HttpError { get; set; }
         public Exception? Exception { get; set; }
@@ -37,35 +46,17 @@ namespace Stormancer.Server.Plugins.Gameye
 
     public class StartGameServerResult
     {
-        public class Port
-        {
-            public string Type { get; set; } = default!;
-            public int Container { get; set; }
-            public int Host { get; set; }
-        }
-
-        public string Host { get; set; } = default!;
-        public IEnumerable<Port> Ports { get; set; } = default!;
+        public string request_id { get; set; }
     }
 
-    public class ListGameServersResult
+    public class StartGameServerError
     {
-        public class GameServerDocument
-        {
-            public string Id { get; set; }
-            public string Image { get; set; }
-            public string Location { get; set; }
-            public string Host { get; set; }
-            public long Created { get; set; }
-            public Dictionary<string, string> Labels { get; set; }
-
-        }
-        public IEnumerable<GameServerDocument> Sessions { get; set; } = Enumerable.Empty<GameServerDocument>();
+        public string message { get; set; }
     }
 
-    public class GameyeConfigurationSection
+    public class EdgegapConfigurationSection
     {
-        public const string PATH = "gameye";
+        public const string PATH = "edgegap";
 
         /// <summary>
         /// Path in the secret store for the Gameye  authentication key.
@@ -112,18 +103,18 @@ namespace Stormancer.Server.Plugins.Gameye
             {
                 PooledConnectionLifetime = TimeSpan.FromMinutes(15) // Recreate every 15 minutes to refresh DNS.
             };
-            
+
             var client = new HttpClient(handler);
             client.BaseAddress = new Uri("https://api.gameye.io");
             return client;
         }
 
-        private async Task<AuthenticationHeaderValue> GetAuthorizationHeaderAsync()
+        private async Task<string?> GetAuthorizationHeaderAsync()
         {
 
-            var token = await _tokenCache.Get(0, async (_) =>
+            return await _tokenCache.Get(0, async (_) =>
             {
-                var section = _configuration.GetValue(GameyeConfigurationSection.PATH, new GameyeConfigurationSection());
+                var section = _configuration.GetValue(EdgegapConfigurationSection.PATH, new EdgegapConfigurationSection());
                 if (section.AuthenticationKeyPath != null)
                 {
                     return (await GetAuthenticationTokenAsync(section.AuthenticationKeyPath), TimeSpan.FromMinutes(section.AuthenticationKeyRefreshTimeSeconds));
@@ -134,8 +125,8 @@ namespace Stormancer.Server.Plugins.Gameye
                 }
 
             });
-           
-            return new AuthenticationHeaderValue("Bearer", token);
+
+
 
 
         }
@@ -149,76 +140,41 @@ namespace Stormancer.Server.Plugins.Gameye
         /// https://docs.gameye.com/session
         /// </remarks>
         /// <returns></returns>
-        public async Task<Result<StartGameServerResult, GameyeServerError>> StartGameServerAsync(StartGameServerParameters args, CancellationToken cancellationToken)
+        public async Task<Result<StartGameServerResult, EdgegapServerError>> StartGameServerAsync(StartGameServerParameters args, CancellationToken cancellationToken)
         {
-            
-            using var request = new HttpRequestMessage(HttpMethod.Post, "/session");
-            request.Headers.Authorization = await GetAuthorizationHeaderAsync();
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/v1/deploy");
+            var auth = await GetAuthorizationHeaderAsync();
+            if (auth != null)
+            {
+                request.Headers.Add("Authorization", auth);
+            }
             request.Content = JsonContent.Create(args);
             using var response = await _httpClient.SendAsync(request, cancellationToken);
 
-            if (response.StatusCode == HttpStatusCode.Created)
+            if (response.StatusCode == HttpStatusCode.OK)
             {
                 var result = await response.Content.ReadFromJsonAsync<StartGameServerResult>((JsonSerializerOptions?)null, cancellationToken);
                 if (result == null)
                 {
-                    return Result<StartGameServerResult, GameyeServerError>.Failed(new GameyeServerError { Exception = new InvalidOperationException("invalidResponse") });
+                    return Result<StartGameServerResult, EdgegapServerError>.Failed(new EdgegapServerError { Exception = new InvalidOperationException("invalidResponse") });
                 }
-                return Result<StartGameServerResult, GameyeServerError>.Succeeded(result);
+                return Result<StartGameServerResult, EdgegapServerError>.Succeeded(result);
 
             }
             else
             {
-                return Result<StartGameServerResult, GameyeServerError>.Failed(new GameyeServerError
+                var result = await response.Content.ReadFromJsonAsync<StartGameServerError>((JsonSerializerOptions?)null, cancellationToken);
+                return Result<StartGameServerResult, EdgegapServerError>.Failed(new EdgegapServerError
                 {
-                    HttpError = response.StatusCode
+                    HttpError = response.StatusCode,
+                    Exception = new Exception(result?.message)
                 });
             }
 
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="filter"></param>
-        /// <param name="cancellationToken"></param>
-        /// <remarks>
-        /// https://docs.gameye.com/lists-a-collection-of-active-sessions
-        /// </remarks>
-        /// <returns></returns>
-        public async Task<Result<ListGameServersResult, GameyeServerError>> ListGameServersAsync(string? filter, CancellationToken cancellationToken)
-        {
-           
-            var uriBuilder = new UriBuilder("/session");
 
-            if (filter != null)
-            {
-                uriBuilder.Query = $"?filter={filter}";
-            }
-            using var request = new HttpRequestMessage(HttpMethod.Get, uriBuilder.Uri);
-            request.Headers.Authorization = await GetAuthorizationHeaderAsync();
-            using var response = await _httpClient.SendAsync(request, cancellationToken);
-
-
-            if (response.StatusCode == HttpStatusCode.Created)
-            {
-                var result = await response.Content.ReadFromJsonAsync<ListGameServersResult>((JsonSerializerOptions?)null, cancellationToken);
-                if (result == null)
-                {
-                    return Result<ListGameServersResult, GameyeServerError>.Failed(new GameyeServerError { Exception = new InvalidOperationException("invalidResponse") });
-                }
-                return Result<ListGameServersResult, GameyeServerError>.Succeeded(result);
-
-            }
-            else
-            {
-                return Result<ListGameServersResult, GameyeServerError>.Failed(new GameyeServerError
-                {
-                    HttpError = response.StatusCode
-                });
-            }
-
-        }
 
         /// <summary>
         /// 
@@ -229,23 +185,29 @@ namespace Stormancer.Server.Plugins.Gameye
         /// https://docs.gameye.com/sessionid
         /// </remarks>
         /// <returns></returns>
-        public async Task<Result<GameyeServerError>> StopGameServerAsync(string id, CancellationToken cancellationToken)
+        public async Task<Result<EdgegapServerError>> StopGameServerAsync(string requestId, CancellationToken cancellationToken)
         {
-           
-            using var request = new HttpRequestMessage(HttpMethod.Delete, $"/session/{id}");
-            request.Headers.Authorization = await GetAuthorizationHeaderAsync();
+
+            using var request = new HttpRequestMessage(HttpMethod.Delete, $"v1/stop/{requestId}");
+            var auth = await GetAuthorizationHeaderAsync();
+            if (auth != null)
+            {
+                request.Headers.Add("Authorization", auth);
+            }
             using var response = await _httpClient.SendAsync(request, cancellationToken);
 
-            if (response.StatusCode == HttpStatusCode.NoContent || response.StatusCode == HttpStatusCode.Conflict)
+            if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Accepted || response.StatusCode == HttpStatusCode.Gone )
             {
-                return Result<GameyeServerError>.Succeeded();
+                return Result<EdgegapServerError>.Succeeded();
             }
             else
             {
-                return Result<GameyeServerError>.Failed(new GameyeServerError
+                var result = await response.Content.ReadFromJsonAsync<StartGameServerError>((JsonSerializerOptions?)null, cancellationToken);
+                return Result<EdgegapServerError>.Failed(new EdgegapServerError
                 {
+                    Exception = new Exception(result?.message),
                     HttpError = response.StatusCode
-                });
+                }) ;
 
             }
         }
