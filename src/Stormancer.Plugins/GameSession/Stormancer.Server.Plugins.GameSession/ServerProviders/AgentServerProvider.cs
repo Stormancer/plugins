@@ -623,19 +623,27 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                     {
                         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
+                        
+
                         foreach (var url in _configuration.ConfigurationSection.AgentUrls)
                         {
                             if (!IsConnected(url))
                             {
-                                client.BaseAddress = new Uri(url);
-                                var appInfos = await _applicationInfos;
-                                var result = await client.PostAsJsonAsync("/clients/connect", new ApplicationConfigurationOptions
+                                try
                                 {
-                                    UserId = url,
-                                    StormancerAccount = appInfos.AccountId,
-                                    StormancerApplication = appInfos.ApplicationName,
-                                    StormancerEndpoint = fed.current.endpoints.First()
-                                }, _disposedCancellationToken);
+                                    client.BaseAddress = new Uri(url);
+                                    var appInfos = await _applicationInfos;
+                                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCancellationToken);
+                                    cts.CancelAfter(10000);
+                                    var result = await client.PostAsJsonAsync("/clients/connect", new ApplicationConfigurationOptions
+                                    {
+                                        UserId = url,
+                                        StormancerAccount = appInfos.AccountId,
+                                        StormancerApplication = appInfos.ApplicationName,
+                                        StormancerEndpoint = fed.current.endpoints.First()
+                                    }, cts.Token);
+                                }
+                                catch (Exception) { }
                             }
                         }
                     }

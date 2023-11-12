@@ -48,8 +48,9 @@ namespace Stormancer.GameServers.Agent
         /// A <see cref="bool"/> value indicating if the agent should automatically reconnect when 
         /// a new version of the application is deployed.
         /// </param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        internal async Task ConnectAsync(ApplicationConfigurationOptions applicationConfiguration, bool autoUpdate)
+        internal async Task ConnectAsync(ApplicationConfigurationOptions applicationConfiguration, bool autoUpdate,CancellationToken cancellationToken)
         {
             int i = -1;
             try
@@ -65,7 +66,8 @@ namespace Stormancer.GameServers.Agent
                     _clients[i] = new AgentClient(i, autoUpdate, client, applicationConfiguration);
                 }
 
-                await client.DependencyResolver.Resolve<AgentApi>().StartAgent(i, applicationConfiguration.UserId ?? Guid.NewGuid().ToString(), applicationConfiguration, StoppingToken);
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, StoppingToken);
+                await client.DependencyResolver.Resolve<AgentApi>().StartAgent(i, applicationConfiguration.UserId ?? Guid.NewGuid().ToString(), applicationConfiguration, cts.Token);
 
 
 
@@ -120,7 +122,7 @@ namespace Stormancer.GameServers.Agent
                 {
                     var app = client.Configuration;
                     //Reconnect
-                    _ = ConnectAsync(app, client.AutoUpdate);
+                    _ = ConnectAsync(app, client.AutoUpdate, StoppingToken);
                 }
             }
         }
@@ -135,7 +137,7 @@ namespace Stormancer.GameServers.Agent
 
             if (!found)
             {
-                _ = ConnectAsync(app, true);
+                _ = ConnectAsync(app, true, StoppingToken);
             }
         }
 

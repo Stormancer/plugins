@@ -174,8 +174,10 @@ namespace Stormancer.Server.Plugins.Users
                     result.Metadata = authResult?.Metadata ?? _emptyDictionary;
                     session = await sessions.GetSessionRecordById(peer.SessionId);
 
-                    Debug.Assert(session != null);//We just created the session.
-
+                    if (session == null)
+                    {
+                        throw new ClientException("disconnected");
+                    }
 
                     var ctx = new LoggedInCtx { Result = result, Session = session, AuthCtx = authenticationCtx, Peer = peer, CancellationToken = ct };
                     await _handlers().RunEventHandler(h => h.OnLoggedIn(ctx), ex => _logger.Log(LogLevel.Error, "user.login", "An error occured while running OnLoggedIn event handler", ex));

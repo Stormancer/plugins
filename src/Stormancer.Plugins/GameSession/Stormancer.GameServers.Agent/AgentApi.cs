@@ -13,6 +13,7 @@ namespace Stormancer.GameServers.Agent
         private readonly UserApi _userApi;
         private readonly Stormancer.Diagnostics.ILogger _logger;
 
+        private TaskCompletionSource _readyTcs = new TaskCompletionSource();
         public AgentApi(Client client, UserApi userApi, Stormancer.Diagnostics.ILogger logger)
         {
             _client = client;
@@ -35,9 +36,9 @@ namespace Stormancer.GameServers.Agent
 
             await _userApi.Login();
 
-           
+            await _readyTcs.Task.WaitAsync(stoppingToken);
 
-            _logger.Log(Diagnostics.LogLevel.Info, "agent", "Docker daemon found.");
+            _logger.Log(Diagnostics.LogLevel.Info, "agent", $"Client connected to {applicationConfiguration}.");
 
         }
         public IScene ServerPoolsScene { get; internal set; }
@@ -52,13 +53,18 @@ namespace Stormancer.GameServers.Agent
             {
                 _ = ConnectScene();
             }
-
         }
 
         private async Task ConnectScene()
         {
             var scene = await _userApi.GetSceneForService("stormancer.plugins.serverPool");
 
+        }
+
+
+        internal void SetReady()
+        {
+            _readyTcs.TrySetResult();
         }
     }
 }

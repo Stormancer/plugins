@@ -18,7 +18,7 @@ namespace Stormancer.GameServers.Agent
         private readonly DockerService _docker;
         private readonly ClientsManager _clientsManager;
 
-        public GameServerAgentPlugin(DockerAgentConfigurationOptions options,AgentController controller, DockerService docker, ClientsManager clientsManager)
+        public GameServerAgentPlugin(DockerAgentConfigurationOptions options, AgentController controller, DockerService docker, ClientsManager clientsManager)
         {
             _options = options;
             _controller = controller;
@@ -29,19 +29,19 @@ namespace Stormancer.GameServers.Agent
         {
             ctx.ClientCreated += (Client client) =>
             {
-               
+
                 client.DependencyResolver.RegisterDependency(_options);
                 client.DependencyResolver.RegisterDependency(_controller);
-                client.DependencyResolver.Register((dr) => new AgentApi(client,dr.Resolve<UserApi>(), dr.Resolve<Stormancer.Diagnostics.ILogger>()), true);
+                client.DependencyResolver.Register((dr) => new AgentApi(client, dr.Resolve<UserApi>(), dr.Resolve<Stormancer.Diagnostics.ILogger>()), true);
                 client.DependencyResolver.RegisterDependency(_docker);
-                
-                client.DependencyResolver.Register<IAuthenticationEventHandler>(dr => new DockerAgentAuthEventHandler(dr.Resolve<DockerAgentConfigurationOptions>(),dr.Resolve<AgentApi>()));
+
+                client.DependencyResolver.Register<IAuthenticationEventHandler>(dr => new DockerAgentAuthEventHandler(dr.Resolve<DockerAgentConfigurationOptions>(), dr.Resolve<AgentApi>()));
 
             };
             ctx.ClientDisconnecting += (client) =>
             {
                 AgentApi? api = client.DependencyResolver.Resolve<AgentApi>();
-              
+
                 _clientsManager.RemoveClient(api.Id);
             };
 
@@ -53,10 +53,11 @@ namespace Stormancer.GameServers.Agent
                     var api = scene.DependencyResolver.Resolve<AgentApi>();
                     api.ServerPoolsScene = scene;
                     controller.UserApi = scene.DependencyResolver.Resolve<UserApi>();
-                    scene.AddProcedure("agent.getRunningContainers",async ctx => {
+                    scene.AddProcedure("agent.getRunningContainers", async ctx =>
+                    {
                         var args = ctx.ReadObject<bool>();
 
-                        ctx.SendValue(await controller.GetRunningContainers(api.Id,new GetRunningContainersParameters()));
+                        ctx.SendValue(await controller.GetRunningContainers(api.Id, new GetRunningContainersParameters()));
 
                     });
 
@@ -67,21 +68,24 @@ namespace Stormancer.GameServers.Agent
                         ctx.SendValue(await controller.KeepAlive(api.Id, args));
                     });
 
-                    scene.AddProcedure("agent.tryStartContainer", async ctx => {
+                    scene.AddProcedure("agent.tryStartContainer", async ctx =>
+                    {
                         var args = ctx.ReadObject<ContainerStartParameters>();
 
-                        ctx.SendValue(await controller.TryStartContainer(api.Id, args,ctx.CancellationToken));
+                        ctx.SendValue(await controller.TryStartContainer(api.Id, args, ctx.CancellationToken));
                     });
 
-                    scene.AddProcedure("agent.stopContainer", async ctx => {
+                    scene.AddProcedure("agent.stopContainer", async ctx =>
+                    {
                         var args = ctx.ReadObject<ContainerStopParameters>();
 
                         ctx.SendValue(await controller.StopContainer(api.Id, args));
                     });
 
-                    scene.AddProcedure("agent.getLogs",async ctx => {
+                    scene.AddProcedure("agent.getLogs", async ctx =>
+                    {
                         var args = ctx.ReadObject<GetContainerLogsParameters>();
-                        await foreach(var block in controller.GetContainerLogs(api.Id, args, ctx.CancellationToken))
+                        await foreach (var block in controller.GetContainerLogs(api.Id, args, ctx.CancellationToken))
                         {
                             ctx.SendValue(block);
                         }
@@ -89,7 +93,7 @@ namespace Stormancer.GameServers.Agent
 
                     scene.AddProcedure("agent.getDockerEvents", async ctx =>
                     {
-                        await foreach(var evt in controller.SubscribeToContainerUpdates(api.Id, ctx.CancellationToken))
+                        await foreach (var evt in controller.SubscribeToContainerUpdates(api.Id, ctx.CancellationToken))
                         {
                             ctx.SendValue(evt);
                         }
@@ -110,10 +114,20 @@ namespace Stormancer.GameServers.Agent
                         ctx.SendValue(status);
                     });
 
-                    scene.AddRoute("agent.UpdateActiveApp", p => {
+                    scene.AddRoute("agent.UpdateActiveApp", p =>
+                    {
                         var activeDeploymentId = p.ReadObject<string>();
                         _clientsManager.AppDeploymentUpdated(api.Id, activeDeploymentId);
                     });
+                }
+            };
+
+            ctx.SceneConnected += (Scene scene) =>
+            {
+                if (scene.Id == "gamesession-serverpool")
+                {
+                    var api = scene.DependencyResolver.Resolve<AgentApi>();
+                    api.SetReady();
                 }
             };
         }
