@@ -32,7 +32,7 @@ IHost host = Host.CreateDefaultBuilder()
         services.AddSingleton<PortsManager>();
         services.AddSingleton<AgentController>();
         services.AddSingleton<ClientsManager>();
-        services.AddAuthentication().AddJwtBearer();
+        services.AddAuthentication("Bearer").AddJwtBearer();
         services.AddAuthorization();
         services.AddLogging();
         
