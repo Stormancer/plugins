@@ -69,7 +69,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 builder.Register<DevServerPoolProvider>().As<IServerPoolProvider>().SingleInstance();
                 builder.Register<ProviderBasedServerPoolProvider>().As<IServerPoolProvider>().InstancePerScene();
                 builder.Register<GameSessionAnalyticsWorker>().SingleInstance();
-                builder.Register<AgentBasedGameServerProvider>().As<IGameServerProvider>().AsSelf().SingleInstance();
+                builder.Register<AgentBasedGameServerProvider>().As<IGameServerProvider>().AsSelf().InstancePerScene();
                 builder.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
                 
                 builder.Register<DockerAgentAdminController>();

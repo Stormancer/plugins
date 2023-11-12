@@ -309,7 +309,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
             var secret = await GetClientSecret();
             var cred = _currentClientCredentials;
-            if (secret != null && cred != null && cred.Issuer != null && cred.Audience != null && cred.ClientId != null) 
+            if (secret != null && cred != null && cred.Issuer != null && cred.Audience != null && cred.ClientId != null)
             {
                 return await CreateJwtFromClientCredentials(_httpClientFactory.CreateClient(), new Uri(cred.Issuer), cred.Audience, cred.ClientId, secret);
             }
@@ -574,6 +574,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// </summary>
         /// <param name="environment"></param>
         /// <param name="dataProtector"></param>
+        /// <param name="httpClientFactory"></param>
         /// <param name="logger"></param>
         /// <param name="events"></param>
         /// <param name="configuration"></param>
@@ -600,6 +601,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         private CancellationTokenSource _disposedCts;
         private CancellationToken _disposedCancellationToken;
 
+        /// <inheritdoc/>
         public void Dispose()
         {
             _disposedCts.Cancel();
@@ -1013,7 +1015,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             {
                 var response = await StopContainer(containerId, agentId);
             }
-            catch(InvalidOperationException) //If agent not available, consider the container shut down.
+            catch (InvalidOperationException) //If agent not available, consider the container shut down.
             {
 
             }
