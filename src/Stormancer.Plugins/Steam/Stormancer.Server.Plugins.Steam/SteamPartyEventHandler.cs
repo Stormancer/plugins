@@ -265,23 +265,31 @@ namespace Stormancer.Server.Plugins.Steam
 
         private async Task<VoidSteamResult> LeaveSteamLobbyAsync(IScenePeerClient target, ulong lobbyId, CancellationToken cancellationToken)
         {
-            var joinLobbyParameter = new LeaveLobbyArgs { };
-            using var packet = await _rpc.Rpc("Steam.LeaveLobby", target, s => _serializer.Serialize(joinLobbyParameter, s), Core.PacketPriority.MEDIUM_PRIORITY, cancellationToken);
-
-            var joinSteamLobbyResult = packet.ReadObject<VoidSteamResult>();
-
-            if (!joinSteamLobbyResult.Success)
+            try
             {
-                _logger.Log(LogLevel.Error, "SteamPartyEventHandler.OnJoining", "Steam lobby join failed", new
+
+                var joinLobbyParameter = new LeaveLobbyArgs { };
+                using var packet = await _rpc.Rpc("Steam.LeaveLobby", target, s => _serializer.Serialize(joinLobbyParameter, s), Core.PacketPriority.MEDIUM_PRIORITY, cancellationToken);
+
+                var joinSteamLobbyResult = packet.ReadObject<VoidSteamResult>();
+
+                if (!joinSteamLobbyResult.Success)
                 {
+                    _logger.Log(LogLevel.Error, "SteamPartyEventHandler.OnJoining", "Steam lobby join failed", new
+                    {
 
-                    joinSteamLobbyResult.ErrorId,
-                    joinSteamLobbyResult.ErrorDetails
-                });
+                        joinSteamLobbyResult.ErrorId,
+                        joinSteamLobbyResult.ErrorDetails
+                    });
 
 
+                }
+                return joinSteamLobbyResult;
             }
-            return joinSteamLobbyResult;
+            catch (InvalidOperationException ex) //don't bubble up exceptions occurring when the steam client can't process the request.
+            {
+                return new VoidSteamResult { Success = false, ErrorDetails = ex.Message, ErrorId = "communicationError" };
+            }
         }
 
 
@@ -371,6 +379,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// <returns></returns>
         public async Task OnQuit(QuitPartyContext ctx)
         {
+
             if (ctx.Party.ServerData.TryGetValue(PartyLobbyKey, out var dataObject))
             {
                 var data = (SteamPartyData)dataObject;
@@ -380,6 +389,7 @@ namespace Stormancer.Server.Plugins.Steam
                     await LeaveSteamLobbyAsync(ctx.Args.Peer, data.SteamIDLobby!.Value, CancellationToken.None);
                 }
             }
+
         }
 
         /// <summary>
@@ -418,25 +428,6 @@ namespace Stormancer.Server.Plugins.Steam
             return Task.CompletedTask;
         }
 
-        private async Task RemoveUserFromLobby(ConcurrentDictionary<string, object> serverData, SessionId sessionId)
-        {
-            //if (serverData.TryGetValue(PartyLobbyKey, out var dataObject))
-            //{
-            //    var data = (SteamPartyData)dataObject;
-            //    if (data != null && data.SteamIDLobby != null && data.UserData.TryGetValue(sessionId, out var steamUserData))
-            //    {
 
-            //        await _steamService.RemoveUserFromLobby(data.AppId,steamUserData.SteamId, data.SteamIDLobby.Value);
-
-            //        data.UserData.TryRemove(sessionId, out var _);
-
-            //        if (data.UserData.Count == 0)
-            //        {
-            //            data.SteamIDLobby = 0;
-            //        }
-
-            //    }
-            //}
-        }
     }
 }

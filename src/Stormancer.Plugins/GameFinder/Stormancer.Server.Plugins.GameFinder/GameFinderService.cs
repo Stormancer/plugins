@@ -303,10 +303,11 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
         }
 
+        public CancellationToken GameFinderStoppedToken { get; private set; }
         public async Task Run(CancellationToken ct)
         {
             IsRunning = true;
-
+            GameFinderStoppedToken = ct;
             var watch = new Stopwatch();
             while (!ct.IsCancellationRequested)
             {
@@ -355,6 +356,11 @@ namespace Stormancer.Server.Plugins.GameFinder
                     mmCtx.WaitingParties.AddRange(waitingParties.Keys);
                     mmCtx.OpenGameSessions.AddRange(_data.openGameSessions.Values.Where(ogs => ogs.IsOpen));
 
+                    if(cancellationToken.IsCancellationRequested)
+                    {
+                        return;
+                    }
+
                     var gameFinder = scope.Resolve<IGameFinderAlgorithm>();
                     var resolver = scope.Resolve<IGameFinderResolver>();
 
@@ -363,6 +369,11 @@ namespace Stormancer.Server.Plugins.GameFinder
                     resolver.RefreshConfig(_data.kind, specificConfig);
 
                     var games = await gameFinder.FindGames(mmCtx);
+
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        return;
+                    }
 
                     _analytics.Push("gameFinder", "pass", JObject.FromObject(new
                     {
@@ -427,6 +438,10 @@ namespace Stormancer.Server.Plugins.GameFinder
                         }
                     }
                 }
+            }
+            catch(ObjectDisposedException) // The scene was destroyed, ignore the error.
+            {
+
             }
             finally
             {

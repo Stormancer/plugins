@@ -225,13 +225,17 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "party-sample", "Party\party
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Blobs", "Blobs", "{070BFFD9-7E54-4ADE-801A-04C8346DA6E4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.BlobStorage", "Blobs\Stormancer.Server.Plugins.BlobStorage\Stormancer.Server.Plugins.BlobStorage.csproj", "{46E2AA48-7E41-4BF8-8A9D-E2DC85D220EC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.BlobStorage", "Blobs\Stormancer.Server.Plugins.BlobStorage\Stormancer.Server.Plugins.BlobStorage.csproj", "{46E2AA48-7E41-4BF8-8A9D-E2DC85D220EC}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Azure", "Azure", "{A6047D62-B5DE-4570-93FA-CB5C5D33EEAC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Azure", "Azure\Stormancer.Server.Plugins.Azure\Stormancer.Server.Plugins.Azure.csproj", "{D2A9CE03-7AE6-47EF-8031-3C3DF8475B18}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Azure", "Azure\Stormancer.Server.Plugins.Azure\Stormancer.Server.Plugins.Azure.csproj", "{D2A9CE03-7AE6-47EF-8031-3C3DF8475B18}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.NewtonsoftJson", "Utilities\Stormancer.NewtonsoftJson\Stormancer.NewtonsoftJson.csproj", "{BE4023A3-D5E4-44F1-8BC3-67F535681B16}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.NewtonsoftJson", "Utilities\Stormancer.NewtonsoftJson\Stormancer.NewtonsoftJson.csproj", "{BE4023A3-D5E4-44F1-8BC3-67F535681B16}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Edgegap", "Edgegap", "{DA91CC9A-E07D-480A-AC76-86E32536BE87}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Edgegap", "Edgegap\Stormancer.Server.Plugins.Edgegap\Stormancer.Server.Plugins.Edgegap.csproj", "{6C578484-EE38-41A6-8801-A13591924ABE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -916,6 +920,18 @@ Global
 		{BE4023A3-D5E4-44F1-8BC3-67F535681B16}.Release|x64.Build.0 = Release|Any CPU
 		{BE4023A3-D5E4-44F1-8BC3-67F535681B16}.Release|x86.ActiveCfg = Release|Any CPU
 		{BE4023A3-D5E4-44F1-8BC3-67F535681B16}.Release|x86.Build.0 = Release|Any CPU
+		{6C578484-EE38-41A6-8801-A13591924ABE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6C578484-EE38-41A6-8801-A13591924ABE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6C578484-EE38-41A6-8801-A13591924ABE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{6C578484-EE38-41A6-8801-A13591924ABE}.Debug|x64.Build.0 = Debug|Any CPU
+		{6C578484-EE38-41A6-8801-A13591924ABE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6C578484-EE38-41A6-8801-A13591924ABE}.Debug|x86.Build.0 = Debug|Any CPU
+		{6C578484-EE38-41A6-8801-A13591924ABE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6C578484-EE38-41A6-8801-A13591924ABE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6C578484-EE38-41A6-8801-A13591924ABE}.Release|x64.ActiveCfg = Release|Any CPU
+		{6C578484-EE38-41A6-8801-A13591924ABE}.Release|x64.Build.0 = Release|Any CPU
+		{6C578484-EE38-41A6-8801-A13591924ABE}.Release|x86.ActiveCfg = Release|Any CPU
+		{6C578484-EE38-41A6-8801-A13591924ABE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1018,6 +1034,8 @@ Global
 		{A6047D62-B5DE-4570-93FA-CB5C5D33EEAC} = {FD264C24-4E01-4B1E-B5A1-489EC1C376E4}
 		{D2A9CE03-7AE6-47EF-8031-3C3DF8475B18} = {A6047D62-B5DE-4570-93FA-CB5C5D33EEAC}
 		{BE4023A3-D5E4-44F1-8BC3-67F535681B16} = {548AD42A-A006-483A-8213-BDF68F16BAE2}
+		{DA91CC9A-E07D-480A-AC76-86E32536BE87} = {FD264C24-4E01-4B1E-B5A1-489EC1C376E4}
+		{6C578484-EE38-41A6-8801-A13591924ABE} = {DA91CC9A-E07D-480A-AC76-86E32536BE87}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}

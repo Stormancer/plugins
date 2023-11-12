@@ -1009,9 +1009,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         {
             Debug.Assert(ctx != null);
             (string agentId, string containerId) = (ValueTuple<string, string>)(ctx);
+            try
+            {
+                var response = await StopContainer(containerId, agentId);
+            }
+            catch(InvalidOperationException) //If agent not available, consider the container shut down.
+            {
 
-            var response = await StopContainer(containerId, agentId);
-
+            }
 
 
         }
