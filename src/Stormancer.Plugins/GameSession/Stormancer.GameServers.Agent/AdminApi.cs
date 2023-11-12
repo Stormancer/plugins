@@ -23,6 +23,12 @@ namespace Stormancer.GameServers.Agent
             {
                 await clientsManager.StopAsync(parameters);
             }).RequireAuthorization();
+
+
+            endpoints.MapGet("/clients", async ([FromServices] ClientsManager clientsManager) =>
+            {
+                return clientsManager.GetClients();
+            }).RequireAuthorization();
         }
     }
 

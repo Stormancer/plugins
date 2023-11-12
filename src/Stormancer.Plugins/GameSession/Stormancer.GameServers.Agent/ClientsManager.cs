@@ -139,6 +139,14 @@ namespace Stormancer.GameServers.Agent
             }
         }
 
+        internal IEnumerable<ApplicationConfigurationOptions> GetClients()
+        {
+           
+            lock (_syncRoot)
+            {
+                return _clients.Values.Select(c=>c.Configuration).ToList();
+            }
 
+        }
     }
 }
