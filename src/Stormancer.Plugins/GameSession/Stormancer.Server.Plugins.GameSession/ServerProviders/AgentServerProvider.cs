@@ -219,6 +219,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             _httpClientFactory = httpClientFactory;
             _section = _configuration.GetValue<GameServerAgentsConfigurationSection>("gameservers.agents") ?? new GameServerAgentsConfigurationSection();
             _certificates = LoadSigningCertificates();
+            _currentClientCredentials = _section.ClientCredentials;
 
         }
 
@@ -609,7 +610,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         }
         private async Task RunAsync()
         {
-            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(4));
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(60));
             var fed = await _environment.GetFederation();
             while (!_disposedCancellationToken.IsCancellationRequested && !ShuttingDown)
             {
@@ -635,7 +636,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                                     client.BaseAddress = new Uri(url);
                                     var appInfos = await _applicationInfos;
                                     using var cts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCancellationToken);
-                                    cts.CancelAfter(10000);
+                                    cts.CancelAfter(60000);
                                     var result = await client.PostAsJsonAsync("/clients/connect", new ApplicationConfigurationOptions
                                     {
                                         UserId = url,
