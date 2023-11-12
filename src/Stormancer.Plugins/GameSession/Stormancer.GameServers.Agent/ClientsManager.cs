@@ -60,9 +60,14 @@ namespace Stormancer.GameServers.Agent
 
                 lock (_syncRoot)
                 {
+                    var old = _clients.Values.FirstOrDefault(x=>x.Configuration.ApplicationUid == applicationConfiguration.ApplicationUid);
+                    if(old!=null)
+                    {
+                        RemoveClient(old.Index);
+                    }
                     i = _nextClientId++;
                     client = ClientFactory.GetClient(i);
-
+                    
                     _clients[i] = new AgentClient(i, autoUpdate, client, applicationConfiguration);
                 }
 
@@ -108,6 +113,11 @@ namespace Stormancer.GameServers.Agent
             {
                 if (_clients.Remove(clientId, out var container))
                 {
+                    try
+                    {
+                        container.Client.Disconnect();
+                    }
+                    catch (Exception) { }
                     ClientFactory.ReleaseClient(container.Index);
                 }
 

@@ -425,5 +425,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// </summary>
         public string? UserId { get; set; }
 
+        public string? ApplicationUid { get; set; }
+
     }
 }

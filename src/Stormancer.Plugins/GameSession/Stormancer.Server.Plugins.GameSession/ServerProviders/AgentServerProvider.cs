@@ -598,6 +598,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             _disposedCancellationToken = _disposedCts.Token;
             _ = RunAsync();
         }
+      
         private CancellationTokenSource _disposedCts;
         private CancellationToken _disposedCancellationToken;
 
@@ -640,7 +641,8 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                                         UserId = url,
                                         StormancerAccount = appInfos.AccountId,
                                         StormancerApplication = appInfos.ApplicationName,
-                                        StormancerEndpoint = fed.current.endpoints.First()
+                                        StormancerEndpoint = fed.current.endpoints.First(),
+                                        ApplicationUid = appInfos.HostUrl
                                     }, cts.Token);
                                 }
                                 catch (Exception) { }
