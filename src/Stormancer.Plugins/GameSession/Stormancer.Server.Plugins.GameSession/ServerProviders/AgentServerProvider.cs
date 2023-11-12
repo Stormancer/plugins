@@ -611,7 +611,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         {
             using var timer = new PeriodicTimer(TimeSpan.FromSeconds(4));
             var fed = await _environment.GetFederation();
-            while (!_disposedCancellationToken.IsCancellationRequested || ShuttingDown)
+            while (!_disposedCancellationToken.IsCancellationRequested && !ShuttingDown)
             {
                 try
                 {
