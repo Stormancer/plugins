@@ -69,7 +69,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 builder.Register<DevServerPoolProvider>().As<IServerPoolProvider>().SingleInstance();
                 builder.Register<ProviderBasedServerPoolProvider>().As<IServerPoolProvider>().InstancePerScene();
                 builder.Register<GameSessionAnalyticsWorker>().SingleInstance();
-                builder.Register<AgentBasedGameServerProvider>().As<IGameServerProvider>().AsSelf().InstancePerScene();
+               
                 builder.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
                 
                 builder.Register<DockerAgentAdminController>();
@@ -143,6 +143,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 }
                 else if(scene.Id == POOL_SCENEID)
                 {
+                    builder.Register<AgentBasedGameServerProvider>().As<IGameServerProvider>().AsSelf().InstancePerScene();
                     builder.Register<ServerPools>().As<IServerPools>().AsSelf().As<IConfigurationChangedEventHandler>().InstancePerScene();
                 }
             };

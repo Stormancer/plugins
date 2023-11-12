@@ -19,17 +19,16 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
     [Route("_hostingAgents")]
     public class DockerAgentAdminController : ControllerBase
     {
-        private readonly AgentBasedGameServerProvider _provider;
+      
         private readonly ISceneHost _scene;
 
         /// <summary>
         /// Creates a new <see cref="DockerAgentAdminController"/> object.
         /// </summary>
-        /// <param name="provider"></param>
         /// <param name="scene"></param>
-        public DockerAgentAdminController(AgentBasedGameServerProvider provider, ISceneHost scene)
+        public DockerAgentAdminController(ISceneHost scene)
         {
-            _provider = provider;
+         
             _scene = scene;
         }
 
@@ -52,33 +51,9 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
             });
         }
 
-        /// <summary>
-        /// Gets the game servers currently ran by the agents.
-        /// </summary>
-        /// <returns></returns>
-        [HttpGet]
-        [Route("containers")]
-        [ProducesResponseType(200, Type = typeof(GetContainersResponse))]
-        public async Task<IActionResult> GetRunningGameServers()
-        {
-            var response = await _provider.GetRunningContainers().ToListAsync();
-
-            return Ok(new GetContainersResponse { Containers = response });
-        }
 
 
-        /// <summary>
-        /// Disables an agent, preventing it from being used to host new game server instances.
-        /// </summary>
-        /// <param name="agentId"></param>
-        /// <returns></returns>
-        [HttpDelete]
-        [Route("agents/{agentId}")]
-        public IActionResult DisableAgent(string agentId)
-        {
-            _provider.DisableAgent(agentId);
-            return Ok();
-        }
+     
     }
 
     /// <summary>

@@ -610,7 +610,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         }
         private async Task RunAsync()
         {
-            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(60));
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
             var fed = await _environment.GetFederation();
             while (!_disposedCancellationToken.IsCancellationRequested && !ShuttingDown)
             {
