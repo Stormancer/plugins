@@ -149,13 +149,7 @@ namespace Stormancer.Server.Plugins.Database
         /// </summary>
         public string? ConnectionPool { get; set; } = "default";
 
-        /// <summary>
-        /// Disables direct streaming on the Elasticsearch client.
-        /// </summary>
-        /// <remarks>
-        /// Disable direct streaming to get better debug informations. It impacts performance.
-        /// </remarks>
-        public bool DisableDirectStreaming { get; internal set; }
+        
     }
 
     /// <summary>
@@ -167,6 +161,14 @@ namespace Stormancer.Server.Plugins.Database
         /// Default pattern used if no pattern is declated for an app index.
         /// </summary>
         public string defaultPattern = "{account}-{application}-{name}-{type}";
+
+        /// <summary>
+        /// Disables direct streaming on the Elasticsearch client.
+        /// </summary>
+        /// <remarks>
+        /// Disable direct streaming to get better debug informations. It impacts performance.
+        /// </remarks>
+        public bool DisableDirectStreaming { get; set; }
 
         /// <summary>
         /// Indice policies
@@ -211,13 +213,7 @@ namespace Stormancer.Server.Plugins.Database
         public int retryTimeout { get; set; }
         public double PingTimeout { get; set; }
 
-        /// <summary>
-        /// Gets or sets a value indicating if ES direct streaming is enabled or not.
-        /// </summary>
-        /// <remarks>
-        /// Disable direct streaming to get better debug informations. It may impact performance.
-        /// </remarks>
-        public bool DisableDirectStreaming { get;  set; }
+      
     }
 
     /// <summary>
@@ -425,7 +421,7 @@ namespace Stormancer.Server.Plugins.Database
 
             _eventHandlers().RunEventHandler<IESClientFactoryEventHandler>(e => e.OnCreatingIndexName(formatCtx), ex =>
             {
-                _logger.Log(Stormancer.Diagnostics.LogLevel.Error, LOG_CATEGORY, "An error occured while running an 'database.OnCreate' event handler", ex);
+                _logger.Log(Stormancer.Diagnostics.LogLevel.Error, LOG_CATEGORY, "An error occurred while running an 'database.OnCreate' event handler", ex);
             });
 
             var pattern = policyConfig?.Pattern;
@@ -446,12 +442,11 @@ namespace Stormancer.Server.Plugins.Database
             }
             return new ConnectionParameters
             {
-                ConnectionPool = policyConfig?.ConnectionPool ?? "default",
+                ConnectionPool = policyConfig.ConnectionPool ?? "default",
                 IndexName = indexName.ToLowerInvariant(),
                 maxRetries = policyConfig.MaxRetries,
                 retryTimeout = policyConfig.RetryTimeout,
-                PingTimeout = policyConfig.PingTimeout,
-                DisableDirectStreaming = policyConfig.DisableDirectStreaming
+                PingTimeout = policyConfig.PingTimeout
             };
         }
 
@@ -475,7 +470,7 @@ namespace Stormancer.Server.Plugins.Database
                 
                 settings = settings.EnableApiVersioningHeader();
 
-                if(p.DisableDirectStreaming)
+                if(_config.DisableDirectStreaming)
                 {
                     settings = settings.DisableDirectStreaming();
                 }
