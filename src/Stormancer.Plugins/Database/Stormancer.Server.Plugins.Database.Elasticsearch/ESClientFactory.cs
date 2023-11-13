@@ -203,6 +203,14 @@ namespace Stormancer.Server.Plugins.Database
         public int maxRetries { get; set; }
         public int retryTimeout { get; set; }
         public double PingTimeout { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating if ES direct streaming is enabled or not.
+        /// </summary>
+        /// <remarks>
+        /// Disable direct streaming to get better debug informations. It may impact performance.
+        /// </remarks>
+        public bool DisableDirectStreaming { get;  set; }
     }
 
     /// <summary>
@@ -455,7 +463,15 @@ namespace Stormancer.Server.Plugins.Database
                 ConnectionSettings.SourceSerializerFactory s = (IElasticsearchSerializer s, IConnectionSettingsValues v) => new JsonNetSerializer(s, v);
 
                 var settings = new ConnectionSettings(connectionPool.Pool, s).DefaultIndex(p.IndexName.ToLowerInvariant()).PingTimeout(TimeSpan.FromMilliseconds(p.PingTimeout)).MaximumRetries(p.maxRetries).MaxRetryTimeout(TimeSpan.FromSeconds(p.retryTimeout));
+                
+                
                 settings = settings.EnableApiVersioningHeader();
+
+                if(p.DisableDirectStreaming)
+                {
+                    settings = settings.DisableDirectStreaming();
+                }
+
 
                 if (connectionPool?.Credentials?.Basic?.Login != null && connectionPool?.Credentials?.Basic?.Password != null)
                 {

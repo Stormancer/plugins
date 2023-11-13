@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+*****
+- Added DisableDirectStreaming connection configuration value to improve the debugging experience.
+
 2.3.0
 -----
 Added
