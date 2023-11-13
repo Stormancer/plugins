@@ -58,10 +58,10 @@ namespace Stormancer.Server.Plugins.Profile
         }
         private string GetIndex(string partId) => clientFactory.GetIndex(partId, "profileParts");
 
-        private Dictionary<string, Type>? _customProfilePartTypescache = null;
+        private Dictionary<string, (Type type, CustomProfilePartAttribute attribute)>? _customProfilePartTypescache = null;
         private object _syncRoot = new object();
 
-        private bool TryGetCustomProfilePart(string partId, [NotNullWhen(true)] out Type? type)
+        private bool TryGetCustomProfilePart(string partId, [NotNullWhen(true)] out Type? type, [NotNullWhen(true)] out CustomProfilePartAttribute? attribute)
         {
             lock (_syncRoot)
             {
@@ -85,7 +85,7 @@ namespace Stormancer.Server.Plugins.Profile
                             })
                             .Select(t => new { type = t, attr = t.GetCustomAttribute<CustomProfilePartAttribute>() })
                             .Where(t => t.attr != null)
-                            .ToDictionary(t => t.attr!.PartId, t => t.type) ?? new Dictionary<string, Type>();
+                            .ToDictionary(t => t.attr!.PartId, t => (t.type,t.attr!)) ?? new Dictionary<string, (Type,CustomProfilePartAttribute)>();
 
                         _logger.Log(Diagnostics.LogLevel.Info, "profiles.customParts", "Custom profile parts definitions loaded", new { types = _customProfilePartTypescache.Select(kvp => new { id = kvp.Key, type = kvp.Value.ToString() }) });
                     }
@@ -94,6 +94,7 @@ namespace Stormancer.Server.Plugins.Profile
                         _logger.Log(Diagnostics.LogLevel.Info, "profiles.customParts", "Failed to load custom profile part definitions.", ex);
 
                         type = null;
+                        attribute = null;
                         return false;
                     }
 
@@ -101,7 +102,8 @@ namespace Stormancer.Server.Plugins.Profile
 
                 }
 
-                bool found = _customProfilePartTypescache.TryGetValue(partId, out type);
+                bool found = _customProfilePartTypescache.TryGetValue(partId, out var tuple);
+                (type,attribute) = tuple;
 
                 if (!found && partId == "inferno") //DEBUG CODE
                 {
@@ -113,9 +115,9 @@ namespace Stormancer.Server.Plugins.Profile
 
         public async Task DeleteAsync(string userId, string partId, bool fromClient)
         {
-            if (TryGetCustomProfilePart(partId, out var type))
+            if (TryGetCustomProfilePart(partId, out var type,out var attribute))
             {
-                var client = await GetClient(type.GetCustomAttribute<CustomProfilePartAttribute>()!.PartId);
+                var client = await GetClient(attribute.PartId);
                 await client.DeleteAsync<JObject>(GetProfilePartId(userId, partId));
             }
         }
@@ -125,9 +127,9 @@ namespace Stormancer.Server.Plugins.Profile
             var partIds = new List<string>();
             foreach (var requestedPart in ctx.DisplayOptions)
             {
-                if (TryGetCustomProfilePart(requestedPart.Key, out var type))
+                if (TryGetCustomProfilePart(requestedPart.Key, out var type, out var attribute))
                 {
-                    var partId = type.GetCustomAttribute<CustomProfilePartAttribute>()!.PartId;
+                    var partId = attribute.PartId;
 
                     partIds.Add(partId);
                 }
@@ -171,9 +173,9 @@ namespace Stormancer.Server.Plugins.Profile
 
         public async Task UpdateAsync(UpdateCustomProfilePartContext ctx)
         {
-            if (TryGetCustomProfilePart(ctx.PartId, out var type))
+            if (TryGetCustomProfilePart(ctx.PartId, out var type,out var attribute))
             {
-                var client = await GetClient(type.GetCustomAttribute<CustomProfilePartAttribute>()!.PartId);
+                var client = await GetClient(attribute.PartId);
 
                 var json = serializer.Deserialize<string>(ctx.Data);
                 var jObj = JObject.Parse(json);
