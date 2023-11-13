@@ -367,7 +367,7 @@ namespace Stormancer.GameServers.Agent
         {
             lock (_lock)
             {
-                if (!_trackedContainers.Values.Any(c => c.DockerContainerId == id && c.AgentId == agentId))
+                if (!_trackedContainers.Values.Any(c => c.DockerContainerId == id || c.Name == id))
                 {
                     return false;
                 }

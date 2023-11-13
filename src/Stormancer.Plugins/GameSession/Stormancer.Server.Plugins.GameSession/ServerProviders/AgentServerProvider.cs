@@ -616,7 +616,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             {
                 try
                 {
-                    await timer.WaitForNextTickAsync(_disposedCancellationToken);
+                   
 
                     var token = await _configuration.GetAccessToken();
 
@@ -650,6 +650,8 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                             }
                         }
                     }
+
+                    await timer.WaitForNextTickAsync(_disposedCancellationToken);
 
                 }
                 catch (Exception)

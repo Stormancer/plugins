@@ -101,7 +101,7 @@ namespace Stormancer.GameServers.Agent
             if (found != default)
             {
                 found.Client.Disconnect();
-                await Task.Delay(1000);
+                await found.Client.DisposeAsync();
                 RemoveClient(found.Index);
             }
         }
