@@ -77,7 +77,7 @@ namespace Stormancer.Server.Plugins.Profile
 
         public Task DeleteCustomProfilePart(string userId, string partId, bool fromClient)
         {
-            return customProfileParts.RunEventHandler(p => p.DeleteAsync(userId, partId, fromClient), ex => _logger.Log(LogLevel.Error, "profile", "An error occured while deleting a custom part.", ex));
+            return customProfileParts.RunEventHandler(p => p.DeleteAsync(userId, partId, fromClient), ex => _logger.Log(LogLevel.Error, "profile", "An error occurred while deleting a custom part.", ex));
         }
 
         public async Task UpdateCustomProfilePart(string userId, string partId, string version, bool fromClient, Stream inputStream)

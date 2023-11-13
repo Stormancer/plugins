@@ -143,6 +143,17 @@ namespace Stormancer.Server.Plugins.Profile
                 }
                 return desc;
             });
+            if(!result.IsValid)
+            {
+                if (result.OriginalException != null)
+                {
+                    _logger.Log(Diagnostics.LogLevel.Error, "profiles.customParts", "An error occurred while retrieving the inferno part.",result.OriginalException);
+                }
+                else
+                {
+                    _logger.Log(Diagnostics.LogLevel.Error, "profiles.customParts", "An error occurred while retrieving the inferno part.", result.ServerError);
+                }
+            }
 
             foreach (var partId in partIds)
             {
