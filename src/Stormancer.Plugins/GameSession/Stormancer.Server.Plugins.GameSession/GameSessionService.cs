@@ -357,7 +357,7 @@ namespace Stormancer.Server.Plugins.GameSession
             await using (var scope = _scene.CreateRequestScope())
             {
                 var pools = scope.Resolve<ServerPoolProxy>();
-                
+
                 try
                 {
                     if (_server != null)
@@ -671,6 +671,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async Task OnPeerConnected(IScenePeerClient peer)
         {
+
             if (!TryResetShutdown())
             {
                 await peer.Disconnect("sceneShutdown");
@@ -682,12 +683,15 @@ namespace Stormancer.Server.Plugins.GameSession
             await using var dr = _scene.CreateRequestScope();
             var sessions = dr.Resolve<IUserSessions>();
 
-            var session = await sessions.GetSession(peer, CancellationToken.None);
+            var client = _clients.FirstOrDefault(client => client.Value.SessionId == peer.SessionId);
+
+            var session = client.Value?.Session ?? await sessions.GetSession(peer, CancellationToken.None);
 
             if (session is null)
             {
                 return;
             }
+
 
             var isDedicatedServer = IsDedicatedServer(session);
             //Is authenticated as a dedicated server
@@ -699,10 +703,22 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 return;
             }
-
             _playerConnectedOnce = true;
+            var userId = client.Key;
 
-            var client = _clients.FirstOrDefault(client => client.Value.SessionId == peer.SessionId);
+
+            var (reservationId, reservation) = _reservationStates.FirstOrDefault(r => r.Value.UserIds.Contains(userId));
+            if (reservation != null)
+            {
+                reservation.UserIds.Remove(userId);
+                if (reservation.UserIds.Count == 0)
+                {
+                    _reservationStates.TryRemove(reservationId, out _);
+                }
+            }
+
+
+
             if (client.Value == null)
             {
                 await peer.Disconnect("noClient");
@@ -724,8 +740,6 @@ namespace Stormancer.Server.Plugins.GameSession
             var serverFound = await TryStart();
 
 
-
-            var userId = client.Key;
 
 
             _analytics.PlayerJoined(userId, peer.SessionId.ToString(), _scene.Id);
@@ -867,7 +881,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     {
                         if (!state.IsServerPersistent())
                         {
-                            
+
                             _ = _scene.RunTask(async ct =>
                             {
                                 try
@@ -1446,7 +1460,7 @@ namespace Stormancer.Server.Plugins.GameSession
                         {
                             if (!_scene.RemotePeers.Any(p => p.SessionId != _server.GameServerSessionId) && !_reservationStates.Any(r => r.Value.ExpiresOn > DateTime.UtcNow))
                             {
-                               
+
                                 await RequestShutdown("gamesession.empty");
 
                             }
