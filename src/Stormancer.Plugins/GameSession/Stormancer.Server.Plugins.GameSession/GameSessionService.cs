@@ -1446,7 +1446,7 @@ namespace Stormancer.Server.Plugins.GameSession
                         {
                             if (!_scene.RemotePeers.Any(p => p.SessionId != _server.GameServerSessionId) && !_reservationStates.Any(r => r.Value.ExpiresOn > DateTime.UtcNow))
                             {
-
+                               
                                 await RequestShutdown("gamesession.empty");
 
                             }
@@ -1499,15 +1499,18 @@ namespace Stormancer.Server.Plugins.GameSession
         }
         private async Task RequestShutdown(string shutdownReason, TimeSpan keepAlive = default, bool runEvents = true)
         {
-            await using var scope = _scene.CreateRequestScope();
-            var ctx = new ShuttingDownContext(this, _scene, shutdownReason);
-            ctx.KeepAlive = keepAlive;
-            if (runEvents)
+            if (_shutdownReason == null)
             {
-                await scope.Resolve<IEnumerable<IGameSessionEventHandler>>().RunEventHandler(h => h.OnShuttingDown(ctx), ex => _logger.Log(LogLevel.Error, "gamesession", $"An error occurred while running {nameof(IGameSessionEventHandler.OnShuttingDown)}", ex));
+                await using var scope = _scene.CreateRequestScope();
+                var ctx = new ShuttingDownContext(this, _scene, shutdownReason);
+                ctx.KeepAlive = keepAlive;
+                if (runEvents)
+                {
+                    await scope.Resolve<IEnumerable<IGameSessionEventHandler>>().RunEventHandler(h => h.OnShuttingDown(ctx), ex => _logger.Log(LogLevel.Error, "gamesession", $"An error occurred while running {nameof(IGameSessionEventHandler.OnShuttingDown)}", ex));
+                }
+                _shutdownReason = ctx.ShutdownReason;
+                _shuttingDownTime = DateTime.UtcNow + ctx.KeepAlive;
             }
-            _shutdownReason = ctx.ShutdownReason;
-            _shuttingDownTime = DateTime.UtcNow + ctx.KeepAlive;
         }
 
         private async Task EvaluateShutdown()
