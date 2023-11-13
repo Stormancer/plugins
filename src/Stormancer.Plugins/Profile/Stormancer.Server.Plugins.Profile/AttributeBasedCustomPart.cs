@@ -87,9 +87,9 @@ namespace Stormancer.Server.Plugins.Profile
                             .Where(t => t.attr != null)
                             .ToDictionary(t => t.attr!.PartId, t => t.type) ?? new Dictionary<string, Type>();
 
-                        _logger.Log(Diagnostics.LogLevel.Info, "profiles.customParts", "Custom profile parts definitions loaded", new { types = _customProfilePartTypescache.Select(kvp=>new { id = kvp.Key, type = kvp.Value.ToString() } )});
+                        _logger.Log(Diagnostics.LogLevel.Info, "profiles.customParts", "Custom profile parts definitions loaded", new { types = _customProfilePartTypescache.Select(kvp => new { id = kvp.Key, type = kvp.Value.ToString() }) });
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         _logger.Log(Diagnostics.LogLevel.Info, "profiles.customParts", "Failed to load custom profile part definitions.", ex);
 
@@ -97,13 +97,13 @@ namespace Stormancer.Server.Plugins.Profile
                         return false;
                     }
 
-               
+
 
                 }
 
                 bool found = _customProfilePartTypescache.TryGetValue(partId, out type);
 
-                if(!found && partId == "inferno") //DEBUG CODE
+                if (!found && partId == "inferno") //DEBUG CODE
                 {
                     _logger.Log(Diagnostics.LogLevel.Warn, "profiles.customParts", $"No profile part type found for partId {partId}", new { partId, parts = _customProfilePartTypescache?.Keys ?? Enumerable.Empty<string>() });
                 }
@@ -143,16 +143,12 @@ namespace Stormancer.Server.Plugins.Profile
                 }
                 return desc;
             });
-            if(!result.IsValid)
+            if (!result.IsValid)
             {
-                if (result.OriginalException != null)
-                {
-                    _logger.Log(Diagnostics.LogLevel.Error, "profiles.customParts", "An error occurred while retrieving the inferno part.",result.OriginalException);
-                }
-                else
-                {
-                    _logger.Log(Diagnostics.LogLevel.Error, "profiles.customParts", "An error occurred while retrieving the inferno part.", result.ServerError);
-                }
+
+                _logger.Log(Diagnostics.LogLevel.Error, "profiles.customParts", "An error occurred while retrieving the inferno part.", new { result.DebugInformation });
+
+
             }
 
             foreach (var partId in partIds)
