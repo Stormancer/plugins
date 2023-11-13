@@ -132,7 +132,10 @@ namespace Stormancer.Server.Plugins.Profile
                     partIds.Add(partId);
                 }
             }
-
+            if(partIds.Count == 0)
+            {
+                return;
+            }
             var client = await clientFactory.CreateClient("default", "profileParts");
 
             var result = await client.MultiGetAsync(desc =>
