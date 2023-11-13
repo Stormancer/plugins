@@ -149,6 +149,13 @@ namespace Stormancer.Server.Plugins.Database
         /// </summary>
         public string? ConnectionPool { get; set; } = "default";
 
+        /// <summary>
+        /// Disables direct streaming on the Elasticsearch client.
+        /// </summary>
+        /// <remarks>
+        /// Disable direct streaming to get better debug informations. It impacts performance.
+        /// </remarks>
+        public bool DisableDirectStreaming { get; internal set; }
     }
 
     /// <summary>
@@ -444,6 +451,7 @@ namespace Stormancer.Server.Plugins.Database
                 maxRetries = policyConfig.MaxRetries,
                 retryTimeout = policyConfig.RetryTimeout,
                 PingTimeout = policyConfig.PingTimeout,
+                DisableDirectStreaming = policyConfig.DisableDirectStreaming
             };
         }
 
