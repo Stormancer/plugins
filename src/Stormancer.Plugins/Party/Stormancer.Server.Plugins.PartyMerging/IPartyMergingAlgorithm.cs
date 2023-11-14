@@ -95,5 +95,11 @@ namespace Stormancer.Server.Plugins.PartyMerging
         /// </summary>
         /// <returns></returns>
         Task Merge(PartyMergingContext ctx);
+
+        /// <summary>
+        /// Called after each merge, to check if we can remove the party from the algorithm context
+        /// </summary>
+        /// <returns></returns>
+        public bool CanCompleteMerge(Models.Party intoParty) => true;
     }
 }
