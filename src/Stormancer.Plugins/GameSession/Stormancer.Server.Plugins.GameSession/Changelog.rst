@@ -32,6 +32,7 @@ Changed
 - Declared game servers as "service" clients to disable client related features, for instance version checking.
 - Compatibility with Player models 4.0.0
 - If Configuration.HostSessionId exists but is empty, the game session now takes the first connected peer as host.
+- Try to connect agents in parallel.
 
 Fixed
 *****
@@ -44,6 +45,7 @@ Fixed
 - Do not try getting the client in PostResults if it is not in the list of clients.
 - Fixed host couldn't be found in gamesessions if specified in the game session config because SessionId was compared with the user id.
 - Don't shutdown the game session if there is no player but pending reservations.
+- Only output non faulted agents in GetRegions API.
 
 6.1.1.15
 ----------

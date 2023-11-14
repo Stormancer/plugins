@@ -212,6 +212,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// </summary>
         /// <param name="configuration"></param>
         /// <param name="secretsStore"></param>
+        /// <param name="httpClientFactory"></param>
         public GameServerAgentConfiguration(IConfiguration configuration, ISecretsStore secretsStore, IHttpClientFactory httpClientFactory)
         {
             _configuration = configuration;
@@ -610,7 +611,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         }
         private async Task RunAsync()
         {
-            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+          
             var fed = await _environment.GetFederation();
             while (!_disposedCancellationToken.IsCancellationRequested && !ShuttingDown)
             {
@@ -625,19 +626,19 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                     {
                         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-                        
-
-                        foreach (var url in _configuration.ConfigurationSection.AgentUrls)
+                      
+                        async Task TryConnect(string url)
                         {
                             if (!IsConnected(url))
                             {
                                 try
                                 {
-                                    client.BaseAddress = new Uri(url);
+                                    var uri = new Uri(url);
+
                                     var appInfos = await _applicationInfos;
                                     using var cts = CancellationTokenSource.CreateLinkedTokenSource(_disposedCancellationToken);
                                     cts.CancelAfter(60000);
-                                    var result = await client.PostAsJsonAsync("/clients/connect", new ApplicationConfigurationOptions
+                                    var result = await client.PostAsJsonAsync(new Uri(uri, "/clients/connect"), new ApplicationConfigurationOptions
                                     {
                                         UserId = url,
                                         StormancerAccount = appInfos.AccountId,
@@ -649,9 +650,18 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                                 catch (Exception) { }
                             }
                         }
+
+                        var tasks = new List<Task>();
+
+                        foreach (var url in _configuration.ConfigurationSection.AgentUrls)
+                        {
+                            tasks.Add(TryConnect(url));
+                            
+                        }
+                        await Task.WhenAll();
                     }
 
-                    await timer.WaitForNextTickAsync(_disposedCancellationToken);
+                    await Task.Delay(10000);
 
                 }
                 catch (Exception)

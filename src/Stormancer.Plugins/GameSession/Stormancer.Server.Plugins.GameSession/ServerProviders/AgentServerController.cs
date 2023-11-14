@@ -54,11 +54,11 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             {
                 if (onlyActive)
                 {
-                    return a.IsActive;
+                    return a.IsActive && !a.Faulted;
                 }
                 else
                 {
-                    return true;
+                    return !a.Faulted;
                 }
             });
             foreach (var agent in agents)
