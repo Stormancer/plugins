@@ -15,3 +15,4 @@ Unreleased
 Added
 *****
 - Created the plugin party merging, which enables to create server side logic to merge parties on request by party leaders.
+- Added progressive party merging.
