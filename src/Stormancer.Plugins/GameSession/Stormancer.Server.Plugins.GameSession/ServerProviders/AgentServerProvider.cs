@@ -697,12 +697,20 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             if(ShuttingDown)
             {
                 peer.DisconnectFromServer("shuttingDown");
+                return;
             }
             lock (_syncRoot)
             {
-                var agent = new DockerAgent(peer, agentSession);
-                _agents.Add(agentSession.User.Id, agent);
-                _ = SubscribeContainerStatusUpdate(agent, agent.CancellationTokenSource.Token);
+                if (agentSession.User == null)
+                {
+                    peer.DisconnectFromServer("notAuthenticated");
+                }
+                else
+                {
+                    var agent = new DockerAgent(peer, agentSession);
+                    _agents[agentSession.User.Id] = agent;
+                    _ = SubscribeContainerStatusUpdate(agent, agent.CancellationTokenSource.Token);
+                }
             }
         }
 
