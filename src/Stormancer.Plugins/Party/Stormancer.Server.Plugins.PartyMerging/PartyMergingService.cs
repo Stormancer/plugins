@@ -214,20 +214,23 @@ namespace Stormancer.Server.Plugins.PartyMerging
             var results = await Task.WhenAll(ctx.MergeCommands.Select(cmd => MergeAsync(cmd.From, cmd.Into, cmd.CustomData, cancellationToken)));
 
 
-            foreach (var partyId in results.Distinct().WhereNotNull())
+            foreach (var partyTo in results.Distinct().WhereNotNull())
             {
-                lock (_state._syncRoot)
+                if (_algorithm.CanCompleteMerge(partyTo))
                 {
-                    if (_state._states.TryGetValue(partyId, out var state))
+                    lock (_state._syncRoot)
                     {
-                        state.Complete(null);
-                        _state._states.Remove(partyId);
+                        if (_state._states.TryGetValue(partyTo.PartyId, out var state))
+                        {
+                            state.Complete(null);
+                            _state._states.Remove(partyTo.PartyId);
+                        }
                     }
                 }
             }
         }
 
-        private async Task<string?> MergeAsync(Models.Party partyFrom, Models.Party partyTo, JObject customData, CancellationToken cancellationToken)
+        private async Task<Models.Party?> MergeAsync(Models.Party partyFrom, Models.Party partyTo, JObject customData, CancellationToken cancellationToken)
         {
             var result = await _partyManagement.CreateConnectionTokenFromPartyId(partyTo.PartyId, Memory<byte>.Empty, cancellationToken);
 
@@ -247,8 +250,13 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
                         _state._states.Remove(partyFrom.PartyId);
 
+                        foreach(var (key, value) in partyFrom.Players)
+                        {
+                            partyTo.Players.Add(key, value);
+                        }
+
                     }
-                    return partyTo.PartyId;
+                    return partyTo;
                 }
             }
             else
