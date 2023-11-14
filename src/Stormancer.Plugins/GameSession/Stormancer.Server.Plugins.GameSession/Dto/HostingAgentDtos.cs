@@ -401,6 +401,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             if (StormancerEndpoint != other.StormancerEndpoint) return false;
             if (StormancerAccount != other.StormancerAccount) return false;
             if (StormancerApplication != other.StormancerApplication) return false;
+            if(this.ApplicationUid != other.ApplicationUid) return false;
 
             return true;
         }
@@ -425,7 +426,30 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// </summary>
         public string? UserId { get; set; }
 
+        
+        /// <summary>
+        /// Gets or sets the user id to use for this client.
+        /// </summary>
         public string? ApplicationUid { get; set; }
 
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as ApplicationConfigurationOptions);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(StormancerEndpoint, StormancerAccount, StormancerApplication, UserId, ApplicationUid);
+        }
+
+        public static bool operator ==(ApplicationConfigurationOptions? left, ApplicationConfigurationOptions? right)
+        {
+            return EqualityComparer<ApplicationConfigurationOptions>.Default.Equals(left, right);
+        }
+
+        public static bool operator !=(ApplicationConfigurationOptions? left, ApplicationConfigurationOptions? right)
+        {
+            return !(left == right);
+        }
     }
 }
