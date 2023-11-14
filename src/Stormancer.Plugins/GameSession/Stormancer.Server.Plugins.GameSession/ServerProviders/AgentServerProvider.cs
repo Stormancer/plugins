@@ -600,7 +600,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             _disposedCancellationToken = _disposedCts.Token;
             _ = RunAsync();
         }
-      
+
         private CancellationTokenSource _disposedCts;
         private CancellationToken _disposedCancellationToken;
 
@@ -611,13 +611,13 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         }
         private async Task RunAsync()
         {
-          
+
             var fed = await _environment.GetFederation();
             while (!_disposedCancellationToken.IsCancellationRequested && !ShuttingDown)
             {
                 try
                 {
-                   
+
 
                     var token = await _configuration.GetAccessToken();
 
@@ -626,7 +626,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                     {
                         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-                      
+
                         async Task TryConnect(string url)
                         {
                             if (!IsConnected(url))
@@ -656,7 +656,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                         foreach (var url in _configuration.ConfigurationSection.AgentUrls)
                         {
                             tasks.Add(TryConnect(url));
-                            
+
                         }
                         await Task.WhenAll();
                     }
@@ -686,7 +686,28 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 {
                     foreach (var (id, agent) in _agents)
                     {
-                        agent.Peer.Send("agent.UpdateActiveApp", e.ActiveDeploymentId, Core.PacketPriority.MEDIUM_PRIORITY, Core.PacketReliability.RELIABLE);
+                        try
+                        {
+                            agent.Peer.Send("agent.UpdateActiveApp", e.ActiveDeploymentId, Core.PacketPriority.MEDIUM_PRIORITY, Core.PacketReliability.RELIABLE);
+                        }
+                        catch { }
+
+                        Task.Run(async () =>
+                        {
+                            await Task.Delay(5000);
+                            try
+                            {
+                                DockerAgent? a = null;
+                                lock (_syncRoot)
+                                {
+                                    _agents.TryGetValue(id, out a);
+
+                                }
+                                await (a?.Peer?.DisconnectFromServer("shutdown") ?? Task.CompletedTask);
+                            }
+                            catch (Exception) { }
+                        });
+
                     }
                 }
             }
@@ -694,7 +715,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         public void AgentConnected(IScenePeerClient peer, Session agentSession)
         {
-            if(ShuttingDown)
+            if (ShuttingDown)
             {
                 peer.DisconnectFromServer("shuttingDown");
                 return;
