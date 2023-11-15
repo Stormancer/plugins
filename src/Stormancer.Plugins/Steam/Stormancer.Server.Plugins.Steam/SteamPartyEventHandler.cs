@@ -347,29 +347,36 @@ namespace Stormancer.Server.Plugins.Steam
 
         private async Task<VoidSteamResult> SetLobbyJoinableAsync(ulong steamLobbyId, bool joinable, SteamPartyData data, CancellationToken cancellationToken)
         {
-            var target = await GetLobbyLeaderAsync(steamLobbyId, data, cancellationToken);
-            if (target == null)
+            try
             {
-                return new VoidSteamResult { Success = false, ErrorDetails = "leader not found" };
-            }
-
-            var args = new UpdateLobbyJoinableArgs { Joinable = joinable, SteamIDLobby = steamLobbyId };
-            using var packet = await _rpc.Rpc("Steam.UpdateLobbyJoinable", target, s => _serializer.Serialize(args, s), Core.PacketPriority.MEDIUM_PRIORITY, cancellationToken);
-
-            var result = packet.ReadObject<VoidSteamResult>();
-
-            if (!result.Success)
-            {
-                _logger.Log(LogLevel.Error, "SteamPartyEventHandler.SetLobbyJoinableAsync", "Steam lobby set joinable failed", new
+                var target = await GetLobbyLeaderAsync(steamLobbyId, data, cancellationToken);
+                if (target == null)
                 {
+                    return new VoidSteamResult { Success = false, ErrorDetails = "leader not found" };
+                }
 
-                    result.ErrorId,
-                    result.ErrorDetails
-                });
+                var args = new UpdateLobbyJoinableArgs { Joinable = joinable, SteamIDLobby = steamLobbyId };
+                using var packet = await _rpc.Rpc("Steam.UpdateLobbyJoinable", target, s => _serializer.Serialize(args, s), Core.PacketPriority.MEDIUM_PRIORITY, cancellationToken);
+
+                var result = packet.ReadObject<VoidSteamResult>();
+
+                if (!result.Success)
+                {
+                    _logger.Log(LogLevel.Error, "SteamPartyEventHandler.SetLobbyJoinableAsync", "Steam lobby set joinable failed", new
+                    {
+
+                        result.ErrorId,
+                        result.ErrorDetails
+                    });
 
 
+                }
+                return result;
             }
-            return result;
+            catch (InvalidOperationException ex) //don't bubble up exceptions occurring when the steam client can't process the request.
+            {
+                return new VoidSteamResult { Success = false, ErrorDetails = ex.Message, ErrorId = "communicationError" };
+            }
         }
 
         /// <summary>

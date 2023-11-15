@@ -22,6 +22,10 @@ Added
 - Added `defaultAuthProtocol` field to the steam auth config section. This enables developer to chose the default Steam auth protocol to use if the client doesn't provide it. Defaults to v0001, the oldest protocol. This can be useful if you use a modified steam.hpp in the game client that doesn't advertise its protocol version and doesn't use v0001.
 - Don't call Steam leave lobby web API on player leave lobby because it doesn't work with webAPI tokens.
 
+Changed
+*******
+- Do not emit an error log when the steam client miss some features.
+
 4.1.4
 ----------
 Fixed
