@@ -33,6 +33,7 @@ Changed
 - Compatibility with Player models 4.0.0
 - If Configuration.HostSessionId exists but is empty, the game session now takes the first connected peer as host.
 - Try to connect agents in parallel.
+- Don't throw an error when trying to keep alive or stop a game server and the agent is offline.
 
 Fixed
 *****

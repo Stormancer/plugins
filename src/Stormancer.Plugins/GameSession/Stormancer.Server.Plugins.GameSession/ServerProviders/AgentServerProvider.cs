@@ -903,7 +903,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             {
                 if (!_agents.TryGetValue(agentId, out agent))
                 {
-                    throw new InvalidOperationException("Agent not found");
+                    return false;
                 }
             }
 
@@ -1129,7 +1129,18 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             Debug.Assert(ctx != null);
             (string agentId, string containerId) = (ValueTuple<string, string>)(ctx);
 
-            return KeepContainerAliveAsync(agentId, gameSessionId);
+            lock (_syncRoot)
+            {
+                if (_agents.TryGetValue(agentId, out _))
+                {
+                    return KeepContainerAliveAsync(agentId, gameSessionId);
+                }
+                else
+                {
+                    return Task.FromResult(false);
+                }
+            }
+                 
         }
     }
 
