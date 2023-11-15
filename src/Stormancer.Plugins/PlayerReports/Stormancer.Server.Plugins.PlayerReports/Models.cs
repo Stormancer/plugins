@@ -1,8 +1,10 @@
 ﻿
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -47,11 +49,73 @@ namespace Stormancer.Server.Plugins.PlayerReports
 
     }
 
+    /// <summary>
+    /// Record of a bug report in the database.
+    /// </summary>
+    public class BugReportRecord
+    {
+        public Guid Id { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Id of the reporter.
+        /// </summary>
+        public Guid ReporterId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <see cref="UserRecord"/> who created the report.
+        /// </summary>
+        [ForeignKey("ReporterId")]
+        public UserRecord Reporter { get; set; } = default!;
+
+        /// <summary>
+        /// Gets or sets the message associated with the bug report.
+        /// </summary>
+        public string Message { get; set; } = default!;
+
+        /// <summary>
+        /// Custom json context associated with the bug report.
+        /// </summary>
+        public JsonDocument Context { get; set; } = default!;
+
+        /// <summary>
+        /// Gets or sets the date the bug record was created (UTC)
+        /// </summary>
+        public DateTime CreatedOn { get; set; }
+
+        /// <summary>
+        /// Gets or sets the list of file attachments associated with the report.
+        /// </summary>
+        public JsonDocument Attachements { get; set; } = default!;
+    }
+
+    /// <summary>
+    /// File attachment
+    /// </summary>
+    public class BugReportAttachementRecord
+    {
+        /// <summary>
+        /// Name of the attachment.
+        /// </summary>
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// Gets or sets the path of the attachment.
+        /// </summary>
+        public string AttachmentPath { get; set; } = default!;
+
+        /// <summary>
+        /// Gets or sets the content type of the attachment.
+        /// </summary>
+        public string ContentType { get; set; } = default!;
+
+    }
+
     internal class ModelConfigurator : Stormancer.Server.Plugins.Database.EntityFrameworkCore.IDbModelBuilder
     {
         public void OnModelCreating(ModelBuilder modelBuilder, string contextId, Dictionary<string, object> customData)
         {
             modelBuilder.Entity<PlayerReport>();
+            modelBuilder.Entity<BugReportRecord>();
         }
     }
 }

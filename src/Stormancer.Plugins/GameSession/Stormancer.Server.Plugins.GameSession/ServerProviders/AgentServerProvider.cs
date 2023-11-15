@@ -1096,7 +1096,6 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             DockerAgent? agent;
             lock (_syncRoot)
             {
-
                 if (!_agents.TryGetValue(agentId, out agent))
                 {
                     throw new InvalidOperationException("Agent not found");

@@ -35,6 +35,7 @@ namespace Stormancer.Server.Plugins.PlayerReports
                 builder.Register<ReportsService>().InstancePerRequest();
                 builder.Register<ModelConfigurator>().As<IDbModelBuilder>();
                 builder.Register<PlayerReportsServiceLocator>().As<IServiceLocatorProvider>();
+                builder.Register<InternalBugReportBackend>().As<IBugReportingBackend>().InstancePerRequest();
 
             };
             IHost? _host = null;

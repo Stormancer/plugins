@@ -55,7 +55,7 @@ namespace Stormancer.Server.Plugins.PlayerReports
             var mem = owner.Memory.Slice(0, length);
             ctx.InputStream.Read(mem.Span);
             var list = new List<BugReportAttachmentContent> { new BugReportAttachmentContent(contentType, "log", mem) };
-            await _reports.SaveBugReportAsync(session.User.Id, message, customData, list);
+            await _reports.SaveBugReportAsync(session.User.Id, message, customData, list, ctx.CancellationToken);
         }
 
     }

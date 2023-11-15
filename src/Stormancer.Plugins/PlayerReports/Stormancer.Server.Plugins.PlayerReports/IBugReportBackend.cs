@@ -4,6 +4,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.PlayerReports
@@ -98,15 +99,20 @@ namespace Stormancer.Server.Plugins.PlayerReports
     public interface IBugReportingBackend
     {
         /// <summary>
+        /// Gets a string indicating the type of the backend.
+        /// </summary>
+        public string Type { get; }
+        /// <summary>
         /// Processes a bug report.
         /// </summary>
         /// <param name="reporterId"></param>
         /// <param name="message"></param>
         /// <param name="customData"></param>
         /// <param name="attachments"></param>
+        /// <param name="cancellationToken"></param>
         /// <remarks>Should only process the bug report if enabled in the configuration.</remarks>
         /// <returns></returns>
-        Task ProcessBugReportAsync(string reporterId, string message, JObject customData, IEnumerable<BugReportAttachmentContent> attachments);
+        Task ProcessBugReportAsync(string reporterId, string message, JObject customData, IEnumerable<BugReportAttachmentContent> attachments, CancellationToken cancellationToken);
 
       
     }

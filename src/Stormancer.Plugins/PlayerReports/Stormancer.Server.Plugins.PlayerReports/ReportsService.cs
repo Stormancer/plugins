@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
 using Stormancer.Server.Plugins.Users;
 using System;
@@ -12,17 +13,29 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.PlayerReports
 {
+    public class BugReportsConfigurationSection
+    {
+        internal const string PATH = "bugReports";
+
+
+        /// <summary>
+        /// Id of the backend to use to store bug reports.
+        /// </summary>
+        public string? Backend { get; set; }
+    }
     internal class ReportsService
     {
         private readonly DbContextAccessor _dbContextAccessor;
         private readonly IEnumerable<IBugReportingBackend> _backends;
         private readonly ILogger _logger;
+        private readonly IConfiguration _configuration;
 
-        public ReportsService(DbContextAccessor dbContextAccessor, IEnumerable<IBugReportingBackend> backends, ILogger logger)
+        public ReportsService(DbContextAccessor dbContextAccessor, IEnumerable<IBugReportingBackend> backends, ILogger logger, IConfiguration configuration)
         {
             _dbContextAccessor = dbContextAccessor;
             _backends = backends;
             _logger = logger;
+            _configuration = configuration;
         }
         internal async Task CreatePlayerReportAsync(string reporterUserId, string reportedUserId, string message, JObject customData, CancellationToken cancellationToken)
         {
@@ -48,21 +61,30 @@ namespace Stormancer.Server.Plugins.PlayerReports
             await ctx.SaveChangesAsync();
         }
 
-        public async Task SaveBugReportAsync(string reporterId, string message, JObject customData, IEnumerable<BugReportAttachmentContent> attachments)
+        public async Task SaveBugReportAsync(string reporterId, string message, JObject customData, IEnumerable<BugReportAttachmentContent> attachments, CancellationToken cancellationToken)
         {
-            foreach(var backend in _backends)
+            var config = _configuration.GetValue<BugReportsConfigurationSection>("bugReports") ?? new BugReportsConfigurationSection();
+            if (config.Backend == null)
             {
-                try
+                return;
+            }
+
+            foreach (var backend in _backends)
+            {
+                if (backend.Type == config.Backend)
                 {
-                    await backend.ProcessBugReportAsync(reporterId, message, customData, attachments);
-                }
-                catch (Exception ex)
-                {
-                    _logger.Log(LogLevel.Error, "bugReports", "An error occurred while reporting a bug.", ex);
+                    try
+                    {
+                        await backend.ProcessBugReportAsync(reporterId, message, customData, attachments, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Log(LogLevel.Error, "bugReports", "An error occurred while reporting a bug.", ex);
+                    }
                 }
             }
         }
 
-        
+
     }
 }
