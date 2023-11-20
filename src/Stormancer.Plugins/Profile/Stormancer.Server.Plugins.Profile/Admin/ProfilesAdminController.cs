@@ -29,7 +29,7 @@ namespace Stormancer.Server.Plugins.Profile.Admin
     /// Provide admin APIs for profiles.
     /// </summary>
     [ApiController]
-    [Route("_karmazoo/profiles")]
+    [Route("_profiles")]
     public class ProfilesAdminController : ControllerBase
     {
         private readonly ISceneHost _scene;

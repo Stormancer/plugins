@@ -6,10 +6,17 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.PartyMerging
 {
+    /// <summary>
+    /// Implements a sample party merging algorithm.
+    /// </summary>
     public class SimplePartyMergingAlgorithm : IPartyMergingAlgorithm
     {
         private readonly int _partySize;
 
+        /// <summary>
+        /// Creates a new <see cref="SimplePartyMergingAlgorithm"/>.
+        /// </summary>
+        /// <param name="partySize"></param>
         public SimplePartyMergingAlgorithm(int partySize)
         {
             _partySize = partySize;

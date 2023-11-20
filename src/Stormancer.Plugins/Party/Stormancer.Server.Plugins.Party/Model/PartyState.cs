@@ -133,6 +133,7 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// Gets a <see cref="DateTime"/> object representing the date the scene was created in UTC.
         /// </summary>
         public DateTime CreatedOnUtc { get; } = DateTime.UtcNow;
-
+        public bool GameFinderLaunchPending { get; internal set; }
+        public GameFinderRequestPolicy LastGameFinderRequestPolicy { get; internal set; }
     }
 }

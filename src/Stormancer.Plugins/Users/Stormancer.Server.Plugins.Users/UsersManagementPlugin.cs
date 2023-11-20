@@ -200,7 +200,7 @@ namespace Stormancer.Server.Plugins.Users
             ).As<IUserService>().InstancePerRequest();
 
 
-            b.Register<UsersAdminController>();
+            b.Register<UsersAdminController>().InstancePerRequest();
             b.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
 
             //b.Register<UserSessionCache>(dr => new UserSessionCache(dr.Resolve<ISceneHost>(), dr.Resolve<ISerializer>(), dr.Resolve<ILogger>())).AsSelf().InstancePerScene();

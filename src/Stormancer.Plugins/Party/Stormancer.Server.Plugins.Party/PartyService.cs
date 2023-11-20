@@ -625,9 +625,9 @@ namespace Stormancer.Server.Plugins.Party
                     throw new ClientException(SettingsOutdatedError);
                 }
 
-                var updatingCtx = new UpdatingPlayerReadyStateContext(this, user, _scene);
+                var updatingCtx = new UpdatingPlayerReadyStateContext(this, user, _scene, partyUserStatus.DesiredStatus);
 
-                await handlers.RunEventHandler(h => h.OnUpdatingPlayerReadyState(updatingCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running 'OnUpdatingPlayerReadyState'", ex));
+                await handlers.RunEventHandler(h => h.OnUpdatingPlayerReadyState(updatingCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while running 'OnUpdatingPlayerReadyState'", ex));
 
                 if (!updatingCtx.Accept)
                 {
@@ -642,7 +642,8 @@ namespace Stormancer.Server.Plugins.Party
                 await BroadcastStateUpdateRpc(BatchStatusUpdate.Route, update);
 
                 var eventHandlerCtx = new PlayerReadyStateContext(this, user, _scene);
-                await handlers.RunEventHandler(h => h.OnPlayerReadyStateChanged(eventHandlerCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnPlayerReadyStateChanged", ex));
+                await handlers.RunEventHandler(h => h.OnPlayerReadyStateChanged(eventHandlerCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while running OnPlayerReadyStateChanged", ex));
+
 
                 bool shouldLaunchGameFinderRequest = false;
                 switch (eventHandlerCtx.GameFinderPolicy)
@@ -657,20 +658,91 @@ namespace Stormancer.Server.Plugins.Party
                         shouldLaunchGameFinderRequest = false;
                         break;
                 }
+                _partyState.LastGameFinderRequestPolicy = eventHandlerCtx.GameFinderPolicy;
+                var oldState = GameFinderState;
+                _partyState.GameFinderLaunchPending = shouldLaunchGameFinderRequest;
+                var newState = GameFinderState;
+
+                if (oldState != newState)
+                {
+                    await RaiseGameFinderStateChanged(oldState, newState);
+                }
+
 
                 if (shouldLaunchGameFinderRequest)
                 {
-                    Log(LogLevel.Trace, "UpdateGameFinderPlayerStatus", "Launching a FindGame request");
-                    LaunchGameFinderRequest();
+                    _ = _partyState.TaskQueue.PushWork(async () =>
+                    {
+                        if (_partyState.GameFinderLaunchPending)
+                        {
+                            _partyState.GameFinderLaunchPending = false;
+
+                            var oldState = this.GameFinderState;
+
+                            bool shouldLaunchGameFinderRequest = false;
+
+                            switch (_partyState.LastGameFinderRequestPolicy)
+                            {
+                                case GameFinderRequestPolicy.StartNow:
+                                    shouldLaunchGameFinderRequest = true;
+                                    break;
+                                case GameFinderRequestPolicy.StartWhenAllMembersReady:
+                                    shouldLaunchGameFinderRequest = _partyState.PartyMembers.All(kvp => kvp.Value.StatusInParty == PartyMemberStatus.Ready);
+                                    break;
+                                case GameFinderRequestPolicy.DoNotStart:
+                                    shouldLaunchGameFinderRequest = false;
+                                    break;
+                            }
+
+
+                            if (shouldLaunchGameFinderRequest)
+                            {
+                                Log(LogLevel.Trace, "UpdateGameFinderPlayerStatus", "Launching a FindGame request");
+                                LaunchGameFinderRequest();
+                            }
+                            else if (IsGameFinderRunning)
+                            {
+                                await TryCancelPendingGameFinder();
+                            }
+
+                            var newState = GameFinderState;
+
+                            if (oldState != newState)
+                            {
+                                await RaiseGameFinderStateChanged(oldState, newState);
+                            }
+                        }
+                    });
                 }
-                else if (IsGameFinderRunning)
-                {
-                    await TryCancelPendingGameFinder();
-                }
+
             });
         }
 
-        private bool IsGameFinderRunning
+        private PartyGameFinderStateChange GameFinderState
+        {
+            get
+            {
+                if (_partyState.GameFinderLaunchPending && !IsGameFinderRunning)
+                {
+                    return PartyGameFinderStateChange.StartPending;
+                }
+                else if (IsGameFinderRunning)
+                {
+                    return PartyGameFinderStateChange.Started;
+                }
+                else
+                {
+                    return PartyGameFinderStateChange.Stopped;
+                }
+            }
+        }
+        private async Task RaiseGameFinderStateChanged(PartyGameFinderStateChange old, PartyGameFinderStateChange newState)
+        {
+            await using var scope = _scene.CreateRequestScope();
+            var ctx = new GameFinderStateChangedContext(this, _scene, old, newState);
+            await scope.ResolveAll<IPartyEventHandler>().RunEventHandler(h => h.OnGameFinderStateChanged(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while running {}.", ex));
+        }
+        public bool IsGameFinderRunning
         {
             get
             {
@@ -817,6 +889,12 @@ namespace Stormancer.Server.Plugins.Party
         {
             if (!IsGameFinderRunning)
             {
+
+                _partyState.GameFinderLaunchPending = false;
+
+
+
+
                 _partyState.FindGameCts = new CancellationTokenSource();
                 _partyState.FindGameRequest = FindGame_Impl();
             }
@@ -841,13 +919,15 @@ namespace Stormancer.Server.Plugins.Party
             //Send S2S find match request
             try
             {
+                await using var scope = _scene.CreateRequestScope();
 
+                var gameFinder = scope.Resolve<GameFinderProxy>();
 
-                var findGameResult = await _gameFinderClient.FindGame(_partyState.Settings.GameFinderName, gameFinderRequest, _partyState.FindGameCts?.Token ?? CancellationToken.None);
+                var findGameResult = await gameFinder.FindGame(_partyState.Settings.GameFinderName, gameFinderRequest, _partyState.FindGameCts?.Token ?? CancellationToken.None);
 
                 if (!findGameResult.Success)
                 {
-                    Log(LogLevel.Error, "FindGame_Impl", "An error occurred during the S2S FindGame request", new { findGameResult.ErrorMsg });
+                    Log(LogLevel.Error, "Gamesession.gamefinder", "An error occurred during the S2S FindGame request", new { findGameResult.ErrorMsg });
                     BroadcastFFNotification(GameFinderFailedRoute, new GameFinderFailureDto { Reason = findGameResult.ErrorMsg });
                 }
             }
@@ -859,7 +939,7 @@ namespace Stormancer.Server.Plugins.Party
             }
             catch (Exception ex)
             {
-                Log(LogLevel.Error, "FindGame_Impl", "An error occurred during the S2S FindGame request", ex);
+                Log(LogLevel.Error, "Gamesession.gamefinder", "An error occurred during the S2S FindGame request", ex);
                 BroadcastFFNotification(GameFinderFailedRoute, new GameFinderFailureDto { Reason = ex.Message });
             }
             finally

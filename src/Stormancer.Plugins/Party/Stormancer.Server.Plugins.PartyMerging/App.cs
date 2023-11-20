@@ -1,19 +1,24 @@
-﻿using Nest;
-using Org.BouncyCastle.Math.EC;
-using Stormancer.Core;
+﻿using Stormancer.Core;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.AdminApi;
 using Stormancer.Server.Plugins.Party;
-using Stormancer.Server.Plugins.PartyMerging;
+using Stormancer.Server.Plugins.PartyMerging.admin;
 using Stormancer.Server.Plugins.ServiceLocator;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Reflection.Metadata.Ecma335;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.PartyFinder
+namespace Stormancer.Server.Plugins.PartyMerging
 {
+    /// <summary>
+    /// Entry point class
+    /// </summary>
     public class App
     {
+        /// <summary>
+        /// Entry point method
+        /// </summary>
+        /// <param name="builder"></param>
         public void Run(IAppBuilder builder)
         {
             builder.AddPlugin(new PartyMergingPlugin());
@@ -32,6 +37,12 @@ namespace Stormancer.Server.Plugins.PartyFinder
                 builder.Register<PartyMergingController>().InstancePerRequest();
                 builder.Register<PartyMergingConfigurationRepository>().SingleInstance();
                 builder.Register<PartyMergerLocator>().As<IServiceLocatorProvider>();
+                builder.Register<PartyMergingAdminController>().InstancePerRequest();
+                builder.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
+
+                builder.Register<MergingPartyService>().As<IMergingPartyService>().InstancePerRequest();
+                builder.Register<MergingRequestPartyState>().SingleInstance();
+                builder.Register<PartyEventHandler>().As<IPartyEventHandler>();
 
             };
             ctx.HostStarting += (IHost host) =>
@@ -89,11 +100,37 @@ namespace Stormancer.Server.Plugins.PartyFinder
     /// </summary>
     public class PartyMergingConstants
     {
+        /// <summary>
+        /// Gets the key used to store metadata for the plugin in the party scene.
+        /// </summary>
         public const string PARTY_METADATA_KEY = "stormancer.partyMerging";
+
+        /// <summary>
+        /// Gets the key used to store metadata for the plugin in the merger scene.
+        /// </summary>
         public const string MERGER_METADATA_KEY = "stormancer.partyMerger";
+
+        /// <summary>
+        /// Gets the id of the merger service.
+        /// </summary>
         public const string PARTYMERGER_SERVICE_TYPE = "stormancer.partyMerger";
+
+        /// <summary>
+        /// Gets the prefix for merger scenes.
+        /// </summary>
         public const string PARTYMERGER_PREFIX = "partyMerger-";
+
+        /// <summary>
+        /// Gets the template for merger scenes.
+        /// </summary>
         public const string PARTYMERGER_TEMPLATE = "partyMerger";
+
+        /// <summary>
+        /// Tries getting the merger id from a merger scene.
+        /// </summary>
+        /// <param name="scene"></param>
+        /// <param name="mergerId"></param>
+        /// <returns></returns>
         public static bool TryGetMergerId(ISceneHost scene, [NotNullWhen(true)] out string? mergerId)
         {
             if (scene.Id.StartsWith(PARTYMERGER_PREFIX))

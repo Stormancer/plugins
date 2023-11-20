@@ -21,10 +21,17 @@
 // SOFTWARE.
 
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Models;
+using Stormancer.Diagnostics;
 using Stormancer.Plugins;
+using Stormancer.Server.Admin;
+using Stormancer.Server.Plugins.WebApi;
+using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.AdminApi
 {
@@ -32,12 +39,32 @@ namespace Stormancer.Server.Plugins.AdminApi
     {
         public void Build(HostPluginBuildContext ctx)
         {
+            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
+            {
+                builder.Register<WebApiContainerBuilder>().As<IWebApiContainerBuilder>().SingleInstance();
+            };
+
             ctx.HostStarting += (Stormancer.Server.IHost host) =>
             {
                 //Configure 
                 host.AddAdminApiConfiguration((app, env, scene) =>
                 {
+                    
                     System.Diagnostics.Debug.WriteLine("start admin swagger");
+                   
+                    app.UseExceptionHandler(exceptionHandlerApp =>
+                    {
+                        exceptionHandlerApp.Run(context =>
+                        {
+                            var logger = context.RequestServices.GetRequiredService<ILogger>();
+                            var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
+                            if(exceptionHandlerPathFeature != null)
+                            {
+                                logger.Log(LogLevel.Error, "webApi", $"An error occurred while processing a web request to {context.Request.Method}:{context.Request.Path}", exceptionHandlerPathFeature.Error);
+                            }
+                            return Task.CompletedTask;
+                        });
+                    });
                     app.UseSwagger();
                     app.UseSwaggerUI(c =>
                     {
@@ -45,6 +72,7 @@ namespace Stormancer.Server.Plugins.AdminApi
                         
                     });
 
+                    
                     app.UseRouting();
 
                     app.UseCors(option => option
@@ -59,6 +87,9 @@ namespace Stormancer.Server.Plugins.AdminApi
                     {
                         endpoints.MapControllers();
                     });
+
+                   
+
                 }, (services, scene) =>
                 {
                     services.AddLocalization();

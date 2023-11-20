@@ -108,7 +108,10 @@ namespace Stormancer
 
 				pplx::task<LatencyTestResult> TestLatency(std::string regionName, std::string endpoint, const pplx::cancellation_token& cancellationToken)
 				{
-					web::http::client::http_client client = web::http::client::http_client(Stormancer::web::uri(Stormancer::utility::conversions::to_string_t(endpoint)));
+					web::http::client::http_client_config config;
+					config.set_timeout(std::chrono::seconds(5));
+					web::http::client::http_client client = web::http::client::http_client(Stormancer::web::uri(Stormancer::utility::conversions::to_string_t(endpoint)), config);
+
 					auto start = std::chrono::system_clock::now();
 					
 					return client.request(Stormancer::web::http::methods::GET, cancellationToken).then([start,regionName](pplx::task<web::http::http_response> task) 

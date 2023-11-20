@@ -186,5 +186,12 @@ namespace Stormancer.Server.Plugins.Party
         /// <param name="reservation"></param>
         /// <returns>Returns true if successful, false if the reservation couldn't be done because the players are incompatibles with the party (for instance it's full, or the OnCreatingReservation custom event failed)</returns>
         Task<bool> CreateReservation(PartyReservation reservation);
+
+        /// <summary>
+        /// Gets a value indicating if a game finder is currently running.
+        /// </summary>
+        bool IsGameFinderRunning { get; }
+
+
     }
 }

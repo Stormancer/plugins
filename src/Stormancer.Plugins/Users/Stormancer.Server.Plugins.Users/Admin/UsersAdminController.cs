@@ -43,16 +43,17 @@ namespace Stormancer.Server.Plugins.Users
     {
         
         private readonly ISceneHost scene;
+        private readonly IUserService _users;
 
         /// <summary>
         /// Controller constructor.
         /// </summary>
         /// <param name="users"></param>
         /// <param name="scene"></param>
-        public UsersAdminController(ISceneHost scene)
+        public UsersAdminController(ISceneHost scene, IUserService users)
         {
             this.scene = scene;
-
+            _users = users;
         }
 
 

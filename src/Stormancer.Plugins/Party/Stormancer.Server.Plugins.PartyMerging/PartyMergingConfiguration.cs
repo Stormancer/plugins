@@ -1,13 +1,6 @@
-﻿using Microsoft.AspNetCore.Server.IIS.Core;
-using Org.BouncyCastle.Security;
-using Stormancer.Core;
-using Stormancer.Server.Plugins.Party;
-using Stormancer.Server.Plugins.PartyFinder;
+﻿using Stormancer.Core;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.PartyMerging
 {

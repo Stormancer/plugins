@@ -1,21 +1,20 @@
 ﻿using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
-using Stormancer.Server.Plugins.Models;
 using Stormancer.Server.Plugins.Party;
-using Stormancer.Server.Plugins.PartyFinder;
 using Stormancer.Server.Plugins.Utilities.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.PartyMerging
 {
+    /// <summary>
+    /// State of the party merging process in the party scene.
+    /// </summary>
     internal class PartyMergingState
     {
         public readonly object _syncRoot = new object();
@@ -103,7 +102,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
                 _cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokens.ToArray());
 
-                _registration = _cts.Token.Register(() =>  Cancel());
+                _registration = _cts.Token.Register(() => Cancel());
 
                 currentRegistration.Unregister();
                 currentCts.Dispose();
@@ -178,7 +177,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
         public void StopMergeParty(string partyId)
         {
-            lock(_state._syncRoot)
+            lock (_state._syncRoot)
             {
                 if (_state._states.TryGetValue(partyId, out var state))
                 {
@@ -250,7 +249,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
                         _state._states.Remove(partyFrom.PartyId);
 
-                        foreach(var (key, value) in partyFrom.Players)
+                        foreach (var (key, value) in partyFrom.Players)
                         {
                             partyTo.Players.Add(key, value);
                         }
@@ -263,6 +262,20 @@ namespace Stormancer.Server.Plugins.PartyMerging
             {
                 return null;
             }
+        }
+
+        public async Task<JObject> GetStatusAsync(bool fromAdmin)
+        {
+            int partyCount;
+
+            lock (_state._syncRoot)
+            {
+                partyCount = _state._states.Count;
+            }
+            var json = JObject.FromObject(new { partyCount, algorithm = _algorithm.GetType().Name });
+            json["algorithmStatus"] = await _algorithm.GetStatusAsync(fromAdmin);
+
+            return json;
         }
     }
 }

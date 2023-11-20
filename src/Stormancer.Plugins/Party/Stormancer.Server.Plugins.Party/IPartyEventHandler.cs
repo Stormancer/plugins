@@ -306,9 +306,13 @@ namespace Stormancer.Server.Plugins.Party
         }
     }
 
+    /// <summary>
+    /// Context object used as the argument of <see cref="IPartyEventHandler.OnUpdatingPlayerReadyState(UpdatingPlayerReadyStateContext)"/>.
+    /// </summary>
     public class UpdatingPlayerReadyStateContext
     {
         public ISceneHost PartyScene { get; }
+        public PartyMemberStatus NewStatus { get; }
         public IPartyService Party { get; }
         public PartyMember Member { get; }
         public GameFinderRequestPolicy GameFinderPolicy { get; set; } = GameFinderRequestPolicy.StartWhenAllMembersReady;
@@ -320,11 +324,12 @@ namespace Stormancer.Server.Plugins.Party
         public bool Accept { get; set; } = true;
         public string ErrorId { get; set; } = string.Empty;
 
-        internal UpdatingPlayerReadyStateContext(IPartyService party, PartyMember user, ISceneHost scene)
+        internal UpdatingPlayerReadyStateContext(IPartyService party, PartyMember user, ISceneHost scene, PartyMemberStatus newStatus)
         {
             Party = party;
             Member = user;
             PartyScene = scene;
+            NewStatus = newStatus;
         }
     }
 
@@ -484,7 +489,7 @@ namespace Stormancer.Server.Plugins.Party
         /// </remarks>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        Task OnQuit(QuitPartyContext ctx);
+        Task OnQuit(QuitPartyContext ctx) => Task.CompletedTask;
 
         /// <summary>
         /// Event fired when the custom data associated with a member are updating
@@ -531,5 +536,69 @@ namespace Stormancer.Server.Plugins.Party
         /// <param name="joinedCtx"></param>
         /// <returns></returns>
         Task OnPreJoined(PreJoinedPartyContext joinedCtx) => Task.CompletedTask;
+
+        /// <summary>
+        /// Fired whenever the state of the game finder changes.
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        Task OnGameFinderStateChanged(GameFinderStateChangedContext context) => Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// State of the interaction between the party and the game finder.
+    /// </summary>
+    public enum PartyGameFinderStateChange
+    {
+        /// <summary>
+        /// The game finder is stopped.
+        /// </summary>
+        Stopped,
+
+        /// <summary>
+        /// A game finder start request was sent.
+        /// </summary>
+        /// <remarks>
+        /// The game finder request might be cancelled.
+        /// </remarks>
+        StartPending,
+
+        /// <summary>
+        /// The game finder is running.
+        /// </summary>
+        Started,
+    }
+    /// <summary>
+    /// Context used as argument for <see cref="IPartyEventHandler.OnGameFinderStateChanged(GameFinderStateChangedContext)"/>.
+    /// </summary>
+    public class GameFinderStateChangedContext
+    {
+        internal GameFinderStateChangedContext(IPartyService party, ISceneHost scene,PartyGameFinderStateChange oldState, PartyGameFinderStateChange newState)
+        {
+            Party = party;
+            Scene = scene;
+            OldState = oldState;
+            NewState = newState;
+        }
+
+        /// <summary>
+        /// Gets the party.
+        /// </summary>
+        public IPartyService Party { get; }
+
+        /// <summary>
+        /// Gets the party scene.
+        /// </summary>
+        public ISceneHost Scene { get; }
+
+        /// <summary>
+        /// Gets the previous state.
+        /// </summary>
+        public PartyGameFinderStateChange OldState { get; }
+
+        /// <summary>
+        /// Gets the new state.
+        /// </summary>
+        public PartyGameFinderStateChange NewState { get; }
     }
 }

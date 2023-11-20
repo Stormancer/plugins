@@ -101,5 +101,12 @@ namespace Stormancer.Server.Plugins.PartyMerging
         /// </summary>
         /// <returns></returns>
         public bool CanCompleteMerge(Models.Party intoParty) => true;
+
+        /// <summary>
+        /// Gets the status of the merger.
+        /// </summary>
+        /// <param name="fromAdmin"></param>
+        /// <returns></returns>
+        Task<JObject> GetStatusAsync(bool fromAdmin) => Task.FromResult(new JObject());
     }
 }

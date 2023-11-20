@@ -5,7 +5,7 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>9.0.0.35</Version>
+		<Version>9.0.0.38</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -36,7 +36,7 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="MsgPack.Cli" Version="1.0.1" />
-		<PackageReference Include="Stormancer.Abstractions.Server" Version="9.3.0" />
+		<PackageReference Include="Stormancer.Abstractions.Server" Version="9.4.0.5-pre" />
 		<PackageReference Include="Stormancer.Server.Common" Version="3.0.1" />
 		<PackageReference Include="System.Interactive.Async" Version="5.0.0" />
 		<PackageReference Include="System.Linq.Async" Version="6.0.1" />

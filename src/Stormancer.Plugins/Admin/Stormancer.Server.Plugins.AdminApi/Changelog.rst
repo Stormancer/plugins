@@ -14,6 +14,8 @@ Unreleased
 Changed
 *******
 - Swashbuckle dependency updated.
+- Create Request dependency lifetime scopes for requests.
+- Write logs in case of exceptions during web requests.
 
 3.0.0.5
 ----------
