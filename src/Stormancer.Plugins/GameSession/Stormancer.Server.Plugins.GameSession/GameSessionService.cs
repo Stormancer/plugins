@@ -1092,19 +1092,22 @@ namespace Stormancer.Server.Plugins.GameSession
                 inputStream.CopyTo(memStream);
                 memStream.Seek(0, SeekOrigin.Begin);
 
+               
+                using var ctx = new PostingGameResultsCtx(this, _scene, remotePeer, session, memStream);
+                await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
+                {
+                    await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.PostingGameResults(ctx), ex =>
+                    {
+                        _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running gameSession.PostingGameResults event handlers", ex);
+                    });
+                }
+                memStream.Seek(0, SeekOrigin.Begin);
+
+
                 if (_clients.TryGetValue(session.User.Id, out var client))
                 {
                     client.ResultData = memStream;
 
-                    using var ctx = new PostingGameResultsCtx(this, _scene, remotePeer, session, memStream);
-                    await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
-                    {
-                        await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.PostingGameResults(ctx), ex =>
-                        {
-                            _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running gameSession.PostingGameResults event handlers", ex);
-                        });
-                    }
-                    memStream.Seek(0, SeekOrigin.Begin);
 
                     await EvaluateGameComplete();
 
