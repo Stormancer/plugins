@@ -16,6 +16,9 @@ Unreleased
 Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
+Added
+*****
+- Added fire & forget method to send frames.
 
 
 0.3.2

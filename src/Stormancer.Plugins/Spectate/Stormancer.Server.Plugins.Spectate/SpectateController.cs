@@ -49,6 +49,15 @@ namespace Stormancer.Server.Plugins.Spectate
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
+        public void SendFrames2(IEnumerable<FrameDataDto> frames, Packet<IScenePeerClient> packet)
+        {
+            var sessionId = packet.Connection.SessionId;
+
+            _spectateService.SendFrames(frames.Select(f => new Frame { Type = f.Type, Time = f.Time, data = f.data, Origin = sessionId }));
+        }
+
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
         public Task SendFrames(IEnumerable<FrameDataDto> frames)
         {
             var sessionId = Request.RemotePeer.SessionId;
