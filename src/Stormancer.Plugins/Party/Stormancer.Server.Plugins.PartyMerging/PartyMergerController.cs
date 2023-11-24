@@ -63,13 +63,13 @@ namespace Stormancer.Server.Plugins.PartyMerging
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task Start(string partyMergerId, RequestContext<IScenePeerClient> request)
+        public void Start(string partyMergerId, RequestContext<IScenePeerClient> request)
         {
             var cancellationToken = request.CancellationToken;
 
             if (_party.PartyMembers.TryGetValue(request.RemotePeer.SessionId, out var member) && member.UserId == _party.State.Settings.PartyLeaderId)
             {
-                await _service.StartAsync(partyMergerId, cancellationToken);
+                _ =  _service.StartAsync(partyMergerId, cancellationToken);
             }
             else
             {

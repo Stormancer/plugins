@@ -43,10 +43,17 @@ namespace Stormancer
 				}
 
 
-				pplx::task<void> start(std::string& partyMerger, pplx::cancellation_token cancellationToken)
+				pplx::task<void> start(std::string& partyMerger)
 				{
 					auto rpc = _rpc.lock();
-					return rpc->rpc("PartyMerging.Start", cancellationToken, partyMerger);
+					return rpc->rpc("PartyMerging.Start", partyMerger);
+
+				}
+
+				pplx::task<void> stop(std::string& partyMerger)
+				{
+					auto rpc = _rpc.lock();
+					return rpc->rpc("PartyMerging.Stop", partyMerger);
 
 				}
 
@@ -79,6 +86,11 @@ namespace Stormancer
 		}
 
 		class PartyMergingPlugin;
+
+
+		/// <summary>
+		/// Interacts with the party merging plugin. Party merging matchmaker enable different parties to be merged together according to custom rules and algorithms.
+		/// </summary>
 		class PartyMergingApi : public std::enable_shared_from_this<PartyMergingApi>
 		{
 			friend class PartyMergingPlugin;
@@ -89,17 +101,48 @@ namespace Stormancer
 			{
 
 			}
-			pplx::task<void> start(std::string mergerId, pplx::cancellation_token cancellationToken = pplx::cancellation_token::none())
+
+
+			/// <summary>
+			/// Starts the merging process.
+			/// </summary>
+			/// <remarks>
+			/// This method can only be called by the party leader.
+			/// </remarks>
+			/// <param name="mergerId"></param>
+			/// <returns></returns>
+			pplx::task<void> start(std::string mergerId)
 			{
 				try
 				{
-					return _partyApi.lock()->getPartyScene()->dependencyResolver().resolve<details::PartyMergingService>()->start(mergerId, cancellationToken);
+					return _partyApi.lock()->getPartyScene()->dependencyResolver().resolve<details::PartyMergingService>()->start(mergerId);
 				}
 				catch (const std::exception& ex)
 				{
 					return pplx::task_from_exception<void>(ex);
 				}
 			}
+
+			/// <summary>
+			/// Stops the merging process.
+			/// </summary>
+			/// <remarks>
+			/// This method can only be called by the party leader.
+			/// </remarks>
+			/// <param name="mergerId"></param>
+			/// <returns></returns>
+			pplx::task<void> stop(std::string mergerId)
+			{
+				try
+				{
+					return _partyApi.lock()->getPartyScene()->dependencyResolver().resolve<details::PartyMergingService>()->stop(mergerId);
+				}
+				catch (const std::exception& ex)
+				{
+					return pplx::task_from_exception<void>(ex);
+				}
+			}
+
 
 			Stormancer::Event<std::string> onPartyConnectionTokenReceived;
 			Stormancer::Event<std::string> onMergePartyError;
