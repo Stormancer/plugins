@@ -27,7 +27,35 @@ namespace Stormancer
 {
 	namespace Party
 	{
+		enum class PartyMergingStatus
+		{
+			None,
+			InProgress,
+			Completed,
+			Cancelled,
+			Error
+		};
 
+		/// <summary>
+		/// The state of the merging system.
+		/// </summary>
+		struct PartyMergingState
+		{
+			/// <summary>
+			/// Gets the id of the last used merger.
+			/// </summary>
+			std::string mergerId;
+
+			/// <summary>
+			/// Gets the last status of the merging system.
+			/// </summary>
+			PartyMergingStatus status = PartyMergingStatus::None;
+
+			/// <summary>
+			/// Gets the last error of the merging system, if it exists.
+			/// </summary>
+			std::string lastError;
+		};
 
 		class PartyMergingPlugin;
 
@@ -148,7 +176,52 @@ namespace Stormancer
 			Stormancer::Event<std::string> onMergePartyError;
 			Stormancer::Event<> onMergePartyComplete;
 
+			PartyMergingState getStatus()
+			{
+				PartyMergingState state;
+				if (auto party = _partyApi.lock())
+				{
+					if (party->isInParty())
+					{
+						auto data = party->getPartySettings().publicServerData;
+						auto it =data.find("stormancer.partyMerging.merger");
+						if (it != data.end())
+						{
+							state.mergerId = it->second;
+						}
+						it = data.find("stormancer.partyMerging.lastError");
+						if (it != data.end())
+						{
+							state.lastError = it->second;
+						}
+						it = data.find("stormancer.partyMerging.status");
+						if (it != data.end())
+						{
+							PartyMergingStatus status;
+							if (it->second == "InProgress")
+							{
+								status = PartyMergingStatus::InProgress;
+							}
+							else if (it->second == "Completed")
+							{
+								status = PartyMergingStatus::Completed;
+							}
+							else if (it->second == "Cancelled")
+							{
+								status = PartyMergingStatus::Cancelled;
+							}
+							else if (it->second == "Error")
+							{
+								status = PartyMergingStatus::Error;
+							}
+							state.status = status;
+						}
 
+					}
+					
+				}
+				return state;
+			}
 
 
 		private:

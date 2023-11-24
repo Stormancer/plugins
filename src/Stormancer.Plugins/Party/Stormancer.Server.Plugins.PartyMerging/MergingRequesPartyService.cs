@@ -121,18 +121,13 @@ namespace Stormancer.Server.Plugins.PartyMerging
     internal class MergingPartyService : IMergingPartyService
     {
         private readonly MergingRequestPartyState _state;
-        private readonly IPartyService _party;
-        private readonly PartyMergerProxy _partyMerger;
         private readonly ISceneHost _scene;
-        private readonly ISerializer _serializer;
 
-        public MergingPartyService(MergingRequestPartyState state, IPartyService party, PartyMergerProxy partyMerger, ISceneHost scene, ISerializer serializer)
+        public MergingPartyService(MergingRequestPartyState state, ISceneHost scene)
         {
             _state = state;
-            _party = party;
-            _partyMerger = partyMerger;
             _scene = scene;
-            _serializer = serializer;
+          
         }
 
         /// <summary>
@@ -141,7 +136,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
         /// <returns></returns>
         public ValueTask CancelMerging()
         {
-           
+
             return _state.CancelMerging();
         }
         /// <summary>
@@ -162,10 +157,17 @@ namespace Stormancer.Server.Plugins.PartyMerging
         public ValueTask StartAsync(string partyMergerId, CancellationToken cancellationToken)
         {
 
-            async Task StartImpl(CancellationToken cancellationToken)
+            static async Task RunMergingRequestAsync(ISceneHost scene, string partyMergerId, CancellationToken cancellationToken)
             {
+                await using var scope = scene.CreateRequestScope();
+
+                var _state = scope.Resolve<MergingRequestPartyState>();
+                var _party = scope.Resolve<IPartyService>();
+                var _partyMerger = scope.Resolve<PartyMergerProxy>();
+                var _serializer = scope.Resolve<ISerializer>();
                 try
                 {
+
                     _state.CurrentPartyMergerId = partyMergerId;
                     await _party.UpdateSettings(state =>
                      {
@@ -216,7 +218,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
                         async Task Send()
                         {
                             var sessionIds = _party.PartyMembers.Where(kvp => kvp.Value.ConnectionStatus == Party.Model.PartyMemberConnectionStatus.Connected).Select(kvp => kvp.Key);
-                            await _scene.Send(new MatchArrayFilter(sessionIds),
+                            await scene.Send(new MatchArrayFilter(sessionIds),
                            "partyMerging.connectionToken",
                            s => _serializer.Serialize(connectionToken, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
                         }
@@ -273,7 +275,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
             };
 
 
-            return _state.StartMerging(StartImpl, cancellationToken);
+            return _state.StartMerging(ct => RunMergingRequestAsync(_scene, partyMergerId, ct), cancellationToken);
 
         }
 
@@ -284,7 +286,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
             {
                 await CancelMerging();
             }
-            catch(OperationCanceledException)
+            catch (OperationCanceledException)
             {
 
             }
@@ -295,7 +297,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
         {
             if (_state.CurrentPartyMergerId != null)
             {
-               
+
                 _ = StartAsync(_state.CurrentPartyMergerId, CancellationToken.None);
                 return true;
             }
