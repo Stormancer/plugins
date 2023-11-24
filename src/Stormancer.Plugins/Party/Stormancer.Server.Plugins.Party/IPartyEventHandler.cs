@@ -111,6 +111,7 @@ namespace Stormancer.Server.Plugins.Party
         /// Party the event
         /// </summary>
         public IPartyService Party => PartyScene.DependencyResolver.Resolve<IPartyService>();
+
     }
 
     public class PartySettingsUpdateCtx

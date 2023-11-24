@@ -20,7 +20,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
         /// Gets a value indicating if a merging operation is currently in progress.
         /// </summary>
         public bool IsMergingInProgress => _task != null;
-
+        public bool IsMergingCancelled => _cts?.IsCancellationRequested ?? false;
         public string? CurrentPartyMergerId { get; internal set; }
 
         private CancellationTokenSource? _cts;
@@ -127,7 +127,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
         {
             _state = state;
             _scene = scene;
-          
+
         }
 
         /// <summary>
@@ -232,16 +232,20 @@ namespace Stormancer.Server.Plugins.PartyMerging
                 {
                     if (cancellationToken.IsCancellationRequested)
                     {
-                        await _party.UpdateSettings(state =>
+
+                        _ = _party.UpdateSettings(state =>
                         {
 
 
                             var partySettings = new PartySettingsDto(state);
-                            if (partySettings.PublicServerData == null)
+                            if ((_state.IsMergingCancelled || !_state.IsMergingInProgress) && partySettings.PublicServerData["stormancer.partyMerging.status"] =="InProgress")
                             {
-                                partySettings.PublicServerData = new System.Collections.Generic.Dictionary<string, string>();
+                                if (partySettings.PublicServerData == null)
+                                {
+                                    partySettings.PublicServerData = new System.Collections.Generic.Dictionary<string, string>();
+                                }
+                                partySettings.PublicServerData["stormancer.partyMerging.status"] = "Cancelled";
                             }
-                            partySettings.PublicServerData["stormancer.partyMerging.status"] = "Cancelled";
                             return partySettings;
 
 

@@ -408,7 +408,7 @@ namespace Stormancer.Server.Plugins.Party
                         var handlers = _handlers();
                         var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene);
                         partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
-                        await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while processing an 'OnPlayerReadyStateRest' event.", ex));
+                        await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
 
                         if (partyResetCtx.ShouldReset)
                         {
@@ -493,7 +493,7 @@ namespace Stormancer.Server.Plugins.Party
                     var originalDto = partySettingsDto.Clone();
                     var ctx = new PartySettingsUpdateCtx(this, partySettingsDto);
 
-                    await handlers.RunEventHandler(h => h.OnUpdatingSettings(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnUpdatingSettings", ex));
+                    await handlers.RunEventHandler(h => h.OnUpdatingSettings(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while running OnUpdatingSettings", ex));
 
                     if (!ctx.ApplyChanges)
                     {
@@ -502,7 +502,7 @@ namespace Stormancer.Server.Plugins.Party
                     }
 
 
-                    await handlers.RunEventHandler(h => h.OnUpdateSettings(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while running OnUpdateSettings", ex));
+                    await handlers.RunEventHandler(h => h.OnUpdateSettings(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while running OnUpdateSettings", ex));
 
                     // If the event handlers have modified the settings, we need to notify the leader to invalidate their local copy.
                     // Make an additional bump to the version number to achieve this.
@@ -512,22 +512,52 @@ namespace Stormancer.Server.Plugins.Party
                         newSettingsVersion = _partyState.SettingsVersionNumber + 2;
                     }
 
+                    var changed = false;
 
-                    _partyState.Settings.GameFinderName = partySettingsDto.GameFinderName;
-                    _partyState.Settings.CustomData = partySettingsDto.CustomData;
-                    _partyState.Settings.OnlyLeaderCanInvite = partySettingsDto.OnlyLeaderCanInvite;
-                    _partyState.Settings.IsJoinable = partySettingsDto.IsJoinable;
+                    if (_partyState.Settings.GameFinderName != partySettingsDto.GameFinderName)
+                    {
+                        changed = true;
+                        _partyState.Settings.GameFinderName = partySettingsDto.GameFinderName;
+                    }
+
+                    if (_partyState.Settings.CustomData != partySettingsDto.CustomData)
+                    {
+                        changed = true;
+                        _partyState.Settings.CustomData = partySettingsDto.CustomData;
+                    }
+
+                    if (_partyState.Settings.OnlyLeaderCanInvite != partySettingsDto.OnlyLeaderCanInvite)
+                    {
+                        changed = true;
+                        _partyState.Settings.OnlyLeaderCanInvite = partySettingsDto.OnlyLeaderCanInvite;
+                    }
+
+                    if (_partyState.Settings.IsJoinable != partySettingsDto.IsJoinable)
+                    {
+                        changed = true;
+                        _partyState.Settings.IsJoinable = partySettingsDto.IsJoinable;
+                    }
 
 
                     if (!string.IsNullOrEmpty(partySettingsDto.IndexedDocument))
                     {
                         try
                         {
-                            _partyState.SearchDocument = JObject.Parse(partySettingsDto.IndexedDocument);
+                            var json = JObject.Parse(partySettingsDto.IndexedDocument);
+
+                            if (_partyState.SearchDocument == null || !JToken.DeepEquals(json, _partyState.SearchDocument))
+                            {
+                                changed = true;
+                                _partyState.SearchDocument = json;
+                            }
                         }
                         catch (Exception)
                         {
-                            _partyState.SearchDocument = null;
+                            if (_partyState.SearchDocument != null)
+                            {
+                                changed = true;
+                                _partyState.SearchDocument = null;
+                            }
                             //Ignore parse errors.
                         }
                     }
@@ -538,18 +568,24 @@ namespace Stormancer.Server.Plugins.Party
 
                     if (partySettingsDto.PublicServerData != null)
                     {
+                        //By default, changing the public server data shouldn't trigger a Ready reset, so we don't set changed to true.
                         _partyState.Settings.PublicServerData = partySettingsDto.PublicServerData;
                     }
                     _partyState.SettingsVersionNumber = newSettingsVersion;
                     //Log(LogLevel.Info, "UpdateSettings", $"Updated public server data to party='{this.PartyId}' Version={newSettingsVersion}", partySettingsDto.PublicServerData);
 
-                    var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartySettingsUpdated, _scene);
-                    partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
-                    await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while processing an 'OnPlayerReadyStateRest' event.", ex));
-
-                    if (partyResetCtx.ShouldReset)
+                    if (changed)
                     {
-                        await TryCancelPendingGameFinder();
+                        var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartySettingsUpdated, _scene);
+
+                       
+                        partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
+                        await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
+
+                        if (partyResetCtx.ShouldReset)
+                        {
+                            await TryCancelPendingGameFinder();
+                        }
                     }
                     var msg = new PartySettingsUpdateDto(_partyState);
 
@@ -675,9 +711,10 @@ namespace Stormancer.Server.Plugins.Party
                     {
                         if (_partyState.GameFinderLaunchPending)
                         {
+                            var oldState = this.GameFinderState;
                             _partyState.GameFinderLaunchPending = false;
 
-                            var oldState = this.GameFinderState;
+                           
 
                             bool shouldLaunchGameFinderRequest = false;
 
@@ -713,6 +750,10 @@ namespace Stormancer.Server.Plugins.Party
                             }
                         }
                     });
+                }
+                else if (IsGameFinderRunning)
+                {
+                    await TryCancelPendingGameFinder();
                 }
 
             });
@@ -862,7 +903,7 @@ namespace Stormancer.Server.Plugins.Party
                     var handlers = _handlers();
                     var ctx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene);
                     partyConfigurationService.ShouldResetPartyMembersReadyState(ctx);
-                    await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occured while processing an 'OnPlayerReadyStateRest' event.", ex));
+                    await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
 
                     if (ctx.ShouldReset)
                     {
