@@ -25,6 +25,12 @@
     <Filter Include="Source Files\Logs">
       <UniqueIdentifier>{9c9200e3-2276-4bcf-b4eb-9da41af3399f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Gamesession">
+      <UniqueIdentifier>{288761fa-72e4-4c8d-8956-3cb39d2b6c01}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\GameFinder">
+      <UniqueIdentifier>{ca11c78f-9131-402a-8a84-948b0c5293f5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -68,6 +74,18 @@
     </ClCompile>
     <ClCompile Include="LogsUI.cpp">
       <Filter>Source Files\Logs</Filter>
+    </ClCompile>
+    <ClCompile Include="GameSessionUI.cpp">
+      <Filter>Source Files\Gamesession</Filter>
+    </ClCompile>
+    <ClCompile Include="GameSessionViewModel.cpp">
+      <Filter>Source Files\Gamesession</Filter>
+    </ClCompile>
+    <ClCompile Include="GameFinderViewModel.cpp">
+      <Filter>Source Files\GameFinder</Filter>
+    </ClCompile>
+    <ClCompile Include="GameFinderUI.cpp">
+      <Filter>Source Files\GameFinder</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -116,6 +134,18 @@
     </ClInclude>
     <ClInclude Include="LogsUI.h">
       <Filter>Source Files\Logs</Filter>
+    </ClInclude>
+    <ClInclude Include="GameSessionUI.h">
+      <Filter>Source Files\Gamesession</Filter>
+    </ClInclude>
+    <ClInclude Include="GameSessionViewModel.h">
+      <Filter>Source Files\Gamesession</Filter>
+    </ClInclude>
+    <ClInclude Include="GameFinderViewModel.h">
+      <Filter>Source Files\GameFinder</Filter>
+    </ClInclude>
+    <ClInclude Include="GameFinderUI.h">
+      <Filter>Source Files\GameFinder</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

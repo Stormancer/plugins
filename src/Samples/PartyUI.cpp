@@ -6,6 +6,8 @@
 #include "gamefinder/GameFinder.hpp"
 #include "stormancer/IClientFactory.h"
 #include "ViewModel.h"
+#include "GameFinderUI.h"
+
 
 void ShowUI(PartyViewModel& vm)
 {
@@ -155,25 +157,6 @@ void ShowUI(PartyViewModel& vm)
 				vm.updatePartyState(Stormancer::Party::PartyUserStatus::Ready);
 			}
 
-		}
-
-
-		if (ImGui::BeginTable("gamefinderState", 2))
-		{
-
-			auto gamefinder = client->dependencyResolver().resolve<Stormancer::GameFinder::GameFinderApi>();
-		
-			for (auto kvp : gamefinder->getPendingFindGameStatus())
-			{
-				ImGui::TableNextRow();
-				ImGui::TableNextColumn();
-				ImGui::Text(kvp.first.c_str());
-				ImGui::TableNextColumn();
-				ImGui::Text(std::to_string((int)kvp.second.status).c_str());
-
-			}
-
-			ImGui::EndTable();
 		}
 
 		ImGui::SeparatorText("PARTY MERGING");

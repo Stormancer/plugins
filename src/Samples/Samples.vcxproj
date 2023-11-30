@@ -143,6 +143,10 @@
   <ItemGroup>
     <ClCompile Include="backends\imgui_impl_dx12.cpp" />
     <ClCompile Include="backends\imgui_impl_win32.cpp" />
+    <ClCompile Include="GameFinderUI.cpp" />
+    <ClCompile Include="GameFinderViewModel.cpp" />
+    <ClCompile Include="GameSessionUI.cpp" />
+    <ClCompile Include="GameSessionViewModel.cpp" />
     <ClCompile Include="imgui\imgui.cpp" />
     <ClCompile Include="imgui\imgui_demo.cpp" />
     <ClCompile Include="imgui\imgui_draw.cpp" />
@@ -165,6 +169,10 @@
   <ItemGroup>
     <ClInclude Include="backends\imgui_impl_dx12.h" />
     <ClInclude Include="backends\imgui_impl_win32.h" />
+    <ClInclude Include="GameFinderUI.h" />
+    <ClInclude Include="GameFinderViewModel.h" />
+    <ClInclude Include="GameSessionUI.h" />
+    <ClInclude Include="GameSessionViewModel.h" />
     <ClInclude Include="imgui\imconfig.h" />
     <ClInclude Include="imgui\imgui.h" />
     <ClInclude Include="imgui\imgui_internal.h" />

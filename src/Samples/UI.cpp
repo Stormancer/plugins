@@ -4,6 +4,8 @@
 #include "ViewModel.h"
 
 #include "PartyUI.h"
+#include "GameFinderUI.h"
+#include "GameSessionUI.h"
 
 void ShowUI(AppViewModel& vm)
 {
@@ -70,7 +72,7 @@ void ShowClient(ClientViewModel& vm)
 	ImGui::Text(vm.getServerApp().c_str());
 
 	ImGui::Text(vm.getConnectionStatus());
-
+	ImGui::Text(vm.getSessionId().c_str());
 	if (ImGui::Button("Show logs"))
 	{
 		vm.showLogsWindow = true;
@@ -104,6 +106,15 @@ void ShowClient(ClientViewModel& vm)
 		ShowUI(vm.party);
 	}
 
+	if (ImGui::CollapsingHeader("GameFinder", ImGuiTreeNodeFlags_None))
+	{
+		ShowUI(vm.gameFinder);
+	}
+
+	if (ImGui::CollapsingHeader("GameSession", ImGuiTreeNodeFlags_None))
+	{
+		ShowUI(vm.gameSession);
+	}
 	if (processing)
 	{
 		ImGui::EndDisabled();

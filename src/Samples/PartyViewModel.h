@@ -20,11 +20,13 @@ public:
 	void updatePartyState(Stormancer::Party::PartyUserStatus newStatus);
 
 	void joinCurrentGameSession();
-
+	bool isInGameSession();
 
 	std::string mergerId;
 	void startMerging();
 	void stopMerging();
+
+	
 
 	ClientViewModel* parent;
 };

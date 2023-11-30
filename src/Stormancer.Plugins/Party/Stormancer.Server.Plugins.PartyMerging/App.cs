@@ -41,7 +41,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
                 builder.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
 
                 builder.Register<MergingPartyService>().As<IMergingPartyService>().InstancePerRequest();
-                builder.Register<MergingRequestPartyState>().SingleInstance();
+                builder.Register<MergingRequestPartyState>().InstancePerScene();
                 builder.Register<PartyEventHandler>().As<IPartyEventHandler>();
 
             };

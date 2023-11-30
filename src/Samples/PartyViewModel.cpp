@@ -7,6 +7,7 @@
 PartyViewModel::PartyViewModel(ClientViewModel* parent)
 	:parent(parent)
 {
+
 }
 
 void PartyViewModel::createParty()
@@ -117,12 +118,19 @@ void PartyViewModel::joinCurrentGameSession()
 		{
 			t.get();
 		}
-		catch (std::exception&)
+		catch (std::exception& ex)
 		{
-
+			this->parent->lastError = ex.what();
 		}
 
 	});
+}
+
+bool PartyViewModel::isInGameSession()
+{
+	auto client = Stormancer::IClientFactory::GetClient(this->parent->id);
+	auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
+	return party->isInGameSession();
 }
 
 void PartyViewModel::startMerging()
@@ -138,9 +146,9 @@ void PartyViewModel::startMerging()
 		{
 			t.get();
 		}
-		catch (std::exception&)
+		catch (std::exception& ex)
 		{
-
+			this->parent->lastError = ex.what();
 		}
 
 	});
@@ -159,9 +167,9 @@ void PartyViewModel::stopMerging()
 		{
 			t.get();
 		}
-		catch (std::exception&)
+		catch (std::exception& ex)
 		{
-
+			this->parent->lastError = ex.what();
 		}
 
 	});
@@ -180,9 +188,9 @@ void PartyViewModel::leaveParty()
 		{
 			t.get();
 		}
-		catch (std::exception&)
+		catch (std::exception& ex)
 		{
-
+			this->parent->lastError = ex.what();
 		}
 
 	});

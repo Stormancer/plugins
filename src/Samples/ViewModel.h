@@ -4,6 +4,9 @@
 #include <memory>
 
 #include "PartyViewModel.h"
+#include "GameSessionViewModel.h"
+#include "GameFinderViewModel.h"
+
 #include "LogsUI.h"
 
 class AppViewModel;
@@ -36,6 +39,9 @@ public:
 	int id = 0;
 
 	bool isProcessing = false;
+
+	std::string lastError;
+
 	bool running = true;
 
 	std::string deviceIdentifier;
@@ -51,11 +57,15 @@ public:
 	void disconnect();
 
 	PartyViewModel party;
+	GameSessionViewModel gameSession;
+	GameFinderViewModel gameFinder;
 
 	bool showLogsWindow = false;
 	LogsComponent logs;
 
 	const char* getConnectionStatus() const;
+	std::string getSessionId() const;
+
 
 	AppViewModel* parent;
 

@@ -90,6 +90,8 @@ ClientViewModel::ClientViewModel(int id,SettingsViewModel settings, AppViewModel
 	, parent(parent)
 	, deviceIdentifier("client-"+std::to_string(id))
 	,party(this)
+	,gameSession(this)
+	,gameFinder(this)
 {
 	Stormancer::IClientFactory::SetConfig(id, [this](size_t configId) 
 	{
@@ -115,6 +117,8 @@ ClientViewModel::ClientViewModel(int id,SettingsViewModel settings, AppViewModel
 		params.parameters["deviceidentifier"] = this->deviceIdentifier;
 		return pplx::task_from_result(params);
 	};
+
+	gameFinder.initialize();
 
 	
 }
@@ -167,7 +171,13 @@ void ClientViewModel::disconnect()
 
 	});
 }
+std::string ClientViewModel::getSessionId() const
+{
+	auto client = Stormancer::IClientFactory::GetClient(id);
 
+	return client->sessionId();
+
+}
 const char* ClientViewModel::getConnectionStatus() const
 {
 	auto client = Stormancer::IClientFactory::GetClient(id);
