@@ -1371,6 +1371,17 @@ namespace Stormancer.Server.Plugins.Party
                     return false;
                 }
 
+                await using var scope = _scene.CreateRequestScope();
+                var handlers = scope.Resolve<IEnumerable<IPartyEventHandler>>();
+
+                var ctx = new CreateReservationContext(this,_scene,reservation);
+                await handlers.RunEventHandler(h => h.OnCreatingReservation(ctx), ex => _logger.Log(LogLevel.Error, "party", $"An error occurred while running the event '{nameof(IPartyEventHandler.OnCreatingReservation)}'.", ex));
+
+                if(!ctx.Accept)
+                {
+                    return false;
+                }
+
                 foreach (var r in reservation.PartyMembers)
                 {
 

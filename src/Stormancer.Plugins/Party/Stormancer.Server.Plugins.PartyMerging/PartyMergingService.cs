@@ -233,10 +233,16 @@ namespace Stormancer.Server.Plugins.PartyMerging
         {
             var result = await _partyManagement.CreateConnectionTokenFromPartyId(partyTo.PartyId, Memory<byte>.Empty, cancellationToken);
 
-
+            if(customData == null)
+            {
+                customData = new JObject();
+            }
 
             if (result.Success)
             {
+                PartyMergingConstants.TryGetMergerId(_scene, out var mergerId);
+
+                customData["merger"] = mergerId;
                 var reservation = new PartyReservation { PartyMembers = partyFrom.Players.Values, CustomData = customData };
                 await _parties.CreateReservation(partyTo.PartyId, reservation, cancellationToken);
 

@@ -31,9 +31,9 @@ void ShowUI(GameSessionViewModel& vm)
 
 		ImGui::Text(("Host : " + vm.hostSessionId.toString()).c_str());
 
-		if (ImGui::Button("Set ready"))
+		if (ImGui::Button("Set gameSession ready"))
 		{
-			vm.setPeerReady();
+			vm.setPlayerReady();
 		}
 
 		ImGui::SeparatorText("P2P");
@@ -50,6 +50,11 @@ void ShowUI(GameSessionViewModel& vm)
 
 				ImGui::EndTable();
 			}
+		}
+
+		if (ImGui::Button("leave game session"))
+		{
+			vm.leaveGameSession();
 		}
 	}
 

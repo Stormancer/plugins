@@ -33,6 +33,7 @@ Added
 - Added LocalPlayerCount to party user data to enable party members to be associated to several local players.
 - Added default implementations to several methods of `IPartyEventHandler`
 - Added TryGetGamesessionId extension method to party.
+- Added extensibility point IPartyEventHandler.OnCreatingReservation 
 
 5.0.1.7
 -------

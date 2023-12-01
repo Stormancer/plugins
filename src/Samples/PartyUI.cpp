@@ -141,22 +141,26 @@ void ShowUI(PartyViewModel& vm)
 
 		ImGui::SeparatorText("GAME FINDING");
 
-		if (party->getLocalMember().partyUserStatus == Stormancer::Party::PartyUserStatus::Ready)
+		Stormancer::Party::PartyUserDto member;
+		if (party->tryGetLocalMember(&member))
 		{
-			ImGui::Text("Player ready");
-			if (ImGui::Button("Cancel ready"))
+			if (member.partyUserStatus == Stormancer::Party::PartyUserStatus::Ready)
 			{
-				vm.updatePartyState(Stormancer::Party::PartyUserStatus::NotReady);
+				ImGui::Text("Player ready");
+				if (ImGui::Button("Cancel ready"))
+				{
+					vm.updatePartyState(Stormancer::Party::PartyUserStatus::NotReady);
+				}
 			}
-		}
-		else
-		{
-			ImGui::Text("Player not ready");
-			if (ImGui::Button("Set ready"))
+			else
 			{
-				vm.updatePartyState(Stormancer::Party::PartyUserStatus::Ready);
-			}
+				ImGui::Text("Player not ready");
+				if (ImGui::Button("Set ready"))
+				{
+					vm.updatePartyState(Stormancer::Party::PartyUserStatus::Ready);
+				}
 
+			}
 		}
 
 		ImGui::SeparatorText("PARTY MERGING");
@@ -164,14 +168,22 @@ void ShowUI(PartyViewModel& vm)
 		ImGui::InputText("Merger name", &vm.mergerId);
 		auto merger = client->dependencyResolver().resolve<Stormancer::Party::PartyMergingApi>();
 
-		if (ImGui::Button("Start merging"))
+		if (merger->getStatus().status == Stormancer::Party::PartyMergingStatus::InProgress)
 		{
-			vm.startMerging();
+			if (ImGui::Button("Stop merging"))
+			{
+				vm.stopMerging();
+			}
 		}
-		if (ImGui::Button("Stop merging"))
-		{
-			vm.stopMerging();
+		else
+		{ 
+			if (ImGui::Button("Start merging"))
+			{
+				vm.startMerging();
+			}
 		}
+		
+		
 	
 		if (ImGui::BeginTable("mergingState",2))
 		{

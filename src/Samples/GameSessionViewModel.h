@@ -20,7 +20,9 @@ public:
 	
 	bool isInGameSession();
 
-	void setPeerReady();
+	void setPlayerReady();
+
+	void leaveGameSession();
 
 	ClientViewModel* parent;
 

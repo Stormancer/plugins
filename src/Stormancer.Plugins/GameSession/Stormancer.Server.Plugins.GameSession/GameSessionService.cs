@@ -418,7 +418,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 var session = await sessions.GetSession(peer, CancellationToken.None);
 
-                _logger.Log(LogLevel.Info, _scene.Id, "Set player ready", new { peer.SessionId, session = session != null });
+                //_logger.Log(LogLevel.Info, _scene.Id, "Set player ready", new { peer.SessionId, session = session != null });
 
                 //Peer not authd.
                 if (session is null)
@@ -612,7 +612,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private async Task SignalHostReady(IScenePeerClient peer, string? userId)
         {
-            _logger.Log(LogLevel.Info, _scene.Id, "Signal host ready", new { peer.SessionId, userId, server = _server != null });
+            //_logger.Log(LogLevel.Info, _scene.Id, "Signal host ready", new { peer.SessionId, userId, server = _server != null });
 
             if (_server == null)
             {
@@ -1210,7 +1210,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             if (shouldRunHandlers)
             {
-                _logger.Log(LogLevel.Info, "gameSession", "Completing game session", new { results = _clients.Select(kvp => new { client = kvp.Key, resultReceived = kvp.Value.ResultData != null }) });
+                //_logger.Log(LogLevel.Info, "gameSession", "Completing game session", new { results = _clients.Select(kvp => new { client = kvp.Key, resultReceived = kvp.Value.ResultData != null }) });
                 await runHandlers();
             }
         }

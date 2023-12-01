@@ -515,6 +515,8 @@ namespace Stormancer
 			/// <exception cref="std::exception">If you are not in a party.</exception>
 			virtual PartyUserDto getLocalMember() const = 0;
 
+			virtual bool tryGetLocalMember(PartyUserDto* localMember) const = 0;
+
 			/// <summary>
 			/// Set the local player's status (ready/not ready).
 			/// </summary>

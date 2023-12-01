@@ -13,11 +13,11 @@
 		<PackageReference Include="Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql" Version="0.1.0.7-pre" />
 		<PackageReference Include="Stormancer.Server.Plugins.DataProtection" Version="*-*" />
 		<PackageReference Include="Stormancer.Server.Plugins.Friends" Version="5.0.1.7-pre" />
-		<PackageReference Include="Stormancer.Server.Plugins.Party" Version="5.2.0.25-pre" />
-		<PackageReference Include="Stormancer.Server.Plugins.PartyMerging" Version="0.1.2.12-pre" />
+		<PackageReference Include="Stormancer.Server.Plugins.Party" Version="5.2.0.26-pre" />
+		<PackageReference Include="Stormancer.Server.Plugins.PartyMerging" Version="0.1.2.15-pre" />
 		<PackageReference Include="Stormancer.Server.Plugins.Queries" Version="*-*" />
 		<PackageReference Include="Stormancer.Server.Plugins.GameFinder" Version="8.1.1.9-pre" />
-		<PackageReference Include="Stormancer.Server.Plugins.GameSession" Version="6.2.1.53-pre" />
+		<PackageReference Include="Stormancer.Server.Plugins.GameSession" Version="6.2.1.55-pre" />
 		<PackageReference Include="Stormancer.Server.Plugins.Replication" Version="*-*" />
 		<PackageReference Include="Stormancer.Server.Plugins.SocketApi" Version="*-*" />
 		<PackageReference Include="Stormancer.Server.Plugins.Users" Version="9.0.0.38-pre" />

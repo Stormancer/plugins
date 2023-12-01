@@ -114,11 +114,29 @@ namespace Stormancer.Server.Plugins.Party
 
     }
 
+    /// <summary>
+    /// Context used as argument for <see cref="IPartyEventHandler.OnUpdateSettings(PartySettingsUpdateCtx)"/>.
+    /// </summary>
     public class PartySettingsUpdateCtx
     {
+        /// <summary>
+        /// Gets the party which triggered the event.
+        /// </summary>
         public IPartyService Party { get; }
+
+        /// <summary>
+        /// Gets the new settings.
+        /// </summary>
         public PartySettingsDto Config { get; }
+
+        /// <summary>
+        /// Gets or sets a boolean indicating if the changes should be applied.
+        /// </summary>
         public bool ApplyChanges { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets an optional error message.
+        /// </summary>
         public string ErrorMsg { get; set; } = "";
 
         internal PartySettingsUpdateCtx(IPartyService party, PartySettingsDto config)
@@ -189,8 +207,14 @@ namespace Stormancer.Server.Plugins.Party
     /// </summary>
     public class JoinDeniedContext
     {
+        /// <summary>
+        /// Gets the party which triggered the event.
+        /// </summary>
         public IPartyService Party { get; }
 
+        /// <summary>
+        /// Gets the session of the user whose join was denied.
+        /// </summary>
         public Session Session { get; }
 
         internal JoinDeniedContext(IPartyService party, Session session)
@@ -544,8 +568,48 @@ namespace Stormancer.Server.Plugins.Party
         /// <param name="context"></param>
         /// <returns></returns>
         Task OnGameFinderStateChanged(GameFinderStateChangedContext context) => Task.CompletedTask;
+
+        /// <summary>
+        /// Fired when a reservation is created. Enabled handlers to refuse the reservation.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task OnCreatingReservation(CreateReservationContext ctx) => Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Context used as argument for <see cref="IPartyEventHandler.OnCreatingReservation(CreateReservationContext)"/>
+    /// </summary>
+    public class CreateReservationContext
+    {
+        internal CreateReservationContext(IPartyService party, ISceneHost scene, PartyReservation reservation)
+        {
+            Party = party;
+            Scene = scene;
+            Reservation = reservation;
+        }
+
+        /// <summary>
+        /// Gets the party.
+        /// </summary>
+        public IPartyService Party { get; }
+
+        /// <summary>
+        /// Gets the party scene.
+        /// </summary>
+        public ISceneHost Scene { get; }
+
+        /// <summary>
+        /// Gets a <see cref="PartyReservation"/> object representing the reservation being evaluated.
+        /// </summary>
+        public PartyReservation Reservation { get; }
+
+        /// <summary>
+        /// Accepts the reservation.
+        /// </summary>
+        public bool Accept { get; set; } = true;
+
+    }
     /// <summary>
     /// State of the interaction between the party and the game finder.
     /// </summary>
