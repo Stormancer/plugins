@@ -1,6 +1,8 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
+using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
+using Stormancer.Server.Plugins.Models;
 using Stormancer.Server.Plugins.Party;
 using Stormancer.Server.Plugins.Utilities.Extensions;
 using System;
@@ -190,39 +192,65 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
         public async Task Merge(CancellationToken cancellationToken)
         {
-            IEnumerable<Task<Models.Party>> tasks;
+            IEnumerable<Task<Models.Party?>> tasks;
             lock (_state._syncRoot)
             {
 
 
                 tasks = _state._states.Where(kvp => !kvp.Value.IsCancellationRequested).Select(async kvp =>
                 {
-                    var model = await _parties.GetModel(kvp.Key, cancellationToken);
-                    model.CacheStorage = kvp.Value.CacheStorage;
-                    return model;
+                    try
+                    {
+                        var model = await _parties.GetModel(kvp.Key, cancellationToken);
+                        model.CacheStorage = kvp.Value.CacheStorage;
+                        return model;
+                    }
+                    catch (Exception)
+                    {
+                        kvp.Value.Cancel();
+                        return null;
+                    }
                 });
             }
 
             var models = await Task.WhenAll(tasks);
 
 
-            var ctx = new PartyMergingContext(models);
+            var ctx = new PartyMergingContext(models.WhereNotNull());
             await _algorithm.Merge(ctx);
 
 
-            var results = await Task.WhenAll(ctx.MergeCommands.Select(cmd => MergeAsync(cmd.From, cmd.Into, cmd.CustomData, cancellationToken)));
 
-
-            foreach (var partyTo in results.Distinct().WhereNotNull())
+            foreach (var (cmd, mergeTask) in ctx.MergeCommands.Select(cmd => (cmd, MergeAsync(cmd.From, cmd.Into, cmd.CustomData, cancellationToken))))
             {
-                if (_algorithm.CanCompleteMerge(partyTo))
+                try
+                {
+                    
+                    var partyTo = await mergeTask;
+
+
+
+                    if (_algorithm.CanCompleteMerge(partyTo))
+                    {
+                        lock (_state._syncRoot)
+                        {
+                            if (_state._states.TryGetValue(partyTo.PartyId, out var state))
+                            {
+                                state.Complete(null);
+                                _state._states.Remove(partyTo.PartyId);
+                            }
+                        }
+                    }
+
+                }
+                catch (Exception)
                 {
                     lock (_state._syncRoot)
                     {
-                        if (_state._states.TryGetValue(partyTo.PartyId, out var state))
+                        if (_state._states.TryGetValue(cmd.Into.PartyId, out var state))
                         {
-                            state.Complete(null);
-                            _state._states.Remove(partyTo.PartyId);
+                            state.Cancel();
+                            _state._states.Remove(cmd.Into.PartyId);
                         }
                     }
                 }
@@ -233,7 +261,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
         {
             var result = await _partyManagement.CreateConnectionTokenFromPartyId(partyTo.PartyId, Memory<byte>.Empty, cancellationToken);
 
-            if(customData == null)
+            if (customData == null)
             {
                 customData = new JObject();
             }
