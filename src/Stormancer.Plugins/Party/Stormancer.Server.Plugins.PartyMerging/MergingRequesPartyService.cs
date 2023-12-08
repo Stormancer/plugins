@@ -196,34 +196,24 @@ namespace Stormancer.Server.Plugins.PartyMerging
                         var connectionToken = await _partyMerger.StartMerge(partyMergerId, _party.PartyId, cancellationToken);
 
 
+                        var sessionIds = _party.PartyMembers.Where(kvp => kvp.Value.ConnectionStatus == Party.Model.PartyMemberConnectionStatus.Connected).Select(kvp => kvp.Key);
+                        await scene.Send(new MatchArrayFilter(sessionIds),
+                       "partyMerging.connectionToken",
+                       s => _serializer.Serialize(connectionToken, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+
                         await _party.UpdateSettings(state =>
                         {
-
-
                             var partySettings = new PartySettingsDto(state);
                             if (partySettings.PublicServerData == null)
                             {
                                 partySettings.PublicServerData = new Dictionary<string, string>();
                             }
-                            partySettings.PublicServerData["stormancer.partyMerging.status"] = "Completed";
-                            partySettings.PublicServerData["stormancer.partyMerging.merged"] = "true";
+                            partySettings.PublicServerData["stormancer.partyMerging.status"] = connectionToken != null ? "PartyFound" : "Completed";
+
                             return partySettings;
 
 
                         }, cancellationToken);
-
-
-
-
-                        async Task Send()
-                        {
-                            var sessionIds = _party.PartyMembers.Where(kvp => kvp.Value.ConnectionStatus == Party.Model.PartyMemberConnectionStatus.Connected).Select(kvp => kvp.Key);
-                            await scene.Send(new MatchArrayFilter(sessionIds),
-                           "partyMerging.connectionToken",
-                           s => _serializer.Serialize(connectionToken, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
-                        }
-
-                        _ = Send();
                     }
 
 
@@ -238,7 +228,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
 
                             var partySettings = new PartySettingsDto(state);
-                            if ((_state.IsMergingCancelled || !_state.IsMergingInProgress) && partySettings.PublicServerData["stormancer.partyMerging.status"] =="InProgress")
+                            if ((_state.IsMergingCancelled || !_state.IsMergingInProgress) && partySettings.PublicServerData["stormancer.partyMerging.status"] == "InProgress")
                             {
                                 if (partySettings.PublicServerData == null)
                                 {
