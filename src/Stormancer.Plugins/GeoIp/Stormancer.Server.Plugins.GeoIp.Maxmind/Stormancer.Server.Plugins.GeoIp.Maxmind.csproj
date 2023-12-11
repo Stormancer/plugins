@@ -27,7 +27,7 @@
 
   <ItemGroup>
     <PackageReference Include="MaxMind.GeoIP2" Version="5.1.0" />
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="9.4.0.5-pre" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="9.4.0.7-pre" />
   </ItemGroup>
 
   <ItemGroup>

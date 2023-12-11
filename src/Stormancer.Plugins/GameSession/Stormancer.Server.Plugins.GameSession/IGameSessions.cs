@@ -139,7 +139,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     TokenVersion.V1 => await management.CreateConnectionTokenV1(id, stream.ToArray(), "stormancer/userSession"),
                     _ => throw new InvalidOperationException("Unhandled TokenVersion value")
 
-                }, RetryPolicies.IncrementalDelay(4, TimeSpan.FromSeconds(200)), CancellationToken.None, ex => true);
+                }, RetryPolicies.IncrementalDelay(4, TimeSpan.FromSeconds(200)), CancellationToken.None, ex => true,true) ;
             }
         }
 
