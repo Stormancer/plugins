@@ -139,6 +139,15 @@ namespace Stormancer.Server.Plugins.Party
                             {
                                 if (_partyState.PartyMembers.TryRemove(sessionId, out _))
                                 {
+                                    var handlers = _handlers();
+                                    var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene);
+                                    partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
+                                    await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
+
+                                    if (partyResetCtx.ShouldReset)
+                                    {
+                                        await TryCancelPendingGameFinder();
+                                    }
                                     await BroadcastStateUpdateRpc(PartyMemberDisconnection.Route, new PartyMemberDisconnection { UserId = expiredReservation.UserId, Reason = PartyDisconnectionReason.Left });
                                 }
                             }
