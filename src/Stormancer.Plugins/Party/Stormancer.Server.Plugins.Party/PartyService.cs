@@ -22,6 +22,7 @@
 
 using Autofac.Core;
 using Docker.DotNet.Models;
+using Microsoft.OpenApi.Writers;
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
@@ -125,36 +126,7 @@ namespace Stormancer.Server.Plugins.Party
             ApplySettings(configuration.Settings);
 
 
-            _scene.RunTask(async (ct) =>
-            {
-                using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
-                while (!ct.IsCancellationRequested)
-                {
-                    if (await timer.WaitForNextTickAsync(ct))
-                    {
-                        await _partyState.TaskQueue.PushWork(async () =>
-                        {
-
-                            foreach (var (sessionId, expiredReservation) in _partyState.PartyMembers.Where(p => p.Value.ConnectionStatus == PartyMemberConnectionStatus.Reservation && p.Value.CreatedOnUtc + TimeSpan.FromSeconds(10) < DateTime.UtcNow).ToArray())
-                            {
-                                if (_partyState.PartyMembers.TryRemove(sessionId, out _))
-                                {
-                                    var handlers = _handlers();
-                                    var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene);
-                                    partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
-                                    await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
-
-                                    if (partyResetCtx.ShouldReset)
-                                    {
-                                        await TryCancelPendingGameFinder();
-                                    }
-                                    await BroadcastStateUpdateRpc(PartyMemberDisconnection.Route, new PartyMemberDisconnection { UserId = expiredReservation.UserId, Reason = PartyDisconnectionReason.Left });
-                                }
-                            }
-                        });
-                    }
-                }
-            });
+          
         }
 
         private const string JoinDeniedError = "party.joinDenied";
@@ -167,6 +139,55 @@ namespace Stormancer.Server.Plugins.Party
         private const string MemberConnectedRoute = "party.memberConnected";
         private const string SendPartyStateRoute = "party.getPartyStateResponse";
         private const string GameFinderFailedRoute = "party.gameFinderFailed";
+
+        public static async Task RunReservationExpirationLoopAsync(ISceneHost scene, CancellationToken ct)
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+            while (!ct.IsCancellationRequested)
+            {
+                if (await timer.WaitForNextTickAsync(ct))
+                {
+                    await using var scope = scene.CreateRequestScope();
+
+                    var party = (PartyService)scope.Resolve<IPartyService>();
+
+                    try
+                    {
+                        await party.RemoveExpiredReservations();
+                    }
+                    catch(Exception ex)
+                    {
+                        var logger = scope.Resolve<ILogger>();
+                        logger.Log(LogLevel.Error, "party", "An error occurred while running the reservation cleanup method.", ex);
+                    }
+                    
+                }
+            }
+        }
+        private async Task RemoveExpiredReservations()
+        {
+            await _partyState.TaskQueue.PushWork(async () =>
+            {
+
+                foreach (var (sessionId, expiredReservation) in _partyState.PartyMembers.Where(p => p.Value.ConnectionStatus == PartyMemberConnectionStatus.Reservation && p.Value.CreatedOnUtc + TimeSpan.FromSeconds(10) < DateTime.UtcNow).ToArray())
+                {
+                    if (_partyState.PartyMembers.TryRemove(sessionId, out _))
+                    {
+
+                        var handlers = _handlers();
+                        var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene);
+                        partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
+                        await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
+
+                        if (partyResetCtx.ShouldReset)
+                        {
+                            await TryCancelPendingGameFinder();
+                        }
+                        await BroadcastStateUpdateRpc(PartyMemberDisconnection.Route, new PartyMemberDisconnection { UserId = expiredReservation.UserId, Reason = PartyDisconnectionReason.Left });
+                    }
+                }
+            });
+        }
 
         private void ApplySettings(dynamic settings)
         {

@@ -26,6 +26,7 @@ Fixed
 - Don't create an error log if the party of a player was already destroyed when a gamesession try to update its party state.
 - Fixed issue in party size check that prevented the connecting player from being taken into account.
 - Made the plugin compatible with Users 9.0.0.
+- Don't create a new reservation cleanup loop each time a PartyService is created.
 
 Added
 *****

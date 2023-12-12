@@ -189,9 +189,9 @@ namespace Stormancer.Server.Plugins.Party
                       scene.DependencyResolver.Resolve<PartyLuceneDocumentStore>().DeleteDocument(state.Settings.PartyId);
                   }
                   scene.DependencyResolver.Resolve<InvitationCodeService>().CancelCode(scene);
-                  
+
                   scene.DependencyResolver.Resolve<PartyAnalyticsWorker>().RemoveParty(scene.DependencyResolver.Resolve<PartyState>());
-                  
+
               };
             ctx.SceneCreated += (ISceneHost scene) =>
             {
@@ -212,7 +212,7 @@ namespace Stormancer.Server.Plugins.Party
 
                     });
 
-                   
+
                     scene.DependencyResolver.Resolve<PartyAnalyticsWorker>().AddParty(scene.DependencyResolver.Resolve<PartyState>());
                 }
 
@@ -227,7 +227,13 @@ namespace Stormancer.Server.Plugins.Party
 
                 }
             };
-
+            ctx.SceneStarted += (ISceneHost scene) =>
+            {
+                if (scene.Metadata.ContainsKey(PartyConstants.METADATA_KEY))
+                {
+                    scene.RunTask(ct => PartyService.RunReservationExpirationLoopAsync(scene, ct));
+                }
+            };
             ctx.HostStarted += (IHost host) =>
             {
 
