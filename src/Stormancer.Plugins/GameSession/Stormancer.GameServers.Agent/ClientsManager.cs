@@ -1,6 +1,7 @@
 ﻿using Stormancer.Server.Plugins.GameSession.ServerProviders;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -58,17 +59,19 @@ namespace Stormancer.GameServers.Agent
                 _logger.Log(LogLevel.Information, "Connecting to application {app}", applicationConfiguration);
                 Stormancer.Client client;
 
+                AgentClient? old;
                 lock (_syncRoot)
                 {
-                    var old = _clients.Values.FirstOrDefault(x=>x.Configuration.ApplicationUid == applicationConfiguration.ApplicationUid);
-                    if(old!=null)
-                    {
-                        RemoveClient(old.Index);
-                    }
+                    old = _clients.Values.FirstOrDefault(x=>x.Configuration.ApplicationUid == applicationConfiguration.ApplicationUid);
+                   
                     i = _nextClientId++;
                     client = ClientFactory.GetClient(i);
                     
                     _clients[i] = new AgentClient(i, autoUpdate, client, applicationConfiguration);
+                }
+                if (old != null)
+                {
+                    await RemoveClient(old.Index);
                 }
 
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, StoppingToken);
@@ -107,20 +110,24 @@ namespace Stormancer.GameServers.Agent
         }
 
 
-        internal void RemoveClient(int clientId)
+        internal async Task RemoveClient(int clientId)
         {
+            AgentClient? container;
             lock (_syncRoot)
             {
-                if (_clients.Remove(clientId, out var container))
-                {
-                    try
-                    {
-                        container.Client.Disconnect();
-                    }
-                    catch (Exception) { }
-                    ClientFactory.ReleaseClient(container.Index);
-                }
+                _clients.Remove(clientId, out container);
+                
 
+            }
+
+            if (container != null)
+            {
+                try
+                {
+                    await container.Client.DisposeAsync();
+                }
+                catch (Exception) { }
+                ClientFactory.ReleaseClient(container.Index);
             }
         }
 
