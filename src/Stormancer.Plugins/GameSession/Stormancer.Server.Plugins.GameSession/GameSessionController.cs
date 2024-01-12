@@ -75,7 +75,9 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async Task PostResults(RequestContext<IScenePeerClient> ctx)
         {
-            var writer = await _service.PostResults(ctx.InputStream, ctx.RemotePeer);
+            var session = await _sessions.GetSession(ctx.RemotePeer,ctx.CancellationToken);
+            _logger.Log(LogLevel.Info, $"gamesession.{_service.GameSessionId}", $"Received Post result from {session.User?.Id}", new { }, _service.GameSessionId, session.User?.Id);
+            var writer = await _service.PostResults(ctx.InputStream, ctx.RemotePeer, session) ;
             if (!ctx.CancellationToken.IsCancellationRequested)
             {
                 await ctx.SendValue(s =>

@@ -53,6 +53,7 @@ using Docker.DotNet.Models;
 using System.Collections.Immutable;
 using SmartFormat.Utilities;
 using Microsoft.AspNetCore.Components.Web;
+using Autofac.Core;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
@@ -1074,32 +1075,32 @@ namespace Stormancer.Server.Plugins.GameSession
 
         }
 
-        public async Task<Action<Stream, ISerializer>> PostResults(Stream inputStream, IScenePeerClient remotePeer)
+        public async Task<Action<Stream, ISerializer>> PostResults(Stream inputStream, IScenePeerClient remotePeer,Session session)
         {
             if (this._status != ServerStatus.Started)
             {
                 throw new ClientException($"Unable to post result before game session start. Server status is {this._status}");
             }
-            var session = await GetSessionAsync(remotePeer);
+            _logger.Log(LogLevel.Info, $"gamesession.{GameSessionId}", $"Running Post result from {session.User?.Id}", new { }, GameSessionId, session.User?.Id);
+
             if (session != null && session.User != null)
             {
-
-
-
-
 
                 var memStream = new MemoryStream();
                 inputStream.CopyTo(memStream);
                 memStream.Seek(0, SeekOrigin.Begin);
 
-               
+
+                _logger.Log(LogLevel.Info, $"gamesession.{GameSessionId}", $"Running Posting result from {session.User?.Id}", new { }, GameSessionId, session.User?.Id);
                 using var ctx = new PostingGameResultsCtx(this, _scene, remotePeer, session, memStream);
                 await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
                 {
+                    _logger.Log(LogLevel.Info, $"gamesession.{GameSessionId}", $"Running Posting result handlers from {session.User?.Id}", new { }, GameSessionId, session.User?.Id);
                     await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.PostingGameResults(ctx), ex =>
                     {
                         _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running gameSession.PostingGameResults event handlers", ex);
                     });
+                    _logger.Log(LogLevel.Info, $"gamesession.{GameSessionId}", $"Ran Posting result handlers from {session.User?.Id}", new { }, GameSessionId, session.User?.Id);
                 }
                 memStream.Seek(0, SeekOrigin.Begin);
 
@@ -1124,7 +1125,7 @@ namespace Stormancer.Server.Plugins.GameSession
             }
             else
             {
-                throw new ClientException("unauthorized?reason=publicGame");
+                throw new ClientException("unauthorized?reason=notAuthenticated");
             }
 
         }

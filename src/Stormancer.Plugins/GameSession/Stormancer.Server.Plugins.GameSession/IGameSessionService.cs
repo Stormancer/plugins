@@ -23,6 +23,7 @@
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.GameSession.Models;
 using Stormancer.Server.Plugins.Models;
+using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -54,8 +55,9 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         /// <param name="inputStream"></param>
         /// <param name="remotePeer"></param>
+        /// <param name="session"></param>
         /// <returns></returns>
-        Task<Action<Stream,ISerializer>> PostResults(Stream inputStream, IScenePeerClient remotePeer);
+        Task<Action<Stream,ISerializer>> PostResults(Stream inputStream, IScenePeerClient remotePeer, Session session);
 
 
         /// <summary>
