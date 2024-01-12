@@ -1,6 +1,7 @@
 ﻿using MsgPack.Serialization;
 using Stormancer.Core;
 using Stormancer.Plugins;
+using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.API;
 using System;
 using System.Collections.Generic;
@@ -16,11 +17,13 @@ namespace Stormancer.Server.Plugins.Replication
     class ReplicationController : ControllerBase
     {
         private readonly ISceneHost scene;
+        private readonly IPeerInfosService _peers;
         private readonly RpcService rpc;
 
-        public ReplicationController(ISceneHost scene, RpcService rpc)
+        public ReplicationController(ISceneHost scene, IPeerInfosService peers, RpcService rpc)
         {
             this.scene = scene;
+            _peers = peers;
             this.rpc = rpc;
         }
 
@@ -104,6 +107,11 @@ namespace Stormancer.Server.Plugins.Replication
             return scene.Send(new MatchAllFilter(), "Replication.ViewUpdate", s => args.Peer.Serializer().Serialize(dto, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
         }
 
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public Task<string> GetP2PToken(SessionId sessionId)
+        {
+            return _peers.CreateP2pToken(sessionId, scene.Id);
+        }
 
         [Api(ApiAccess.Public, ApiType.FireForget)]
         public Task EntityUpdate(Packet<IScenePeerClient> packet)
@@ -120,13 +128,13 @@ namespace Stormancer.Server.Plugins.Replication
         [Api(ApiAccess.Public, ApiType.FireForget)]
         public Task BroadcastMessage(IEnumerable<SessionId> recipients, PacketReliability packetReliability, Packet<IScenePeerClient> packet)
         {
-           
+
             return scene.Send(
                 new MatchArrayFilter(recipients)
                 , "Replication.BroadcastMessage"
                 , s =>
                 {
-                    
+
                     var serializer = packet.Connection.Serializer();
                     serializer.Serialize(packet.Connection.SessionId, s);
                     packet.Stream.CopyTo(s);
@@ -180,13 +188,13 @@ namespace Stormancer.Server.Plugins.Replication
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task RequestAll(IEnumerable<SessionId> recipients, RequestContext<IScenePeerClient> ctx)
         {
-            var channel = Channel.CreateUnbounded<(Packet<IScenePeerClient>?,(SessionId,Exception)?)>();
+            var channel = Channel.CreateUnbounded<(Packet<IScenePeerClient>?, (SessionId, Exception)?)>();
 
 
 
             static async Task ConsumeChannel(ChannelReader<(Packet<IScenePeerClient>?, (SessionId, Exception)?)> reader, RequestContext<IScenePeerClient> ctx)
             {
-                await foreach (var (packet,error) in reader.ReadAllAsync(ctx.CancellationToken))
+                await foreach (var (packet, error) in reader.ReadAllAsync(ctx.CancellationToken))
                 {
                     if (packet != null)
                     {
@@ -201,7 +209,7 @@ namespace Stormancer.Server.Plugins.Replication
                             });
                         }
                     }
-                    else if(error!=null)
+                    else if (error != null)
                     {
                         var sId = error.Value.Item1;
                         var ex = error.Value.Item2;
@@ -227,12 +235,12 @@ namespace Stormancer.Server.Plugins.Replication
                          s.Write(input);
                      }, PacketPriority.MEDIUM_PRIORITY).ToAsyncEnumerable().WithCancellation(cancellationToken))
                     {
-                        await writer.WriteAsync((packet,default));
+                        await writer.WriteAsync((packet, default));
                     }
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
-                    await writer.WriteAsync((default,(peer.SessionId, ex)));
+                    await writer.WriteAsync((default, (peer.SessionId, ex)));
                 }
             }
 
@@ -241,7 +249,7 @@ namespace Stormancer.Server.Plugins.Replication
 
             var ops = recipients.Select(sId =>
           {
-             
+
               var peer = scene.RemotePeers.FirstOrDefault(s => s.SessionId == sId);
               if (peer == null)
               {

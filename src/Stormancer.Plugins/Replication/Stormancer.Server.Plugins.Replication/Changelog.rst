@@ -9,7 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-
+Unreleased
+----------
+Added
+*****
+- Added support for P2P.
 0.1.4.5
 ----------
 - Remove dependency to Stormancer.Abstraction.Server
