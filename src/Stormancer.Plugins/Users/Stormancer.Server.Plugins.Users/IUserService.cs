@@ -81,10 +81,22 @@ namespace Stormancer.Server.Plugins.Users
         /// <returns></returns>
         Task UpdateLastPlatform(string uid, string lastPlatform);
 
+        /// <summary>
+        /// Updates the data of an user.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="uid"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
         Task UpdateUserData<T>(string uid, T data);
 
-        Task UpdateCommunicationChannel(string userId, string channel, JsonObject data);
 
+
+        /// <summary>
+        /// Deletes an user.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         Task Delete(string id);
 
         /// <summary>

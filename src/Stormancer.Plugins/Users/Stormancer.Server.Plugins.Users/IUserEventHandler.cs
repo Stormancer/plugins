@@ -50,6 +50,12 @@ namespace Stormancer.Server.Plugins.Users
         /// </summary>
         public enum AuthenticationUpdateType
         {
+
+            /// <summary>
+            /// No storage system configured on the server.
+            /// </summary>
+            None,
+
             /// <summary>
             /// User linked to an authentication provider.
             /// </summary>
@@ -63,7 +69,7 @@ namespace Stormancer.Server.Plugins.Users
             /// <summary>
             /// Update the configuration of the authentication provider for the user.
             /// </summary>
-            Update
+            Update,
         }
 
         internal AuthenticationChangedCtx(AuthenticationUpdateType updateType, string type, User user)

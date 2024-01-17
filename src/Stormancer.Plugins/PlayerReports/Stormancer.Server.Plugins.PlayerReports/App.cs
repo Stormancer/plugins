@@ -96,7 +96,14 @@ namespace Stormancer.Server.Plugins.PlayerReports
         /// </remarks>
         public const string TEMPLATE_ID = "stormancer.reports";
 
+        /// <summary>
+        /// Service id used by the client.
+        /// </summary>
         public const string SERVICE_ID = "stormancer.reports";
+
+        /// <summary>
+        /// Metadata id detected by the client.
+        /// </summary>
         public const string METADATA_ID = "stormancer.reports";
     }
 }

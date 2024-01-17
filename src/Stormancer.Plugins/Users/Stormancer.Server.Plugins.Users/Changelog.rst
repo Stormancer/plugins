@@ -15,7 +15,9 @@ Unreleased
 Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
-- Use postgresql to store user data.
+- By default, data are not stored in any database anymore
+- Use Stormancer.Server.Plugins.Users.EntityFramework to use entity framework to store data.
+
 Added
 *****
 - Dimensions are saved in the analytics system on login

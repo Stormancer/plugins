@@ -20,7 +20,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Microsoft.EntityFrameworkCore.ValueGeneration.Internal;
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
@@ -29,9 +28,7 @@ using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.AdminApi;
 using Stormancer.Server.Plugins.Analytics;
 using Stormancer.Server.Plugins.Configuration;
-using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
 using Stormancer.Server.Plugins.ServiceLocator;
-using Stormancer.Server.Plugins.Users.Data;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -159,7 +156,7 @@ namespace Stormancer.Server.Plugins.Users
         private void RegisterDependencies(IDependencyBuilder b)
         {
             //Indices
-            b.Register<UserDbModelBuilder>().As<IDbModelBuilder>();
+            
             b.Register<SceneAuthorizationController>();
             b.Register(dr=> new UserSessionController(
                 dr.Resolve<IUserSessions>(),
@@ -191,7 +188,7 @@ namespace Stormancer.Server.Plugins.Users
             ).As<IServiceLocatorProvider>();
 
             b.Register(dr => new UserService(
-                dr.Resolve<DbContextAccessor>(),
+                dr.Resolve<IUserStorage>(),
                 dr.Resolve<IEnvironment>(),
                 dr.Resolve<ILogger>(),
                 dr.Resolve<Func<IEnumerable<IUserEventHandler>>>(),

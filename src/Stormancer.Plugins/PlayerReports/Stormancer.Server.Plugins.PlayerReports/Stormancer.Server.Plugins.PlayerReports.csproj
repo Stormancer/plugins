@@ -4,7 +4,7 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>0.1.0.11</Version>
+		<Version>0.1.0.13</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -44,6 +44,7 @@
 		<ProjectReference Include="..\..\Blobs\Stormancer.Server.Plugins.BlobStorage\Stormancer.Server.Plugins.BlobStorage.csproj" />
 		<ProjectReference Include="..\..\Database\Stormancer.Server.Plugins.Database.EntityFramework\Stormancer.Server.Plugins.Database.EntityFrameworkCore.csproj" />
 		<ProjectReference Include="..\..\Management\Stormancer.Server.Plugins.Management\Stormancer.Server.Plugins.Management.csproj" />
+		<ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users.EntityFramework\Stormancer.Server.Plugins.Users.EntityFramework.csproj" />
 		<ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />
 	</ItemGroup>
 

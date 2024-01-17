@@ -29,8 +29,9 @@ namespace Stormancer
 	{
 		enum class PartyMergingStatus
 		{
-			None,
+			Unknown,
 			InProgress,
+			PartyFound,
 			Completed,
 			Cancelled,
 			Error
@@ -49,7 +50,7 @@ namespace Stormancer
 			/// <summary>
 			/// Gets the last status of the merging system.
 			/// </summary>
-			PartyMergingStatus status = PartyMergingStatus::None;
+			PartyMergingStatus status = PartyMergingStatus::Unknown;
 
 			/// <summary>
 			/// Gets the last error of the merging system, if it exists.
@@ -214,6 +215,14 @@ namespace Stormancer
 							{
 								status = PartyMergingStatus::Error;
 							}
+							else if (it->second == "PartyFound")
+							{
+								status = PartyMergingStatus::PartyFound;
+							}
+							else
+							{ 
+								status = PartyMergingStatus::Unknown;
+							}
 							state.status = status;
 						}
 
@@ -234,7 +243,7 @@ namespace Stormancer
 				std::weak_ptr<PartyMergingApi> wThis = this->shared_from_this();
 				onPartyConnectionTokenReceivedSubscription = service->onPartyConnectionTokenReceived.subscribe([wPartyApi, wThis](std::string connectionToken)
 				{
-
+					connectionToken = "";
 					auto that = wThis.lock();
 					if (that == nullptr)
 					{
