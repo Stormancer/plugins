@@ -16,7 +16,12 @@ Added
 *****
 - Create server crash reports and store them locally.
 - Added APIs and systems to support best region detection.
-- Added web API to 
+- Added web API to connect the agent to an application.
+
+Fixed
+*****
+- Fixed an issue in Stormancer.Client which could prevent reconnections.
+- Properly register already running server instances.
 
 0.3.0.8
 -------

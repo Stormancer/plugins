@@ -116,22 +116,27 @@ namespace Stormancer.GameServers.Agent
                         //labels["stormancer.reservedMemory"] = reservedMemory.ToString();
                         //labels["stormancer.reservedCpu"] = reservedCpu.ToString();
                         //labels["stormancer.crashReportConfig"] = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(crashReportConfiguration)));
-
+                        var name = container.Names.First();
                         var reservedMemory = container.Labels.TryGetValue("stormancer.reservedMemory", out var str) ? int.TryParse(str, out var mem) ? mem : 0 : 0;
                         var reservedCpu = container.Labels.TryGetValue("stormancer.reservedCpu", out str) ? float.TryParse(str, out var cpu) ? cpu : 0 : 0;
                         var expiresOn = container.Labels.TryGetValue("stormancer.expiresOn", out str) ? DateTime.TryParse(str, out var date) ? date : DateTime.UtcNow : DateTime.UtcNow;
+                        var reservedPorts = container.Labels.TryGetValue("stormancer.reservedPorts", out var reservedPortsStr) ? reservedPortsStr.Split(',').Select(s => ushort.Parse(s)) : Enumerable.Empty<ushort>();
+
+                        _logger.Log(LogLevel.Information, "Loading running container {name}, expiresOn={expiresOn}, reservedPorts={reservedPorts}", name, expiresOn, reservedPortsStr);
                         Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration? crashReportConfiguration = null;
                         try
                         {
                             crashReportConfiguration = JsonConvert.DeserializeObject<Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration>(Encoding.UTF8.GetString(Convert.FromBase64String(container.Labels["stormancer.crashReportConfig"])));
                         }
-                        catch (Exception ex) { }
+                        catch (Exception) { }
 
-                        var serverContainer = new ServerContainer(0, container.Names.First(), container.Image, container.Created, reservedMemory, reservedCpu, crashReportConfiguration ?? new Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration(), expiresOn);
-                        foreach (var port in container.Ports)
+                        var serverContainer = new ServerContainer(0, name, container.Image, container.Created, reservedMemory, reservedCpu, crashReportConfiguration ?? new Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration(), expiresOn);
+                        foreach (var port in reservedPorts)
                         {
-                            _portsManager.AcquirePort(port.PublicPort);
+                            serverContainer.AddResource(_portsManager.AcquirePort(port));
                         }
+                        _trackedContainers.Add(name, serverContainer);
+
                     }
                     else
                     {
@@ -290,6 +295,7 @@ namespace Stormancer.GameServers.Agent
                 labels["stormancer.reservedCpu"] = reservedCpu.ToString();
                 labels["stormancer.crashReportConfig"] = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(crashReportConfiguration)));
                 labels["stormancer.expiresOn"] = expiresOn.ToString();
+                labels["stormancer.reservedPorts"] = portReservation.Port.ToString();
 
                 CreateContainerParameters parameters = new CreateContainerParameters()
                 {

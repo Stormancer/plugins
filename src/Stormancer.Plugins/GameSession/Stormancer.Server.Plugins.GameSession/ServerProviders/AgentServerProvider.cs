@@ -664,9 +664,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                     await Task.Delay(10000);
 
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-
+                    _logger.Log(LogLevel.Error, "gameServers.agent", "An error occurred while trying to connect an agent to the application", ex);
                 }
             }
         }
