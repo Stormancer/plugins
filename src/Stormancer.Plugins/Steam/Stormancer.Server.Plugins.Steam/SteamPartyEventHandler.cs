@@ -392,8 +392,18 @@ namespace Stormancer.Server.Plugins.Steam
                 var data = (SteamPartyData)dataObject;
                 if (data != null && data.SteamIDLobby != null && data.SteamIDLobby != null)
                 {
-                    data.UserData.TryRemove(ctx.Args.Peer.SessionId, out _);
-                    await LeaveSteamLobbyAsync(ctx.Args.Peer, data.SteamIDLobby!.Value, CancellationToken.None);
+                    try
+                    {
+                        data.UserData.TryRemove(ctx.Args.Peer.SessionId, out _);
+                        await LeaveSteamLobbyAsync(ctx.Args.Peer, data.SteamIDLobby!.Value, CancellationToken.None);
+                    }
+                    finally
+                    {
+                        if(data.UserData.IsEmpty)
+                        {
+                            data.SteamIDLobby = null;
+                        }
+                    }
                 }
             }
 
