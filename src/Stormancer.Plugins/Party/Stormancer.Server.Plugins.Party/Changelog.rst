@@ -35,6 +35,7 @@ Added
 - Added default implementations to several methods of `IPartyEventHandler`
 - Added TryGetGamesessionId extension method to party.
 - Added extensibility point IPartyEventHandler.OnCreatingReservation 
+- Added a section on common issues in the documentation.
 
 5.0.1.7
 -------

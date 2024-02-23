@@ -224,3 +224,13 @@ Parties can be searched by calling `PartyApi::Search()` with a json Stormancer f
 
 Party settings and party member data can be validated by creating a class implementing `IPartyEventHandler` and the methods `OnUpdatingSettings` and `OnUpdatingPartyMemberData`. Both APIs support denying the update and providing an error string sent back to the caller.
 
+
+# Remarks and common issues
+
+## Setting the party member as not ready do not always prevent the player from entering matchmaking
+
+If all party members set their state as ready, the party will enter game finding. Thanks to latency, there is an unavoidable small timeframe when a player could set itself as not ready too late to prevent that from happening. In this case, they will enter game finding even though they tried to stop the process. Your game must take account of this possibility and use the party and game finding states as reported by the corresponding Stormancer APIs as authoritative source of truth. 
+
+Generally speaking using local predictions to update the client UI without latency is OK, but be aware that these predictions might be wrong in rare situations and that rollbacks could happen.
+
+
