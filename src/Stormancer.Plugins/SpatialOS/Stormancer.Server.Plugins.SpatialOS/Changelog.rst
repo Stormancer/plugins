@@ -9,6 +9,10 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+- Updated to latest SDK.
+
 0.2.3.5
 ----------
 Changed
