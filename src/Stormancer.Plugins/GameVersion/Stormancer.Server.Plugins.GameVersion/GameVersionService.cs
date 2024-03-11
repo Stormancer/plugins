@@ -43,7 +43,7 @@ namespace Stormancer.Server.Plugins.GameVersion
         {
             this.configuration = configuration;
             this.scene = scene;
-            prefix = scene.Metadata[GameVersionPlugin.METADATA_KEY];
+            prefix = scene.TemplateMetadata[GameVersionPlugin.METADATA_KEY];
 
             environment.ActiveDeploymentChanged += (sender, v) =>
             {

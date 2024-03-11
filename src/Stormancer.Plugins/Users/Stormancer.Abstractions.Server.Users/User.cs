@@ -25,6 +25,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MessagePack;
 using Newtonsoft.Json.Linq;
 
 namespace Stormancer.Server.Plugins.Users
@@ -33,6 +34,7 @@ namespace Stormancer.Server.Plugins.Users
     /// <summary>
     /// An user
     /// </summary>
+    [MessagePackObject]
     public class User
     {
         /// <summary>
@@ -50,43 +52,51 @@ namespace Stormancer.Server.Plugins.Users
         /// <summary>
         /// Gets or sets the id of the user.
         /// </summary>
+        [Key(0)]
         public string Id { get; set; } = default!;
 
 
         /// <summary>
         /// Gets or sets the auth informations of the user.
         /// </summary>
+        [Key(1)]
         public JObject Auth { get; set; }
 
         /// <summary>
         /// Gets or sets custom data about the user.
         /// </summary>
-        public JObject UserData { get; set; } 
+        [Key(2)]
+        public JObject UserData { get; set; }
 
         /// <summary>
         /// Gets or sets the date the user was created.
         /// </summary>
+        [Key(3)]
         public DateTime CreatedOn { get; set; }
 
         /// <summary>
         /// Gets or sets the date the user last logged in.
         /// </summary>
+        [Key(4)]
         public DateTime LastLogin { get; set; }
 
         /// <summary>
         /// Gets or sets informations about the channels the user can be contacted through.
         /// </summary>
+        [Key(5)]
         public JObject Channels { get; set; }
 
         /// <summary>
         /// Stores the last platform the user authenticated on.
         /// </summary>
+        [Key(6)]
         public string? LastPlatform { get; set; }
 
         /// <summary>
         /// Gets or sets the cross platform pseudonym associated to the player, or null if it's not set
         ///
         /// </summary>
+        [Key(7)]
         public string? Pseudonym { get; set; }
     }
 

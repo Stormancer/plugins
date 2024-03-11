@@ -99,7 +99,7 @@ Changed
 - Fix queryUserIds (no error if a steamId is not found in the system)
 - Improve steam friends
 - Add SteamFriendsEventHandler to IOC
-- Fix SteamFriend dto (add missing MessagePackMember)
+- Fix SteamFriend dto (add missing Key)
 - Fix OnGetFriends event handler
 - Added ConfigureSteam extension method
 - Clean SteamPartyEventHandler

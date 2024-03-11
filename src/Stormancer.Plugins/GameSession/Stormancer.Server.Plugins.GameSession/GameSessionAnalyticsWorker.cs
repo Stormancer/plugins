@@ -1,5 +1,4 @@
-﻿using Docker.DotNet.Models;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Analytics;
 using Stormancer.Server.Plugins.Users;
 using System;
@@ -12,7 +11,9 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
-
+    /// <summary>
+    /// Statistics about a game session.
+    /// </summary>
     public class GameSessionsStatistics
     {
         /// <summary>
@@ -133,7 +134,7 @@ namespace Stormancer.Server.Plugins.GameSession
             _analytics.Push("gamesession", "gamesession-created", JObject.FromObject(new
             {
                 gameFinder = gameSessionService.GetGameSessionConfig()?.GameFinder,
-                parameters = gameSessionService?.GetGameSessionConfig()?.Parameters,
+                parameters = gameSessionService.GetGameSessionConfig()?.Parameters,
                 gameSessionId = gameSessionService.GameSessionId
             }));
 

@@ -35,6 +35,8 @@ using System.Net;
 using System.Net.Http;
 using Stormancer.Core;
 using System.Threading;
+using Microsoft.IO;
+using Stormancer.Server.Plugins.Utilities;
 
 namespace Stormancer.Server.Plugins.ServiceLocator
 {
@@ -58,7 +60,8 @@ namespace Stormancer.Server.Plugins.ServiceLocator
     internal class ServiceLocator : IServiceLocator
     {
         private readonly IEnvironment _env;
-        private readonly ISerializer serializer;
+        private readonly IClusterSerializer serializer;
+        private readonly RecyclableMemoryStreamProvider _memoryStreamProvider;
         private readonly ISceneHost scene;
         private readonly IHost host;
         private readonly ServiceLocatorHostDatabase db;
@@ -73,7 +76,8 @@ namespace Stormancer.Server.Plugins.ServiceLocator
             ManagementClientProvider managementClientAccessor,
             IEnvironment env,
             IConfiguration config,
-            ISerializer serializer,
+            IClusterSerializer serializer,
+            Stormancer.Server.Plugins.Utilities.RecyclableMemoryStreamProvider memoryStreamProvider,
             ISceneHost scene,
             IHost host,
             ServiceLocatorHostDatabase db,
@@ -81,6 +85,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
         {
             _env = env;
             this.serializer = serializer;
+            _memoryStreamProvider = memoryStreamProvider;
             this.scene = scene;
             this.host = host;
             this.db = db;
@@ -108,13 +113,13 @@ namespace Stormancer.Server.Plugins.ServiceLocator
             try
             {
 
-                using (var stream = new MemoryStream())
+                using (var stream = _memoryStreamProvider.GetStream())
                 {
                     if (session == null)
                     {
                         _logger.Log(LogLevel.Warn, "locator", "session is null", new { });
                     }
-                    serializer.Serialize(session, stream);
+                    serializer.Serialize(stream,session);
                     var token = await _managementClientAccessor.CreateConnectionToken(sceneUri, stream.ToArray(), "stormancer/userSession");
 
                     return token;
@@ -152,10 +157,13 @@ namespace Stormancer.Server.Plugins.ServiceLocator
 
         private async Task<string?> QueryClusterForSceneIdAsync(string serviceType, string serviceInstanceId,CancellationToken cancellationToken)
         {
-            using var rq = await host.StartAppFunctionRequest("ServiceLocator.Query", cancellationToken);
-            await serializer.SerializeAsync(serviceType, rq.Input, cancellationToken);
-            await serializer.SerializeAsync(serviceInstanceId, rq.Input, cancellationToken);
+            using var rq = await host.CreateAppFunctionRequest("ServiceLocator.Query", cancellationToken);
+            serializer.Serialize(rq.Input,serviceType);
+            serializer.Serialize(rq.Input,serviceInstanceId);
+
+
             rq.Input.Complete();
+            rq.Send();
             await foreach(var response in rq.Results)
             {
                 if(response.IsSuccess)
@@ -170,7 +178,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
             return null;
         }
 
-        public async Task<IS2SRequest> StartS2SRequestAsync(string serviceType, string serviceInstance, string route, CancellationToken cancellationToken)
+        public async Task<IS2SRequest> CreateS2SRequestAsync(string serviceType, string serviceInstance, string route, CancellationToken cancellationToken)
         {
             var sceneId = await GetSceneId(serviceType, serviceInstance, null);
             if(sceneId == null)
@@ -178,7 +186,15 @@ namespace Stormancer.Server.Plugins.ServiceLocator
                 throw new InvalidOperationException($"Failed to locate {serviceType}/{serviceInstance}.");
             }
 
-            return await scene.SendS2SRequestAsync(new MatchSceneFilter(sceneId), route, cancellationToken);
+            return await scene.CreateS2SRequestAsync(new MatchSceneFilter(sceneId), route, cancellationToken);
+        }
+
+        public async Task<IS2SRequest> StartS2SRequestAsync(string serviceType, string serviceInstance, string route, CancellationToken cancellationToken)
+        {
+           var rq = await CreateS2SRequestAsync(serviceType, serviceInstance, route, cancellationToken);
+
+            rq.Send();
+            return rq;
         }
     }
 }

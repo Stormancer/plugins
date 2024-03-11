@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using MessagePack;
 using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.API;
@@ -38,24 +38,25 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
     /// <summary>
     /// Startup data passed to a game server.
     /// </summary>
+    [MessagePackObject]
     public class GameServerStartupParameters
     {
         /// <summary>
         /// Gets the connection to the game session.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public string GameSessionConnectionToken { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets the gamesession config.
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public GameSessionConfiguration Config { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets the game session Id.
         /// </summary>
-        [MessagePackMember(2)]
+        [Key(2)]
         public string GameSessionId { get; set; } = default!;
     }
 
@@ -152,7 +153,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             {
                 await pools.CloseServer(id);
             }
-            catch(Exception ex)
+            catch(Exception)
             {
                
             }

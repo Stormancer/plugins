@@ -20,19 +20,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+
+using MessagePack;
 
 namespace Stormancer.Server.Plugins.Party.Dto
 {
     /// <summary>
     /// Sent to party members when a GameFinder request fails.
     /// </summary>
+    [MessagePackObject]
     public class GameFinderFailureDto
     {
         /// <summary>
         /// The reason why the GameFinder request failed.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public string Reason { get; set; } = "";
     }
 }

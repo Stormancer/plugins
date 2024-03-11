@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using MessagePack;
 using Stormancer.Server.Plugins.Party.Model;
 using System;
 using System.Collections.Generic;
@@ -32,30 +32,31 @@ namespace Stormancer.Server.Plugins.Party.Dto
     /// <summary>
     /// Sent by the leader client to the server through UpdatePartySettings
     /// </summary>
+    [MessagePackObject]
     public class PartySettingsDto : IEquatable<PartySettingsDto>
     {
         /// <summary>
         /// Gets or sets the name of the selected GameFinder.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public string GameFinderName { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets customData
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public string CustomData { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets a <see cref="bool"/> indicating if only the leader can invite players in the group.
         /// </summary>
-        [MessagePackMember(2)]
+        [Key(2)]
         public bool OnlyLeaderCanInvite { get; set; } = true;
 
         /// <summary>
         /// Gets or sets a <see cref="bool"/> indicating if players can join the party.
         /// </summary>
-        [MessagePackMember(3)]
+        [Key(3)]
         public bool IsJoinable { get; set; } = true;
 
         /// <summary>
@@ -64,7 +65,7 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// <remarks>
         /// This property is ignored for msgpack serialization because the client can't update it.
         /// </remarks>
-        [MessagePackIgnore]
+        [IgnoreMember]
         public Dictionary<string, string>? PublicServerData { get; set; }
 
         /// <summary>
@@ -89,7 +90,7 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// - "gamemode.map":"level3-a" (string)
         /// - "gamemode.extraFooEnabled":true (bool)
         /// </remarks>
-        [MessagePackMember(4)]
+        [Key(4)]
         public string IndexedDocument { get; set; } = string.Empty;
 
         /// <summary>
@@ -147,6 +148,7 @@ namespace Stormancer.Server.Plugins.Party.Dto
     /// <summary>
     /// Sent by the server to the clients for settings update notification
     /// </summary>
+    [MessagePackObject]
     public class PartySettingsUpdateDto
     {
         internal const string Route = "party.settingsUpdated";
@@ -154,13 +156,13 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// <summary>
         /// Gets or sets the name of the gamefinder currently selected.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public string GameFinderName { get; set; }
 
         /// <summary>
         /// Gets or sets custom data associated with the party.
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public string CustomData { get; set; }
 
         /// <summary>
@@ -169,37 +171,37 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// <remarks>
         /// The settings version is incremented each time they are changed. The client can use that to determine if it is up to date.
         /// </remarks>
-        [MessagePackMember(2)]
+        [Key(2)]
         public int SettingsVersion { get; set; }
 
         /// <summary>
         /// Gets or sets a <see cref="bool"/> indicating if invitation is restricted to the leader (true by default)
         /// </summary>
-        [MessagePackMember(3)]
+        [Key(3)]
         public bool OnlyLeaderCanInvite { get; set; } = true;
 
         /// <summary>
         /// Gets or sets a <see cref="bool"/> indicating if the party can be joined.
         /// </summary>
-        [MessagePackMember(4)]
+        [Key(4)]
         public bool IsJoinable { get; set; } = true;
 
         /// <summary>
         /// 
         /// </summary>
-        [MessagePackMember(5)]
+        [Key(5)]
         public Dictionary<string, string> PublicServerData { get; set; } = new Dictionary<string, string>();
 
         /// <summary>
         /// Json document used as a source to index the party in the in memory database for querying.
         /// </summary>
-        [MessagePackMember(6)]
+        [Key(6)]
         public string IndexedDocument { get; set; }
 
         /// <summary>
         /// Gets or sets the party id.
         /// </summary>
-        [MessagePackMember(7)]
+        [Key(7)]
         public string PartyId { get; set; } = default!;
 
         internal PartySettingsUpdateDto(PartyState state)

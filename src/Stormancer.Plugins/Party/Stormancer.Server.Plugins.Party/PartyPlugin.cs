@@ -21,9 +21,11 @@
 // SOFTWARE.
 
 using Stormancer.Abstractions.Server;
+using Stormancer.Abstractions.Server.Components;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
+using Stormancer.Server.Components;
 using Stormancer.Server.PartyManagement;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.GameFinder;
@@ -105,7 +107,8 @@ namespace Stormancer.Server.Plugins.Party
 
                 builder.Register<PartyManagementService>(r => new PartyManagementService(
                     r.Resolve<InvitationCodeService>(),
-                    r.Resolve<ManagementClientProvider>(),
+                    r.Resolve<IScenesManager>(),
+                    r.Resolve<IEnvironment>(),
                     r.Resolve<ISceneHost>(),
                     r.Resolve<IServiceLocator>())
                 ).As<IPartyManagementService>().InstancePerRequest();
@@ -131,7 +134,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 builder.Register<InvitationCodeService>(r => new InvitationCodeService(
                     r.Resolve<IHost>(),
-                    r.Resolve<ISerializer>(),
+                    r.Resolve<IClusterSerializer>(),
                     r.Resolve<ManagementClientProvider>(),
                     r.Resolve<PartyConfigurationService>())
                 ).AsSelf().SingleInstance();
@@ -195,7 +198,7 @@ namespace Stormancer.Server.Plugins.Party
               };
             ctx.SceneCreated += (ISceneHost scene) =>
             {
-                if (scene.Metadata.ContainsKey(PartyConstants.METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(PartyConstants.METADATA_KEY))
                 {
                     scene.AddController<PartyController>();
                     scene.AddController<JoinGamePartyController>();
@@ -216,12 +219,12 @@ namespace Stormancer.Server.Plugins.Party
                     scene.DependencyResolver.Resolve<PartyAnalyticsWorker>().AddParty(scene.DependencyResolver.Resolve<PartyState>());
                 }
 
-                if (scene.Metadata.ContainsKey("stormancer.gamesession"))
+                if (scene.TemplateMetadata.ContainsKey("stormancer.gamesession"))
                 {
                     scene.AddController<JoinGamesessionController>();
                 }
 
-                if (scene.Metadata.ContainsKey(PARTYMANAGEMENT_METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(PARTYMANAGEMENT_METADATA_KEY))
                 {
                     scene.AddController<PartyManagementController>();
 
@@ -229,7 +232,7 @@ namespace Stormancer.Server.Plugins.Party
             };
             ctx.SceneStarted += (ISceneHost scene) =>
             {
-                if (scene.Metadata.ContainsKey(PartyConstants.METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(PartyConstants.METADATA_KEY))
                 {
                     scene.RunTask(ct => PartyService.RunReservationExpirationLoopAsync(scene, ct));
                 }

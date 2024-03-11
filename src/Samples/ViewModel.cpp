@@ -7,12 +7,15 @@
 #include "stormancer/IClientFactory.h"
 #include "stormancer/Configuration.h"
 
+#define STORM_PLUGIN_IMPL 1
+
 #include "users/Users.hpp"
 #include "Party/Party.hpp"
 #include "Party/PartyMerging.hpp"
 #include "gamefinder/GameFinder.hpp"
 #include "gamesession/GameSession.hpp"
 #include "gameversion/GameVersion.hpp"
+//#include "replication/Lockstep.hpp"
 
 using json = nlohmann::json;
 

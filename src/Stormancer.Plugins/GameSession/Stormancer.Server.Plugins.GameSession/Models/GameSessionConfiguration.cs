@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using MessagePack;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Models;
@@ -30,47 +30,48 @@ using System.Linq;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
+    [MessagePackObject]
     public class GameSessionConfiguration
     {
         /// <summary>
         /// True if anyone can connect to the game session.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public bool Public { get; set; }
 
-        [MessagePackMember(1)]
+        [Key(1)]
         public bool canRestart { get; set; }
 
         /// <summary>
         /// User id of the game host. In party the host user id value is the party leader.
         /// </summary>
-        [MessagePackMember(2)]
+        [Key(2)]
         public string? HostSessionId { get; set; }
 
         /// <summary>
         /// Group connected to gameSession
         /// </summary>
 
-        [MessagePackIgnore]
+        [IgnoreMember]
         public IEnumerable<Team> TeamsList => Teams.ToList();
 
         /// <summary>
         /// The teams that are part of this game session.
         /// </summary>
-        [MessagePackMember(3)]
+        [Key(3)]
         public List<Team> Teams { get; set; } = new List<Team>();
 
         /// <summary>
         /// Get the User ID of every player in Teams
         /// </summary>
-        [MessagePackIgnore]
+        [IgnoreMember]
         public IEnumerable<string> UserIds { get => Teams.SelectMany(t => t.PlayerIds); }
 
         /// <summary>
         /// Gamesession parameters like map to launch, gameType and everything can be useful to 
         /// dedicated server.
         /// </summary>
-        [MessagePackMember(4)]
+        [Key(4)]
         public JObject Parameters { get; set; } = new JObject();
 
         /// <summary>
@@ -79,20 +80,20 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <remarks>
         /// If set, requires <see cref="GameServerPool"/> to be set.
         /// </remarks>
-        [MessagePackMember(5)]
+        [Key(5)]
         public bool StartGameServer { get; set; }
 
 
         /// <summary>
         /// The gameserver pool from which the game server should be requested, if StartGameServer is true.
         /// </summary>
-        [MessagePackMember(6)]
+        [Key(6)]
         public string? GameServerPool { get; set; }
 
         /// <summary>
         /// Name of the gamefinder creating the gamesession, if available.
         /// </summary>
-        [MessagePackMember(7)]
+        [Key(7)]
         public string? GameFinder { get; set; }
 
 
@@ -102,7 +103,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <remarks>
         /// Empty for any region.
         /// </remarks>
-        [MessagePackMember(8)]
+        [Key(8)]
         public IEnumerable<string> PreferredRegions { get; set; } = Enumerable.Empty<string>();
     }
 }

@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using MessagePack;
 using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.Steam
@@ -30,24 +30,25 @@ namespace Stormancer.Server.Plugins.Steam
     /// <summary>
     /// Steam friend.
     /// </summary>
+    [MessagePackObject]
     public class SteamFriend
     {
         /// <summary>
         /// Steam Id.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public string steamid { get; set; } = "";
 
         /// <summary>
         /// Relationship type.
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public string? relationship { get; set; }
 
         /// <summary>
         /// Date of relation creation.
         /// </summary>
-        [MessagePackMember(2)]
+        [Key(2)]
         public ulong friend_since { get; set; }
     }
 

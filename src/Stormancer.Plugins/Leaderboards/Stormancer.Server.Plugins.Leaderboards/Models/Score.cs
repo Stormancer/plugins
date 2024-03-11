@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using MessagePack;
 using Newtonsoft.Json.Linq;
 using System;
 
@@ -55,6 +55,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
         public JObject Document { get; set; } = new JObject();
     }
 
+    [MessagePackObject]
     public class ScoreDtoBase
     {
         public ScoreDtoBase()
@@ -68,13 +69,13 @@ namespace Stormancer.Server.Plugins.Leaderboards
             CreatedOn = record.CreatedOn;
         }
 
-        [MessagePackMember(0)]
+        [Key(0)]
         public string Id { get; set; }
 
-        [MessagePackMember(1)]
+        [Key(1)]
         public JObject Scores { get; set; }
 
-        [MessagePackMember(2), MessagePackDateTimeMember(DateTimeConversionMethod = DateTimeMemberConversionMethod.UnixEpoc)]
+        [Key(2)]
         public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
     }
 
@@ -94,7 +95,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
         /// <summary>
         /// Data associated with the score.
         /// </summary>
-        [MessagePackMember(3)]
+        [Key(3)]
         public JObject Document { get; set; }
       
     }

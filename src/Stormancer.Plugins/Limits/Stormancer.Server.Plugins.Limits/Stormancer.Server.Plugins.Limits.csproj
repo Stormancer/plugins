@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>0.2.0.5</Version>
+    <Version>0.2.0.7</Version>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -32,8 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Abstractions" Version="2.2.0" />
-	<PackageReference Include="Stormancer.Abstractions.Server" Version="9.4.0.7-pre" />
+	<PackageReference Include="Stormancer.Abstractions.Server" Version="10.0.4-pre" />
     <ProjectReference Include="..\..\Admin\Stormancer.Server.Plugins.AdminApi\Stormancer.Server.Plugins.WebApi.csproj" />
     <ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj" />
     <ProjectReference Include="..\..\Configuration\Stormancer.Server.Plugins.Configuration\Stormancer.Server.Plugins.Configuration.csproj" />

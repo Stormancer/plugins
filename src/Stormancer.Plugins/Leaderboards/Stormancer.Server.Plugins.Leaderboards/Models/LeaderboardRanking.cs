@@ -20,16 +20,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+
+using MessagePack;
 
 namespace Stormancer.Server.Plugins.Leaderboards
 {
+    [MessagePackObject]
     public class LeaderboardRanking<T>
     {
-        [MessagePackMember(0)]
+        [Key(0)]
         public int Ranking { get; set; }
 
-        [MessagePackMember(1)]
+        [Key(1)]
         public T Document { get; set; }
     }
 }

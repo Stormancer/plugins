@@ -15,3 +15,6 @@ mklink /J output\cpp\configuration src\Stormancer.Plugins\Configuration\cpp
 
 rmdir output\cpp\gamefinder
 mklink /J output\cpp\gamefinder src\Stormancer.Plugins\GameFinder\cpp
+
+rmdir output\cpp\replication
+mklink /J output\cpp\replication src\Stormancer.Plugins\Replication\cpp

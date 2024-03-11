@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using MessagePack;
 using Stormancer.Server.Plugins.Party.Model;
 using System.Collections.Generic;
 
@@ -32,20 +32,22 @@ namespace Stormancer.Server.Plugins.Party.Dto
     /// <remarks>
     /// Objects of this class are never sent directly ; they are always embedded in a <code>BatchStatusUpdate</code>.
     /// </remarks>
+    [MessagePackObject]
     public class PartyMemberStatusUpdate
     {
-        [MessagePackMember(0)]
+        [Key(0)]
         public string UserId { get; set; }
 
-        [MessagePackMember(1)]
+        [Key(1)]
         public PartyMemberStatus Status { get; set; }
     }
 
+    [MessagePackObject]
     public class BatchStatusUpdate
     {
         public const string Route = "party.memberStatusUpdated";
 
-        [MessagePackMember(0)]
+        [Key(0)]
         public List<PartyMemberStatusUpdate> UserStatus { get; set; } = new List<PartyMemberStatusUpdate>();
     }
 }

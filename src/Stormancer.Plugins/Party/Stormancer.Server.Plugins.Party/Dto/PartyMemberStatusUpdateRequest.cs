@@ -20,16 +20,17 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using MessagePack;
 using Stormancer.Server.Plugins.Party.Model;
 
 namespace Stormancer.Server.Plugins.Party.Dto
 {
+    [MessagePackObject]
     public class PartyMemberStatusUpdateRequest
     {
-        [MessagePackMember(0)]
+        [Key(0)]
         public PartyMemberStatus DesiredStatus { get; set; }
-        [MessagePackMember(1)]
+        [Key(1)]
         public int ClientSettingsVersion { get; set; }
     }
 }

@@ -24,6 +24,8 @@ using Microsoft.IO;
 using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Users;
+using Stormancer.Server.Plugins.Utilities;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -37,13 +39,15 @@ namespace Stormancer.Server.Plugins.Spectate
         public readonly IUserSessions _userSessions;
         private readonly ISerializer _serializer;
         private readonly ISceneHost scene;
+        private readonly RecyclableMemoryStreamProvider _memoryStreamProvider;
 
-        public SpectateService(ISpectateRepository spectateRepository, IUserSessions userSessions, ISerializer serializer, ISceneHost scene)
+        public SpectateService(ISpectateRepository spectateRepository, IUserSessions userSessions, ISerializer serializer, ISceneHost scene,RecyclableMemoryStreamProvider memoryStreamProvider)
         {
             _spectateRepository = spectateRepository;
             _userSessions = userSessions;
             _serializer = serializer;
             this.scene = scene;
+            _memoryStreamProvider = memoryStreamProvider;
         }
 
         public Task SendFrames(IEnumerable<Frame> frames)
@@ -74,14 +78,11 @@ namespace Stormancer.Server.Plugins.Spectate
             }
 
         }
-        private static readonly RecyclableMemoryStreamManager manager = new RecyclableMemoryStreamManager();
-
-
         private Task BroadcastFrames(IEnumerable<Frame> frames)
         {
-            using (var memStream = manager.GetStream())
+            using (var memStream = _memoryStreamProvider.GetStream())
             {
-                _serializer.Serialize(frames, memStream);
+                _serializer.Serialize(frames, (IBufferWriter<byte>)memStream);
                 memStream.Seek(0, SeekOrigin.Begin);
 
                 var tasks = new List<Task>();

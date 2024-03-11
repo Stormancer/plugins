@@ -79,10 +79,11 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </remarks>
         /// <param name="teams">Teams that have been added to the game session by the GameFinder.</param>
         /// <returns></returns>
-        internal async Task RegisterTeams(IEnumerable<Team> teams)
+        internal Task RegisterTeams(IEnumerable<Team> teams)
         {
             observer.OnNext(teams);
             //await requestContext.SendValue(stream => requestContext.RemotePeer.Serializer().Serialize(teams, stream));
+            return Task.CompletedTask;
         }
 
         internal void Complete()

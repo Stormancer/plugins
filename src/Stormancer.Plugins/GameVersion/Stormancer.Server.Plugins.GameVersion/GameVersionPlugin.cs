@@ -35,7 +35,7 @@ namespace Stormancer.Server.Plugins.GameVersion
         {
             ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
             {
-                if (scene.Metadata.ContainsKey(METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
                 {
                     builder.Register<GameVersionService>().AsSelf().As<IConfigurationChangedEventHandler>().InstancePerScene();
                     builder.Register<AuthenticationEventHandler>().As<IAuthenticationEventHandler>().InstancePerRequest();
@@ -44,7 +44,7 @@ namespace Stormancer.Server.Plugins.GameVersion
 
             ctx.SceneCreated += (ISceneHost scene) =>
             {
-                if (scene.Metadata.ContainsKey(METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
                 {
                     scene.DependencyResolver.Resolve<GameVersionService>();
                 }

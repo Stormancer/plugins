@@ -43,7 +43,7 @@ namespace Stormancer.Server.Plugins.PeerConfiguration
             {
                 if (scene.Template == Users.Constants.SCENE_TEMPLATE)
                 {
-                    scene.Metadata["stormancer.peerConfig"] = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? string.Empty;
+                    scene.TemplateMetadata["stormancer.peerConfig"] = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? string.Empty;
                 }
             };
             ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>

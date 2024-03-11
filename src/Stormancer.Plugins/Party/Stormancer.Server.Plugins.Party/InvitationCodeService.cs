@@ -27,11 +27,11 @@ namespace Stormancer.Server.Plugins.Party
         private object syncRoot = new object();
         private Dictionary<string, InvitationCodeState> codes = new Dictionary<string, InvitationCodeState>();
         private readonly IHost host;
-        private readonly ISerializer serializer;
+        private readonly IClusterSerializer serializer;
         private readonly ManagementClientProvider management;
         private readonly PartyConfigurationService partyConfiguration;
 
-        public InvitationCodeService(IHost host, ISerializer serializer, ManagementClientProvider management, PartyConfigurationService partyConfiguration)
+        public InvitationCodeService(IHost host, IClusterSerializer serializer, ManagementClientProvider management, PartyConfigurationService partyConfiguration)
         {
             this.host = host;
             this.serializer = serializer;
@@ -80,9 +80,10 @@ namespace Stormancer.Server.Plugins.Party
 
         private async Task<string?> GetSceneIdForInvitationCode(string invitationCode, CancellationToken cancellationToken)
         {
-            using var request = await host.StartAppFunctionRequest("party.getSceneIdForInvitationCode", cancellationToken);
-            await serializer.SerializeAsync(invitationCode, request.Input, cancellationToken);
+            using var request = await host.CreateAppFunctionRequest("party.getSceneIdForInvitationCode", cancellationToken);
+            serializer.Serialize(request.Input, invitationCode);
             request.Input.Complete();
+            request.Send();
             string? sceneId = null;
             await foreach (var result in request.Results)
             {
@@ -115,10 +116,11 @@ namespace Stormancer.Server.Plugins.Party
                 codes.Add(code, state);
             }
 
-            using var request = await host.StartAppFunctionRequest("party.isInvitationCodeAvailable", cancellationToken);
-            await serializer.SerializeAsync(code, request.Input, cancellationToken);
-            await serializer.SerializeAsync(state.Uid.ToByteArray(), request.Input, cancellationToken);
+            using var request = await host.CreateAppFunctionRequest("party.isInvitationCodeAvailable", cancellationToken);
+            serializer.Serialize(request.Input, code);
+            serializer.Serialize(request.Input, state.Uid.ToByteArray());
             request.Input.Complete();
+            request.Send();
             bool found = false;
             await foreach (var result in request.Results)
             {
@@ -161,7 +163,7 @@ namespace Stormancer.Server.Plugins.Party
                     }
                 }
 
-                await serializer.SerializeAsync(sceneId, ctx.Output, CancellationToken.None);
+                serializer.Serialize(ctx.Output, sceneId);
             });
             host.RegisterAppFunction("party.isInvitationCodeAvailable", async ctx =>
             {
@@ -188,7 +190,7 @@ namespace Stormancer.Server.Plugins.Party
                     }
                 }
 
-                await serializer.SerializeAsync(found, ctx.Output, CancellationToken.None);
+                serializer.Serialize(ctx.Output, found);
 
             });
         }

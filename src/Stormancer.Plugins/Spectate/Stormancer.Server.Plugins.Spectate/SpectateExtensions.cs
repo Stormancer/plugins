@@ -29,7 +29,7 @@ namespace Stormancer
     {
         public static void AddSpectate(this ISceneHost scene)
         {
-            scene.Metadata[SpectatePlugin.METADATA_KEY] = "enabled";
+            scene.TemplateMetadata[SpectatePlugin.METADATA_KEY] = "enabled";
         }
     }
 }

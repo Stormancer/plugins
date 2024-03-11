@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using Newtonsoft.Json.Linq;
+using Stormancer.Abstractions.Server.Components;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
@@ -85,7 +86,7 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 host.AddSceneTemplate(POOL_SCENEID, s =>
                 {
-                    s.Metadata["stormancer.serverPool"] = "1.0.0";
+                    s.TemplateMetadata["stormancer.serverPool"] = "1.0.0";
                     s.AddController<ServerPoolController>();
                     s.AddController<AgentServerController>();
                 });
@@ -101,7 +102,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             ctx.SceneCreated += (ISceneHost scene) =>
             {
-                if (scene.Metadata.ContainsKey(METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
                 {
                     scene.AddController<GameSessionController>();
 
@@ -118,7 +119,7 @@ namespace Stormancer.Server.Plugins.GameSession
             };
             ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
             {
-                if (scene.Metadata.ContainsKey(METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
                 {
                     builder.Register(d => new GameSessionState(scene));
 
@@ -129,7 +130,6 @@ namespace Stormancer.Server.Plugins.GameSession
                             scene,
                             d.Resolve<IConfiguration>(),
                             d.Resolve<IEnvironment>(),
-                            d.Resolve<Management.ManagementClientProvider>(),
                             d.Resolve<ILogger>(),
                             d.Resolve<RpcService>(),
                             d.Resolve<GameSessionsRepository>(),

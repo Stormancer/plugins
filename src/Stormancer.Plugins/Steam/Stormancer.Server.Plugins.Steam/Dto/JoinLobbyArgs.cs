@@ -20,25 +20,28 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+
+using MessagePack;
 
 namespace Stormancer.Server.Plugins.Steam
 {
     /// <summary>
     ///  Arguments of a steam join lobby operation on the client.
     /// </summary>
+    [MessagePackObject]
     public class JoinLobbyArgs
     {
         /// <summary>
         /// Steam lobby id.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public ulong SteamIDLobby { get; set; }
     }
 
     /// <summary>
     /// Argument of a leave lobby RPC sent to the client.
     /// </summary>
+    [MessagePackObject]
     public class LeaveLobbyArgs
     {
 
@@ -46,18 +49,19 @@ namespace Stormancer.Server.Plugins.Steam
     /// <summary>
     /// Arguments of an update lobby joinable RPC sent to the client.
     /// </summary>
+    [MessagePackObject]
     public class UpdateLobbyJoinableArgs
     {
         /// <summary>
         /// Gets or sets the target Steam lobby id.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public ulong SteamIDLobby { get; set; }
 
         /// <summary>
         /// 
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public bool Joinable { get; set; }
     }
     

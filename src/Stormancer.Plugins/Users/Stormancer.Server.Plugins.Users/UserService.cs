@@ -21,23 +21,16 @@
 // SOFTWARE.
 
 
-using Autofac.Core;
-using Nest;
 using Newtonsoft.Json.Linq;
-using Server.Plugins.Users;
 using Stormancer.Core.Helpers;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Analytics;
 using Stormancer.Server.Plugins.Configuration;
-using Stormancer.Server.Plugins.Database;
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;

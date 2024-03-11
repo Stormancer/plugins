@@ -47,7 +47,7 @@ namespace Stormancer.Server.Plugins.Epic
 
             ctx.SceneCreated += (ISceneHost scene) =>
             {
-                if (scene.Metadata.ContainsKey(METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
                 {
                     scene.AddController<EpicController>();
                 }
@@ -82,7 +82,7 @@ namespace Stormancer
         /// <returns></returns>
         public static ISceneHost AddEpic(this ISceneHost scene)
         {
-            scene.Metadata[EpicPlugin.METADATA_KEY] = "enabled";
+            scene.TemplateMetadata[EpicPlugin.METADATA_KEY] = "enabled";
             return scene;
         }
     }

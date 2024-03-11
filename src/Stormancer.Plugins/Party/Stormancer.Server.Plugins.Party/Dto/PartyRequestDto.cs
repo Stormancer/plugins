@@ -20,49 +20,51 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+
+using MessagePack;
 
 namespace Stormancer.Server.Plugins.Party
 {
     /// <summary>
     /// Party request Dto.
     /// </summary>
+    [MessagePackObject]
     public class PartyRequestDto
     {
         /// <summary>
         /// Platform Session Id.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public string PlatformSessionId { get; set; }
 
         /// <summary>
         /// GameFinder name.
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public string GameFinderName { get; set; }
 
         /// <summary>
         /// Custom Data.
         /// </summary>
-        [MessagePackMember(2)]
+        [Key(2)]
         public string CustomData { get; set; }
 
         /// <summary>
         /// Server settings set by client.
         /// </summary>
-        [MessagePackMember(3)]
+        [Key(3)]
         public ServerPartySettings ServerSettings { get; set; } = new ServerPartySettings();
 
         /// <summary>
         /// Only leader can invite players in the party.
         /// </summary>
-        [MessagePackMember(4)]
+        [Key(4)]
         public bool OnlyLeaderCanInvite { get; set; } = true;
 
         /// <summary>
         /// Party is joinable.
         /// </summary>
-        [MessagePackMember(5)]
+        [Key(5)]
         public bool IsJoinable { get; set; } = true;
 
         /// <summary>
@@ -73,13 +75,13 @@ namespace Stormancer.Server.Plugins.Party
         /// A public party is always visible to other players.
         /// A private party is visible only to players who have received an invitation.
         /// </remarks>
-        [MessagePackMember(6)]
+        [Key(6)]
         public bool IsPublic { get; set; } = false;
 
         /// <summary>
         /// Gets or sets member data to associate the party leader with on party join.
         /// </summary>
-        [MessagePackMember(7)]
+        [Key(7)]
         public byte[] UserData { get; set; } = new byte[0];
     }
 }

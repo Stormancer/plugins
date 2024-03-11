@@ -63,7 +63,7 @@ namespace Stormancer.Server.Plugins.Steam
             {
                 if (scene.Template == Constants.SCENE_TEMPLATE)
                 {
-                    scene.Metadata[METADATA_KEY] = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";
+                    scene.TemplateMetadata[METADATA_KEY] = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";
                 }
             };
 
@@ -75,7 +75,7 @@ namespace Stormancer.Server.Plugins.Steam
                     
                 }
 
-                if (scene.Metadata.ContainsKey(PartyConstants.METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(PartyConstants.METADATA_KEY))
                 {
                     scene.AddController<SteamPartyController>();
                 }

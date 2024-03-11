@@ -22,7 +22,7 @@ namespace Stormancer
         public static ISceneHost AddSocket(this ISceneHost scene)
         {
             var currentAssembly = Assembly.GetExecutingAssembly();
-            scene.Metadata[SocketPlugin.METADATA_KEY] = currentAssembly.GetName()?.Version?.ToString() ?? "0.0.0";
+            scene.TemplateMetadata[SocketPlugin.METADATA_KEY] = currentAssembly.GetName()?.Version?.ToString() ?? "0.0.0";
             return scene;
         }
     }

@@ -40,7 +40,7 @@ namespace Stormancer
         /// <param name="prefix">Configuration prefix for this instance of GameVersion</param>
         public static void AddGameVersion(this ISceneHost builder, string? prefix = null)
         {
-            builder.Metadata[GameVersionPlugin.METADATA_KEY] = prefix ?? "default";
+            builder.TemplateMetadata[GameVersionPlugin.METADATA_KEY] = prefix ?? "default";
         }
     }
 }

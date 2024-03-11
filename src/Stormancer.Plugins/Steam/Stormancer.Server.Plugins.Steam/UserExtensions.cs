@@ -52,6 +52,12 @@ namespace Stormancer
             return null;
         }
 
+        /// <summary>
+        /// Tries getting the steam id of the user, if they have one.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="steamId"></param>
+        /// <returns></returns>
         public static bool TryGetSteamId(this User user, out ulong steamId)
         {
             if (user.Auth.TryGetValue(SteamConstants.PLATFORM_NAME, out var steamAuthSection) && steamAuthSection is JObject steamAuth

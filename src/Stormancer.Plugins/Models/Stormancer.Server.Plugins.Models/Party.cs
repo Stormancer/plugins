@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using MessagePack;
 using System;
 using System.Collections.Generic;
 
@@ -29,6 +29,7 @@ namespace Stormancer.Server.Plugins.Models
     /// <summary>
     /// Party.
     /// </summary>
+    [MessagePackObject]
     public class Party
     {
         /// <summary>
@@ -51,48 +52,48 @@ namespace Stormancer.Server.Plugins.Models
         /// <summary>
         /// Party Id.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public string PartyId { get; set; } = "";
 
         /// <summary>
         /// Players in party.
         /// </summary>
-        [MessagePackMember(1)]
-        public Dictionary<string, Player> Players { get; } = new Dictionary<string, Player>();
+        [Key(1)]
+        public required Dictionary<string, Player> Players { get; set; } 
 
 
         /// <summary>
         /// Party custom data.
         /// </summary>
-        [MessagePackMember(2)]
+        [Key(2)]
         public string? CustomData { get; set; }
 
 
         /// <summary>
         /// Party creation date.
         /// </summary>
-        [MessagePackMember(3)]
+        [Key(3)]
         public DateTime CreationTimeUtc { get; set; } = DateTime.UtcNow;
 
 
         /// <summary>
         /// Number of passes of gamefinder without finding an opponent.
         /// </summary>
-        [MessagePackMember(4)]
+        [Key(4)]
         public int PastPasses { get; set; }
 
 
         /// <summary>
         /// user id of the party leader.
         /// </summary>
-        [MessagePackMember(5)]
+        [Key(5)]
         public string PartyLeaderId { get; set; } = default!;
 
 
         /// <summary>
         /// Temporary data storage
         /// </summary>
-        [MessagePackIgnore]
+        [IgnoreMember]
         public Dictionary<string, object> CacheStorage { get; set; } = new Dictionary<string, object>();
     }
 }

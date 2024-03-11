@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using MessagePack;
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Users;
 using System;
@@ -59,24 +59,25 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
     /// <summary>
     /// A game server in the pool that should join a gamesession.
     /// </summary>
+    [MessagePackObject]
     public class GameServer
     {
         /// <summary>
         /// Gets or sets the session id of the gameServer
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public SessionId GameServerSessionId { get; set; }
 
         /// <summary>
         /// Gets or sets the Id of the gameserver
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public GameServerId GameServerId { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets the region of hte game server.
         /// </summary>
-        [MessagePackMember(2)]
+        [Key(2)]
         public string? Region { get; set; }
     }
 
@@ -92,18 +93,19 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
     /// <summary>
     /// Id of gameservers in the system.
     /// </summary>
+    [MessagePackObject]
     public class GameServerId
     {
         /// <summary>
         /// Id of the pool containing the gameserver
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public string PoolId { get; set; } = default!;
 
         /// <summary>
         /// Id of the gameserver in the pool
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public string Id { get; set; } = default!;
     }
     

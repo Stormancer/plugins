@@ -20,11 +20,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+
+
+using MessagePack;
 
 namespace Stormancer.Server.Plugins.Friends
 {
-    [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
+   
     public enum FriendListUpdateDtoOperation
     {
         AddOrUpdate = 0,
@@ -32,15 +34,16 @@ namespace Stormancer.Server.Plugins.Friends
         UpdateStatus = 2
     }
 
+    [MessagePackObject]
     public class FriendListUpdateDto
     {
-        [MessagePackMember(0)]
+        [Key(0)]
         public string ItemId { get; set; }
 
-        [MessagePackMember(1)]
+        [Key(1)]
         public FriendListUpdateDtoOperation Operation { get; set; }
 
-        [MessagePackMember(2)]
+        [Key(2)]
         public Friend Data { get; set; }
     }
 }

@@ -60,5 +60,17 @@ namespace Stormancer.Server.Plugins.ServiceLocator
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns></returns>
         Task<IS2SRequest> StartS2SRequestAsync(string serviceType, string serviceInstance, string route, CancellationToken cancellationToken);
+
+
+        /// <summary>
+        /// Creates a scene to scene request to a service instance.
+        /// </summary>
+        /// <param name="serviceType">Type of the service.</param>
+        /// <param name="serviceInstance">Id of the service instance if there are several instances of the instance type.</param>
+        /// <param name="route">Route the request is sent to.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <remarks>The request must be sent afterward.</remarks>
+        /// <returns></returns>
+        Task<IS2SRequest> CreateS2SRequestAsync(string serviceType, string serviceInstance, string route, CancellationToken cancellationToken);
     }
 }

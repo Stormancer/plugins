@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using MessagePack;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
@@ -29,43 +29,45 @@ namespace Stormancer.Server.Plugins.Steam
     /// <summary>
     /// Create lobby dto.
     /// </summary>
+    [MessagePackObject]
     public class CreateLobbyDto
     {
         /// <summary>
         /// Steam lobby type.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public LobbyType LobbyType { get; set; } = LobbyType.Private;
 
         /// <summary>
         /// Max members authorized to join the lobby.
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public int MaxMembers { get; set; }
 
         /// <summary>
         /// Set Lobby to be joinable or not.
         /// </summary>
-        [MessagePackMember(2)]
+        [Key(2)]
         public bool Joinable { get; set; }
 
         /// <summary>
         /// Set lobby metadata.
         /// </summary>
         /// <remarks>The steam API alterates the keys to "camelCase" format (first letter becomes lower case).</remarks>
-        [MessagePackMember(3)]
+        [Key(3)]
         public Dictionary<string, string> Metadata { get; set; } = new();
     }
 
     /// <summary>
     /// Result of a create steam lobby API call.
     /// </summary>
+    [MessagePackObject]
     public class CreateSteamLobbyResult
     {
         /// <summary>
         /// Was the operation successful
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         [MemberNotNullWhen(false, "ErrorId")]
         [MemberNotNullWhen(false, "ErrorDetails")]
         public bool Success { get; set; }
@@ -73,19 +75,19 @@ namespace Stormancer.Server.Plugins.Steam
         /// <summary>
         /// Id of the error if the operation failed.
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public string? ErrorId { get; set; }
 
         /// <summary>
         /// Details about the error if the operation failed.
         /// </summary>
-        [MessagePackMember(2)]
+        [Key(2)]
         public string? ErrorDetails { get; set; }
 
         /// <summary>
         /// Id of the created lobby
         /// </summary>
-        [MessagePackMember(3)]
+        [Key(3)]
         public ulong SteamLobbyId { get; set; }
 
     }
@@ -93,12 +95,13 @@ namespace Stormancer.Server.Plugins.Steam
     /// <summary>
     /// Result of a join steam lobby operation
     /// </summary>
+    [MessagePackObject]
     public class VoidSteamResult
     {
         /// <summary>
         /// Was the operation successful
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         [MemberNotNullWhen(false, "ErrorId")]
         [MemberNotNullWhen(false, "ErrorDetails")]
         public bool Success { get; set; }
@@ -106,13 +109,13 @@ namespace Stormancer.Server.Plugins.Steam
         /// <summary>
         /// Id of the error if the operation failed.
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public string? ErrorId { get; set; }
 
         /// <summary>
         /// Details about the error if the operation failed.
         /// </summary>
-        [MessagePackMember(2)]
+        [Key(2)]
         public string? ErrorDetails { get; set; }
 
     }
@@ -121,12 +124,13 @@ namespace Stormancer.Server.Plugins.Steam
     /// <summary>
     /// Result of a join steam lobby operation
     /// </summary>
+    [MessagePackObject]
     public class GetLobbyLeaderSteamResult
     {
         /// <summary>
         /// Was the operation successful
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         [MemberNotNullWhen(false, "ErrorId")]
         [MemberNotNullWhen(false, "ErrorDetails")]
         public bool Success { get; set; }
@@ -134,19 +138,19 @@ namespace Stormancer.Server.Plugins.Steam
         /// <summary>
         /// Id of the error if the operation failed.
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public string? ErrorId { get; set; }
 
         /// <summary>
         /// Details about the error if the operation failed.
         /// </summary>
-        [MessagePackMember(2)]
+        [Key(2)]
         public string? ErrorDetails { get; set; }
 
         /// <summary>
         /// Gets or sets the steam id of the lobby leader.
         /// </summary>
-        [MessagePackMember(3)]
+        [Key(3)]
         public ulong SteamId { get; set; }
 
     }

@@ -36,7 +36,7 @@ namespace Stormancer
         /// <param name="scene"></param>
         public static void AddLeaderboard(this ISceneHost scene)
         {
-            scene.Metadata[LeaderboardPlugin.METADATA_KEY] = "enabled";
+            scene.TemplateMetadata[LeaderboardPlugin.METADATA_KEY] = "enabled";
         }
     }
 }

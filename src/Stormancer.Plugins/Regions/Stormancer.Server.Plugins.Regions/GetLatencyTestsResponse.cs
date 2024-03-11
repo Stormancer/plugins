@@ -1,4 +1,4 @@
-﻿using MsgPack.Serialization;
+﻿using MessagePack;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,6 +10,7 @@ namespace Stormancer.Server.Plugins.Regions
     /// <summary>
     /// Results of a set of region latency tests.
     /// </summary>
+    [MessagePackObject]
     public class GetLatencyTestsResponse
     {
         /// <summary>
@@ -18,31 +19,33 @@ namespace Stormancer.Server.Plugins.Regions
         /// <remarks>
         /// [region]=>ping
         /// </remarks>
-        [MessagePackMember(0)]
+        [Key(0)]
         public IEnumerable<LatencyTestResult> Results { get; set; } = Enumerable.Empty<LatencyTestResult>();
     }
 
     /// <summary>
     /// The result of a latency test.
     /// </summary>
+    [MessagePackObject]
     public class LatencyTestResult
     {
         /// <summary>
         /// Gets or sets the id of the tested region
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public string Region { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets the latency associated with the tested region.
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public int Latency { get; set; }
     }
 
     /// <summary>
     /// Arguments of a region latency test request sent to the client.
     /// </summary>
+    [MessagePackObject]
     public class LatencyTestRequest
     {
 
@@ -52,7 +55,7 @@ namespace Stormancer.Server.Plugins.Regions
         /// <remarks>
         /// [region]=>[ip]
         /// </remarks>
-        [MessagePackMember(0)]
+        [Key(0)]
         public Dictionary<string, string> TestIps { get; set; } = default!;
     }
 

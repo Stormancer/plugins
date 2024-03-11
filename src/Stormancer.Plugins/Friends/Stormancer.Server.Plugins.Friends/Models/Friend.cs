@@ -20,12 +20,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+
+using MessagePack;
 using System;
 using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.Friends
 {
+    [MessagePackObject]
     public class MemberDto
     {
         public MemberDto()
@@ -42,7 +44,7 @@ namespace Stormancer.Server.Plugins.Friends
             Expiration = record.Expiration;
         }
 
-        [MessagePackMember(0)]
+        [Key(0)]
         public string Id
         {
             get
@@ -51,26 +53,26 @@ namespace Stormancer.Server.Plugins.Friends
             }
         }
 
-        [MessagePackMember(1)]
+        [Key(1)]
         public string FriendId { get; set; }
 
-        [MessagePackMember(2)]
+        [Key(2)]
         public string OwnerId { get; set; }
 
-        [MessagePackMember(3)]
+        [Key(3)]
         public List<string> Roles { get; set; }
 
-        [MessagePackMember(4)]
+        [Key(4)]
         public FriendInvitationStatus Status { get; set; }
 
-        [MessagePackMember(5)]
+        [Key(5)]
         public List<string> Tags { get; set; } = new List<string>();
 
 
         /// <summary>
         /// Expiration of the record. Only applicable to block records.
         /// </summary>
-        [MessagePackMember(6)]
+        [Key(6)]
         public DateTime Expiration { get; set; } = default;
     }
 
@@ -128,28 +130,29 @@ namespace Stormancer.Server.Plugins.Friends
         public DateTime LastConnected { get; set; }
     }
 
+    [MessagePackObject]
     public class Friend
     {
-        [MessagePackMember(0)]
+        [Key(0)]
         public string UserId { get; set; }
 
-        [MessagePackMember(1), MessagePackDateTimeMember(DateTimeConversionMethod = DateTimeMemberConversionMethod.UnixEpoc)]
+        [Key(1)]
         public DateTimeOffset LastConnected { get; set; } = DateTimeOffset.UnixEpoch;
 
-        [MessagePackMember(2)]
+        [Key(2)]
         public FriendStatus Status { get; set; } = FriendStatus.Unknow;
 
-        [MessagePackMember(3)]
+        [Key(3)]
         public List<string> Tags { get; set; } = new();
 
-        [MessagePackMember(4)]
+        [Key(4)]
         public Dictionary<string, string> CustomData = new();
 
-        [MessagePackMember(5)]
+        [Key(5)]
         public List<string> Roles { get; set; } = new();
     }
 
-    [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
+   
     public enum FriendInvitationStatus
     {
         Unknow = -1,
@@ -159,7 +162,7 @@ namespace Stormancer.Server.Plugins.Friends
         RemovedByFriend = 3,
     }
 
-    [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
+   
     public enum FriendListStatusConfig
     {
         Unknow = -1,
@@ -168,7 +171,7 @@ namespace Stormancer.Server.Plugins.Friends
         Away = 2
     }
 
-    [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
+   
     public enum FriendStatus
     {
         Unknow = -1,

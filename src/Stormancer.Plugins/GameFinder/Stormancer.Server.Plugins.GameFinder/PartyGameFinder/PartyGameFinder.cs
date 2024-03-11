@@ -18,10 +18,12 @@ namespace Stormancer.Server.Plugins.GameFinder
         public Task<GameFinderResult> FindGames(GameFinderContext gameFinderContext)
         {
             var result = new GameFinderResult();
+            var i = 0;
             foreach(var party in gameFinderContext.WaitingParties)
             {
                 var game = new NewGame();
-                var team = new Team(party);
+                var team = new Team(party) { TeamId = i.ToString() };
+                i++;
                 game.Teams.Add(team);
                 result.Games.Add(game);
             }

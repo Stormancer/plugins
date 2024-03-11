@@ -20,7 +20,7 @@ namespace Stormancer.Server.Plugins.SpatialOS
 
             ctx.SceneCreated += (ISceneHost scene) =>
             {
-                if (scene.Metadata.ContainsKey(METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
                 {
                     scene.AddController<SpatialOSCredentialsController>();
                 }
@@ -43,7 +43,7 @@ namespace Stormancer
         /// <returns>The affected scene</returns>
         public static ISceneHost AddSpatialOsCredentials(this ISceneHost scene)
         {
-            scene.Metadata[Stormancer.Server.Plugins.SpatialOS.SpatialOSPlugin.METADATA_KEY] = "enabled";
+            scene.TemplateMetadata[Stormancer.Server.Plugins.SpatialOS.SpatialOSPlugin.METADATA_KEY] = "enabled";
             return scene;
         }
     }

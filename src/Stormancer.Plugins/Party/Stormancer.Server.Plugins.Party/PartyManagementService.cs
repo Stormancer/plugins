@@ -20,9 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Stormancer.Abstractions.Server.Components;
 using Stormancer.Core;
 using Stormancer.Management;
-using Stormancer.Server.Plugins.Management;
+using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Party;
 using Stormancer.Server.Plugins.ServiceLocator;
 using System;
@@ -40,12 +41,14 @@ namespace Stormancer.Server.PartyManagement
         private readonly InvitationCodeService invitationCodes;
 
         // Services
-        private readonly ManagementClientProvider _management;
+        private readonly IScenesManager _management;
+        private readonly IEnvironment _env;
         private readonly ISceneHost _scene;
 
         public PartyManagementService(
             InvitationCodeService invitationCodes,
-            ManagementClientProvider management,
+            IScenesManager management,
+            IEnvironment env,
             ISceneHost scene,
             IServiceLocator serviceLocator
             )
@@ -53,18 +56,24 @@ namespace Stormancer.Server.PartyManagement
             _serviceLocator = serviceLocator;
             this.invitationCodes = invitationCodes;
             _management = management;
+            _env = env;
             _scene = scene;
         }
 
         public async Task<string> CreateParty(PartyRequestDto partyRequest, string leaderUserId)
         {
-            var partyId = string.IsNullOrWhiteSpace(partyRequest.PlatformSessionId) ? Guid.NewGuid().ToString() : partyRequest.PlatformSessionId;
-            var sceneUri = await _serviceLocator.GetSceneId(PartyPlugin.PARTY_SERVICEID, partyId);
-
             if (string.IsNullOrEmpty(partyRequest.GameFinderName))
             {
                 throw new ArgumentException("partyRequest.GameFinderName", "GameFinderName cannot be empty");
             }
+
+            var partyId = string.IsNullOrWhiteSpace(partyRequest.PlatformSessionId) ? Guid.NewGuid().ToString() : partyRequest.PlatformSessionId;
+            var sceneUri = await _serviceLocator.GetSceneId(PartyPlugin.PARTY_SERVICEID, partyId);
+            if (string.IsNullOrEmpty(sceneUri))
+            {
+                throw new InvalidOperationException("Failed to generate scene id for party.");
+            }
+
 
             var metadata = Newtonsoft.Json.Linq.JObject.FromObject(new
             {
@@ -80,16 +89,20 @@ namespace Stormancer.Server.PartyManagement
                     partyRequest.IsJoinable
                 }
             });
+            var appInfos = await _env.GetApplicationInfos();
+            await _management.CreateOrUpdateSceneAsync(new Platform.Core.Models.SceneDefinition
+            {
+                AccountId = appInfos.AccountId,
+                Application = appInfos.ApplicationName,
+                Id = sceneUri,
+                SceneType = PartyPlugin.PARTY_SCENE_TYPE,
+                Metadata = metadata.ToDictionary(),
+                PartitioningPolicy = Stormancer.Server.Cluster.Constants.PARTITIONING_POLICY_HASH,
+                ShardGroup = Cluster.Constants.SHARDGROUP_DEFAULT,
 
-            await _management.CreateScene(
-                sceneUri,
-                PartyPlugin.PARTY_SCENE_TYPE,
-                false,
-                false,
-                metadata
-            );
+            });
 
-            return await _management.CreateConnectionToken(sceneUri, partyRequest.UserData, "party/userdata");
+            return await _management.CreateConnectionTokenAsync(sceneUri, partyRequest.UserData, "party/userdata");
         }
 
 
@@ -116,26 +129,16 @@ namespace Stormancer.Server.PartyManagement
                 sceneUri = partyId;
             }
 
-            var result = await _management.CreateConnectionTokenAsync(sceneUri, userData.ToArray(), "party/userdata", cancellationToken);
+            try
+            {
+                var result = await _management.CreateConnectionTokenAsync(sceneUri, userData.ToArray(), "party/userdata", 3, cancellationToken);
 
-            if (result.Success)
-            {
-                return Result<string, string>.Succeeded(result.Result);
+                return Result<string, string>.Succeeded(result);
+
             }
-            else
+            catch (Exception ex)
             {
-                if (result.Error.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    return Result<string, string>.Failed("notFound");
-                }
-                else if(result.Error.StatusCode == System.Net.HttpStatusCode.Forbidden)
-                {
-                    return Result<string, string>.Failed("forbidden");
-                }
-                else
-                {
-                    return Result<string, string>.Failed("serverError");
-                }
+                return Result<string, string>.Failed(ex.Message);
             }
         }
     }

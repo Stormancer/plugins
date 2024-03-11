@@ -21,10 +21,13 @@
 // SOFTWARE.
 
 using Newtonsoft.Json.Linq;
-using Stormancer.Server.Plugins.Management;
+using Stormancer.Abstractions.Server.Components;
+using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Models;
 using Stormancer.Server.Plugins.Users;
+using Stormancer.Server.Plugins.Utilities;
 using System;
+using System.Buffers;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -104,22 +107,38 @@ namespace Stormancer.Server.Plugins.GameSession
 
     internal class GameSessions : IGameSessions
     {
-        private readonly ManagementClientProvider management;
+        private readonly IScenesManager management;
+        private readonly RecyclableMemoryStreamProvider _memoryStreamProvider;
+        private readonly IEnvironment _env;
         private readonly GameSessionProxy s2SProxy;
         private readonly IUserSessions sessions;
         private readonly ISerializer serializer;
 
-        public GameSessions(ManagementClientProvider management, GameSessionProxy s2sProxy, IUserSessions sessions, ISerializer serializer)
+        public GameSessions(IScenesManager management, RecyclableMemoryStreamProvider memoryStreamProvider, IEnvironment env, GameSessionProxy s2sProxy, IUserSessions sessions, ISerializer serializer)
         {
             this.management = management;
+            _memoryStreamProvider = memoryStreamProvider;
+            _env = env;
             s2SProxy = s2sProxy;
             this.sessions = sessions;
             this.serializer = serializer;
         }
 
-        public Task Create(string template, string id, GameSessionConfiguration config, CancellationToken cancellationToken)
+        public async Task Create(string template, string id, GameSessionConfiguration config, CancellationToken cancellationToken)
         {
-            return management.CreateSceneAsync(id, template, false, false, JObject.FromObject(new { gameSession = config }), cancellationToken);
+            var appInfos = await _env.GetApplicationInfos();
+            await management.CreateOrUpdateSceneAsync(new Platform.Core.Models.SceneDefinition { 
+                AccountId = appInfos.AccountId,
+                Application = appInfos.ApplicationName,
+                Id = id,
+                PartitioningPolicy = Stormancer.Server.Cluster.Constants.PARTITIONING_POLICY_HASH,
+                SceneType = template,
+                ShardGroup = Stormancer.Server.Cluster.Constants.SHARDGROUP_DEFAULT,
+                Public = false,
+                IsPersistent = false,
+                Metadata = JObject.FromObject(new { gameSession = config }).ToDictionary()
+
+            },false, cancellationToken);
         }
 
         public Task Create(string template, string id, GameSessionConfiguration config)
@@ -129,14 +148,14 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async Task<string> CreateConnectionToken(string id, SessionId userSessionId, TokenVersion version, CancellationToken cancellationToken)
         {
-            using (var stream = new MemoryStream())
+            using (var stream = _memoryStreamProvider.GetStream())
             {
                 var session = await sessions.GetSessionById(userSessionId, cancellationToken);
-                serializer.Serialize(session, stream);
+                serializer.Serialize(session,(IBufferWriter<byte>) stream);
                 return await TaskHelper.Retry(async (_, _) => version switch
                 {
-                    TokenVersion.V3 => await management.CreateConnectionToken(id, stream.ToArray(), "stormancer/userSession"),
-                    TokenVersion.V1 => await management.CreateConnectionTokenV1(id, stream.ToArray(), "stormancer/userSession"),
+                    TokenVersion.V3 => await management.CreateConnectionTokenAsync(id, stream.ToArray(), "stormancer/userSession",3),
+                    TokenVersion.V1 => await management.CreateConnectionTokenAsync(id, stream.ToArray(), "stormancer/userSession",1),
                     _ => throw new InvalidOperationException("Unhandled TokenVersion value")
 
                 }, RetryPolicies.IncrementalDelay(4, TimeSpan.FromSeconds(200)), CancellationToken.None, ex => true,true) ;
@@ -155,7 +174,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public Task<string> CreateServerConnectionToken(string gameSessionId, string serverId)
         {
-            return management.CreateConnectionToken(gameSessionId, Encoding.UTF8.GetBytes(serverId), "application/server-id");
+            return management.CreateConnectionTokenAsync(gameSessionId, Encoding.UTF8.GetBytes(serverId), "application/server-id");
         }
     }
 }

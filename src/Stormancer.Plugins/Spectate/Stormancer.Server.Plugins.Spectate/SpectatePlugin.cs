@@ -40,7 +40,7 @@ namespace Stormancer.Server.Plugins.Spectate
 
             ctx.SceneCreated += (ISceneHost scene) =>
             {
-                if (scene.Metadata.ContainsKey(METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
                 {
                     scene.AddController<SpectateController>();
                 }

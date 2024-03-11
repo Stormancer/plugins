@@ -40,7 +40,7 @@ namespace Stormancer
         /// <param name="scene"></param>
         public static void AddGameSession(this ISceneHost scene)
         {
-            scene.Metadata[GameSessionPlugin.METADATA_KEY] = "enabled";
+            scene.TemplateMetadata[GameSessionPlugin.METADATA_KEY] = "enabled";
         }
 
         /// <summary>

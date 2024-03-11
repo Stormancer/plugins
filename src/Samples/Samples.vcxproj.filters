@@ -147,5 +147,8 @@
     <ClInclude Include="GameFinderUI.h">
       <Filter>Source Files\GameFinder</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\output\cpp\users\Users.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

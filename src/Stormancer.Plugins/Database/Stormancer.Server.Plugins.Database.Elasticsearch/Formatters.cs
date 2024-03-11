@@ -30,20 +30,10 @@ namespace Stormancer.Server.Plugins.Database
 {
     internal class TimeIntervalFormatter : IFormatter
     {
-       
-        private string[] _names = new string[] { "interval" };
-        public string[] Names
-        {
-            get
-            {
-                return _names;
-            }
+    
 
-            set
-            {
-                _names = value;
-            }
-        }
+        public string Name { get; set; } = "interval";
+        public bool CanAutoDetect { get; set; } = true;
 
         public bool TryEvaluateFormat(IFormattingInfo formattingInfo)
         {

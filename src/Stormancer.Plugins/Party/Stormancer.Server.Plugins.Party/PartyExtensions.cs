@@ -37,8 +37,8 @@ namespace Stormancer
         /// <param name="scene"></param>
         public static void AddParty(this ISceneHost scene)
         {
-            scene.Metadata[PartyConstants.METADATA_KEY] = PartyController.PROTOCOL_VERSION;
-            scene.Metadata[PartyService.REVISION_METADATA_KEY] = PartyService.REVISION;
+            scene.TemplateMetadata[PartyConstants.METADATA_KEY] = PartyController.PROTOCOL_VERSION;
+            scene.TemplateMetadata[PartyService.REVISION_METADATA_KEY] = PartyService.REVISION;
         }
 
       

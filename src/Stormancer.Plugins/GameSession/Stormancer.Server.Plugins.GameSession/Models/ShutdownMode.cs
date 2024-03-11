@@ -20,23 +20,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+
+using MessagePack;
 
 namespace Stormancer.Server.Plugins.GameSession.Models
 {
-    [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
+    
     public enum ShutdownMode
     {
         NoPlayerLeft,
         SceneShutdown
     }
 
+    [MessagePackObject]
     public class ShutdownModeParameters
     {
-        [MessagePackMember(0)]
+        [Key(0)]
         public ShutdownMode shutdownMode { get; set; }
 
-        [MessagePackMember(1)]
+        [Key(1)]
         public int keepSceneAliveFor { get; set; }
     }
 }

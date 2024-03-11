@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using MessagePack;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,30 +32,31 @@ namespace Stormancer.Server.Plugins.Users
     /// <summary>
     /// Result of a login operation.
     /// </summary>
+    [MessagePackObject]
     public class LoginResult
     {
         /// <summary>
         /// Error message associated with the login operation, if failed.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public string? ErrorMsg { get; set; }
 
         /// <summary>
         /// A value indicating if login was successful.
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public bool Success { get; set; }
         
-        [MessagePackMember(2)]
+        [Key(2)]
         public string? UserId { get; set; }
 
-        [MessagePackMember(3)]
+        [Key(3)]
         public string? Username { get; set; }
 
-        [MessagePackMember(4)]
+        [Key(4)]
         public Dictionary<string, string> Authentications { get; set; } = default!;
 
-        [MessagePackMember(5)]
+        [Key(5)]
         public Dictionary<string, string> Metadata { get; set; } = default!;
     }
 }

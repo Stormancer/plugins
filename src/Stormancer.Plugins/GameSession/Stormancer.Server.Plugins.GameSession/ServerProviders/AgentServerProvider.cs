@@ -1,7 +1,4 @@
-﻿using Docker.DotNet.Models;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.Extensions.Hosting;
-using MsgPack.Serialization;
+﻿using MessagePack;
 using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Components;
@@ -1146,32 +1143,33 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
     /// <summary>
     /// Description of an agent.
     /// </summary>
+    [MessagePackObject]
     public class AgentDescription
     {
         /// <summary>
         /// Id of the agent
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public string Id { get; set; } = default!;
 
 
         /// <summary>
         /// List of claims associated with the agent.
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public Dictionary<string, string> Claims { get; set; } = default!;
 
 
         /// <summary>
         /// Web Api endpoint of the agent.
         /// </summary>
-        [MessagePackIgnore]
+        [IgnoreMember]
         public string? WebApiEndpoint => Claims.ContainsKey("agent.webApi") ? Claims["agent.webApi"] : null;
 
         /// <summary>
         /// Region the agent belongs to.
         /// </summary>
-        [MessagePackIgnore]
+        [IgnoreMember]
         public string? Region => Claims.ContainsKey("agent.region") ? Claims["agent.region"] : null;
     }
 

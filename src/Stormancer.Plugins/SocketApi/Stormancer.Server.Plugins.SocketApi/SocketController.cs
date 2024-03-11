@@ -2,6 +2,7 @@
 using Stormancer.Core;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.API;
+using Stormancer.Server.Plugins.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,9 +19,7 @@ namespace Stormancer.Server.Plugins.SocketApi
         private readonly ISceneHost scene;
         private readonly IPeerInfosService peers;
         private readonly ISerializer serializer;
-        private static readonly RecyclableMemoryStreamManager
-                recyclableMemoryStreamManager =
-                new RecyclableMemoryStreamManager();
+        private readonly RecyclableMemoryStreamProvider _memoryStreamProvider;
 
 
         /// <summary>
@@ -29,12 +28,13 @@ namespace Stormancer.Server.Plugins.SocketApi
         /// <param name="scene"></param>
         /// <param name="peers"></param>
         /// <param name="serializer"></param>
-        public SocketController(ISceneHost scene, IPeerInfosService peers,ISerializer serializer)
+        public SocketController(ISceneHost scene, IPeerInfosService peers,ISerializer serializer, RecyclableMemoryStreamProvider memoryStreamProvider)
         {
             
             this.scene = scene;
             this.peers = peers;
             this.serializer = serializer;
+            _memoryStreamProvider = memoryStreamProvider;
         }
 
         /// <summary>
@@ -46,7 +46,7 @@ namespace Stormancer.Server.Plugins.SocketApi
         public async Task SendUnreliable(Packet<IScenePeerClient> packet)
         {
             var sessionId = packet.ReadObject<SessionId>();
-            using var stream = recyclableMemoryStreamManager.GetStream();
+            using var stream = _memoryStreamProvider.GetStream();
             await packet.Stream.CopyToAsync(stream);
             stream.Seek(0, System.IO.SeekOrigin.Begin);
             await scene.Send(new MatchPeerFilter(sessionId), "relay.receive", s =>

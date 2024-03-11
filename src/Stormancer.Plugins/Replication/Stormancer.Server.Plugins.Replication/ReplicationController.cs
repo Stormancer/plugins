@@ -1,5 +1,4 @@
-﻿using MsgPack.Serialization;
-using Stormancer.Core;
+﻿using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.API;

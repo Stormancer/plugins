@@ -77,7 +77,7 @@ namespace Stormancer.Server.Plugins.Analytics
 
             ctx.SceneCreated += (ISceneHost scene) =>
              {
-                 if (scene.Metadata.ContainsKey(METADATA_KEY))
+                 if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
                  {
                      scene.AddController<AnalyticsController>();
                  }

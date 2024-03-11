@@ -20,22 +20,23 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using MessagePack;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
+    [MessagePackObject]
     public class PlayerUpdate
     {
-        [MessagePackMember(0)]
+        [Key(0)]
         public string UserId { get; set; }
 
-        [MessagePackMember(1)]
+        [Key(1)]
         public byte Status { get; set; }
 
-        [MessagePackMember(2)]
+        [Key(2)]
         public string Data { get; set; }
 
-        [MessagePackMember(3)]
+        [Key(3)]
         public bool IsHost { get; set; }
     }
 }

@@ -1,6 +1,5 @@
 ﻿using Lucene.Net.Search;
 using Lucene.Net.Store;
-using MsgPack;
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Plugins;

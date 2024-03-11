@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection.Metadata.Ecma335;
@@ -20,7 +22,7 @@ using static Nuke.Common.IO.FileSystemTasks;
 using static Nuke.Common.IO.PathConstruction;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
 
-[CheckBuildProjectConfigurations]
+
 [UnsetVisualStudioEnvironmentVariables]
 class Build : NukeBuild
 {
@@ -41,8 +43,8 @@ class Build : NukeBuild
     [Parameter("Nuget secret key")]
     readonly string NugetSecretKey = default!;
 
-    [PathExecutable]
-    readonly Tool git;
+    [PathVariable]
+    readonly Tool git = default!;
 
     [Parameter("Discord bot token")]
     readonly string DiscordToken = default!;
@@ -51,14 +53,15 @@ class Build : NukeBuild
     readonly string DiscordChannelId = "456087351610048512";
 
     private DiscordSocketClient _client = new DiscordSocketClient();
-    private SocketTextChannel _channel;
+    private SocketTextChannel? _channel;
 
-    [Solution] readonly Solution Solution;
-    [GitRepository] readonly GitRepository GitRepository;
+    [Solution] readonly Solution Solution = default!;
+    [GitRepository] readonly GitRepository GitRepository = default!;
 
     AbsolutePath SourceDirectory => RootDirectory / "src";
     AbsolutePath OutputDirectory => RootDirectory / "output";
 
+   
     private async Task StartDiscord()
     {
         var tcs = new TaskCompletionSource<bool>();
@@ -80,19 +83,19 @@ class Build : NukeBuild
         switch (arg.Severity)
         {
             case Discord.LogSeverity.Critical:
-                Logger.Error(arg.Message);
+                Serilog.Log.Error(arg.Message);
                 break;
             case Discord.LogSeverity.Error:
-                Logger.Error(arg.Message);
+                Serilog.Log.Error(arg.Message);
                 break;
             case Discord.LogSeverity.Warning:
-                Logger.Warn(arg.Message);
+                Serilog.Log.Warning(arg.Message);
                 break;
             case Discord.LogSeverity.Info:
-                Logger.Normal(arg.Message);
+                Serilog.Log.Information(arg.Message);
                 break;
             case Discord.LogSeverity.Verbose:
-                Logger.Trace(arg.Message);
+                Serilog.Log.Verbose(arg.Message);
                 break;
             case Discord.LogSeverity.Debug:
                 break;
@@ -105,8 +108,8 @@ class Build : NukeBuild
         .Before(Restore)
         .Executes(() =>
         {
-            SourceDirectory.GlobDirectories("**/bin", "**/obj").ForEach(DeleteDirectory);
-            EnsureCleanDirectory(OutputDirectory);
+            SourceDirectory.GlobDirectories("**/bin", "**/obj").ForEach(p=>p.DeleteDirectory());
+            OutputDirectory.CreateOrCleanDirectory();
         });
 
     Target Restore => _ => _
@@ -130,6 +133,7 @@ class Build : NukeBuild
     .Executes(async () =>
     {
         await StartDiscord();
+        Debug.Assert(_channel != null);
         foreach (var project in Solution.AllProjects.Where(p => !p.Name.StartsWith("_") && !p.Name.Contains("Test") && !p.Name.Contains("sample", StringComparison.InvariantCultureIgnoreCase)))
         {
             var changelogFile = Path.Combine(project.Directory, "Changelog.rst");
@@ -179,14 +183,15 @@ class Build : NukeBuild
 
             if (packagePath == null)
             {
-                Logger.Warn($"No package was created for {project.Name}");
+                Serilog.Log.Warning($"No package was created for {project.Name}");
                 continue;
             }
             var startIndex = packagePath.LastIndexOf(project.Name) + project.Name.Length + 1;
 
             var versionString = packagePath.Substring(startIndex, packagePath.Length - startIndex - ".nupkg".Length);
             var currentPackageVersion = new NuGetVersion(versionString);
-            var versionStr = await NuGetPackageResolver.GetLatestPackageVersion(project.Name, Configuration == "Debug");
+            var versionStr = await NuGetVersionResolver.GetLatestVersion(project.Name, Configuration == "Debug");
+            
             //await _channel.SendMessageAsync($"*[{BuildType} {Configuration}]* `{project.Name}` : Current package on nuget: {versionStr}.");
 
             var version = versionStr != null ? new NuGetVersion(versionStr) : null;

@@ -41,7 +41,7 @@ namespace Stormancer.Server.Plugins.Notification
               {
                   if(scene.Template == Users.Constants.SCENE_TEMPLATE)
                   {
-                      scene.Metadata[METADATA_KEY] = "true";
+                      scene.TemplateMetadata[METADATA_KEY] = "true";
                   }
               };
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
@@ -57,7 +57,7 @@ namespace Stormancer.Server.Plugins.Notification
 
             ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
             {
-                if (scene.Metadata.ContainsKey(METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
                 {
                     builder.Register<NotificationChannel>(dr => new NotificationChannel(dr.Resolve<Func<IEnumerable<INotificationProvider>>>())).As<INotificationChannel>().InstancePerDependency();
                 }
@@ -65,7 +65,7 @@ namespace Stormancer.Server.Plugins.Notification
 
             ctx.SceneCreated += (ISceneHost scene) =>
             {
-                if (scene.Metadata.ContainsKey(METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
                 {
                     scene.AddController<NotificationChannelController>();
                     // Instantiate InAppNotificationProvider singleton to subscribe to scene events

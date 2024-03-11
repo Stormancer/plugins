@@ -20,7 +20,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
 using Stormancer.Server.Plugins.Party.Dto;
 using System;
 using System.Collections.Generic;
@@ -30,7 +29,6 @@ namespace Stormancer.Server.Plugins.Party.Model
     /// <summary>
     /// Possible party member status regarding game finding.
     /// </summary>
-    [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
     public enum PartyMemberStatus
     {
         /// <summary>
@@ -47,7 +45,6 @@ namespace Stormancer.Server.Plugins.Party.Model
     /// <summary>
     /// Possible reasons the party member was disconnected.
     /// </summary>
-    [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
     public enum PartyDisconnectionReason
     {
         /// <summary>
@@ -113,7 +110,6 @@ namespace Stormancer.Server.Plugins.Party.Model
     /// <summary>
     /// Possible party member connection states.
     /// </summary>
-    [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
     public enum PartyMemberConnectionStatus
     {
         /// <summary>

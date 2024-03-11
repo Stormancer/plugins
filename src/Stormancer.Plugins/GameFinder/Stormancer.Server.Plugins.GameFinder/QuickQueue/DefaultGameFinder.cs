@@ -182,7 +182,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                                     //can I create new team ?
                                     if(party.Players.Count <= teamSize && session.Source.TargetTeamCount > session.Source.Teams.Count)
                                     {
-                                        var team = new Team(party);
+                                        var team = new Team(party,null);
                                         var reservation = await gameSessions.CreateReservation(session.Id,team  , new JObject(), CancellationToken.None);
 
                                         if (reservation != null)
@@ -254,7 +254,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                         var game = new NewGame();
                         for (int teamId = 0; teamId < teamCount; teamId++)
                         {
-                            var team = new Models.Team();
+                            var team = new Models.Team() { TeamId = teamId.ToString() };
 
 
                             for (int pivotId = 0; pivotId < parties.Count; pivotId++)

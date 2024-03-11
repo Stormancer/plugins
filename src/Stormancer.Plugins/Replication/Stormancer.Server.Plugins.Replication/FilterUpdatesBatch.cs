@@ -1,4 +1,5 @@
-﻿using MsgPack.Serialization;
+﻿
+using MessagePack;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -8,40 +9,42 @@ namespace Stormancer.Server.Plugins.Replication
     /// <summary>
     /// Contains data relative to a view update.
     /// </summary>
+    [MessagePackObject]
     public class FilterUpdatesBatch
     {
-        [MessagePackMember(0)]
+        [Key(0)]
         public List<FilterUpdate> Updates { get; set; } = new List<FilterUpdate>();
     }
 
-    [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
+    
     public enum UpdateType
     {
         Remove,
         AddOrUpdate
     }
 
+    [MessagePackObject]
     public class FilterUpdate
     {
-        [MessagePackMember(0)]
+        [Key(0)]
         public UpdateType UpdateType { get; set; }
 
-        [MessagePackMember(1)]
+        [Key(1)]
         public SessionId Owner { get; set; }
 
-        [MessagePackMember(2)]
-        public string ViewId { get; set; } = default!;
+        [Key(2)]
+        public required string ViewId { get; set; }
 
-        [MessagePackMember(3)]
-        public byte[] FilterData { get; set; } = default!;
+        [Key(3)]
+        public byte[] FilterData { get; set; } = Array.Empty<byte>();
 
-        [MessagePackMember(4)]
+        [Key(4)]
         public bool IsAuthority { get; set; }
 
-        [MessagePackMember(5)]
-        public string ViewPolicyId { get; set; }
+        [Key(5)]
+        public required string ViewPolicyId { get; set; }
 
-        [MessagePackMember(6)]
-        public string FilterType { get; set; }
+        [Key(6)]
+        public required string FilterType { get; set; }
     }
 }

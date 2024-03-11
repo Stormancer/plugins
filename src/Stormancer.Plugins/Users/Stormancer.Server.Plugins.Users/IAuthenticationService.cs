@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using MessagePack;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,37 +30,80 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
+    /// <summary>
+    /// Arguments used to authenticate an user.
+    /// </summary>
+    [MessagePackObject]
     public class AuthParameters
     {
-        [MessagePackMember(0)]
-        public string Type { get; set; }
-        [MessagePackMember(1)]
-        public Dictionary<string,string> Parameters { get; set; }
+        /// <summary>
+        /// The authentication scheme to use.
+        /// </summary>
+        [Key(0)]
+        public required string Type { get; set; }
+
+        /// <summary>
+        /// Claims
+        /// </summary>
+        [Key(1)]
+        public required Dictionary<string,string> Parameters { get; set; }
     }
 
+    /// <summary>
+    /// Arguments to renew an authentication token.
+    /// </summary>
+    [MessagePackObject]
     public class RenewCredentialsParameters
     {
-        [MessagePackMember(0)]
-        public Dictionary<string, string> Parameters { get; set; }
+        /// <summary>
+        /// Updated claims.
+        /// </summary>
+        [Key(0)]
+        public required Dictionary<string, string> Parameters { get; set; }
     }
 
-    public class RememberDeviceParameters
-    {
-        [MessagePackMember(0)]
-        public string UserId { get; set; }
-        [MessagePackMember(1)]
-        public string UserDeviceId { get; set; }
-    }
-
+    
+    /// <summary>
+    /// Authentication API.
+    /// </summary>
     public interface IAuthenticationService
     {
+        /// <summary>
+        /// Creates an user with the provided auth parameters.
+        /// </summary>
+        /// <param name="auth"></param>
+        /// <returns></returns>
         Task SetupAuth(AuthParameters auth);
+
+        /// <summary>
+        /// Logins an user.
+        /// </summary>
+        /// <param name="auth"></param>
+        /// <param name="peer"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
         Task<LoginResult> Login(AuthParameters auth, IScenePeerClient peer, CancellationToken ct);
-        Task RememberDeviceFor2fa(RememberDeviceParameters auth, IScenePeerClient peer, CancellationToken ct);
+        
+        /// <summary>
+        /// Gets authentication metadata.
+        /// </summary>
+        /// <returns></returns>
         Dictionary<string, string> GetMetadata();
         
+        /// <summary>
+        /// Gets the authentication status of a remote peer.
+        /// </summary>
+        /// <param name="peer"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         Task<Dictionary<string, string>> GetStatus(IScenePeerClient peer,CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Unlinks an identity from an user.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="type"></param>
+        /// <returns></returns>
         Task Unlink(User user, string type);
 
         /// <summary>

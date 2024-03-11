@@ -64,12 +64,7 @@ namespace Stormancer.Server.Plugins.Steam
         {
         }
 
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        protected SteamException(SerializationInfo info, StreamingContext context) : base(info, context)
-        {
-        }
+        
     }
 
     internal class SteamKeyStore : IConfigurationChangedEventHandler

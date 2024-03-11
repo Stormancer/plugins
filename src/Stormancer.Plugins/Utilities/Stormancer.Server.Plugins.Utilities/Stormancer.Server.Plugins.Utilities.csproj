@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>3.2.0.3</Version>
+    <Version>3.2.0.5</Version>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -31,11 +31,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
+    <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.0" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="9.4.0.7-pre" />
+    <PackageReference Include="Stormancer.Abstractions.Server" Version="10.0.4-pre" />
   </ItemGroup>
   <Target Name="PostPack" AfterTargets="Pack">
     <Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />

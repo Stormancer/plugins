@@ -27,6 +27,7 @@ using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Utilities.Extensions;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -39,16 +40,18 @@ namespace Stormancer.Server.Plugins.Users
     internal class UserSessionImpl : IUserSessions
     {
         private readonly UserSessionProxy proxy;
-        private readonly ISerializer serializer;
+        private readonly IClusterSerializer _clusterSerializer;
+        private readonly ISerializer _clientSerializer;
         private readonly ISceneHost scene;
 
 
         private static MemoryCache<SessionId,Session> sessionCache = new MemoryCache<SessionId,Session>();
         private int CACHE_DURATION_SECONDS = 30;
-        public UserSessionImpl(UserSessionProxy proxy, ISerializer serializer, ISceneHost scene)
+        public UserSessionImpl(UserSessionProxy proxy, IClusterSerializer serializer,ISerializer clientSerializer, ISceneHost scene)
         {
             this.proxy = proxy;
-            this.serializer = serializer;
+            this._clusterSerializer = serializer;
+            _clientSerializer = clientSerializer;
             this.scene = scene;
         }
 
@@ -83,8 +86,15 @@ namespace Stormancer.Server.Plugins.Users
             {
                 return default;
             }
-            using var stream = new MemoryStream(buffer);
-            return serializer.Deserialize<T>(stream);
+            var stream = new ReadOnlySequence<byte>(buffer);
+            if(_clusterSerializer.TryDeserialize<T>(stream,out var value,out _))
+            {
+                return value;
+            }
+            else
+            {
+                return default;
+            }
         }
 
         public Task<byte[]?> GetSessionData(SessionId sessionId, string key, CancellationToken cancellationToken)
@@ -155,15 +165,17 @@ namespace Stormancer.Server.Plugins.Users
             await rq.Writer.WriteAsync(data, cancellationToken);
             rq.Writer.Complete();
             rq.Reader.Complete();
+            rq.Send();
         }
 
         public async Task UpdateSessionData<T>(SessionId sessionId, string key, T data, CancellationToken cancellationToken)
         {
             await using var rq = proxy.UpdateSessionData(sessionId, key, cancellationToken);
 
-            await rq.Writer.WriteObject(data, serializer, cancellationToken);
+            rq.Writer.WriteObject(data, _clusterSerializer);
             rq.Writer.Complete();
             rq.Reader.Complete();
+            rq.Send();
         }
 
         public Task UpdateUserData<T>(IScenePeerClient peer, T data, CancellationToken cancellationToken)
@@ -193,14 +205,14 @@ namespace Stormancer.Server.Plugins.Users
         }
 
         public Task<SendRequestResult<TReturn>> SendRequest<TReturn, TArg>(string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
-             => UserSessions.SendRequestImpl<TReturn, TArg>(this, serializer, operationName, senderUserId, recipientUserId, arg, cancellationToken);
+             => UserSessions.SendRequestImpl<TReturn, TArg>(this, _clientSerializer, _clusterSerializer, operationName, senderUserId, recipientUserId, arg, cancellationToken);
 
 
         public Task<SendRequestResult<TReturn>> SendRequest<TReturn, TArg1, TArg2>(string operationName, string senderUserId, string recipientUserId, TArg1 arg1, TArg2 arg2, CancellationToken cancellationToken)
-            => UserSessions.SendRequestImpl<TReturn, TArg1, TArg2>(this, serializer, operationName, senderUserId, recipientUserId, arg1, arg2, cancellationToken);
+            => UserSessions.SendRequestImpl<TReturn, TArg1, TArg2>(this,_clientSerializer, _clusterSerializer, operationName, senderUserId, recipientUserId, arg1, arg2, cancellationToken);
 
         public Task<SendRequestResult> SendRequest<TArg>(string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
-            => UserSessions.SendRequestImpl<TArg>(this, serializer, operationName, senderUserId, recipientUserId, arg, cancellationToken);
+            => UserSessions.SendRequestImpl<TArg>(this, _clientSerializer, _clusterSerializer, operationName, senderUserId, recipientUserId, arg, cancellationToken);
 
 
         public Task<string?> UpdateUserHandle(string userId, string newHandle, CancellationToken cancellationToken)

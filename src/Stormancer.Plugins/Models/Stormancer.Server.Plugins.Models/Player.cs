@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using MessagePack;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -30,6 +30,7 @@ namespace Stormancer.Server.Plugins.Models
     /// <summary>
     /// A player 
     /// </summary>
+    [MessagePackObject]
     public class Player
     {
 
@@ -53,24 +54,24 @@ namespace Stormancer.Server.Plugins.Models
 
         }
 
-        [MessagePackMember(0)]
+        [Key(0)]
         public byte[] Data { get; set; }
 
-        [MessagePackMember(1)]
+        [Key(1)]
         [JsonProperty(ItemConverterType = typeof(SessionIdJsonConverter))]
         public SessionId SessionId { get; set; }
 
-        [MessagePackMember(2)]
+        [Key(2)]
         public string UserId { get; set; }
 
-        [MessagePackMember(3)]
+        [Key(3)]
         public List<LocalPlayerInfos> LocalPlayers { get; set; }
 
 
         /// <summary>
         /// Temporary data storage
         /// </summary>
-        [MessagePackIgnore]
+        [IgnoreMember]
         public Dictionary<string, object> CacheStorage { get; } = new Dictionary<string, object>();
        
     }
@@ -78,27 +79,28 @@ namespace Stormancer.Server.Plugins.Models
     /// <summary>
     /// A local player in a party member.
     /// </summary>
+    [MessagePackObject]
     public class LocalPlayerInfos : IEquatable<LocalPlayerInfos?>
     {
         /// <summary>
         /// Gets or sets the platform of the player.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public string Platform { get; set; } = default!;
 
-        [MessagePackMember(1)]
+        [Key(1)]
         public string StormancerUserId { get; set; } = default!;
 
-        [MessagePackMember(2)]
+        [Key    (2)]
         public string Pseudo { get; set; } = default!;
 
-        [MessagePackMember(3)]
+        [Key(3)]
         public string PlatformId { get; set; } = default!;
 
-        [MessagePackMember(4)]
+        [Key(4)]
         public string CustomData { get; set; } = default!;
 
-        [MessagePackMember(5)]
+        [Key(5)]
         public int LocalPlayerIndex { get; set; }
 
         public override bool Equals(object? obj)

@@ -53,13 +53,9 @@ namespace Stormancer.Server.Plugins.Party
             // TODO ideally, this would use the serializer of the remote peer.
             // But we do not have access to it from here, because the peer is on the authenticator scene, while we are on the party scene.
 
-            await using var rq = sessions.SendRequest(RequestRoute, ctx.Sender.User.Id, ctx.RecipientUserId, ctx.InvitationCancellationToken);
+            var result = await sessions.SendRequest<bool,string>(RequestRoute, ctx.Sender.User.Id, ctx.RecipientUserId, ctx.Party.Settings.PartyId, ctx.InvitationCancellationToken);
 
-            await rq.Writer.WriteObject(ctx.Party.Settings.PartyId, serializer, ctx.InvitationCancellationToken);
-
-            return await rq.Reader.ReadObject<bool>(serializer, ctx.InvitationCancellationToken);
-
-           
+            return result.Success && result.Value;
         }
     }
 }

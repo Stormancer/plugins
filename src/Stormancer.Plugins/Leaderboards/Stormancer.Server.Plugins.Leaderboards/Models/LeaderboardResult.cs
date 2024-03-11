@@ -20,26 +20,27 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using MessagePack;
 using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.Leaderboards
 {
+    [MessagePackObject]
     public class LeaderboardResult<T>
     {
-        [MessagePackMember(0)]
+        [Key(0)]
         public string LeaderboardName { get; set; } = "";
 
-        [MessagePackMember(1)]
+        [Key(1)]
         public List<LeaderboardRanking<T>> Results { get; set; } = new List<LeaderboardRanking<T>>();
 
-        [MessagePackMember(2)]
+        [Key(2)]
         public string Next { get; set; } = "";
 
-        [MessagePackMember(3)]
+        [Key(3)]
         public string Previous { get; set; } = "";
 
-        [MessagePackMember(4)]
+        [Key(4)]
         public long Total { get; set; }
     }
 }

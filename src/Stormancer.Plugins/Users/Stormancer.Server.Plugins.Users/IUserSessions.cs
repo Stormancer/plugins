@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using MessagePack;
 using Newtonsoft.Json.Linq;
 using Stormancer;
 using Stormancer.Core;
@@ -39,49 +39,51 @@ namespace Stormancer.Server.Plugins.Users
     /// The result of a <see cref="IUserSessions.SendRequest{TReturn, TArg}(string, string, string, TArg, CancellationToken)"/> operation.
     /// </summary>
     /// <typeparam name="T"></typeparam>
+    [MessagePackObject]
     public struct SendRequestResult<T>
     {
         /// <summary>
         /// Gets the value returned by the call.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public T? Value { get; set; }
 
         /// <summary>
         /// Gets a boolean indicating whether the request was successful or resulted in an error.
         /// </summary>
         [MemberNotNullWhen(false,"Error")]
-        [MessagePackMember(1)]
+        [Key(1)]
         public bool Success { get; set; }
 
         /// <summary>
         /// Gets the error message if <see cref="Success"/> is false.
         /// </summary>
-        [MessagePackMember(2)]
+        [Key(2)]
         public string? Error { get; set; }
     }
 
     /// <summary>
     /// The result of a <see cref="IUserSessions.SendRequest{TArg}(string, string, string, TArg, CancellationToken)"/> operation.
     /// </summary>
+    [MessagePackObject]
     public struct SendRequestResult
     {
         /// <summary>
         /// Gets a boolean indicating whether the request was successful or resulted in an error.
         /// </summary>
         [MemberNotNullWhen(false, "Error")]
-        [MessagePackMember(0)]
+        [Key(0)]
         public bool Success { get; set; }
 
         /// <summary>
         /// Gets the error message if <see cref="Success"/> is false.
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public string? Error { get; set; }
     }
 
     /// <summary>
-    /// Provides APIs to incteract with client sessions.
+    /// Provides APIs to interact with client sessions.
     /// </summary>
     /// <remarks>
     /// 

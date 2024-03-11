@@ -29,7 +29,6 @@ using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Analytics;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.GameSession.Models;
-using Stormancer.Server.Plugins.Management;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Concurrent;
@@ -47,13 +46,12 @@ using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Models;
 using System.Diagnostics.CodeAnalysis;
 using Stormancer.Server.Plugins.GameSession.ServerPool;
-using MsgPack.Serialization;
-using System.Reactive.Subjects;
-using Docker.DotNet.Models;
 using System.Collections.Immutable;
 using SmartFormat.Utilities;
 using Microsoft.AspNetCore.Components.Web;
 using Autofac.Core;
+using MessagePack;
+using Stormancer.Abstractions.Server.Components;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
@@ -145,24 +143,25 @@ namespace Stormancer.Server.Plugins.GameSession
     /// <summary>
     /// Message sent to peers to provide infos about the game session host and connectivity. 
     /// </summary>
+    [MessagePackObject]
     public class HostInfosMessage
     {
         /// <summary>
         /// If P2P enabled, contains the connection token to the host.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public string? P2PToken { get; set; }
 
         /// <summary>
         /// True if the receiving peer is the host.
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public bool IsHost { get; set; }
 
         /// <summary>
         /// Session id of the host.
         /// </summary>
-        [MessagePackMember(2)]
+        [Key(2)]
         public string? HostSessionId { get; set; }
     }
 
@@ -263,7 +262,6 @@ namespace Stormancer.Server.Plugins.GameSession
 
 
         private readonly object _lock = new();
-        private readonly ManagementClientProvider _management;
         private TaskCompletionSource<IScenePeerClient>? _serverPeer = null;
         private ShutdownMode _shutdownMode;
         private DateTime _shutdownDate;
@@ -276,14 +274,12 @@ namespace Stormancer.Server.Plugins.GameSession
             ISceneHost scene,
             IConfiguration configuration,
             IEnvironment environment,
-            ManagementClientProvider management,
             ILogger logger,
             RpcService rpc,
             GameSessionsRepository repository,
             ISerializer serializer, GameSessionEventsRepository events
             )
         {
-            _management = management;
             this.state = state;
             _analytics = analyticsWorker;
             _scene = scene;
@@ -532,11 +528,12 @@ namespace Stormancer.Server.Plugins.GameSession
             }
         }
 
-        public void SetConfiguration(dynamic metadata)
+        public void SetConfiguration(Dictionary<string, object?> metadata)
         {
-            if (metadata.gameSession != null)
+            if (metadata.ContainsKey("gameSession"))
             {
-                _config = ((JObject)metadata.gameSession).ToObject<GameSessionConfiguration>();
+                var obj = metadata["gameSession"];
+                _config = JObject.FromObject(obj!).ToObject<GameSessionConfiguration>();
 
 
             }

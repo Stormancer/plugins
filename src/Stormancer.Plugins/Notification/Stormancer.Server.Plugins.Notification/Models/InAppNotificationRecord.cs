@@ -19,15 +19,14 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using MsgPack.Serialization;
+using MessagePack;
 using System;
 
 namespace Stormancer.Server.Plugins.Notification
 {
     /// <summary>
-    /// Types of notification acknowlegment.
+    /// Types of notification acknowledgment.
     /// </summary>
-    [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
     public enum InAppNotificationAcknowledgment : byte
     {
         /// <summary>
@@ -137,6 +136,7 @@ namespace Stormancer.Server.Plugins.Notification
     /// <summary>
     /// A notification sent to the game client.
     /// </summary>
+    [MessagePackObject]
     public class InAppNotification
     {
         /// <summary>
@@ -167,55 +167,55 @@ namespace Stormancer.Server.Plugins.Notification
         /// <summary>
         /// Gets or sets the id of the notification.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public string Id { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets the type of the notification.
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public string Type { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets the id of the user the notification is addressed to.
         /// </summary>
-        [MessagePackMember(2)]
+        [Key(2)]
         public string UserId { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets the  message of the notification.
         /// </summary>
-        [MessagePackMember(3)]
+        [Key(3)]
         public string Message { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets custom data associated with the notification.
         /// </summary>
-        [MessagePackMember(4)]
+        [Key(4)]
         public string Data { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets the date the notification was created.
         /// </summary>
-        [MessagePackMember(5)]
+        [Key(5)]
         public DateTime CreatedOn { get; set; }
 
         /// <summary>
         /// Gets or sets a <see cref="bool"/> indicating if the notification expires.
         /// </summary>
-        [MessagePackMember(6)]
+        [Key(6)]
         public bool ShouldExpire { get; set; }
 
         /// <summary>
         /// Gets or sets the expiration date of the notification.
         /// </summary>
-        [MessagePackMember(7)]
+        [Key(7)]
         public DateTime ExpirationDate { get; set; }
   
         /// <summary>
         /// Gets or sets the type of acknowledgment this notification expects to be considered as sent.
         /// </summary>
-        [MessagePackMember(8)]
+        [Key(8)]
         public InAppNotificationAcknowledgment Acknowledgment { get; set; }
 
       

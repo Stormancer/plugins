@@ -215,48 +215,7 @@ namespace Stormancer.Server.Plugins.Users
 
         private static Dictionary<string, string> _emptyDictionary = new Dictionary<string, string>();
 
-        public async Task RememberDeviceFor2fa(RememberDeviceParameters p, IScenePeerClient peer, CancellationToken ct)
-        {
-
-            if (string.IsNullOrWhiteSpace(p.UserId))
-            {
-                throw new ClientException($"authentication.RememberDeviceFor2fa.missingUserId");
-            }
-            if (string.IsNullOrWhiteSpace(p.UserDeviceId))
-            {
-                throw new ClientException($"authentication.RememberDeviceFor2fa.UserDeviceId");
-            }
-
-            var user = await _users.GetUser(p.UserId);
-
-
-            Dictionary<string, string> RememberedDeviceIds = new Dictionary<string, string>();
-            //Dictionary<string, string> RememberedDeviceIds = JsonConvert.DeserializeObject<Dictionary<string, string>>(user.UserData["RememberedDevices"].ToString());
-            if (user.UserData["RememberedDevices"] != null)
-            {
-                RememberedDeviceIds = JsonConvert.DeserializeObject<Dictionary<string, string>>(user.UserData["RememberedDevices"].ToString());
-            }
-
-            // remove expired devices from dictionary
-            foreach (KeyValuePair<string, string> entry in RememberedDeviceIds)
-            {
-                DateTime RememberedDate = DateTime.ParseExact(entry.Value, "MM-dd-yyyy", System.Globalization.CultureInfo.InvariantCulture);
-                if (DateTime.UtcNow - RememberedDate > TimeSpan.FromDays(30))
-                {
-                    RememberedDeviceIds.Remove(entry.Key);
-                }
-            }
-
-            if (RememberedDeviceIds.ContainsKey(p.UserDeviceId))
-            {
-                throw new ClientException($"authentication.RememberDeviceFor2fa device already remembered. how was this device not recognized? this should not happen");
-            }
-            RememberedDeviceIds.Add(p.UserDeviceId, DateTime.UtcNow.ToString("MM-dd-yyyy"));
-            user.UserData["RememberedDevices"] = JsonConvert.SerializeObject(RememberedDeviceIds);
-
-            await _users.UpdateUserData(user.Id, user.UserData);
-        }
-
+        
         public async Task SetupAuth(AuthParameters auth)
         {
             var provider = GetProviders().FirstOrDefault(p => p.Type == auth.Type);

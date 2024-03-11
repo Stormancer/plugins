@@ -48,7 +48,7 @@ namespace Stormancer.Server.Plugins.Profile
 
             ctx.SceneCreated += (ISceneHost scene) =>
             {
-                if (scene.Metadata.ContainsKey(METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
                 {
                     scene.AddController<ProfileController>();
                 }
@@ -85,8 +85,8 @@ namespace Stormancer
         /// <returns></returns>
         public static ISceneHost AddProfiles(this ISceneHost scene)
         {
-            scene.Metadata[Stormancer.Server.Plugins.Profile.ProfilePlugin.METADATA_KEY] = "enabled";
-            scene.Metadata[Stormancer.Server.Plugins.Profile.ProfilePlugin.METADATA_KEY_DEPRECATED] = "enabled";
+            scene.TemplateMetadata[Stormancer.Server.Plugins.Profile.ProfilePlugin.METADATA_KEY] = "enabled";
+            scene.TemplateMetadata[Stormancer.Server.Plugins.Profile.ProfilePlugin.METADATA_KEY_DEPRECATED] = "enabled";
             return scene;
         }
     }

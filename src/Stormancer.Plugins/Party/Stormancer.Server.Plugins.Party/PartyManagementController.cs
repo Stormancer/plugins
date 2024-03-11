@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using MessagePack;
 using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
@@ -142,36 +142,38 @@ namespace Stormancer.Server.PartyManagement
     /// <summary>
     /// A party search document.
     /// </summary>
+    [MessagePackObject]
     public class PartySearchDocumentDto
     {
         /// <summary>
         /// Id of the party.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public string Id { get; set; } = default!;
 
         /// <summary>
         /// Json Data associated with the party.
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public string Source { get; set; } = default!;
     }
 
     /// <summary>
     /// A party search result.
     /// </summary>
+    [MessagePackObject]
     public class PartySearchResultDto
     {
         /// <summary>
         /// Total number of documents returned by the search.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public uint Total { get; set; }
 
         /// <summary>
         /// Results in the search result.
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public IEnumerable<PartySearchDocumentDto> Hits { get; set; } = default!;
     }
 }

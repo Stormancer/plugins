@@ -19,7 +19,6 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-using MsgPack.Serialization;
 using Stormancer.Server.Plugins.API;
 using Stormancer.Core;
 using Stormancer.Server.Plugins.Users;
@@ -29,6 +28,7 @@ using System.Threading.Tasks;
 using Stormancer.Plugins;
 using System.Threading;
 using Newtonsoft.Json.Linq;
+using MessagePack;
 
 namespace Stormancer.Server.Plugins.Profile
 {
@@ -236,18 +236,19 @@ namespace Stormancer.Server.Plugins.Profile
     /// <summary>
     /// An user profile object sent to clients.
     /// </summary>
+    [MessagePackObject]
     public class ProfileDto
     {
         /// <summary>
         /// Gets the dictionary of parts in the profile, represented as json.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public Dictionary<string, string> Data { get; } = new();
 
         /// <summary>
         /// Indicates whether the profile has been found
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public bool Found { get; set; }
     }
 }

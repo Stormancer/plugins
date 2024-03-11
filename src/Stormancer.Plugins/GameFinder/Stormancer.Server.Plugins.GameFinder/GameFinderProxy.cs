@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace Stormancer.Server.Plugins.GameFinder
 {
     /// <summary>
-    /// Provides access to gamefinder capabilities.
+    /// Provides access to game finder capabilities.
     /// </summary>
     partial class GameFinderProxy
     {
@@ -20,12 +20,12 @@ namespace Stormancer.Server.Plugins.GameFinder
     }
 
     /// <summary>
-    /// Metrics sent by a gamefinder.
+    /// Metrics sent by a game finder.
     /// </summary>
     public record GameFinderMetrics
     {
         /// <summary>
-        /// Gets the name of the gamefinder. 
+        /// Gets the name of the game finder. 
         /// </summary>
         public string GameFinderName { get; init; } = default!;
 

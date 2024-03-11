@@ -19,7 +19,7 @@ namespace Stormancer
         /// <param name="scene"></param>
         public static void AddAnalytics(this ISceneHost scene)
         {
-            scene.Metadata[AnalyticsPlugin.METADATA_KEY] = "enabled";
+            scene.TemplateMetadata[AnalyticsPlugin.METADATA_KEY] = "enabled";
         }
     }
 }

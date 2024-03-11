@@ -37,7 +37,7 @@ namespace Stormancer
         /// <param name="scene"></param>
         public static void AddPartyManagement(this ISceneHost scene)
         {
-            scene.Metadata[PartyPlugin.PARTYMANAGEMENT_METADATA_KEY] = PartyManagementService.PROTOCOL_VERSION;
+            scene.TemplateMetadata[PartyPlugin.PARTYMANAGEMENT_METADATA_KEY] = PartyManagementService.PROTOCOL_VERSION;
         }
     }
 }

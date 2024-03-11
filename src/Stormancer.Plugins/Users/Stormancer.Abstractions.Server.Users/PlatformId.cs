@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MessagePack;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,6 +13,7 @@ namespace Stormancer.Server.Plugins.Users
     /// <remarks>
     /// An user may be authenticated to several platforms, in this case he will be associated to a main <see cref="PlatformId"/> and secondary ones.
     /// </remarks>
+    [MessagePackObject]
     public struct PlatformId
     {
 
@@ -38,16 +40,19 @@ namespace Stormancer.Server.Plugins.Users
         /// <summary>
         /// Platform used to authenticate the user.
         /// </summary>
+        [Key(0)]
         public string Platform { get; set; }
 
         /// <summary>
         /// Online id of the user in the platform.
         /// </summary>
+        [Key(1)]
         public string PlatformUserId { get; set; }
 
         /// <summary>
         /// Returns true if the platform id is "unknown".
         /// </summary>
+        [IgnoreMember]
         public bool IsUnknown
         {
             get
@@ -71,6 +76,7 @@ namespace Stormancer.Server.Plugins.Users
         /// Online id of the user in the platform.
         /// </summary>
         [Obsolete("This property is obsolete and has been renamed. Use PlatformUserId instead.", false)]
+        [IgnoreMember]
         public string OnlineId
         {
             get

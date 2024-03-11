@@ -35,8 +35,10 @@ using Stormancer.Plugins;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Database;
 using Stormancer.Server.Plugins.Queries;
+using Stormancer.Server.Plugins.Utilities;
 using Stormancer.Server.Plugins.Utilities.Extensions;
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -350,10 +352,13 @@ namespace Stormancer.Server.Plugins.Users
 
     internal class UserSessions : IUserSessions
     {
+
         private readonly SessionsRepository repository;
+        private readonly RecyclableMemoryStreamProvider _memoryStreamProvider;
         private readonly Func<IEnumerable<IUserSessionEventHandler>> _eventHandlers;
         private readonly IESClientFactory _esClientFactory;
-        private readonly ISerializer serializer;
+        private readonly IClusterSerializer clusterSerializer;
+        private readonly ISerializer _clientSerializer;
         private readonly IEnvironment env;
         private readonly ISceneHost _scene;
         private readonly ILogger logger;
@@ -363,8 +368,10 @@ namespace Stormancer.Server.Plugins.Users
 
         public UserSessions(IUserService userService,
             SessionsRepository repository,
+            RecyclableMemoryStreamProvider memoryStreamProvider,
             Func<IEnumerable<IUserSessionEventHandler>> eventHandlers,
-            ISerializer serializer,
+            IClusterSerializer serializer,
+            ISerializer clientSerializer,
             IESClientFactory eSClientFactory,
             IEnvironment env,
             ISceneHost scene,
@@ -373,9 +380,11 @@ namespace Stormancer.Server.Plugins.Users
             _esClientFactory = eSClientFactory;
             _userService = userService;
             this.repository = repository;
+            _memoryStreamProvider = memoryStreamProvider;
             _eventHandlers = eventHandlers;
             _scene = scene;
-            this.serializer = serializer;
+            this.clusterSerializer = serializer;
+            _clientSerializer = clientSerializer;
             this.env = env;
             this.logger = logger;
 
@@ -395,7 +404,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public async Task<bool> LogOut(SessionId id, DisconnectionReason reason)
         {
-          
+
 
             if (repository.TryRemoveSession(id, out var record))
             {
@@ -518,7 +527,7 @@ namespace Stormancer.Server.Plugins.Users
 
         }
 
-        
+
 
 
         public async Task<Session?> GetSession(IScenePeerClient peer, CancellationToken cancellationToken)
@@ -569,8 +578,9 @@ namespace Stormancer.Server.Plugins.Users
 
         public Task UpdateSessionData<T>(SessionId sessionId, string key, T data, CancellationToken cancellationToken)
         {
-            var stream = new MemoryStream();
-            serializer.Serialize(data, stream);
+
+            using var stream = _memoryStreamProvider.GetStream();
+            clusterSerializer.Serialize(stream, data);
             return UpdateSessionData(sessionId, key, stream.ToArray(), cancellationToken);
         }
 
@@ -594,12 +604,11 @@ namespace Stormancer.Server.Plugins.Users
         public async Task<T?> GetSessionData<T>(SessionId sessionId, string key, CancellationToken cancellationToken)
         {
             var data = await GetSessionData(sessionId, key, cancellationToken);
-            if (data != null)
+            if (data != null && clusterSerializer.TryDeserialize<T>(new ReadOnlySequence<byte>(data), out var value, out _))
             {
-                using (var stream = new MemoryStream(data))
-                {
-                    return serializer.Deserialize<T>(stream);
-                }
+
+                return value;
+
             }
             else
             {
@@ -670,8 +679,9 @@ namespace Stormancer.Server.Plugins.Users
 
             public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
+            public void Send() { }
+
         }
-        private RecyclableMemoryStreamManager _memoryStreamManager = new RecyclableMemoryStreamManager();
         public IRemotePipe SendRequest(string operationName, string senderUserId, string recipientUserId, CancellationToken cancellationToken)
         {
             var rq = new PeerRequest();
@@ -688,7 +698,7 @@ namespace Stormancer.Server.Plugins.Users
                         throw new ClientException("NotConnected");
 
                     }
-                    using var stream = _memoryStreamManager.GetStream();
+                    using var stream = _memoryStreamProvider.GetStream();
                     await rq.InputPipe.Reader.TryCopyToAsync(PipeWriter.Create(stream), false, cancellationToken);
                     rq.InputPipe.Reader.Complete();
                     stream.Seek(0, SeekOrigin.Begin);
@@ -719,7 +729,7 @@ namespace Stormancer.Server.Plugins.Users
                                 if (!headerSent)
                                 {
                                     headerSent = true;
-                                    await rq.OutputPipe.Writer.WriteObject(true, serializer, cancellationToken);
+                                    rq.OutputPipe.Writer.WriteObject(true, clusterSerializer);
                                 }
 
                                 await packet.Stream.CopyToAsync(rq.OutputPipe.Writer);
@@ -731,19 +741,19 @@ namespace Stormancer.Server.Plugins.Users
                     {
                         if (!headerSent)
                         {
-                            await rq.OutputPipe.Writer.WriteObject(false, serializer, cancellationToken);
-                            await rq.OutputPipe.Writer.WriteObject(ex.Message, serializer, cancellationToken);
+                            rq.OutputPipe.Writer.WriteObject(false, clusterSerializer);
+                            rq.OutputPipe.Writer.WriteObject(ex.Message, clusterSerializer);
                         }
                         else
                         {
-                            logger.Log(LogLevel.Error, "usersessions.SendRequest", "An error occured while sending a request to a client.", ex);
+                            logger.Log(LogLevel.Error, "usersessions.SendRequest", "An error occurred while sending a request to a client.", ex);
                         }
                     }
 
                     if (!headerSent)
                     {
                         headerSent = true;
-                        await rq.OutputPipe.Writer.WriteObject(true, serializer, cancellationToken);
+                        rq.OutputPipe.Writer.WriteObject(true, clusterSerializer);
                     }
 
                     rq.OutputPipe.Writer.Complete();
@@ -751,8 +761,8 @@ namespace Stormancer.Server.Plugins.Users
                 catch (Exception ex)
                 {
 
-                    await rq.OutputPipe.Writer.WriteObject(false, serializer, cancellationToken);
-                    await rq.OutputPipe.Writer.WriteObject(ex.Message, serializer, cancellationToken);
+                     rq.OutputPipe.Writer.WriteObject(false, clusterSerializer);
+                     rq.OutputPipe.Writer.WriteObject(ex.Message, clusterSerializer);
 
                     rq.InputPipe.Reader.Complete(ex);
                     rq.OutputPipe.Writer.Complete(ex);
@@ -766,31 +776,33 @@ namespace Stormancer.Server.Plugins.Users
         }
 
         public Task<SendRequestResult<TReturn>> SendRequest<TReturn, TArg>(string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
-             => SendRequestImpl<TReturn, TArg>(this, serializer, operationName, senderUserId, recipientUserId, arg, cancellationToken);
+             => SendRequestImpl<TReturn, TArg>(this,_clientSerializer, clusterSerializer, operationName, senderUserId, recipientUserId, arg, cancellationToken);
 
 
         public Task<SendRequestResult<TReturn>> SendRequest<TReturn, TArg1, TArg2>(string operationName, string senderUserId, string recipientUserId, TArg1 arg1, TArg2 arg2, CancellationToken cancellationToken)
-            => SendRequestImpl<TReturn, TArg1, TArg2>(this, serializer, operationName, senderUserId, recipientUserId, arg1, arg2, cancellationToken);
+            => SendRequestImpl<TReturn, TArg1, TArg2>(this,_clientSerializer, clusterSerializer, operationName, senderUserId, recipientUserId, arg1, arg2, cancellationToken);
 
         public Task<SendRequestResult> SendRequest<TArg>(string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
-            => SendRequestImpl<TArg>(this, serializer, operationName, senderUserId, recipientUserId, arg, cancellationToken);
+            => SendRequestImpl<TArg>(this,_clientSerializer, clusterSerializer, operationName, senderUserId, recipientUserId, arg, cancellationToken);
 
 
-        internal static async Task<SendRequestResult<TReturn>> SendRequestImpl<TReturn, TArg>(IUserSessions sessions, ISerializer serializer, string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
+        internal static async Task<SendRequestResult<TReturn>> SendRequestImpl<TReturn, TArg>(IUserSessions sessions, ISerializer clientSerializer, IClusterSerializer clusterSerializer, string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
         {
             await using var rq = sessions.SendRequest(operationName, senderUserId, recipientUserId, cancellationToken);
-            await rq.Writer.WriteObject(arg, serializer, cancellationToken);
+            clientSerializer.Serialize(arg, rq.Writer);
+          
             rq.Writer.Complete();
+            rq.Send();
 
             try
             {
-                if (await rq.Reader.ReadObject<bool>(serializer, cancellationToken))
+                if (await rq.Reader.ReadObject<bool>(clusterSerializer, cancellationToken))
                 {
-                    return new SendRequestResult<TReturn> { Success = true, Value = await rq.Reader.ReadObject<TReturn>(serializer, cancellationToken) };
+                    return new SendRequestResult<TReturn> { Success = true, Value =await clientSerializer.DeserializeAsync<TReturn>(rq.Reader, cancellationToken) };
                 }
                 else
                 {
-                    return new SendRequestResult<TReturn> { Success = false, Error = await rq.Reader.ReadObject<string>(serializer, cancellationToken) };
+                    return new SendRequestResult<TReturn> { Success = false, Error = await rq.Reader.ReadObject<string>(clusterSerializer, cancellationToken) };
                 }
             }
             finally
@@ -799,23 +811,24 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
-        internal static async Task<SendRequestResult<TReturn>> SendRequestImpl<TReturn, TArg1, TArg2>(IUserSessions sessions, ISerializer serializer, string operationName, string senderUserId, string recipientUserId, TArg1 arg1, TArg2 arg2, CancellationToken cancellationToken)
+        internal static async Task<SendRequestResult<TReturn>> SendRequestImpl<TReturn, TArg1, TArg2>(IUserSessions sessions, ISerializer clientSerializer, IClusterSerializer clusterSerializer, string operationName, string senderUserId, string recipientUserId, TArg1 arg1, TArg2 arg2, CancellationToken cancellationToken)
         {
             await using var rq = sessions.SendRequest(operationName, senderUserId, recipientUserId, cancellationToken);
-            await rq.Writer.WriteObject(arg1, serializer, cancellationToken);
-            await rq.Writer.WriteObject(arg2, serializer, cancellationToken);
+            clientSerializer.Serialize(arg1, rq.Writer);
+            clientSerializer.Serialize(arg2, rq.Writer);
             rq.Writer.Complete();
+            rq.Send();
 
             try
             {
-                if (await rq.Reader.ReadObject<bool>(serializer, cancellationToken))
+                if (await rq.Reader.ReadObject<bool>(clusterSerializer, cancellationToken))
                 {
-
-                    return new SendRequestResult<TReturn> { Value = await rq.Reader.ReadObject<TReturn>(serializer, cancellationToken), Success = true };
+                    
+                    return new SendRequestResult<TReturn> { Value = await clientSerializer.DeserializeAsync<TReturn>(rq.Reader, cancellationToken), Success = true };
                 }
                 else
                 {
-                    return new SendRequestResult<TReturn> { Error = await rq.Reader.ReadObject<string>(serializer, cancellationToken), Success = false };
+                    return new SendRequestResult<TReturn> { Error = await rq.Reader.ReadObject<string>(clusterSerializer, cancellationToken), Success = false };
                 }
             }
             finally
@@ -824,22 +837,24 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
-        internal static async Task<SendRequestResult> SendRequestImpl<TArg>(IUserSessions sessions, ISerializer serializer, string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
+        internal static async Task<SendRequestResult> SendRequestImpl<TArg>(IUserSessions sessions,ISerializer clientSerializer, IClusterSerializer clusterSerializer, string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
         {
             await using var rq = sessions.SendRequest(operationName, senderUserId, recipientUserId, cancellationToken);
-            await rq.Writer.WriteObject(arg, serializer, cancellationToken);
+            clientSerializer.Serialize(arg, rq.Writer);
             rq.Writer.Complete();
+            rq.Send();
 
             try
             {
 
-                if (await rq.Reader.ReadObject<bool>(serializer, cancellationToken))
+                if (await rq.Reader.ReadObject<bool>(clusterSerializer, cancellationToken))
                 {
                     return new SendRequestResult { Success = true };
                 }
                 else
                 {
-                    return new SendRequestResult { Success = false, Error = await rq.Reader.ReadObject<string>(serializer, cancellationToken) };
+                    
+                    return new SendRequestResult { Success = false, Error = await rq.Reader.ReadObject<string>(clusterSerializer, cancellationToken) };
                 }
             }
             finally

@@ -20,9 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Autofac.Core;
-using Docker.DotNet.Models;
-using Microsoft.OpenApi.Writers;
+
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
@@ -478,12 +476,12 @@ namespace Stormancer.Server.Plugins.Party
             });
         }
 
-        public void SetConfiguration(dynamic metadata)
+        public void SetConfiguration(Dictionary<string,object?> metadata)
         {
-            if (metadata.party != null)
+            if (metadata.ContainsKey("party"))
             {
-
-                _partyState.Settings = metadata.party.ToObject<PartyConfiguration>()!;
+                
+                _partyState.Settings = JObject.FromObject(metadata["party"]).ToObject<PartyConfiguration>()!;
                 _partyState.VersionNumber = 1;
             }
             else
@@ -975,7 +973,7 @@ namespace Stormancer.Server.Plugins.Party
         {
 
             //Construct gameFinder request
-            var gameFinderRequest = new Models.Party();
+            var gameFinderRequest = new Models.Party() { Players = new Dictionary<string, Models.Player>() };
             gameFinderRequest.CustomData = _partyState.Settings.CustomData;
             gameFinderRequest.PartyId = _partyState.Settings.PartyId;
             gameFinderRequest.PartyLeaderId = _partyState.Settings.PartyLeaderId;
@@ -1222,7 +1220,7 @@ namespace Stormancer.Server.Plugins.Party
             return dto;
         }
 
-        public async Task<bool> SendInvitation(string senderUserId, string recipientUserId, bool forceStormancerInvite, CancellationToken cancellationToken)
+        public Task<bool> SendInvitation(string senderUserId, string recipientUserId, bool forceStormancerInvite, CancellationToken cancellationToken)
         {
             //Reimplement internal invitation.
             throw new NotImplementedException();
@@ -1382,7 +1380,12 @@ namespace Stormancer.Server.Plugins.Party
 
         public Task<Models.Party> GetModel()
         {
-            var party = new Models.Party() { PartyId = this.PartyId, CreationTimeUtc = this.State.CreatedOnUtc, PartyLeaderId = this.Settings.PartyLeaderId, CustomData = this.Settings.CustomData };
+            var party = new Models.Party() { 
+                PartyId = this.PartyId, 
+                CreationTimeUtc = this.State.CreatedOnUtc, 
+                PartyLeaderId = this.Settings.PartyLeaderId, 
+                CustomData = this.Settings.CustomData,
+                Players = new Dictionary<string, Models.Player>()};
 
             foreach (var member in this.PartyMembers)
             {

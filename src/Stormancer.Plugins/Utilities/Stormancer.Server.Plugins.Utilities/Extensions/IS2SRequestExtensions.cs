@@ -1,5 +1,6 @@
 ﻿using Stormancer.Core;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Linq;
@@ -24,7 +25,7 @@ namespace Stormancer
         /// <param name="serializer"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async static IAsyncEnumerable<T> ReadObjectsSequence<T>(this PipeReader reader, ISerializer serializer,[EnumeratorCancellation] CancellationToken cancellationToken)
+        public async static IAsyncEnumerable<T> ReadObjectsSequence<T>(this PipeReader reader, IClusterSerializer serializer, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             try
             {
@@ -59,7 +60,7 @@ namespace Stormancer
         /// <param name="serializer"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public static Task<T> ReadObject<T>(this PipeReader reader, ISerializer serializer, CancellationToken cancellationToken)
+        public static ValueTask<T> ReadObject<T>(this PipeReader reader, IClusterSerializer serializer, CancellationToken cancellationToken)
         {
             return serializer.DeserializeAsync<T>(reader, cancellationToken);
         }
@@ -71,11 +72,10 @@ namespace Stormancer
         /// <param name="writer"></param>
         /// <param name="data"></param>
         /// <param name="serializer"></param>
-        /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public static Task WriteObject<T>(this PipeWriter writer, T data, ISerializer serializer, CancellationToken cancellationToken)
+        public static void WriteObject<T>(this IBufferWriter<byte> writer, T data, IClusterSerializer serializer)
         {
-            return serializer.SerializeAsync(data, writer, cancellationToken);
+            serializer.Serialize(writer, data);
         }
     }
 }

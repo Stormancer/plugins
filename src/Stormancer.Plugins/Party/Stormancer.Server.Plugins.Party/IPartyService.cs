@@ -140,7 +140,7 @@ namespace Stormancer.Server.Plugins.Party
         /// </returns>
         Task<bool> SendInvitation(string senderUserId, string recipientUserId, bool forceStormancerInvite, CancellationToken cancellationToken);
 
-        void SetConfiguration(dynamic metadata);
+        void SetConfiguration(Dictionary<string,object?> metadata);
 
         PartyConfiguration Settings { get; }
 

@@ -38,7 +38,7 @@ namespace Stormancer.Server.Plugins.Galaxy
 
             ctx.SceneCreated += (ISceneHost scene) =>
             {
-                if (scene.Metadata.ContainsKey(METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
                 {
                 }
             };
@@ -72,7 +72,7 @@ namespace Stormancer
         /// <returns></returns>
         public static ISceneHost AddGalaxy(this ISceneHost scene)
         {
-            scene.Metadata[GalaxyPlugin.METADATA_KEY] = "enabled";
+            scene.TemplateMetadata[GalaxyPlugin.METADATA_KEY] = "enabled";
             return scene;
         }
     }

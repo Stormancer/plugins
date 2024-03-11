@@ -91,11 +91,7 @@ namespace Stormancer.Server.Plugins.Users
             return await _auth.Login(parameters, ctx.RemotePeer, ctx.CancellationToken);
         }
 
-        [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task RememberDeviceForTwoFactor(RememberDeviceParameters parameters, RequestContext<IScenePeerClient> ctx)
-        {
-            await _auth.RememberDeviceFor2fa(parameters, ctx.RemotePeer, ctx.CancellationToken);
-        }
+        
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public Task<Dictionary<string, string>> GetStatus(RequestContext<IScenePeerClient> ctx) => _auth.GetStatus(ctx.RemotePeer, ctx.CancellationToken);

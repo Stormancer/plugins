@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using MessagePack;
 using Stormancer.Server.Plugins.Party.Model;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,6 +30,7 @@ namespace Stormancer.Server.Plugins.Party.Dto
     /// <summary>
     /// DTO for member update.
     /// </summary>
+    [MessagePackObject]
     public class PartyMemberDataUpdate
     {
         /// <summary>
@@ -41,25 +42,25 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// <summary>
         /// The user Id.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public string UserId { get; set; } = default!;
 
         /// <summary>
         /// User data
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public byte[] UserData { get; set; } = default!;
 
         /// <summary>
         /// Local players associated with the party member.
         /// </summary>
-        [MessagePackMember(2)]
+        [Key(2)]
         public IEnumerable<Models.LocalPlayerInfos> LocalPlayers { get;  set; } = Enumerable.Empty<Models.LocalPlayerInfos>();
 
         /// <summary>
         /// Represents the connection status of the member.
         /// </summary>
-        [MessagePackMember(3)]
+        [Key(3)]
         public PartyMemberConnectionStatus ConnectionStatus { get; set; }
     }
 }

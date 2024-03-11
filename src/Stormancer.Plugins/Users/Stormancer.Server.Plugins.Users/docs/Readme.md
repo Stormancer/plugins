@@ -13,5 +13,6 @@ The following features are supported:
 - Integration with the analytics plugin.
 
 
-# Requesting a scene token
+# Persistence
+By default, the plugin doesn't persist users in a database. They are attributed new user ids each time they connect, event if they are authenticated on a platform like steam. In the same way, login password authentication won't be functional without an additionnal persistence plugin. We provide [Stormancer.Server.Plugins.Users.EntityFramework](https://www.nuget.org/packages/Stormancer.Server.Plugins.Users.EntityFramework) to store users in an SQL database using EntityFramework as a storage framework.
 

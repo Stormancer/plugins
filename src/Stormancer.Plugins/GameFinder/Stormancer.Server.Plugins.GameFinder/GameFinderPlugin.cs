@@ -98,7 +98,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         private void SceneDependenciesRegistration(IDependencyBuilder builder, ISceneHost scene)
         {
-            if (scene.Metadata.TryGetValue(METADATA_KEY, out var gameFinderType))
+            if (scene.TemplateMetadata.TryGetValue(METADATA_KEY, out var gameFinderType))
             {
                 if (Configs.TryGetValue(scene.Id, out var config))
                 {
@@ -111,7 +111,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         private void SceneCreated(ISceneHost scene)
         {
-            if (scene.Metadata.TryGetValue(METADATA_KEY, out var gameFinderType))
+            if (scene.TemplateMetadata.TryGetValue(METADATA_KEY, out var gameFinderType))
             {
                 scene.AddController<GameFinderController>();
                 if (Configs.TryGetValue(gameFinderType, out var config))

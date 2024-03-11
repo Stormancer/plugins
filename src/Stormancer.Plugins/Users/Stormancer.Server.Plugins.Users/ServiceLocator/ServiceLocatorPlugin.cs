@@ -28,6 +28,7 @@ using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Management;
 using Stormancer.Server.Plugins.Users;
+using Stormancer.Server.Plugins.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -43,12 +44,12 @@ namespace Stormancer.Server.Plugins.ServiceLocator
                 host.RegisterAppFunction("ServiceLocator.Query", async (IAppFunctionContext ctx) => {
 
                     var host = ctx.Resolver.Resolve<ServiceLocatorHostDatabase>();
-                    var serializer = ctx.Resolver.Resolve<ISerializer>();
+                    var serializer = ctx.Resolver.Resolve<IClusterSerializer>();
                     var serviceType = await serializer.DeserializeAsync<string>(ctx.Input, CancellationToken.None);
                     var instanceId = await serializer.DeserializeAsync<string>(ctx.Input, CancellationToken.None);
 
                     host.TryGetScene(serviceType, instanceId, out var scene);
-                    await serializer.SerializeAsync(scene?.Id, ctx.Output, CancellationToken.None);
+                    serializer.Serialize(ctx.Output,scene?.Id);
                     
                 });
             };
@@ -72,7 +73,8 @@ namespace Stormancer.Server.Plugins.ServiceLocator
                       r.Resolve<ManagementClientProvider>(),
                       r.Resolve<IEnvironment>(),
                       r.Resolve<IConfiguration>(),
-                      r.Resolve<ISerializer>(),
+                      r.Resolve<IClusterSerializer>(),
+                      r.Resolve<RecyclableMemoryStreamProvider>(),
                       r.Resolve<ISceneHost>(),
                       r.Resolve<IHost>(),
                       r.Resolve<ServiceLocatorHostDatabase>(),

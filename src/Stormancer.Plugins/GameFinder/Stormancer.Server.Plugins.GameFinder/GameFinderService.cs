@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using MessagePack;
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
@@ -34,6 +35,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reactive.Subjects;
@@ -111,10 +113,24 @@ namespace Stormancer.Server.Plugins.GameFinder
         public IEnumerable<Party> Value { get; }
     }
 
+    /// <summary>
+    /// Result of a game finding session
+    /// </summary>
+    [MessagePackObject]
     public struct FindGameResult
     {
+        /// <summary>
+        /// Was the operation successful
+        /// </summary>
+        [Key(0)]
+        [MemberNotNullWhen(false,"ErrorMsg")]
         public bool Success { get; set; }
-        public string ErrorMsg { get; set; }
+
+        /// <summary>
+        /// Gets or sets an error message.
+        /// </summary>
+        [Key(1)]
+        public string? ErrorMsg { get; set; }
     }
 
     internal class GameFinderService : IGameFinderService, IConfigurationChangedEventHandler
@@ -150,7 +166,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             _serializer = serializer;
             _data = data;
             _scene = scene;
-            _data.kind = _scene.Metadata[GameFinderPlugin.METADATA_KEY];
+            _data.kind = _scene.TemplateMetadata[GameFinderPlugin.METADATA_KEY];
             env.ActiveDeploymentChanged += Env_ActiveDeploymentChanged;
 
             ApplyConfig();

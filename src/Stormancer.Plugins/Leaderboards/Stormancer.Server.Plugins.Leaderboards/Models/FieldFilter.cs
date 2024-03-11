@@ -20,17 +20,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using MessagePack;
 using Newtonsoft.Json.Linq;
 
 namespace Stormancer.Server.Plugins.Leaderboards
 {
+    [MessagePackObject]
     public class FieldFilter
     {
-        [MessagePackMember(0)]
+        [Key(0)]
         public string Field { get; set; }
 
-        [MessagePackMember(1)]
+        [Key(1)]
         public JToken Value { get; set; }
     }
 }

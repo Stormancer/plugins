@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
 
 	<PropertyGroup>
-		<TargetFramework>net6.0</TargetFramework>
+		<TargetFramework>net8.0</TargetFramework>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>0.5.1</Version>
+		<Version>0.5.1.1</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<ToolCommandName>stormancer-gameservers-agent</ToolCommandName>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
@@ -38,6 +38,12 @@
 	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
 		<Version>$(Version)-pre</Version>
 	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	  <DefineConstants>$(DefineConstants);MSGPACK_CLI</DefineConstants>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+	  <DefineConstants>$(DefineConstants);MSGPACK_CLI</DefineConstants>
+	</PropertyGroup>
 	
 	<ItemGroup>
 		<Compile Include="..\Stormancer.Server.Plugins.GameSession\Dto\HostingAgentDtos.cs" Link="HostingAgentDtos.cs" />
@@ -46,14 +52,14 @@
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 		<PackageReference Include="Docker.DotNet" Version="3.125.15" />
-		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.24" />
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.2" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="jose-jwt" Version="4.1.0" />
-		<PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1" />
-		<PackageReference Include="Stormancer.Client" Version="3.4.6" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+		<PackageReference Include="Stormancer.Client" Version="3.5.1" />
 		<PackageReference Include="System.Linq.Async" Version="6.0.1" />
 	</ItemGroup>
 </Project>

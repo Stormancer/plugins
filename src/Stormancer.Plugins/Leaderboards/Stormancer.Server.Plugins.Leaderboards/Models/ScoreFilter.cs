@@ -20,19 +20,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+
+using MessagePack;
 
 namespace Stormancer.Server.Plugins.Leaderboards
 {
+    [MessagePackObject]
     public class ScoreFilter
     {
-        [MessagePackMember(0)]
+        [Key(0)]
         public ScoreFilterType Type { get; set; }
 
-        [MessagePackMember(1)]
+        [Key(1)]
         public string Path { get; set; }
 
-        [MessagePackMember(2)]
+        [Key(2)]
         public long Value { get; set; }
     }
 }

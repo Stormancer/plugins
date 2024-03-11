@@ -24,17 +24,13 @@ steps:
 - task: UseDotNet@2
   inputs:
     packageType: 'sdk'
-    version: '5.x'
-- task: UseDotNet@2
-  inputs:
-    packageType: 'sdk'
-    version: '6.x'
+    version: '8.x'
 - task: PowerShell@2
   displayName: 'Build'
   inputs:
     targetType: 'inline'
     script: |
-      src/Stormancer.Plugins/build.ps1 --configuration $(buildConfiguration) --discord-token $env:discordToken -nuget-secret-key $env:nugetKey   
+      build.ps1 --configuration $(buildConfiguration) --discord-token $env:discordToken -nuget-secret-key $env:nugetKey   
   env:
     nugetKey: $(nuget_ci_key)
     discordToken: $(discord_token)

@@ -53,7 +53,7 @@ namespace Stormancer.Server.Plugins.Queries
     public class SearchEngine
     {
         private readonly IHost host;
-        private readonly ISerializer serializer;
+        private readonly IClusterSerializer serializer;
         private readonly Func<IEnumerable<IServiceSearchProvider>> providers;
 
 
@@ -63,7 +63,7 @@ namespace Stormancer.Server.Plugins.Queries
         /// <param name="host"></param>
         /// <param name="serializer"></param>
         /// <param name="providers"></param>
-        public SearchEngine(IHost host, ISerializer serializer, Func<IEnumerable<IServiceSearchProvider>> providers)
+        public SearchEngine(IHost host, IClusterSerializer serializer, Func<IEnumerable<IServiceSearchProvider>> providers)
         {
             this.host = host;
             this.serializer = serializer;
@@ -82,11 +82,12 @@ namespace Stormancer.Server.Plugins.Queries
         public async Task<SearchResult<T>> QueryAsync<T>(string type, JObject filter, uint skip, uint size, CancellationToken cancellationToken)
         {
             var searchRqArgs = new SearchRequest { Type = type, Filter = filter, Size = size + skip };
-            using var request = await host.StartAppFunctionRequest("ServiceSearch.Query", cancellationToken);
+            using var request = await host.CreateAppFunctionRequest("ServiceSearch.Query", cancellationToken);
 
-            await serializer.SerializeAsync(searchRqArgs, request.Input, cancellationToken);
+            serializer.Serialize(request.Input, searchRqArgs);
 
             request.Input.Complete();
+            request.Send();
 
             var result = new SearchResult<T>();
             var hits = new List<Document<T>>();
@@ -131,7 +132,7 @@ namespace Stormancer.Server.Plugins.Queries
             {
                 if (provider.Handles(rq.Type))
                 {
-                    await serializer.SerializeAsync(provider.Filter(rq.Type, rq.Filter ?? new JObject(), rq.Size), ctx.Output, CancellationToken.None);
+                    serializer.Serialize(ctx.Output, provider.Filter(rq.Type, rq.Filter ?? new JObject(), rq.Size));
                 }
             }
 

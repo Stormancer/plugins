@@ -45,7 +45,7 @@ namespace Stormancer.Server.Plugins.Friends
             
             ctx.SceneDependenciesRegistration+=(IDependencyBuilder builder, ISceneHost scene) =>
             {
-                if (scene.Metadata.ContainsKey(METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
                 {
                     builder.Register<FriendsService>().As<IFriendsService>().InstancePerRequest();
                 }
@@ -70,7 +70,7 @@ namespace Stormancer.Server.Plugins.Friends
 
             ctx.SceneCreated += (ISceneHost scene) =>
             {
-                if (scene.Metadata.ContainsKey(METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
                 {
                     scene.AddController<FriendsController>();
                 }
@@ -78,7 +78,7 @@ namespace Stormancer.Server.Plugins.Friends
 
             ctx.SceneStarted += (ISceneHost scene) =>
             {
-                if (scene.Metadata.ContainsKey(METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
                 {
                     //scene.DependencyResolver.Resolve<IFriendsService>();
                 }

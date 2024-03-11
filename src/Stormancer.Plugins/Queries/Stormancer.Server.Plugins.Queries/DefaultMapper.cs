@@ -23,6 +23,12 @@ namespace Stormancer.Server.Plugins.Queries
             return JsonMapper(null, document);
         }
 
+        /// <summary>
+        /// Mapping function
+        /// </summary>
+        /// <param name="prefix"></param>
+        /// <param name="document"></param>
+        /// <returns></returns>
         public static IEnumerable<Lucene.Net.Index.IIndexableField> JsonMapper(string? prefix, JObject document)
         {
             foreach (var (fieldName, field) in document)

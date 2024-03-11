@@ -167,6 +167,7 @@
     <Natvis Include="imgui.natvis" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\output\cpp\users\Users.hpp" />
     <ClInclude Include="backends\imgui_impl_dx12.h" />
     <ClInclude Include="backends\imgui_impl_win32.h" />
     <ClInclude Include="GameFinderUI.h" />

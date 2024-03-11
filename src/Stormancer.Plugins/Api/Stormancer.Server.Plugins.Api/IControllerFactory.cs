@@ -159,7 +159,7 @@ namespace Stormancer.Server.Plugins.API
             await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
             {
                 var controller = scope.Resolve<T>();
-                
+
                 await controller.OnConnected(client);
             }
         }
@@ -169,7 +169,7 @@ namespace Stormancer.Server.Plugins.API
             await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag))
             {
                 var controller = scope.Resolve<T>();
-               
+
                 await controller.OnDisconnected(args);
             }
         }
@@ -206,7 +206,7 @@ namespace Stormancer.Server.Plugins.API
             await using (var scope = _scene.DependencyResolver.CreateChild(Constants.ApiRequestTag, ctx.Builder))
             {
                 var controller = scope.Resolve<T>();
-               
+
 
                 try
                 {
@@ -233,7 +233,7 @@ namespace Stormancer.Server.Plugins.API
             {
                 var controller = scope.Resolve<T>();
 
-             
+
                 try
                 {
                     if (controller == null)
@@ -266,7 +266,7 @@ namespace Stormancer.Server.Plugins.API
                         throw new InvalidOperationException("The controller could not be found. Make sure it has been properly registered in the dependency manager.");
                     }
 
-                 
+
                     await action(controller, ctx.Context, scope);
                 }
                 catch (ClientException)
@@ -322,7 +322,7 @@ namespace Stormancer.Server.Plugins.API
                         throw new InvalidOperationException("The controller could not be found. Make sure it has been properly registered in the dependency manager.");
                     }
                     controller.Request = ctx.Context;
-                   
+
 
                     await action(controller, ctx.Context, scope);
                 }
@@ -380,7 +380,7 @@ namespace Stormancer.Server.Plugins.API
                         throw new InvalidOperationException("The controller could not be found. Make sure it has been properly registered in the dependency manager.");
                     }
                     //controller.Request = ctx;
-                   
+
 
                     await action(controller, ctx.Context, scope);
                 }
@@ -462,7 +462,7 @@ namespace Stormancer.Server.Plugins.API
                         return next(initialApiCallCtx);
                     }, _ => _);
                 }
-                
+
             }
 
         }
@@ -557,7 +557,7 @@ namespace Stormancer.Server.Plugins.API
                 }
 
             }
-            
+
             return true;
         }
 
@@ -797,8 +797,8 @@ namespace Stormancer.Server.Plugins.API
 
             public static async Task WriteResult<TData>(IS2SRequestContext ctx, TData value, IDependencyResolver resolver)
             {
-                var serializer = resolver.Resolve<ISerializer>();
-                await serializer.SerializeAsync(value, ctx.Writer, ctx.CancellationToken);
+                var serializer = resolver.Resolve<IClusterSerializer>();
+                serializer.Serialize(ctx.Writer, value);
                 await ctx.Writer.CompleteAsync();
             }
 
@@ -845,10 +845,10 @@ namespace Stormancer.Server.Plugins.API
 
             public static async Task WriteResultAsyncEnumerable<TData>(IS2SRequestContext ctx, IAsyncEnumerable<TData> enumerable, IDependencyResolver resolver)
             {
-                var serializer = resolver.Resolve<ISerializer>();
+                var serializer = resolver.Resolve<IClusterSerializer>();
                 await foreach (var result in enumerable)
                 {
-                    await serializer.SerializeAsync(result, ctx.Writer, ctx.CancellationToken);
+                    serializer.Serialize(ctx.Writer, result);
                 }
                 await ctx.Writer.CompleteAsync();
             }
@@ -1021,16 +1021,16 @@ namespace Stormancer.Server.Plugins.API
                     {
                         block.Add(Expression.Assign(variables[i], ctx)); //output[i] = ctx;
                     }
-                    else if(parameterInfo.ParameterType == typeof(CancellationToken))
+                    else if (parameterInfo.ParameterType == typeof(CancellationToken))
                     {
                         var readObjectMethod = typeof(ApiHelpers).GetRuntimeMethodExt(nameof(ReadCt), p => p[0].ParameterType == typeof(TRq));//Select good ReadCt overload
-                        if(readObjectMethod == null)
+                        if (readObjectMethod == null)
                         {
                             throw new NotSupportedException("Only RPC support cancellation.");
                         }
                         block.Add(Expression.Call(readObjectMethod, ctx, variables[i], resolver));
                     }
-                    else if(parameterInfo.ParameterType == typeof(IScenePeerClient))
+                    else if (parameterInfo.ParameterType == typeof(IScenePeerClient))
                     {
                         var readObjectMethod = typeof(ApiHelpers).GetRuntimeMethodExt(nameof(ReadPeer), p => p[0].ParameterType == typeof(TRq));//Select good ReadCt overload
                         if (readObjectMethod == null)

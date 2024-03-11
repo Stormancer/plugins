@@ -29,6 +29,7 @@ using Stormancer.Server.Plugins.AdminApi;
 using Stormancer.Server.Plugins.Analytics;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.ServiceLocator;
+using Stormancer.Server.Plugins.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -116,7 +117,9 @@ namespace Stormancer.Server.Plugins.Users
                 b.Register(dr => new UserSessions(
                     dr.Resolve<IUserService>(),
                     dr.Resolve<SessionsRepository>(),
+                    dr.Resolve<RecyclableMemoryStreamProvider>(),
                     dr.Resolve<Func<IEnumerable<IUserSessionEventHandler>>>(),
+                    dr.Resolve<IClusterSerializer>(),
                     dr.Resolve<ISerializer>(),
                     dr.Resolve<Database.IESClientFactory>(),
                     dr.Resolve<IEnvironment>(), scene,
@@ -140,7 +143,7 @@ namespace Stormancer.Server.Plugins.Users
             }
             else
             {
-                b.Register(dr => new UserSessionImpl(dr.Resolve<UserSessionProxy>(), dr.Resolve<ISerializer>(), dr.Resolve<ISceneHost>())).As<IUserSessions>().InstancePerRequest();
+                b.Register(dr => new UserSessionImpl(dr.Resolve<UserSessionProxy>(), dr.Resolve<IClusterSerializer>(), dr.Resolve<ISerializer>(), dr.Resolve<ISceneHost>())).As<IUserSessions>().InstancePerRequest();
             }
         }
 

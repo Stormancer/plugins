@@ -15,6 +15,7 @@ Added
 *****
 - Added Result<TResult,TError> utility type.
 - Added Result<TError> utility type for exceptionless results.
+- Added RecyclableMemoryStreamProvider class.
 
 3.1.4.2
 -------

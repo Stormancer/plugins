@@ -2,9 +2,19 @@
 using Stormancer.Server.Plugins.GameFinder;
 using Stormancer.Server.Plugins.Party;
 using Stormancer.Server.Plugins.PartyMerging;
+using System.Threading.Tasks;
 
 namespace Stormancer.Plugins.Tests.ServerApp
 {
+    public class TestPartyEventHandler : IPartyEventHandler
+    {
+        Task IPartyEventHandler.OnCreatingParty(PartyCreationContext ctx)
+        {
+            ctx.PartyRequest.ServerSettings.MaxMembers(4);
+            return Task.CompletedTask;
+        }
+
+    }
     public class App
     {
         public void Run(IAppBuilder builder)
@@ -17,6 +27,11 @@ namespace Stormancer.Plugins.Tests.ServerApp
     {
         public void Build(HostPluginBuildContext ctx)
         {
+            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
+            {
+                builder.Register<TestPartyEventHandler>().As<IPartyEventHandler>();
+            };
+
             ctx.HostStarting += (IHost host) =>
             {
                 host.ConfigurePlayerParty(p => p.ResetPlayerReadyStateOn(ResetPlayerReadyStateMode.PartySettingsUpdated | ResetPlayerReadyStateMode.PartyMemberDataUpdated | ResetPlayerReadyStateMode.PartyMembersListUpdated));

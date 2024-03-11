@@ -29,7 +29,7 @@ namespace Stormancer
     {
         public static void AddFriends(this ISceneHost scene)
         {
-            scene.Metadata[FriendsPlugin.METADATA_KEY] = "enabled";
+            scene.TemplateMetadata[FriendsPlugin.METADATA_KEY] = "enabled";
         }
     }
 }

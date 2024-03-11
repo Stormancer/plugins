@@ -44,6 +44,11 @@ namespace Stormancer.Server
         /// Gets the reader used to get returned data.
         /// </summary>
         PipeReader Reader { get; }
+
+        /// <summary>
+        /// Starts sending the data.
+        /// </summary>
+        void Send();
     }
 
     /// <summary>
@@ -56,8 +61,8 @@ namespace Stormancer.Server
         /// <summary>
         /// Serializer used for S2S operations.
         /// </summary>
-        protected readonly ISerializer serializer;
-        private readonly Func<PipeWriter, Task> argsWriter;
+        protected readonly IClusterSerializer serializer;
+        private readonly Action<PipeWriter> argsWriter;
         private Pipe inputPipe = new Pipe();
         private Pipe outputPipe = new Pipe();
 
@@ -78,7 +83,7 @@ namespace Stormancer.Server
         /// <param name="serializer"></param>
         /// <param name="argsWriter"></param>
         /// <param name="cancellationToken"></param>
-        public S2SOperation(Task<IS2SRequest> request, ISerializer serializer, Func<PipeWriter,Task> argsWriter, CancellationToken cancellationToken)
+        public S2SOperation(Task<IS2SRequest> request, IClusterSerializer serializer, Action<PipeWriter> argsWriter, CancellationToken cancellationToken)
         {
             this.requestTask = request;
             this.serializer = serializer;
@@ -94,12 +99,30 @@ namespace Stormancer.Server
         public async ValueTask DisposeAsync()
         {
             var rq = await requestTask;
-           
+
             await inputPipe.Writer.CompleteAsync();
             await outputPipe.Reader.CompleteAsync();
 
             await rq.DisposeAsync();
 
+        }
+
+        private object _syncRoot = new object();
+
+        private bool _sent = false;
+        public void Send()
+        {
+            lock (_syncRoot)
+            {
+                if (requestTask.IsCompleted)
+                {
+                    requestTask.Result.Send();
+                }
+                else
+                {
+                    _sent = true;
+                }
+            }
         }
 
         private async ValueTask ReadOutput(CancellationToken cancellationToken)
@@ -128,9 +151,24 @@ namespace Stormancer.Server
             {
                 rq = await requestTask;
 
-                await argsWriter(rq.Writer);
+                argsWriter(rq.Writer);
 
-                await inputPipe.Reader.CopyToAsync(rq.Writer, cancellationToken);
+                var t = inputPipe.Reader.CopyToAsync(rq.Writer, cancellationToken);
+
+                if (!_sent)
+                {
+                    lock (_syncRoot)
+                    {
+                        if (!_sent)
+                        {
+                            _sent = true;
+                            rq.Send();
+                        }
+                    }
+                }
+
+                await t;
+
 
                 inputPipe.Reader.Complete();
                 rq.Writer.Complete();
@@ -160,7 +198,7 @@ namespace Stormancer.Server
         /// <param name="serializer"></param>
         /// <param name="argsWriter"></param>
         /// <param name="cancellationToken"></param>
-        public S2SOperationResult(Task<IS2SRequest> request, ISerializer serializer, Func<PipeWriter, Task> argsWriter, CancellationToken cancellationToken) : base(request, serializer,argsWriter, cancellationToken)
+        public S2SOperationResult(Task<IS2SRequest> request, IClusterSerializer serializer, Action<PipeWriter> argsWriter, CancellationToken cancellationToken) : base(request, serializer, argsWriter, cancellationToken)
         {
         }
 
@@ -182,7 +220,7 @@ namespace Stormancer.Server
                         return r;
                     }
                     _result = ReadObject(ct);
-                    
+
                 }
                 return _result;
             }
@@ -206,7 +244,7 @@ namespace Stormancer.Server
         /// <param name="serializer"></param>
         /// <param name="argsWriter"></param>
         /// <param name="cancellationToken"></param>
-        public S2SOperationResults(Task<IS2SRequest> request, ISerializer serializer, Func<PipeWriter, Task> argsWriter, CancellationToken cancellationToken) : base(request, serializer,argsWriter, cancellationToken)
+        public S2SOperationResults(Task<IS2SRequest> request, IClusterSerializer serializer, Action<PipeWriter> argsWriter, CancellationToken cancellationToken) : base(request, serializer, argsWriter, cancellationToken)
         {
         }
 

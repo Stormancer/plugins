@@ -46,8 +46,8 @@ namespace Stormancer
             }
             var config = gameFinderBuilder(new GameFinderConfig(scene, configId));
             GameFinderPlugin.Configs.AddOrUpdate(scene.Id, config, (id, old) => config);
-            scene.Metadata[GameFinderPlugin.METADATA_KEY] = configId;
-            scene.Metadata[GameFinderPlugin.ProtocolVersionKey] = GameFinderService.ProtocolVersion.ToString();
+            scene.TemplateMetadata[GameFinderPlugin.METADATA_KEY] = configId;
+            scene.TemplateMetadata[GameFinderPlugin.ProtocolVersionKey] = GameFinderService.ProtocolVersion.ToString();
         }
     }
 }

@@ -20,13 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Server.Plugins.Users
+namespace Stormancer.Server.Plugins.Users
 {
     /// <summary>
     /// Represents the relation of an user and a pseudo.

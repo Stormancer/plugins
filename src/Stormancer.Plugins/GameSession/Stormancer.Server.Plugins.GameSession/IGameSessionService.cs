@@ -48,7 +48,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         DateTime OnCreated { get; }
 
-        void SetConfiguration(dynamic metadata);
+        void SetConfiguration(Dictionary<string, object?> metadata);
 
         /// <summary>
         /// Posts game results.

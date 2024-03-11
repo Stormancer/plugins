@@ -2,27 +2,36 @@
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFramework>net6.0</TargetFramework>
+		<TargetFramework>net8.0</TargetFramework>
 		<StormancerPackageExcludes>bin;obj</StormancerPackageExcludes>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Stormancer.Abstractions.Server" Version="9.4.0.6-pre" />
-		<PackageReference Include="Stormancer.Server.Hosting" Version="1.2.0.23-pre" />
+		<PackageReference Include="Stormancer.Abstractions.Server" Version="10.0.4-pre" />
+		<PackageReference Include="Stormancer.Server.Hosting" Version="2.0.0.15-pre" />
 		<PackageReference Include="Stormancer.Server.Hosting.SourceGenerator" Version="0.1.0" />
-		<PackageReference Include="Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql" Version="0.1.0.7-pre" />
+		
+		<!-- <PackageReference Include="Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql" Version="*-*" />
 		<PackageReference Include="Stormancer.Server.Plugins.DataProtection" Version="*-*" />
-		<PackageReference Include="Stormancer.Server.Plugins.Friends" Version="5.0.1.7-pre" />
-		<PackageReference Include="Stormancer.Server.Plugins.Party" Version="5.2.0.26-pre" />
-		<PackageReference Include="Stormancer.Server.Plugins.PartyMerging" Version="0.1.2.15-pre" />
+		<PackageReference Include="Stormancer.Server.Plugins.Friends" Version="*-*" />
+		<PackageReference Include="Stormancer.Server.Plugins.Party" Version="*-*" />
+		<PackageReference Include="Stormancer.Server.Plugins.PartyMerging" Version="*-*" />
 		<PackageReference Include="Stormancer.Server.Plugins.Queries" Version="*-*" />
-		<PackageReference Include="Stormancer.Server.Plugins.GameFinder" Version="8.1.1.9-pre" />
-		<PackageReference Include="Stormancer.Server.Plugins.GameSession" Version="6.2.1.55-pre" />
+		<PackageReference Include="Stormancer.Server.Plugins.GameFinder" Version="*-*" />
+		<PackageReference Include="Stormancer.Server.Plugins.GameSession" Version="*-*" />
 		<PackageReference Include="Stormancer.Server.Plugins.Replication" Version="*-*" />
 		<PackageReference Include="Stormancer.Server.Plugins.SocketApi" Version="*-*" />
-		<PackageReference Include="Stormancer.Server.Plugins.Users" Version="9.0.0.38-pre" />
+		<PackageReference Include="Stormancer.Server.Plugins.Users" Version="*-*" />
 		<PackageReference Include="Stormancer.Server.Plugins.Utilities" Version="*-*" />
-		<PackageReference Include="Stormancer.Server.Plugins.Analytics" Version="*-*" />
+		<PackageReference Include="Stormancer.Server.Plugins.Analytics" Version="*-*" />-->
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\src\Stormancer.Plugins\GameSession\Stormancer.Server.Plugins.GameSession\Stormancer.Server.Plugins.GameSession.csproj" />
+	  <ProjectReference Include="..\..\src\Stormancer.Plugins\Party\Stormancer.Server.Plugins.PartyMerging\Stormancer.Server.Plugins.PartyMerging.csproj" />
+	  <ProjectReference Include="..\..\src\Stormancer.Plugins\Party\Stormancer.Server.Plugins.Party\Stormancer.Server.Plugins.Party.csproj" />
+	  <ProjectReference Include="..\..\src\Stormancer.Plugins\Replication\Stormancer.Server.Plugins.Replication\Stormancer.Server.Plugins.Replication.csproj" />
+	  <ProjectReference Include="..\..\src\Stormancer.Plugins\SocketApi\Stormancer.Server.Plugins.SocketApi\Stormancer.Server.Plugins.SocketApi.csproj" />
 	</ItemGroup>
 
 </Project>

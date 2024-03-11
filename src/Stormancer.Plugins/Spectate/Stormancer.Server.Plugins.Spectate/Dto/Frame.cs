@@ -19,43 +19,45 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-
-using MsgPack.Serialization;
+using MessagePack;
 using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.Spectate
 {
-    [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
+  
     public enum FrameType
     {
         Snapshot = 0,
         Diff = 1
     }
 
+    [MessagePackObject]
     public class FrameDataDto
     {
-        [MessagePackMember(0)]
+        [Key(0)]
         public FrameType Type { get; set; }
 
-        [MessagePackMember(1)]
+        [Key(1)]
         public ulong Time { get; set; }
 
-        [MessagePackMember(2)]
+        [Key(2)]
         public byte[] data { get; set; }
     }
 
+    [MessagePackObject]
     public class Frame : FrameDataDto
     {
-        [MessagePackMember(3)]
+        [Key(3)]
         public SessionId Origin { get; set; }
     }
 
+    [MessagePackObject]
     public class FrameList
     {
-        [MessagePackMember(0)]
+        [Key(0)]
         public ulong Time { get; set; }
 
-        [MessagePackMember(1)]
+        [Key(1)]
         public List<Frame> Frames { get; set; }
     }
 }

@@ -220,12 +220,12 @@ using Stormancer.Server.Plugins.ServiceLocator;
                 buffer.Append($@"
     {{
         private readonly ISceneHost scene;
-        private readonly ISerializer serializer;
+        private readonly IClusterSerializer serializer;
         private readonly IServiceLocator locator;
 
         public {className}(
             ISceneHost scene, 
-            ISerializer serializer,
+            IClusterSerializer serializer,
             IServiceLocator locator)
         {{
             this.scene = scene;
@@ -288,17 +288,17 @@ using Stormancer.Server.Plugins.ServiceLocator;
         {
 ");
 
-                        buffer.Append($@"            var rqTask = locator.StartS2SRequestAsync(""{serviceType}"", {(requireServiceInstanceId ? "serviceInstanceId" : @"""""")}, ""{route}"", cancellationToken);
+                        buffer.Append($@"            var rqTask = locator.CreateS2SRequestAsync(""{serviceType}"", {(requireServiceInstanceId ? "serviceInstanceId" : @"""""")}, ""{route}"", cancellationToken);
 ");
 
-                        buffer.Append($@"            {(!returnsOperation ? "await using " : "")}var result = new {operationType}(rqTask,serializer,async writer=>
+                        buffer.Append($@"            {(!returnsOperation ? "await using " : "")}var result = new {operationType}(rqTask,serializer,writer=>
             {{
 ");
                         foreach (var parameter in method.Parameters)
                         {
                             if (!SymbolEqualityComparer.Default.Equals(parameter.Type, s2sRequestContextSymbol) && !SymbolEqualityComparer.Default.Equals(parameter.Type, cancellationTokenSymbol))
                             {
-                                buffer.Append($@"                await writer.WriteObject({parameter.Name}, serializer, cancellationToken);
+                                buffer.Append($@"                writer.WriteObject({parameter.Name}, serializer);
 ");
                             }
                         }
@@ -310,6 +310,8 @@ using Stormancer.Server.Plugins.ServiceLocator;
                         if(!requestUsageContext.HasFlag( S2SRequestContextUsage.Write))
                         {
                             buffer.Append(@"            result.Writer.Complete();
+");
+                            buffer.Append(@"            result.Send();
 ");
                         }
                         

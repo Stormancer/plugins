@@ -40,7 +40,7 @@ namespace Stormancer
         /// <param name="scene"></param>
         public static void AddInAppNotifications(this ISceneHost scene)
         {
-            scene.Metadata[NotificationPlugin.METADATA_KEY] = "enabled";
+            scene.TemplateMetadata[NotificationPlugin.METADATA_KEY] = "enabled";
         }
     }
 }

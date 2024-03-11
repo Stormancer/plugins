@@ -20,13 +20,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+
+using MessagePack;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
+    [MessagePackObject]
     public class GameServerStartMessage
     {
-        [MessagePackMember(0)]
+        [Key(0)]
         public string P2PToken { get; set; }
 
     }

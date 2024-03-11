@@ -49,7 +49,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
             {
                 host.AddSceneTemplate(PartyMergingConstants.PARTYMERGER_TEMPLATE, scene =>
                 {
-                    scene.Metadata.Add(PartyMergingConstants.MERGER_METADATA_KEY, PartyMergingConstants.GetVersion());
+                    scene.TemplateMetadata.Add(PartyMergingConstants.MERGER_METADATA_KEY, PartyMergingConstants.GetVersion());
                 });
             };
             PartyMergingConfigurationRepository? configs = null;
@@ -64,7 +64,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
             ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
             {
-                if (scene.Metadata.TryGetValue(PartyMergingConstants.MERGER_METADATA_KEY, out var _) && configs != null)
+                if (scene.TemplateMetadata.TryGetValue(PartyMergingConstants.MERGER_METADATA_KEY, out var _) && configs != null)
                 {
 
                     configs.ConfigureDependencyResolver(scene, builder);
@@ -72,22 +72,22 @@ namespace Stormancer.Server.Plugins.PartyMerging
             };
             ctx.SceneCreating += (ISceneHost scene) =>
             {
-                if (scene.Metadata.TryGetValue(PartyConstants.METADATA_KEY, out _))
+                if (scene.TemplateMetadata.TryGetValue(PartyConstants.METADATA_KEY, out _))
                 {
-                    scene.Metadata.Add(PartyMergingConstants.PARTY_METADATA_KEY, PartyMergingConstants.GetVersion());
+                    scene.TemplateMetadata.Add(PartyMergingConstants.PARTY_METADATA_KEY, PartyMergingConstants.GetVersion());
                     }
             };
             ctx.SceneCreated += (ISceneHost scene) =>
             {
-                if (scene.Metadata.TryGetValue(PartyMergingConstants.MERGER_METADATA_KEY, out var _))
+                if (scene.TemplateMetadata.TryGetValue(PartyMergingConstants.MERGER_METADATA_KEY, out var _))
                 {
                     scene.AddController<PartyMergerController>();
 
 
                 }
-                if (scene.Metadata.TryGetValue(PartyConstants.METADATA_KEY, out _))
+                if (scene.TemplateMetadata.TryGetValue(PartyConstants.METADATA_KEY, out _))
                 {
-                    scene.Metadata.Add(PartyMergingConstants.PARTY_METADATA_KEY,PartyMergingConstants.GetVersion());
+                    scene.TemplateMetadata.Add(PartyMergingConstants.PARTY_METADATA_KEY,PartyMergingConstants.GetVersion());
                     scene.AddController<PartyMergingController>();
                 }
             };

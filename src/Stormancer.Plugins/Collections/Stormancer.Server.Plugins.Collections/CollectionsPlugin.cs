@@ -34,13 +34,13 @@ namespace Stormancer.Server.Plugins.Collections
             {
                 host.AddSceneTemplate(SCENE_TEMPLATE, scene =>
                 {
-                    scene.Metadata[METADATA_KEY] = "enabled";
+                    scene.TemplateMetadata[METADATA_KEY] = "enabled";
                 });
             };
 
             ctx.SceneCreated += (ISceneHost scene) =>
             {
-                if (scene.Metadata.ContainsKey(METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
                 {
                     scene.AddController<CollectionsController>();
                 }

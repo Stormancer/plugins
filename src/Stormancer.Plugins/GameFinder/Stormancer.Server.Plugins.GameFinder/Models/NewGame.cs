@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
+using MessagePack;
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Models;
 using System;
@@ -62,6 +62,7 @@ namespace Stormancer.Server.Plugins.GameFinder
     /// <summary>
     /// Use when the party(ies) are joining a new game session.
     /// </summary>
+    [MessagePackObject]
     public class NewGame : IGameCandidate
     {
         /// <summary>
@@ -77,47 +78,47 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// Id of the game.
         /// </summary>
-        [MessagePackMember(0)]
+        [Key(0)]
         public string Id { get; private set; }
 
         /// <summary>
         /// Public custom data associated with the game.
         /// </summary>
-        [MessagePackMember(1)]
+        [Key(1)]
         public JObject PublicCustomData { get; set; } = new JObject();
 
       
         /// <summary>
         /// private custom data associated with the game.
         /// </summary>
-        [MessagePackIgnore]
+        [IgnoreMember]
         public JObject PrivateCustomData { get; set; } = new JObject();
 
         /// <summary>
         /// Gets or sets the teams of players in the game.
         /// </summary>
-        [MessagePackMember(2)]
+        [Key(2)]
         public List<Team> Teams { get; set; } = new List<Team>();
 
         /// <summary>
         /// Gets a sequence of all parties in the game (whatever their team)
         /// </summary>
-        [MessagePackIgnore]
+        [IgnoreMember]
         public IEnumerable<Party> AllParties => Teams.SelectMany(team => team.Parties);
 
-        [MessagePackIgnore]
+        [IgnoreMember]
         List<Team> IGameCandidate.Teams { get => Teams; }
 
         /// <summary>
         /// Gets a sequence of all players in the game.
         /// </summary>
-        [MessagePackIgnore]
+        [IgnoreMember]
         public IEnumerable<Player> AllPlayers => Teams.SelectMany(team => team.AllPlayers);
 
         /// <summary>
         /// Gets or sets a custom context object that is not serialized but is passed to the <see cref="IGameFinderResolver"/>.
         /// </summary>
-        [MessagePackIgnore]
+        [IgnoreMember]
         public object? CustomContext { get; set; }
     }
 }

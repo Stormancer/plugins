@@ -18,7 +18,7 @@ namespace Stormancer
         /// <param name="scene"></param>
         public static void AddReplication(this ISceneHost scene)
         {
-            scene.Metadata[ReplicationConstants.METADATA_KEY] = ReplicationConstants.PROTOCOL_VERSION;
+            scene.TemplateMetadata[ReplicationConstants.METADATA_KEY] = ReplicationConstants.PROTOCOL_VERSION;
         }
     }
 }

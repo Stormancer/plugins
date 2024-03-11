@@ -20,12 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using MsgPack.Serialization;
-
 namespace Stormancer.Server.Plugins.GameFinder
 {
-    [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
-    public enum GameFinderStatusUpdate
+      public enum GameFinderStatusUpdate
     {
         SearchStart = 0,
         CandidateFound = 1,
