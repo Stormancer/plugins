@@ -149,11 +149,8 @@ namespace Stormancer.Server.Plugins.Users
 
         private void HostStarted(IHost host)
         {
-            var managementAccessor = host.DependencyResolver.Resolve<Management.ManagementClientProvider>();
-            if (managementAccessor != null)
-            {
-                _ = managementAccessor.CreateScene(Constants.GetSceneId(), Constants.SCENE_TEMPLATE, true, true);
-            }
+            host.EnsureSceneExists(Constants.GetSceneId(), Constants.SCENE_TEMPLATE, true, true);
+            
         }
 
         private void RegisterDependencies(IDependencyBuilder b)

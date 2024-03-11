@@ -24,7 +24,6 @@ using Nest;
 using Stormancer.Core;
 using Stormancer.Core.Helpers;
 using Stormancer.Diagnostics;
-using Stormancer.Management;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Database;
 using Stormancer.Server.Plugins.Users;

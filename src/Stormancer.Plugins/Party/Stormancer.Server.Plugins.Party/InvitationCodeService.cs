@@ -1,5 +1,5 @@
-﻿using Stormancer.Core;
-using Stormancer.Server.Plugins.Management;
+﻿using Stormancer.Abstractions.Server.Components;
+using Stormancer.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,10 +28,10 @@ namespace Stormancer.Server.Plugins.Party
         private Dictionary<string, InvitationCodeState> codes = new Dictionary<string, InvitationCodeState>();
         private readonly IHost host;
         private readonly IClusterSerializer serializer;
-        private readonly ManagementClientProvider management;
+        private readonly IScenesManager management;
         private readonly PartyConfigurationService partyConfiguration;
 
-        public InvitationCodeService(IHost host, IClusterSerializer serializer, ManagementClientProvider management, PartyConfigurationService partyConfiguration)
+        public InvitationCodeService(IHost host, IClusterSerializer serializer, IScenesManager management, PartyConfigurationService partyConfiguration)
         {
             this.host = host;
             this.serializer = serializer;
@@ -69,7 +69,7 @@ namespace Stormancer.Server.Plugins.Party
             var sceneId = await GetSceneIdForInvitationCode(invitationCode, cancellationToken);
             if (sceneId != null)
             {
-                return await management.CreateConnectionToken(sceneId, userData, "party/userdata");
+                return await management.CreateConnectionTokenAsync(sceneId, userData, "party/userdata",3,cancellationToken);
             }
             else
             {

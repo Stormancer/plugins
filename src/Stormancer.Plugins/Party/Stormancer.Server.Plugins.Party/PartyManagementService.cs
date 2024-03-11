@@ -22,7 +22,6 @@
 
 using Stormancer.Abstractions.Server.Components;
 using Stormancer.Core;
-using Stormancer.Management;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Party;
 using Stormancer.Server.Plugins.ServiceLocator;

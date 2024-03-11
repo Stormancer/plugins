@@ -30,7 +30,6 @@ using Stormancer.Server.PartyManagement;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.GameFinder;
 using Stormancer.Server.Plugins.GameSession;
-using Stormancer.Server.Plugins.Management;
 using Stormancer.Server.Plugins.Party.Interfaces;
 using Stormancer.Server.Plugins.Party.JoinGame;
 using Stormancer.Server.Plugins.Party.Model;
@@ -135,7 +134,7 @@ namespace Stormancer.Server.Plugins.Party
                 builder.Register<InvitationCodeService>(r => new InvitationCodeService(
                     r.Resolve<IHost>(),
                     r.Resolve<IClusterSerializer>(),
-                    r.Resolve<ManagementClientProvider>(),
+                    r.Resolve<IScenesManager>(),
                     r.Resolve<PartyConfigurationService>())
                 ).AsSelf().SingleInstance();
 

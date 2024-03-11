@@ -27,7 +27,6 @@ using Lucene.Net.Search;
 using Lucene.Net.Store;
 using Microsoft.IO;
 using Newtonsoft.Json.Linq;
-using Stormancer.Cluster.Sessions;
 using Stormancer.Core;
 using Stormancer.Core.Helpers;
 using Stormancer.Diagnostics;

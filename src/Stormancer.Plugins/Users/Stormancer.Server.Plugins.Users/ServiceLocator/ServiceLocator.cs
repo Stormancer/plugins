@@ -24,7 +24,6 @@ using Stormancer.Server.Plugins.Configuration;
 using SmartFormat;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Components;
-using Stormancer.Server.Plugins.Management;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
@@ -37,6 +36,7 @@ using Stormancer.Core;
 using System.Threading;
 using Microsoft.IO;
 using Stormancer.Server.Plugins.Utilities;
+using Stormancer.Abstractions.Server.Components;
 
 namespace Stormancer.Server.Plugins.ServiceLocator
 {
@@ -65,7 +65,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
         private readonly ISceneHost scene;
         private readonly IHost host;
         private readonly ServiceLocatorHostDatabase db;
-        private readonly ManagementClientProvider _managementClientAccessor;
+        private readonly IScenesManager _management;
         private readonly Func<IEnumerable<IServiceLocatorProvider>> _handlers;
         private readonly ILogger _logger;
 
@@ -73,7 +73,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
 
         public ServiceLocator(
             Func<IEnumerable<IServiceLocatorProvider>> handlers,
-            ManagementClientProvider managementClientAccessor,
+            IScenesManager management,
             IEnvironment env,
             IConfiguration config,
             IClusterSerializer serializer,
@@ -89,7 +89,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
             this.scene = scene;
             this.host = host;
             this.db = db;
-            _managementClientAccessor = managementClientAccessor;
+            _management = management;
             _handlers = handlers;
             _logger = logger;
 
@@ -120,7 +120,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
                         _logger.Log(LogLevel.Warn, "locator", "session is null", new { });
                     }
                     serializer.Serialize(stream,session);
-                    var token = await _managementClientAccessor.CreateConnectionToken(sceneUri, stream.ToArray(), "stormancer/userSession");
+                    var token = await _management.CreateConnectionTokenAsync(sceneUri, stream.ToArray(), "stormancer/userSession");
 
                     return token;
                 }

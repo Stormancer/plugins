@@ -20,13 +20,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Stormancer.Abstractions.Server.Components;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Configuration;
-using Stormancer.Server.Plugins.Management;
 using Stormancer.Server.Plugins.Users;
 using Stormancer.Server.Plugins.Utilities;
 using System;
@@ -70,7 +70,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
               {
                   builder.Register<ServiceLocator>(r=>new ServiceLocator(
                       r.Resolve<Func<IEnumerable<IServiceLocatorProvider>>>(),
-                      r.Resolve<ManagementClientProvider>(),
+                      r.Resolve<IScenesManager>(),
                       r.Resolve<IEnvironment>(),
                       r.Resolve<IConfiguration>(),
                       r.Resolve<IClusterSerializer>(),
