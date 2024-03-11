@@ -30,7 +30,7 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-      build.ps1 --configuration $(buildConfiguration) --discord-token $env:discordToken -nuget-secret-key $env:nugetKey   
+      ./build.ps1 --configuration $(buildConfiguration) --discord-token $env:discordToken -nuget-secret-key $env:nugetKey   
   env:
     nugetKey: $(nuget_ci_key)
     discordToken: $(discord_token)
