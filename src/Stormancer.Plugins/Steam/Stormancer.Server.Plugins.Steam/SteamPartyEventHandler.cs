@@ -137,8 +137,10 @@ namespace Stormancer.Server.Plugins.Steam
             {
                 return;
             }
-            var steamId = (ulong)ctx.Session.User!.GetSteamId()!;
-            ctx.Session.TryGetSteamAppId(out var steamAppId);
+            if(!ctx.Session.TryGetSteamAppId(out var steamAppId) || !ctx.Session.User.TryGetSteamId(out var steamId))
+            {
+                return;
+            }
 
             if (!ctx.Party.Settings.ServerSettings.ShouldCreateSteamLobby() ?? false)
             {
@@ -147,7 +149,7 @@ namespace Stormancer.Server.Plugins.Steam
 
             var data = (SteamPartyData)ctx.Party.ServerData.GetOrAdd(PartyLobbyKey, new SteamPartyData());
 
-            if (data.SteamIDLobby == null)
+            if (!data.SteamIDLobby.HasValue)
             {
 
                 var result = await CreateSteamLobbyAsync(ctx.Peer, ctx.Session, ctx.Party, CancellationToken.None);
@@ -171,7 +173,7 @@ namespace Stormancer.Server.Plugins.Steam
                 }
                 partySettingsDto.PublicServerData["SteamIDLobby"] = steamIDLobby.ToString();
                 _ = ctx.Party.UpdateSettings(partySettingsDto, CancellationToken.None);
-                data.SteamIDLobby = steamIDLobby;
+               
                 data.UserData[ctx.Session.SessionId] = new SteamUserData { SessionId = ctx.Session.SessionId, SteamId = steamId };
                 data.AppId = steamAppId;
 
@@ -390,12 +392,14 @@ namespace Stormancer.Server.Plugins.Steam
             if (ctx.Party.ServerData.TryGetValue(PartyLobbyKey, out var dataObject))
             {
                 var data = (SteamPartyData)dataObject;
-                if (data != null && data.SteamIDLobby != null && data.SteamIDLobby != null)
+                if (data != null && data.SteamIDLobby.HasValue)
                 {
                     try
                     {
-                        data.UserData.TryRemove(ctx.Args.Peer.SessionId, out _);
-                        await LeaveSteamLobbyAsync(ctx.Args.Peer, data.SteamIDLobby!.Value, CancellationToken.None);
+                        if (data.UserData.TryRemove(ctx.Args.Peer.SessionId, out _))
+                        {
+                            await LeaveSteamLobbyAsync(ctx.Args.Peer, data.SteamIDLobby!.Value, CancellationToken.None);
+                        }
                     }
                     finally
                     {
@@ -419,7 +423,7 @@ namespace Stormancer.Server.Plugins.Steam
             if (ctx.Party.ServerData.TryGetValue(PartyLobbyKey, out var dataObject))
             {
                 var data = (SteamPartyData)dataObject;
-                if (data.SteamIDLobby != null)
+                if (data.SteamIDLobby.HasValue)
                 {
                     if (ctx.Party.Settings.IsJoinable != data.IsJoinable)
                     {
