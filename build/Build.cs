@@ -136,6 +136,10 @@ class Build : NukeBuild
         Debug.Assert(_channel != null);
         foreach (var project in Solution.AllProjects.Where(p => {
             var property = p.GetProperty<string>("StrmPushPackage");
+            if(!p.Name.EndsWith("csproj"))
+            {
+                return false;
+            }
             if(!string.IsNullOrEmpty(property))
             {
                 return property == "true";
