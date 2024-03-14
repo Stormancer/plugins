@@ -135,7 +135,7 @@ class Build : NukeBuild
         await StartDiscord();
         Debug.Assert(_channel != null);
         foreach (var project in Solution.AllProjects.Where(p => {
-            if (!p.Name.EndsWith("csproj"))
+            if (!p.Path.HasExtension(".csproj"))
             {
                 return false;
             }
