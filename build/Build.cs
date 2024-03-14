@@ -135,7 +135,7 @@ class Build : NukeBuild
         await StartDiscord();
         Debug.Assert(_channel != null);
         foreach (var project in Solution.AllProjects.Where(p => {
-            var property = p.GetProperty<string>("PushPackage");
+            var property = p.GetProperty<string>("StrmPushPackage");
             if(!string.IsNullOrEmpty(property))
             {
                 return property == "true";

@@ -13,7 +13,7 @@
 		<Description>The core features of the Stormancer sample application in a nuget package.</Description>
 		<Deterministic>true</Deterministic>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PushPackage>true</PushPackage>
+		<StrmPushPackage>true</StrmPushPackage>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
 		<Version>$(Version)-pre</Version>
