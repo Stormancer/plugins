@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Company>Stormancer</Company>
+		<Authors>Stormancer</Authors>
+		<Version>1.0.0</Version>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<Description>The core features of the Stormancer sample application in a nuget package.</Description>
+		<Deterministic>true</Deterministic>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
+		<Version>$(Version)-pre</Version>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<PackageIcon>icon.png</PackageIcon>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Include="../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
+		<None Include="docs/README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\Stormancer.Plugins\GameSession\Stormancer.Server.Plugins.GameSession\Stormancer.Server.Plugins.GameSession.csproj" />
+		<ProjectReference Include="..\..\src\Stormancer.Plugins\Party\Stormancer.Server.Plugins.PartyMerging\Stormancer.Server.Plugins.PartyMerging.csproj" />
+		<ProjectReference Include="..\..\src\Stormancer.Plugins\Party\Stormancer.Server.Plugins.Party\Stormancer.Server.Plugins.Party.csproj" />
+		<ProjectReference Include="..\..\src\Stormancer.Plugins\Replication\Stormancer.Server.Plugins.Replication\Stormancer.Server.Plugins.Replication.csproj" />
+		<ProjectReference Include="..\..\src\Stormancer.Plugins\SocketApi\Stormancer.Server.Plugins.SocketApi\Stormancer.Server.Plugins.SocketApi.csproj" />
+	</ItemGroup>
+</Project>
