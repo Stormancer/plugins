@@ -134,7 +134,14 @@ class Build : NukeBuild
     {
         await StartDiscord();
         Debug.Assert(_channel != null);
-        foreach (var project in Solution.AllProjects.Where(p => !p.Name.StartsWith("_") && !p.Name.Contains("Test") && !p.Name.Contains("sample", StringComparison.InvariantCultureIgnoreCase)))
+        foreach (var project in Solution.AllProjects.Where(p => {
+            var property = p.GetProperty<string>("PushPackage");
+            if(!string.IsNullOrEmpty(property))
+            {
+                return property == "true";
+            }
+            return !p.Name.StartsWith("_") && !p.Name.Contains("Test") && !p.Name.Contains("sample", StringComparison.InvariantCultureIgnoreCase);
+            }))
         {
             var changelogFile = Path.Combine(project.Directory, "Changelog.rst");
 
