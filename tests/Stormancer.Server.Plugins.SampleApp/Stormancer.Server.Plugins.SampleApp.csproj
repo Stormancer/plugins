@@ -25,7 +25,9 @@
 		<None Include="../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
 		<None Include="docs/README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
-
+	<ItemGroup>
+		<NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
+	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\Stormancer.Plugins\GameSession\Stormancer.Server.Plugins.GameSession\Stormancer.Server.Plugins.GameSession.csproj" />
 		<ProjectReference Include="..\..\src\Stormancer.Plugins\Party\Stormancer.Server.Plugins.PartyMerging\Stormancer.Server.Plugins.PartyMerging.csproj" />
@@ -33,4 +35,8 @@
 		<ProjectReference Include="..\..\src\Stormancer.Plugins\Replication\Stormancer.Server.Plugins.Replication\Stormancer.Server.Plugins.Replication.csproj" />
 		<ProjectReference Include="..\..\src\Stormancer.Plugins\SocketApi\Stormancer.Server.Plugins.SocketApi\Stormancer.Server.Plugins.SocketApi.csproj" />
 	</ItemGroup>
+
+	<Target Name="PostPack" AfterTargets="Pack">
+		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../output/packages" />
+	</Target>
 </Project>
