@@ -4,8 +4,7 @@
     "https://api.nuget.org/v3/index.json"
   ],
   "plugins": {
-    "Stormancer.Server.Node": "7.1.0.6",
-    "Stormancer.Logging.Nlog": "1.2.0.4",
-    "Stormancer.Management.Cli": "0.6.1"
+    "Stormancer.Server.Node": "9.1.2.12-pre",
+    "Stormancer.Management.Cli": "1.0.0.1-pre"
   }
 }

@@ -42,12 +42,9 @@ namespace Stormancer
         /// <returns></returns>
         public static T? GetSessionValue<T>(this Session session, string key, ISerializer serializer)
         {
-            if (session.SessionData.TryGetValue(key, out var data))
+            if (session.SessionData.TryGetValue(key, out var data) && serializer.TryDeserialize<T>(new System.Buffers.ReadOnlySequence<byte>(data), out T result, out _))
             {
-                var reader = PipeReader.Create(new System.Buffers.ReadOnlySequence<byte>(data));
-
-                return serializer.DeserializeAsync<T>(reader, System.Threading.CancellationToken.None).Result;
-
+                return result;   
             }
             else
             {
