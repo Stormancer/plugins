@@ -22,6 +22,7 @@
 
 using Stormancer.Server.Plugins.Users;
 using System.IO;
+using System.IO.Pipelines;
 
 namespace Stormancer
 {
@@ -43,10 +44,10 @@ namespace Stormancer
         {
             if (session.SessionData.TryGetValue(key, out var data))
             {
-                using (var stream = new MemoryStream(data))
-                {
-                    return serializer.Deserialize<T>(stream);
-                }
+                var reader = PipeReader.Create(new System.Buffers.ReadOnlySequence<byte>(data));
+
+                return serializer.DeserializeAsync<T>(reader, System.Threading.CancellationToken.None).Result;
+
             }
             else
             {
@@ -73,7 +74,7 @@ namespace Stormancer
         public static string? GetSelectedPlatformForPseudo(this User user)
         {
 
-            if(user.UserData.TryGetValue("selectedPlatform",out var data) && data.Type == Newtonsoft.Json.Linq.JTokenType.String)
+            if (user.UserData.TryGetValue("selectedPlatform", out var data) && data.Type == Newtonsoft.Json.Linq.JTokenType.String)
             {
                 return data.ToObject<string>();
             }
