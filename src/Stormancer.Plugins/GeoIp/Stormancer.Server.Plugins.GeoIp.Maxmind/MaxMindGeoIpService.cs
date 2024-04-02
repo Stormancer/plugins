@@ -18,6 +18,14 @@ namespace Stormancer.Server.Plugins.GeoIp.Maxmind
 
         public int AccountId { get; set; }
         public string? LicenseKeyPath { get; set; }
+
+        /// <summary>
+        /// Enables or disables Geo IP if accountId and licenseKeyPath are set.
+        /// </summary>
+        /// <remarks>
+        /// Defaults to true.
+        /// </remarks>
+        public bool Enabled { get; set; } = true;
     }
     internal class MaxMindGeoIpService : IGeoIpService
     {
@@ -44,6 +52,8 @@ namespace Stormancer.Server.Plugins.GeoIp.Maxmind
         }
 
         MemoryCache<string,string> _cache = new MemoryCache<string,string>();
+
+        public bool IsGeoIpEnabled => _options.Value.Enabled;
 
         private Task<string?> GetLicenseKey(string path)
         {

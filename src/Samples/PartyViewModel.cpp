@@ -175,6 +175,31 @@ void PartyViewModel::stopMerging()
 	});
 }
 
+void PartyViewModel::getMergerStatus()
+{
+	auto client = Stormancer::IClientFactory::GetClient(this->parent->id);
+	auto merging = client->dependencyResolver().resolve<Stormancer::Party::PartyMergingApi>();
+	parent->isProcessing = true;
+	merging->getMergerStatus(mergerId).then([this](pplx::task<Stormancer::Party::PartyMergerStatusResponse<Stormancer::Party::EmptyMergingStatusDetails>> t)
+		{
+
+			this->parent->isProcessing = false;
+			try
+			{
+				
+				auto r = t.get();
+				this->currentMergerAlgorithmId = r.data.algorithm;
+				this->currentMergerPartiesCount = r.data.partiesCount;
+				this->currentMergerPlayersCount = r.data.playersCount;
+			}
+			catch (std::exception& ex)
+			{
+				this->parent->lastError = ex.what();
+			}
+
+		});
+}
+
 void PartyViewModel::leaveParty()
 {
 	auto client = Stormancer::IClientFactory::GetClient(this->parent->id);

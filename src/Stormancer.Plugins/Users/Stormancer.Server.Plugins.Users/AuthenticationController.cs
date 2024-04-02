@@ -63,12 +63,15 @@ namespace Stormancer.Server.Plugins.Users
                     case "CLIENT_REQUEST":
                         reason = DisconnectionReason.ClientDisconnected;
                         break;
+                    case "NEW_CONNECTION":
+                        reason = DisconnectionReason.NewConnection;
+                        break;
                     default:
                         reason = DisconnectionReason.ServerRequest;
                         break;
                 }
 
-                await s.LogOut(args.Peer.SessionId, reason);
+                await s.DeletePlayerSession(args.Peer.SessionId, reason);
             }
 
         }

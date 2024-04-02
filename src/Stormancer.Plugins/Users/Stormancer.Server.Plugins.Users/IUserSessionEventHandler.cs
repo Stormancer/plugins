@@ -27,11 +27,30 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
+    /// <summary>
+    /// Context passed to <see cref="IUserSessionEventHandler.OnLoggedIn(LoginContext)"/>
+    /// </summary>
     public class LoginContext
     {
-        public SessionRecord Session { get; set; }
-        public IScenePeerClient Client { get; set; }
-        public Dictionary<string,string> Dimensions { get; set; } = new Dictionary<string,string>();
+        /// <summary>
+        /// Gets the user being logged in.
+        /// </summary>
+        public required User? AuthenticatedUser { get; init; }
+        /// <summary>
+        /// Gets the session being logged in.
+        /// </summary>
+        public required SessionRecord Session { get; init; }
+
+        /// <summary>
+        /// Gets the peer which triggered the log in event.
+        /// </summary>
+        public required IScenePeerClient Client { get; init; }
+
+
+        /// <summary>
+        /// Gets the already connected sessions associated with the user being logged in.
+        /// </summary>
+        public  required IEnumerable<Session> ConnectedSessions { get; init; }
     }
 
     public class LogoutContext

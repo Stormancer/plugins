@@ -22,6 +22,9 @@ namespace Stormancer.Server.Plugins.PartyMerging
         public readonly object _syncRoot = new object();
         public readonly Dictionary<string, PartyMergingPartyState> _states = new Dictionary<string, PartyMergingPartyState>();
 
+        public int LastPlayersCount { get; set; }
+        public int LastPartiesCount { get; set; }
+
         public PartyMergingState(ISceneHost scene)
         {
             scene.RunTask(async (ct) =>
@@ -128,7 +131,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
         private readonly IPartyMergingAlgorithm _algorithm;
         private readonly PartyProxy _parties;
         private readonly IPartyManagementService _partyManagement;
-
+       
 
         public PartyMergingService(ISceneHost scene, PartyMergingState state, IPartyMergingAlgorithm algorithm, PartyProxy parties, IPartyManagementService partyManagement)
         {
@@ -217,6 +220,8 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
 
             var ctx = new PartyMergingContext(models.WhereNotNull());
+            _state.LastPlayersCount = ctx.WaitingParties.Sum(p => p.Players.Count);
+            _state.LastPartiesCount = ctx.WaitingParties.Count();
             await _algorithm.Merge(ctx);
 
 
@@ -225,7 +230,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
             {
                 try
                 {
-                    
+
                     var partyTo = await mergeTask;
 
 
@@ -300,14 +305,14 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
         public async Task<JObject> GetStatusAsync(bool fromAdmin)
         {
-            int partyCount;
-
-            lock (_state._syncRoot)
+           
+            var json = JObject.FromObject(new
             {
-                partyCount = _state._states.Count;
-            }
-            var json = JObject.FromObject(new { partyCount, algorithm = _algorithm.GetType().Name });
-            json["algorithmStatus"] = await _algorithm.GetStatusAsync(fromAdmin);
+                partiesCount = _state.LastPartiesCount,
+                algorithm = _algorithm.GetType().Name,
+                playersCount = _state.LastPlayersCount
+            });
+            json["details"] = await _algorithm.GetStatusAsync(fromAdmin);
 
             return json;
         }

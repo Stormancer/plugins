@@ -107,7 +107,7 @@ namespace Stormancer.Server.Plugins.Users
             var validationCtx = new LoggingInCtx { AuthCtx = authenticationCtx, Type = auth.Type };
             await provider.Authenticating(validationCtx);
 
-            await _handlers().RunEventHandler(h => h.OnLoggingIn(validationCtx), ex => _logger.Log(LogLevel.Error, "user.login", "An error occured while running Validate event handler", ex));
+            await _handlers().RunEventHandler(h => h.OnLoggingIn(validationCtx), ex => _logger.Log(LogLevel.Error, "user.login", "An error occurred while running Validate event handler", ex));
 
             if (!validationCtx.HasError)
             {
@@ -116,7 +116,7 @@ namespace Stormancer.Server.Plugins.Users
                 var authResult = await provider.Authenticate(authenticationCtx, ct);
 
                 var authCompleteCtx = new AuthenticationCompleteContext(authResult, peer, session);
-                await _handlers().RunEventHandler(h => h.OnAuthenticationComplete(authCompleteCtx, ct), ex => _logger.Log(LogLevel.Error, "user.login", $"An error occured while running {nameof(IAuthenticationEventHandler.OnAuthenticationComplete)} event handler", ex));
+                await _handlers().RunEventHandler(h => h.OnAuthenticationComplete(authCompleteCtx, ct), ex => _logger.Log(LogLevel.Error, "user.login", $"An error occurred while running {nameof(IAuthenticationEventHandler.OnAuthenticationComplete)} event handler", ex));
 
                 if (authResult.Success)
                 {
@@ -124,40 +124,7 @@ namespace Stormancer.Server.Plugins.Users
 
 
 
-                    if (authResult.AuthenticatedUser != null)
-                    {
-                        var oldSessionIds = await _sessions.GetPeers(authResult.AuthenticatedUser.Id, ct);
-                        var alreadyLoggedIn = false;
-                        foreach(var sessionId in oldSessionIds)
-                        {
-                            if (sessionId != peer.SessionId)
-                            {
-                                await sessions.LogOut(sessionId, DisconnectionReason.NewConnection);
-                                var oldPeer = _scene.RemotePeers.FirstOrDefault(p=>p.SessionId == sessionId);
-                                if(oldPeer != null)
-                                {
-                                    await oldPeer.DisconnectFromServer("auth.login.new_connection");
-                                }
-                            }
-                            else
-                            {
-                                alreadyLoggedIn = true;
-                            }
-                        }
-                        
-                        if (!alreadyLoggedIn)
-                        {
-                            await sessions.Login(peer, authResult.AuthenticatedUser, authResult.PlatformId, authResult.initialSessionData);
-                        }
-                    }
-                    else
-                    {
-                        await sessions.Login(peer, authResult.AuthenticatedUser, authResult.PlatformId, authResult.initialSessionData);
-                    }
-
-                 
-
-                    await sessions.UpdateSession(peer.SessionId, s =>
+                    await sessions.CreateSessionForPeer(peer, authResult.AuthenticatedUser, authResult.PlatformId, authResult.initialSessionData, s =>
                     {
                         s.Identities[provider.Type] = authResult.PlatformId.ToString();
                         if (authResult.ExpirationDate.HasValue)
@@ -166,8 +133,11 @@ namespace Stormancer.Server.Plugins.Users
                         }
 
                         authResult.OnSessionUpdated?.Invoke(s);
-                        return Task.FromResult(s);
-                    });
+                     
+                    },ct);
+
+
+             
                     result.Success = true;
                     result.UserId = authResult?.AuthenticatedUser?.Id;
                     result.Username = authResult?.AuthenticatedUser?.UserData[UsersConstants.UserHandleKey]?.ToObject<string>() ?? string.Empty;
@@ -180,7 +150,7 @@ namespace Stormancer.Server.Plugins.Users
                     }
 
                     var ctx = new LoggedInCtx { Result = result, Session = session, AuthCtx = authenticationCtx, Peer = peer, CancellationToken = ct };
-                    await _handlers().RunEventHandler(h => h.OnLoggedIn(ctx), ex => _logger.Log(LogLevel.Error, "user.login", "An error occured while running OnLoggedIn event handler", ex));
+                    await _handlers().RunEventHandler(h => h.OnLoggedIn(ctx), ex => _logger.Log(LogLevel.Error, "user.login", "An error occurred while running OnLoggedIn event handler", ex));
                 }
                 else
                 {

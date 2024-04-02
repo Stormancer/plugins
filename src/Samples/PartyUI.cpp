@@ -165,7 +165,7 @@ void ShowUI(PartyViewModel& vm)
 
 		ImGui::SeparatorText("PARTY MERGING");
 
-		ImGui::InputText("Merger name", &vm.mergerId);
+		ImGui::InputText("Merger id", &vm.mergerId);
 		auto merger = client->dependencyResolver().resolve<Stormancer::Party::PartyMergingApi>();
 
 		if (merger->getStatus().status == Stormancer::Party::PartyMergingStatus::InProgress)
@@ -182,7 +182,12 @@ void ShowUI(PartyViewModel& vm)
 				vm.startMerging();
 			}
 		}
+		if (ImGui::Button("Get merger status"))
+		{
+			vm.getMergerStatus();
+		}
 		
+
 		
 	
 		if (ImGui::BeginTable("mergingState",2))
@@ -205,6 +210,24 @@ void ShowUI(PartyViewModel& vm)
 			ImGui::Text("last error");
 			ImGui::TableNextColumn();
 			ImGui::Text(state.lastError.c_str());
+
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("algorithm id");
+			ImGui::TableNextColumn();
+			ImGui::Text(vm.currentMergerAlgorithmId.c_str());
+
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("parties in merger");
+			ImGui::TableNextColumn();
+			ImGui::Text(std::to_string(vm.currentMergerPartiesCount).c_str());
+
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::Text("players in merger");
+			ImGui::TableNextColumn();
+			ImGui::Text(std::to_string(vm.currentMergerPlayersCount).c_str());
 
 			ImGui::EndTable();
 		}

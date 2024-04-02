@@ -7,8 +7,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Stormancer.Abstractions.Server" Version="10.0.5-pre" />
-		<PackageReference Include="Stormancer.Server.Hosting" Version="2.0.0.16-pre" />
+		<PackageReference Include="Stormancer.Abstractions.Server" Version="10.1.0-pre" />
+		<PackageReference Include="Stormancer.Server.Hosting" Version="2.0.0.22-pre" />
 		<PackageReference Include="Stormancer.Server.Hosting.SourceGenerator" Version="0.1.0" />
 	
 	</ItemGroup>

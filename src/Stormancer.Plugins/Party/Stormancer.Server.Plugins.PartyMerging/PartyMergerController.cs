@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using MessagePack;
+using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.API;
@@ -39,11 +40,34 @@ namespace Stormancer.Server.Plugins.PartyMerging
         }
 
         [S2SApi]
-        public Task<JObject> GetStatus()
+        public Task<JObject> GetStatus(bool fromAdmin)
         {
-            return _service.GetStatusAsync(true);
+            return _service.GetStatusAsync(fromAdmin);
         }
     }
+
+   
+
+    /// <summary>
+    /// 
+    /// </summary>
+    [MessagePackObject]
+    public class GetPartyMergerStatusResponse
+    {
+        /// <summary>
+        /// How long the responses remains valid in the client's cache.
+        /// </summary>
+        /// <remarks>
+        /// In seconds.
+        /// </remarks>
+        [Key(0)]
+        public required int MaxAge { get; init; }
+
+        [Key(1)]
+        public required JObject Data { get; init; }
+       
+    }
+
 
 
     /// <summary>
@@ -52,14 +76,23 @@ namespace Stormancer.Server.Plugins.PartyMerging
     internal class PartyMergingController : ControllerBase
     {
         private readonly IPartyService _party;
+        private readonly PartyMergerProxy _proxy;
         private readonly IMergingPartyService _service;
 
 
-        public PartyMergingController(IMergingPartyService service, IPartyService party)
+        public PartyMergingController(IMergingPartyService service, IPartyService party, PartyMergerProxy proxy)
         {
 
             _service = service;
             _party = party;
+            _proxy = proxy;
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task<GetPartyMergerStatusResponse> GetMergerStatus(string partyMergerId, CancellationToken cancellationToken)
+        {
+            var result = await _proxy.GetStatus(partyMergerId, false, cancellationToken);
+            return new GetPartyMergerStatusResponse { MaxAge = 1, Data = result };
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]

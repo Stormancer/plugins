@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users.Analytics
 {
+    [Priority(int.MinValue)]
     class AnalyticsEventHandler : IUserSessionEventHandler
     {
         private readonly IAnalyticsService analytics;
@@ -17,7 +18,7 @@ namespace Stormancer.Server.Plugins.Users.Analytics
         }
         public Task OnLoggedIn(LoginContext loginCtx)
         {
-            analytics.Push("user", "login", JObject.FromObject(new { SessionId = loginCtx.Session.SessionId.ToString(), UserId = loginCtx.Session.User?.Id, PlatformId = loginCtx.Session.platformId,  loginCtx.Dimensions }));
+            analytics.Push("user", "login", JObject.FromObject(new { SessionId = loginCtx.Session.SessionId.ToString(), UserId = loginCtx.Session.User?.Id, PlatformId = loginCtx.Session.platformId,  loginCtx.Session.Dimensions }));
             return Task.CompletedTask;
         }
 

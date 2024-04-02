@@ -42,6 +42,9 @@ namespace Stormancer.Server.Plugins.Users
     {
     }
 
+    /// <summary>
+    /// Configuration section for user handles.
+    /// </summary>
     public class UserHandleConfigSection
     {
         internal const string PATH = "user.handle";
@@ -51,10 +54,19 @@ namespace Stormancer.Server.Plugins.Users
         /// </summary>
         public uint HashDigits { get; set; } = 4;
 
+        /// <summary>
+        /// Pattern used to validate user handles.
+        /// </summary>
         public string Pattern { get; set; } = @"^[\p{Ll}\p{Lu}\p{Lt}\p{Lo}0-9-_.]*$";
 
+        /// <summary>
+        /// Max length of the handle (without the final hash)
+        /// </summary>
         public uint MaxLength { get; set; } = 32;
 
+        /// <summary>
+        /// Appends an hash
+        /// </summary>
         public bool AppendHash { get; set; } = true;
     }
     class UserService : IUserService
@@ -163,7 +175,7 @@ namespace Stormancer.Server.Plugins.Users
             {
 
                 var ctx = new UpdateUserHandleCtx(userId, newHandle);
-                await _handlers().RunEventHandler(handler => handler.OnUpdatingUserHandle(ctx), ex => _logger.Log(LogLevel.Error, "usersessions", "An exception was thrown by an OnUpdatingUserHandle event handler", ex));
+                await _handlers().RunEventHandler(handler => handler.OnUpdatingUserHandle(ctx), ex => _logger.Log(LogLevel.Error, "userSessions", "An exception was thrown by an OnUpdatingUserHandle event handler", ex));
 
                 if (!ctx.Accept)
                 {

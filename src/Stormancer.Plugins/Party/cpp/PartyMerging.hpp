@@ -58,6 +58,72 @@ namespace Stormancer
 			std::string lastError;
 		};
 
+		/// <summary>
+		/// Empty merging status details structure to use by default.
+		/// </summary>
+		struct EmptyMergingStatusDetails
+		{
+			int test;
+			template <typename Packer> 
+			void msgpack_pack(Packer& pk) const 
+			{ 
+				
+				msgpack::type::make_define_map<>().msgpack_pack(pk);
+			} 
+			void msgpack_unpack(msgpack::object const& o) 
+			{ 
+				msgpack::type::make_define_map<>().msgpack_unpack(o);
+				
+			}
+			template <typename MSGPACK_OBJECT> 
+			void msgpack_object(MSGPACK_OBJECT* o, msgpack::zone& z) const 
+			{ 
+				msgpack::type::make_define_map<>().msgpack_object(o, z); 
+			}
+		};
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <typeparam name="TDetails">custom detailed merger status data provided by the merging algorithm. 
+		/// Must be deserialized as a msgpack map object. The most simple way to do that is to annotate it with the MSGPACK_DEFINE_MAP macro</typeparam>
+		/// <remarks>
+		/// Example:
+		///     struct CustomMergingStatusDetails
+		///     {
+		///			int customData;
+		/// 
+		///			MSGPACK_DEFINE_MAP(customData)
+		///     }
+		/// </remarks>
+		template<typename TDetails>
+		struct PartyMergerBaseStatus
+		{
+			int partiesCount;
+			int playersCount;
+			std::string algorithm;
+			TDetails details;
+			MSGPACK_DEFINE_MAP(partiesCount,playersCount,algorithm,details)
+		};
+
+		/// <summary>
+		/// Response of a getPartyMergerStatus request.
+		/// </summary>
+		/// <typeparam name="TDetails">custom detailed merger status data provided by the merging algorithm. 
+		/// Must be deserialized as a msgpack map object. The most simple way to do that is to annotate it with the MSGPACK_DEFINE_MAP macro</typeparam>
+		template<typename TDetails>
+		struct PartyMergerStatusResponse
+		{
+			/// <summary>
+			/// How long to keep the result before issuing a new request to get refreshed data.
+			/// </summary>
+			int maxAge;
+
+			PartyMergerBaseStatus<TDetails> data;
+
+			MSGPACK_DEFINE(maxAge,data)
+		};
+
 		class PartyMergingPlugin;
 
 		namespace details
@@ -84,6 +150,13 @@ namespace Stormancer
 					auto rpc = _rpc.lock();
 					return rpc->rpc("PartyMerging.Stop", partyMerger);
 
+				}
+
+				template<typename TDetails>
+				pplx::task<PartyMergerStatusResponse<TDetails>> getMergerStatus(std::string& partyMerger)
+				{
+					auto rpc = _rpc.lock();
+					return rpc->rpc<PartyMergerStatusResponse<TDetails>>("PartyMerging.GetMergerStatus", partyMerger);
 				}
 
 				void initialize(std::shared_ptr<Stormancer::Scene> scene)
@@ -169,6 +242,19 @@ namespace Stormancer
 				catch (const std::exception& ex)
 				{
 					return pplx::task_from_exception<void>(ex);
+				}
+			}
+
+			template<typename TDetails = EmptyMergingStatusDetails>
+			pplx::task<PartyMergerStatusResponse<TDetails>> getMergerStatus(std::string& mergerId)
+			{
+				try
+				{
+					return _partyApi.lock()->getPartyScene()->dependencyResolver().resolve<details::PartyMergingService>()->getMergerStatus<TDetails>(mergerId);
+				}
+				catch (const std::exception& ex)
+				{
+					return pplx::task_from_exception<PartyMergerStatusResponse<TDetails>>(ex);
 				}
 			}
 

@@ -69,7 +69,7 @@ public class PartyEventHandler : IPartyEventHandler
 
 ## Plugin configuration
 
-By default steam.hpp includes `steam_api.h`. This behavior can be disabled by setting `STORM_NOINCLUDE_STEAM`.
+By default steam.hpp includes `steam_api.h`. This behavior can be disabled by setting `STORM_NOINCLUDE_STEAM`. To use a different include path to `steam_api.h`, set `STORM_STEAM_INCLUDE`.
 
 Configuration keys:
 

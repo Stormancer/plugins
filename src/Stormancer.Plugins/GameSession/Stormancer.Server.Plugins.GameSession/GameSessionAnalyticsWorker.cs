@@ -2,6 +2,7 @@
 using Stormancer.Server.Plugins.Analytics;
 using Stormancer.Server.Plugins.Users;
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -40,9 +41,9 @@ namespace Stormancer.Server.Plugins.GameSession
 
     internal class GameSessionAnalyticsWorker
     {
-        private class DimensionsComparer : IEqualityComparer<IReadOnlyDictionary<string, string>>
+        private class DimensionsComparer : IEqualityComparer<FrozenDictionary<string, string>>
         {
-            public bool Equals(IReadOnlyDictionary<string, string>? x, IReadOnlyDictionary<string, string>? y)
+            public bool Equals(FrozenDictionary<string, string>? x, FrozenDictionary<string, string>? y)
             {
                 if (x == null)
                 {
@@ -85,7 +86,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             }
 
-            public int GetHashCode([DisallowNull] IReadOnlyDictionary<string, string> obj)
+            public int GetHashCode([DisallowNull] FrozenDictionary<string, string> obj)
             {
                 var hashCode = new HashCode();
                 foreach (var (key, value) in obj)

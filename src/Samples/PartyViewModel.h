@@ -23,10 +23,15 @@ public:
 	bool isInGameSession();
 
 	std::string mergerId;
+	int currentMergerPartiesCount;
+	int currentMergerPlayersCount;
+	std::string currentMergerAlgorithmId;
 	void startMerging();
 	void stopMerging();
 
-	
+	void getMergerStatus();
+
+
 
 	ClientViewModel* parent;
 };

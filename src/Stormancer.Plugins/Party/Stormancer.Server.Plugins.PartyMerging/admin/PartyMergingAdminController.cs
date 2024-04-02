@@ -28,15 +28,15 @@ namespace Stormancer.Server.Plugins.PartyMerging.admin
 
         public PartyMergingAdminController(PartyMergerProxy partyMerger)
         {
-                    _partyMerger = partyMerger;
+            _partyMerger = partyMerger;
         }
 
         [HttpGet]
         [Route("{mergerId}/status")]
         public async Task<IActionResult> GetStatus(string mergerId, CancellationToken cancellationToken)
         {
-         
-            var metrics = await _partyMerger.GetStatus(mergerId, cancellationToken);
+
+            var metrics = await _partyMerger.GetStatus(mergerId, true, cancellationToken);
 
             return Ok(metrics);
 

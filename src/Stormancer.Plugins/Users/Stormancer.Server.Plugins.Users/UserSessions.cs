@@ -32,6 +32,7 @@ using Stormancer.Core.Helpers;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Components;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Database;
 using Stormancer.Server.Plugins.Queries;
 using Stormancer.Server.Plugins.Utilities;
@@ -39,6 +40,7 @@ using Stormancer.Server.Plugins.Utilities.Extensions;
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -309,6 +311,38 @@ namespace Stormancer.Server.Plugins.Users
         /// </summary>
         public DateTimeOffset? MaxAge { get => AuthenticationExpirationDates.Count > 0 ? AuthenticationExpirationDates.Min().Value : (DateTimeOffset?)null; }
 
+
+        private Dictionary<string, string> _dimensions = new Dictionary<string, string>();
+        private FrozenDictionary<string, string>? _cachedDimensions;
+
+        /// <summary>
+        /// Sets the value associated in a dimension of the session.
+        /// </summary>
+        /// <remarks>
+        /// Dimensions provides drill down and filtering capabilities for real time count of connected sessions. 
+        /// </remarks>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
+        public void SetDimension(string key, string value)
+        {
+            _dimensions[key] = value;
+            _cachedDimensions = null;
+        }
+
+        /// <summary>
+        /// Gets the current dimensions associated with this player session.
+        /// </summary>
+        public FrozenDictionary<string, string> Dimensions
+        {
+            get
+            {
+                if (_cachedDimensions == null)
+                {
+                    _cachedDimensions = _dimensions.ToFrozenDictionary();
+                }
+                return _cachedDimensions;
+            }
+        }
         /// <summary>
         /// Version of the record
         /// </summary>
@@ -334,8 +368,16 @@ namespace Stormancer.Server.Plugins.Users
         }
     }
 
+    /// <summary>
+    /// Extension methods for sessions.
+    /// </summary>
     public static class SessionDocExtensions
     {
+        /// <summary>
+        /// Creates a view from a session record.
+        /// </summary>
+        /// <param name="record"></param>
+        /// <returns></returns>
         public static Session? CreateView(this Document<SessionRecord> record)
         {
             var s = record?.Source?.CreateView();
@@ -360,6 +402,7 @@ namespace Stormancer.Server.Plugins.Users
         private readonly ISerializer _clientSerializer;
         private readonly IEnvironment env;
         private readonly ISceneHost _scene;
+        private readonly IConfiguration _configuration;
         private readonly ILogger logger;
         private readonly IUserService _userService;
 
@@ -374,6 +417,7 @@ namespace Stormancer.Server.Plugins.Users
             IESClientFactory eSClientFactory,
             IEnvironment env,
             ISceneHost scene,
+            IConfiguration configuration,
             ILogger logger)
         {
             _esClientFactory = eSClientFactory;
@@ -382,6 +426,7 @@ namespace Stormancer.Server.Plugins.Users
             _memoryStreamProvider = memoryStreamProvider;
             _eventHandlers = eventHandlers;
             _scene = scene;
+            _configuration = configuration;
             this.clusterSerializer = serializer;
             _clientSerializer = clientSerializer;
             this.env = env;
@@ -401,7 +446,7 @@ namespace Stormancer.Server.Plugins.Users
             return (await GetUser(peer, cancellationToken)) != null;
         }
 
-        public async Task<bool> LogOut(SessionId id, DisconnectionReason reason)
+        public async Task<bool> DeletePlayerSession(SessionId id, DisconnectionReason reason)
         {
 
 
@@ -410,7 +455,7 @@ namespace Stormancer.Server.Plugins.Users
                 var session = record.CreateView();
 
                 var logoutContext = new LogoutContext { Session = session, ConnectedOn = session.ConnectedOn, Reason = reason };
-                await _eventHandlers().RunEventHandler(h => h.OnLoggedOut(logoutContext), ex => logger.Log(LogLevel.Error, "usersessions", "An error occurred while running LoggedOut event handlers", ex));
+                await _eventHandlers().RunEventHandler(h => h.OnLoggedOut(logoutContext), ex => logger.Log(LogLevel.Error, "userSessions", "An error occurred while running LoggedOut event handlers", ex));
 
                 return true;
             }
@@ -420,28 +465,59 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
-        public async Task Login(IScenePeerClient peer, User? user, PlatformId onlineId, Dictionary<string, byte[]> sessionData)
+        public async Task CreateSessionForPeer(IScenePeerClient peer, User? user, PlatformId onlineId, Dictionary<string, byte[]> sessionData, Action<SessionRecord> sessionModifier, CancellationToken cancellationToken)
         {
             if (peer == null)
             {
                 throw new ArgumentNullException("peer");
             }
-
-            var session = new SessionRecord
+            var currentSessions = user != null ? repository.Filter(JObject.FromObject(new
             {
-                User = user,
-                platformId = onlineId,
-                SessionData = new ConcurrentDictionary<string, byte[]>(sessionData.AsEnumerable()),
-                SessionId = peer.SessionId,
-                ConnectedOn = DateTime.UtcNow,
-                AuthenticatorUrl = await GetAuthenticatorUrl(),
-                Version = 0
-            };
+                match = new
+                {
+                    field = "user.id",
+                    value = user.Id
+                }
+            }), 10, 0).Hits.Select(d => d.Source).WhereNotNull() : Enumerable.Empty<SessionRecord>();
+
+            var session = currentSessions.FirstOrDefault(s => s.SessionId == peer.SessionId);
+
+            if (session == null)
+            {
+                session = new SessionRecord
+                {
+                    User = user,
+                    platformId = onlineId,
+                    SessionData = new ConcurrentDictionary<string, byte[]>(sessionData.AsEnumerable()),
+                    SessionId = peer.SessionId,
+                    ConnectedOn = DateTime.UtcNow,
+                    AuthenticatorUrl = await GetAuthenticatorUrl(),
+                    Version = 0
+                };
+            }
+            sessionModifier?.Invoke(session);
+
+
             if (repository.AddOrUpdateSessionRecord(session, null))
             {
 
-                var loginContext = new LoginContext { Session = session, Client = peer };
-                await _eventHandlers().RunEventHandler(h => h.OnLoggedIn(loginContext), ex => logger.Log(LogLevel.Error, "usersessions", "An error occured while running LoggedIn event handlers", ex));
+                var loginContext = new LoginContext
+                {
+                    Session = session,
+                    Client = peer,
+                    ConnectedSessions = currentSessions.Select(s => s.CreateView()),
+                    AuthenticatedUser = user
+                };
+
+                await _eventHandlers().RunEventHandler(h => h.OnLoggedIn(loginContext), ex => logger.Log(LogLevel.Error, "userSessions", "An error occurred while running LoggedIn event handlers", ex));
+
+                foreach (var oldPeer in currentSessions.Select(s => _scene.TryGetPeer(s.SessionId, out var peer) ? peer : null).WhereNotNull())
+                {
+                    if (peer != oldPeer)
+                    {
+                        await peer.DisconnectFromServer("ALREADY_CONNECTED");
+                    }
+                }
             }
             else
             {
@@ -521,7 +597,7 @@ namespace Stormancer.Server.Plugins.Users
 
 
 
-            return result.Hits.Select(d => d.Source?.CreateView());
+            return result.Hits.Select(d => d.Source?.CreateView()).WhereNotNull();
 
 
         }
@@ -745,7 +821,7 @@ namespace Stormancer.Server.Plugins.Users
                         }
                         else
                         {
-                            logger.Log(LogLevel.Error, "usersessions.SendRequest", "An error occurred while sending a request to a client.", ex);
+                            logger.Log(LogLevel.Error, "userSessions.SendRequest", "An error occurred while sending a request to a client.", ex);
                         }
                     }
 
@@ -760,8 +836,8 @@ namespace Stormancer.Server.Plugins.Users
                 catch (Exception ex)
                 {
 
-                     rq.OutputPipe.Writer.WriteObject(false, clusterSerializer);
-                     rq.OutputPipe.Writer.WriteObject(ex.Message, clusterSerializer);
+                    rq.OutputPipe.Writer.WriteObject(false, clusterSerializer);
+                    rq.OutputPipe.Writer.WriteObject(ex.Message, clusterSerializer);
 
                     rq.InputPipe.Reader.Complete(ex);
                     rq.OutputPipe.Writer.Complete(ex);
@@ -775,21 +851,21 @@ namespace Stormancer.Server.Plugins.Users
         }
 
         public Task<SendRequestResult<TReturn>> SendRequest<TReturn, TArg>(string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
-             => SendRequestImpl<TReturn, TArg>(this,_clientSerializer, clusterSerializer, operationName, senderUserId, recipientUserId, arg, cancellationToken);
+             => SendRequestImpl<TReturn, TArg>(this, _clientSerializer, clusterSerializer, operationName, senderUserId, recipientUserId, arg, cancellationToken);
 
 
         public Task<SendRequestResult<TReturn>> SendRequest<TReturn, TArg1, TArg2>(string operationName, string senderUserId, string recipientUserId, TArg1 arg1, TArg2 arg2, CancellationToken cancellationToken)
-            => SendRequestImpl<TReturn, TArg1, TArg2>(this,_clientSerializer, clusterSerializer, operationName, senderUserId, recipientUserId, arg1, arg2, cancellationToken);
+            => SendRequestImpl<TReturn, TArg1, TArg2>(this, _clientSerializer, clusterSerializer, operationName, senderUserId, recipientUserId, arg1, arg2, cancellationToken);
 
         public Task<SendRequestResult> SendRequest<TArg>(string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
-            => SendRequestImpl<TArg>(this,_clientSerializer, clusterSerializer, operationName, senderUserId, recipientUserId, arg, cancellationToken);
+            => SendRequestImpl<TArg>(this, _clientSerializer, clusterSerializer, operationName, senderUserId, recipientUserId, arg, cancellationToken);
 
 
         internal static async Task<SendRequestResult<TReturn>> SendRequestImpl<TReturn, TArg>(IUserSessions sessions, ISerializer clientSerializer, IClusterSerializer clusterSerializer, string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
         {
             await using var rq = sessions.SendRequest(operationName, senderUserId, recipientUserId, cancellationToken);
             clientSerializer.Serialize(arg, rq.Writer);
-          
+
             rq.Writer.Complete();
             rq.Send();
 
@@ -797,7 +873,7 @@ namespace Stormancer.Server.Plugins.Users
             {
                 if (await rq.Reader.ReadObject<bool>(clusterSerializer, cancellationToken))
                 {
-                    return new SendRequestResult<TReturn> { Success = true, Value =await clientSerializer.DeserializeAsync<TReturn>(rq.Reader, cancellationToken) };
+                    return new SendRequestResult<TReturn> { Success = true, Value = await clientSerializer.DeserializeAsync<TReturn>(rq.Reader, cancellationToken) };
                 }
                 else
                 {
@@ -822,7 +898,7 @@ namespace Stormancer.Server.Plugins.Users
             {
                 if (await rq.Reader.ReadObject<bool>(clusterSerializer, cancellationToken))
                 {
-                    
+
                     return new SendRequestResult<TReturn> { Value = await clientSerializer.DeserializeAsync<TReturn>(rq.Reader, cancellationToken), Success = true };
                 }
                 else
@@ -836,7 +912,7 @@ namespace Stormancer.Server.Plugins.Users
             }
         }
 
-        internal static async Task<SendRequestResult> SendRequestImpl<TArg>(IUserSessions sessions,ISerializer clientSerializer, IClusterSerializer clusterSerializer, string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
+        internal static async Task<SendRequestResult> SendRequestImpl<TArg>(IUserSessions sessions, ISerializer clientSerializer, IClusterSerializer clusterSerializer, string operationName, string senderUserId, string recipientUserId, TArg arg, CancellationToken cancellationToken)
         {
             await using var rq = sessions.SendRequest(operationName, senderUserId, recipientUserId, cancellationToken);
             clientSerializer.Serialize(arg, rq.Writer);
@@ -852,7 +928,7 @@ namespace Stormancer.Server.Plugins.Users
                 }
                 else
                 {
-                    
+
                     return new SendRequestResult { Success = false, Error = await rq.Reader.ReadObject<string>(clusterSerializer, cancellationToken) };
                 }
             }
@@ -949,14 +1025,18 @@ namespace Stormancer.Server.Plugins.Users
                     foreach (var sessionId in sessionIds)
                     {
                         var p = _scene.RemotePeers.FirstOrDefault(p => p.SessionId == sessionId);
-                        if (GetSession(p, cancellationToken) != null)
+                        if (p != null)
                         {
-                            var ctx = new KickContext(p, GetSessionByIdImpl(p.SessionId), userIds);
-                            await _eventHandlers().RunEventHandler(h => h.OnKicking(ctx), ex => logger.Log(LogLevel.Error, "userSessions", "An error occurred while running onKick event.", new { }));
-
-                            if (ctx.Kick)
+                            var session = GetSessionByIdImpl(p.SessionId);
+                            if (session != null)
                             {
-                                await p.DisconnectFromServer(reason);
+                                var ctx = new KickContext(p, session, userIds);
+                                await _eventHandlers().RunEventHandler(h => h.OnKicking(ctx), ex => logger.Log(LogLevel.Error, "userSessions", "An error occurred while running onKick event.", new { }));
+
+                                if (ctx.Kick)
+                                {
+                                    await p.DisconnectFromServer(reason);
+                                }
                             }
                         }
                     }
@@ -970,6 +1050,7 @@ namespace Stormancer.Server.Plugins.Users
             return repository.All.Select(r => r.CreateView()).WhereNotNull().ToAsyncEnumerable();
         }
 
+
         public int AuthenticatedUsersCount
         {
             get
@@ -977,6 +1058,94 @@ namespace Stormancer.Server.Plugins.Users
                 return repository.Count;
             }
         }
+
+        public ValueTask<IEnumerable<AuthenticatedUsersCount>> GetAuthenticatedUsersByDimensionsAsync()
+        {
+            return ValueTask.FromResult(repository
+            .All
+            .Select(d => d.Source)
+            .WhereNotNull()
+            .GroupBy(s => s.Dimensions, _dimensionsComparer)
+            .Select(g => new AuthenticatedUsersCount
+            {
+                Count = g.Count(),
+                Dimensions = g.Key
+            }));
+        }
+
+        private static DimensionsComparer _dimensionsComparer = new DimensionsComparer();
+        private class DimensionsComparer : IEqualityComparer<FrozenDictionary<string, string>>
+        {
+            public bool Equals(FrozenDictionary<string, string>? x, FrozenDictionary<string, string>? y)
+            {
+                if (x == null)
+                {
+                    if (y == null)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+
+                if (y == null)
+                {
+                    if (x == null)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+
+                if (x.Count != y.Count)
+                {
+                    return false;
+                }
+
+                foreach (var (key, value) in x)
+                {
+                    if (!y.TryGetValue(key, out var v) || v != value)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+
+            }
+
+            public int GetHashCode([DisallowNull] FrozenDictionary<string, string> obj)
+            {
+                var hashCode = new HashCode();
+                foreach (var (key, value) in obj)
+                {
+                    hashCode.Add(key);
+                    hashCode.Add(value);
+                }
+                return hashCode.ToHashCode();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Count of sessions matching a set of dimension values.
+    /// </summary>
+    public class AuthenticatedUsersCount
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        public required FrozenDictionary<string, string> Dimensions { get; set; }
+
+        /// <summary>
+        /// Count of players matching the vector in the dimensions space.
+        /// </summary>
+        public required int Count { get; set; }
     }
 
     /// <summary>

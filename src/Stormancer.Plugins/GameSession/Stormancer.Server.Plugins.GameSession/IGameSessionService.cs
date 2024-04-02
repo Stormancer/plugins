@@ -25,6 +25,7 @@ using Stormancer.Server.Plugins.GameSession.Models;
 using Stormancer.Server.Plugins.Models;
 using Stormancer.Server.Plugins.Users;
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -48,7 +49,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         DateTime OnCreated { get; }
 
-        void SetConfiguration(Dictionary<string, object?> metadata);
+      
 
         /// <summary>
         /// Posts game results.
@@ -189,7 +190,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <summary>
         /// Dimensions used to group game sessions for analytics purpose.
         /// </summary>
-        public IReadOnlyDictionary<string,string> Dimensions { get; }
+        public FrozenDictionary<string,string> Dimensions { get; }
 
         /// <summary>
         /// Sets the value of a dimension.

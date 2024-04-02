@@ -9,6 +9,10 @@ namespace Stormancer.Server.Plugins.GeoIp
     public interface IGeoIpService
     {
         /// <summary>
+        /// Gets a bool indicating if geoip is enabled through configuration. (geoip.maxmind.enabled = true)
+        /// </summary>
+        public bool IsGeoIpEnabled { get; }
+        /// <summary>
         /// Gets a code representing the country the provided IP is located in.
         /// </summary>
         /// <param name="ip"></param>

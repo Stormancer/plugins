@@ -52,6 +52,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Autofac.Core;
 using MessagePack;
 using Stormancer.Abstractions.Server.Components;
+using System.Collections.Frozen;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
@@ -1139,13 +1140,18 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private object _syncRoot = new object();
         private Dictionary<string, string> _dimensions = new Dictionary<string, string>();
-        public IReadOnlyDictionary<string, string> Dimensions
+        private FrozenDictionary<string, string>? _frozenDimensions;
+        public FrozenDictionary<string, string> Dimensions
         {
             get
             {
                 lock (_syncRoot)
                 {
-                    return _dimensions.ToImmutableDictionary();
+                    if(_frozenDimensions == null )
+                    {
+                        _frozenDimensions = _dimensions.ToFrozenDictionary();
+                    }
+                    return _frozenDimensions;
                 }
             }
         }
@@ -1157,6 +1163,7 @@ namespace Stormancer.Server.Plugins.GameSession
             lock (_syncRoot)
             {
                 _dimensions[dimension] = value;
+                _frozenDimensions = null;
             }
         }
 

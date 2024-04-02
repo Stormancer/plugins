@@ -29,6 +29,7 @@ using Stormancer.Server.Plugins.AdminApi;
 using Stormancer.Server.Plugins.Analytics;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.ServiceLocator;
+using Stormancer.Server.Plugins.Users.Analytics;
 using Stormancer.Server.Plugins.Utilities;
 using System;
 using System.Collections.Generic;
@@ -82,17 +83,9 @@ namespace Stormancer.Server.Plugins.Users
                     // Push authenticated users count
                     scene.RunTask(async ct =>
                     {
-                       
-                        while (!ct.IsCancellationRequested)
-                        {
-                            await using var scope = scene.CreateRequestScope();
-                            var analytics = scope.Resolve<IAnalyticsService>();
-                            var sessions = scope.Resolve<IUserSessions>() as UserSessions;
-                            var logger = scope.Resolve<ILogger>();
-                            var authenticatedUsersCount = sessions?.AuthenticatedUsersCount ?? 0;
-                            analytics.Push("user", "sessions", JObject.FromObject(new { AuthenticatedUsersCount = authenticatedUsersCount }));
-                            await Task.Delay(1000);
-                        }
+                        await using var scope = scene.CreateRequestScope();
+                        var analytics = scope.Resolve<SessionsAnalyticsWorker>();
+                        await analytics.Run(ct);
                     });
                     // Start periodic users credentials renewal
                     scene.RunTask(ct => scene.DependencyResolver.Resolve<CredentialsRenewer>().PeriodicRenewal(ct));
@@ -123,8 +116,11 @@ namespace Stormancer.Server.Plugins.Users
                     dr.Resolve<ISerializer>(),
                     dr.Resolve<Database.IESClientFactory>(),
                     dr.Resolve<IEnvironment>(), scene,
+                    dr.Resolve<IConfiguration>(),
                     dr.Resolve<ILogger>())
                 ).As<IUserSessions>().InstancePerRequest();
+
+                b.Register<SessionsAnalyticsWorker>().SingleInstance();
 
                 b.Register(r=>new SessionsRepository()
                 ).AsSelf().SingleInstance();

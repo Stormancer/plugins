@@ -41,8 +41,8 @@ namespace Stormancer.Server.Plugins.GeoIp.Maxmind
                 ctx.Session.SessionData["geoIp.countryCode"] = Encoding.ASCII.GetBytes(countryCode);
                 ctx.Session.SessionData["geoIp.continent"] = Encoding.ASCII.GetBytes(continentCode);
 
-                ctx.Dimensions["countryCode"] = countryCode;
-                ctx.Dimensions["continentCode"] = continentCode;
+                ctx.Session.SetDimension("countryCode", countryCode);
+                ctx.Session.SetDimension("continentCode", continentCode);
             }
             catch(Exception ex)
             {

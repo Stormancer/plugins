@@ -110,7 +110,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     {
                         var service = scene.DependencyResolver.Resolve<IGameSessionService>();
                        
-                        service.SetConfiguration(metadata);
+                        ((GameSessionService)service).SetConfiguration(metadata);
                         service.TryStart();
                         return Task.FromResult(true);
 
