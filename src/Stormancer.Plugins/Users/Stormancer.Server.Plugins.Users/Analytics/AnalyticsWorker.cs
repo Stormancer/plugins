@@ -1,4 +1,6 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Microsoft.OpenApi.Writers;
+using Newtonsoft.Json.Linq;
+using Stormancer.Core;
 using Stormancer.Server.Plugins.Analytics;
 using System;
 using System.Collections.Generic;
@@ -12,12 +14,13 @@ namespace Stormancer.Server.Plugins.Users.Analytics
     internal class SessionsAnalyticsWorker
     {
         private readonly IAnalyticsService _analytics;
-        private readonly UserSessions _userSessions;
+        private readonly ISceneHost _scene;
 
-        public SessionsAnalyticsWorker(IAnalyticsService service, IUserSessions userSessions)
+        public SessionsAnalyticsWorker(IAnalyticsService service, ISceneHost scene)
         {
             _analytics = service;
-            _userSessions = (UserSessions)userSessions;
+            _scene = scene;
+           
         }
 
 
@@ -28,9 +31,11 @@ namespace Stormancer.Server.Plugins.Users.Analytics
             {
 
                 await timer.WaitForNextTickAsync(cancellationToken);
+                await using var scope = _scene.CreateRequestScope();
                 try
                 {
-                    var groups = await _userSessions.GetAuthenticatedUsersByDimensionsAsync();
+                    var userSessions = (UserSessions)scope.Resolve<IUserSessions>();
+                    var groups = await userSessions.GetAuthenticatedUsersByDimensionsAsync();
                     foreach (var group in groups)
                     {
                         _analytics.Push("user", "sessions",
