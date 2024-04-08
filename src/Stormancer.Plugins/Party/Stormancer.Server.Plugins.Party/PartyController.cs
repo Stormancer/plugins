@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using MessagePack;
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
@@ -365,32 +366,39 @@ namespace Stormancer.Server.Plugins.Party
         
     }
 
- 
+
     /// <summary>
     /// Advertised party status.
     /// </summary>
+    [MessagePackObject]
     public class PartyStatus
     {
         /// <summary>
         /// Gets or sets current status
         /// </summary>
+        [Key(0)]
         public string Status { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets details about the status.
         /// </summary>
+        [Key(1)]
         public string Details { get; set; } = default!;
 
         /// <summary>
         /// Version of the party status.
         /// </summary>
+        [Key(2)]
         public ulong Version { get; set; } = 0;
     }
 
+    [MessagePackObject]
     public class PartyReservation
-    { 
+    {
+        [Key(0)]
         public IEnumerable<Models.Player> PartyMembers { get; set; }
 
+        [Key(1)]
         public JObject CustomData { get; set; }
     }
 }
