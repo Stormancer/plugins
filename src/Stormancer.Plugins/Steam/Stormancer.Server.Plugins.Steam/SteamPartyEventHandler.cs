@@ -111,6 +111,7 @@ namespace Stormancer.Server.Plugins.Steam
             ISerializer serializer,
             IServiceLocator locator,
             IConfiguration configuration
+
         )
         {
             _rpc = rpc;
@@ -132,7 +133,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// <returns></returns>
         public async Task OnPreJoined(PreJoinedPartyContext ctx)
         {
-
+            _logger.Log(LogLevel.Info, "steam.OnPrejoined", "start", new { });
             if (ctx.Session.platformId.Platform != SteamConstants.PLATFORM_NAME)
             {
                 return;
@@ -147,10 +148,12 @@ namespace Stormancer.Server.Plugins.Steam
                 return;
             }
 
+            _logger.Log(LogLevel.Info, "steam.OnPrejoined", "Validated", new { });
             var data = (SteamPartyData)ctx.Party.ServerData.GetOrAdd(PartyLobbyKey, new SteamPartyData());
 
             if (!data.SteamIDLobby.HasValue)
             {
+
 
                 var result = await CreateSteamLobbyAsync(ctx.Peer, ctx.Session, ctx.Party, CancellationToken.None);
 
@@ -223,7 +226,7 @@ namespace Stormancer.Server.Plugins.Steam
                 Joinable = joinable,
                 Metadata = new Dictionary<string, string> { { "partyDataToken", partyDataBearerToken } }
             };
-
+            _logger.Log(LogLevel.Info, "steam.OnPrejoined", "CreateLobby", new { });
             var createSteamLobbyResult = await leaderPeer.RpcTask<CreateLobbyDto, CreateSteamLobbyResult>("Steam.CreateLobby", createLobbyParameters, cancellationToken);
 
 

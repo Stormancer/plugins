@@ -13,6 +13,9 @@
 #include "stormancer/cpprestsdk/cpprest/asyncrt_utils.h"
 
 #pragma warning(disable: 4265) // Disable virtual destructor requirement warnings
+
+// To disable including steam_api.h, define STORM_NOINCLUDE_STEAM
+// To set another path to steam_api.h, define STORM_STEAM_INCLUDE
 #ifndef STORM_NOINCLUDE_STEAM
 #ifndef STORM_STEAM_INCLUDE
 #define STORM_STEAM_INCLUDE "steam_api.h"
@@ -615,6 +618,8 @@ namespace Stormancer
 						GetLobbyOwnerResult result;
 						result.success = true;
 						ctx->sendValueTemplated(result);
+
+						return pplx::task_from_result();
 					});
 
 				}
