@@ -49,7 +49,7 @@ namespace Stormancer.Server.Plugins.Users.EntityFramework
             }
         }
 
-        public async Task<(User user, bool added)> GetAuthentication(User user, string provider, string identifier, Action<dynamic> authDataModifier)
+        public async Task<(User user, bool added)> AddAuthentication(User user, string provider, string identifier, Action<dynamic> authDataModifier)
         {
             var c = await _dbContext.GetDbContextAsync();
 

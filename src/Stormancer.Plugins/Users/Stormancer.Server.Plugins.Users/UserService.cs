@@ -110,9 +110,18 @@ namespace Stormancer.Server.Plugins.Users
             bool added = false;
             if (_storage != null)
             {
-                (user, added) = await _storage.GetAuthentication(user, provider, identifier, authDataModifier);
+                (user, added) = await _storage.AddAuthentication(user, provider, identifier, authDataModifier);
             }
-
+            else
+            {
+                var auth = user.Auth[provider];
+                if (auth == null)
+                {
+                    auth = new JObject();
+                    user.Auth[provider] = auth;
+                }
+                authDataModifier?.Invoke(auth);
+            }
 
 
             var ctx = new AuthenticationChangedCtx(_storage == null ? AuthenticationChangedCtx.AuthenticationUpdateType.None : added ? AuthenticationChangedCtx.AuthenticationUpdateType.Add : AuthenticationChangedCtx.AuthenticationUpdateType.Update, provider, user);

@@ -11,7 +11,7 @@ namespace Stormancer.Server.Plugins.Users
     {
         Task<User> CreateUser(User user);
         Task Delete(string id);
-        Task<(User user, bool added)> GetAuthentication(User user, string provider, string identifier, Action<dynamic> authDataModifier);
+        Task<(User user, bool added)> AddAuthentication(User user, string provider, string identifier, Action<dynamic> authDataModifier);
         Task<User?> GetUser(string uid);
         Task<Dictionary<string, User?>> GetUsers(IEnumerable<string> userIds, CancellationToken cancellationToken);
         Task<Dictionary<string, User?>> GetUsersByIdentity(string provider, IEnumerable<string> identifiers);
