@@ -20,6 +20,7 @@ Added
 Changed
 *******
 - When receiving a client analytic event, use "milliseconds since epoch" as the date format.
+- Improved error logging
 
 Fixed
 *****
