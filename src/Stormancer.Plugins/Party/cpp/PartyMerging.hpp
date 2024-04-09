@@ -63,7 +63,6 @@ namespace Stormancer
 		/// </summary>
 		struct EmptyMergingStatusDetails
 		{
-			int test;
 			template <typename Packer> 
 			void msgpack_pack(Packer& pk) const 
 			{ 
@@ -329,7 +328,7 @@ namespace Stormancer
 				std::weak_ptr<PartyMergingApi> wThis = this->shared_from_this();
 				onPartyConnectionTokenReceivedSubscription = service->onPartyConnectionTokenReceived.subscribe([wPartyApi, wThis](std::string connectionToken)
 				{
-					connectionToken = "";
+					
 					auto that = wThis.lock();
 					if (that == nullptr)
 					{
