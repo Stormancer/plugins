@@ -133,12 +133,12 @@ namespace Stormancer.Server.Plugins.Steam
         /// <returns></returns>
         public async Task OnPreJoined(PreJoinedPartyContext ctx)
         {
-         
+
             if (ctx.Session.platformId.Platform != SteamConstants.PLATFORM_NAME)
             {
                 return;
             }
-            if(!ctx.Session.TryGetSteamAppId(out var steamAppId) || ctx.Session.User == null || !ctx.Session.User.TryGetSteamId(out var steamId))
+            if (!ctx.Session.TryGetSteamAppId(out var steamAppId) || ctx.Session.User == null || !ctx.Session.User.TryGetSteamId(out var steamId))
             {
                 return;
             }
@@ -148,7 +148,7 @@ namespace Stormancer.Server.Plugins.Steam
                 return;
             }
 
-        
+
             var data = (SteamPartyData)ctx.Party.ServerData.GetOrAdd(PartyLobbyKey, new SteamPartyData());
 
             if (!data.SteamIDLobby.HasValue)
@@ -176,11 +176,11 @@ namespace Stormancer.Server.Plugins.Steam
                 }
                 partySettingsDto.PublicServerData["SteamIDLobby"] = steamIDLobby.ToString();
                 _ = ctx.Party.UpdateSettings(partySettingsDto, CancellationToken.None);
-               
+
                 data.UserData[ctx.Session.SessionId] = new SteamUserData { SessionId = ctx.Session.SessionId, SteamId = steamId };
                 data.AppId = steamAppId;
 
-                data.IsJoinable = ctx.Party.Settings.IsJoinable;
+                data.IsJoinable = ctx.Party.Settings.ServerSettings.ShouldSyncJoinable() ? ctx.Party.Settings.IsJoinable : true;
                 data.CurrentLeaderSessionId = ctx.Session.SessionId;
             }
             else
@@ -213,7 +213,9 @@ namespace Stormancer.Server.Plugins.Steam
 
             var steamId = leaderSession.User.GetSteamId();
             var lobbyName = $"{LobbyPrefix}{party.Settings.PartyId}";
-            var joinable = party.Settings.IsJoinable;
+
+
+            var joinable = party.Settings.ServerSettings.ShouldSyncJoinable() ? party.Settings.IsJoinable : true;
 
             var maxMembers = party.Settings.ServerSettings.SteamMaxMembers() ?? 5;
             var lobbyType = party.Settings.ServerSettings.SteamLobbyType() ?? LobbyType.FriendsOnly;
@@ -226,7 +228,7 @@ namespace Stormancer.Server.Plugins.Steam
                 Joinable = joinable,
                 Metadata = new Dictionary<string, string> { { "partyDataToken", partyDataBearerToken } }
             };
-       
+
             var createSteamLobbyResult = await leaderPeer.RpcTask<CreateLobbyDto, CreateSteamLobbyResult>("Steam.CreateLobby", createLobbyParameters, cancellationToken);
 
 
@@ -406,7 +408,7 @@ namespace Stormancer.Server.Plugins.Steam
                     }
                     finally
                     {
-                        if(data.UserData.IsEmpty)
+                        if (data.UserData.IsEmpty)
                         {
                             data.SteamIDLobby = null;
                         }
@@ -428,7 +430,7 @@ namespace Stormancer.Server.Plugins.Steam
                 var data = (SteamPartyData)dataObject;
                 if (data.SteamIDLobby.HasValue)
                 {
-                    if (ctx.Party.Settings.IsJoinable != data.IsJoinable)
+                    if (ctx.Party.Settings.IsJoinable != data.IsJoinable && ctx.Party.Settings.ServerSettings.ShouldSyncJoinable())
                     {
                         var result = await SetLobbyJoinableAsync(data.SteamIDLobby.Value, ctx.Party.Settings.IsJoinable, data, CancellationToken.None);
 

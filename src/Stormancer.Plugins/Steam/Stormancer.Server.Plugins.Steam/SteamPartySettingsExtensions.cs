@@ -43,6 +43,11 @@ namespace Stormancer.Server.Plugins.Party
         public const string LobbyType = "steam.lobbyType";
 
         /// <summary>
+        /// Setting key used to determine if the plugin should make steam lobbies non joinable when the party is made non joinable
+        /// </summary>
+        public const string SyncJoinable = "steam.joinableSync";
+
+        /// <summary>
         /// Setting key used to set the max number of players in a Steam lobby
         /// </summary>
         /// <remarks>
@@ -77,7 +82,7 @@ namespace Stormancer.Server.Plugins.Party
         /// Get create a Steam lobby with the party.
         /// </summary>
         /// <param name="settings">Settings.</param>
-        /// <returns>Boolena value indicating the party will create a steam lobby.</returns>
+        /// <returns>Boolean value indicating the party will create a steam lobby.</returns>
         public static bool? ShouldCreateSteamLobby(this ServerPartySettings settings)
         {
             return settings.TryGetValue(SteamSettingsConstants.ShouldCreateLobby, out var steamCreateLobby) ? bool.Parse(steamCreateLobby) : settings.ShouldCreatePlatformLobby();
@@ -101,6 +106,29 @@ namespace Stormancer.Server.Plugins.Party
             }
             return settings;
         }
+
+        /// <summary>
+        /// Should the party sync joinability with the Steam lobby.
+        /// </summary>
+        /// <param name="settings"></param>
+        /// <returns></returns>
+        public static bool ShouldSyncJoinable(this ServerPartySettings settings)
+        {
+            return settings.TryGetValue(SteamSettingsConstants.SyncJoinable, out var v) ? bool.Parse(v) : true;
+        }
+
+        /// <summary>
+        /// Should the party sync joinability with the Steam lobby.
+        /// </summary>
+        /// <param name="settings"></param>
+        /// <param name="sync"></param>
+        /// <returns></returns>
+        public static ServerPartySettings ShouldSyncJoinable(this ServerPartySettings settings, bool sync = true)
+        {
+            settings[SteamSettingsConstants.SyncJoinable] = sync.ToString();
+            return settings;
+        }
+
 
         /// <summary>
         /// Gets the max number of members in the steam lobby.
