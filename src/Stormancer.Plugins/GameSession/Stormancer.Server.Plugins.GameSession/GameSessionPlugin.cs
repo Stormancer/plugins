@@ -35,6 +35,7 @@ using Stormancer.Server.Plugins.GameSession.ServerProviders;
 using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Users;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Threading;
@@ -45,6 +46,7 @@ namespace Stormancer.Server.Plugins.GameSession
     class GameSessionPlugin : IHostPlugin
     {
         public const string METADATA_KEY = "stormancer.gamesession";
+        public const string P2PMESH_METADATA_KEY = "stormancer.p2pmesh";
 
         public const string POOL_SCENEID = "gamesession-serverpool";
 
@@ -63,16 +65,16 @@ namespace Stormancer.Server.Plugins.GameSession
                 builder.Register<GameServerAgentConfiguration>().As<IConfigurationChangedEventHandler>().AsSelf().SingleInstance();
                 builder.Register<DevDedicatedServerAuthProvider>().As<IAuthenticationProvider>();
                 builder.Register<GameSessions>().As<IGameSessions>();
-               
+
                 builder.Register<GameSessionsServiceLocator>().As<IServiceLocatorProvider>();
 
                 builder.Register<CompositeServerPoolProvider>().As<IServerPoolProvider>();
                 builder.Register<DevServerPoolProvider>().As<IServerPoolProvider>().SingleInstance();
                 builder.Register<ProviderBasedServerPoolProvider>().As<IServerPoolProvider>().InstancePerScene();
                 builder.Register<GameSessionAnalyticsWorker>().SingleInstance();
-               
+
                 builder.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
-                
+
                 builder.Register<DockerAgentAdminController>();
                 builder.Register<GameSessionsAdminController>();
 
@@ -90,7 +92,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     s.AddController<ServerPoolController>();
                     s.AddController<AgentServerController>();
                 });
-               
+
             };
 
             ctx.HostStarted += (IHost host) =>
@@ -109,11 +111,38 @@ namespace Stormancer.Server.Plugins.GameSession
                     scene.Starting.Add(metadata =>
                     {
                         var service = scene.DependencyResolver.Resolve<IGameSessionService>();
-                       
+
                         ((GameSessionService)service).SetConfiguration(metadata);
                         service.TryStart();
                         return Task.FromResult(true);
 
+                    });
+
+
+                }
+                if (scene.TemplateMetadata.ContainsKey(P2PMESH_METADATA_KEY))
+                {
+                    scene.AddRoute("p2pmesh.relay", (message, target) =>
+                    {
+                        if (SessionId.TryRead(message, out var sessionId, out var length) && scene.TryGetPeer(sessionId, out var peer))
+                        {
+                            var reliability = (PacketReliability)(message.Slice(length, 1).FirstSpan[0]);
+
+                            var reader = new MessagePack.MessagePackReader(message.Slice(length + 1));
+
+                            var route = reader.ReadString();
+                            if(route != null)
+                            {
+                                scene.Send(peer.MatchPeerFilter, route, (writer, data) =>
+                                {
+                                    var span = writer.GetSpan((int)data.Length);
+                                    data.CopyTo(span);
+                                    writer.Advance((int)data.Length);
+                                }, PacketPriority.MEDIUM_PRIORITY, reliability, message.Slice(length + 1 + reader.Consumed));
+                            }
+
+                           
+                        }
                     });
                 }
             };
@@ -141,7 +170,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     .InstancePerScene();
 
                 }
-                else if(scene.Id == POOL_SCENEID)
+                else if (scene.Id == POOL_SCENEID)
                 {
                     builder.Register<AgentBasedGameServerProvider>().As<IGameServerProvider>().AsSelf().InstancePerScene();
                     builder.Register<ServerPools>().As<IServerPools>().AsSelf().As<IConfigurationChangedEventHandler>().InstancePerScene();

@@ -34,17 +34,28 @@ namespace Stormancer
     public static class GameSessionsExtensions
     {
         /// <summary>
-        /// Adds gamesession capabilities to a scene.
+        /// Adds game session capabilities to a scene.
         /// </summary>
         /// <remarks>Must be called during scene initialization, for instance in a template's factory.</remarks>
         /// <param name="scene"></param>
-        public static void AddGameSession(this ISceneHost scene)
+        public static ISceneHost AddGameSession(this ISceneHost scene)
         {
             scene.TemplateMetadata[GameSessionPlugin.METADATA_KEY] = "enabled";
+            return scene;
         }
 
         /// <summary>
-        /// Configures a scene template as a gamesession.
+        /// Adds P2P Mesh APIs to the scene.
+        /// </summary>
+        /// <param name="scene"></param>
+        /// <returns></returns>
+        public static ISceneHost AddP2PMesh(this ISceneHost scene)
+        {
+            scene.TemplateMetadata[GameSessionPlugin.P2PMESH_METADATA_KEY] = "1.0.0";
+            return scene;
+        }
+        /// <summary>
+        /// Configures a scene template as a game session.
         /// </summary>
         /// <param name="host"></param>
         /// <param name="templateId"></param>
@@ -115,7 +126,7 @@ namespace Stormancer
         internal Func<ISceneHost, bool> isServerPersistentGetter { get; set; } = _ => false;
 
         /// <summary>
-        /// Sets the timeout before gameserver startup is considered to have failed.
+        /// Sets the timeout before game server startup is considered to have failed.
         /// </summary>
         /// <param name="getter"></param>
         /// <returns></returns>
@@ -126,7 +137,7 @@ namespace Stormancer
         }
 
         /// <summary>
-        /// Sets the timeout before gameserver startup is considered to have failed.
+        /// Sets the timeout before game server startup is considered to have failed.
         /// </summary>
         /// <param name="timeSpan"></param>
         /// <returns></returns>
@@ -136,7 +147,7 @@ namespace Stormancer
         /// Sets the pool id to use to start a game server.
         /// </summary>
         /// <remarks>
-        /// return null to not use a gameserver in the gamesession.
+        /// return null to not use a game server in the game session.
         /// </remarks>
         /// <param name="getter"></param>
         /// <returns></returns>
@@ -150,14 +161,14 @@ namespace Stormancer
         /// Sets the pool id to use to start a game server.
         /// </summary>
         /// <remarks>
-        /// return null to not use a gameserver in the gamesession.
+        /// return null to not use a game server in the game session.
         /// </remarks>
         /// <param name="poolId"></param>
         /// <returns></returns>
         public GameSessionServerTemplateConfiguration PoolId(string? poolId) => PoolId(_ => poolId);
 
         /// <summary>
-        /// Sets a value indicating wether the game server associated with the gamesession should be stopped when the last player leaves the session.
+        /// Sets a value indicating whether the game server associated with the game session should be stopped when the last player leaves the session.
         /// </summary>
         /// <param name="func"></param>
         /// <returns></returns>
@@ -168,9 +179,9 @@ namespace Stormancer
         }
 
         /// <summary>
-        /// Sets a value indicating wether the game server associated with the gamesession should be stopped when the last player leaves the session.
+        /// Sets a value indicating whether the game server associated with the game session should be stopped when the last player leaves the session.
         /// </summary>
-        /// <param name="func"></param>
+        /// <param name="value"></param>
         /// <returns></returns>
         public GameSessionServerTemplateConfiguration IsServerPersistent(bool value) => IsServerPersistent(_ => value);
 
@@ -178,7 +189,7 @@ namespace Stormancer
     }
 
     /// <summary>
-    /// Configuration of a gamesession.
+    /// Configuration of a game session.
     /// </summary>
     public class GameSessionTemplateConfiguration
     {
@@ -188,7 +199,7 @@ namespace Stormancer
 
 
         /// <summary>
-        /// Configures the gameSession to use a gameserver
+        /// Configures the gameSession to use a game server
         /// </summary>
         /// <returns></returns>
         public GameSessionTemplateConfiguration UseGameServer(Func<GameSessionServerTemplateConfiguration, GameSessionServerTemplateConfiguration> builder)
@@ -221,7 +232,7 @@ namespace Stormancer
         internal Func<ISceneHost, bool> PeerDirectConnectionEnabled { get; set; } = _ => true;
 
         /// <summary>
-        /// Configures Peer direct connections in the gamesession.
+        /// Configures Peer direct connections in the game session.
         /// </summary>
         /// <param name="value"></param>
         /// <returns></returns>
@@ -231,7 +242,7 @@ namespace Stormancer
         }
 
         /// <summary>
-        /// Configures Peer direct connections in the gamesession.
+        /// Configures Peer direct connections in the game session.
         /// </summary>
         /// <param name="value"></param>
         /// <returns></returns>

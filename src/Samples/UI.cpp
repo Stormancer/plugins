@@ -7,7 +7,7 @@
 #include "GameFinderUI.h"
 #include "GameSessionUI.h"
 
-void ShowUI(AppViewModel& vm)
+void ShowUI(AppViewModel& vm,float deltaTime, bool& pauseTime)
 {
 
 	ShowMainMenu(vm);
@@ -25,7 +25,7 @@ void ShowUI(AppViewModel& vm)
 
 	for (auto clientVm : vm.clients)
 	{
-		ShowClient(*clientVm);
+		ShowClient(*clientVm,deltaTime,pauseTime);
 	}
 }
 
@@ -62,7 +62,7 @@ void ShowSettings(SettingsViewModel& vm)
 	ImGui::End();
 }
 
-void ShowClient(ClientViewModel& vm)
+void ShowClient(ClientViewModel& vm,float deltaTime, bool& pauseTime)
 {
 	
 

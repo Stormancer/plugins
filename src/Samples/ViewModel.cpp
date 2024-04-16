@@ -15,7 +15,7 @@
 #include "gamefinder/GameFinder.hpp"
 #include "gamesession/GameSession.hpp"
 #include "gameversion/GameVersion.hpp"
-//#include "replication/Lockstep.hpp"
+#include "replication/Lockstep.hpp"
 
 using json = nlohmann::json;
 
@@ -107,6 +107,7 @@ ClientViewModel::ClientViewModel(int id,SettingsViewModel settings, AppViewModel
 		config->addPlugin(new Stormancer::GameSessions::GameSessionsPlugin());
 		config->addPlugin(new Stormancer::GameVersion::GameVersionPlugin());
 		config->addPlugin(new Stormancer::Party::PartyMergingPlugin());
+		config->addPlugin(new Stormancer::Gameplay::LockstepPlugin());
 		config->additionalParameters[Stormancer::GameVersion::ConfigurationKeys::ClientVersion] = this->_settings.gameVersion;
 		return config;
 	});

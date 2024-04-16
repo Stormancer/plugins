@@ -2,6 +2,7 @@
 using Stormancer.Server.Plugins.Replication;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 
@@ -13,12 +14,44 @@ namespace Stormancer
     public static class ReplicationExtensions
     {
         /// <summary>
-        /// Adds replication features to a scene.
+        /// Enables entity replication features in a scene.
         /// </summary>
         /// <param name="scene"></param>
-        public static void AddReplication(this ISceneHost scene)
+        public static void AddEntityReplication(this ISceneHost scene)
         {
-            scene.TemplateMetadata[ReplicationConstants.METADATA_KEY] = ReplicationConstants.PROTOCOL_VERSION;
+            scene.TemplateMetadata[ReplicationConstants.REP_METADATA_KEY] = ReplicationConstants.PROTOCOL_VERSION;
+        }
+
+        /// <summary>
+        /// Tries to get the version of the replication protocol enabled in the scene.
+        /// </summary>
+        /// <param name="scene"></param>
+        /// <param name="version"></param>
+        /// <returns></returns>
+        public static bool TryGetEntityReplicationVersion(this ISceneHost scene, [NotNullWhen(true)] out string? version)
+        {
+            return scene.TemplateMetadata.TryGetValue(ReplicationConstants.REP_METADATA_KEY,out version);
+        }
+
+        /// <summary>
+        /// Enables lockstep replication features in a scene.
+        /// </summary>
+        /// <param name="scene"></param>
+        public static void AddLockstep(this ISceneHost scene)
+        {
+            scene.AddP2PMesh();
+            scene.TemplateMetadata[ReplicationConstants.LOCKSTEP_METADATA_KEY] = ReplicationConstants.PROTOCOL_VERSION;
+        }
+
+        /// <summary>
+        /// Tries to get the version of the lockstep protocol enabled in the scene.
+        /// </summary>
+        /// <param name="scene"></param>
+        /// <param name="version"></param>
+        /// <returns></returns>
+        public static bool TryGetLockstepVersion(this ISceneHost scene, [NotNullWhen(true)] out string? version)
+        {
+            return scene.TemplateMetadata.TryGetValue(ReplicationConstants.LOCKSTEP_METADATA_KEY, out version);
         }
     }
 }

@@ -1,6 +1,7 @@
 #include "GameSessionViewModel.h"
 #include "stormancer/IClientFactory.h"
 #include "gamesession/GameSession.hpp"
+
 #include "ViewModel.h"
 
 GameSessionViewModel::GameSessionViewModel(ClientViewModel* parent)
@@ -86,3 +87,4 @@ std::vector<P2PRemotePeerViewModel> GameSessionViewModel::getP2PRemotePeers()
 	}
 	return results;
 }
+

@@ -16,6 +16,7 @@
 #include <d3d12.h>
 #include <dxgi1_4.h>
 #include <tchar.h>
+#include <chrono>
 
 #ifdef _DEBUG
 #define DX12_ENABLE_DEBUG_LAYER
@@ -132,8 +133,17 @@ int main(int, char**)
 
         // Main loop
         bool done = false;
+        auto previous =std::chrono::system_clock::now();
+        bool pauseTime = false;
         while (!done)
         {
+            auto current = std::chrono::system_clock::now();
+
+            
+            auto deltaTime = pauseTime ? 0: std::chrono::duration_cast<std::chrono::duration<float>> (current - previous).count();
+            pauseTime = false;
+            previous = current;
+            
             // Poll and handle messages (inputs, window resize, etc.)
             // See the WndProc() function below for our to dispatch events to the Win32 backend.
             MSG msg;
@@ -152,7 +162,7 @@ int main(int, char**)
             ImGui_ImplWin32_NewFrame();
             ImGui::NewFrame();
 
-            ShowUI(vm);
+            ShowUI(vm,deltaTime,pauseTime);
 
             // Rendering
             ImGui::Render();

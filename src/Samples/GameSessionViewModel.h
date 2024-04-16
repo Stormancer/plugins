@@ -24,7 +24,12 @@ public:
 
 	void leaveGameSession();
 
+	
+
 	ClientViewModel* parent;
 
 	std::vector<P2PRemotePeerViewModel> getP2PRemotePeers();
+
+
+	
 };
