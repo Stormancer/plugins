@@ -78,12 +78,28 @@ namespace Stormancer.Plugins.Tests.ServerApp
                     )
                 );
 
+                host.ConfigureGamefinderTemplate("lockstep", c => c
+                   .ConfigureQuickQueue(b => b
+                       .GameSessionTemplate("gamesession-lockstep")
+                       .TeamCount(2)
+                       .TeamSize(1)
+                   )
+               );
+
                 host.ConfigureGameSession("gamesession-replication", c => c
                 .CustomizeScene(scene => {
-                    scene.AddReplication();      
+                    scene.AddEntityReplication();     
                     scene.AddSocket();
                     })
                 );
+
+                host.ConfigureGameSession("gamesession-lockstep", c => c
+               .CustomizeScene(scene => {
+                   scene.AddLockstep();
+                   
+               })
+               );
+
                 host.ConfigureGameSession("gamesession-noP2P", c => c
                     .EnablePeerDirectConnection(false)
                 );
@@ -100,7 +116,7 @@ namespace Stormancer.Plugins.Tests.ServerApp
                 host.ConfigureGameSession("gamesession-partygame", c => c
                    .CustomizeScene(scene =>
                    {
-                       scene.AddReplication();
+                       scene.AddEntityReplication();
                        scene.AddSocket();
                    })
                    
@@ -134,7 +150,8 @@ namespace Stormancer.Plugins.Tests.ServerApp
             };
             ctx.HostStarted += (IHost host) =>
             {
-               
+
+                host.AddGamefinder("lockstep", "lockstep");
                  host.AddGamefinder("party-noP2P", "party-noP2P");
                 host.AddGamefinder("server-test", "server-test");
                 host.AddGamefinder("server-test-docker", "server-test-docker");

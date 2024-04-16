@@ -17,9 +17,10 @@ namespace Stormancer
         /// Enables entity replication features in a scene.
         /// </summary>
         /// <param name="scene"></param>
-        public static void AddEntityReplication(this ISceneHost scene)
+        public static ISceneHost AddEntityReplication(this ISceneHost scene)
         {
             scene.TemplateMetadata[ReplicationConstants.REP_METADATA_KEY] = ReplicationConstants.PROTOCOL_VERSION;
+            return scene;
         }
 
         /// <summary>
@@ -37,10 +38,11 @@ namespace Stormancer
         /// Enables lockstep replication features in a scene.
         /// </summary>
         /// <param name="scene"></param>
-        public static void AddLockstep(this ISceneHost scene)
+        public static ISceneHost AddLockstep(this ISceneHost scene)
         {
             scene.AddP2PMesh();
             scene.TemplateMetadata[ReplicationConstants.LOCKSTEP_METADATA_KEY] = ReplicationConstants.PROTOCOL_VERSION;
+            return scene;
         }
 
         /// <summary>
