@@ -2,10 +2,12 @@
 #include "stormancer/IClientFactory.h"
 #include "gamesession/GameSession.hpp"
 
+#include "Lockstep.h"
 #include "ViewModel.h"
 
 GameSessionViewModel::GameSessionViewModel(ClientViewModel* parent)
 	:parent(parent)
+	, lockstep(new LockstepViewModel(this))
 {
 }
 
@@ -18,6 +20,7 @@ bool GameSessionViewModel::isInGameSession()
 
 	return gameSession->isInSession();
 }
+
 
 void GameSessionViewModel::setPlayerReady()
 {

@@ -1,5 +1,4 @@
 #pragma once
-#include "GameSessionViewModel.h"
 #include "stormancer/Event.h"
 #define STRM_PLUGIN_IMPL 0
 #include "replication/Lockstep.hpp"
@@ -9,11 +8,14 @@ struct Snapshot
 	int frame;
 	std::string state;
 };
+
+class GameSessionViewModel;
+
 class LockstepViewModel
 {
 public:
 	LockstepViewModel(GameSessionViewModel* parent);
-
+	bool isEnabled();
 	void Reset();
 
 	void addCommand(byte cmd);

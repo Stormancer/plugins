@@ -2,8 +2,9 @@
 
 #include "stormancer/SessionId.h"
 
-class ClientViewModel;
 
+class ClientViewModel;
+class LockstepViewModel;
 struct P2PRemotePeerViewModel
 {
 	std::string sessionId;
@@ -20,6 +21,7 @@ public:
 	
 	bool isInGameSession();
 
+	
 	void setPlayerReady();
 
 	void leaveGameSession();
@@ -27,6 +29,7 @@ public:
 	
 
 	ClientViewModel* parent;
+	LockstepViewModel* lockstep;
 
 	std::vector<P2PRemotePeerViewModel> getP2PRemotePeers();
 

@@ -3,9 +3,10 @@
 #include "imgui_stdlib.h"
 
 #include "GameSessionViewModel.h"
+#include "Lockstep.h"
 #include "ViewModel.h"
 
-void ShowUI(GameSessionViewModel& vm)
+void ShowUI(GameSessionViewModel& vm, float deltaTime)
 {
 	if (vm.parent->gameFinder.isGameFound())
 	{
@@ -56,7 +57,37 @@ void ShowUI(GameSessionViewModel& vm)
 		{
 			vm.leaveGameSession();
 		}
+
+		if (vm.lockstep->isEnabled())
+		{
+			vm.lockstep->tick(deltaTime);
+			ImGui::SeparatorText("Lockstep");
+
+
+			if (ImGui::BeginTable("state", 2))
+			{
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+				ImGui::Text("time");
+				ImGui::TableNextColumn();
+				ImGui::Text(std::to_string(vm.lockstep->getLockstepTime()).c_str());
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+				ImGui::Text("state");
+				ImGui::TableNextColumn();
+				ImGui::Text(vm.lockstep->currentState.c_str());
+				ImGui::EndTable();
+
+
+				if (ImGui::Button("Push command"))
+				{
+					vm.lockstep->addCommand('A');
+				}
+			}
+		}
 	}
+
+	
 
 
 }

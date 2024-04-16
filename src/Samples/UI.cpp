@@ -113,7 +113,7 @@ void ShowClient(ClientViewModel& vm,float deltaTime, bool& pauseTime)
 
 	if (ImGui::CollapsingHeader("GameSession", ImGuiTreeNodeFlags_None))
 	{
-		ShowUI(vm.gameSession);
+		ShowUI(vm.gameSession,deltaTime);
 	}
 	if (processing)
 	{

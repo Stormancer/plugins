@@ -7,32 +7,44 @@ LockstepViewModel::LockstepViewModel(GameSessionViewModel* parent)
 	:parent(parent)
 	, _clientId(parent->parent->id)
 {
-	
+
 	auto client = Stormancer::IClientFactory::GetClient(_clientId);
-	this->_onStepSubscription = client->dependencyResolver().resolve<Stormancer::Gameplay::LockstepApi>()->onStep.subscribe([this](Stormancer::Gameplay::Frame step) 
+	this->_onStepSubscription = client->dependencyResolver().resolve<Stormancer::Gameplay::LockstepApi>()->onStep.subscribe([this](Stormancer::Gameplay::Frame step)
 	{
-		
+		for (auto& cmd : step.commands)
+		{
+			char c = (char)cmd.content[0];
+			currentState = currentState + c;
+		}
 	});
 
 	this->_onRollbackSubscription = client->dependencyResolver().resolve<Stormancer::Gameplay::LockstepApi>()->onRollback.subscribe([this](Stormancer::Gameplay::RollbackContext& ctx)
-	{
-		Snapshot& current = snapshots.front();
-		for (auto& snapshot : snapshots)
 		{
-			if (snapshot.frame > ctx.targetFrame)
+			Snapshot& current = snapshots.front();
+			for (auto& snapshot : snapshots)
 			{
-				break;
+				if (snapshot.frame > ctx.targetFrame)
+				{
+					break;
+				}
+				else
+				{
+					current = snapshot;
+				}
 			}
-			else
-			{
-				current = snapshot;
-			}
-		}
-		
-		currentState = current.state;
-		ctx.restoredFrame = current.frame;
 
-	});
+			currentState = current.state;
+			ctx.restoredFrame = current.frame;
+
+		});
+}
+
+bool LockstepViewModel::isEnabled()
+{
+	auto client = Stormancer::IClientFactory::GetClient(_clientId);
+
+	auto api = client->dependencyResolver().resolve<Stormancer::Gameplay::LockstepApi>();
+	return api->isEnabled();
 }
 
 void LockstepViewModel::Reset()
@@ -48,7 +60,7 @@ void LockstepViewModel::addCommand(byte cmd)
 	auto client = Stormancer::IClientFactory::GetClient(_clientId);
 
 	auto api = client->dependencyResolver().resolve<Stormancer::Gameplay::LockstepApi>();
-	
+
 	api->pushCommand(&cmd, 1);
 
 }
@@ -58,7 +70,7 @@ int LockstepViewModel::getLockstepTime()
 	auto client = Stormancer::IClientFactory::GetClient(_clientId);
 
 	auto api = client->dependencyResolver().resolve<Stormancer::Gameplay::LockstepApi>();
-	
+
 	return api->getCurrentTime();
 }
 
@@ -67,5 +79,5 @@ void LockstepViewModel::tick(float delta)
 	auto client = Stormancer::IClientFactory::GetClient(_clientId);
 
 	auto api = client->dependencyResolver().resolve<Stormancer::Gameplay::LockstepApi>();
-	api->tick((int)(delta*1000));
+	api->tick((int)(delta * 1000));
 }
