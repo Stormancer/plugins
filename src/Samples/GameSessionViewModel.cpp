@@ -96,3 +96,4 @@ std::vector<P2PRemotePeerViewModel> GameSessionViewModel::getP2PRemotePeers()
 	return results;
 }
 
+

@@ -91,6 +91,43 @@ void ShowUI(GameSessionViewModel& vm, float deltaTime)
 				ImGui::Text(vm.lockstep->currentState.c_str());
 				ImGui::EndTable();
 
+				for (auto& player : vm.lockstep->getPlayers())
+				{
+					if (ImGui::BeginTable("peers", 2))
+					{
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn();
+						ImGui::Text("Player id");
+						ImGui::TableNextColumn();
+						ImGui::Text(std::to_string(player.playerId).c_str());
+
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn();
+						ImGui::Text("Session id");
+						ImGui::TableNextColumn();
+						ImGui::Text(player.sessionId.toString().c_str());
+
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn();
+						ImGui::Text("is local");
+						ImGui::TableNextColumn();
+						ImGui::Text(player.localPlayer ? "true":"false");
+
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn();
+						ImGui::Text("Latency");
+						ImGui::TableNextColumn();
+						ImGui::Text(std::to_string(player.latencyMs).c_str());
+						
+
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn();
+						ImGui::Text("Synchronized until");
+						ImGui::TableNextColumn();
+						ImGui::Text(std::to_string(player.synchronizedUntilMs).c_str());
+						ImGui::EndTable();
+					}
+				}
 
 				if (ImGui::Button("Push command"))
 				{

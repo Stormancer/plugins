@@ -60,6 +60,14 @@ void LockstepViewModel::Reset()
 	snapshots.push_back(snapshot);
 }
 
+std::vector<::Stormancer::Gameplay::LockstepPlayer> LockstepViewModel::getPlayers()
+{
+	auto client = Stormancer::IClientFactory::GetClient(_clientId);
+
+	auto api = client->dependencyResolver().resolve<Stormancer::Gameplay::LockstepApi>();
+	return api->getPlayers();
+}
+
 void LockstepViewModel::addCommand(byte cmd)
 {
 	auto client = Stormancer::IClientFactory::GetClient(_clientId);

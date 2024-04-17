@@ -1,6 +1,7 @@
 #pragma once
 #include "stormancer/IPlugin.h"
 #include "stormancer/Event.h"
+#include "stormancer/SessionId.h"
 
 #if !defined(STRM_PLUGIN_IMPL)
 #define STRM_PLUGIN_IMPL 1
@@ -29,6 +30,18 @@ namespace Stormancer
 
 			int timeMs;
 		};
+		struct LockstepPlayer
+		{
+			SessionId sessionId;
+			int playerId;
+			int latencyMs;
+
+			bool localPlayer;
+
+			int synchronizedUntilMs;
+		};
+
+
 		struct Frame
 		{
 			int currentTime;
@@ -66,6 +79,8 @@ namespace Stormancer
 
 				virtual bool isPaused() = 0;
 				virtual void pause(bool pause) = 0;
+
+				virtual std::vector<LockstepPlayer> getPlayers() = 0;
 			};
 		}
 		class LockstepApi
@@ -92,6 +107,8 @@ namespace Stormancer
 			bool isPaused();
 
 			void pause(bool pause);
+
+			std::vector<LockstepPlayer> getPlayers();
 
 		private:
 			void onSceneConnected(std::shared_ptr<details::ILockstepService> service);
@@ -217,8 +234,8 @@ namespace Stormancer
 			{
 				SessionId sessionId;
 				int playerId = -1;
-				int64 latency;
-
+				int64 latency = 0;
+				bool isLocal = false;
 				/// <summary>
 				/// The next gameplay time.
 				/// </summary>
@@ -261,7 +278,7 @@ namespace Stormancer
 					{
 						auto cmd = new PlayerCommandNode();
 						cmd->command = command;
-						_firstCommand = _lastCommand =cmd;
+						_firstCommand = _lastCommand = cmd;
 						return;
 					}
 
@@ -270,7 +287,7 @@ namespace Stormancer
 						auto cmd = new PlayerCommandNode();
 						cmd->command = command;
 						cmd->next = _firstCommand;
-						_firstCommand  = cmd;
+						_firstCommand = cmd;
 						return;
 					}
 					if (command.commandId > _lastCommand->command.commandId)
@@ -281,13 +298,13 @@ namespace Stormancer
 						_lastCommand = cmd;
 						return;
 					}
-					
+
 
 
 				}
 			};
 
-			
+
 
 
 			class LockstepService :public ILockstepService, public std::enable_shared_from_this<LockstepService>
@@ -302,6 +319,8 @@ namespace Stormancer
 
 
 				}
+
+
 
 				~LockstepService()
 				{
@@ -336,7 +355,28 @@ namespace Stormancer
 				}
 				Event<Frame> onStep;
 
-				void pushCommand(byte* buffer, int length)
+				std::vector<LockstepPlayer> getPlayers() override
+				{
+					std::vector<LockstepPlayer> result;
+
+					for (auto& kvp : _playerStates)
+					{
+						auto& state = kvp.second;
+
+						LockstepPlayer player;
+						player.localPlayer = state.isLocal;
+						player.synchronizedUntilMs = state.synchronizedUntil();
+						player.latencyMs = (int)state.latency;
+						player.playerId = state.playerId;
+						player.sessionId = state.sessionId;
+						result.push_back(player);
+					}
+
+					return result;
+				}
+
+
+				void pushCommand(byte* buffer, int length) override
 				{
 					auto client = _client.lock();
 					auto node = new PlayerCommandNode;
@@ -354,7 +394,7 @@ namespace Stormancer
 
 
 					synchronizeCommands();
-					
+
 				}
 
 				int getCurrentTime()
@@ -364,11 +404,12 @@ namespace Stormancer
 
 				bool tick(int deltaMs)
 				{
+					processPendingPlayersUpdateCommands();
 					if (_isPaused)
 					{
-						return false;
+						deltaMs = 0;
 					}
-					processPendingPlayersUpdateCommands();
+
 
 					auto nextTime = _currentTime + deltaMs;
 
@@ -386,7 +427,7 @@ namespace Stormancer
 							gameplayProgress = false;
 							break;
 						}
-						
+
 						auto node = state._firstCommand;
 						if (state._lastExecutedNode != nullptr)
 						{
@@ -461,7 +502,10 @@ namespace Stormancer
 				{
 					for (auto& kvp : _playerStates)
 					{
-						synchronizeCommands(kvp.second);
+						if (!kvp.second.isLocal)
+						{
+							synchronizeCommands(kvp.second);
+						}
 					}
 				}
 
@@ -498,7 +542,10 @@ namespace Stormancer
 
 					for (auto& playerState : _playerStates)
 					{
-						sendStateToPlayer(playerState.second);
+						if (!playerState.second.isLocal)
+						{
+							sendStateToPlayer(playerState.second);
+						}
 					}
 				}
 
@@ -621,45 +668,55 @@ namespace Stormancer
 				void onPlayersUpdate(PlayersUpdateCommand& cmd)
 				{
 					_pendingPlayersUpdateCommand.push_back(cmd);
-					
+
 				}
 
 				void processPendingPlayersUpdateCommands()
 				{
-					while (_pendingPlayersUpdateCommand.size() > 0)
+					int j = -1;
+					for (int i = 0; i < _pendingPlayersUpdateCommand.size(); i++)
 					{
-						for (auto& cmd : _pendingPlayersUpdateCommand)
+						auto& cmd = _pendingPlayersUpdateCommand[i];
+						if (cmd.updateId == _currentPlayersUpdateId + 1)
 						{
-							if (cmd.updateId == _currentPlayersUpdateId + 1)
-							{
-								applyPlayersUpdateCommand(cmd);
-							}
+							applyPlayersUpdateCommand(cmd);
+							j = i;
+							break;
 						}
-						int currentId = _currentPlayerId;
-						auto it = std::remove_if(_pendingPlayersUpdateCommand.begin(), _pendingPlayersUpdateCommand.end(), [currentId](PlayersUpdateCommand& cmd) {return cmd.updateId <= currentId; });
-						_pendingPlayersUpdateCommand.erase(it, _pendingPlayersUpdateCommand.end());
 					}
+					if (j != -1)
+					{
+						_pendingPlayersUpdateCommand.erase(_pendingPlayersUpdateCommand.begin() + j);
+					}
+
+
+
 				}
 
 				void applyPlayersUpdateCommand(PlayersUpdateCommand& cmd)
 				{
-					switch (cmd.commandType)
+					auto client = _client.lock();
+					if (client)
 					{
-					case PlayersUpdateCommandType::Add:
-					{
-						PlayerState state;
-						state.playerId = cmd.playerId;
-						state.sessionId = cmd.playerSessionId;
-						_playerStates[cmd.playerSessionId] = state;
+						switch (cmd.commandType)
+						{
+						case PlayersUpdateCommandType::Add:
+						{
+							PlayerState state;
+							state.playerId = cmd.playerId;
+							state.sessionId = cmd.playerSessionId;
+							state.isLocal = (state.sessionId == SessionId::parse(client->sessionId()));
+							_playerStates[cmd.playerSessionId] = state;
 
-						synchronizeCommands(state);
-						break;
-					}
-					case PlayersUpdateCommandType::Remove:
-					{
-						_playerStates.erase(cmd.playerSessionId);
-						break;
-					}
+							synchronizeCommands(state);
+							break;
+						}
+						case PlayersUpdateCommandType::Remove:
+						{
+							_playerStates.erase(cmd.playerSessionId);
+							break;
+						}
+						}
 					}
 				}
 
@@ -736,6 +793,11 @@ namespace Stormancer
 			_service.reset();
 		}
 
+		std::vector<LockstepPlayer> LockstepApi::getPlayers()
+		{
+			return _service->getPlayers();
+		}
+
 
 		PluginDescription LockstepPlugin::getDescription()
 		{
@@ -751,7 +813,7 @@ namespace Stormancer
 		{
 			if (!scene->getHostMetadata(LOCKSTEP_HOST_METADATA).empty())
 			{
-				sceneBuilder.registerDependency < details::LockstepService, P2PMeshService, IClient,Serializer >().singleInstance();
+				sceneBuilder.registerDependency < details::LockstepService, P2PMeshService, IClient, Serializer >().singleInstance();
 			}
 		}
 

@@ -33,6 +33,8 @@ public:
 
 	std::string currentState;
 
+	std::vector<::Stormancer::Gameplay::LockstepPlayer> getPlayers();
+
 private:
 	int _clientId;
 	GameSessionViewModel* parent;
