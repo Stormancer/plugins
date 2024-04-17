@@ -63,6 +63,9 @@ namespace Stormancer
 				virtual void pushCommand(byte* buffer, int length) = 0;
 				virtual bool tick(int deltaTimeMs) = 0;
 				virtual int getCurrentTime() = 0;
+
+				virtual bool isPaused() = 0;
+				virtual void pause(bool pause) = 0;
 			};
 		}
 		class LockstepApi
@@ -86,6 +89,10 @@ namespace Stormancer
 			Event<Frame> onStep;
 			Event<RollbackContext&> onRollback;
 
+			bool isPaused();
+
+			void pause(bool pause);
+
 		private:
 			void onSceneConnected(std::shared_ptr<details::ILockstepService> service);
 			void onSceneDisconnected();
@@ -103,6 +110,7 @@ namespace Stormancer
 
 #include "stormancer/Scene.h"
 #include "stormancer/RPC/RpcService.h"
+#include "stormancer/IClient.h"
 #include "P2PMesh.hpp"
 
 
@@ -356,6 +364,10 @@ namespace Stormancer
 
 				bool tick(int deltaMs)
 				{
+					if (_isPaused)
+					{
+						return false;
+					}
 					processPendingPlayersUpdateCommands();
 
 					auto nextTime = _currentTime + deltaMs;
@@ -431,6 +443,16 @@ namespace Stormancer
 					synchronizeState();
 
 					return gameplayProgress;
+				}
+
+				bool isPaused()
+				{
+					return _isPaused;
+				}
+
+				void pause(bool pause)
+				{
+					_isPaused = pause;
 				}
 
 			private:
@@ -643,6 +665,7 @@ namespace Stormancer
 
 
 			private:
+				bool _isPaused = true;
 				int _currentTime = 0;
 				int _currentPlayersUpdateId = 0;
 				int _currentPlayerId = 0;
@@ -687,6 +710,16 @@ namespace Stormancer
 		bool LockstepApi::isEnabled()
 		{
 			return _service != nullptr;
+		}
+
+		bool LockstepApi::isPaused()
+		{
+			return _service->isPaused();
+		}
+
+		void LockstepApi::pause(bool pause)
+		{
+			return _service->pause(pause);
 		}
 
 		void LockstepApi::pushCommand(byte* buffer, int length)

@@ -24,6 +24,10 @@ public:
 
 	int getLockstepTime();
 
+	bool isPaused();
+
+	void Pause(bool pause);
+
 	std::string currentState;
 
 private:

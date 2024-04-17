@@ -74,6 +74,24 @@ int LockstepViewModel::getLockstepTime()
 	return api->getCurrentTime();
 }
 
+bool LockstepViewModel::isPaused()
+{
+	auto client = Stormancer::IClientFactory::GetClient(_clientId);
+
+	auto api = client->dependencyResolver().resolve<Stormancer::Gameplay::LockstepApi>();
+
+	return api->isPaused();
+}
+
+void LockstepViewModel::Pause(bool pause)
+{
+	auto client = Stormancer::IClientFactory::GetClient(_clientId);
+
+	auto api = client->dependencyResolver().resolve<Stormancer::Gameplay::LockstepApi>();
+
+	api->pause(pause);
+}
+
 void LockstepViewModel::tick(float delta)
 {
 	auto client = Stormancer::IClientFactory::GetClient(_clientId);

@@ -63,7 +63,20 @@ void ShowUI(GameSessionViewModel& vm, float deltaTime)
 			vm.lockstep->tick(deltaTime);
 			ImGui::SeparatorText("Lockstep");
 
-
+			if (vm.lockstep->isPaused())
+			{
+				if (ImGui::Button("Unpause"))
+				{
+					vm.lockstep->Pause(false);
+				}
+			}
+			else
+			{
+				if (ImGui::Button("Pause"))
+				{
+					vm.lockstep->Pause(true);
+				}
+			}
 			if (ImGui::BeginTable("state", 2))
 			{
 				ImGui::TableNextRow();
