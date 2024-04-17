@@ -16,7 +16,9 @@ class GameSessionViewModel
 public:
 	GameSessionViewModel(ClientViewModel* parent);
 
-	bool isHost;
+	void initialize();
+
+	bool isHost = false;
 	Stormancer::SessionId hostSessionId;
 	
 	bool isInGameSession();

@@ -1,5 +1,5 @@
 #pragma once
-#include "stormancer/Event.h"
+#include "stormancer/Subscription.h"
 #define STRM_PLUGIN_IMPL 0
 #include "replication/Lockstep.hpp"
 
@@ -15,6 +15,9 @@ class LockstepViewModel
 {
 public:
 	LockstepViewModel(GameSessionViewModel* parent);
+
+	void initialize();
+
 	bool isEnabled();
 	void Reset();
 

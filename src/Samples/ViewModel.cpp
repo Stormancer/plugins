@@ -108,6 +108,7 @@ ClientViewModel::ClientViewModel(int id,SettingsViewModel settings, AppViewModel
 		config->addPlugin(new Stormancer::GameVersion::GameVersionPlugin());
 		config->addPlugin(new Stormancer::Party::PartyMergingPlugin());
 		config->addPlugin(new Stormancer::Gameplay::LockstepPlugin());
+		config->addPlugin(new Stormancer::P2PMeshPlugin());
 		config->additionalParameters[Stormancer::GameVersion::ConfigurationKeys::ClientVersion] = this->_settings.gameVersion;
 		return config;
 	});
@@ -123,8 +124,7 @@ ClientViewModel::ClientViewModel(int id,SettingsViewModel settings, AppViewModel
 	};
 
 	gameFinder.initialize();
-
-	
+	gameSession.initialize();
 }
 
 ClientViewModel::~ClientViewModel()

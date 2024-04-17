@@ -11,6 +11,11 @@ GameSessionViewModel::GameSessionViewModel(ClientViewModel* parent)
 {
 }
 
+void GameSessionViewModel::initialize()
+{
+	lockstep->initialize();
+}
+
 bool GameSessionViewModel::isInGameSession()
 {
 

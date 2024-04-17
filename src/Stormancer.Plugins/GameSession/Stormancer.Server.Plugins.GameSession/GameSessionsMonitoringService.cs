@@ -122,6 +122,7 @@ namespace Stormancer.Server.Plugins.GameSession
             while (!_disposed)
             {
                 await _timer.WaitForNextTickAsync();
+                
                 if(_disposed)
                 {
                     return;

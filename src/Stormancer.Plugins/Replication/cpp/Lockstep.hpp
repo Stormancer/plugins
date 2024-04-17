@@ -52,7 +52,7 @@ namespace Stormancer
 			void registerClientDependencies(ContainerBuilder& clientBuilder) override;
 
 			void registerSceneDependencies(ContainerBuilder& sceneBuilder, std::shared_ptr<Scene> scene) override;
-			void sceneConnecting(::std::shared_ptr<Scene> scene) override;
+			void sceneCreated(::std::shared_ptr<Scene> scene) override;
 			void sceneDisconnecting(::std::shared_ptr<Scene> scene) override;
 		};
 		namespace details
@@ -755,7 +755,7 @@ namespace Stormancer
 			}
 		}
 
-		void LockstepPlugin::sceneConnecting(std::shared_ptr<Scene> scene)
+		void LockstepPlugin::sceneCreated(std::shared_ptr<Scene> scene)
 		{
 			if (!scene->getHostMetadata(LOCKSTEP_HOST_METADATA).empty())
 			{

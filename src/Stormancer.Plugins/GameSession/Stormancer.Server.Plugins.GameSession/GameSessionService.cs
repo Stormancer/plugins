@@ -246,6 +246,7 @@ namespace Stormancer.Server.Plugins.GameSession
         private readonly GameSessionsRepository _repository;
         private readonly ISerializer _serializer;
         private readonly GameSessionEventsRepository _events;
+        private readonly JsonSerializer _jsonSerializer;
         private TimeSpan _gameSessionTimeout = TimeSpan.MaxValue;
         private GameSessionConfiguration? _config;
         private readonly CancellationTokenSource _sceneCts = new();
@@ -278,7 +279,9 @@ namespace Stormancer.Server.Plugins.GameSession
             ILogger logger,
             RpcService rpc,
             GameSessionsRepository repository,
-            ISerializer serializer, GameSessionEventsRepository events
+            ISerializer serializer,
+            GameSessionEventsRepository events,
+            JsonSerializer jsonSerializer
             )
         {
             this.state = state;
@@ -292,6 +295,7 @@ namespace Stormancer.Server.Plugins.GameSession
             _repository = repository;
             _serializer = serializer;
             _events = events;
+            _jsonSerializer = jsonSerializer;
             ApplySettings();
 
             events.PostEventAsync(new GameSessionEvent() { GameSessionId = scene.Id, Type = "gamesessionCreated" });
@@ -328,7 +332,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     }
                     catch (Exception ex)
                     {
-                        _logger.Log(LogLevel.Error, "gamesession", "An error occurred while running the game session cleanup method.", ex);
+                        _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running the game session cleanup method.", ex);
                     }
                     await timer.WaitForNextTickAsync(cancellationToken);
                 }
@@ -534,7 +538,9 @@ namespace Stormancer.Server.Plugins.GameSession
             if (metadata.ContainsKey("gameSession"))
             {
                 var obj = metadata["gameSession"];
-                _config = JObject.FromObject(obj!).ToObject<GameSessionConfiguration>();
+                var str = JObject.FromObject(obj!, _jsonSerializer).ToString();
+                
+                _config = JsonConvert.DeserializeObject<GameSessionConfiguration>(str, _jsonSerializer.Converters.ToArray());
 
 
             }

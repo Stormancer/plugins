@@ -770,7 +770,7 @@ namespace Stormancer
 								auto token = task.get();
 								logger->log(LogLevel::Debug, "GameSession", "Initialize P2Ps", "");
 
-								if (!token.isHost)
+								if (!token.isHost && !token.hostSessionId.empty())
 								{
 									auto hostReadyTce = that->_currentGameSession->_hostIsReadyTce;
 									auto hostReadyTask = pplx::create_task(hostReadyTce, cancellationToken);

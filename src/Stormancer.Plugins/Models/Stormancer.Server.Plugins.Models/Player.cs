@@ -24,6 +24,7 @@ using MessagePack;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Stormancer.Server.Plugins.Models
 {
@@ -38,6 +39,7 @@ namespace Stormancer.Server.Plugins.Models
         {
         }
 
+        [SetsRequiredMembers]
         public Player(SessionId sessionId, string userId, byte[]? data = null)
         {
             UserId = userId;
@@ -58,14 +60,14 @@ namespace Stormancer.Server.Plugins.Models
         public byte[] Data { get; set; }
 
         [Key(1)]
-        [JsonProperty(ItemConverterType = typeof(SessionIdJsonConverter))]
-        public SessionId SessionId { get; set; }
+        [JsonConverter(typeof(Json.SessionIdJsonConverter))]
+        public required SessionId SessionId { get; set; }
 
         [Key(2)]
-        public string UserId { get; set; }
+        public required string UserId { get; set; }
 
         [Key(3)]
-        public List<LocalPlayerInfos> LocalPlayers { get; set; }
+        public List<LocalPlayerInfos>? LocalPlayers { get; set; } 
 
 
         /// <summary>

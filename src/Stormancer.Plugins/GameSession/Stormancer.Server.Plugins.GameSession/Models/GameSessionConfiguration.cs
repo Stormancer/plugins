@@ -30,6 +30,9 @@ using System.Linq;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
+    /// <summary>
+    /// Configuration of a game session
+    /// </summary>
     [MessagePackObject]
     public class GameSessionConfiguration
     {
@@ -39,6 +42,9 @@ namespace Stormancer.Server.Plugins.GameSession
         [Key(0)]
         public bool Public { get; set; }
 
+        /// <summary>
+        /// Boolean indicating if the game session be restarted.
+        /// </summary>
         [Key(1)]
         public bool canRestart { get; set; }
 
@@ -68,14 +74,14 @@ namespace Stormancer.Server.Plugins.GameSession
         public IEnumerable<string> UserIds { get => Teams.SelectMany(t => t.PlayerIds); }
 
         /// <summary>
-        /// Gamesession parameters like map to launch, gameType and everything can be useful to 
+        /// Game session parameters like map to launch, gameType and everything can be useful to 
         /// dedicated server.
         /// </summary>
         [Key(4)]
         public JObject Parameters { get; set; } = new JObject();
 
         /// <summary>
-        /// If true, the gamesession shouldn't choose a client as the host, but request a gameserver.
+        /// If true, the game session shouldn't choose a client as the host, but request a game server.
         /// </summary>
         /// <remarks>
         /// If set, requires <see cref="GameServerPool"/> to be set.
@@ -85,13 +91,13 @@ namespace Stormancer.Server.Plugins.GameSession
 
 
         /// <summary>
-        /// The gameserver pool from which the game server should be requested, if StartGameServer is true.
+        /// The game server pool from which the game server should be requested, if StartGameServer is true.
         /// </summary>
         [Key(6)]
         public string? GameServerPool { get; set; }
 
         /// <summary>
-        /// Name of the gamefinder creating the gamesession, if available.
+        /// Name of the game finder creating the game session, if available.
         /// </summary>
         [Key(7)]
         public string? GameFinder { get; set; }

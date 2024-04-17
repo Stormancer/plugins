@@ -8,8 +8,13 @@ LockstepViewModel::LockstepViewModel(GameSessionViewModel* parent)
 	, _clientId(parent->parent->id)
 {
 
+	
+}
+
+void LockstepViewModel::initialize()
+{
 	auto client = Stormancer::IClientFactory::GetClient(_clientId);
-	this->_onStepSubscription = client->dependencyResolver().resolve<Stormancer::Gameplay::LockstepApi>()->onStep.subscribe([this](Stormancer::Gameplay::Frame step)
+	_onStepSubscription = this->_onStepSubscription = client->dependencyResolver().resolve<Stormancer::Gameplay::LockstepApi>()->onStep.subscribe([this](Stormancer::Gameplay::Frame step)
 	{
 		for (auto& cmd : step.commands)
 		{
@@ -18,25 +23,25 @@ LockstepViewModel::LockstepViewModel(GameSessionViewModel* parent)
 		}
 	});
 
-	this->_onRollbackSubscription = client->dependencyResolver().resolve<Stormancer::Gameplay::LockstepApi>()->onRollback.subscribe([this](Stormancer::Gameplay::RollbackContext& ctx)
+	_onRollbackSubscription = this->_onRollbackSubscription = client->dependencyResolver().resolve<Stormancer::Gameplay::LockstepApi>()->onRollback.subscribe([this](Stormancer::Gameplay::RollbackContext& ctx)
+	{
+		Snapshot& current = snapshots.front();
+		for (auto& snapshot : snapshots)
 		{
-			Snapshot& current = snapshots.front();
-			for (auto& snapshot : snapshots)
+			if (snapshot.frame > ctx.targetFrame)
 			{
-				if (snapshot.frame > ctx.targetFrame)
-				{
-					break;
-				}
-				else
-				{
-					current = snapshot;
-				}
+				break;
 			}
+			else
+			{
+				current = snapshot;
+			}
+		}
 
-			currentState = current.state;
-			ctx.restoredFrame = current.frame;
+		currentState = current.state;
+		ctx.restoredFrame = current.frame;
 
-		});
+	});
 }
 
 bool LockstepViewModel::isEnabled()
@@ -84,7 +89,7 @@ bool LockstepViewModel::isPaused()
 }
 
 void LockstepViewModel::Pause(bool pause)
-{
+{ 
 	auto client = Stormancer::IClientFactory::GetClient(_clientId);
 
 	auto api = client->dependencyResolver().resolve<Stormancer::Gameplay::LockstepApi>();

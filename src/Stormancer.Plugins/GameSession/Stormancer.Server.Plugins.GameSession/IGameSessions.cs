@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Stormancer.Abstractions.Server.Components;
 using Stormancer.Server.Components;
@@ -113,8 +114,16 @@ namespace Stormancer.Server.Plugins.GameSession
         private readonly GameSessionProxy s2SProxy;
         private readonly IUserSessions sessions;
         private readonly ISerializer serializer;
+        private readonly JsonSerializer _jsonSerializer;
 
-        public GameSessions(IScenesManager management, RecyclableMemoryStreamProvider memoryStreamProvider, IEnvironment env, GameSessionProxy s2sProxy, IUserSessions sessions, ISerializer serializer)
+        public GameSessions(
+            IScenesManager management,
+            RecyclableMemoryStreamProvider memoryStreamProvider, 
+            IEnvironment env,
+            GameSessionProxy s2sProxy, 
+            IUserSessions sessions,
+            ISerializer serializer,
+            JsonSerializer jsonSerializer)
         {
             this.management = management;
             _memoryStreamProvider = memoryStreamProvider;
@@ -122,6 +131,7 @@ namespace Stormancer.Server.Plugins.GameSession
             s2SProxy = s2sProxy;
             this.sessions = sessions;
             this.serializer = serializer;
+            _jsonSerializer = jsonSerializer;
         }
 
         public async Task Create(string template, string id, GameSessionConfiguration config, CancellationToken cancellationToken)
@@ -136,7 +146,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 ShardGroup = Stormancer.Server.Cluster.Constants.SHARDGROUP_DEFAULT,
                 Public = false,
                 IsPersistent = false,
-                Metadata = JObject.FromObject(new { gameSession = config }).ToDictionary()
+                Metadata = JObject.FromObject(new { gameSession = config },_jsonSerializer ).ToDictionary()
 
             },false, cancellationToken);
         }

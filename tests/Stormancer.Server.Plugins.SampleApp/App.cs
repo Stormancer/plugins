@@ -96,8 +96,7 @@ namespace Stormancer.Plugins.Tests.ServerApp
                 host.ConfigureGameSession("gamesession-lockstep", c => c
                .CustomizeScene(scene => {
                    scene.AddLockstep();
-                   
-               })
+               }).EnablePeerDirectConnection(false)
                );
 
                 host.ConfigureGameSession("gamesession-noP2P", c => c

@@ -34,7 +34,9 @@ void GameFinderViewModel::joinGameFound()
 		{
 			auto p = t.get();
 			this->parent->gameSession.isHost = p.isHost;
-			this->parent->gameSession.hostSessionId = Stormancer::SessionId::parse(p.hostSessionId);
+			Stormancer::SessionId::tryParse(p.hostSessionId, this->parent->gameSession.hostSessionId);
+			
+			 
 		}
 		catch (std::exception& ex)
 		{

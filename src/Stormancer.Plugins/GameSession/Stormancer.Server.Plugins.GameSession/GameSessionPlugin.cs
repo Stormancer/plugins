@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Stormancer.Abstractions.Server.Components;
 using Stormancer.Core;
@@ -163,7 +164,8 @@ namespace Stormancer.Server.Plugins.GameSession
                             d.Resolve<RpcService>(),
                             d.Resolve<GameSessionsRepository>(),
                             d.Resolve<ISerializer>(),
-                            d.Resolve<GameSessionEventsRepository>())
+                            d.Resolve<GameSessionEventsRepository>(),
+                            d.Resolve<JsonSerializer>())
                     )
                     .As<IGameSessionService>()
                     .As<IConfigurationChangedEventHandler>()

@@ -66,7 +66,6 @@ public:
 	const char* getConnectionStatus() const;
 	std::string getSessionId() const;
 
-
 	AppViewModel* parent;
 
 private:

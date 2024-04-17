@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Stormancer
+namespace Stormancer.Json
 {
     /// <summary>
     /// Json converter for <see cref="SessionId"/>
@@ -23,7 +23,7 @@ namespace Stormancer
         /// <returns></returns>
         public override SessionId ReadJson(JsonReader reader, Type objectType, SessionId existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
-            return SessionId.From(reader.ReadAsString());
+            return SessionId.From((string?)reader.Value);
         }
 
         /// <summary>
