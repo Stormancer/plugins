@@ -559,7 +559,7 @@ namespace Stormancer
 					frame.lastCommandReceived = playerState._lastCommand != nullptr ? playerState._lastCommand->command.commandId : 0;
 
 					auto serializer = _serializer;
-					_mesh->send(playerState.sessionId, "", [frame, serializer](obytestream& stream)
+					_mesh->send(playerState.sessionId, "lockstep.frame", [frame, serializer](obytestream& stream)
 						{
 							serializer->serialize(stream, frame);
 						}, PacketReliability::UNRELIABLE_SEQUENCED);
@@ -607,22 +607,28 @@ namespace Stormancer
 						});
 
 					Scene::RouteOptions p2pOptions;
-					p2pOptions.filter = MessageOriginFilter::Peer;
+					p2pOptions.filter = MessageOriginFilter::All;
 					scene->addRoute("lockstep.frame", [wService, wClient](Packetisp_ptr packet)
 						{
+							byte buffer[16];
+							packet->stream.read(buffer, 16);
+							SessionId sessionId;
+							SessionId::tryParse(buffer,16, sessionId);
+							
 							auto args = packet->readObject<FrameDto>();
 							auto service = wService.lock();
 							auto client = wClient.lock();
 
 							if (service)
 							{
-
-								auto sessionId = SessionId::parse(packet->connection->id());
+							
+								
 								auto& state = service->_playerStates[sessionId];
+								state.latency = client->clock() - args.sentOn;
 								if (args.gameplayTimeMs > state.gameplayTimeMs)
 								{
 
-									state.latency = client->clock() - args.sentOn;
+									
 									state.gameplayTimeMs = args.gameplayTimeMs;
 									state.requiredCommandIdForTime = args.requiredCommandIdForTime;
 								}
@@ -633,6 +639,11 @@ namespace Stormancer
 
 					scene->addRoute("lockstep.command", [wService](Packetisp_ptr packet)
 						{
+							byte buffer[16];
+							packet->stream.read(buffer, 16);
+							SessionId sessionId;
+							SessionId::tryParse(buffer, 16, sessionId);
+
 							auto commands = packet->readObject < std::vector<CommandDto>>();
 							auto service = wService.lock();
 							if (service)
@@ -707,7 +718,7 @@ namespace Stormancer
 							state.sessionId = cmd.playerSessionId;
 							state.isLocal = (state.sessionId == SessionId::parse(client->sessionId()));
 							_playerStates[cmd.playerSessionId] = state;
-
+							
 							synchronizeCommands(state);
 							break;
 						}
@@ -717,6 +728,7 @@ namespace Stormancer
 							break;
 						}
 						}
+						_currentPlayersUpdateId = cmd.updateId;
 					}
 				}
 

@@ -55,7 +55,7 @@ namespace Stormancer
 						serializer->serialize(stream, route);
 						writer(stream);
 					},
-					PacketPriority::MEDIUM_PRIORITY, reliability);
+					PacketPriority::IMMEDIATE_PRIORITY, reliability);
 				}
 			}
 

@@ -123,7 +123,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 }
                 if (scene.TemplateMetadata.ContainsKey(P2PMESH_METADATA_KEY))
                 {
-                    scene.AddRoute("p2pmesh.relay", (message, target) =>
+                    scene.AddRoute("p2pmesh.relay", (message, origin) =>
                     {
                         if (SessionId.TryRead(message, out var sessionId, out var length) && scene.TryGetPeer(sessionId, out var peer))
                         {
@@ -132,17 +132,20 @@ namespace Stormancer.Server.Plugins.GameSession
                             var reader = new MessagePack.MessagePackReader(message.Slice(length + 1));
 
                             var route = reader.ReadString();
-                            if(route != null)
+                            if (route != null)
                             {
-                                scene.Send(peer.MatchPeerFilter, route, (writer, data) =>
+                                scene.Send(peer.MatchPeerFilter, route, (writer, ctx) =>
                                 {
-                                    var span = writer.GetSpan((int)data.Length);
-                                    data.CopyTo(span);
-                                    writer.Advance((int)data.Length);
-                                }, PacketPriority.MEDIUM_PRIORITY, reliability, message.Slice(length + 1 + reader.Consumed));
+                                    var (data, origin) = ctx;
+
+                                    var span = writer.GetSpan((int)data.Length + origin.SessionId.Length);
+                                    origin.SessionId.TryWriteBytes(span.Slice(0, origin.SessionId.Length));
+                                    data.CopyTo(span.Slice(origin.SessionId.Length));
+                                    writer.Advance((int)data.Length+origin.SessionId.Length);
+                                }, PacketPriority.IMMEDIATE_PRIORITY, reliability, (message.Slice(length + 1 + reader.Consumed), origin));
                             }
 
-                           
+
                         }
                     });
                 }
