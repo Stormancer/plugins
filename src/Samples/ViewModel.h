@@ -51,6 +51,7 @@ public:
 		return _settings.endpoint + "/" + _settings.account + "/" + _settings.application;
 	}
 
+	float deltaTime = 0.016f;
 	//AUTH
 	void connect();
 

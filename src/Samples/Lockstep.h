@@ -23,9 +23,11 @@ public:
 
 	void addCommand(byte cmd);
 
-	void tick(float delta);
+	bool tick(float delta);
 
 	int getLockstepTime();
+
+	unsigned int getTargetTime();
 
 	bool isPaused();
 

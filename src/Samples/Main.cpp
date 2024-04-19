@@ -162,7 +162,7 @@ int main(int, char**)
             ImGui_ImplWin32_NewFrame();
             ImGui::NewFrame();
 
-            ShowUI(vm,deltaTime,pauseTime);
+            ShowUI(vm);
 
             // Rendering
             ImGui::Render();

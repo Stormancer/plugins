@@ -81,17 +81,20 @@ std::vector<P2PRemotePeerViewModel> GameSessionViewModel::getP2PRemotePeers()
 	auto gameSession = client->dependencyResolver().resolve<Stormancer::GameSessions::GameSession>();
 
 	std::vector<P2PRemotePeerViewModel> results;
-	auto peers = gameSession->scene()->connectedPeers();
-	for (auto p : peers)
+	if (gameSession->scene())
 	{
-		P2PRemotePeerViewModel vm;
+		auto peers = gameSession->scene()->connectedPeers();
+		for (auto p : peers)
+		{
+			P2PRemotePeerViewModel vm;
 
 
 
-		vm.isRelay = p.second->useRelay();
-		vm.sessionId = p.second->sessionId();
-		results.push_back(vm);
+			vm.isRelay = p.second->useRelay();
+			vm.sessionId = p.second->sessionId();
+			results.push_back(vm);
 
+		}
 	}
 	return results;
 }

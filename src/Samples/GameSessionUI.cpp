@@ -6,7 +6,7 @@
 #include "Lockstep.h"
 #include "ViewModel.h"
 
-void ShowUI(GameSessionViewModel& vm, float deltaTime)
+void ShowUI(GameSessionViewModel& vm, float deltaTime,float& nextDeltaTime)
 {
 	if (vm.parent->gameFinder.isGameFound())
 	{
@@ -60,7 +60,15 @@ void ShowUI(GameSessionViewModel& vm, float deltaTime)
 
 		if (vm.lockstep->isEnabled())
 		{
-			vm.lockstep->tick(deltaTime);
+			if (vm.lockstep->tick(deltaTime))
+			{
+				nextDeltaTime = 0.016f;
+			}
+			else
+			{
+				nextDeltaTime = 0.0f;
+			}
+
 			ImGui::SeparatorText("Lockstep");
 
 			if (vm.lockstep->isPaused())
@@ -86,6 +94,11 @@ void ShowUI(GameSessionViewModel& vm, float deltaTime)
 				ImGui::Text(std::to_string(vm.lockstep->getLockstepTime()).c_str());
 				ImGui::TableNextRow();
 				ImGui::TableNextColumn();
+				ImGui::Text("target time");
+				ImGui::TableNextColumn();
+				ImGui::Text(std::to_string(vm.lockstep->getTargetTime()).c_str());
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
 				ImGui::Text("state");
 				ImGui::TableNextColumn();
 				ImGui::Text(vm.lockstep->currentState.c_str());
@@ -93,7 +106,7 @@ void ShowUI(GameSessionViewModel& vm, float deltaTime)
 
 				for (auto& player : vm.lockstep->getPlayers())
 				{
-					if (ImGui::BeginTable("peers", 2))
+					if (ImGui::BeginTable("players", 2))
 					{
 						ImGui::TableNextRow();
 						ImGui::TableNextColumn();
@@ -119,6 +132,11 @@ void ShowUI(GameSessionViewModel& vm, float deltaTime)
 						ImGui::TableNextColumn();
 						ImGui::Text(std::to_string(player.latencyMs).c_str());
 						
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn();
+						ImGui::Text("last Command id");
+						ImGui::TableNextColumn();
+						ImGui::Text(std::to_string(player.lastCommandId).c_str());
 
 						ImGui::TableNextRow();
 						ImGui::TableNextColumn();

@@ -1,5 +1,6 @@
 #include "GameFinderViewModel.h"
 #include "GameSessionViewModel.h"
+#include "Lockstep.h"
 #include "ViewModel.h"
 #include "stormancer/IClientFactory.h"
 #include "gamefinder/GameFinder.hpp"
@@ -34,6 +35,7 @@ void GameFinderViewModel::joinGameFound()
 		{
 			auto p = t.get();
 			this->parent->gameSession.isHost = p.isHost;
+			this->parent->gameSession.lockstep->currentState = "";
 			Stormancer::SessionId::tryParse(p.hostSessionId, this->parent->gameSession.hostSessionId);
 			
 			 

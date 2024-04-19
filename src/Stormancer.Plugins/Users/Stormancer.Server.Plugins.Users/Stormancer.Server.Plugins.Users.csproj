@@ -26,6 +26,8 @@
 	
 	<ItemGroup>
 		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
+		<None Include="..\cpp\ClientAPI.hpp" Link="cpp\ClientAPI.hpp" />
+		<None Include="..\cpp\Users.hpp" Link="cpp\Users.hpp" />
 	</ItemGroup>
 	
 	<ItemGroup>
@@ -68,7 +70,13 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <cpp Remove="..\cpp\ClientAPI.hpp" />
+	  <cpp Remove="..\cpp\Users.hpp" />
+	</ItemGroup>
+
+	<ItemGroup>
 	  <Folder Include="Data\" />
+	  <Folder Include="cpp\" />
 	</ItemGroup>
 
 	<Target Name="PostPack" AfterTargets="Pack">
