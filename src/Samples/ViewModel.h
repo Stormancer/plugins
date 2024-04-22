@@ -21,6 +21,8 @@ public:
 	std::string application;
 
 	std::string gameVersion;
+
+	std::string gameFinderName;
 	
 	void load();
 	void save();
@@ -32,7 +34,7 @@ public:
 class ClientViewModel
 {
 public:
-	ClientViewModel(int id, SettingsViewModel settings, AppViewModel* parent);
+	ClientViewModel(int id, AppViewModel* parent);
 	ClientViewModel(ClientViewModel& v) = delete;
 	~ClientViewModel();
 
@@ -46,17 +48,14 @@ public:
 
 	std::string deviceIdentifier;
 	
-	std::string getServerApp()
-	{
-		return _settings.endpoint + "/" + _settings.account + "/" + _settings.application;
-	}
+	std::string getServerApp();
 
 	float deltaTime = 0.016f;
 	//AUTH
 	void connect();
 
 	void disconnect();
-
+	AppViewModel* parent;
 	PartyViewModel party;
 	GameSessionViewModel gameSession;
 	GameFinderViewModel gameFinder;
@@ -67,10 +66,9 @@ public:
 	const char* getConnectionStatus() const;
 	std::string getSessionId() const;
 
-	AppViewModel* parent;
-
+	
 private:
-	SettingsViewModel _settings;
+	
 
 	
 };

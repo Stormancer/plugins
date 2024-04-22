@@ -4,8 +4,8 @@
 #include "stormancer/Streams/bytestream.h"
 #include "stormancer/PacketPriority.h"
 
-#if !defined(STRM_PLUGIN_IMPL)
-#define STRM_PLUGIN_IMPL 1
+#if !defined(STORM_PLUGIN_IMPL)
+#define STORM_PLUGIN_IMPL 0
 #endif
 
 namespace Stormancer
@@ -24,7 +24,7 @@ namespace Stormancer
 		
 	};
 
-#if STRM_PLUGIN_IMPL == 1
+#if STORM_PLUGIN_IMPL == 1
 #include "stormancer/Scene.h"
 #include "stormancer/Serializer.h"
 	class P2PMeshPlugin;

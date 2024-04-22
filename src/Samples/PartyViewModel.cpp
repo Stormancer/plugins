@@ -7,7 +7,7 @@
 PartyViewModel::PartyViewModel(ClientViewModel* parent)
 	:parent(parent)
 {
-
+	gameFinderName = parent->parent->settings.gameFinderName;
 }
 
 void PartyViewModel::createParty()

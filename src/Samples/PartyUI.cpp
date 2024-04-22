@@ -114,6 +114,10 @@ void ShowUI(PartyViewModel& vm)
 		}
 	}
 	ImGui::InputText("Gamefinder name", &vm.gameFinderName);
+	if (vm.gameFinderName != vm.parent->parent->settings.gameFinderName)
+	{
+		vm.parent->parent->settings.gameFinderName = vm.gameFinderName;
+	}
 
 	if (ImGui::Button("Create party"))
 	{

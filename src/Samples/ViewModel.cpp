@@ -41,6 +41,11 @@ void SettingsViewModel::load()
 			gameVersion = data["gameVersion"].get<std::string>();
 		}
 
+		if (data.find("gameFinderName") != data.end())
+		{
+			gameFinderName = data["gameFinderName"].get<std::string>();
+		}
+
 	}
 
 }
@@ -51,7 +56,8 @@ void SettingsViewModel::save()
 		{"endpoint",endpoint},
 		{"account",account},
 		{"application",application},
-		{"gameVersion",gameVersion}
+		{"gameVersion",gameVersion},
+		{"gameFinderName",gameFinderName}
 	};
 
 	std::ofstream o("settings.json");
@@ -84,12 +90,11 @@ void AppViewModel::process()
 
 void AppViewModel::addClient()
 {
-	clients.push_back(std::make_shared<ClientViewModel>(nextClientId++, settings, this));
+	clients.push_back(std::make_shared<ClientViewModel>(nextClientId++, this));
 }
 
-ClientViewModel::ClientViewModel(int id,SettingsViewModel settings, AppViewModel* parent)
+ClientViewModel::ClientViewModel(int id, AppViewModel* parent)
 	: id(id)
-	,_settings(settings)
 	, parent(parent)
 	, deviceIdentifier("client-"+std::to_string(id))
 	,party(this)
@@ -98,7 +103,7 @@ ClientViewModel::ClientViewModel(int id,SettingsViewModel settings, AppViewModel
 {
 	Stormancer::IClientFactory::SetConfig(id, [this](size_t configId) 
 	{
-		auto config = Stormancer::Configuration::create(this->_settings.endpoint,this->_settings.account, this->_settings.application);
+		auto config = Stormancer::Configuration::create(this->parent->settings.endpoint, this->parent->settings.account, this->parent->settings.application);
 
 		config->logger = std::make_shared<Logger>(&(this->logs));
 		config->addPlugin(new Stormancer::Users::UsersPlugin());
@@ -109,7 +114,7 @@ ClientViewModel::ClientViewModel(int id,SettingsViewModel settings, AppViewModel
 		config->addPlugin(new Stormancer::Party::PartyMergingPlugin());
 		config->addPlugin(new Stormancer::Gameplay::LockstepPlugin());
 		config->addPlugin(new Stormancer::P2PMeshPlugin());
-		config->additionalParameters[Stormancer::GameVersion::ConfigurationKeys::ClientVersion] = this->_settings.gameVersion;
+		config->additionalParameters[Stormancer::GameVersion::ConfigurationKeys::ClientVersion] = this->parent->settings.gameVersion;
 		return config;
 	});
 
@@ -133,6 +138,11 @@ ClientViewModel::~ClientViewModel()
 
 }
 
+
+std::string ClientViewModel::getServerApp()
+{
+	return this->parent->settings.endpoint + "/" + this->parent->settings.account + "/" + this->parent->settings.application;
+}
 
 void ClientViewModel::connect()
 {

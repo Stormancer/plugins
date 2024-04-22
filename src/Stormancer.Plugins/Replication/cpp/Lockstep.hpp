@@ -4,8 +4,8 @@
 #include "stormancer/SessionId.h"
 #include <stdio.h>
 
-#if !defined(STRM_PLUGIN_IMPL)
-#define STRM_PLUGIN_IMPL 1
+#if !defined(STORM_PLUGIN_IMPL)
+#define STORM_PLUGIN_IMPL 0
 #endif
 
 namespace Stormancer
@@ -75,7 +75,7 @@ namespace Stormancer
 			class ILockstepService
 			{
 			public:
-				virtual void pushCommand(byte* buffer, int length) = 0;
+				virtual int pushCommand(byte* buffer, int length) = 0;
 				virtual bool tick(unsigned int deltaTimeMs) = 0;
 				virtual unsigned int getCurrentTime() = 0;
 				virtual unsigned int getTargetTime() = 0;
@@ -106,7 +106,7 @@ namespace Stormancer
 			/// <param name="buffer"></param>
 			/// <param name="length"></param>
 			/// <param name="frame"></param>
-			void pushCommand(byte* buffer, int length);
+			int pushCommand(byte* buffer, int length);
 
 			Event<Frame&> onStep;
 			Event<RollbackContext&> onRollback;
@@ -134,7 +134,7 @@ namespace Stormancer
 }
 
 
-#if STRM_PLUGIN_IMPL == 1
+#if STORM_PLUGIN_IMPL == 1
 
 #include "stormancer/Scene.h"
 #include "stormancer/RPC/RpcService.h"
@@ -370,6 +370,7 @@ namespace Stormancer
 						auto cmd = new PlayerCommandNode();
 						cmd->command = command;
 						cmd->previous = _lastCommand;
+						_lastCommand->next = cmd;
 						_lastCommand = cmd;
 						return;
 					}
@@ -442,7 +443,7 @@ namespace Stormancer
 						LockstepPlayer player;
 						player.localPlayer = state.isLocal;
 						player.synchronizedUntilMs = state.synchronizedUntil();
-						player.lastCommandId = state.lastSentCommand;
+						player.lastCommandId = state.requiredCommandIdForTime;
 						player.latencyMs = (int)state.latency;
 						player.playerId = state.playerId;
 						player.sessionId = state.sessionId;
@@ -453,11 +454,11 @@ namespace Stormancer
 				}
 
 
-				void pushCommand(byte* buffer, int length) override
+				int pushCommand(byte* buffer, int length) override
 				{
 					auto client = _client.lock();
 					auto node = new PlayerCommandNode;
-					node->command.commandId = _firstCommand != nullptr ? _firstCommand->command.commandId + 1 : 1;
+					node->command.commandId = _lastCommand != nullptr ? _lastCommand->command.commandId + 1 : 1;
 					node->command.gameplayTimeMs = _currentTime + _options.delayMs;
 					node->command.content.resize(length);
 					byte& pointer = node->command.content.front();
@@ -477,6 +478,7 @@ namespace Stormancer
 
 
 					synchronizeCommands();
+					return node->command.commandId;
 
 				}
 
@@ -962,7 +964,7 @@ namespace Stormancer
 			return _service->pause(pause);
 		}
 
-		void LockstepApi::pushCommand(byte* buffer, int length)
+		int LockstepApi::pushCommand(byte* buffer, int length)
 		{
 			return _service->pushCommand(buffer, length);
 		}
