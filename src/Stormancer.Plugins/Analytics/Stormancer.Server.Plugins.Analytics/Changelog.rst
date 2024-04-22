@@ -16,6 +16,7 @@ Added
 *****
 - Configure a scene to accept analytics from clients.
 - Added IsDeploymentActive field to all events to know if they were produced by an active deployment.
+- Added AnalyticsAccumulator class to compute in memory aggregated values from a ring buffer.
 
 Changed
 *******

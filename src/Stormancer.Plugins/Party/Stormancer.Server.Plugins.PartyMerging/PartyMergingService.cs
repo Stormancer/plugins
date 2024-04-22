@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
+using Stormancer.Server.Plugins.Analytics;
 using Stormancer.Server.Plugins.Models;
 using Stormancer.Server.Plugins.Party;
 using Stormancer.Server.Plugins.Utilities.Extensions;
@@ -25,12 +26,23 @@ namespace Stormancer.Server.Plugins.PartyMerging
         public int LastPlayersCount { get; set; }
         public int LastPartiesCount { get; set; }
 
+        public AnalyticsAccumulator<TimeSpan, int> AverageTimeInMerger { get; set; } = new AnalyticsAccumulator<TimeSpan, int>(256, (span) => 
+        {
+
+            TimeSpan result = TimeSpan.Zero;
+            for(int i = 0; i < span.Length;i++)
+            {
+                result += span[i];
+            }
+            return result.Milliseconds / span.Length;
+        });
+
         public PartyMergingState(ISceneHost scene)
         {
             scene.RunTask(async (ct) =>
             {
                 using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
-
+                var lastAnalytics = DateTime.UtcNow;
                 while (!ct.IsCancellationRequested)
                 {
                     await timer.WaitForNextTickAsync(ct);
@@ -39,8 +51,17 @@ namespace Stormancer.Server.Plugins.PartyMerging
                     {
                         using var timeoutCts = new CancellationTokenSource(10000);
                         using var cts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, ct);
-                        await scope.Resolve<PartyMergingService>().Merge(cts.Token);
+                        var merger = scope.Resolve<PartyMergingService>();
+                        await merger.Merge(cts.Token);
 
+                        if (DateTime.UtcNow > lastAnalytics + TimeSpan.FromMinutes(1))
+                        {
+                            var analytics = scope.Resolve<IAnalyticsService>();
+
+                            analytics.Push("merger", merger.MergerId, JObject.FromObject(merger.GetAnalytics()));
+                            
+                        }
+                      
                     }
                     catch (Exception ex)
                     {
@@ -51,6 +72,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
                     }
                 }
             });
+
         }
     }
 
@@ -68,6 +90,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
         private CancellationTokenRegistration _registration;
         private List<CancellationToken> _cancellationTokens = new List<CancellationToken>();
         public string PartyId { get; }
+        public DateTime EnteredOn { get; } = DateTime.UtcNow;
 
         public bool IsCancellationRequested => _cts.IsCancellationRequested;
 
@@ -131,7 +154,8 @@ namespace Stormancer.Server.Plugins.PartyMerging
         private readonly IPartyMergingAlgorithm _algorithm;
         private readonly PartyProxy _parties;
         private readonly IPartyManagementService _partyManagement;
-       
+
+        public string MergerId => PartyMergingConstants.TryGetMergerId(_scene, out var mergerId) ? mergerId : "unknown";
 
         public PartyMergingService(ISceneHost scene, PartyMergingState state, IPartyMergingAlgorithm algorithm, PartyProxy parties, IPartyManagementService partyManagement)
         {
@@ -144,9 +168,10 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
         public async Task<string?> StartMergeParty(string partyId, CancellationToken cancellationToken)
         {
+            PartyMergingPartyState? state = null;
             try
             {
-                PartyMergingPartyState state;
+               
                 lock (_state._syncRoot)
                 {
                     if (_state._states.TryGetValue(partyId, out var currentState))
@@ -176,6 +201,10 @@ namespace Stormancer.Server.Plugins.PartyMerging
                 lock (_state._syncRoot)
                 {
                     _state._states.Remove(partyId);
+                    if (state != null)
+                    {
+                        _state.AverageTimeInMerger.Add(DateTime.UtcNow - state.EnteredOn);
+                    }
                 }
             }
         }
@@ -316,5 +345,37 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
             return json;
         }
+
+        public MergerAnalytics GetAnalytics()
+        {
+            return new MergerAnalytics { AverageTimeInMerger = _state.AverageTimeInMerger.Result, LastPlayerCount = _state.LastPlayersCount, LastPartyCount = _state.LastPartiesCount, Custom =  _algorithm.GetAnalytics() };
+        }
+    }
+
+    /// <summary>
+    /// Analytics data about a merger.
+    /// </summary>
+    public class MergerAnalytics
+    {
+        /// <summary>
+        /// Last number of players known
+        /// </summary>
+        public required int LastPlayerCount { get; init; }
+
+        /// <summary>
+        /// Last known number of parties in the merger.
+        /// </summary>
+        public required int LastPartyCount { get;init; }
+
+        /// <summary>
+        /// Average time passed in the merger for the last merging requests.
+        /// </summary>
+        public required int AverageTimeInMerger { get; init; }
+
+        /// <summary>
+        /// Custom data
+        /// </summary>
+        public required JObject Custom { get; init; }
+
     }
 }

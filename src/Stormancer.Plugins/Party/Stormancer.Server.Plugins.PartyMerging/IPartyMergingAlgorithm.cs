@@ -108,5 +108,14 @@ namespace Stormancer.Server.Plugins.PartyMerging
         /// <param name="fromAdmin"></param>
         /// <returns></returns>
         Task<JObject> GetStatusAsync(bool fromAdmin) => Task.FromResult(new JObject());
+
+        /// <summary>
+        /// Gets custom analytics from the algorithm.
+        /// </summary>
+        /// <returns></returns>
+        JObject GetAnalytics()
+        {
+            return new JObject();
+        }
     }
 }

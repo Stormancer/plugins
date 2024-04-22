@@ -1,5 +1,6 @@
 ﻿using Org.BouncyCastle.Asn1.Ocsp;
 using Stormancer.Core;
+using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Party;
 using Stormancer.Server.Plugins.Party.Dto;
 using System;
@@ -122,12 +123,13 @@ namespace Stormancer.Server.Plugins.PartyMerging
     {
         private readonly MergingRequestPartyState _state;
         private readonly ISceneHost _scene;
+        private readonly ILogger _logger;
 
-        public MergingPartyService(MergingRequestPartyState state, ISceneHost scene)
+        public MergingPartyService(MergingRequestPartyState state, ISceneHost scene, ILogger logger)
         {
             _state = state;
             _scene = scene;
-
+            _logger = logger;
         }
 
         /// <summary>
@@ -154,7 +156,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
         /// <param name="partyMergerId"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public ValueTask StartAsync(string partyMergerId, CancellationToken cancellationToken)
+        public async ValueTask StartAsync(string partyMergerId, CancellationToken cancellationToken)
         {
 
             static async Task RunMergingRequestAsync(ISceneHost scene, string partyMergerId, CancellationToken cancellationToken)
@@ -268,8 +270,21 @@ namespace Stormancer.Server.Plugins.PartyMerging
                 }
             };
 
+            try
+            {
 
-            return _state.StartMerging(ct => RunMergingRequestAsync(_scene, partyMergerId, ct), cancellationToken);
+                await _state.StartMerging(ct => RunMergingRequestAsync(_scene, partyMergerId, ct), cancellationToken);
+            }
+            catch(ClientException)
+            {
+            }
+            catch(OperationCanceledException)
+            {
+            }
+            catch(Exception ex)
+            {
+                _logger.Log(LogLevel.Error, "partyMerging", "An error occurred while running a merging request.", ex);
+            }
 
         }
 
