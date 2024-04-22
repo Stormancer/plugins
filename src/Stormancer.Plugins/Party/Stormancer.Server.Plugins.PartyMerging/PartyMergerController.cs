@@ -28,9 +28,16 @@ namespace Stormancer.Server.Plugins.PartyMerging
         }
 
         [S2SApi]
-        public Task<string?> StartMerge(string partyId)
+        public async Task<string?> StartMerge(string partyId)
         {
-            return _service.StartMergeParty(partyId, CancellationToken.None);
+            try
+            {
+                return await _service.StartMergeParty(partyId, CancellationToken.None);
+            }
+            catch (Exception )
+            {
+                return null;
+            }
         }
 
         [S2SApi]
@@ -122,6 +129,10 @@ namespace Stormancer.Server.Plugins.PartyMerging
                     await _service.CancelMerging();
                 }
                 catch(OperationCanceledException)
+                {
+
+                }
+                catch(AggregateException)
                 {
 
                 }
