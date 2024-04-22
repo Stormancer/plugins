@@ -173,10 +173,20 @@ namespace Stormancer.Server.Plugins.RemoteControl
 
     }
 
+    /// <summary>
+    /// Result of a command sent to an agent.
+    /// </summary>
     public class AgentCommandOutputEntryDto
     {
-        public string Type { get; set; } = default!;
-        public string ResultJson { get; set; } = default!;
+        /// <summary>
+        /// Type of the result.
+        /// </summary>
+        public required string Type { get; init; }
+
+        /// <summary>
+        /// Content of the result.
+        /// </summary>
+        public required string ResultJson { get; init; }
     }
 
 
@@ -283,7 +293,7 @@ namespace Stormancer.Server.Plugins.RemoteControl
                 var agent = _agents.TryGetValue(sessionId, out var a) ? a : default;
                 return (id, agent);
             })
-            .Select(tuple => new Document<Agent>(tuple.id, tuple.agent)).ToList();
+            .Select(tuple => new Document<Agent>(tuple.id, tuple.agent) { Version = 1 }).ToList();
 
             return result;
 

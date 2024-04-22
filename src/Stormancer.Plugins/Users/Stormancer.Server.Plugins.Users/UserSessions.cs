@@ -126,38 +126,32 @@ namespace Stormancer.Server.Plugins.Users
             var success = false;
             lock (_syncRoot)
             {
-                if (version is int v)
+
+                if (_sessions.TryGetValue(sessionId, out var document))
                 {
-                    if (_sessions.TryGetValue(sessionId, out var document))
+                    if (version == document.Version || version == null)
                     {
-                        if (version == document.Version)
-                        {
-                            _sessions[sessionId] = new Document<SessionRecord>(id, session) { Version = (uint)(v + 1) };
-                            success = true;
-                        }
-                        else
-                        {
-                            success = false;
-                        }
+                        _sessions[sessionId] = new Document<SessionRecord>(id, session) { Version = (uint)(document.Version + 1) };
+                        success = true;
                     }
                     else
                     {
-                        if (version < 0)
-                        {
-                            _sessions[sessionId] = new Document<SessionRecord>(id, session);
-                            success = true;
-                        }
-                        else
-                        {
-                            success = false;
-                        }
+                        success = false;
                     }
                 }
                 else
                 {
-                    _sessions[sessionId] = new Document<SessionRecord>(id, session);
-                    success = true;
+                    if (version < 0 || version == null)
+                    {
+                        _sessions[sessionId] = new Document<SessionRecord>(id, session) { Version = 1 };
+                        success = true;
+                    }
+                    else
+                    {
+                        success = false;
+                    }
                 }
+
 
             }
 

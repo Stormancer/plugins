@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using MessagePack;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
@@ -10,11 +11,13 @@ namespace Stormancer.Server.Plugins.Queries
     /// <summary>
     /// Search request
     /// </summary>
+    [MessagePackObject]
     public class SearchRequest
     {
         /// <summary>
         /// Type of documents to search for.
         /// </summary>
+        [Key(0)]
         public string Type { get; set; } = default!;
 
         /// <summary>
@@ -23,11 +26,13 @@ namespace Stormancer.Server.Plugins.Queries
         /// <remarks>
         /// Null is empty.(match all)
         /// </remarks>
+        [Key(1)]
         public JObject? Filter { get; set; }
 
         /// <summary>
         /// Number of items to return.
         /// </summary>
+        [Key(2)]
         public uint Size { get; set; } = 10;
     }
 
@@ -35,16 +40,19 @@ namespace Stormancer.Server.Plugins.Queries
     /// Results of a search
     /// </summary>
     /// <typeparam name="T"></typeparam>
+    [MessagePackObject]
     public class SearchResult<T>
     {
         /// <summary>
         /// Total of documents matching the query.
         /// </summary>
+        [Key(0)]
         public uint Total { get; set; }
 
         /// <summary>
         /// Documents in the response.
         /// </summary>
+        [Key(1)]
         public IEnumerable<Document<T>> Hits { get; set; } = default!;
     }
     /// <summary>
@@ -145,8 +153,14 @@ namespace Stormancer.Server.Plugins.Queries
     /// A document returned by a query.
     /// </summary>
     /// <typeparam name="T"></typeparam>
+    [MessagePackObject]
     public class Document<T>
     {
+        /// <summary>
+        /// Creates a new <see cref="Document{T}"/>.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="source"></param>
         public Document(string  id, T? source)
         {
             Id = id;
@@ -161,7 +175,11 @@ namespace Stormancer.Server.Plugins.Queries
         /// Gets or sets the content of the document.
         /// </summary>
         public T? Source { get; set; }
-        public uint Version { get; set; }
+
+        /// <summary>
+        /// Gets or sets the version of the document.
+        /// </summary>
+        public required uint Version { get; init; }
     }
 
 

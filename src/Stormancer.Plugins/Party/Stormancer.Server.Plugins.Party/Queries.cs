@@ -87,11 +87,11 @@ namespace Stormancer.Server.Plugins.Party
                     
                     if (_data.TryGetValue(id, out var doc))
                     {
-                        yield return new Document<JObject>(id, JObject.FromObject(new { customData = doc.Item2, indexedData = doc.Item1 }));
+                        yield return new Document<JObject>(id, JObject.FromObject(new { customData = doc.Item2, indexedData = doc.Item1 })) { Version = 1 };
                     }
                     else
                     {
-                        yield return new Document<JObject>(id, default);
+                        yield return new Document<JObject>(id, default) { Version = 1 };
                     }
                 }
             }

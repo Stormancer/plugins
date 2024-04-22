@@ -47,8 +47,8 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         private IEnumerable<IIndexableField> GameSessionMapper(JObject doc)
         {
-            yield return new Int64Field("targetTeamCount", doc["TargetTeamCount"].ToObject<int>(), Field.Store.NO);
-            yield return new Int64Field("targetTeamSize", doc["TargetTeamSize"].ToObject<int>(), Field.Store.NO);
+            yield return new Int64Field("targetTeamCount", doc["TargetTeamCount"]?.ToObject<int>() ?? 0, Field.Store.NO);
+            yield return new Int64Field("targetTeamSize", doc["TargetTeamSize"]?.ToObject<int>() ?? 0, Field.Store.NO);
         }
 
         public IEnumerable<Document<JObject>> GetDocuments(IEnumerable<string> ids)
@@ -57,11 +57,11 @@ namespace Stormancer.Server.Plugins.GameFinder
             {
                 if (_data.TryGetValue(id, out var value))
                 {
-                    yield return new Document<JObject>(id,  value );
+                    yield return new Document<JObject>(id, value) { Version = 1 };
                 }
                 else
                 {
-                    yield return new Document<JObject> ( id,  null );
+                    yield return new Document<JObject>(id, null) { Version = 1 };
                 }
             }
         }
@@ -87,7 +87,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             this.gs = gs;
         }
 
-        
+
         public Task GameSessionStarting(GameSessionContext ctx)
         {
             lock (_syncRoot)
