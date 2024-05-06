@@ -391,7 +391,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// </summary>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        public async Task OnQuit(QuitPartyContext ctx)
+        public Task OnQuit(QuitPartyContext ctx)
         {
 
             if (ctx.Party.ServerData.TryGetValue(PartyLobbyKey, out var dataObject))
@@ -403,7 +403,8 @@ namespace Stormancer.Server.Plugins.Steam
                     {
                         if (data.UserData.TryRemove(ctx.Args.Peer.SessionId, out _))
                         {
-                            await LeaveSteamLobbyAsync(ctx.Args.Peer, data.SteamIDLobby!.Value, CancellationToken.None);
+                            //Don't call LeaveSteamLobby because at this time, the peer already disconnected from the scene.
+                            //await LeaveSteamLobbyAsync(ctx.Args.Peer, data.SteamIDLobby!.Value, CancellationToken.None);
                         }
                     }
                     finally
@@ -415,6 +416,8 @@ namespace Stormancer.Server.Plugins.Steam
                     }
                 }
             }
+
+            return Task.CompletedTask;
 
         }
 

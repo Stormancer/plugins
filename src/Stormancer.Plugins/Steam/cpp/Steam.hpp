@@ -635,6 +635,11 @@ namespace Stormancer
 								_logger->log(LogLevel::Error, "Steam", "SteamAPI_Init failed");
 								return;
 							}
+							else
+							{
+								_logger->log(LogLevel::Info, "Steam", "SteamAPI_Init success");
+							}
+
 						}
 
 						if (steamConfig->getSteamApiRunCallbacks())
@@ -2233,10 +2238,10 @@ namespace Stormancer
 					return pplx::task_from_result();
 				}
 
-				if (!SteamAPI_IsSteamRunning())
+				/*if (!SteamAPI_IsSteamRunning())
 				{
 					throw std::runtime_error("Steam is not running");
-				}
+				}*/
 
 				std::lock_guard<std::recursive_mutex> lg(_mutex);
 
