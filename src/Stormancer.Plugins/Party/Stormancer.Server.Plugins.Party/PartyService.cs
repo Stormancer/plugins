@@ -138,7 +138,7 @@ namespace Stormancer.Server.Plugins.Party
         private const string SendPartyStateRoute = "party.getPartyStateResponse";
         private const string GameFinderFailedRoute = "party.gameFinderFailed";
 
-        public static async Task RunReservationExpirationLoopAsync(ISceneHost scene, CancellationToken ct)
+        private static async Task RunReservationExpirationLoopAsync(ISceneHost scene, CancellationToken ct)
         {
             using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
             while (!ct.IsCancellationRequested)
@@ -151,7 +151,7 @@ namespace Stormancer.Server.Plugins.Party
 
                     try
                     {
-                        await party.RemoveExpiredReservations();
+                        await party.RemoveExpiredReservations(TimeSpan.Zero);
                     }
                     catch(Exception ex)
                     {
@@ -162,8 +162,13 @@ namespace Stormancer.Server.Plugins.Party
                 }
             }
         }
-        private async Task RemoveExpiredReservations()
+        private async Task RemoveExpiredReservations(TimeSpan delay)
         {
+            if (delay > TimeSpan.Zero)
+            {
+                await Task.Delay(delay);
+            }
+
             await _partyState.TaskQueue.PushWork(async () =>
             {
 
@@ -1220,7 +1225,7 @@ namespace Stormancer.Server.Plugins.Party
             return dto;
         }
 
-        public Task<bool> SendInvitation(string senderUserId, string recipientUserId, bool forceStormancerInvite, CancellationToken cancellationToken)
+        public async Task<bool> SendInvitation(string senderUserId, string recipientUserId, bool forceStormancerInvite, CancellationToken cancellationToken)
         {
             //Reimplement internal invitation.
             throw new NotImplementedException();
@@ -1426,7 +1431,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 }
 
-
+                _ = this.RemoveExpiredReservations(TimeSpan.FromSeconds(10));
                 return true;
 
             });

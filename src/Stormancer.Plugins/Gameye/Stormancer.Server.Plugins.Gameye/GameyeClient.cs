@@ -73,7 +73,7 @@ namespace Stormancer.Server.Plugins.Gameye
         public string? AuthenticationKeyPath { get; set; }
         public int AuthenticationKeyRefreshTimeSeconds { get; set; } = 5;
     }
-    internal class GameyeClient
+    internal class GameyeClient : IDisposable
     {
         private readonly IConfiguration _configuration;
         private readonly ISecretsStore _secretsStore;
@@ -253,6 +253,11 @@ namespace Stormancer.Server.Plugins.Gameye
         internal IAsyncEnumerable<string> QueryLogsAsync(string id, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken)
         {
             return AsyncEnumerable.Empty<string>();
+        }
+
+        public void Dispose()
+        {
+            _tokenCache.Dispose();
         }
     }
 }

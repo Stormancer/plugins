@@ -27,7 +27,7 @@ namespace Stormancer.Server.Plugins.GeoIp.Maxmind
         /// </remarks>
         public bool Enabled { get; set; } = true;
     }
-    internal class MaxMindGeoIpService : IGeoIpService
+    internal class MaxMindGeoIpService : IGeoIpService, IDisposable
     {
         private readonly IConfiguration _config;
         private readonly ISecretsStore _secretsStore;
@@ -87,6 +87,11 @@ namespace Stormancer.Server.Plugins.GeoIp.Maxmind
             var response = await client.CountryAsync(ip);
 
             return new GeoIpCountryResult(response.Continent.Code, response.Country.IsoCode);
+        }
+
+        public void Dispose()
+        {
+            _cache.Dispose();
         }
     }
 

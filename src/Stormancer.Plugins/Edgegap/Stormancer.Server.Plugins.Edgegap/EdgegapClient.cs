@@ -69,7 +69,7 @@ namespace Stormancer.Server.Plugins.Edgegap
         private readonly IConfiguration _configuration;
         private readonly ISecretsStore _secretsStore;
 
-        private MemoryCache<int, string> _tokenCache = new MemoryCache<int, string>();
+        private static MemoryCache<int, string> _tokenCache = new MemoryCache<int, string>();
         public EdgegapClient(IConfiguration configuration, ISecretsStore secretsStore)
         {
             _configuration = configuration;

@@ -20,6 +20,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
+		<None Include="..\cpp\Friends.hpp" Link="cpp\Friends.hpp" />
 	</ItemGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
@@ -39,6 +40,12 @@
 	<ItemGroup>
 		<NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
 		<cpp Include="$(ProjectDir)../cpp/*" />
+	</ItemGroup>
+	<ItemGroup>
+	  <cpp Remove="..\cpp\Friends.hpp" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="cpp\" />
 	</ItemGroup>
 	<Target Name="PostPack" AfterTargets="Pack">
 		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />

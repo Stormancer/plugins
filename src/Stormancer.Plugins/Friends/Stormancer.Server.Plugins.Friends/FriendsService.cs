@@ -418,7 +418,7 @@ namespace Stormancer.Server.Plugins.Friends
             }
             else
             {
-                throw new InvalidOperationException($"An error occured while searching friend {friendId} for user {userId}", result.OriginalException);
+                throw new InvalidOperationException($"An error occurred while searching friend {friendId} for user {userId}", result.OriginalException);
             }
         }
 
@@ -462,7 +462,7 @@ namespace Stormancer.Server.Plugins.Friends
                     requestBody = result.ApiCall.RequestBodyInBytes != null ? System.Text.Encoding.UTF8.GetString(result.ApiCall.RequestBodyInBytes) : null,
                     responseBody = result.ApiCall.ResponseBodyInBytes != null ? System.Text.Encoding.UTF8.GetString(result.ApiCall.ResponseBodyInBytes) : null
                 });
-                throw new InvalidOperationException("An error occured while searching friends", result.OriginalException);
+                throw new InvalidOperationException("An error occurred while searching friends", result.OriginalException);
             }
         }
 
@@ -524,7 +524,7 @@ namespace Stormancer.Server.Plugins.Friends
             }
             else
             {
-                throw new InvalidOperationException($"An error occured while searching relationship with {targetUserId} for user {userId}", result.OriginalException);
+                throw new InvalidOperationException($"An error occurred while searching relationship with {targetUserId} for user {userId}", result.OriginalException);
             }
         }
 
@@ -635,7 +635,7 @@ namespace Stormancer.Server.Plugins.Friends
             }
             else if (result.ServerError != null)
             {
-                throw new InvalidOperationException($"An error occured while deleting relationship with {userIdToUnblock} for user {userId}", result.OriginalException);
+                throw new InvalidOperationException($"An error occurred while deleting relationship with {userIdToUnblock} for user {userId}", result.OriginalException);
             }
         }
 
@@ -731,7 +731,7 @@ namespace Stormancer.Server.Plugins.Friends
                     requestBody = result.ApiCall.RequestBodyInBytes != null ? System.Text.Encoding.UTF8.GetString(result.ApiCall.RequestBodyInBytes) : null,
                     responseBody = result.ApiCall.ResponseBodyInBytes != null ? System.Text.Encoding.UTF8.GetString(result.ApiCall.ResponseBodyInBytes) : null
                 });
-                throw new InvalidOperationException("An error occured while searching friends", result.OriginalException);
+                throw new InvalidOperationException("An error occurred while searching friends", result.OriginalException);
             }
         }
 

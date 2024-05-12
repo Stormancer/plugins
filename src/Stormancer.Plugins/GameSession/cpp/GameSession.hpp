@@ -268,7 +268,7 @@ namespace Stormancer
 						STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("Scene"), std::shared_ptr<Stormancer::IP2PScenePeer>);
 					}
 
-					_logger->log(LogLevel::Trace, "gamession.p2ptoken", "recieved p2p token");
+					_logger->log(LogLevel::Trace, "gamession.p2ptoken", "received p2p token");
 
 					if (_receivedP2PToken)
 					{

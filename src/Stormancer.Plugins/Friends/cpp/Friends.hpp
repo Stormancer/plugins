@@ -123,7 +123,7 @@ namespace Stormancer
 		/// <remarks>
 		/// 
 		/// </remarks>
-		class Friends
+		class FriendsApi
 		{
 		public:
 			virtual ~Friends() = default;
@@ -180,13 +180,13 @@ namespace Stormancer
 			/// Event fired whenever the friend list content changes.
 			/// </summary>
 			/// <param name="callback">Callback called when the event is fired.</param>
-			/// <returns>An object that controls the lifetime of the event subscription. If all copies of this object are destroyed, the callbeck is automatically unregistered.</returns>
+			/// <returns>An object that controls the lifetime of the event subscription. If all copies of this object are destroyed, the callback is automatically unregistered.</returns>
 			virtual Event<FriendListUpdatedEvent>::Subscription subscribeFriendListUpdatedEvent(std::function<void(FriendListUpdatedEvent)> callback) = 0;
 
 			/// <summary>
 			/// Ask the friend list for a full refresh. This should be called only in platform events when users are added or removed from the user friend list.
 			/// </summary>
-			/// <returns>A task which terminate when the server has returned the friend list and the local plugin processed the changes localy.</returns>
+			/// <returns>A task which terminate when the server has returned the friend list and the local plugin processed the changes locally.</returns>
 			virtual pplx::task<void> refresh() = 0;
 
 			virtual pplx::task<void> block(std::string userIdToBlock, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;

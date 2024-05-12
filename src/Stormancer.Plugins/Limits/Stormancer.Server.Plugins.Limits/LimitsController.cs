@@ -56,12 +56,18 @@ namespace Stormancer.Server.Plugins.Limits
     /// <summary>
     /// Cache for <see cref="UserConnectionLimitStatus"/> instances retrieved from S2S.
     /// </summary>
-    public class LimitsClientCache
+    public class LimitsClientCache : IDisposable
     {
         /// <summary>
         /// Cache
         /// </summary>
         public MemoryCache<string,UserConnectionLimitStatus> Value { get; } = new MemoryCache<string,UserConnectionLimitStatus>();
+
+        /// <inheritdoc/>>
+        public void Dispose()
+        {
+            Value.Dispose();
+        }
     }
     /// <summary>
     /// Client to get limits informations.

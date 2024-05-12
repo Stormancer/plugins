@@ -5,7 +5,7 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>5.2.0.42</Version>
+		<Version>5.2.0.43</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -30,11 +30,16 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
+		<None Include="..\cpp\Party.hpp" Link="cpp\Party.hpp" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
 		<cpp Include="$(ProjectDir)../cpp/*" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <cpp Remove="..\cpp\Party.hpp" />
 	</ItemGroup>
 
 
@@ -52,6 +57,10 @@
 		<ProjectReference Include="..\..\Utilities\Stormancer.NewtonsoftJson\Stormancer.NewtonsoftJson.csproj" />
 		<ProjectReference Include="..\..\Utilities\Stormancer.Server.Plugins.Utilities\Stormancer.Server.Plugins.Utilities.csproj" />
 		
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="cpp\" />
 	</ItemGroup>
 	<Target Name="PostPack" AfterTargets="Pack">
 		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />

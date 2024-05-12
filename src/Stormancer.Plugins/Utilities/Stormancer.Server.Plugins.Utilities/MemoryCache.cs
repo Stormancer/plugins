@@ -112,7 +112,8 @@ namespace Stormancer.Server.Plugins
         private object _syncRoot = new object();
 
         Dictionary<TKey, CacheEntry> cache = new Dictionary<TKey, CacheEntry>();
-        private readonly PeriodicTimer _timer;
+        private PeriodicTimer? _timer;
+        private bool _disposed = false;
 
         /// <summary>
         /// Creates the memory cache.
@@ -120,25 +121,48 @@ namespace Stormancer.Server.Plugins
         public MemoryCache()
         {
 
-            _timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
-            Task.Run(async () =>
+            
+        }
+       
+        private void TryStartCleaner()
+        {
+            if(_timer == null && !_disposed)
             {
-
-                while (await _timer.WaitForNextTickAsync())
+                lock(_syncRoot)
                 {
-                    KeyValuePair<TKey, CacheEntry>[] copy;
-                    lock (_syncRoot)
+                    if(_timer == null && !_disposed)
                     {
-                        copy = cache.Where(kvp => (kvp.Value.ExpiresOn ?? DateTime.MaxValue) < DateTime.UtcNow).ToArray();
+                        _timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
+                        _ = RunCleaner();
                     }
-
-                    foreach (var entry in copy)
-                    {
-                        entry.Value.OnInvalidated(entry.Key);
-                    }
-
                 }
-            });
+            }
+        }
+        private async Task RunCleaner()
+        {
+            while (_timer != null && await _timer.WaitForNextTickAsync())
+            {
+                KeyValuePair<TKey, CacheEntry>[] copy;
+                lock (_syncRoot)
+                {
+                    copy = cache.Where(kvp => (kvp.Value.ExpiresOn ?? DateTime.MaxValue) < DateTime.UtcNow).ToArray();
+                }
+
+                foreach (var entry in copy)
+                {
+                    entry.Value.OnInvalidated(entry.Key);
+                }
+
+                lock(_syncRoot)
+                {
+                    if (!cache.Any())
+                    {
+                        _timer?.Dispose();
+                        _timer = null;
+                    }
+                }
+            }
+       
         }
 
         /// <summary>
@@ -285,7 +309,12 @@ namespace Stormancer.Server.Plugins
         /// </summary>
         public void Dispose()
         {
-            _timer.Dispose();
+            lock (_syncRoot)
+            {
+                _disposed = true;
+
+                _timer?.Dispose();
+            }
         }
     }
 }

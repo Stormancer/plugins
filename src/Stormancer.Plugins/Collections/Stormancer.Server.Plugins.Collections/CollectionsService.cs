@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Collections
 {
-    internal class CollectionsRepository : IConfigurationChangedEventHandler
+    internal class CollectionsRepository : IConfigurationChangedEventHandler, IDisposable
     {
         private readonly IConfiguration _configuration;
         private readonly IBlobStore _blobStore;
@@ -81,6 +81,11 @@ namespace Stormancer.Server.Plugins.Collections
                 value.Id = key;
             }
             return (definitions.Items, _configSection.CacheDuration);
+        }
+
+        public void Dispose()
+        {
+            _itemDefinitions.Dispose();
         }
     }
 

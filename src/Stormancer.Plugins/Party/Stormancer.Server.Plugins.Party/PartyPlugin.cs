@@ -233,7 +233,7 @@ namespace Stormancer.Server.Plugins.Party
             {
                 if (scene.TemplateMetadata.ContainsKey(PartyConstants.METADATA_KEY))
                 {
-                    scene.RunTask(ct => PartyService.RunReservationExpirationLoopAsync(scene, ct));
+                    //scene.RunTask(ct => PartyService.RunReservationExpirationLoopAsync(scene, ct));
                 }
             };
             ctx.HostStarted += (IHost host) =>

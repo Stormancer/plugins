@@ -31,6 +31,9 @@
     <Filter Include="Source Files\GameFinder">
       <UniqueIdentifier>{ca11c78f-9131-402a-8a84-948b0c5293f5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Plugins">
+      <UniqueIdentifier>{a2d8c9a3-1431-46a2-a7b7-dc26289009f2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -153,14 +156,14 @@
     <ClInclude Include="..\..\output\cpp\users\Users.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Stormancer.Plugins\Replication\cpp\Lockstep.hpp">
-      <Filter>Source Files\Gamesession</Filter>
-    </ClInclude>
     <ClInclude Include="Lockstep.h">
       <Filter>Source Files\Gamesession</Filter>
     </ClInclude>
+    <ClInclude Include="..\Stormancer.Plugins\Replication\cpp\Lockstep.hpp">
+      <Filter>Header Files\Plugins</Filter>
+    </ClInclude>
     <ClInclude Include="..\Stormancer.Plugins\Replication\cpp\P2PMesh.hpp">
-      <Filter>Source Files\Gamesession</Filter>
+      <Filter>Header Files\Plugins</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

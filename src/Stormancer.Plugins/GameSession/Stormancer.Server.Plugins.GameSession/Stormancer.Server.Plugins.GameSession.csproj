@@ -20,8 +20,12 @@
 	<PropertyGroup>
 		<PackageIcon>icon.png</PackageIcon>
 	</PropertyGroup>
+
+	
 	<ItemGroup>
 		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
+		<None Include="..\cpp\GameSession.hpp" Link="cpp\GameSession.hpp" Pack="true" PackagePath="\client\cpp\GameSession.hpp"/>
+		<None Include="..\cpp\ServerPools.hpp" Link="cpp\ServerPools.hpp" Pack="true" PackagePath="\client\cpp\ServerPools.hpp"/>
 	</ItemGroup>
 	<ItemGroup>
 		<None Include="docs\Readme.md" Pack="true" PackagePath="\" />
@@ -52,7 +56,6 @@
 
 	<ItemGroup>
 		<NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
-		<cpp Include="$(ProjectDir)../cpp/*" />
 	</ItemGroup>
 
 	<ItemGroup>
