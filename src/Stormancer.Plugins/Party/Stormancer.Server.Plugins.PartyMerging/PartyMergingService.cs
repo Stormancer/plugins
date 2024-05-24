@@ -34,7 +34,14 @@ namespace Stormancer.Server.Plugins.PartyMerging
             {
                 result += span[i];
             }
-            return result.Milliseconds / span.Length;
+            if (span.Length > 0)
+            {
+                return result.Milliseconds / span.Length;
+            }
+            else
+            {
+                return 0;
+            }
         });
 
         public PartyMergingState(ISceneHost scene)
