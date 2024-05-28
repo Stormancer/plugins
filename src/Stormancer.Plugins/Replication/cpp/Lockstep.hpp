@@ -1,12 +1,16 @@
-#pragma once
+
+#ifndef STORM_PLUGIN_IMPL
+#define STORM_PLUGIN_IMPL 0
+#endif
+
+#ifndef STORM_PLUGIN_LOCKSTEP_H
+#define STORM_PLUGIN_LOCKSTEP_H
+
 #include "stormancer/IPlugin.h"
 #include "stormancer/Event.h"
 #include "stormancer/SessionId.h"
 #include <stdio.h>
 
-#if !defined(STORM_PLUGIN_IMPL)
-#define STORM_PLUGIN_IMPL 0
-#endif
 
 namespace Stormancer
 {
@@ -17,20 +21,19 @@ namespace Stormancer
 			/// <summary>
 			/// Delay in gameplay time between a command is pushed to the API and executed.
 			/// </summary>
-			unsigned int delayMs = 100;
+			float DelaySeconds = 0.1f;
+			float FixedDeltaTimeSeconds = 0.034f;
 
-			/// <summary>
-			/// the Minimum time in ms in the future the clients must be synchronized for the gameplay to progress.
-			/// </summary>
-			unsigned int minimumTimeWindowMs = 16;
 		};
 		struct Command
 		{
 			int playerId;
+			SessionId sessionId;
 			::std::vector<byte> content;
 
-			unsigned int timeMs;
+			float timeSeconds;
 		};
+
 		struct LockstepPlayer
 		{
 			SessionId sessionId;
@@ -41,12 +44,13 @@ namespace Stormancer
 
 			unsigned int synchronizedUntilMs;
 			int lastCommandId;
+			float targetDeltaTimeSeconds;
 		};
 
 
 		struct Frame
 		{
-			unsigned int currentTime;
+			float currentTimeSeconds;
 
 			/// <summary>
 			/// Commands performed during this frame
@@ -76,29 +80,33 @@ namespace Stormancer
 			{
 			public:
 				virtual int pushCommand(byte* buffer, int length) = 0;
-				virtual bool tick(unsigned int deltaTimeMs) = 0;
-				virtual unsigned int getCurrentTime() = 0;
-				virtual unsigned int getTargetTime() = 0;
-				virtual int lastExecutedCommand() = 0;
-				virtual bool isPaused() = 0;
+				virtual float tick(float deltaSeconds, float realDeltaSeconds) = 0;
+				virtual float getCurrentTime() const = 0;
+				virtual float getTargetTime() const = 0;
+				virtual int lastExecutedCommand() const = 0;
+				virtual bool isPaused() const = 0;
 				virtual void pause(bool pause) = 0;
 
-				virtual std::vector<LockstepPlayer> getPlayers() = 0;
+				virtual std::vector<LockstepPlayer> getPlayers() const = 0;
 
 				Stormancer::Event<Frame&> onStep;
+				Event<bool> onPauseStateChanged;
+				Event<> onPlayerListChanged;
+
+				virtual ~ILockstepService() {};
 			};
 		}
 		class LockstepApi
 		{
 			friend LockstepPlugin;
 		public:
-			bool tick(unsigned int deltaTimeMs);
+			float tick(float deltaSeconds, float realDeltaSeconds);
 
-			unsigned int getCurrentTime();
-			unsigned int getTargetTime();
-			int lastExecutedCommand();
+			float getCurrentTime() const;
+			float getTargetTime() const;
+			int lastExecutedCommand() const;
 
-			bool isEnabled();
+			bool isEnabled() const;
 
 			/// <summary>
 			/// Pushes a command to the system. if frame is not specified, 
@@ -111,13 +119,18 @@ namespace Stormancer
 			Event<Frame&> onStep;
 			Event<RollbackContext&> onRollback;
 
-			bool isPaused();
+			Event<bool> onPauseStateChanged;
+			Event<> onPlayerListChanged;
+
+			bool isPaused() const;
 
 			void pause(bool pause);
 
-			std::vector<LockstepPlayer> getPlayers();
+			std::vector<LockstepPlayer> getPlayers() const;
 
 
+
+			virtual ~LockstepApi() {};
 
 		private:
 			void onSceneConnected(std::shared_ptr<details::ILockstepService> service);
@@ -126,21 +139,25 @@ namespace Stormancer
 			std::shared_ptr<details::ILockstepService> _service;
 
 			Subscription _onStepSubscription;
+			Subscription _onPauseStateChangedSubscription;
+			Subscription _onPlayerListChangedSubscription;
 		};
 
 
 
 	}
 }
-
-
-#if STORM_PLUGIN_IMPL == 1
+#endif
+#if STORM_PLUGIN_IMPL
 
 #include "stormancer/Scene.h"
 #include "stormancer/RPC/RpcService.h"
 #include "stormancer/IClient.h"
-#include "P2PMesh.hpp"
 
+#undef STORM_PLUGIN_IMPL
+#include "gamesession/P2PMesh.hpp"
+#undef STORM_PLUGIN_IMPL
+#define STORM_PLUGIN_IMPL 1
 
 namespace Stormancer
 {
@@ -213,24 +230,25 @@ namespace Stormancer
 			struct FrameDto
 			{
 				int64 sentOn;
-				unsigned int gameplayTimeMs;
-				unsigned int validatedGameplayTimeMs;
-				unsigned int requiredCommandIdForTime;
+				float gameplayTimeSeconds;
+				float validatedGameplayTimeSeconds;
+				float deltaTimePerFrameSeconds;
+				unsigned int requiredCommandIdAtCurrentTime;
 
 				int firstCommandReceived;
 				int lastCommandReceived;
 
 
-				MSGPACK_DEFINE(sentOn, gameplayTimeMs, validatedGameplayTimeMs, requiredCommandIdForTime, firstCommandReceived, lastCommandReceived);
+				MSGPACK_DEFINE(sentOn, gameplayTimeSeconds, validatedGameplayTimeSeconds, deltaTimePerFrameSeconds, requiredCommandIdAtCurrentTime, firstCommandReceived, lastCommandReceived)
 			};
 
 			struct CommandDto
 			{
 				int commandId = 0;
-				unsigned int gameplayTimeMs = 0;
+				float gameplayTimeSeconds = 0;
 				std::vector<byte> content;
 
-				MSGPACK_DEFINE(commandId, gameplayTimeMs, content)
+				MSGPACK_DEFINE(commandId, gameplayTimeSeconds, content)
 			};
 
 			struct PlayerCommandNode
@@ -294,20 +312,23 @@ namespace Stormancer
 				/// <summary>
 				/// The gameplay time of the player when the frame was sent.
 				/// </summary>
-				unsigned int gameplayTimeMs = 0;
+				float gameplayTimeSeconds = 0;
+				float deltaTimePerFrameSeconds = 0;
 
 				/// <summary>
-				/// Minimum time of futur commands.
+				/// The minimum time for future commands
 				/// </summary>
-				unsigned int validatedGamePlayTimeMs = 0;
-				unsigned int lastCommandTime = 0;
+				float validatedGamePlayTimeSeconds = 0;
+
+
+				float lastCommandTimeSeconds = 0;
 
 				int64 receivedOn = 0;
 				int64 sentOn = 0;
 				/// <summary>
 				/// The last command id the peer sent until the provided gameplay time.
 				/// </summary>
-				unsigned int requiredCommandIdForTime = 0;
+				unsigned int requiredCommandIdAtCurrentTime = 0;
 
 				PlayerCommandNode* _firstCommand = nullptr;
 				PlayerCommandNode* _lastCommand = nullptr;
@@ -318,16 +339,16 @@ namespace Stormancer
 				/// </summary>
 				int lastSentCommand = 0;
 
-				unsigned int synchronizedUntil()
+				float synchronizedUntil() const
 				{
 					auto lastCommandId = _lastCommand != nullptr ? _lastCommand->command.commandId : 0;
-					if (lastCommandId == requiredCommandIdForTime)
+					if (lastCommandId == requiredCommandIdAtCurrentTime)
 					{
-						return validatedGamePlayTimeMs;
+						return validatedGamePlayTimeSeconds;
 					}
 					else if (_lastCommand != nullptr)
 					{
-						return _lastCommand->command.gameplayTimeMs;
+						return _lastCommand->command.gameplayTimeSeconds;
 					}
 					else
 					{
@@ -336,7 +357,7 @@ namespace Stormancer
 
 
 				}
-				unsigned int lastExecutedCommandId()
+				unsigned int lastExecutedCommandId() const
 				{
 					return _lastExecutedNode != nullptr ? _lastExecutedNode->command.commandId : 0;
 				}
@@ -345,9 +366,9 @@ namespace Stormancer
 
 				void addCommand(const CommandDto& command)
 				{
-					if (lastCommandTime < command.gameplayTimeMs)
+					if (lastCommandTimeSeconds < command.gameplayTimeSeconds)
 					{
-						lastCommandTime = command.gameplayTimeMs;
+						lastCommandTimeSeconds = command.gameplayTimeSeconds;
 					}
 					if (_firstCommand == nullptr)
 					{
@@ -432,7 +453,7 @@ namespace Stormancer
 				}
 
 
-				std::vector<LockstepPlayer> getPlayers() override
+				std::vector<LockstepPlayer> getPlayers() const override
 				{
 					std::vector<LockstepPlayer> result;
 
@@ -443,7 +464,7 @@ namespace Stormancer
 						LockstepPlayer player;
 						player.localPlayer = state.isLocal;
 						player.synchronizedUntilMs = state.synchronizedUntil();
-						player.lastCommandId = state.requiredCommandIdForTime;
+						player.lastCommandId = state.requiredCommandIdAtCurrentTime;
 						player.latencyMs = (int)state.latency;
 						player.playerId = state.playerId;
 						player.sessionId = state.sessionId;
@@ -459,7 +480,7 @@ namespace Stormancer
 					auto client = _client.lock();
 					auto node = new PlayerCommandNode;
 					node->command.commandId = _lastCommand != nullptr ? _lastCommand->command.commandId + 1 : 1;
-					node->command.gameplayTimeMs = _currentTime + _options.delayMs;
+					node->command.gameplayTimeSeconds = _currentGamePlayTimeSeconds + _options.DelaySeconds;
 					node->command.content.resize(length);
 					byte& pointer = node->command.content.front();
 					memcpy(&pointer, buffer, length);
@@ -482,41 +503,66 @@ namespace Stormancer
 
 				}
 
-				unsigned int getCurrentTime()
+				float getCurrentTime() const
 				{
-					return _currentTime;
+					return _currentGamePlayTimeSeconds;
 				}
 
-				bool tick(unsigned int deltaMs)
+				float tick(float targetDeltaSeconds, float realDeltaSeconds)
 				{
+					_lastDeltaTimePerFrameSeconds = targetDeltaSeconds;
+					_timeSinceLastGameplayProgress += targetDeltaSeconds;
+					synchronizeState();
+
+					float deltaSeconds;
+
 					processPendingPlayersUpdateCommands();
+
+
+
 					if (_isPaused)
 					{
-						deltaMs = 0;
-					}
-
-
-					auto nextTime = _currentTime + deltaMs;
-
-					Frame frame;
-					frame.currentTime = _currentTime;
-
-
-					bool gameplayProgress = true;
-					unsigned int rollbackTo = _currentTime;
-
-					auto targetTime = getTargetTime();
-					auto synchronizedUntil = this->synchronizedUntil();
-					if (nextTime >= targetTime || nextTime > synchronizedUntil)
-					{
-
-						gameplayProgress = false;
+						deltaSeconds = 0;
 					}
 					else
 					{
+						deltaSeconds = _options.FixedDeltaTimeSeconds;
+					}
+					if (_timeSinceLastGameplayProgress < deltaSeconds)
+					{
+						return 0;
+					}
+					else
+					{
+						_timeSinceLastGameplayProgress -= targetDeltaSeconds;
+					}
+
+					auto nextTime = _currentGamePlayTimeSeconds + deltaSeconds;
+
+
+					Frame frame;
+					frame.currentTimeSeconds = _currentGamePlayTimeSeconds;
+
+
+					bool gameplayProgress = true;
+					unsigned int rollbackTo = _currentGamePlayTimeSeconds;
+
+					auto targetTime = getTargetTime();
+					auto synchronizedUntil = this->synchronizedUntil();
+
+
+					if (nextTime > synchronizedUntil || nextTime > targetTime)
+					{
+
+						gameplayProgress = false;
+						deltaSeconds = 0;
+						nextTime = _currentGamePlayTimeSeconds;
+					}
+					/*else
+					{
 
 						_logger->log(Stormancer::LogLevel::Info, "lockstep", std::to_string(gameplayProgress) + " " + std::to_string(_currentTime) + " " + std::to_string(nextTime) + " " + std::to_string(targetTime), "");
-					}
+					}*/
 
 
 					for (auto& kvp : _playerStates)
@@ -529,19 +575,20 @@ namespace Stormancer
 						{
 							node = state._lastExecutedNode->next;
 						}
-						while (node != nullptr && node->command.gameplayTimeMs < nextTime)
+						while (node != nullptr && node->command.gameplayTimeSeconds < nextTime)
 						{
-							if (node->command.gameplayTimeMs < rollbackTo)
+							if (node->command.gameplayTimeSeconds < rollbackTo)
 							{
-								rollbackTo = node->command.gameplayTimeMs;
+								rollbackTo = node->command.gameplayTimeSeconds;
 							}
 
-							if (node->command.gameplayTimeMs >= _currentTime)
+							if (node->command.gameplayTimeSeconds >= _currentGamePlayTimeSeconds)
 							{
 								Command command;
 								command.content = node->command.content;
 								command.playerId = state.playerId;
-								command.timeMs = node->command.gameplayTimeMs;
+								command.sessionId = state.sessionId;
+								command.timeSeconds = node->command.gameplayTimeSeconds;
 								frame.commands.push_back(command);
 								state._lastExecutedNode = node;
 							}
@@ -558,35 +605,39 @@ namespace Stormancer
 						node = _lastExecutedCommand->next;
 					}
 
-					while (node != nullptr && node->command.gameplayTimeMs < nextTime)
+					while (node != nullptr && node->command.gameplayTimeSeconds < nextTime)
 					{
 						Command command;
 						command.content = node->command.content;
 						command.playerId = _currentPlayerId;
-						command.timeMs = node->command.gameplayTimeMs;
+						command.timeSeconds = node->command.gameplayTimeSeconds;
 						frame.commands.push_back(command);
 						_lastExecutedCommand = node;
 						node = node->next;
 					}
 
-					if (rollbackTo < _currentTime)
+					if (rollbackTo < _currentGamePlayTimeSeconds)
 					{
 						rollback(rollbackTo);
 					}
-
+					if ((gameplayProgress && deltaSeconds > 0) != _currentGameplayProgress)
+					{
+						_currentGameplayProgress = gameplayProgress && deltaSeconds > 0;
+						onPauseStateChanged(!gameplayProgress);
+					}
 
 					onStep(frame);
-					_currentTime = nextTime;
-					synchronizeState();
+					_currentGamePlayTimeSeconds = nextTime;
 
-					return gameplayProgress;
+
+					return deltaSeconds;
 				}
 
-				bool isPaused()
+				bool isPaused() const
 				{
 					return _isPaused;
 				}
-				int lastExecutedCommand()
+				int lastExecutedCommand() const
 				{
 					return _lastExecutedCommand != nullptr ? _lastExecutedCommand->command.commandId : 0;
 				}
@@ -596,36 +647,38 @@ namespace Stormancer
 					_isPaused = pause;
 				}
 
-				unsigned int getTargetTime()
+				float getTargetTime() const
 				{
-					unsigned int result = 0xFFFFFFFF;
-
+					float result = 0;
+					bool found = false;
 
 					for (auto& kvp : _playerStates)
 					{
 						if (!kvp.second.isLocal)
 						{
-							unsigned int time = getPlayerCurrentEstimatedGameplayTimeMs(kvp.second);
+							auto& state = kvp.second;
+							float time = getPlayerCurrentEstimatedGameplayTimeMs(state);
 							if (time < result)
 							{
 								result = time;
+								found = true;
 							}
 						}
 					}
-					if (result == 0xFFFFFFFF)
+					if (!found)
 					{
-						result = _currentTime + _options.minimumTimeWindowMs;
+						result = _currentGamePlayTimeSeconds + _options.FixedDeltaTimeSeconds;
 					}
 					return result;
 				}
 
 			private:
 
-				unsigned int getPlayerCurrentEstimatedGameplayTimeMs(PlayerState& state)
+				float getPlayerCurrentEstimatedGameplayTimeMs(const PlayerState& state) const
 				{
 					if (auto client = _client.lock())
 					{
-						return state.gameplayTimeMs + (int)(client->clock() - state.sentOn);
+						return state.gameplayTimeSeconds + ((float)(client->clock() - state.sentOn)) / 1000;
 					}
 					else
 					{
@@ -635,7 +688,7 @@ namespace Stormancer
 
 
 
-				unsigned int synchronizedUntil()
+				unsigned int synchronizedUntil() const
 				{
 					unsigned int result = 0xFFFFFFFF;
 
@@ -713,10 +766,11 @@ namespace Stormancer
 				void sendStateToPlayer(const PlayerState& playerState)
 				{
 					FrameDto frame;
-					frame.gameplayTimeMs = _currentTime;
-					frame.validatedGameplayTimeMs = _currentTime + _options.delayMs;
+					frame.gameplayTimeSeconds = _currentGamePlayTimeSeconds;
+					frame.deltaTimePerFrameSeconds = _lastDeltaTimePerFrameSeconds;
+					frame.validatedGameplayTimeSeconds = _currentGamePlayTimeSeconds + _options.DelaySeconds;
 					frame.sentOn = _client.lock()->clock();
-					frame.requiredCommandIdForTime = getUpdateIdForTime(frame.gameplayTimeMs);
+					frame.requiredCommandIdAtCurrentTime = getUpdateIdForTime(frame.gameplayTimeSeconds);
 					frame.firstCommandReceived = playerState._firstCommand != nullptr ? playerState._firstCommand->command.commandId : 0;
 					frame.lastCommandReceived = playerState._lastCommand != nullptr ? playerState._lastCommand->command.commandId : 0;
 
@@ -728,7 +782,7 @@ namespace Stormancer
 				}
 
 
-				int getUpdateIdForTime(unsigned int gameplayTime)
+				int getUpdateIdForTime(float gameplayTimeSeconds) const
 				{
 					auto current = this->_lastExecutedCommand;
 					if (current == nullptr)
@@ -736,7 +790,7 @@ namespace Stormancer
 						return 0;
 					}
 					int result = 0;
-					while (current != nullptr && current->command.gameplayTimeMs < gameplayTime)
+					while (current != nullptr && current->command.gameplayTimeSeconds < gameplayTimeSeconds)
 					{
 						result = current->command.commandId;
 						current = current->next;
@@ -790,12 +844,12 @@ namespace Stormancer
 								state.sentOn = args.sentOn;
 								auto latency = (int)(state.receivedOn - args.sentOn);
 								state.latency.addValue(latency > 0 ? latency : 0);
-								if (args.gameplayTimeMs >= state.gameplayTimeMs)
+								if (args.gameplayTimeSeconds >= state.gameplayTimeSeconds)
 								{
-
-									state.validatedGamePlayTimeMs = args.validatedGameplayTimeMs;
-									state.gameplayTimeMs = args.gameplayTimeMs;
-									state.requiredCommandIdForTime = args.requiredCommandIdForTime;
+									state.deltaTimePerFrameSeconds = args.deltaTimePerFrameSeconds;
+									state.validatedGamePlayTimeSeconds = args.validatedGameplayTimeSeconds;
+									state.gameplayTimeSeconds = args.gameplayTimeSeconds;
+									state.requiredCommandIdAtCurrentTime = args.requiredCommandIdAtCurrentTime;
 								}
 							}
 
@@ -849,11 +903,13 @@ namespace Stormancer
 				void processPendingPlayersUpdateCommands()
 				{
 					int j = -1;
+					bool modified = false;
 					for (int i = 0; i < _pendingPlayersUpdateCommand.size(); i++)
 					{
 						auto& cmd = _pendingPlayersUpdateCommand[i];
 						if (cmd.updateId == _currentPlayersUpdateId + 1)
 						{
+							modified = true;
 							applyPlayersUpdateCommand(cmd);
 							j = i;
 							break;
@@ -864,7 +920,10 @@ namespace Stormancer
 						_pendingPlayersUpdateCommand.erase(_pendingPlayersUpdateCommand.begin() + j);
 					}
 
-
+					if (modified)
+					{
+						onPlayerListChanged();
+					}
 
 				}
 
@@ -898,8 +957,13 @@ namespace Stormancer
 
 
 			private:
+				float _timeSinceLastGameplayProgress = 0;
+				float _lastDeltaTimePerFrameSeconds = 0;
 				bool _isPaused = true;
-				unsigned int _currentTime = 0;
+				bool _currentGameplayProgress = false;
+
+				float _currentGamePlayTimeSeconds = 0;
+				float _currentRealTimeSeconds = 0;
 				int _currentPlayersUpdateId = 0;
 				int _currentPlayerId = 0;
 
@@ -926,35 +990,35 @@ namespace Stormancer
 		static constexpr const char* PLUGIN_VERSION = "1.0.0";
 		static constexpr const char* LOCKSTEP_HOST_METADATA = "stormancer.lockstep";
 
-		bool LockstepApi::tick(unsigned int deltaMs)
+		float LockstepApi::tick(float deltaSeconds, float realDeltaSeconds)
 		{
-			return _service->tick(deltaMs);
+			return _service->tick(deltaSeconds, realDeltaSeconds);
 		}
 
 		/// <summary>
 		/// Gets the current lockstep time, in ms.
 		/// </summary>
 		/// <returns></returns>
-		unsigned int LockstepApi::getCurrentTime()
+		float LockstepApi::getCurrentTime() const
 		{
 			return _service->getCurrentTime();
 		}
-		unsigned int LockstepApi::getTargetTime()
+		float LockstepApi::getTargetTime() const
 		{
 			return _service->getTargetTime();
 		}
 
-		int LockstepApi::lastExecutedCommand()
+		int LockstepApi::lastExecutedCommand() const
 		{
 			return _service->lastExecutedCommand();
 		}
 
-		bool LockstepApi::isEnabled()
+		bool LockstepApi::isEnabled() const
 		{
 			return _service != nullptr;
 		}
 
-		bool LockstepApi::isPaused()
+		bool LockstepApi::isPaused() const
 		{
 			return _service->isPaused();
 		}
@@ -976,6 +1040,14 @@ namespace Stormancer
 				{
 					this->onStep(frame);
 				});
+			_onPauseStateChangedSubscription = service->onPauseStateChanged.subscribe([this](bool paused) {
+				this->onPauseStateChanged(paused);
+
+				});
+			_onPlayerListChangedSubscription = service->onPlayerListChanged.subscribe([this]() {
+				this->onPlayerListChanged();
+
+				});
 		}
 		void LockstepApi::onSceneDisconnected()
 		{
@@ -983,7 +1055,7 @@ namespace Stormancer
 			_service.reset();
 		}
 
-		std::vector<LockstepPlayer> LockstepApi::getPlayers()
+		std::vector<LockstepPlayer> LockstepApi::getPlayers() const
 		{
 			return _service->getPlayers();
 		}

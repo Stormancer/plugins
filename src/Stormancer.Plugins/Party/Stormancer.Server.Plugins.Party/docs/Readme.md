@@ -31,12 +31,12 @@ Parties can be joined in a cross platform way by using invitation codes
 Invitation codes can be customized in the server configuration, or code:
 
 
-	{
-		"party":{
-			"authorizedInvitationCodeCharacters":"01234567890" // defaults to "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
-			"invitationCodeLength" : 4 //defaults to 6
-		}
+	
+	"party":{
+		"authorizedInvitationCodeCharacters":"01234567890" // defaults to "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
+		"invitationCodeLength" : 4 //defaults to 6
 	}
+	
 
 To generate an invitation code, the party leader calls `pplx::task<std::string> PartyApi::createInvitationCode(pplx::cancellation_token ct)`. Calling the method again invalidates the previous code. 
 The current invitation code can be disabled without generating a new one by calling `pplx::task<void> PartyApi::cancelInvitationCode(pplx::cancellation_token ct = pplx::cancellation_token::none())`

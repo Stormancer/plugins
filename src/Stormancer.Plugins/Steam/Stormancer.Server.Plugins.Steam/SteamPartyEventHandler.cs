@@ -433,13 +433,13 @@ namespace Stormancer.Server.Plugins.Steam
                 var data = (SteamPartyData)dataObject;
                 if (data.SteamIDLobby.HasValue)
                 {
-                    if (ctx.Party.Settings.IsJoinable != data.IsJoinable && ctx.Party.Settings.ServerSettings.ShouldSyncJoinable())
+                    if (ctx.Config.IsJoinable != data.IsJoinable && ctx.Party.Settings.ServerSettings.ShouldSyncJoinable())
                     {
-                        var result = await SetLobbyJoinableAsync(data.SteamIDLobby.Value, ctx.Party.Settings.IsJoinable, data, CancellationToken.None);
+                        var result = await SetLobbyJoinableAsync(data.SteamIDLobby.Value, ctx.Config.IsJoinable, data, CancellationToken.None);
 
                         if (result.Success)
                         {
-                            data.IsJoinable = ctx.Party.Settings.IsJoinable;
+                            data.IsJoinable = ctx.Config.IsJoinable;
                         }
                     }
                 }
