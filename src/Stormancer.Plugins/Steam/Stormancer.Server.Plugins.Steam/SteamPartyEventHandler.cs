@@ -276,10 +276,7 @@ namespace Stormancer.Server.Plugins.Steam
             {
 
                 var joinLobbyParameter = new LeaveLobbyArgs { };
-                using var packet = await _rpc.Rpc("Steam.LeaveLobby", target, s => _serializer.Serialize(joinLobbyParameter, s), Core.PacketPriority.MEDIUM_PRIORITY, cancellationToken);
-
-                var joinSteamLobbyResult = packet.ReadObject<VoidSteamResult>();
-
+                var joinSteamLobbyResult = await target.RpcTask<LeaveLobbyArgs,VoidSteamResult>("Steam.LeaveLobby",joinLobbyParameter, cancellationToken, PacketPriority.MEDIUM_PRIORITY);
                 if (!joinSteamLobbyResult.Success)
                 {
                     _logger.Log(LogLevel.Error, "SteamPartyEventHandler.OnJoining", "Steam lobby join failed", new
@@ -322,8 +319,8 @@ namespace Stormancer.Server.Plugins.Steam
             }
             else
             {
-                using var packet = await _rpc.Rpc("Steam.GetLobbyOwner", peer, s => { }, Core.PacketPriority.MEDIUM_PRIORITY, cancellationToken);
-                var result = packet.ReadObject<GetLobbyLeaderSteamResult>();
+                var result = await peer.RpcTask<GetLobbyLeaderSteamResult>("Steam.GetLobbyOwner", s=> { },cancellationToken, Core.PacketPriority.MEDIUM_PRIORITY);
+               
                 if (!result.Success)
                 {
                     _logger.Log(LogLevel.Error, "SteamPartyEventHandler.GetLobbyLeader", "get Steam lobby leader failed", new
@@ -363,9 +360,7 @@ namespace Stormancer.Server.Plugins.Steam
                 }
 
                 var args = new UpdateLobbyJoinableArgs { Joinable = joinable, SteamIDLobby = steamLobbyId };
-                using var packet = await _rpc.Rpc("Steam.UpdateLobbyJoinable", target, s => _serializer.Serialize(args, s), Core.PacketPriority.MEDIUM_PRIORITY, cancellationToken);
-
-                var result = packet.ReadObject<VoidSteamResult>();
+                var result = await target.RpcTask<UpdateLobbyJoinableArgs, VoidSteamResult>("Steam.UpdateLobbyJoinable", args, cancellationToken, Core.PacketPriority.MEDIUM_PRIORITY);
 
                 if (!result.Success)
                 {
