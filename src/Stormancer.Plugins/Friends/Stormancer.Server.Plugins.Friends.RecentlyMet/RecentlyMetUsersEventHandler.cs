@@ -20,9 +20,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Microsoft.EntityFrameworkCore;
 using Nest;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Database;
+using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
+using Stormancer.Server.Plugins.GameHistory;
 using Stormancer.Server.Plugins.GameSession;
 using System;
 using System.Collections.Generic;
@@ -39,71 +42,47 @@ namespace Stormancer.Server.Plugins.Friends.RecentlyMet
         public List<string> UserIds { get; set; } = default!;
     }
 
-    class RecentlyMetUsersEventHandler : IFriendsEventHandler, IGameSessionEventHandler
+    class RecentlyMetUsersEventHandler : IFriendsEventHandler
     {
-        private const string INDEX_NAME = "RecentlyPlayedWith";
+
         private readonly IFriendsService _friends;
-        private Task<IElasticClient> _client;
+        private readonly DbContextAccessor _dbAccessor;
         private int _maxRecentlyMet = 10;
 
-        public RecentlyMetUsersEventHandler(IFriendsService friends, IESClientFactory esClient, ILogger logger)
+        public RecentlyMetUsersEventHandler(IFriendsService friends, DbContextAccessor dbAccessor, ILogger logger)
         {
             _friends = friends;
-            _client = esClient.CreateClient<RecentTeam>(INDEX_NAME);
+            _dbAccessor = dbAccessor;
         }
 
-        public async Task GameSessionStarted(GameSessionStartedCtx ctx)
-        {
-            var client = await _client;
 
-            var tasks = new List<Task>();
-
-            var date = DateTimeOffset.UtcNow;
-
-            foreach (var team in ctx.Config.Teams)
-            {
-                var recentTeam = new RecentTeam { Id = Guid.NewGuid().ToString("N"), Date = date, UserIds = team.Parties.SelectMany(g => g.Players.Keys).ToList() };
-                tasks.Add(client.IndexDocumentAsync(recentTeam));
-                foreach (var userId in recentTeam.UserIds)
-                {
-                    var friends = recentTeam.UserIds.Where(id => id != userId).Select(id => new Friend { UserId = id, LastConnected = date, Status = FriendStatus.Disconnected, Tags = new List<string> { "recentlyMet" } });
-                    tasks.Add(_friends.AddNonPersistedFriends(userId, friends, CancellationToken.None));
-                }
-            }
-
-            await Task.WhenAll(tasks);
-        }
 
         public async Task OnGetFriends(GetFriendsCtx getMetUsersCtx)
         {
-            var client = await _client;
-            var result = await client.SearchAsync<RecentTeam>(sd => sd
-                .Size(_maxRecentlyMet)
-                .Sort(ss => ss.Descending(dd => dd.Date))
-                .Query(qu => qu.Terms(termsDesc => termsDesc.Field(fieldDesc => fieldDesc.UserIds).Terms(getMetUsersCtx.UserId)))
-            );
+            var userId = Guid.Parse(getMetUsersCtx.UserId);
+            var ctx = await _dbAccessor.GetDbContextAsync();
 
-            var userIds = result.Documents.SelectMany(d => d.UserIds.Select(u => new { id = u, date = d.Date })).DistinctBy(d => d.id).Where(d => d.id != getMetUsersCtx.UserId).Take(_maxRecentlyMet);
-            foreach (var userId in userIds)
+            var currentFriends = getMetUsersCtx.Friends.Select(f => Guid.Parse(f.UserId)).ToList();
+            currentFriends.Add(userId);
+            var query = from userHistory in ctx.Set<UserGameHistoryRecord>()
+                        join historyRecord in ctx.Set<GameHistoryRecord>()
+                        on userHistory.GameHistoryRecordId equals historyRecord.Id
+                        join otherHistory in ctx.Set<UserGameHistoryRecord>()
+                        on historyRecord.Id equals otherHistory.GameHistoryRecordId
+                        where userHistory.UserRecordId == userId && !currentFriends.Contains(otherHistory.UserRecordId)
+                        orderby historyRecord.CreatedOn descending
+                        select new
+                        {
+                            date = historyRecord.CreatedOn,
+                            userId = otherHistory.UserRecordId,
+                            
+                        };
+
+            var recentlyPlayedWith = await query.Distinct().Take(_maxRecentlyMet).ToListAsync();
+
+            foreach (var friendId in recentlyPlayedWith)
             {
-                getMetUsersCtx.Friends.Add(new Friend { LastConnected = userId.date, UserId = userId.id, Status = FriendStatus.Disconnected, Tags = new List<string> { "recentlyMet" } });
-            }
-        }
-
-      
-    }
-
-    internal static class EnumerableExtensions
-    {
-        public static IEnumerable<TSource> DistinctBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
-        {
-            HashSet<TKey> knownKeys = new HashSet<TKey>();
-            foreach (TSource element in source)
-            {
-                if (knownKeys.Add(keySelector(element)))
-                {
-                    yield return element;
-                }
+                getMetUsersCtx.Friends.Add(new Friend { UserId = userId.ToString(), Status = FriendConnectionStatus.Disconnected, Tags = new List<string> { "recentlyMet" } });
             }
         }
     }

@@ -20,7 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Stormancer.Core;
+using Stormancer.Server.Plugins.Users;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Steam
@@ -56,19 +59,15 @@ namespace Stormancer.Server.Plugins.Steam
         /// <returns></returns>
         Task<Dictionary<ulong, SteamPlayerSummary>> GetPlayerSummaries(IEnumerable<ulong> steamIds);
 
-        /// <summary>
-        /// Get steam player friends.
-        /// </summary>
-        /// <param name="steamId">steam Id</param>
-        /// <returns></returns>
-        Task<IEnumerable<SteamFriend>> GetFriendListFromWebApi(ulong steamId, uint maxFriendsCount = uint.MaxValue);
 
         /// <summary>
         /// Get steam player friends.
         /// </summary>
-        /// <param name="userId">Stormancer user Id</param>
+        /// <param name="scene"></param>
+        /// <param name="session"></param>
+        /// <param name="maxFriendsCount"></param>
         /// <returns></returns>
-        Task<IEnumerable<SteamFriend>> GetFriendListFromClient(string userId, uint maxFriendsCount = uint.MaxValue);
+        Task<SteamGetFriendsFromClientResult> GetFriendListFromClientAsync(ISceneHost scene, Session session, uint maxFriendsCount = uint.MaxValue, CancellationToken cancellationToken = default);
 
         // ILobbyMatchmakingService
 

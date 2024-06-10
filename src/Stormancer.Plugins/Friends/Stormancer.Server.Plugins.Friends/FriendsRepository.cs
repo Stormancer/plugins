@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json.Linq;
+using Stormancer.Server.Plugins.Friends.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
@@ -29,21 +31,18 @@ namespace Stormancer.Server.Plugins.Friends
     //TODO: update to support distributed scene
     class FriendsRepository
     {
-        private struct UserContainer
-        {
-            public SessionId sessionId;
-            public FriendListConfigRecord config;
-        }
-        //[key=>{cid,config}]
-        private readonly ConcurrentDictionary<string, UserContainer> _peers = new ConcurrentDictionary<string, UserContainer>();
+        private record struct UserContainer(SessionId sessionId, UserFriendListConfig config);
 
-        //[cId=>key]
-        private readonly ConcurrentDictionary<SessionId, string> _keys = new ConcurrentDictionary<SessionId, string>();
+        //[userId=>{cid,config}]
+        private readonly ConcurrentDictionary<Guid, UserContainer> _peers = new();
+
+        //[cId=>userId]
+        private readonly ConcurrentDictionary<SessionId, Guid> _keys = new();
 
         public FriendsRepository()
         {
         }
-        public Task AddPeer(string key, IScenePeerClient peer, FriendListConfigRecord statusConfig)
+        public Task AddPeer(Guid key, IScenePeerClient peer, UserFriendListConfig statusConfig)
         {
             if (statusConfig == null)
             {
@@ -55,42 +54,47 @@ namespace Stormancer.Server.Plugins.Friends
             return Task.FromResult(true);
         }
 
-        public Task<FriendListConfigRecord> GetStatusConfig(string key)
+        public Task<UserFriendListConfig?> GetStatusConfig(Guid key)
         {
             UserContainer p;
             if (_peers.TryGetValue(key, out p))
             {
-                return Task.FromResult(p.config);
+                return Task.FromResult<UserFriendListConfig?>(p.config);
             }
             else
             {
-                return Task.FromResult(default(FriendListConfigRecord));
+                return Task.FromResult(default(UserFriendListConfig));
             }
         }
 
-        public Task<FriendListConfigRecord> UpdateStatusConfig(string key, FriendListStatusConfig status, string customData)
+        public Task<bool> UpdateStatusConfig(Guid key, UserFriendListConfig newConfig)
         {
             UserContainer p;
             if (_peers.TryGetValue(key, out p))
             {
-                p.config = new FriendListConfigRecord { Id = key, CustomData = customData, LastConnected = DateTime.UtcNow, Status = status };
+                p.config = newConfig;
+                return Task.FromResult(true);
             }
-            return Task.FromResult(p.config);
+            else
+            {
+                return Task.FromResult(false);
+            }
+
         }
 
-        public Task<Tuple<FriendListConfigRecord, string>> RemovePeer(SessionId sessionId)
+        public Task<(UserFriendListConfig? config, Guid userId)> RemovePeer(SessionId sessionId)
         {
             UserContainer p = default(UserContainer);
-            string key;
-            if (_keys.TryRemove(sessionId, out key))
+
+            if (_keys.TryRemove(sessionId, out var key))
             {
                 if (_peers.TryRemove(key, out p))
                 {
-                    p.config.LastConnected = DateTime.UtcNow;
-                    return Task.FromResult(Tuple.Create(p.config, key));
+
+                    return Task.FromResult(((UserFriendListConfig?)p.config, key));
                 }
             }
-            return Task.FromResult(Tuple.Create<FriendListConfigRecord, string>(null, key));
+            return Task.FromResult(((UserFriendListConfig?)null, key));
         }
     }
 }

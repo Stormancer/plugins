@@ -119,7 +119,7 @@ namespace Stormancer
 		struct SteamFriend
 		{
 			std::string steamId;
-			std::string relationship;
+			int relationship;
 			uint64 friend_since = 0;
 
 			MSGPACK_DEFINE(steamId, relationship, friend_since);
@@ -398,13 +398,24 @@ namespace Stormancer
 				MSGPACK_DEFINE(success, errorId, errorDetails)
 			};
 
+			struct GetSteamFriendsOperationResult
+			{
+				bool success;
+				std::string errorId;
+				std::string errorDetails;
+				std::vector<SteamFriend> friends;
+
+				MSGPACK_DEFINE(success, errorId, errorDetails, friends)
+
+			};
+
 			struct GetLobbyOwnerResult
 			{
 				bool success;
 				std::string errorId;
 				std::string errorDetails;
 				SteamID owner;
-				MSGPACK_DEFINE(success,errorId,errorDetails, owner)
+				MSGPACK_DEFINE(success, errorId, errorDetails, owner)
 			};
 
 			struct JoinLobbyDto
@@ -543,85 +554,125 @@ namespace Stormancer
 					auto wSteamImpl = STORM_WEAK_FROM_THIS();
 					auto rpc = scene->dependencyResolver().resolve<RpcService>();
 					rpc->addProcedure("Steam.CreateLobby", [wSteamImpl](RpcRequestContext_ptr ctx)
-					{
-						auto steamApi = wSteamImpl.lock();
-						if (!steamApi)
 						{
-							STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
-						}
+							auto steamApi = wSteamImpl.lock();
+							if (!steamApi)
+							{
+								STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
+							}
 
-						auto args = ctx->readObject<CreateLobbyDto>();
+							auto args = ctx->readObject<CreateLobbyDto>();
 
-						return steamApi->onCreateLobbyAsync(args, ctx->cancellationToken())
-							.then([ctx](CreateLobbyResult result) {
-							ctx->sendValueTemplated(result);
+							return steamApi->onCreateLobbyAsync(args, ctx->cancellationToken())
+								.then([ctx](CreateLobbyResult result) {
+								ctx->sendValueTemplated(result);
+									});
 						});
-					});
 
 					rpc->addProcedure("Steam.JoinLobby", [wSteamImpl](RpcRequestContext_ptr ctx)
-					{
-						auto steamApi = wSteamImpl.lock();
-						if (!steamApi)
 						{
-							STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
-						}
+							auto steamApi = wSteamImpl.lock();
+							if (!steamApi)
+							{
+								STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
+							}
 
-						auto args = ctx->readObject<JoinLobbyDto>();
+							auto args = ctx->readObject<JoinLobbyDto>();
 
-						return steamApi->onJoinLobbyAsync(args, ctx->cancellationToken())
-							.then([ctx](VoidSteamOperationResult result) {
-							ctx->sendValueTemplated(result);
+							return steamApi->onJoinLobbyAsync(args, ctx->cancellationToken())
+								.then([ctx](VoidSteamOperationResult result) {
+								ctx->sendValueTemplated(result);
+									});
 						});
-					});
 
 					rpc->addProcedure("Steam.UpdateLobbyJoinable", [wSteamImpl](RpcRequestContext_ptr ctx)
-					{
-						auto steamApi = wSteamImpl.lock();
-						if (!steamApi)
 						{
-							STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
-						}
+							auto steamApi = wSteamImpl.lock();
+							if (!steamApi)
+							{
+								STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
+							}
 
-						auto args = ctx->readObject<UpdateLobbyJoinableArgs>();
+							auto args = ctx->readObject<UpdateLobbyJoinableArgs>();
 
-						return steamApi->setLobbyJoinable(args.steamIDLobby, args.joinable, ctx->cancellationToken())
-							.then([ctx](pplx::task<void> t)
+							return steamApi->setLobbyJoinable(args.steamIDLobby, args.joinable, ctx->cancellationToken())
+								.then([ctx](pplx::task<void> t)
+									{
+										VoidSteamOperationResult result;
+										try
+										{
+											t.get();
+											result.success = true;
+											ctx->sendValueTemplated(result);
+										}
+										catch (std::exception& ex)
+										{
+											result.success = false;
+											result.errorDetails = ex.what();
+											ctx->sendValueTemplated(result);
+										}
+
+
+									});
+						});
+
+					rpc->addProcedure("Steam.GetLobbyOwner", [wSteamImpl](RpcRequestContext_ptr ctx)
 						{
-							VoidSteamOperationResult result;
-							try
+							auto steamApi = wSteamImpl.lock();
+							if (!steamApi)
 							{
-								t.get();
-								result.success = true;
-								ctx->sendValueTemplated(result);
+								STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
 							}
-							catch (std::exception& ex)
+
+							auto args = ctx->readObject<GetLobbyOwnerArgs>();
+							auto leader = steamApi->getLobbyLeader(args.steamIDLobby);
+							GetLobbyOwnerResult result;
+							result.success = true;
+							ctx->sendValueTemplated(result);
+
+							return pplx::task_from_result();
+						});
+
+					
+
+				}
+
+				void initializeFriendsScene(std::shared_ptr<Scene> scene)
+				{
+					auto wSteamImpl = STORM_WEAK_FROM_THIS();
+					auto rpc = scene->dependencyResolver().resolve<RpcService>();
+
+					rpc->addProcedure("Steam.GetFriends", [wSteamImpl](RpcRequestContext_ptr ctx)
+						{
+							auto steamApi = wSteamImpl.lock();
+							if (!steamApi)
 							{
-								result.success = false;
-								result.errorDetails = ex.what();
-								ctx->sendValueTemplated(result);
+								STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
 							}
+
+							uint32 maxFriendsCount = ctx->readObject<uint32>();
+
+							return steamApi->getFriends(k_EFriendFlagImmediate, maxFriendsCount, ctx->cancellationToken())
+								.then([ctx](pplx::task<std::vector<SteamFriend>> task)
+									{
+										GetSteamFriendsOperationResult result;
+										try
+										{
+											auto friends = task.get();
+											result.friends = friends;
+											result.success = true;
+										}
+										catch (std::exception& ex)
+										{
+											result.success = false;
+											result.errorId = "steamError";
+											result.errorDetails = ex.what();
+										}
+										ctx->sendValueTemplated(result);
+									});
 
 
 						});
-					});
-
-					rpc->addProcedure("Steam.GetLobbyOwner", [wSteamImpl](RpcRequestContext_ptr ctx)
-					{
-						auto steamApi = wSteamImpl.lock();
-						if (!steamApi)
-						{
-							STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
-						}
-
-						auto args = ctx->readObject<GetLobbyOwnerArgs>();
-						auto leader = steamApi->getLobbyLeader(args.steamIDLobby);
-						GetLobbyOwnerResult result;
-						result.success = true;
-						ctx->sendValueTemplated(result);
-
-						return pplx::task_from_result();
-					});
-
 				}
 
 				void initialize() override
@@ -678,35 +729,23 @@ namespace Stormancer
 					auto wSteamImpl = STORM_WEAK_FROM_THIS();
 
 					usersApi->setOperationHandler("Steam.GetFriends", [wSteamApi = wSteamImpl, wUsersApi = _wUsersApi, logger = _logger](Stormancer::Users::OperationCtx& ctx)
-					{
-						auto steamApi = wSteamApi.lock();
-						if (!steamApi)
 						{
-							STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
-						}
+							auto steamApi = wSteamApi.lock();
+							if (!steamApi)
+							{
+								STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
+							}
 
-						uint32 maxFriendsCount = ctx.request->readObject<uint32>();
+							uint32 maxFriendsCount = ctx.request->readObject<uint32>();
 
-						return steamApi->getFriends(k_EFriendFlagImmediate, maxFriendsCount, ctx.request->cancellationToken())
-							.then([ctx](std::vector<SteamFriend> friends)
-						{
-							ctx.request->sendValueTemplated(friends);
+							return steamApi->getFriends(k_EFriendFlagImmediate, maxFriendsCount, ctx.request->cancellationToken())
+								.then([ctx](std::vector<SteamFriend> friends)
+									{
+										ctx.request->sendValueTemplated(friends);
+									});
 						});
-					});
 
 					usersApi->setOperationHandler("Steam.CreateLobby", [wSteamImpl, wUsersApi = _wUsersApi, logger = _logger](Stormancer::Users::OperationCtx& ctx)
-					{
-						auto steamImpl = wSteamImpl.lock();
-						if (!steamImpl)
-						{
-							STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
-						}
-
-						auto createLobbyDto = ctx.request->readObject<CreateLobbyDto>();
-
-						// Create lobby
-						return steamImpl->createLobby(createLobbyDto.lobbyType, createLobbyDto.maxMembers, createLobbyDto.joinable, createLobbyDto.metadata, ctx.request->cancellationToken())
-							.then([wSteamImpl, wUsersApi, ctx](SteamIDLobby steamIDLobby)
 						{
 							auto steamImpl = wSteamImpl.lock();
 							if (!steamImpl)
@@ -714,71 +753,47 @@ namespace Stormancer
 								STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
 							}
 
-							auto usersApi = wUsersApi.lock();
-							if (!usersApi)
-							{
-								STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("UsersApi"), void);
-							}
+							auto createLobbyDto = ctx.request->readObject<CreateLobbyDto>();
 
-							{
-								std::lock_guard<std::recursive_mutex> lg(steamImpl->_mutex);
+							// Create lobby
+							return steamImpl->createLobby(createLobbyDto.lobbyType, createLobbyDto.maxMembers, createLobbyDto.joinable, createLobbyDto.metadata, ctx.request->cancellationToken())
+								.then([wSteamImpl, wUsersApi, ctx](SteamIDLobby steamIDLobby)
+									{
+										auto steamImpl = wSteamImpl.lock();
+										if (!steamImpl)
+										{
+											STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
+										}
 
-								// Keep steamIDLobby to leave on party leave
-								steamImpl->_partySteamIDLobby = steamIDLobby;
-							}
+										auto usersApi = wUsersApi.lock();
+										if (!usersApi)
+										{
+											STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("UsersApi"), void);
+										}
 
-							auto myUserId = usersApi->userId();
+										{
+											std::lock_guard<std::recursive_mutex> lg(steamImpl->_mutex);
 
-							return steamImpl->setLobbyMemberData(steamIDLobby, "stormancer.userId", myUserId, ctx.request->cancellationToken())
-								.then([steamIDLobby, ctx]()
-							{
-								// Send back steamIDLobby to server
-								ctx.request->sendValue([steamIDLobby](obytestream& stream)
-								{
-									Serializer serializer;
-									serializer.serialize(stream, steamIDLobby);
-								});
-							});
+											// Keep steamIDLobby to leave on party leave
+											steamImpl->_partySteamIDLobby = steamIDLobby;
+										}
+
+										auto myUserId = usersApi->userId();
+
+										return steamImpl->setLobbyMemberData(steamIDLobby, "stormancer.userId", myUserId, ctx.request->cancellationToken())
+											.then([steamIDLobby, ctx]()
+												{
+													// Send back steamIDLobby to server
+													ctx.request->sendValue([steamIDLobby](obytestream& stream)
+														{
+															Serializer serializer;
+															serializer.serialize(stream, steamIDLobby);
+														});
+												});
+									});
 						});
-					});
 
 					usersApi->setOperationHandler("Steam.JoinLobby", [wSteamImpl, wUsersApi = _wUsersApi, logger = _logger](Stormancer::Users::OperationCtx& ctx)
-					{
-						auto steamImpl = wSteamImpl.lock();
-						if (!steamImpl)
-						{
-							STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
-						}
-
-						auto joinLobbyDto = ctx.request->readObject<JoinLobbyDto>();
-						auto steamIDLobby = joinLobbyDto.steamIDLobby;
-
-						std::lock_guard<std::recursive_mutex> lg(steamImpl->_mutex);
-
-						// Keep steamIDLobby to leave on party leave
-						steamImpl->_partySteamIDLobby = steamIDLobby;
-
-						return steamImpl->inLobby(steamIDLobby, ctx.request->cancellationToken())
-							.then([steamIDLobby, wSteamImpl, ctx](bool inLobby)
-						{
-							if (inLobby)
-							{
-								// We already are in the lobby, do nothing
-								return pplx::task_from_result();
-							}
-							else
-							{
-								// Join lobby
-								auto steamImpl = wSteamImpl.lock();
-								if (!steamImpl)
-								{
-									STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
-								}
-
-								return steamImpl->joinLobby(steamIDLobby, ctx.request->cancellationToken());
-							}
-						})
-							.then([wSteamImpl, wUsersApi, steamIDLobby, ctx]()
 						{
 							auto steamImpl = wSteamImpl.lock();
 							if (!steamImpl)
@@ -786,16 +801,52 @@ namespace Stormancer
 								STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
 							}
 
-							auto usersApi = wUsersApi.lock();
-							if (!usersApi)
-							{
-								STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("UsersApi"), void);
-							}
+							auto joinLobbyDto = ctx.request->readObject<JoinLobbyDto>();
+							auto steamIDLobby = joinLobbyDto.steamIDLobby;
 
-							auto myUserId = usersApi->userId();
-							return steamImpl->setLobbyMemberData(steamIDLobby, "stormancer.userId", myUserId, ctx.request->cancellationToken());
+							std::lock_guard<std::recursive_mutex> lg(steamImpl->_mutex);
+
+							// Keep steamIDLobby to leave on party leave
+							steamImpl->_partySteamIDLobby = steamIDLobby;
+
+							return steamImpl->inLobby(steamIDLobby, ctx.request->cancellationToken())
+								.then([steamIDLobby, wSteamImpl, ctx](bool inLobby)
+									{
+										if (inLobby)
+										{
+											// We already are in the lobby, do nothing
+											return pplx::task_from_result();
+										}
+										else
+										{
+											// Join lobby
+											auto steamImpl = wSteamImpl.lock();
+											if (!steamImpl)
+											{
+												STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
+											}
+
+											return steamImpl->joinLobby(steamIDLobby, ctx.request->cancellationToken());
+										}
+									})
+								.then([wSteamImpl, wUsersApi, steamIDLobby, ctx]()
+									{
+										auto steamImpl = wSteamImpl.lock();
+										if (!steamImpl)
+										{
+											STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
+										}
+
+										auto usersApi = wUsersApi.lock();
+										if (!usersApi)
+										{
+											STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("UsersApi"), void);
+										}
+
+										auto myUserId = usersApi->userId();
+										return steamImpl->setLobbyMemberData(steamIDLobby, "stormancer.userId", myUserId, ctx.request->cancellationToken());
+									});
 						});
-					});
 				}
 
 
@@ -809,12 +860,12 @@ namespace Stormancer
 						{
 							auto wSteamImpl = STORM_WEAK_FROM_THIS();
 							actionDispatcher->post([wSteamImpl]()
-							{
-								if (auto steamImpl = wSteamImpl.lock())
 								{
-									steamImpl->scheduleRunSteamAPiCallbacks();
-								}
-							});
+									if (auto steamImpl = wSteamImpl.lock())
+									{
+										steamImpl->scheduleRunSteamAPiCallbacks();
+									}
+								});
 						}
 					}
 				}
@@ -887,9 +938,9 @@ namespace Stormancer
 					// Timeout
 					timeout(10s, ct)
 						.register_callback([tce = _lobbyCreatedTce]()
-					{
-						tce->set_exception(pplx::task_canceled());
-					});
+							{
+								tce->set_exception(pplx::task_canceled());
+							});
 
 					// Call SteamAPI and register call result
 					SteamAPICall_t hSteamAPICall = steamMatchmaking->CreateLobby(lobbyType, maxMembers);
@@ -897,48 +948,48 @@ namespace Stormancer
 
 					return pplx::create_task(*_lobbyCreatedTce, taskOptions)
 						.then([steamMatchmaking, joinable, metadata, wSteamApi = STORM_WEAK_FROM_THIS(), logger = _logger, ct](SteamIDLobby steamIDLobby)
-					{
-						auto steamApi = wSteamApi.lock();
-
-						auto task = pplx::task_from_result();
-						logger->log(LogLevel::Info, "steam", "Steam lobby created", std::to_string(steamIDLobby));
-						if (!joinable)
-						{
-							steamApi->setLobbyJoinable(steamIDLobby, joinable, ct)
-								.then([logger](pplx::task<void> task)
 							{
-								try
+								auto steamApi = wSteamApi.lock();
+
+								auto task = pplx::task_from_result();
+								logger->log(LogLevel::Info, "steam", "Steam lobby created", std::to_string(steamIDLobby));
+								if (!joinable)
 								{
-									return task.get();
+									steamApi->setLobbyJoinable(steamIDLobby, joinable, ct)
+										.then([logger](pplx::task<void> task)
+											{
+												try
+												{
+													return task.get();
+												}
+												catch (const std::exception& ex)
+												{
+													logger->log(LogLevel::Warn, "Steam", "setLobbyJoinable failed", ex);
+												}
+											});
 								}
-								catch (const std::exception& ex)
+
+								if (metadata.size() > 0)
 								{
-									logger->log(LogLevel::Warn, "Steam", "setLobbyJoinable failed", ex);
+									for (auto& md : metadata)
+									{
+										steamApi->setLobbyData(steamIDLobby, md.first, md.second, ct)
+											.then([logger](pplx::task<void> task)
+												{
+													try
+													{
+														return task.get();
+													}
+													catch (const std::exception& ex)
+													{
+														logger->log(LogLevel::Warn, "Steam", "setLobbyData failed, metadata ignored", ex);
+													}
+												});
+									}
 								}
+
+								return steamIDLobby;
 							});
-						}
-
-						if (metadata.size() > 0)
-						{
-							for (auto& md : metadata)
-							{
-								steamApi->setLobbyData(steamIDLobby, md.first, md.second, ct)
-									.then([logger](pplx::task<void> task)
-								{
-									try
-									{
-										return task.get();
-									}
-									catch (const std::exception& ex)
-									{
-										logger->log(LogLevel::Warn, "Steam", "setLobbyData failed, metadata ignored", ex);
-									}
-								});
-							}
-						}
-
-						return steamIDLobby;
-					});
 				}
 
 				pplx::task<void> joinLobby(SteamIDLobby steamIDLobby, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
@@ -971,9 +1022,9 @@ namespace Stormancer
 					// Timeout
 					timeout(10s, ct)
 						.register_callback([tce = lobbyEnterEventData.tce]()
-					{
-						tce.set_exception(pplx::task_canceled());
-					});
+							{
+								tce.set_exception(pplx::task_canceled());
+							});
 
 					// Call SteamAPI and register call result
 					SteamAPICall_t hSteamAPICall = steamMatchmaking->JoinLobby(CSteamID(steamIDLobby));
@@ -1065,9 +1116,9 @@ namespace Stormancer
 					// Timeout
 					timeout(10s, ct)
 						.register_callback([tce = _requestLobbyListTce]()
-					{
-						tce->set_exception(pplx::task_canceled());
-					});
+							{
+								tce->set_exception(pplx::task_canceled());
+							});
 
 					// Call SteamAPI and register call result
 					SteamAPICall_t hSteamAPICall = steamMatchmaking->RequestLobbyList();
@@ -1192,19 +1243,19 @@ namespace Stormancer
 
 						timeout(10s, ct)
 							.register_callback([steamIDLobby, wSteamImpl = STORM_WEAK_FROM_THIS()]()
-						{
-							if (auto steamImpl = wSteamImpl.lock())
-							{
-								std::lock_guard<std::recursive_mutex> lg(steamImpl->_mutex);
-
-								auto it = steamImpl->_requestLobbyDataTces.find(steamIDLobby);
-								if (it != steamImpl->_requestLobbyDataTces.end())
 								{
-									it->second.set_exception(pplx::task_canceled());
-									steamImpl->_requestLobbyDataTces.erase(it);
-								}
-							}
-						});
+									if (auto steamImpl = wSteamImpl.lock())
+									{
+										std::lock_guard<std::recursive_mutex> lg(steamImpl->_mutex);
+
+										auto it = steamImpl->_requestLobbyDataTces.find(steamIDLobby);
+										if (it != steamImpl->_requestLobbyDataTces.end())
+										{
+											it->second.set_exception(pplx::task_canceled());
+											steamImpl->_requestLobbyDataTces.erase(it);
+										}
+									}
+								});
 					}
 					else
 					{
@@ -1230,60 +1281,60 @@ namespace Stormancer
 				{
 					return getService([](auto, auto, auto) {}, [](auto, auto) {}, ct)
 						.then([steamIDs, ct](std::shared_ptr<SteamService> service)
-					{
-						return service->queryUserIds(steamIDs, ct);
-					});
+							{
+								return service->queryUserIds(steamIDs, ct);
+							});
 				}
 
 				pplx::task<std::unordered_map<std::string, PartyDataDto>> decodePartyDataBearerTokens(const std::unordered_map<std::string, std::string>& partyDataBearerTokens, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
 				{
 					return getService([](auto, auto, auto) {}, [](auto, auto) {}, ct)
 						.then([partyDataBearerTokens, ct](std::shared_ptr<SteamService> service)
-					{
-						return service->decodePartyDataBearerTokens(partyDataBearerTokens, ct);
-					});
+							{
+								return service->decodePartyDataBearerTokens(partyDataBearerTokens, ct);
+							});
 				}
 
 				pplx::task<bool> inLobby(SteamIDLobby steamIDLobby, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
 				{
 					return requestLobbyData(steamIDLobby, ct)
 						.then([steamIDLobby](Lobby lobby)
-					{
-						auto steamUser = SteamUser();
-						if (!steamUser)
-						{
-							return false;
-						}
-
-						SteamID steamID = steamUser->GetSteamID().ConvertToUint64();
-
-						for (auto& kvp : lobby.lobbyMembers)
-						{
-							if (kvp.first == steamID)
 							{
-								return true;
-							}
-						}
+								auto steamUser = SteamUser();
+								if (!steamUser)
+								{
+									return false;
+								}
 
-						return false;
-					});
+								SteamID steamID = steamUser->GetSteamID().ConvertToUint64();
+
+								for (auto& kvp : lobby.lobbyMembers)
+								{
+									if (kvp.first == steamID)
+									{
+										return true;
+									}
+								}
+
+								return false;
+							});
 				}
 
 				pplx::task<bool> isOwner(SteamIDLobby steamIDLobby, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
 				{
 					return requestLobbyData(steamIDLobby, ct)
 						.then([](Lobby lobby)
-					{
-						auto steamUser = SteamUser();
-						if (!steamUser)
-						{
-							return false;
-						}
+							{
+								auto steamUser = SteamUser();
+								if (!steamUser)
+								{
+									return false;
+								}
 
-						auto steamID = steamUser->GetSteamID();
+								auto steamID = steamUser->GetSteamID();
 
-						return (lobby.lobbyOwner != 0 && steamID == lobby.lobbyOwner);
-					});
+								return (lobby.lobbyOwner != 0 && steamID == lobby.lobbyOwner);
+							});
 				}
 
 				pplx::task<std::vector<SteamFriend>> getFriends(int friendsFlag = k_EFriendFlagImmediate, uint32 maxFriendsCount = UINT32_MAX, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
@@ -1305,13 +1356,12 @@ namespace Stormancer
 						{
 							CSteamID steamIDFriend = steamFriends->GetFriendByIndex(i, k_EFriendFlagImmediate);
 
-							if (steamFriends->GetFriendRelationship(steamIDFriend) == k_EFriendRelationshipFriend)
-							{
-								SteamFriend steamFriend;
-								steamFriend.steamId = std::to_string(steamIDFriend.ConvertToUint64());
-								steamFriend.relationship = "friend";
-								friendsList.push_back(steamFriend);
-							}
+
+							SteamFriend steamFriend;
+							steamFriend.steamId = std::to_string(steamIDFriend.ConvertToUint64());
+							steamFriend.relationship = steamFriends->GetFriendRelationship(steamIDFriend);
+							friendsList.push_back(steamFriend);
+
 						}
 
 						return friendsList;
@@ -1343,57 +1393,57 @@ namespace Stormancer
 
 					return inLobby(steamIDLobby, cancellationToken)
 						.then([steamIDLobby, wSteamImpl, cancellationToken](bool inLobby)
-					{
-						if (inLobby)
-						{
-							// We already are in the lobby, do nothing
-							return pplx::task_from_result();
-						}
-						else
-						{
-							// Join lobby
-							auto steamImpl = wSteamImpl.lock();
-							if (!steamImpl)
 							{
-								STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
-							}
+								if (inLobby)
+								{
+									// We already are in the lobby, do nothing
+									return pplx::task_from_result();
+								}
+								else
+								{
+									// Join lobby
+									auto steamImpl = wSteamImpl.lock();
+									if (!steamImpl)
+									{
+										STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
+									}
 
-							return steamImpl->joinLobby(steamIDLobby, cancellationToken);
-						}
-					})
+									return steamImpl->joinLobby(steamIDLobby, cancellationToken);
+								}
+							})
 						.then([wSteamImpl, wUsersApi, steamIDLobby, cancellationToken]()
-					{
-						auto steamImpl = wSteamImpl.lock();
-						if (!steamImpl)
-						{
-							STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
-						}
+							{
+								auto steamImpl = wSteamImpl.lock();
+								if (!steamImpl)
+								{
+									STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
+								}
 
-						auto usersApi = wUsersApi.lock();
-						if (!usersApi)
-						{
-							STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("UsersApi"), void);
-						}
+								auto usersApi = wUsersApi.lock();
+								if (!usersApi)
+								{
+									STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("UsersApi"), void);
+								}
 
-						auto myUserId = usersApi->userId();
-						return steamImpl->setLobbyMemberData(steamIDLobby, "stormancer.userId", myUserId, cancellationToken);
-					})
+								auto myUserId = usersApi->userId();
+								return steamImpl->setLobbyMemberData(steamIDLobby, "stormancer.userId", myUserId, cancellationToken);
+							})
 						.then([](pplx::task<void> t)
-					{
-						VoidSteamOperationResult result;
-						try
-						{
-							t.get();
-							result.success = true;
-						}
-						catch (std::exception& ex)
-						{
-							result.success = false;
-							result.errorDetails = ex.what();
-							result.errorId = ex.what();
-						}
-						return result;
-					});
+							{
+								VoidSteamOperationResult result;
+								try
+								{
+									t.get();
+									result.success = true;
+								}
+								catch (std::exception& ex)
+								{
+									result.success = false;
+									result.errorDetails = ex.what();
+									result.errorId = ex.what();
+								}
+								return result;
+							});
 
 				}
 
@@ -1404,54 +1454,54 @@ namespace Stormancer
 					auto wSteamImpl = STORM_WEAK_FROM_THIS();
 					return createLobby(createLobbyDto.lobbyType, createLobbyDto.maxMembers, createLobbyDto.joinable, createLobbyDto.metadata, cancellationToken)
 						.then([wSteamImpl, wUsersApi = _wUsersApi, logger = _logger, cancellationToken](SteamIDLobby steamIDLobby)
-					{
+							{
 
-						auto steamImpl = wSteamImpl.lock();
-						if (!steamImpl)
-						{
-							STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), CreateLobbyResult);
-						}
+								auto steamImpl = wSteamImpl.lock();
+								if (!steamImpl)
+								{
+									STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), CreateLobbyResult);
+								}
 
-						auto usersApi = wUsersApi.lock();
-						if (!usersApi)
-						{
-							STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("UsersApi"), CreateLobbyResult);
-						}
+								auto usersApi = wUsersApi.lock();
+								if (!usersApi)
+								{
+									STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("UsersApi"), CreateLobbyResult);
+								}
 
-						{
-							std::lock_guard<std::recursive_mutex> lg(steamImpl->_mutex);
+								{
+									std::lock_guard<std::recursive_mutex> lg(steamImpl->_mutex);
 
-							// Keep steamIDLobby to leave on party leave
-							steamImpl->_partySteamIDLobby = steamIDLobby;
-						}
+									// Keep steamIDLobby to leave on party leave
+									steamImpl->_partySteamIDLobby = steamIDLobby;
+								}
 
-						auto myUserId = usersApi->userId();
+								auto myUserId = usersApi->userId();
 
-						return steamImpl->setLobbyMemberData(steamIDLobby, "stormancer.userId", myUserId, cancellationToken)
-							.then([steamIDLobby]()
-						{
-							// Send back steamIDLobby to server
-							CreateLobbyResult result;
-							result.success = true;
-							result.steamLobbyId = steamIDLobby;
-							return result;
-						});
-					})
+								return steamImpl->setLobbyMemberData(steamIDLobby, "stormancer.userId", myUserId, cancellationToken)
+									.then([steamIDLobby]()
+										{
+											// Send back steamIDLobby to server
+											CreateLobbyResult result;
+											result.success = true;
+											result.steamLobbyId = steamIDLobby;
+											return result;
+										});
+							})
 						.then([](pplx::task<CreateLobbyResult> t)
-					{
-						try
-						{
-							return t.get();
-						}
-						catch (std::exception& ex)
-						{
-							CreateLobbyResult result;
-							result.success = false;
-							result.errorDetails = ex.what();
-							result.errorId = "steamLobbyCreationFailed";
-							return result;
-						}
-					});
+							{
+								try
+								{
+									return t.get();
+								}
+								catch (std::exception& ex)
+								{
+									CreateLobbyResult result;
+									result.success = false;
+									result.errorDetails = ex.what();
+									result.errorId = "steamLobbyCreationFailed";
+									return result;
+								}
+							});
 				}
 
 
@@ -1818,47 +1868,47 @@ namespace Stormancer
 					// Get lobby data
 					return steamApi->requestLobbyData(std::stoull(partyId.id), ct)
 						.then([wSteamApi = _wSteamApi, ct, logger = _logger](Lobby lobby)
-					{
-						auto steamApi = wSteamApi.lock();
-						if (!steamApi)
-						{
-							throw ObjectDeletedException("SteamApi");
-						}
-
-						auto it = lobby.data.find("partyDataToken");
-						if (it == lobby.data.end())
-						{
-							throw std::runtime_error("partyDataToken not found in Steam lobby data");
-						}
-
-						// If the "partyDataToken" metadata is found in the Steam lobby, we can join the associated party.
-						// And if the party is joined, the server will ask to join the Steam lobby.
-						auto partyDataToken = it->second;
-
-						return steamApi->decodePartyDataBearerTokens(std::unordered_map<std::string, std::string>{ { std::to_string(lobby.steamIDLobby), partyDataToken } }, ct)
-							.then([wSteamApi, logger](std::unordered_map<std::string, PartyDataDto> dtos)
-						{
-							if (dtos.size() != 1)
 							{
-								throw std::runtime_error("decodePartyDataBearerTokens returned invalid result size");
-							}
+								auto steamApi = wSteamApi.lock();
+								if (!steamApi)
+								{
+									throw ObjectDeletedException("SteamApi");
+								}
 
-							auto& partyDataDto = dtos.begin()->second;
+								auto it = lobby.data.find("partyDataToken");
+								if (it == lobby.data.end())
+								{
+									throw std::runtime_error("partyDataToken not found in Steam lobby data");
+								}
 
-							if (partyDataDto.partyId.size() == 0)
-							{
-								throw std::runtime_error("Invalid partyId");
-							}
+								// If the "partyDataToken" metadata is found in the Steam lobby, we can join the associated party.
+								// And if the party is joined, the server will ask to join the Steam lobby.
+								auto partyDataToken = it->second;
 
-							logger->log(LogLevel::Trace, "SteamPartyProvider::getPartyId", "PartyId obtained", partyDataDto.partyId);
+								return steamApi->decodePartyDataBearerTokens(std::unordered_map<std::string, std::string>{ { std::to_string(lobby.steamIDLobby), partyDataToken } }, ct)
+									.then([wSteamApi, logger](std::unordered_map<std::string, PartyDataDto> dtos)
+										{
+											if (dtos.size() != 1)
+											{
+												throw std::runtime_error("decodePartyDataBearerTokens returned invalid result size");
+											}
 
-							Party::PartyId partyId;
-							partyId.id = partyDataDto.partyId;
-							partyId.type = Party::PartyId::TYPE_PARTY_ID;
+											auto& partyDataDto = dtos.begin()->second;
 
-							return partyId;
-						});
-					});
+											if (partyDataDto.partyId.size() == 0)
+											{
+												throw std::runtime_error("Invalid partyId");
+											}
+
+											logger->log(LogLevel::Trace, "SteamPartyProvider::getPartyId", "PartyId obtained", partyDataDto.partyId);
+
+											Party::PartyId partyId;
+											partyId.id = partyDataDto.partyId;
+											partyId.type = Party::PartyId::TYPE_PARTY_ID;
+
+											return partyId;
+										});
+							});
 				}
 
 				pplx::task<void> createOrJoinSessionForParty(const std::string& /*partySceneId*/) override
@@ -1932,44 +1982,44 @@ namespace Stormancer
 						{
 							auto updateTask = steamApi->isOwner(steamApi->_partySteamIDLobby, ct)
 								.then([update, wSteamApi = _wSteamApi, logger = _logger](bool isOwner)
-							{
-								if (!isOwner)
-								{
-									throw std::runtime_error("Not lobby owner");
-								}
-
-								auto scene = update.partyApi->getPartyScene();
-
-								if (!scene)
-								{
-									throw std::runtime_error("Party scene is null");
-								}
-
-								auto steamPartyService = scene->dependencyResolver().resolve<SteamPartyService>();
-
-								return steamPartyService->createPartyDataBearerToken(timeout(10s))
-									.then([wSteamApi, logger](std::string dataBearerToken)
-								{
-									auto _steamApi = wSteamApi.lock();
-									if (!_steamApi)
 									{
-										STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
-									}
+										if (!isOwner)
+										{
+											throw std::runtime_error("Not lobby owner");
+										}
 
-									return _steamApi->setLobbyData(_steamApi->_partySteamIDLobby, "partyDataToken", dataBearerToken, timeout(10s));
-								})
-									.then([logger](pplx::task<void> task)
-								{
-									try
-									{
-										return task.get();
-									}
-									catch (const std::exception& ex)
-									{
-										logger->log(LogLevel::Error, "Steam", ex.what());
-									}
-								});
-							});
+										auto scene = update.partyApi->getPartyScene();
+
+										if (!scene)
+										{
+											throw std::runtime_error("Party scene is null");
+										}
+
+										auto steamPartyService = scene->dependencyResolver().resolve<SteamPartyService>();
+
+										return steamPartyService->createPartyDataBearerToken(timeout(10s))
+											.then([wSteamApi, logger](std::string dataBearerToken)
+												{
+													auto _steamApi = wSteamApi.lock();
+													if (!_steamApi)
+													{
+														STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
+													}
+
+													return _steamApi->setLobbyData(_steamApi->_partySteamIDLobby, "partyDataToken", dataBearerToken, timeout(10s));
+												})
+											.then([logger](pplx::task<void> task)
+												{
+													try
+													{
+														return task.get();
+													}
+													catch (const std::exception& ex)
+													{
+														logger->log(LogLevel::Error, "Steam", ex.what());
+													}
+												});
+									});
 							updates.push_back(updateTask);
 						}
 					}
@@ -1997,9 +2047,9 @@ namespace Stormancer
 
 								return steamApi->setLobbyJoinable(steamIDLobby, settings.isJoinable)
 									.then([settings, steamIDLobby, logger = _logger]
-								{
-									logger->log(LogLevel::Debug, "Steam", std::string() + "Lobby " + (settings.isJoinable ? "" : "not ") + "joinable set", std::to_string(steamIDLobby));
-								});
+										{
+											logger->log(LogLevel::Debug, "Steam", std::string() + "Lobby " + (settings.isJoinable ? "" : "not ") + "joinable set", std::to_string(steamIDLobby));
+										});
 							}
 						}
 					}
@@ -2047,16 +2097,16 @@ namespace Stormancer
 							auto task = steamApi->requestLobbyData(steamIDLobby, ct);
 							lobbyTasks.push_back(task);
 							task.then([logger = _logger](pplx::task<Steam::Lobby> task)
-							{
-								try
 								{
-									task.get();
-								}
-								catch (const std::exception& ex)
-								{
-									logger->log(LogLevel::Error, "Steam", "Request lobby data failed", ex);
-								}
-							});
+									try
+									{
+										task.get();
+									}
+									catch (const std::exception& ex)
+									{
+										logger->log(LogLevel::Error, "Steam", "Request lobby data failed", ex);
+									}
+								});
 						}
 					}
 
@@ -2064,76 +2114,76 @@ namespace Stormancer
 
 					return pplx::when_all(lobbyTasks.begin(), lobbyTasks.end())
 						.then([steamApi, mapSteamIDLobbyToFriend, advertisedParties, ct, logger = _logger](std::vector<Steam::Lobby> lobbies)
-					{
-						std::unordered_map<std::string, std::string> partyDataTokens;
-
-						for (auto& lobby : lobbies)
-						{
-							auto it = lobby.data.find("partyDataToken");
-							if (it != lobby.data.end())
 							{
-								auto it2 = mapSteamIDLobbyToFriend->find(lobby.steamIDLobby);
-								if (it2 != mapSteamIDLobbyToFriend->end())
+								std::unordered_map<std::string, std::string> partyDataTokens;
+
+								for (auto& lobby : lobbies)
 								{
-									auto partyDataToken = it->second;
-									partyDataTokens[std::to_string(lobby.steamIDLobby)] = partyDataToken;
-
-									auto& steamIDFriend = it2->second;
-									Party::AdvertisedParty advertisedParty;
-									advertisedParty.metadata["steam.steamIDFriend"] = std::to_string(steamIDFriend);
-									advertisedParty.metadata["steam.steamIDLobby"] = std::to_string(lobby.steamIDLobby);
-									advertisedParty.metadata["steam.lobbyOwner"] = std::to_string(lobby.lobbyOwner);
-									advertisedParty.metadata["steam.lobbyMemberLimit"] = std::to_string(lobby.lobbyMemberLimit);
-									advertisedParty.metadata["steam.numLobbyMembers"] = std::to_string(lobby.numLobbyMembers);
-									for (auto& kvp : lobby.data)
+									auto it = lobby.data.find("partyDataToken");
+									if (it != lobby.data.end())
 									{
-										advertisedParty.metadata["steam.lobbyData." + kvp.first] = kvp.second;
+										auto it2 = mapSteamIDLobbyToFriend->find(lobby.steamIDLobby);
+										if (it2 != mapSteamIDLobbyToFriend->end())
+										{
+											auto partyDataToken = it->second;
+											partyDataTokens[std::to_string(lobby.steamIDLobby)] = partyDataToken;
+
+											auto& steamIDFriend = it2->second;
+											Party::AdvertisedParty advertisedParty;
+											advertisedParty.metadata["steam.steamIDFriend"] = std::to_string(steamIDFriend);
+											advertisedParty.metadata["steam.steamIDLobby"] = std::to_string(lobby.steamIDLobby);
+											advertisedParty.metadata["steam.lobbyOwner"] = std::to_string(lobby.lobbyOwner);
+											advertisedParty.metadata["steam.lobbyMemberLimit"] = std::to_string(lobby.lobbyMemberLimit);
+											advertisedParty.metadata["steam.numLobbyMembers"] = std::to_string(lobby.numLobbyMembers);
+											for (auto& kvp : lobby.data)
+											{
+												advertisedParty.metadata["steam.lobbyData." + kvp.first] = kvp.second;
+											}
+											advertisedParties->push_back(advertisedParty);
+										}
 									}
-									advertisedParties->push_back(advertisedParty);
 								}
-							}
-						}
 
-						auto task = partyDataTokens.size() > 0
-							? steamApi->decodePartyDataBearerTokens(partyDataTokens, ct)
-							: pplx::task_from_result(std::unordered_map<std::string, PartyDataDto>());
+								auto task = partyDataTokens.size() > 0
+									? steamApi->decodePartyDataBearerTokens(partyDataTokens, ct)
+									: pplx::task_from_result(std::unordered_map<std::string, PartyDataDto>());
 
-						return task;
-					})
+								return task;
+							})
 						.then([steamApi, advertisedParties, ct, logger = _logger](std::unordered_map<std::string, PartyDataDto> dtos)
-					{
-						std::vector<SteamID> steamIDs;
-
-						for (auto& advertisedParty : *advertisedParties)
-						{
-							auto it = dtos.find(advertisedParty.metadata["steam.steamIDLobby"]);
-							if (it != dtos.end())
 							{
-								auto& dto = it->second;
-								advertisedParty.partyId.id = dto.partyId;
-								advertisedParty.partyId.type = Party::PartyId::TYPE_PARTY_ID;
-								advertisedParty.leaderUserId = dto.leaderUserId;
+								std::vector<SteamID> steamIDs;
 
-								steamIDs.push_back(std::stoull(advertisedParty.metadata["steam.steamIDFriend"]));
-							}
-						}
+								for (auto& advertisedParty : *advertisedParties)
+								{
+									auto it = dtos.find(advertisedParty.metadata["steam.steamIDLobby"]);
+									if (it != dtos.end())
+									{
+										auto& dto = it->second;
+										advertisedParty.partyId.id = dto.partyId;
+										advertisedParty.partyId.type = Party::PartyId::TYPE_PARTY_ID;
+										advertisedParty.leaderUserId = dto.leaderUserId;
 
-						return steamApi->queryUserIds(steamIDs, ct);
-					})
+										steamIDs.push_back(std::stoull(advertisedParty.metadata["steam.steamIDFriend"]));
+									}
+								}
+
+								return steamApi->queryUserIds(steamIDs, ct);
+							})
 						.then([advertisedParties](std::unordered_map<SteamID, std::string> mapSteamIdToUserId)
-					{
-						for (auto& advertisedParty : *advertisedParties)
-						{
-							auto it = mapSteamIdToUserId.find(std::stoull(advertisedParty.metadata["steam.steamIDFriend"]));
-							if (it != mapSteamIdToUserId.end())
 							{
-								auto& friendId = it->second;
-								advertisedParty.metadata["stormancer.friendId"] = friendId;
-							}
-						}
+								for (auto& advertisedParty : *advertisedParties)
+								{
+									auto it = mapSteamIdToUserId.find(std::stoull(advertisedParty.metadata["steam.steamIDFriend"]));
+									if (it != mapSteamIdToUserId.end())
+									{
+										auto& friendId = it->second;
+										advertisedParty.metadata["stormancer.friendId"] = friendId;
+									}
+								}
 
-						return *advertisedParties;
-					});
+								return *advertisedParties;
+							});
 				}
 
 				bool tryShowSystemInvitationUI(std::shared_ptr<Party::PartyApi> partyApi) override
@@ -2210,25 +2260,25 @@ namespace Stormancer
 			pplx::task<void> retrieveCredentials(const Users::CredentialsContext& context) override
 			{
 				return getSteamCredentials([context](const std::string& type, const std::string& provider, const std::string& steamTicketHex)
-				{
-					context.authParameters->type = type;
-					context.authParameters->parameters["provider"] = provider;
-					context.authParameters->parameters["ticket"] = steamTicketHex;
-					context.authParameters->parameters["version"] = "v1";
-					context.authParameters->parameters["appId"] = std::to_string(SteamUtils()->GetAppID());
-				});
+					{
+						context.authParameters->type = type;
+						context.authParameters->parameters["provider"] = provider;
+						context.authParameters->parameters["ticket"] = steamTicketHex;
+						context.authParameters->parameters["version"] = "v1";
+						context.authParameters->parameters["appId"] = std::to_string(SteamUtils()->GetAppID());
+					});
 			}
 
 			virtual pplx::task<void> renewCredentials(const Users::CredentialsRenewalContext& context) override
 			{
 				return getSteamCredentials([context](const std::string& /*type*/, const std::string& provider, const std::string& steamTicketHex)
-				{
-					context.response->parameters["provider"] = provider;
-					context.response->parameters["ticket"] = steamTicketHex;
-					context.response->parameters["version"] = "v1";
-					context.response->parameters["appId"] = std::to_string(SteamUtils()->GetAppID());
+					{
+						context.response->parameters["provider"] = provider;
+						context.response->parameters["ticket"] = steamTicketHex;
+						context.response->parameters["version"] = "v1";
+						context.response->parameters["appId"] = std::to_string(SteamUtils()->GetAppID());
 
-				});
+					});
 			}
 
 			pplx::task<void> getSteamCredentials(std::function<void(const std::string& type, const std::string& provider, const std::string& steamTicketHex)> fulfillCredentialsCallback)
@@ -2279,9 +2329,9 @@ namespace Stormancer
 
 				return pplx::create_task(ctx->tce)
 					.then([fulfillCredentialsCallback, ctx](std::string steamTicketHex)
-				{
-					fulfillCredentialsCallback(platformName, platformName, steamTicketHex);
-				});
+						{
+							fulfillCredentialsCallback(platformName, platformName, steamTicketHex);
+						});
 			}
 
 #pragma endregion
@@ -2367,6 +2417,11 @@ namespace Stormancer
 				{
 					auto service = scene->dependencyResolver().resolve<details::SteamImpl>();
 					service->initializePartyScene(scene);
+				}
+				if (scene->getHostMetadata(Friends::FriendsPlugin::METADATA_KEY).length() > 0)
+				{
+					auto service = scene->dependencyResolver().resolve<details::SteamImpl>();
+					service->initializeFriendsScene(scene);
 				}
 			}
 		};

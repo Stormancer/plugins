@@ -22,6 +22,7 @@
 
 
 using MessagePack;
+using Stormancer.Server.Plugins.Friends.Data;
 using System;
 using System.Collections.Generic;
 
@@ -36,12 +37,11 @@ namespace Stormancer.Server.Plugins.Friends
 
         public MemberDto(MemberRecord record)
         {
-            FriendId = record.FriendId;
-            OwnerId = record.OwnerId;
-            Roles = record.Roles;
+            FriendId = record.FriendId.ToString();
+            OwnerId = record.OwnerId.ToString();
             Status = record.Status;
             Tags = record.Tags;
-            Expiration = record.Expiration;
+            Expiration = record.Expiration ?? DateTime.MaxValue;
         }
 
         [Key(0)]
@@ -60,124 +60,124 @@ namespace Stormancer.Server.Plugins.Friends
         public string OwnerId { get; set; }
 
         [Key(3)]
-        public List<string> Roles { get; set; }
+        public MemberRecordStatus Status { get; set; }
 
         [Key(4)]
-        public FriendInvitationStatus Status { get; set; }
-
-        [Key(5)]
         public List<string> Tags { get; set; } = new List<string>();
 
 
         /// <summary>
         /// Expiration of the record. Only applicable to block records.
         /// </summary>
-        [Key(6)]
+        [Key(5)]
         public DateTime Expiration { get; set; } = default;
     }
 
-    public class MemberRecord
-    {
-        public MemberRecord()
-        {
-        }
 
-        public MemberRecord(MemberDto dto)
-        {
-            FriendId = dto.FriendId;
-            OwnerId = dto.OwnerId;
-            Roles = dto.Roles;
-            Status = dto.Status;
-            Tags = dto.Tags;
-            Expiration = dto.Expiration;
-        }
 
-        public string Id
-        {
-            get
-            {
-                return OwnerId + "_" + FriendId;
-            }
-        }
-
-        public string FriendId { get; set; }
-
-        public string OwnerId { get; set; }
-
-        public List<string> Roles { get; set; } = new List<string>();
-
-        public FriendInvitationStatus Status { get; set; }
-
-        public List<string> Tags { get; set; } = new List<string>();
-
-        public DateTime Expiration { get; set; } = default;
-    }
-
-    public class FriendListConfigRecord
-    {
-        public string Id { get; set; }
-
-        /// <summary>
-        /// Status as set by the user
-        /// </summary>
-        public FriendListStatusConfig Status { get; set; }
-
-        /// <summary>
-        /// Additional persisted custom data (status text, etc...)
-        /// </summary>
-        public string? CustomData { get; set; }
-
-        public DateTime LastConnected { get; set; }
-    }
-
+    /// <summary>
+    /// Friend object in the client.
+    /// </summary>
     [MessagePackObject]
     public class Friend
     {
+        /// <summary>
+        /// Gets or sets the id of the friend.
+        /// </summary>
         [Key(0)]
-        public string UserId { get; set; }
+        public required string UserId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the connection status of the friend.
+        /// </summary>
         [Key(1)]
-        public DateTimeOffset LastConnected { get; set; } = DateTimeOffset.UnixEpoch;
+        public required FriendConnectionStatus Status { get; set; }
 
+        /// <summary>
+        /// Gets or sets the tags associated with the friend.
+        /// </summary>
         [Key(2)]
-        public FriendStatus Status { get; set; } = FriendStatus.Unknow;
-
-        [Key(3)]
         public List<string> Tags { get; set; } = new();
 
-        [Key(4)]
-        public Dictionary<string, string> CustomData = new();
+        /// <summary>
+        /// Gets or sets a json string representing custom data associated with the friend.
+        /// </summary>
+        [Key(3)]
+        public string? CustomData;
 
-        [Key(5)]
-        public List<string> Roles { get; set; } = new();
     }
 
-   
-    public enum FriendInvitationStatus
+
+
+    /// <summary>
+    /// Status of a member record.
+    /// </summary>
+    public enum MemberRecordStatus
     {
-        Unknow = -1,
+        /// <summary>
+        /// An accepted friend association
+        /// </summary>
         Accepted = 0,
-        InvitationSent = 1,
-        WaitingAccept = 2,
-        RemovedByFriend = 3,
+
+        /// <summary>
+        /// The record is a sent invitation.
+        /// </summary>
+        SentInvitation = 1,
+
+        /// <summary>
+        /// An invitation pending approval
+        /// </summary>
+        PendingInvitation = 2,
+
+        /// <summary>
+        /// The association has been deleted or is blocked by the remote user.
+        /// </summary>
+        DeletedByFriend = 3,
+
+        /// <summary>
+        /// The association is blocked by the current user.
+        /// </summary>
+        Blocked = 4
     }
 
-   
+   /// <summary>
+   /// Player visibility status configuration.
+   /// </summary>
     public enum FriendListStatusConfig
     {
-        Unknow = -1,
+        /// <summary>
+        /// Player is displayed online if they are.
+        /// </summary>
         Online = 0,
+        /// <summary>
+        /// Player always invisible.
+        /// </summary>
         Invisible = 1,
+
+        /// <summary>
+        /// Player displayed as away instead of online when connected.
+        /// </summary>
         Away = 2
     }
 
-   
-    public enum FriendStatus
+    /// <summary>
+    /// Connection status of a friend.
+    /// </summary>
+    public enum FriendConnectionStatus
     {
-        Unknow = -1,
+        /// <summary>
+        /// Player online
+        /// </summary>
         Online = 0,
+
+        /// <summary>
+        /// Player away
+        /// </summary>
         Away = 1,
-        Pending = 2,
+
+        /// <summary>
+        /// Player disconnected.
+        /// </summary>
         Disconnected = 3
     }
 }

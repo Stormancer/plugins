@@ -1,4 +1,3 @@
-#pragma once
 #include "stormancer/IPlugin.h"
 #include "stormancer/SessionId.h"
 #include "stormancer/Streams/bytestream.h"
@@ -8,8 +7,12 @@
 #define STORM_PLUGIN_IMPL 0
 #endif
 
+
 namespace Stormancer
 {
+#if !defined(STORM_PLUGIN_P2PMESH_HEADER)
+#define STORM_PLUGIN_P2PMESH_HEADER
+
 	class P2PMeshService
 	{
 	public:
@@ -23,6 +26,8 @@ namespace Stormancer
 		void registerSceneDependencies(ContainerBuilder& sceneBuilder, ::std::shared_ptr<Scene> scene) override;
 		
 	};
+
+#endif
 
 #if STORM_PLUGIN_IMPL == 1
 #include "stormancer/Scene.h"
@@ -58,7 +63,7 @@ namespace Stormancer
 					PacketPriority::IMMEDIATE_PRIORITY, reliability);
 				}
 			}
-
+			virtual ~P2PMeshServiceImpl() {};
 		private:
 			::std::weak_ptr<Scene> _scene;
 			::std::shared_ptr<Serializer> _serializer;

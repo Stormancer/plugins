@@ -22,6 +22,7 @@
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Users;
@@ -64,7 +65,7 @@ namespace Stormancer.Server.Plugins.Steam
         {
         }
 
-        
+
     }
 
     internal class SteamKeyStore : IConfigurationChangedEventHandler
@@ -254,16 +255,16 @@ namespace Stormancer.Server.Plugins.Steam
 
             var actualAppId = appId ?? _configSection.appId;
 
-            if(_configSection.appIds.Any())
+            if (_configSection.appIds.Any())
             {
-                if(!_configSection.appIds.Contains(actualAppId))
+                if (!_configSection.appIds.Contains(actualAppId))
                 {
-                    throw new InvalidOperationException($"'{actualAppId}' is not an authorized Steam AppId. Authorized AppId ars '{string.Join(',',_configSection.appIds)}'");
+                    throw new InvalidOperationException($"'{actualAppId}' is not an authorized Steam AppId. Authorized AppId ars '{string.Join(',', _configSection.appIds)}'");
                 }
             }
             else
             {
-                if(actualAppId != _configSection.appId)
+                if (actualAppId != _configSection.appId)
                 {
                     throw new InvalidOperationException($"'{actualAppId}' is not an authorized Steam AppId. Authorized AppId is '{_configSection.appId}'");
                 }
@@ -319,7 +320,7 @@ namespace Stormancer.Server.Plugins.Steam
             }
         }
 
-        public async Task<string> OpenVACSession(uint appId,string steamId)
+        public async Task<string> OpenVACSession(uint appId, string steamId)
         {
             var apiKey = await keyStore.GetApiKeyAsync();
             if (string.IsNullOrWhiteSpace(apiKey))
@@ -350,7 +351,7 @@ namespace Stormancer.Server.Plugins.Steam
             }
         }
 
-        public async Task CloseVACSession(uint appId,string steamId, string sessionId)
+        public async Task CloseVACSession(uint appId, string steamId, string sessionId)
         {
             var apiKey = await keyStore.GetApiKeyAsync();
             if (string.IsNullOrWhiteSpace(apiKey))
@@ -379,7 +380,7 @@ namespace Stormancer.Server.Plugins.Steam
             }
         }
 
-        public async Task<bool> RequestVACStatusForUser(uint appId,string steamId, string sessionId)
+        public async Task<bool> RequestVACStatusForUser(uint appId, string steamId, string sessionId)
         {
             var apiKey = await keyStore.GetApiKeyAsync();
             if (string.IsNullOrWhiteSpace(apiKey))
@@ -453,54 +454,20 @@ namespace Stormancer.Server.Plugins.Steam
             return (await GetPlayerSummaries(new[] { steamId }))?[steamId];
         }
 
-        public async Task<IEnumerable<SteamFriend>> GetFriendListFromWebApi(ulong steamId, uint maxFriendsCount = uint.MaxValue)
+       
+
+        public async Task<SteamGetFriendsFromClientResult> GetFriendListFromClientAsync(ISceneHost scene, Session session, uint maxFriendsCount = uint.MaxValue, CancellationToken cancellationToken = default)
         {
-            var apiKey = await keyStore.GetApiKeyAsync();
-            if (string.IsNullOrWhiteSpace(apiKey))
+
+            if (!scene.TryGetPeer(session.SessionId, out var peer))
             {
-                throw new InvalidOperationException("Steam Api Key is invalid");
+                return new SteamGetFriendsFromClientResult { friends = Enumerable.Empty<SteamFriend>(), ErrorDetails = $"{session.SessionData} is not connected.", Success = false, ErrorId = "peerNotConnected" };
             }
 
-            var requestUrl = "ISteamUser/GetFriendList/v1/";
-            var querystring = $"?key={apiKey}&steamid={steamId}&relationship=friend";
-            var response = await TryGetAsync(requestUrl + querystring);
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            {
-                return await Task.FromResult(new List<SteamFriend>());
-            }
-            else
-            {
-                response.EnsureSuccessStatusCode();
-                var json = await response.Content.ReadAsStringAsync();
-                var steamResponse = JsonConvert.DeserializeObject<SteamGetFriendsResponse>(json);
+            var result = await peer.RpcTask<uint,SteamGetFriendsFromClientResult>("Steam.GetFriends",maxFriendsCount, cancellationToken, PacketPriority.MEDIUM_PRIORITY);
 
-                if (steamResponse.friendslist == null || steamResponse.friendslist.friends == null)
-                {
-                    throw new Exception("GetFriendList failed: The Steam API response is null.");
-                }
 
-                if (steamResponse.friendslist.friends.Count() > maxFriendsCount)
-                {
-                    steamResponse.friendslist.friends.Take((int)maxFriendsCount);
-                }
-
-                return steamResponse.friendslist.friends;
-            }
-        }
-
-        public async Task<IEnumerable<SteamFriend>> GetFriendListFromClient(string userId, uint maxFriendsCount = uint.MaxValue)
-        {
-            var result = await _userSessions.SendRequest<IEnumerable<SteamFriend>, uint>("Steam.GetFriends", "", userId, maxFriendsCount, CancellationToken.None);
-
-            if (result.Success)
-            {
-                return result.Value ?? Enumerable.Empty<SteamFriend>();
-            }
-            else
-            {
-                _logger.Log(LogLevel.Warn, "steam", $"Failed to get Steam friends : '{result.Error}'", new { });
-                return Enumerable.Empty<SteamFriend>();
-            }
+            return result;
         }
 
         /// <summary>
@@ -514,7 +481,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// <param name="lobbyMetadata"></param>
         /// <returns></returns>
         /// <remarks>metadata does not work</remarks>
-        public async Task<SteamCreateLobbyData> CreateLobby(uint appId,string lobbyName, LobbyType lobbyType, int maxMembers, IEnumerable<ulong>? steamIdInvitedMembers = null, Dictionary<string, string>? lobbyMetadata = null)
+        public async Task<SteamCreateLobbyData> CreateLobby(uint appId, string lobbyName, LobbyType lobbyType, int maxMembers, IEnumerable<ulong>? steamIdInvitedMembers = null, Dictionary<string, string>? lobbyMetadata = null)
         {
             if (string.IsNullOrEmpty(lobbyName))
             {
@@ -564,7 +531,7 @@ namespace Stormancer.Server.Plugins.Steam
             return json.response;
         }
 
-        public async Task RemoveUserFromLobby(uint appId,ulong steamIdToRemove, ulong steamIDLobby)
+        public async Task RemoveUserFromLobby(uint appId, ulong steamIdToRemove, ulong steamIDLobby)
         {
             if (steamIdToRemove == 0)
             {

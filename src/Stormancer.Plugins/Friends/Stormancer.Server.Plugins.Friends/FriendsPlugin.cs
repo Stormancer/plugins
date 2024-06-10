@@ -22,6 +22,8 @@
 
 using Stormancer.Core;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
+using Stormancer.Server.Plugins.Friends.Data;
 using Stormancer.Server.Plugins.ServiceLocator;
 using System.Threading.Tasks;
 
@@ -41,6 +43,8 @@ namespace Stormancer.Server.Plugins.Friends
                 builder.Register<FriendsController>().InstancePerRequest();
                 builder.Register<FriendsSceneLocator>().As<IServiceLocatorProvider>().InstancePerRequest();
                 builder.Register<FriendsRepository>().InstancePerScene();
+                builder.Register<FriendsDbModelBuilder>().As<IDbModelBuilder>();
+                builder.Register<MembersStorageService>();
             };
             
             ctx.SceneDependenciesRegistration+=(IDependencyBuilder builder, ISceneHost scene) =>

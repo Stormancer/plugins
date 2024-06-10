@@ -21,6 +21,8 @@
 // SOFTWARE.
 
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
+using Stormancer.Server.Plugins.GameSession;
 
 namespace Stormancer.Server.Plugins.GameHistory
 {
@@ -30,7 +32,10 @@ namespace Stormancer.Server.Plugins.GameHistory
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
-                builder.Register<GameHistoryService>().As<IGameHistoryService>();
+                builder.Register<GameHistoryService>();
+                builder.Register<GameHistoryStorage>();
+                builder.Register<GameHistoryGameSessionEventHandler>().As<IGameSessionEventHandler>().InstancePerRequest();
+                builder.Register<GameHistoryDbModelBuilder>().As<IDbModelBuilder>();
             };
         }
     }

@@ -138,31 +138,8 @@ namespace Stormancer.Server.Plugins.Party
         private const string SendPartyStateRoute = "party.getPartyStateResponse";
         private const string GameFinderFailedRoute = "party.gameFinderFailed";
 
-        private static async Task RunReservationExpirationLoopAsync(ISceneHost scene, CancellationToken ct)
-        {
-            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
-            while (!ct.IsCancellationRequested)
-            {
-                if (await timer.WaitForNextTickAsync(ct))
-                {
-                    await using var scope = scene.CreateRequestScope();
-
-                    var party = (PartyService)scope.Resolve<IPartyService>();
-
-                    try
-                    {
-                        await party.RemoveExpiredReservations(TimeSpan.Zero);
-                    }
-                    catch(Exception ex)
-                    {
-                        var logger = scope.Resolve<ILogger>();
-                        logger.Log(LogLevel.Error, "party", "An error occurred while running the reservation cleanup method.", ex);
-                    }
-                    
-                }
-            }
-        }
-        private async Task RemoveExpiredReservations(TimeSpan delay)
+      
+        private async Task RemoveExpiredReservations(TimeSpan delay,SessionId reservationSessionId)
         {
             if (delay > TimeSpan.Zero)
             {
@@ -174,7 +151,8 @@ namespace Stormancer.Server.Plugins.Party
 
                 foreach (var (sessionId, expiredReservation) in _partyState.PartyMembers.Where(p => p.Value.ConnectionStatus == PartyMemberConnectionStatus.Reservation && p.Value.CreatedOnUtc + TimeSpan.FromSeconds(10) < DateTime.UtcNow).ToArray())
                 {
-                    if (_partyState.PartyMembers.TryRemove(sessionId, out _))
+                    
+                    if (_partyState.PartyMembers.TryGetValue(sessionId,out var member) && member.ConnectionStatus == PartyMemberConnectionStatus.Reservation && _partyState.PartyMembers.TryRemove(sessionId, out _))
                     {
 
                         var handlers = _handlers();
@@ -186,7 +164,7 @@ namespace Stormancer.Server.Plugins.Party
                         {
                             await TryCancelPendingGameFinder();
                         }
-                        await BroadcastStateUpdateRpc(PartyMemberDisconnection.Route, new PartyMemberDisconnection { UserId = expiredReservation.UserId, Reason = PartyDisconnectionReason.Left });
+                        await BroadcastStateUpdateRpc(PartyMemberDisconnection.Route, new PartyMemberDisconnection { UserId = member.UserId, Reason = PartyDisconnectionReason.Left });
                     }
                 }
             });
@@ -268,7 +246,7 @@ namespace Stormancer.Server.Plugins.Party
                 }
 
                 var session = await _userSessions.GetSession(peer, CancellationToken.None);
-                if (session == null)
+                if (session?.User == null)
                 {
                     throw new ClientException(JoinDeniedError + "?reason=notAuthenticated");
                 }
@@ -277,7 +255,7 @@ namespace Stormancer.Server.Plugins.Party
                 await handlers.RunEventHandler(h => h.OnJoining(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while running OnJoining", ex));
                 if (!ctx.Accept)
                 {
-                    Log(LogLevel.Trace, "OnConnecting", "Join denied by event handler", peer.SessionId, session.User?.Id);
+                    Log(LogLevel.Trace, "OnConnecting", "Join denied by event handler", peer.SessionId, session.User.Id);
                     var message = JoinDeniedError;
                     if (!string.IsNullOrWhiteSpace(ctx.Reason))
                     {
@@ -289,7 +267,7 @@ namespace Stormancer.Server.Plugins.Party
                     throw new ClientException(message);
                 }
 
-                Log(LogLevel.Trace, "OnConnecting", "Join accepted", peer.SessionId, session.User?.Id);
+                Log(LogLevel.Trace, "OnConnecting", "Join accepted", peer.SessionId, session.User.Id);
                 _partyState.PendingAcceptedPeers.Add(peer);
             });
         }
@@ -1427,11 +1405,11 @@ namespace Stormancer.Server.Plugins.Party
                     _partyState.PartyMembers.TryAdd(r.SessionId, partyUser);
 
                     await BroadcastStateUpdateRpc(MemberConnectedRoute, new PartyMemberDto { PartyUserStatus = partyUser.StatusInParty, UserData = partyUser.UserData, UserId = partyUser.UserId, SessionId = r.SessionId, LocalPlayers = partyUser.LocalPlayers, ConnectionStatus = PartyMemberConnectionStatus.Reservation });
-
+                    _ = this.RemoveExpiredReservations(TimeSpan.FromSeconds(10), r.SessionId);
 
                 }
 
-                _ = this.RemoveExpiredReservations(TimeSpan.FromSeconds(10));
+           
                 return true;
 
             });

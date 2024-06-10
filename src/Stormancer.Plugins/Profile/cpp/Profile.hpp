@@ -82,7 +82,7 @@ namespace Stormancer
 
 			static const std::unordered_map<std::string, std::string>& defaultDisplayOptions()
 			{
-				static const std::unordered_map<std::string, std::string> options{ { "character", "details" } };
+				static const std::unordered_map<std::string, std::string> options{ { "user", "details" } };
 				return options;
 			}
 

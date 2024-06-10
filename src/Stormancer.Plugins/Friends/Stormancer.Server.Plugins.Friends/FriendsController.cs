@@ -131,20 +131,7 @@ namespace Stormancer.Server.Plugins.Friends
             await _friends.SetStatus(user, status, details, ctx.CancellationToken);
         }
 
-        [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<MemberDto?> GetRelationship(RequestContext<IScenePeerClient> ctx)
-        {
-            var user = await _userSessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
-
-            if (user == null)
-            {
-                throw new ClientException("NotAuthenticated");
-            }
-
-            var targetUserId = ctx.ReadObject<string>();
-
-            return await _friends.GetRelationship(user.Id, targetUserId, ctx.CancellationToken);
-        }
+       
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task Block(string userIdToBlock, string expirationDate, RequestContext<IScenePeerClient> ctx)

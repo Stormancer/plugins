@@ -5,7 +5,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>2.0.3.7</Version>
+    <Version>2.0.3.12</Version>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -37,7 +37,7 @@
   </ItemGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\..\GameSession\Stormancer.Server.Plugins.GameSession\Stormancer.Server.Plugins.GameSession.csproj" />
+    <ProjectReference Include="..\..\GameHistory\Stormancer.Server.Plugins.GameHistory\Stormancer.Server.Plugins.GameHistory.csproj" />
     <ProjectReference Include="..\Stormancer.Server.Plugins.Friends\Stormancer.Server.Plugins.Friends.csproj" />
   </ItemGroup>
   

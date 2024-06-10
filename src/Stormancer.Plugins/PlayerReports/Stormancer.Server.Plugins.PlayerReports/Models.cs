@@ -15,7 +15,7 @@ namespace Stormancer.Server.Plugins.PlayerReports
     /// <summary>
     /// Represents a report by a player on another player.
     /// </summary>
-    public class PlayerReport
+    public class PlayerReport : IDisposable
     {
         /// <summary>
         /// Gets or sets the id of the report.
@@ -30,6 +30,7 @@ namespace Stormancer.Server.Plugins.PlayerReports
         /// <summary>
         /// Custom context data in json.
         /// </summary>
+        [Column(TypeName = "jsonb")]
         public JsonDocument Context { get; set; } = default!;
 
         /// <summary>
@@ -47,13 +48,21 @@ namespace Stormancer.Server.Plugins.PlayerReports
         /// </summary>
         public DateTime CreatedOn { get; set; }
 
+        ///<inheritdoc/>
+        public void Dispose()
+        {
+            Context?.Dispose();
+        }
     }
 
     /// <summary>
     /// Record of a bug report in the database.
     /// </summary>
-    public class BugReportRecord
+    public class BugReportRecord : IDisposable
     {
+        /// <summary>
+        /// 
+        /// </summary>
         public Guid Id { get; set; }
 
         /// <summary>
@@ -86,6 +95,13 @@ namespace Stormancer.Server.Plugins.PlayerReports
         /// Gets or sets the list of file attachments associated with the report.
         /// </summary>
         public JsonDocument Attachements { get; set; } = default!;
+
+        ///<inheritdoc/>
+        public void Dispose()
+        {
+            Context?.Dispose();
+            Attachements?.Dispose();
+        }
     }
 
     /// <summary>

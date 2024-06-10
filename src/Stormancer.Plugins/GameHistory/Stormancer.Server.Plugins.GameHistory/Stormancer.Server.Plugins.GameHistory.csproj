@@ -5,7 +5,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>2.0.3.8</Version>
+    <Version>2.0.3.10</Version>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -35,9 +35,11 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
-  
+
   <ItemGroup>
-    <ProjectReference Include="..\..\Database\Stormancer.Server.Plugins.Database.Elasticsearch\Stormancer.Server.Plugins.Database.Elasticsearch.csproj" />
+    <ProjectReference Include="..\..\Database\Stormancer.Server.Plugins.Database.EntityFramework\Stormancer.Server.Plugins.Database.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\GameSession\Stormancer.Server.Plugins.GameSession\Stormancer.Server.Plugins.GameSession.csproj" />
+    <ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users.EntityFramework\Stormancer.Server.Plugins.Users.EntityFramework.csproj" />
   </ItemGroup>
   
   <Target Name="PostPack" AfterTargets="Pack">

@@ -23,27 +23,59 @@
 
 
 using MessagePack;
+using System;
 
 namespace Stormancer.Server.Plugins.Friends
 {
-   
+   /// <summary>
+   /// Type of operation on a client friend list.
+   /// </summary>
     public enum FriendListUpdateDtoOperation
     {
+        /// <summary>
+        /// Adds or update a record.
+        /// </summary>
         AddOrUpdate = 0,
+
+        /// <summary>
+        /// Removes a record.
+        /// </summary>
         Remove = 1,
+
+        /// <summary>
+        /// Updates the status of a record.
+        /// </summary>
         UpdateStatus = 2
     }
 
+    /// <summary>
+    /// Dto sent to client friend lists to update them.
+    /// </summary>
     [MessagePackObject]
     public class FriendListUpdateDto
     {
+        /// <summary>
+        /// Id of the item in the friend list.
+        /// </summary>
         [Key(0)]
-        public string ItemId { get; set; }
+        public required string ItemId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the Operation to be performed on the friend list.
+        /// </summary>
         [Key(1)]
-        public FriendListUpdateDtoOperation Operation { get; set; }
+        public required FriendListUpdateDtoOperation Operation { get; set; }
 
+        /// <summary>
+        /// Gets or sets the content of the update.
+        /// </summary>
         [Key(2)]
-        public Friend Data { get; set; }
+        public required Friend Data { get; set; }
+
+        /// <summary>
+        /// Gets or sets the timestamp of the message.
+        /// </summary>
+        [Key(3)]
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     }
 }

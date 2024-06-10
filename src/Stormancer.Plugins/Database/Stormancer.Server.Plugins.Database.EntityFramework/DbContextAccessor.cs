@@ -21,6 +21,12 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore
         private readonly IEnumerable<IDbContextLifecycleHandler> _lifecycleHandlers;
         private readonly ILogger _logger;
 
+        /// <summary>
+        /// Creates a new instance of <see cref="DbContextAccessor"/>
+        /// </summary>
+        /// <param name="builders"></param>
+        /// <param name="lifecycleHandlers"></param>
+        /// <param name="logger"></param>
         public DbContextAccessor(IEnumerable<IDbModelBuilder> builders, IEnumerable<IDbContextLifecycleHandler> lifecycleHandlers, ILogger logger)
         {
             _builders = builders;
@@ -30,7 +36,7 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore
         /// <summary>
         /// Gets the Entity framework database context.
         /// </summary>
-        public Task<AppDbContext> GetDbContextAsync(string contextId = "default",CancellationToken cancellationToken = default)
+        public Task<AppDbContext> GetDbContextAsync(string contextId = "default", CancellationToken cancellationToken = default)
         {
             async Task<AppDbContext> InitializeContext(CancellationToken cancellationToken)
             {
@@ -44,7 +50,7 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore
                 catch (Exception ex)
                 {
                     _logger.Log(LogLevel.Error, "database.entityframeworkcore.initialize", $"An error occurred while initializing the DB context {contextId}", ex);
-                    lock(_lock)
+                    lock (_lock)
                     {
                         _contexts.Remove(contextId);
                     }
@@ -66,6 +72,7 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore
             }
         }
 
+        ///<inheritdoc/>
         public async ValueTask DisposeAsync()
         {
             foreach (var context in _contexts.Values)
@@ -81,6 +88,12 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore
     /// </summary>
     public interface IDbModelBuilder
     {
+        /// <summary>
+        /// Called when the EntityFramework core model is being created.
+        /// </summary>
+        /// <param name="modelBuilder"></param>
+        /// <param name="contextId"></param>
+        /// <param name="customData"></param>
         void OnModelCreating(ModelBuilder modelBuilder, string contextId, Dictionary<string, object> customData);
     }
 
@@ -89,8 +102,25 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore
     /// </summary>
     public interface IDbContextLifecycleHandler
     {
+        /// <summary>
+        /// Called before the db context is initialized.
+        /// </summary>
+        /// <remarks>
+        /// This function is asynchronous whereas Entity framework configuration must be synchronous. Implementing this method, you can perform any async operation
+        /// necessary to properly configure the DB context, and store this information in the <see cref="InitializeDbContext"/> object.
+        /// See Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql\NpgSQLConfigurator.cs for an example.
+        /// </remarks>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
         Task OnPreInit(InitializeDbContext ctx);
-        void OnConfiguring(DbContextOptionsBuilder optionsBuilder,string contextId, Dictionary<string,object> customData);
+
+        /// <summary>
+        /// Called to configure the db context.
+        /// </summary>
+        /// <param name="optionsBuilder"></param>
+        /// <param name="contextId"></param>
+        /// <param name="customData"></param>
+        void OnConfiguring(DbContextOptionsBuilder optionsBuilder, string contextId, Dictionary<string, object> customData);
     }
 
     /// <summary>
@@ -109,7 +139,7 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore
         /// <summary>
         /// Gets a dictionary containing custom context data which can be used to customize the initialization of the DB context.
         /// </summary>
-        public Dictionary<string,object> CustomData { get; } = new Dictionary<string,object>();
+        public Dictionary<string, object> CustomData { get; } = new Dictionary<string, object>();
 
         /// <summary>
         /// 
@@ -131,7 +161,7 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore
         /// </summary>
         public string Id { get; }
         private readonly Dictionary<string, object> _customData;
-        internal AppDbContext(string id, Dictionary<string,object> customData, IEnumerable<IDbModelBuilder> builders, IEnumerable<IDbContextLifecycleHandler> lifecycleHandlers)
+        internal AppDbContext(string id, Dictionary<string, object> customData, IEnumerable<IDbModelBuilder> builders, IEnumerable<IDbContextLifecycleHandler> lifecycleHandlers)
         {
             Id = id;
             _customData = customData;
@@ -139,13 +169,13 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore
             _lifecycleHandlers = lifecycleHandlers;
         }
 
-       
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            
+
             foreach (var handler in _lifecycleHandlers)
             {
-                handler.OnConfiguring(optionsBuilder,Id,_customData);
+                handler.OnConfiguring(optionsBuilder, Id, _customData);
             }
 
             base.OnConfiguring(optionsBuilder);
@@ -155,7 +185,7 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore
         {
             foreach (var builder in _builders)
             {
-                builder.OnModelCreating(modelBuilder,Id,_customData);
+                builder.OnModelCreating(modelBuilder, Id, _customData);
             }
 
 

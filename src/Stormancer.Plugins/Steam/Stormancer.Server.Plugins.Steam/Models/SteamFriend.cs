@@ -22,11 +22,57 @@
 
 using MessagePack;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Stormancer.Server.Plugins.Steam
 {
 #pragma warning disable IDE1006 // Naming Styles
 
+    /// <summary>
+    /// Relationship between 2 steam accounts.
+    /// </summary>
+    public enum SteamFriendRelationship
+    {
+        /// <summary>
+        /// None
+        /// </summary>
+        None = 0,
+        /// <summary>
+        /// The user has just clicked Ignore on an friendship invite. This doesn't get stored.
+        /// </summary>
+        Blocked = 1,
+
+        /// <summary>
+        /// The user has requested to be friends with the current user.
+        /// </summary>
+        RequestRecipient = 2,
+
+        /// <summary>
+        /// A "regular" friend.
+        /// </summary>
+        Friend = 3,
+
+        /// <summary>
+        /// The current user has sent a friend invite.
+        /// </summary>
+        RequestInitiator = 4,
+
+        /// <summary>
+        /// The current user has explicit blocked this other user from comments/chat/etc. This is stored.
+        /// </summary>
+        Ignored = 5,
+
+        /// <summary>
+        /// The user has ignored the current user.
+        /// </summary>
+        IgnoredFriend = 6,
+
+        /// <summary>
+        /// Deprecated -- Unused.
+        /// </summary>
+        Deprecated = 7,
+
+    }
     /// <summary>
     /// Steam friend.
     /// </summary>
@@ -43,7 +89,7 @@ namespace Stormancer.Server.Plugins.Steam
         /// Relationship type.
         /// </summary>
         [Key(1)]
-        public string? relationship { get; set; }
+        public SteamFriendRelationship relationship { get; set; }
 
         /// <summary>
         /// Date of relation creation.
@@ -60,6 +106,33 @@ namespace Stormancer.Server.Plugins.Steam
     internal class SteamGetFriendsResponse
     {
         public SteamFriendsList? friendslist { get; set; }
+    }
+
+    [MessagePackObject]
+    public class SteamGetFriendsFromClientResult
+    {
+        /// <summary>
+        /// Was the operation successful
+        /// </summary>
+        [Key(0)]
+        [MemberNotNullWhen(false, "ErrorId")]
+        [MemberNotNullWhen(false, "ErrorDetails")]
+        public bool Success { get; set; }
+
+        /// <summary>
+        /// Id of the error if the operation failed.
+        /// </summary>
+        [Key(1)]
+        public string? ErrorId { get; set; }
+
+        /// <summary>
+        /// Details about the error if the operation failed.
+        /// </summary>
+        [Key(2)]
+        public string? ErrorDetails { get; set; }
+
+        [Key(3)]
+        public required IEnumerable<SteamFriend> friends { get; set; }
     }
 
 #pragma warning restore IDE1006 // Naming Styles

@@ -20,88 +20,97 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json.Linq;
+using Stormancer.Core;
 using Stormancer.Server.Plugins.Friends;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Steam
 {
     internal class SteamFriendsEventHandler : IFriendsEventHandler
     {
-        private IUserService _userService;
+        private IUserSessions _sessions;
+        private readonly IUserService _users;
         private ISteamService _steamService;
+        private readonly ISceneHost _scene;
 
-        public SteamFriendsEventHandler(IUserService userService, ISteamService steamService)
+        public SteamFriendsEventHandler(IUserSessions sessions, IUserService users, ISteamService steamService, ISceneHost scene)
         {
-            _userService = userService;
+            _sessions = sessions;
+            _users = users;
             _steamService = steamService;
+            _scene = scene;
         }
 
         private class SteamFriendUser
         {
-            public SteamFriend? SteamFriend { get; set; } = null;
+            public required SteamFriend SteamFriend { get; set; }
             public User? User { get; set; } = null;
             public SteamPlayerSummary? SteamPlayerSummary { get; set; } = null;
         }
 
-        private FriendStatus SteamPersonaStateToStormancerFriendsStatus(int steamPersonaState)
+        private FriendConnectionStatus SteamPersonaStateToStormancerFriendsStatus(int steamPersonaState)
         {
             switch (steamPersonaState)
             {
                 case 1: // Online
                 case 5: // Looking to trade
                 case 6: // Looking to play
-                    return FriendStatus.Online;
+                    return FriendConnectionStatus.Online;
                 case 2: // Busy
                 case 3: // Away
                 case 4: // Snooze
-                    return FriendStatus.Away;
+                    return FriendConnectionStatus.Away;
                 case 0: // Offline
                 default: // Default
-                    return FriendStatus.Disconnected;
+                    return FriendConnectionStatus.Disconnected;
             }
         }
 
         public async Task OnGetFriends(GetFriendsCtx getFriendsCtx)
         {
-            if (getFriendsCtx.FromServer == false)
-            {
-                return;
-            }
+
 
             if (string.IsNullOrWhiteSpace(getFriendsCtx.UserId))
             {
                 throw new InvalidOperationException("Invalid UserId");
             }
 
-            var user = await _userService.GetUser(getFriendsCtx.UserId);
+            var session = (await _sessions.GetSessionsByUserId(getFriendsCtx.UserId, CancellationToken.None)).FirstOrDefault();
 
-            if (user?.Auth?[SteamConstants.PLATFORM_NAME] == null)
+            if (!(session?.User?.TryGetSteamId(out var steamId) ?? false))
             {
                 return;
             }
 
-            var steamFriends = await _steamService.GetFriendListFromClient(getFriendsCtx.UserId);
+            var result = await _steamService.GetFriendListFromClientAsync(_scene, session);
 
+            if (!result.Success)
+            {
+                return;
+            }
+            var steamFriends = result.friends;
             if (!steamFriends.Any())
             {
                 return;
             }
 
             // Get users from friends
-            var users = await _userService.GetUsersByIdentity(SteamConstants.PLATFORM_NAME, steamFriends.Select(steamFriend => steamFriend.steamid).ToArray());
+            var users = await _users.GetUsersByIdentity(SteamConstants.PLATFORM_NAME, steamFriends.Select(steamFriend => steamFriend.steamid).ToArray());
 
-            // Remove users not found or already present in context friendList
+            // Remove already present in context friendList
             var friendDatas = steamFriends
                 .Select(steamFriend => new SteamFriendUser
                 {
                     SteamFriend = steamFriend,
                     User = users[steamFriend.steamid] ?? null
                 })
-                .Where(friendData => friendData.User != null && !getFriendsCtx.Friends.Any(friend => friend.UserId == friendData.User.Id))
+                .Where(friendData => friendData.SteamFriend.relationship == SteamFriendRelationship.Friend && !getFriendsCtx.Friends.Any(friend => friend.UserId == friendData.User?.Id))
                 .ToArray();
 
             if (!friendDatas.Any())
@@ -122,17 +131,25 @@ namespace Stormancer.Server.Plugins.Steam
             // Add steam friends to friends list
             foreach (var friendData in friendDatas)
             {
-                if (friendData.User?.Id != null)
+                if (friendData.SteamFriend != null)
                 {
                     getFriendsCtx.Friends.Add(new Friend
                     {
-                        UserId = friendData.User.Id,
+                        UserId = friendData.User?.Id ?? "steam-" + friendData.SteamFriend?.steamid.ToString(),
                         Status = SteamPersonaStateToStormancerFriendsStatus(friendData.SteamPlayerSummary?.personastate ?? -1),
-                        LastConnected = DateTimeOffset.FromUnixTimeSeconds(friendData.SteamPlayerSummary?.lastlogoff ?? -1),
                         Tags = new List<string> { "steam" },
-                        CustomData = new Dictionary<string, string> { { "Details", "steamFriend" }, { "SteamId", friendData.SteamFriend?.steamid ?? "" } }
+                        CustomData = JObject.FromObject(new
+                        {
+                            steam = new
+                            {
+                                steamId = friendData.SteamFriend?.steamid ?? "",
+                                personaName = friendData.SteamPlayerSummary?.personaname ?? "",
+                                avatar = friendData.SteamPlayerSummary?.avatar ?? ""
+                            }
+                        }).ToString()
                     });
                 }
+
             }
         }
     }

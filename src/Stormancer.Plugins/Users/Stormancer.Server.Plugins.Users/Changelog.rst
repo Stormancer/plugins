@@ -18,6 +18,7 @@ Changed
 - By default, data are not stored in any database anymore
 - Use Stormancer.Server.Plugins.Users.EntityFramework to use entity framework to store data.
 - Analytics now store realtime session metrics grouped per dimensions vector.
+- Removed reference to Elasticsearch library.
 
 Added
 *****

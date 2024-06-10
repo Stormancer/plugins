@@ -11,6 +11,9 @@ using System.Threading.Tasks;
 namespace Stormancer.Server.Plugins.Collections
 {
 
+    /// <summary>
+    /// A collectable item in the database.
+    /// </summary>
     [PrimaryKey("ItemId", "UserId")]
     public class CollectionItemRecord
     {
@@ -20,6 +23,9 @@ namespace Stormancer.Server.Plugins.Collections
         [Required]
         public string ItemId { get; set; } = default!;
 
+        /// <summary>
+        /// Gets or sets the id of the user owning the item.
+        /// </summary>
         public Guid UserId { get; set; }
 
         /// <summary>

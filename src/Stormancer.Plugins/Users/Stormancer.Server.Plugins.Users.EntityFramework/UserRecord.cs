@@ -17,7 +17,7 @@ namespace Stormancer.Server.Plugins.Users
     /// <summary>
     /// User record in the database.
     /// </summary>
-    public partial class UserRecord
+    public partial class UserRecord : IDisposable
     {
         /// <summary>
         /// Creates a model from the record.
@@ -66,6 +66,15 @@ namespace Stormancer.Server.Plugins.Users
 
             };
         }
+
+        ///<inheritdoc/>
+        public void Dispose()
+        {
+            UserData.Dispose();
+            Channels.Dispose();
+            Auth.Dispose();
+        }
+
         /// <summary>
         /// Gets or sets the id of the user.
         /// </summary>

@@ -5,7 +5,7 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>4.2.1.7</Version>
+		<Version>4.2.1.14</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -24,6 +24,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
+		<None Include="..\cpp\Steam.hpp" Link="cpp\Steam.hpp" />
 		<None Include="docs/README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
@@ -31,6 +32,10 @@
 		<NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
 		<Pdbs Include="$(TargetDir)*.pdb" />
 		<cpp Include="$(ProjectDir)../cpp/*" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <cpp Remove="..\cpp\Steam.hpp" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -47,6 +52,10 @@
 		<ProjectReference Include="..\..\Profile\Stormancer.Server.Plugins.Profile\Stormancer.Server.Plugins.Profile.csproj" />
 		<ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />
 		<ProjectReference Include="..\..\Utilities\Stormancer.Server.Plugins.Utilities\Stormancer.Server.Plugins.Utilities.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="cpp\" />
 	</ItemGroup>
 
 	<Target Name="PostPack" AfterTargets="Pack">

@@ -31,7 +31,7 @@ namespace Stormancer.Server.Plugins.Friends.RecentlyMet
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
-                builder.Register<RecentlyMetUsersEventHandler>().As<IFriendsEventHandler>().As<IGameSessionEventHandler>().InstancePerRequest();
+                builder.Register<RecentlyMetUsersEventHandler>().As<IFriendsEventHandler>().InstancePerRequest();
             };
         }
     }

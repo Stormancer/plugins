@@ -23,7 +23,7 @@ namespace Stormancer
 			/// </summary>
 			float DelaySeconds = 0.1f;
 			float FixedDeltaTimeSeconds = 0.034f;
-
+		
 		};
 		struct Command
 		{
@@ -42,7 +42,7 @@ namespace Stormancer
 
 			bool localPlayer;
 
-			unsigned int synchronizedUntilMs;
+			float synchronizedUntilMs;
 			int lastCommandId;
 			float targetDeltaTimeSeconds;
 		};
@@ -155,7 +155,7 @@ namespace Stormancer
 #include "stormancer/IClient.h"
 
 #undef STORM_PLUGIN_IMPL
-#include "gamesession/P2PMesh.hpp"
+#include "replication/P2PMesh.hpp"
 #undef STORM_PLUGIN_IMPL
 #define STORM_PLUGIN_IMPL 1
 
@@ -518,7 +518,7 @@ namespace Stormancer
 
 					processPendingPlayersUpdateCommands();
 
-
+					
 
 					if (_isPaused)
 					{
@@ -526,7 +526,7 @@ namespace Stormancer
 					}
 					else
 					{
-						deltaSeconds = _options.FixedDeltaTimeSeconds;
+						deltaSeconds  = _options.FixedDeltaTimeSeconds;
 					}
 					if (_timeSinceLastGameplayProgress < deltaSeconds)
 					{
@@ -538,14 +538,14 @@ namespace Stormancer
 					}
 
 					auto nextTime = _currentGamePlayTimeSeconds + deltaSeconds;
-
+				
 
 					Frame frame;
 					frame.currentTimeSeconds = _currentGamePlayTimeSeconds;
 
 
 					bool gameplayProgress = true;
-					unsigned int rollbackTo = _currentGamePlayTimeSeconds;
+					float rollbackTo = _currentGamePlayTimeSeconds;
 
 					auto targetTime = getTargetTime();
 					auto synchronizedUntil = this->synchronizedUntil();
@@ -628,8 +628,8 @@ namespace Stormancer
 
 					onStep(frame);
 					_currentGamePlayTimeSeconds = nextTime;
-
-
+					
+					
 					return deltaSeconds;
 				}
 
@@ -678,7 +678,7 @@ namespace Stormancer
 				{
 					if (auto client = _client.lock())
 					{
-						return state.gameplayTimeSeconds + ((float)(client->clock() - state.sentOn)) / 1000;
+						return state.gameplayTimeSeconds + ((float)(client->clock() - state.sentOn))/1000;
 					}
 					else
 					{
@@ -688,15 +688,17 @@ namespace Stormancer
 
 
 
-				unsigned int synchronizedUntil() const
+				float synchronizedUntil() const
 				{
-					unsigned int result = 0xFFFFFFFF;
+					float result = std::numeric_limits<float>::max();
+
+					
 
 					for (auto& kvp : _playerStates)
 					{
 						if (!kvp.second.isLocal)
 						{
-							unsigned int time = kvp.second.synchronizedUntil();
+							float time = kvp.second.synchronizedUntil();
 							if (time < result)
 							{
 								result = time;
@@ -747,7 +749,7 @@ namespace Stormancer
 					}
 				}
 
-				void rollback(int time)
+				void rollback(float time)
 				{
 
 				}
@@ -992,7 +994,7 @@ namespace Stormancer
 
 		float LockstepApi::tick(float deltaSeconds, float realDeltaSeconds)
 		{
-			return _service->tick(deltaSeconds, realDeltaSeconds);
+			return _service->tick(deltaSeconds,realDeltaSeconds);
 		}
 
 		/// <summary>
