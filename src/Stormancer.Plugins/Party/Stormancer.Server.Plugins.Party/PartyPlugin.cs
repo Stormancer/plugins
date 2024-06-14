@@ -94,7 +94,8 @@ namespace Stormancer.Server.Plugins.Party
                     r.Resolve<PartyConfigurationService>(),
                     r.Resolve<IProfileService>(),
                     r.Resolve<PartyAnalyticsWorker>(),
-                    r.Resolve<ISerializer>())
+                    r.Resolve<ISerializer>(),
+                    r.Resolve<IClusterSerializer>())
                 ).As<IPartyService>().InstancePerRequest();
 
                 builder.Register<PartyController>(r => new PartyController(

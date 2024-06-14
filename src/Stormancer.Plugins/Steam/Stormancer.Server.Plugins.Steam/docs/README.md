@@ -65,6 +65,21 @@ public class PartyEventHandler : IPartyEventHandler
 }
 ```
 
+# Friends integration
+
+The steam plugin adds the Steam friends to the list of friends provided by the Friends plugin. Steam friends not added to the crossplatform friends list of the application are added with the `steam` tags. If they have accounts in the application, they userId is set to their app user ids, and to `steam-{steamId}` if it's not the case.
+
+If they don't have an account in the application, additional data is available in the friend object `customData` field, in json, with the following format:
+
+    {
+    "steam":{
+       "steamId":"xxxx",
+       "personaName":"Bob",
+       "avatar":"https://avatarUrl"
+        }
+    }
+
+
 # C++ client
 
 ## Plugin configuration

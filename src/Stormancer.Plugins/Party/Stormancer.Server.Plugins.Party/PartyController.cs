@@ -129,7 +129,7 @@ namespace Stormancer.Server.Plugins.Party
             }
 
             var playerIdToKick = ctx.ReadObject<string>();
-            return _partyService.KickPlayerByLeader(playerIdToKick, ctx.CancellationToken);
+            return _partyService.KickPlayer(playerIdToKick,false, ctx.CancellationToken);
         }
 
         public Task UpdateGameFinderPlayerStatus(RequestContext<IScenePeerClient> ctx)

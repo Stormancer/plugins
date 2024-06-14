@@ -87,10 +87,11 @@ namespace Stormancer.Server.Plugins.Party
         /// <summary>
         /// Kicks a player.
         /// </summary>
-        /// <param name="playerToKickUserId"></param>
+        /// <param name="playerToKick"></param>
+        /// <param name="allowKickLeader"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        Task KickPlayerByLeader(string playerToKickUserId, CancellationToken ct);
+        Task KickPlayer(string playerToKick, bool allowKickLeader, CancellationToken ct);
 
         /// <summary>
         /// Send the whole party state to the given user.
@@ -102,14 +103,15 @@ namespace Stormancer.Server.Plugins.Party
         /// Doing otherwise could lead to a barrage of GetPartyState requests from the same client, or require complex client logic.
         /// </remarks>
         /// <param name="recipientUserId">User who will receive the party state via an RPC.</param>
+        /// <param name="cancellationToken"></param>
         /// <returns>Task that completes when the RPC containing the party state that is sent to <paramref name="recipientUserId"/> completes.</returns>
-        Task SendPartyState(string recipientUserId, CancellationToken ct);
+        Task SendPartyState(string recipientUserId, CancellationToken cancellationToken);
 
         /// <summary>
         /// Send the whole party state as the answer to the given RPC in <paramref name="ctx"/>.
         /// </summary>
         /// <remarks>
-        /// Unlike <see cref="SendPartyState(string)"/>, this method sends the state as an answer to the calling RPC, instead of a new RPC.
+        /// Unlike <see cref="SendPartyState(string,CancellationToken)"/>, this method sends the state as an answer to the calling RPC, instead of a new RPC.
         /// This allows blocking the party for a much shorter time.
         /// </remarks>
         /// <param name="ctx">Context for a client RPC requesting the party state.</param>
@@ -140,10 +142,21 @@ namespace Stormancer.Server.Plugins.Party
         /// </returns>
         Task<bool> SendInvitation(string senderUserId, string recipientUserId, bool forceStormancerInvite, CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Updates the party configuration from scene metadata.
+        /// </summary>
+        /// <param name="metadata"></param>
         void SetConfiguration(Dictionary<string,object?> metadata);
 
+
+        /// <summary>
+        /// Gets the party configuration.
+        /// </summary>
         PartyConfiguration Settings { get; }
 
+        /// <summary>
+        /// Gets the party internal state.
+        /// </summary>
         PartyState State { get; }
 
         /// <summary>

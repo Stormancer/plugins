@@ -35,18 +35,33 @@ namespace Stormancer.Server.Plugins.Party.Dto
     [MessagePackObject]
     public class PartyMemberStatusUpdate
     {
+        /// <summary>
+        /// Gets or sets the id of the user whose update is related to.
+        /// </summary>
         [Key(0)]
-        public string UserId { get; set; }
+        public required string UserId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the updated status of the user.
+        /// </summary>
         [Key(1)]
         public PartyMemberStatus Status { get; set; }
     }
 
+    /// <summary>
+    /// Batch update message.
+    /// </summary>
     [MessagePackObject]
     public class BatchStatusUpdate
     {
+        /// <summary>
+        /// Route for party batch updates.
+        /// </summary>
         public const string Route = "party.memberStatusUpdated";
 
+        /// <summary>
+        /// Gets or sets the list of updates in the batch.
+        /// </summary>
         [Key(0)]
         public List<PartyMemberStatusUpdate> UserStatus { get; set; } = new List<PartyMemberStatusUpdate>();
     }

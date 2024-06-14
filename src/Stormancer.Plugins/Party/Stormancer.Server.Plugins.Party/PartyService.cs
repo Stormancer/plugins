@@ -76,6 +76,7 @@ namespace Stormancer.Server.Plugins.Party
         private readonly IProfileService _profiles;
         private readonly PartyAnalyticsWorker _analyticsWorker;
         private readonly ISerializer _serializer;
+        private readonly IClusterSerializer _clusterSerializer;
 
         public IReadOnlyDictionary<SessionId, PartyMember> PartyMembers => _partyState.PartyMembers;
 
@@ -101,7 +102,8 @@ namespace Stormancer.Server.Plugins.Party
             PartyConfigurationService partyConfigurationService,
             IProfileService profiles,
             PartyAnalyticsWorker analyticsWorker,
-            ISerializer serializer
+            ISerializer serializer,
+            IClusterSerializer clusterSerializer
         )
         {
             _handlers = handlers;
@@ -121,10 +123,11 @@ namespace Stormancer.Server.Plugins.Party
             _profiles = profiles;
             _analyticsWorker = analyticsWorker;
             _serializer = serializer;
+            _clusterSerializer = clusterSerializer;
             ApplySettings(configuration.Settings);
 
 
-          
+
         }
 
         private const string JoinDeniedError = "party.joinDenied";
@@ -138,8 +141,8 @@ namespace Stormancer.Server.Plugins.Party
         private const string SendPartyStateRoute = "party.getPartyStateResponse";
         private const string GameFinderFailedRoute = "party.gameFinderFailed";
 
-      
-        private async Task RemoveExpiredReservations(TimeSpan delay,SessionId reservationSessionId)
+
+        private async Task RemoveExpiredReservations(TimeSpan delay, SessionId reservationSessionId)
         {
             if (delay > TimeSpan.Zero)
             {
@@ -151,8 +154,8 @@ namespace Stormancer.Server.Plugins.Party
 
                 foreach (var (sessionId, expiredReservation) in _partyState.PartyMembers.Where(p => p.Value.ConnectionStatus == PartyMemberConnectionStatus.Reservation && p.Value.CreatedOnUtc + TimeSpan.FromSeconds(10) < DateTime.UtcNow).ToArray())
                 {
-                    
-                    if (_partyState.PartyMembers.TryGetValue(sessionId,out var member) && member.ConnectionStatus == PartyMemberConnectionStatus.Reservation && _partyState.PartyMembers.TryRemove(sessionId, out _))
+
+                    if (_partyState.PartyMembers.TryGetValue(sessionId, out var member) && member.ConnectionStatus == PartyMemberConnectionStatus.Reservation && _partyState.PartyMembers.TryRemove(sessionId, out _))
                     {
 
                         var handlers = _handlers();
@@ -459,12 +462,12 @@ namespace Stormancer.Server.Plugins.Party
             });
         }
 
-        public void SetConfiguration(Dictionary<string,object?> metadata)
+        public void SetConfiguration(Dictionary<string, object?> metadata)
         {
-            if (metadata.ContainsKey("party"))
+            if (metadata.TryGetValue("party", out var content) && content != null)
             {
-                
-                _partyState.Settings = JObject.FromObject(metadata["party"]).ToObject<PartyConfiguration>()!;
+
+                _partyState.Settings = JObject.FromObject(content).ToObject<PartyConfiguration>()!;
                 _partyState.VersionNumber = 1;
             }
             else
@@ -589,7 +592,7 @@ namespace Stormancer.Server.Plugins.Party
                     {
                         var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartySettingsUpdated, _scene);
 
-                       
+
                         partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
                         await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
 
@@ -635,9 +638,10 @@ namespace Stormancer.Server.Plugins.Party
         /// Player status 
         /// </summary>
         /// <param name="partyUserStatus"></param>
+        /// <param name="cancellationToken"></param>
         /// <param name="userId"></param>
         /// <returns></returns>
-        public async Task UpdateGameFinderPlayerStatus(string userId, PartyMemberStatusUpdateRequest partyUserStatus, CancellationToken ct)
+        public async Task UpdateGameFinderPlayerStatus(string userId, PartyMemberStatusUpdateRequest partyUserStatus, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(userId))
             {
@@ -652,7 +656,7 @@ namespace Stormancer.Server.Plugins.Party
             var handlers = _handlers();
             await _partyState.TaskQueue.PushWork(async () =>
             {
-                if (ct.IsCancellationRequested)
+                if (cancellationToken.IsCancellationRequested)
                 {
                     return;
                 }
@@ -725,7 +729,7 @@ namespace Stormancer.Server.Plugins.Party
                             var oldState = this.GameFinderState;
                             _partyState.GameFinderLaunchPending = false;
 
-                           
+
 
                             bool shouldLaunchGameFinderRequest = false;
 
@@ -806,7 +810,7 @@ namespace Stormancer.Server.Plugins.Party
 
         public string PartyId => Settings.PartyId;
 
-        public List<Models.LocalPlayerInfos> LocalPlayers { get; private set; }
+
 
         public async Task UpdatePartyUserData(string userId, byte[] data, List<Models.LocalPlayerInfos> localPlayers, CancellationToken ct)
         {
@@ -896,10 +900,12 @@ namespace Stormancer.Server.Plugins.Party
             });
         }
 
-        public async Task KickPlayerByLeader(string playerToKick, CancellationToken ct)
+        public async Task KickPlayer(string playerToKick, bool allowKickLeader, CancellationToken ct)
         {
             await _partyState.TaskQueue.PushWork(async () =>
             {
+                await using var scope = _scene.CreateRequestScope();
+
                 if (ct.IsCancellationRequested)
                 {
                     return;
@@ -907,11 +913,12 @@ namespace Stormancer.Server.Plugins.Party
 
                 if (TryGetMemberByUserId(playerToKick, out var partyUser))
                 {
-                    if (playerToKick == _partyState.Settings.PartyLeaderId)
+                    if (playerToKick == _partyState.Settings.PartyLeaderId && !allowKickLeader)
                     {
                         throw new ClientException(CannotKickLeaderError);
                     }
-                    var handlers = _handlers();
+                    
+                    var handlers = scope.ResolveAll<IPartyEventHandler>();
                     var ctx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene);
                     partyConfigurationService.ShouldResetPartyMembersReadyState(ctx);
                     await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
@@ -1065,30 +1072,37 @@ namespace Stormancer.Server.Plugins.Party
                         {
                             try
                             {
-                                return _rpcService.Rpc(
-                                    route,
-                                    kvp.Key.Peer,
-                                    s =>
-                                    {
-                                        kvp.Key.Peer.Serializer().Serialize(_partyState.VersionNumber, s);
-                                        kvp.Key.Peer.Serializer().Serialize(kvp.Value, s);
-                                    },
-                                    PacketPriority.MEDIUM_PRIORITY,
-                                    cts.Token
-                                ).LastOrDefaultAsync().ToTask()
-                                .ContinueWith(task =>
+                                if (kvp.Key.Peer != null)
                                 {
-                                    if (task.IsFaulted && !(task.Exception?.InnerException is OperationCanceledException))
+                                    return _rpcService.Rpc(
+                                        route,
+                                        kvp.Key.Peer,
+                                        s =>
+                                        {
+                                            kvp.Key.Peer.Serializer().Serialize(_partyState.VersionNumber, s);
+                                            kvp.Key.Peer.Serializer().Serialize(kvp.Value, s);
+                                        },
+                                        PacketPriority.MEDIUM_PRIORITY,
+                                        cts.Token
+                                    ).LastOrDefaultAsync().ToTask()
+                                    .ContinueWith(task =>
                                     {
-                                        Log(
-                                            LogLevel.Trace,
-                                            "BroadcastStateUpdateRpc",
-                                            $"An error occurred during a client RPC (route: '{route}')",
-                                            new { kvp.Key.UserId, kvp.Key.Peer.SessionId, task.Exception, Route = route },
-                                            kvp.Key.UserId, kvp.Key.Peer.SessionId.ToString()
-                                        );
-                                    }
-                                });
+                                        if (task.IsFaulted && !(task.Exception?.InnerException is OperationCanceledException))
+                                        {
+                                            Log(
+                                                LogLevel.Trace,
+                                                "BroadcastStateUpdateRpc",
+                                                $"An error occurred during a client RPC (route: '{route}')",
+                                                new { kvp.Key.UserId, kvp.Key.Peer.SessionId, task.Exception, Route = route },
+                                                kvp.Key.UserId, kvp.Key.Peer.SessionId.ToString()
+                                            );
+                                        }
+                                    });
+                                }
+                                else
+                                {
+                                    return Task.CompletedTask;
+                                }
                             }
                             catch (Exception)
                             {
@@ -1118,7 +1132,11 @@ namespace Stormancer.Server.Plugins.Party
         private void BroadcastFFNotification<T>(string route, T data)
         {
             var filter = new MatchArrayFilter(_partyState.PartyMembers.Select(p => p.Key));
-            _scene.Send(filter, route, s => _serializer.Serialize(data, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
+            _scene.Send(filter, route, static (s, t) =>
+            {
+                var (serializer, data) = t;
+                serializer.Serialize(data, s);
+            }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE, (_serializer, data));
         }
 
         public async Task SendPartyState(string recipientUserId, CancellationToken ct)
@@ -1134,22 +1152,25 @@ namespace Stormancer.Server.Plugins.Party
                 PartyMember member;
                 if (!TryGetMemberByUserId(recipientUserId, out member))
                 {
-                    ThrowNoSuchMemberError(recipientUserId);
+                    return;
                 }
 
-                var state = await MakePartyStateDto(member, handlers);
-
-                using (var cts = new CancellationTokenSource())
+                if (member.Peer != null)
                 {
-                    cts.CancelAfter(_clientRpcTimeout);
+                    var state = await MakePartyStateDto(member, handlers);
 
-                    await _rpcService.Rpc(
-                        SendPartyStateRoute,
-                        member.Peer,
-                        s => member.Peer.Serializer().Serialize(state, s),
-                        PacketPriority.HIGH_PRIORITY,
-                        cts.Token
-                        ).LastOrDefaultAsync().ToTask();
+                    using (var cts = new CancellationTokenSource())
+                    {
+                        cts.CancelAfter(_clientRpcTimeout);
+
+                        await _rpcService.Rpc(
+                            SendPartyStateRoute,
+                            member.Peer,
+                            s => member.Peer.Serializer().Serialize(state, s),
+                            PacketPriority.HIGH_PRIORITY,
+                            cts.Token
+                            ).LastOrDefaultAsync().ToTask();
+                    }
                 }
             });
         }
@@ -1206,24 +1227,30 @@ namespace Stormancer.Server.Plugins.Party
         public async Task<bool> SendInvitation(string senderUserId, string recipientUserId, bool forceStormancerInvite, CancellationToken cancellationToken)
         {
             //Reimplement internal invitation.
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
 
-            //PartyMember senderMember;
-            //if (!TryGetMemberByUserId(senderUserId, out senderMember))
-            //{
-            //    ThrowNoSuchMemberError(senderUserId);
-            //}
+            PartyMember senderMember;
+            if (!TryGetMemberByUserId(senderUserId, out senderMember))
+            {
+                ThrowNoSuchMemberError(senderUserId);
+            }
 
-            //User? recipientUser = null;
-            //var recipientSessions = await _userSessions.GetSessionsByUserId(recipientUserId, cancellationToken);
-            //if (!recipientSessions.Any())
-            //{
-            //    recipientUser = await _users.GetUser(recipientUserId);
-            //    if (recipientUser == null)
-            //    {
-            //        ThrowNoSuchUserError(recipientUserId);
-            //    }
-            //}
+            var recipientSessions = await _userSessions.GetSessionsByUserId(recipientUserId, cancellationToken);
+
+            User? recipientUser = recipientSessions.FirstOrDefault()?.User;
+
+            if (recipientUser == null)
+            {
+                ThrowNoSuchUserError(recipientUserId);
+            }
+            var result = await _userSessions.SendRequest<bool, string>("party.invite", senderMember.UserId, recipientUserId, PartyId, cancellationToken);
+
+            if (!result.Success)
+            {
+                throw new ClientException(result.Error);
+            }
+
+            return result.Value;
 
             //var senderSession = await _userSessions.GetSession(senderMember.Peer, cancellationToken);
 
@@ -1363,16 +1390,18 @@ namespace Stormancer.Server.Plugins.Party
 
         public Task<Models.Party> GetModel()
         {
-            var party = new Models.Party() { 
-                PartyId = this.PartyId, 
-                CreationTimeUtc = this.State.CreatedOnUtc, 
-                PartyLeaderId = this.Settings.PartyLeaderId, 
+            var party = new Models.Party()
+            {
+                PartyId = this.PartyId,
+                CreationTimeUtc = this.State.CreatedOnUtc,
+                PartyLeaderId = this.Settings.PartyLeaderId,
                 CustomData = this.Settings.CustomData,
-                Players = new Dictionary<string, Models.Player>()};
+                Players = new Dictionary<string, Models.Player>()
+            };
 
             foreach (var member in this.PartyMembers)
             {
-                party.Players.Add(member.Value.UserId, new Models.Player(member.Value.SessionId, member.Value.UserId, member.Value.UserData) { LocalPlayers = LocalPlayers = member.Value.LocalPlayers });
+                party.Players.Add(member.Value.UserId, new Models.Player(member.Value.SessionId, member.Value.UserId, member.Value.UserData) { LocalPlayers = member.Value.LocalPlayers });
             }
 
             return Task.FromResult(party);
@@ -1390,10 +1419,10 @@ namespace Stormancer.Server.Plugins.Party
                 await using var scope = _scene.CreateRequestScope();
                 var handlers = scope.Resolve<IEnumerable<IPartyEventHandler>>();
 
-                var ctx = new CreateReservationContext(this,_scene,reservation);
+                var ctx = new CreateReservationContext(this, _scene, reservation);
                 await handlers.RunEventHandler(h => h.OnCreatingReservation(ctx), ex => _logger.Log(LogLevel.Error, "party", $"An error occurred while running the event '{nameof(IPartyEventHandler.OnCreatingReservation)}'.", ex));
 
-                if(!ctx.Accept)
+                if (!ctx.Accept)
                 {
                     return false;
                 }
@@ -1401,7 +1430,7 @@ namespace Stormancer.Server.Plugins.Party
                 foreach (var r in reservation.PartyMembers)
                 {
 
-                    var partyUser = new PartyMember { UserId = r.UserId, SessionId = r.SessionId, StatusInParty = PartyMemberStatus.NotReady, Peer = null, UserData = r.Data, LocalPlayers = r.LocalPlayers, ConnectionStatus = PartyMemberConnectionStatus.Reservation };
+                    var partyUser = new PartyMember { UserId = r.UserId, SessionId = r.SessionId, StatusInParty = PartyMemberStatus.NotReady, Peer = null, UserData = r.Data, LocalPlayers = r.LocalPlayers ?? new List<Models.LocalPlayerInfos>(), ConnectionStatus = PartyMemberConnectionStatus.Reservation };
                     _partyState.PartyMembers.TryAdd(r.SessionId, partyUser);
 
                     await BroadcastStateUpdateRpc(MemberConnectedRoute, new PartyMemberDto { PartyUserStatus = partyUser.StatusInParty, UserData = partyUser.UserData, UserId = partyUser.UserId, SessionId = r.SessionId, LocalPlayers = partyUser.LocalPlayers, ConnectionStatus = PartyMemberConnectionStatus.Reservation });
@@ -1409,7 +1438,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 }
 
-           
+
                 return true;
 
             });
