@@ -189,7 +189,7 @@ namespace Stormancer.Server.Plugins.Friends
 
         private Friend CreateFriendDtoDetailed(string friendId, UserFriendListConfig? friendConfig, MemberRecordStatus recordStatus, List<string> tags, string customData)
         {
-
+            Friend friend;
             if (recordStatus == MemberRecordStatus.Accepted)
             {
                 FriendConnectionStatus status;
@@ -203,7 +203,7 @@ namespace Stormancer.Server.Plugins.Friends
                     status = ComputeStatus(friendConfig, true);
                 }
 
-                var friend = new Friend
+                friend = new Friend
                 {
                     UserId = friendId.ToString(),
                     Status = status,
@@ -211,27 +211,12 @@ namespace Stormancer.Server.Plugins.Friends
                     CustomData = customData
                 };
 
-                switch (recordStatus)
-                {
 
-                    case MemberRecordStatus.SentInvitation:
-                        friend.Tags.Add("friends.invitation.sent");
-                        break;
-                    case MemberRecordStatus.PendingInvitation:
-                        friend.Tags.Add("friends.invitation.pending");
-                        break;
-                    case MemberRecordStatus.DeletedByFriend:
-                        break;
-                    case MemberRecordStatus.Blocked:
-                        friend.Tags.Add("friends.blocked");
-                        break;
-                }
 
-                return friend;
             }
             else
             {
-                return new Friend
+                friend = new Friend
                 {
                     UserId = friendId.ToString(),
                     Status = FriendConnectionStatus.Disconnected,
@@ -239,6 +224,24 @@ namespace Stormancer.Server.Plugins.Friends
 
                 };
             }
+
+            switch (recordStatus)
+            {
+
+                case MemberRecordStatus.SentInvitation:
+                    friend.Tags.Add("friends.invitation.sent");
+                    break;
+                case MemberRecordStatus.PendingInvitation:
+                    friend.Tags.Add("friends.invitation.pending");
+                    break;
+                case MemberRecordStatus.DeletedByFriend:
+                    break;
+                case MemberRecordStatus.Blocked:
+                    friend.Tags.Add("friends.blocked");
+                    break;
+            }
+
+            return friend;
         }
         private async Task<Friend> CreateFriendDtoDetailed(MemberRecord record)
         {
@@ -553,9 +556,9 @@ namespace Stormancer.Server.Plugins.Friends
             await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
             {
                 var sessions = scope.Resolve<IUserSessions>();
-                var peers = (await Task.WhenAll(userIds.Select(key => sessions.GetPeers(key, cancellationToken)))).Where(p => p != null);
+                var sessionIds = _channel.GetSessionIds(userIds);
 
-                BroadcastToPlayers(peers.SelectMany(p => p)!, "friends.notification", data);
+                BroadcastToPlayers(sessionIds, "friends.notification", data);
             }
         }
 
@@ -694,12 +697,12 @@ namespace Stormancer.Server.Plugins.Friends
             {
                 var builder = new MembersOperationsBuilder(currentOwnerMember, currentTargetMember);
 
-                if(currentOwnerMember !=null)
+                if (currentOwnerMember != null)
                 {
                     builder.Delete(currentOwnerMember);
                 }
 
-                if(currentTargetMember != null && currentTargetMember.Status == MemberRecordStatus.Accepted)
+                if (currentTargetMember != null && currentTargetMember.Status == MemberRecordStatus.Accepted)
                 {
                     builder.Update(new MemberId(originId, destId), m => m.Status = MemberRecordStatus.DeletedByFriend);
                 }
@@ -743,21 +746,21 @@ namespace Stormancer.Server.Plugins.Friends
             }
 
             var members = await _storage.GetListMembersAsync(userIds.Select(u => Guid.Parse(u)), MemberRecordStatus.Blocked);
-           
+
 
 
             var dictionary = new Dictionary<string, IEnumerable<string>>();
 
-            foreach(var member in members)
+            foreach (var member in members)
             {
-                if(!dictionary.TryGetValue(member.OwnerId.ToString(),out var list))
+                if (!dictionary.TryGetValue(member.OwnerId.ToString(), out var list))
                 {
                     list = new List<string>();
                 }
                 ((List<string>)list).Add(member.FriendId.ToString());
             }
             return dictionary;
-             
+
         }
 
         public async Task<IEnumerable<string>> GetBlockedList(string userId, CancellationToken cancellationToken)
@@ -784,7 +787,7 @@ namespace Stormancer.Server.Plugins.Friends
             {
                 return null;
             }
-            
+
         }
     }
 }

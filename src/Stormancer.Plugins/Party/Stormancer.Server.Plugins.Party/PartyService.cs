@@ -918,19 +918,6 @@ namespace Stormancer.Server.Plugins.Party
                         throw new ClientException(CannotKickLeaderError);
                     }
                     
-                    var handlers = scope.ResolveAll<IPartyEventHandler>();
-                    var ctx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene);
-                    partyConfigurationService.ShouldResetPartyMembersReadyState(ctx);
-                    await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
-
-                    if (ctx.ShouldReset)
-                    {
-                        await TryCancelPendingGameFinder();
-                    }
-
-
-                    _partyState.PartyMembers.TryRemove(partyUser.SessionId, out _);
-
 
                     Log(LogLevel.Trace, "KickPlayerByLeader", $"Kicked a player, userId: {partyUser.UserId}", partyUser.SessionId, partyUser.UserId);
 
@@ -938,7 +925,6 @@ namespace Stormancer.Server.Plugins.Party
                     {
                         await partyUser.Peer.Disconnect("party.kicked");
                     }
-                    await BroadcastStateUpdateRpc(PartyMemberDisconnection.Route, new PartyMemberDisconnection { UserId = partyUser.UserId, Reason = PartyDisconnectionReason.Kicked });
                 }
                 // Do not return an error if the player is already gone
             });

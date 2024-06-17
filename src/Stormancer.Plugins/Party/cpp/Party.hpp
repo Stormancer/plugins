@@ -666,8 +666,8 @@ namespace Stormancer
 			/// <param name="recipient">Stormancer Id of the player to be invited.</param>
 			/// <param name="forceStormancerInvite">If <c>true</c>, always send a Stormancer invitation, even if a platform-specific invitation system is available.</param>
 			/// <remarks>
-			/// The stormancer server determines the kind of invitation that should be sent according to the sender and the recipient's platform.
-			/// Unless <paramref name="forceStormancerInvite" /> is set to <c>true</c>, stormancer will prioritize platform-specific invitation systems where possible.
+			/// The Stormancer server determines the kind of invitation that should be sent according to the sender and the recipient's platform.
+			/// Unless <paramref name="forceStormancerInvite" /> is set to <c>true</c>, Stormancer will prioritize platform-specific invitation systems where possible.
 			/// If your game needs cancelable invitations as a feature, you should always set <paramref name="forceStormancerInvite" /> to <c>true</c>.
 			/// </remarks>
 			/// <returns>A task that completes when the invitation has been sent.</returns>
@@ -974,9 +974,9 @@ namespace Stormancer
 #endif
 
 			/// <summary>
-			/// Get the stormancer Id of the user who sent the invitation.
+			/// Get the Stormancer Id of the user who sent the invitation.
 			/// </summary>
-			/// <returns>The stormancer Id of the player who sent the invitation.</returns>
+			/// <returns>The Stormancer Id of the player who sent the invitation.</returns>
 			std::string getSenderId() const { return _internal->getSenderId(); }
 
 			std::string getSenderPlatformId() const { return _internal->getSenderPlatformId(); }

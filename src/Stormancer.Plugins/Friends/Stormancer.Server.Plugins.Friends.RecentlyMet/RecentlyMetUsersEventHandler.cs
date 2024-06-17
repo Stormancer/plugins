@@ -64,25 +64,26 @@ namespace Stormancer.Server.Plugins.Friends.RecentlyMet
 
             var currentFriends = getMetUsersCtx.Friends.Select(f => Guid.Parse(f.UserId)).ToList();
             currentFriends.Add(userId);
-            var query = from userHistory in ctx.Set<UserGameHistoryRecord>()
-                        join historyRecord in ctx.Set<GameHistoryRecord>()
-                        on userHistory.GameHistoryRecordId equals historyRecord.Id
+            var query = from historyRecord in ctx.Set<GameHistoryRecord>()
+                        join userHistory in ctx.Set<UserGameHistoryRecord>()
+                        on historyRecord.Id  equals userHistory.GameHistoryRecordId
                         join otherHistory in ctx.Set<UserGameHistoryRecord>()
                         on historyRecord.Id equals otherHistory.GameHistoryRecordId
                         where userHistory.UserRecordId == userId && !currentFriends.Contains(otherHistory.UserRecordId)
-                        orderby historyRecord.CreatedOn descending
+                        group historyRecord by otherHistory.UserRecordId
+                        into g
                         select new
                         {
-                            date = historyRecord.CreatedOn,
-                            userId = otherHistory.UserRecordId,
+                            date = g.Max(r=>r.CompletedOn),
+                            userId = g.Key,
                             
                         };
 
-            var recentlyPlayedWith = await query.Distinct().Take(_maxRecentlyMet).ToListAsync();
+            var recentlyPlayedWith = await query.OrderByDescending(s=>s.date).Take(_maxRecentlyMet).ToListAsync();
 
-            foreach (var friendId in recentlyPlayedWith)
+            foreach (var friend in recentlyPlayedWith)
             {
-                getMetUsersCtx.Friends.Add(new Friend { UserId = userId.ToString(), Status = FriendConnectionStatus.Disconnected, Tags = new List<string> { "recentlyMet" } });
+                getMetUsersCtx.Friends.Add(new Friend { UserId = friend.userId.ToString(), Status = FriendConnectionStatus.Disconnected, Tags = new List<string> { "recentlyMet" } });
             }
         }
     }

@@ -24,6 +24,7 @@ using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Friends.Models;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Friends
@@ -95,6 +96,18 @@ namespace Stormancer.Server.Plugins.Friends
                 }
             }
             return Task.FromResult(((UserFriendListConfig?)null, key));
+        }
+
+        public IEnumerable<SessionId> GetSessionIds(IEnumerable<string> userIds)
+        {
+            foreach (var userId in userIds)
+            {
+                if(_peers.TryGetValue(Guid.Parse(userId),out var container))
+                {
+                    yield return container.sessionId;
+                }
+            }
+
         }
     }
 }
