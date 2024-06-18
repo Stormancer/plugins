@@ -232,7 +232,7 @@ namespace Stormancer.Server.Plugins.Friends
                     friend.Tags.Add("friends.invitation.sent");
                     break;
                 case MemberRecordStatus.PendingInvitation:
-                    friend.Tags.Add("friends.invitation.pending");
+                    friend.Tags.Add("friends.invitation.received");
                     break;
                 case MemberRecordStatus.DeletedByFriend:
                     break;

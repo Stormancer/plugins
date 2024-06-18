@@ -89,9 +89,10 @@ namespace Stormancer.Server.Plugins.Party
         /// </summary>
         /// <param name="playerToKick"></param>
         /// <param name="allowKickLeader"></param>
+        /// <param name="reason"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        Task KickPlayer(string playerToKick, bool allowKickLeader, CancellationToken ct);
+        Task KickPlayer(string playerToKick, bool allowKickLeader, string? reason = null, CancellationToken ct = default);
 
         /// <summary>
         /// Send the whole party state to the given user.

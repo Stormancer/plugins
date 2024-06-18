@@ -900,7 +900,7 @@ namespace Stormancer.Server.Plugins.Party
             });
         }
 
-        public async Task KickPlayer(string playerToKick, bool allowKickLeader, CancellationToken ct)
+        public async Task KickPlayer(string playerToKick, bool allowKickLeader, string? reason = null, CancellationToken ct = default)
         {
             await _partyState.TaskQueue.PushWork(async () =>
             {
@@ -917,13 +917,13 @@ namespace Stormancer.Server.Plugins.Party
                     {
                         throw new ClientException(CannotKickLeaderError);
                     }
-                    
+
 
                     Log(LogLevel.Trace, "KickPlayerByLeader", $"Kicked a player, userId: {partyUser.UserId}", partyUser.SessionId, partyUser.UserId);
 
                     if (partyUser.Peer != null)
                     {
-                        await partyUser.Peer.Disconnect("party.kicked");
+                        await partyUser.Peer.Disconnect("party.kicked" + (reason != null ? $"?reason={reason}" : ""));
                     }
                 }
                 // Do not return an error if the player is already gone

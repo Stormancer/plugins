@@ -36,6 +36,7 @@ Added
 - Added TryGetGamesessionId extension method to party.
 - Added extensibility point IPartyEventHandler.OnCreatingReservation 
 - Added a section on common issues in the documentation.
+- Added a reason argument to the method 'kick from party'.
 
 5.0.1.7
 -------
