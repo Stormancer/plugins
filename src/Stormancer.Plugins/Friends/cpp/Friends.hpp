@@ -23,7 +23,6 @@ namespace Stormancer
 		{
 			Online = 0,
 			Away = 1,
-			InvitationPending = 2,
 			Disconnected = 3
 		};
 
@@ -40,7 +39,7 @@ namespace Stormancer
 			uint64 lastConnected;
 			FriendStatus status;
 			std::vector<std::string> tags;
-			std::unordered_map<std::string, std::string> customData;
+			std::string customData;
 
 			MSGPACK_DEFINE(userId, lastConnected, status, tags, customData)
 		};

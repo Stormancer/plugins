@@ -25,8 +25,15 @@ using Stormancer.Server.Plugins.Friends;
 
 namespace Stormancer
 {
+    /// <summary>
+    /// Extension methods for configuration of the friends plugin.
+    /// </summary>
     public static class FriendsExtensions
     {
+        /// <summary>
+        /// Adds the friends API to a scene.
+        /// </summary>
+        /// <param name="scene"></param>
         public static void AddFriends(this ISceneHost scene)
         {
             scene.TemplateMetadata[FriendsPlugin.METADATA_KEY] = "enabled";

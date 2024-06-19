@@ -187,7 +187,7 @@ namespace Stormancer.Server.Plugins.Friends
             }
         }
 
-        private Friend CreateFriendDtoDetailed(string friendId, UserFriendListConfig? friendConfig, MemberRecordStatus recordStatus, List<string> tags, string customData)
+        private Friend CreateFriendDtoDetailed(string friendId, UserFriendListConfig? friendConfig, MemberRecordStatus recordStatus, List<string> tags, JsonDocument customData)
         {
             Friend friend;
             if (recordStatus == MemberRecordStatus.Accepted)
@@ -208,7 +208,7 @@ namespace Stormancer.Server.Plugins.Friends
                     UserId = friendId.ToString(),
                     Status = status,
                     Tags = tags,
-                    CustomData = customData
+                    CustomData = JsonSerializer.Serialize(customData)
                 };
 
 
@@ -247,7 +247,7 @@ namespace Stormancer.Server.Plugins.Friends
         {
             var config = await _channel.GetStatusConfig(record.FriendId);
 
-            return CreateFriendDtoDetailed(record.FriendId.ToString(), config, record.Status, record.Tags, record.CustomData?.ToString() ?? "{}");
+            return CreateFriendDtoDetailed(record.FriendId.ToString(), config, record.Status, record.Tags, record.CustomData);
 
         }
 
@@ -445,7 +445,7 @@ namespace Stormancer.Server.Plugins.Friends
                 {
                     ItemId = user.Id,
                     Operation = FriendListUpdateDtoOperation.AddOrUpdate,
-                    Data = CreateFriendDtoDetailed(user.Id, online ? newConfig : null, MemberRecordStatus.Accepted, record.Tags, record.CustomData?.ToString() ?? "{}")
+                    Data = CreateFriendDtoDetailed(user.Id, online ? newConfig : null, MemberRecordStatus.Accepted, record.Tags, record.CustomData)
                 }, record.OwnerId.ToString(), cancellationToken);
             }
         }
