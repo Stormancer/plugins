@@ -1220,7 +1220,7 @@ namespace Stormancer.Server.Plugins.Party
             {
                 ThrowNoSuchMemberError(senderUserId);
             }
-
+            
             var recipientSessions = await _userSessions.GetSessionsByUserId(recipientUserId, cancellationToken);
 
             User? recipientUser = recipientSessions.FirstOrDefault()?.User;

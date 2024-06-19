@@ -560,12 +560,13 @@ namespace Stormancer.Server.Plugins.Users
 
         public Task<IEnumerable<SessionId>> GetPeers(string userId, CancellationToken cancellationToken)
         {
+            var guid = Guid.Parse(userId);
             var result = repository.Filter(JObject.FromObject(new
             {
                 match = new
                 {
                     field = "user.id",
-                    value = userId
+                    value = guid.ToString("N")
                 }
             }), 20, 0);
 
@@ -580,12 +581,13 @@ namespace Stormancer.Server.Plugins.Users
 
         private IEnumerable<Session> GetSessionImpl(string userId)
         {
+            var guid = Guid.Parse(userId);
             var result = repository.Filter(JObject.FromObject(new
             {
                 match = new
                 {
                     field = "user.id",
-                    value = userId
+                    value = guid.ToString("N")
                 }
             }), 10, 0);
 
@@ -834,7 +836,7 @@ namespace Stormancer.Server.Plugins.Users
                     rq.OutputPipe.Writer.WriteObject(ex.Message, clusterSerializer);
 
                     rq.InputPipe.Reader.Complete(ex);
-                    rq.OutputPipe.Writer.Complete(ex);
+                    rq.OutputPipe.Writer.Complete();
                 }
 
             }

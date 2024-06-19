@@ -484,11 +484,11 @@ namespace Stormancer.Server.Plugins.Friends
                     await NotifyAsync(Enumerable.Empty<FriendListUpdateDto>(), user.Id, cancellationToken);
                 }
                 var newStatus = ComputeStatus(statusConfig, true);
-
-                var owners = await _storage.GetListsContainingMemberAsync(Guid.Parse(user.Id), true, LIST_TYPE);
+                var userGuid = Guid.Parse(user.Id);
+                var owners = await _storage.GetListsContainingMemberAsync(userGuid, true, LIST_TYPE);
                 if (newStatus != FriendConnectionStatus.Disconnected)
                 {
-                    await NotifyAsync(new FriendListUpdateDto { ItemId = user.Id, Operation = FriendListUpdateDtoOperation.UpdateStatus, Data = new Friend { Status = newStatus, UserId = user.Id } }, owners.Select(m => m.OwnerId.ToString()), cancellationToken);
+                    await NotifyAsync(new FriendListUpdateDto { ItemId = userGuid.ToString(), Operation = FriendListUpdateDtoOperation.UpdateStatus, Data = new Friend { Status = newStatus, UserId = userGuid.ToString() } }, owners.Select(m => m.OwnerId.ToString()), cancellationToken);
                 }
             }
         }
