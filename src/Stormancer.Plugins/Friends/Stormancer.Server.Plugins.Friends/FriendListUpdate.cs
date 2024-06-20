@@ -45,7 +45,12 @@ namespace Stormancer.Server.Plugins.Friends
         /// <summary>
         /// Updates the status of a record.
         /// </summary>
-        UpdateStatus = 2
+        UpdateStatus = 2,
+
+        /// <summary>
+        /// Resets the friend list.
+        /// </summary>
+        Reset = 3,
     }
 
     /// <summary>

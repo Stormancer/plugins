@@ -493,6 +493,7 @@ namespace Stormancer.Server.Plugins.Friends
             }
         }
 
+
         public async Task<IEnumerable<Friend>> GetFriends(string userId, CancellationToken cancellationToken)
         {
             await using (var scope = _scene.CreateRequestScope())
@@ -505,7 +506,7 @@ namespace Stormancer.Server.Plugins.Friends
                 }
                 var ctx = new GetFriendsCtx(userId, SessionId.Empty, friends, true);
 
-                await scope.ResolveAll<IFriendsEventHandler>().RunEventHandler(h => h.OnGetFriends(ctx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", "An error occured while executing the friends event handlers", ex); });
+                await scope.ResolveAll<IFriendsEventHandler>().RunEventHandler(h => h.OnGetFriends(ctx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", "An error occurred while executing the friends event handlers", ex); });
 
                 return friends;
             }

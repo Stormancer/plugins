@@ -175,6 +175,24 @@ namespace Stormancer.Server.Plugins.Friends
             return await _friends.GetBlockedList(user.Id, ctx.CancellationToken);
         }
 
+        [Api(ApiAccess.Public,ApiType.Rpc)]
+        public async Task<Dictionary<string,Friend>> Get(RequestContext<IScenePeerClient> ctx)
+        {
+            var user = await _userSessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
+
+            if (user == null)
+            {
+                throw new ClientException("NotAuthenticated");
+            }
+
+            var result = new Dictionary<string,Friend>();
+
+            foreach(var friend in await _friends.GetFriends(user.Id,ctx.CancellationToken))
+            {
+                result.Add(friend.UserId, friend);
+            }
+            return result;
+        }
 
 
         [S2SApi]
