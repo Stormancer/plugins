@@ -133,7 +133,21 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// Gets a <see cref="DateTime"/> object representing the date the scene was created in UTC.
         /// </summary>
         public DateTime CreatedOnUtc { get; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Is a game finder launch request pending.
+        /// </summary>
         public bool GameFinderLaunchPending { get; internal set; }
+
+        /// <summary>
+        /// The latest policy set to decide when a game finder request should start.
+        /// </summary>
         public GameFinderRequestPolicy LastGameFinderRequestPolicy { get; internal set; }
+
+        /// <summary>
+        /// Gets the platform of players in the party if cross play disabled, null if cross play is enabled.
+        /// </summary>
+        public string? Platform { get; set; }
+     
     }
 }

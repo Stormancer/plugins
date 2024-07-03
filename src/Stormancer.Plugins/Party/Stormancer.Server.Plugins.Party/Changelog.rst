@@ -37,6 +37,7 @@ Added
 - Added extensibility point IPartyEventHandler.OnCreatingReservation 
 - Added a section on common issues in the documentation.
 - Added a reason argument to the method 'kick from party'.
+- Check the crossplay options when joining the party.
 
 5.0.1.7
 -------

@@ -21,6 +21,8 @@ Changed
 Added
 *****
 - Added block list expiration to block API.
+- Added Blocklist based party compatibility policy, to prevent blocked players from being matched together by matchmakers.
+
 Fixed
 *****
 - Don't notify blocked users for status updates.

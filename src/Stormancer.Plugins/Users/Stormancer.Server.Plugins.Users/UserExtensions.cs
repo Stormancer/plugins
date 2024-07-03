@@ -20,7 +20,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json.Bson;
+using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Users;
+using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Pipelines;
 
@@ -44,7 +48,7 @@ namespace Stormancer
         {
             if (session.SessionData.TryGetValue(key, out var data) && serializer.TryDeserialize<T>(new System.Buffers.ReadOnlySequence<byte>(data), out T result, out _))
             {
-                return result;   
+                return result;
             }
             else
             {
@@ -79,6 +83,52 @@ namespace Stormancer
             {
                 return user.LastPlatform;
             }
+        }
+
+        /// <summary>
+        /// Tries getting an option stored on the user.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="user"></param>
+        /// <param name="key"></param>
+        /// <param name="option"></param>
+        /// <returns></returns>
+        public static bool TryGetOption<T>(this User user, string key, [NotNullWhen(true)] out T? option)
+        {
+            if (user.UserData.TryGetValue("options", out var value) && value is JObject r)
+            {
+                if (r.TryGetValue(key, out var optionToken) && optionToken is JObject optionObj)
+                {
+                    option = optionObj.ToObject<T>()!;
+                    return true;
+                }
+            }
+
+            option = default;
+            return false;
+
+
+        }
+
+        /// <summary>
+        /// Sets an option on the provided user.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="user"></param>
+        /// <param name="key"></param>
+        /// <param name="option"></param>
+        public static void SetOption<T>(this User user, string key, T option) where T:class
+        {
+            ArgumentNullException.ThrowIfNull(option, nameof(option));
+            
+            if(!(user.UserData.TryGetValue("options",out var token ) && token is JObject options))
+            {
+                options  = new JObject();
+                user.UserData["options"] = options;
+            }
+
+            options[key] = JObject.FromObject(option);
+            
         }
     }
 }

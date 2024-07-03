@@ -5,7 +5,7 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>10.0.2.9</Version>
+		<Version>10.0.2.10</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -50,6 +50,7 @@
 		<ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api.S2SProxyGenerator\Stormancer.Server.Plugins.Api.S2SProxyGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj" />
 		<ProjectReference Include="..\..\Configuration\Stormancer.Server.Plugins.Configuration\Stormancer.Server.Plugins.Configuration.csproj" />
+		<ProjectReference Include="..\..\GameFinder\Stormancer.Abstractions.Server.GameFinder\Stormancer.Abstractions.Server.GameFinder.csproj" />
 		<ProjectReference Include="..\..\Queries\Stormancer.Server.Plugins.Queries\Stormancer.Server.Plugins.Queries.csproj" />
 		<ProjectReference Include="..\..\Utilities\Stormancer.Server.Plugins.Annotations\Stormancer.Server.Plugins.Annotations.csproj" />
 		<ProjectReference Include="..\..\Utilities\Stormancer.Server.Plugins.Utilities\Stormancer.Server.Plugins.Utilities.csproj" />

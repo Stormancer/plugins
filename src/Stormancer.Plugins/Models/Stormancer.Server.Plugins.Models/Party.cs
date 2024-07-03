@@ -89,6 +89,12 @@ namespace Stormancer.Server.Plugins.Models
         [Key(5)]
         public string PartyLeaderId { get; set; } = default!;
 
+        /// <summary>
+        /// Gets or sets the platform id associated with the party if it's not a cross play party.
+        /// </summary>
+        /// <remarks>The property is set to null if the party is in cross play mode.</remarks>
+        [Key(6)]
+        public string? Platform { get; set; }
 
         /// <summary>
         /// Temporary data storage

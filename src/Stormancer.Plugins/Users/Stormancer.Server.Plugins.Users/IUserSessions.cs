@@ -290,6 +290,16 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         Task KickUser(IEnumerable<string> userIds, string reason, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Updates the user options.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task UpdateUserOptionsAsync(string userId, string key, JObject value, CancellationToken cancellationToken);
     }
 
 

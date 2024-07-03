@@ -126,7 +126,7 @@ namespace Stormancer.Server.Plugins.Users
             return _sessions.UpdateUserData(peer, data, cancellationToken);
         }
 
-     
+
 
         [S2SApi]
         public Task<IEnumerable<Session>> GetSessionsByUserId(string userId, CancellationToken cancellationToken)
@@ -147,7 +147,7 @@ namespace Stormancer.Server.Plugins.Users
             return session!;
         }
 
-       
+
 
         [S2SApi]
         public Task<Dictionary<SessionId, Session?>> GetSessionsbySessionIds(IEnumerable<SessionId> sessionIds, CancellationToken cancellationToken)
@@ -257,5 +257,42 @@ namespace Stormancer.Server.Plugins.Users
             Debug.Assert(_key != null);
             return Jose.JWT.Decode<Dictionary<string, string?>>(token, _key.Value)["userId"];
         }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task<JObject> GetUserOptions(string key, RequestContext<IScenePeerClient> ctx)
+        {
+            var user = await _sessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
+            if (user == null)
+            {
+                throw new ClientException("notFound");
+            }
+            if (!(user.UserData.TryGetValue("options", out var token) && token is JObject options))
+            {
+                options = new JObject();
+                user.UserData["options"] = options;
+            }
+            return options;
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task UpdateUserOptions(string key, JObject value, RequestContext<IScenePeerClient> ctx)
+        {
+            var user = await _sessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
+            if (user == null)
+            {
+                throw new ClientException("notFound");
+            }
+            await _sessions.UpdateUserOptionsAsync(user.Id, key, value, ctx.CancellationToken);
+
+        }
+
+        [S2SApi]
+        public Task UpdateUserOptionsAsync(string userId, string key, JObject value, CancellationToken cancellationToken)
+        {
+            return _sessions.UpdateUserOptionsAsync(userId, key, value, cancellationToken);
+        }
+
     }
+
+
 }

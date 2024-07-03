@@ -233,6 +233,7 @@ namespace Stormancer.Server.Plugins.Party
             await _partyState.TaskQueue.PushWork(async () =>
             {
 
+
                 if (!_partyState.PartyMembers.ContainsKey(peer.SessionId))
                 {
                     if (_partyState.MemberCount >= _partyState.Settings.ServerSettings.MaxMembers())
@@ -253,6 +254,10 @@ namespace Stormancer.Server.Plugins.Party
                 {
                     throw new ClientException(JoinDeniedError + "?reason=notAuthenticated");
                 }
+
+                CheckCrossPlay(session.User);
+
+
                 var userData = peer.ContentType == "party/userdata" ? peer.UserData : new byte[0];
                 var ctx = new JoiningPartyContext(this, session, peer, _partyState.PendingAcceptedPeers.Count + _partyState.PartyMembers.Count, userData);
                 await handlers.RunEventHandler(h => h.OnJoining(ctx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while running OnJoining", ex));
@@ -273,6 +278,44 @@ namespace Stormancer.Server.Plugins.Party
                 Log(LogLevel.Trace, "OnConnecting", "Join accepted", peer.SessionId, session.User.Id);
                 _partyState.PendingAcceptedPeers.Add(peer);
             });
+        }
+
+        private bool IsCrossPlayEnabled()
+        {
+
+            return _partyState.Platform != null;
+
+        }
+        private void CheckCrossPlay(User user)
+        {
+            var crossplayEnabled = true;
+            if (user.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION, out var options) && options.Enabled == false)
+            {
+                crossplayEnabled = false;
+            }
+
+            //If cross play is disabled on the player, and we are the first player, set the platform of the party.
+            if (_partyState.PartyMembers.Count == 0)
+            {
+                if (!crossplayEnabled)
+                {
+                    _partyState.Platform = user.LastPlatform;
+
+                }
+
+                return;
+            }
+
+            if (crossplayEnabled != IsCrossPlayEnabled())
+            {
+                throw new ClientException(JoinDeniedError + "?reason=crossPlay.MismatchedOption");
+            }
+
+            if (_partyState.Platform != null && user.LastPlatform != _partyState.Platform)
+            {
+                throw new ClientException(JoinDeniedError + "?reason=crossPlay.MismatchedPlatform&partyPlatform=" + _partyState.Platform);
+            }
+
         }
 
         internal async Task OnConnectionRejected(IScenePeerClient peer)
@@ -1220,7 +1263,7 @@ namespace Stormancer.Server.Plugins.Party
             {
                 ThrowNoSuchMemberError(senderUserId);
             }
-            
+
             var recipientSessions = await _userSessions.GetSessionsByUserId(recipientUserId, cancellationToken);
 
             User? recipientUser = recipientSessions.FirstOrDefault()?.User;
@@ -1382,7 +1425,9 @@ namespace Stormancer.Server.Plugins.Party
                 CreationTimeUtc = this.State.CreatedOnUtc,
                 PartyLeaderId = this.Settings.PartyLeaderId,
                 CustomData = this.Settings.CustomData,
-                Players = new Dictionary<string, Models.Player>()
+                Players = new Dictionary<string, Models.Player>(),
+                Platform = _partyState.Platform
+
             };
 
             foreach (var member in this.PartyMembers)
@@ -1390,6 +1435,7 @@ namespace Stormancer.Server.Plugins.Party
                 party.Players.Add(member.Value.UserId, new Models.Player(member.Value.SessionId, member.Value.UserId, member.Value.UserData) { LocalPlayers = member.Value.LocalPlayers });
             }
 
+           
             return Task.FromResult(party);
         }
 

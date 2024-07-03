@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Stormancer.Abstractions.Server.GameFinder;
 using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
@@ -40,6 +41,7 @@ namespace Stormancer.Server.Plugins.Friends
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
+                builder.Register<FriendsPartyCompatibilityPolicy>().As<IPartyCompatibilityPolicy>().InstancePerRequest();
                 builder.Register<FriendsController>().InstancePerRequest();
                 builder.Register<FriendsSceneLocator>().As<IServiceLocatorProvider>().InstancePerRequest();
                 builder.Register<FriendsRepository>().InstancePerScene();

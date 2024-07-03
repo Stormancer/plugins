@@ -24,7 +24,7 @@ steps:
 - task: UseDotNet@2
   inputs:
     packageType: 'sdk'
-    version: '8.0.204'
+    version: '8.0.300'
 - task: PowerShell@2
   displayName: 'Build'
   inputs:

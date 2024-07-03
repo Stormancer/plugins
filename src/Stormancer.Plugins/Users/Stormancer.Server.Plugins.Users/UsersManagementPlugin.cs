@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using Newtonsoft.Json.Linq;
+using Stormancer.Abstractions.Server.GameFinder;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
@@ -152,7 +153,7 @@ namespace Stormancer.Server.Plugins.Users
         private void RegisterDependencies(IDependencyBuilder b)
         {
             //Indices
-            
+            b.Register<CrossPlayPartyCompatibilityPolicy>().As<IPartyCompatibilityPolicy>();
             b.Register<SceneAuthorizationController>();
             b.Register(dr=> new UserSessionController(
                 dr.Resolve<IUserSessions>(),
@@ -162,6 +163,7 @@ namespace Stormancer.Server.Plugins.Users
                 dr.Resolve<IEnvironment>(),
                 dr.Resolve<ILogger>(),
                 dr.Resolve<IConfiguration>()));
+            b.Register(dr => new CrossplayController(dr.Resolve<IUserSessions>()));
             b.Register(dr => new AuthenticationController(
                 dr.Resolve<IAuthenticationService>(), 
                 dr.Resolve<IUserSessions>(), 
@@ -217,6 +219,7 @@ namespace Stormancer.Server.Plugins.Users
             scene.AddController<AuthenticationController>();
             scene.AddController<SceneAuthorizationController>();
             scene.AddController<UserSessionController>();
+            scene.AddController<CrossplayController>();
         }
     }
 

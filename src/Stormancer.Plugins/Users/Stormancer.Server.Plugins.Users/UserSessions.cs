@@ -1069,6 +1069,56 @@ namespace Stormancer.Server.Plugins.Users
             }));
         }
 
+        public async Task UpdateUserOptionsAsync(string userId, string key, JObject value, CancellationToken cancellationToken)
+        {
+            var sessions = await GetSession(userId, cancellationToken);
+            bool first = true;
+            foreach (var session in sessions)
+            {
+
+                await UpdateSession(session.SessionId, record =>
+                {
+                    if (record.User == null)
+                    {
+                        return Task.FromResult(record);
+                    }
+                    if (!(record.User.UserData.TryGetValue("options", out var optionsTokens) && optionsTokens is JObject options))
+                    {
+                        options = new JObject();
+                        record.User.UserData["options"] = options;
+                    }
+
+                    options[key] = value;
+
+                    return Task.FromResult(record);
+                });
+
+
+                //Persist the change in the DB
+                if (first && session.User != null)
+                {
+
+
+                    first = false;
+
+
+                    if (!(session.User.UserData.TryGetValue("options", out var optionsTokens) && optionsTokens is JObject options))
+                    {
+                        options = new JObject();
+                        session.User.UserData["options"] = options;
+                    }
+
+                    options[key] = value;
+
+                    await _userService.UpdateUserData(session.User.Id, session.User.UserData);
+
+                }
+            }
+
+
+
+        }
+
         private static DimensionsComparer _dimensionsComparer = new DimensionsComparer();
         private class DimensionsComparer : IEqualityComparer<FrozenDictionary<string, string>>
         {
