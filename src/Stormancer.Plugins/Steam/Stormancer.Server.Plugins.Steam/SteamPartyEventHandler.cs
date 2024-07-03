@@ -319,7 +319,7 @@ namespace Stormancer.Server.Plugins.Steam
             }
             else
             {
-                var result = await peer.RpcTask<GetLobbyLeaderSteamResult>("Steam.GetLobbyOwner", s=> { },cancellationToken, Core.PacketPriority.MEDIUM_PRIORITY);
+                var result = await peer.RpcTask<JoinLobbyArgs,GetLobbyLeaderSteamResult>("Steam.GetLobbyOwner",new JoinLobbyArgs { SteamIDLobby = steamLobbyId },cancellationToken, Core.PacketPriority.MEDIUM_PRIORITY);
                
                 if (!result.Success)
                 {

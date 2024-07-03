@@ -25,6 +25,7 @@ Added
 Fixed
 *****
 - When all steam players leave the party, cleanup lobby id to make sure that the next joining player create a new steam lobby.
+- Fixed serialization issue when retrieving the owner of a steam lobby from a lobby member.
 
 Changed
 *******
