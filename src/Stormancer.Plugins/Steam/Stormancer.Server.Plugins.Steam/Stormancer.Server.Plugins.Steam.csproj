@@ -5,7 +5,7 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>4.2.1.15</Version>
+		<Version>4.2.1.16</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>

@@ -239,8 +239,7 @@ namespace Stormancer
 				SteamPlatformUserId(SteamID steamID)
 					: PlatformUserId(std::to_string(steamID))
 					, _steamID(steamID)
-				{
-				}
+				{}
 
 				const SteamID _steamID;
 			};
@@ -441,8 +440,7 @@ namespace Stormancer
 
 				SteamService(std::shared_ptr<Scene> scene)
 					: _rpcService(scene->dependencyResolver().resolve<RpcService>())
-				{
-				}
+				{}
 
 				pplx::task<std::unordered_map<std::string, PartyDataDto>> decodePartyDataBearerTokens(const std::unordered_map<std::string, std::string>& partyDataBearerTokens, pplx::cancellation_token ct = pplx::cancellation_token::none())
 				{
@@ -465,8 +463,7 @@ namespace Stormancer
 
 				SteamPartyService(std::shared_ptr<Scene> scene)
 					: _rpcService(scene->dependencyResolver().resolve<RpcService>())
-				{
-				}
+				{}
 
 				pplx::task<std::string> createPartyDataBearerToken(pplx::cancellation_token ct = pplx::cancellation_token::none())
 				{
@@ -487,8 +484,7 @@ namespace Stormancer
 				SteamPartyInvitation(const Party::PartyId& partyId, const std::string& senderSteamID = "")
 					: _partyId(partyId)
 					, _senderSteamID(senderSteamID)
-				{
-				}
+				{}
 
 				pplx::task<Party::PartyId> accept(std::shared_ptr<Party::PartyApi> partyApi) override
 				{
@@ -541,8 +537,7 @@ namespace Stormancer
 					, _wUsersApi(usersApi)
 					, _wPartyApi(partyApi)
 					, _wInvitationMessenger(invitationMessenger)
-				{
-				}
+				{}
 
 				~SteamImpl()
 				{
@@ -564,8 +559,9 @@ namespace Stormancer
 							auto args = ctx->readObject<CreateLobbyDto>();
 
 							return steamApi->onCreateLobbyAsync(args, ctx->cancellationToken())
-								.then([ctx](CreateLobbyResult result) {
-								ctx->sendValueTemplated(result);
+								.then([ctx](CreateLobbyResult result)
+									{
+										ctx->sendValueTemplated(result);
 									});
 						});
 
@@ -580,8 +576,9 @@ namespace Stormancer
 							auto args = ctx->readObject<JoinLobbyDto>();
 
 							return steamApi->onJoinLobbyAsync(args, ctx->cancellationToken())
-								.then([ctx](VoidSteamOperationResult result) {
-								ctx->sendValueTemplated(result);
+								.then([ctx](VoidSteamOperationResult result)
+									{
+										ctx->sendValueTemplated(result);
 									});
 						});
 
@@ -628,12 +625,13 @@ namespace Stormancer
 							auto leader = steamApi->getLobbyLeader(args.steamIDLobby);
 							GetLobbyOwnerResult result;
 							result.success = true;
+							result.owner = leader;
 							ctx->sendValueTemplated(result);
 
 							return pplx::task_from_result();
 						});
 
-					
+
 
 				}
 
@@ -1340,32 +1338,32 @@ namespace Stormancer
 				pplx::task<std::vector<SteamFriend>> getFriends(int friendsFlag = k_EFriendFlagImmediate, uint32 maxFriendsCount = UINT32_MAX, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
 				{
 					auto task = pplx::create_task([friendsFlag, maxFriendsCount, logger = _logger]()
-					{
-						auto steamFriends = SteamFriends();
-						if (!steamFriends)
 						{
-							logger->log(LogLevel::Warn, "Steam.GetFriends", "SteamFriends() returned nullptr");
-							return std::vector<SteamFriend>();
-						}
+							auto steamFriends = SteamFriends();
+							if (!steamFriends)
+							{
+								logger->log(LogLevel::Warn, "Steam.GetFriends", "SteamFriends() returned nullptr");
+								return std::vector<SteamFriend>();
+							}
 
-						int cFriends = steamFriends->GetFriendCount(friendsFlag);
+							int cFriends = steamFriends->GetFriendCount(friendsFlag);
 
-						std::vector<SteamFriend> friendsList;
+							std::vector<SteamFriend> friendsList;
 
-						for (int i = 0; i < cFriends && (uint32)i < maxFriendsCount; i++)
-						{
-							CSteamID steamIDFriend = steamFriends->GetFriendByIndex(i, k_EFriendFlagImmediate);
+							for (int i = 0; i < cFriends && (uint32)i < maxFriendsCount; i++)
+							{
+								CSteamID steamIDFriend = steamFriends->GetFriendByIndex(i, k_EFriendFlagImmediate);
 
 
-							SteamFriend steamFriend;
-							steamFriend.steamId = std::to_string(steamIDFriend.ConvertToUint64());
-							steamFriend.relationship = steamFriends->GetFriendRelationship(steamIDFriend);
-							friendsList.push_back(steamFriend);
+								SteamFriend steamFriend;
+								steamFriend.steamId = std::to_string(steamIDFriend.ConvertToUint64());
+								steamFriend.relationship = steamFriends->GetFriendRelationship(steamIDFriend);
+								friendsList.push_back(steamFriend);
 
-						}
+							}
 
-						return friendsList;
-					});
+							return friendsList;
+						});
 
 					auto actionDispatcher = _wActionDispatcher.lock();
 					auto taskOptions = actionDispatcher ? task_options(actionDispatcher, ct) : pplx::task_options(ct);
@@ -1816,12 +1814,10 @@ namespace Stormancer
 			}
 
 			inline void SteamImpl::onLobbyChatUpdateCallback(LobbyChatUpdate_t* /*callback*/)
-			{
-			}
+			{}
 
 			inline void SteamImpl::onLobbyInviteCallback(LobbyInvite_t* /*callback*/)
-			{
-			}
+			{}
 
 			class SteamPartyProvider : public Party::Platform::IPlatformSupportProvider
 			{
@@ -1843,8 +1839,7 @@ namespace Stormancer
 					, _logger(logger)
 					, _wPartyApi(partyApi)
 					, _wActionDispatcher(actionDispatcher)
-				{
-				}
+				{}
 
 				std::string getPlatformName() override
 				{
@@ -2254,8 +2249,7 @@ namespace Stormancer
 
 			SteamAuthenticationEventHandler(std::shared_ptr<details::SteamState> steamConfig)
 				: _steamState(steamConfig)
-			{
-			}
+			{}
 
 			pplx::task<void> retrieveCredentials(const Users::CredentialsContext& context) override
 			{

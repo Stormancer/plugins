@@ -51,7 +51,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <summary>
         /// Gets a boolean indicating whether the request was successful or resulted in an error.
         /// </summary>
-        [MemberNotNullWhen(false,"Error")]
+        [MemberNotNullWhen(false, "Error")]
         [Key(1)]
         public bool Success { get; set; }
 
@@ -148,7 +148,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <returns></returns>
         Task<Session?> GetSessionById(SessionId sessionId, CancellationToken cancellationToken);
 
-     
+
 
         /// <summary>
         /// Gets sessions from session ids.
@@ -223,7 +223,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <returns></returns>
         Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string, string>> query, int take, int skip, CancellationToken cancellationToken);
 
-        
+
         /// <summary>
         /// Sends a request to an user.
         /// </summary>
@@ -322,11 +322,47 @@ namespace Stormancer.Server.Plugins.Users
     [MessagePackObject]
     public class UserSessionInfos
     {
+        /// <summary>
+        /// Gets or sets the user.
+        /// </summary>
         [Key(0)]
         public User? User { get; set; }
 
+        /// <summary>
+        /// Gets the Sessions associated with the user, if any.
+        /// </summary>
         [Key(1)]
-        public IEnumerable<Session> Sessions { get; set; }
+        public IEnumerable<Session> Sessions { get; set; } = Enumerable.Empty<Session>();
+
+        /// <summary>
+        /// Gets the id of the user, if available.
+        /// </summary>
+        [IgnoreMember]
+        public string? UserId
+        {
+            get
+            {
+                if (User != null)
+                {
+                    return User.Id;
+                }
+                else
+                {
+                    var session = Sessions.FirstOrDefault();
+                    if (session != null)
+                    {
+
+                        return session.User?.Id;
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }
+            }
+        }
+
+
     }
 
 }

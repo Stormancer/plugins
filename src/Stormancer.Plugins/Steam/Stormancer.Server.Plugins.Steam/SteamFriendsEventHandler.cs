@@ -50,7 +50,7 @@ namespace Stormancer.Server.Plugins.Steam
         private class SteamFriendUser
         {
             public required SteamFriend SteamFriend { get; set; }
-            public User? User { get; set; } = null;
+            public required UserSessionInfos User { get; set; }
             public SteamPlayerSummary? SteamPlayerSummary { get; set; } = null;
         }
 
@@ -100,17 +100,17 @@ namespace Stormancer.Server.Plugins.Steam
                 return;
             }
 
+            var infos = await _sessions.GetDetailedUserInformationsByIdentityAsync(SteamConstants.PLATFORM_NAME, steamFriends.Select(steamFriend => steamFriend.steamid),CancellationToken.None);
             // Get users from friends
-            var users = await _users.GetUsersByIdentity(SteamConstants.PLATFORM_NAME, steamFriends.Select(steamFriend => steamFriend.steamid).ToArray());
-
+            
             // Remove already present in context friendList
             var friendDatas = steamFriends
                 .Select(steamFriend => new SteamFriendUser
                 {
                     SteamFriend = steamFriend,
-                    User = users[steamFriend.steamid] ?? null
+                    User = infos[steamFriend.steamid]
                 })
-                .Where(friendData => friendData.SteamFriend.relationship == SteamFriendRelationship.Friend && !getFriendsCtx.Friends.Any(friend => friend.UserId == friendData.User?.Id))
+                .Where(friendData => friendData.SteamFriend.relationship == SteamFriendRelationship.Friend && !getFriendsCtx.Friends.Any(friend => friend.UserId == friendData.User?.UserId))
                 .ToArray();
 
             if (!friendDatas.Any())
@@ -135,8 +135,8 @@ namespace Stormancer.Server.Plugins.Steam
                 {
                     getFriendsCtx.Friends.Add(new Friend
                     {
-                        UserId = friendData.User?.Id ?? "steam-" + friendData.SteamFriend?.steamid.ToString(),
-                        Status = SteamPersonaStateToStormancerFriendsStatus(friendData.SteamPlayerSummary?.personastate ?? -1),
+                        UserId = friendData.User?.UserId ?? "steam-" + friendData.SteamFriend?.steamid.ToString(),
+                        Status = GetConnectionStatus(friendData),
                         Tags = new List<string> { "steam" },
                         CustomData = JObject.FromObject(new
                         {
@@ -150,6 +150,17 @@ namespace Stormancer.Server.Plugins.Steam
                     });
                 }
 
+            }
+        }
+        private FriendConnectionStatus GetConnectionStatus(SteamFriendUser friend)
+        {
+            if(friend.User.Sessions.Any())
+            {
+                return FriendConnectionStatus.Online;
+            }
+            else
+            {
+                return FriendConnectionStatus.Disconnected;
             }
         }
     }
