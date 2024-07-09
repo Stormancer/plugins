@@ -34,7 +34,7 @@ namespace Stormancer.Server.Plugins.Party.Model
     /// <summary>
     /// Party State
     /// </summary>
-    public class PartyState
+    public class PartyState : IDisposable
     {
 
 
@@ -148,6 +148,16 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// Gets the platform of players in the party if cross play disabled, null if cross play is enabled.
         /// </summary>
         public string? Platform { get; set; }
-     
+
+        /// <summary>
+        /// Gets a value indicating if the state was disposed.
+        /// </summary>
+        public bool IsDisposed { get; private set; }
+
+        ///<inheritdoc/>
+        public void Dispose()
+        {
+            IsDisposed = true;
+        }
     }
 }

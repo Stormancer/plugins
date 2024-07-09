@@ -151,23 +151,26 @@ namespace Stormancer.Server.Plugins.Party
 
             await _partyState.TaskQueue.PushWork(async () =>
             {
-
-                foreach (var (sessionId, expiredReservation) in _partyState.PartyMembers.Where(p => p.Value.ConnectionStatus == PartyMemberConnectionStatus.Reservation && p.Value.CreatedOnUtc + TimeSpan.FromSeconds(10) < DateTime.UtcNow).ToArray())
+                if (!_partyState.IsDisposed)
                 {
-
-                    if (_partyState.PartyMembers.TryGetValue(sessionId, out var member) && member.ConnectionStatus == PartyMemberConnectionStatus.Reservation && _partyState.PartyMembers.TryRemove(sessionId, out _))
+                    foreach (var (sessionId, expiredReservation) in _partyState.PartyMembers.Where(p => p.Value.ConnectionStatus == PartyMemberConnectionStatus.Reservation && p.Value.CreatedOnUtc + TimeSpan.FromSeconds(10) < DateTime.UtcNow).ToArray())
                     {
 
-                        var handlers = _handlers();
-                        var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene);
-                        partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
-                        await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
-
-                        if (partyResetCtx.ShouldReset)
+                        if (_partyState.PartyMembers.TryGetValue(sessionId, out var member) && member.ConnectionStatus == PartyMemberConnectionStatus.Reservation && _partyState.PartyMembers.TryRemove(sessionId, out _))
                         {
-                            await TryCancelPendingGameFinder();
+
+
+                            var handlers = _handlers();
+                            var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene);
+                            partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
+                            await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
+
+                            if (partyResetCtx.ShouldReset)
+                            {
+                                await TryCancelPendingGameFinder();
+                            }
+                            await BroadcastStateUpdateRpc(PartyMemberDisconnection.Route, new PartyMemberDisconnection { UserId = member.UserId, Reason = PartyDisconnectionReason.Left });
                         }
-                        await BroadcastStateUpdateRpc(PartyMemberDisconnection.Route, new PartyMemberDisconnection { UserId = member.UserId, Reason = PartyDisconnectionReason.Left });
                     }
                 }
             });
@@ -283,7 +286,7 @@ namespace Stormancer.Server.Plugins.Party
         private bool IsCrossPlayEnabled()
         {
 
-            return _partyState.Platform != null;
+            return _partyState.Platform == null;
 
         }
         private void CheckCrossPlay(User user)

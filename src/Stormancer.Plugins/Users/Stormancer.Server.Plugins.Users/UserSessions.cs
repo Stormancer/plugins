@@ -1119,6 +1119,30 @@ namespace Stormancer.Server.Plugins.Users
 
         }
 
+        public async Task<Dictionary<string, UserSessionInfos>> GetDetailedUserInformationsByIdentityAsync(string platform, IEnumerable<string> ids, CancellationToken cancellationToken)
+        {
+            var users = await _userService.GetUsersByIdentity(platform, ids);
+
+            var result = new Dictionary<string, UserSessionInfos>();
+
+            
+
+            foreach (var (id,user) in users)
+            {
+                var r = new UserSessionInfos();
+                if(user!=null)
+                {
+                    r.Sessions = GetSessionImpl(user.Id);
+                    r.User = user;
+                }
+
+                result[id] = r;
+            }
+
+            return result;
+
+        }
+
         private static DimensionsComparer _dimensionsComparer = new DimensionsComparer();
         private class DimensionsComparer : IEqualityComparer<FrozenDictionary<string, string>>
         {

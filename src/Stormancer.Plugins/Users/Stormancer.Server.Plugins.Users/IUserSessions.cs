@@ -300,9 +300,33 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         Task UpdateUserOptionsAsync(string userId, string key, JObject value, CancellationToken cancellationToken);
+
+
+        /// <summary>
+        /// Gets information about an user.
+        /// </summary>
+        /// <param name="platform"></param>
+        /// <param name="ids"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<Dictionary<string, UserSessionInfos>> GetDetailedUserInformationsByIdentityAsync(string platform, IEnumerable<string> ids, CancellationToken cancellationToken);
     }
 
 
+    /// <summary>
+    /// Contains informations about an user.
+    /// </summary>
+    /// <remarks>
+    /// Contains the Session if the player is connected, the User if they are not connected, but a persistent user was found in the database, or nothing if the user couldn't be found.
+    /// </remarks>
+    [MessagePackObject]
+    public class UserSessionInfos
+    {
+        [Key(0)]
+        public User? User { get; set; }
 
+        [Key(1)]
+        public IEnumerable<Session> Sessions { get; set; }
+    }
 
 }

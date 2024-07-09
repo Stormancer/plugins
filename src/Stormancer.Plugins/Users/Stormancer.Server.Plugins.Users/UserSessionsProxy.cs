@@ -229,6 +229,11 @@ namespace Stormancer.Server.Plugins.Users
         {
             return proxy.UpdateUserOptionsAsync(userId, key, value, cancellationToken);
         }
+
+        public Task<Dictionary<string, UserSessionInfos>> GetDetailedUserInformationsByIdentityAsync(string platform, IEnumerable<string> ids,CancellationToken cancellationToken)
+        {
+            return proxy.GetDetailedUserInformationsByIdentity(platform, ids,cancellationToken);
+        }
     }
 
 

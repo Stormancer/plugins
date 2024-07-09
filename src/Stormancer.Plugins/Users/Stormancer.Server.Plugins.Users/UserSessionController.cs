@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.IO.Pipelines;
+using MessagePack;
 
 namespace Stormancer.Server.Plugins.Users
 {
@@ -292,7 +293,15 @@ namespace Stormancer.Server.Plugins.Users
             return _sessions.UpdateUserOptionsAsync(userId, key, value, cancellationToken);
         }
 
+        [S2SApi]
+        public Task<Dictionary<string, UserSessionInfos>> GetDetailedUserInformationsByIdentity(string platform, IEnumerable<string> ids,CancellationToken cancellationToken)
+        {
+            return _sessions.GetDetailedUserInformationsByIdentityAsync(platform, ids,cancellationToken);
+        }
+
     }
+
+   
 
 
 }
