@@ -21,19 +21,17 @@ namespace Stormancer.Server.Plugins.Friends
         {
             var blockLists = await _friendsService.GetBlockedLists(party1.Players.Select(p => p.Value.UserId).Concat(party2.Players.Select(p => p.Value.UserId)), CancellationToken.None);
 
-
-
             var party1BlockList = party1.Players
                 .Select(p => p.Value.UserId)
-                .SelectMany(userId => blockLists.TryGetValue(userId, out var list) ? list : Enumerable.Empty<string>()).Distinct();
+                .SelectMany(userId => blockLists.TryGetValue(userId, out var list) ? list : Enumerable.Empty<string>()).Select(userId => Guid.Parse(userId)).Distinct();
 
-            var party2BlockList = party1.Players
+            var party2BlockList = party2.Players
                 .Select(p => p.Value.UserId)
-                .SelectMany(userId => blockLists.TryGetValue(userId, out var list) ? list : Enumerable.Empty<string>()).Distinct();
+                .SelectMany(userId => blockLists.TryGetValue(userId, out var list) ? list : Enumerable.Empty<string>()).Select(userId=>Guid.Parse(userId)).Distinct();
 
 
-            if(party1.Players.Select(p=>p.Value.UserId).Any(userId=>party2BlockList.Contains(userId))
-                || party2.Players.Select(p => p.Value.UserId).Any(userId => party1BlockList.Contains(userId)))
+            if(party1.Players.Select(p=>Guid.Parse(p.Value.UserId)).Any(userId=>party2BlockList.Contains(userId))
+                || party2.Players.Select(p => Guid.Parse(p.Value.UserId)).Any(userId => party1BlockList.Contains(userId)))
             {
                 return new CompatibilityTestResult(false, "blocklist");
             }

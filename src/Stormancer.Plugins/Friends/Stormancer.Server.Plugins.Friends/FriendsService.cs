@@ -751,14 +751,19 @@ namespace Stormancer.Server.Plugins.Friends
 
 
             var dictionary = new Dictionary<string, IEnumerable<string>>();
+            foreach(var userId in userIds)
+            {
+                dictionary[userId] = new List<string>();
+            }
 
             foreach (var member in members)
             {
-                if (!dictionary.TryGetValue(member.OwnerId.ToString(), out var list))
+                if (dictionary.TryGetValue(member.OwnerId.ToString("N"), out var e) && e is List<string> list)
                 {
-                    list = new List<string>();
+                    list.Add(member.FriendId.ToString());
                 }
-                ((List<string>)list).Add(member.FriendId.ToString());
+              
+                
             }
             return dictionary;
 

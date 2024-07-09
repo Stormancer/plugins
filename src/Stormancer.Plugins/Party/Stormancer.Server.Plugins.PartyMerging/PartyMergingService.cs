@@ -269,16 +269,18 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
                     var partyTo = await mergeTask;
 
-
-
-                    if (_algorithm.CanCompleteMerge(partyTo))
+                    if (partyTo != null)
                     {
-                        lock (_state._syncRoot)
+
+                        if (_algorithm.CanCompleteMerge(partyTo))
                         {
-                            if (_state._states.TryGetValue(partyTo.PartyId, out var state))
+                            lock (_state._syncRoot)
                             {
-                                state.Complete(null);
-                                _state._states.Remove(partyTo.PartyId);
+                                if (_state._states.TryGetValue(partyTo.PartyId, out var state))
+                                {
+                                    state.Complete(null);
+                                    _state._states.Remove(partyTo.PartyId);
+                                }
                             }
                         }
                     }

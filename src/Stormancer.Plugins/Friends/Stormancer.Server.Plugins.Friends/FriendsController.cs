@@ -144,7 +144,7 @@ namespace Stormancer.Server.Plugins.Friends
             }
 
 
-            await _friends.Block(user.Id, userIdToBlock, !string.IsNullOrEmpty(expirationDate) ? DateTime.Parse(expirationDate) : default, ctx.CancellationToken);
+            await _friends.Block(user.Id, userIdToBlock, !string.IsNullOrEmpty(expirationDate) ? DateTime.Parse(expirationDate) : DateTime.MaxValue, ctx.CancellationToken);
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
