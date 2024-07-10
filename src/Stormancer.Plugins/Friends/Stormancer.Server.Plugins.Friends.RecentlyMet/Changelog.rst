@@ -11,7 +11,12 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Changed
+*******
 - Updated to latest SDK.
+Fixed
+*****
+
 
 2.0.3.6
 ----------

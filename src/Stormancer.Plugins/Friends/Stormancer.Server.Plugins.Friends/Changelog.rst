@@ -26,6 +26,7 @@ Added
 Fixed
 *****
 - Don't notify blocked users for status updates.
+- Fixed an issue that occurred when inviting an user in your friendlist after you rejected their invitation.
 
 5.0.0.14
 ----------
