@@ -104,7 +104,7 @@ namespace Stormancer.Server.Plugins.Friends
             var ownerRecord = await _storage.GetListMemberAsync(new MemberId(invitedUserId, ownerId));
             var invitedUserRecord = await _storage.GetListMemberAsync(new MemberId(ownerId, invitedUserId));
 
-            var builder = new MembersOperationsBuilder();
+            var builder = new MembersOperationsBuilder(ownerRecord,invitedUserRecord);
             if (ownerRecord == null)
             {
                 ownerRecord = new MemberRecord(new MemberId(invitedUserId, ownerId), MemberRecordStatus.SentInvitation, LIST_TYPE);
@@ -355,14 +355,13 @@ namespace Stormancer.Server.Plugins.Friends
                     return (senderMember) switch
                     {
                         ({ Status: MemberRecordStatus.SentInvitation }) => builder
-                            .Update(senderMemberId, m => m.Status = MemberRecordStatus.DeletedByFriend)
                             .Delete(destMember),
                         ({ Status: MemberRecordStatus.Blocked }) => builder
                             .Delete(destMember),
                         ({ Status: MemberRecordStatus.DeletedByFriend }) => builder
                             .Delete(destMember),
                         ({ Status: MemberRecordStatus.PendingInvitation }) => builder
-                            .Update(senderMemberId, m => m.Status = MemberRecordStatus.DeletedByFriend)
+                            .Delete(senderMember)
                             .Delete(destMember),
                         ({ Status: MemberRecordStatus.Accepted }) => builder
                             .Update(senderMemberId, m => m.Status = MemberRecordStatus.DeletedByFriend)
