@@ -17,6 +17,10 @@
 #include "gameversion/GameVersion.hpp"
 #include "replication/Lockstep.hpp"
 
+#undef STORM_PLUGIN_IMPL
+#define STORM_PLUGIN_IMPL 1
+#include "replication/P2PMesh.hpp"
+
 using json = nlohmann::json;
 
 SettingsViewModel::SettingsViewModel(AppViewModel* parent)

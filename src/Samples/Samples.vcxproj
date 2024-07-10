@@ -112,7 +112,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(Stormancer-Cpp-LibPath)\include;..\..\output\cpp;C:\Program Files (x86)\Visual Leak Detector\include;imgui;backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MultiProcessorCompilation>false</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -131,7 +131,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(Stormancer-Cpp-LibPath)\include;..\..\output\cpp;C:\Program Files (x86)\Visual Leak Detector\include;imgui;backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MultiProcessorCompilation>false</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -145,6 +145,8 @@
   <ItemGroup>
     <ClCompile Include="backends\imgui_impl_dx12.cpp" />
     <ClCompile Include="backends\imgui_impl_win32.cpp" />
+    <ClCompile Include="FriendsUI.cpp" />
+    <ClCompile Include="FriendsViewModel.cpp" />
     <ClCompile Include="GameFinderUI.cpp" />
     <ClCompile Include="GameFinderViewModel.cpp" />
     <ClCompile Include="GameSessionUI.cpp" />
@@ -175,6 +177,8 @@
     <ClInclude Include="..\Stormancer.Plugins\Replication\cpp\P2PMesh.hpp" />
     <ClInclude Include="backends\imgui_impl_dx12.h" />
     <ClInclude Include="backends\imgui_impl_win32.h" />
+    <ClInclude Include="FriendsUI.h" />
+    <ClInclude Include="FriendsViewModel.h" />
     <ClInclude Include="GameFinderUI.h" />
     <ClInclude Include="GameFinderViewModel.h" />
     <ClInclude Include="GameSessionUI.h" />

@@ -34,6 +34,9 @@
     <Filter Include="Header Files\Plugins">
       <UniqueIdentifier>{a2d8c9a3-1431-46a2-a7b7-dc26289009f2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Friends">
+      <UniqueIdentifier>{6dd2d3c0-7aa6-4bf9-b082-9b416c359368}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -92,6 +95,12 @@
     </ClCompile>
     <ClCompile Include="Lockstep.cpp">
       <Filter>Source Files\Gamesession</Filter>
+    </ClCompile>
+    <ClCompile Include="FriendsViewModel.cpp">
+      <Filter>Source Files\Friends</Filter>
+    </ClCompile>
+    <ClCompile Include="FriendsUI.cpp">
+      <Filter>Source Files\Friends</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -164,6 +173,12 @@
     </ClInclude>
     <ClInclude Include="..\Stormancer.Plugins\Replication\cpp\P2PMesh.hpp">
       <Filter>Header Files\Plugins</Filter>
+    </ClInclude>
+    <ClInclude Include="FriendsViewModel.h">
+      <Filter>Source Files\Friends</Filter>
+    </ClInclude>
+    <ClInclude Include="FriendsUI.h">
+      <Filter>Source Files\Friends</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

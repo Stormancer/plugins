@@ -79,7 +79,7 @@ void LockstepViewModel::addCommand(byte cmd)
 
 }
 
-int LockstepViewModel::getLockstepTime()
+float LockstepViewModel::getLockstepTime()
 {
 	auto client = Stormancer::IClientFactory::GetClient(_clientId);
 
@@ -88,7 +88,7 @@ int LockstepViewModel::getLockstepTime()
 	return api->getCurrentTime();
 }
 
-unsigned int LockstepViewModel::getTargetTime()
+float LockstepViewModel::getTargetTime()
 {
 	auto client = Stormancer::IClientFactory::GetClient(_clientId);
 
@@ -120,5 +120,6 @@ bool LockstepViewModel::tick(float delta)
 	auto client = Stormancer::IClientFactory::GetClient(_clientId);
 
 	auto api = client->dependencyResolver().resolve<Stormancer::Gameplay::LockstepApi>();
-	return api->tick((int)(delta * 1000));
+	//return api->tick((int)(delta * 1000));
+	return true;
 }

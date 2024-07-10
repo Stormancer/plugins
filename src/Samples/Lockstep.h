@@ -25,9 +25,9 @@ public:
 
 	bool tick(float delta);
 
-	int getLockstepTime();
+	float getLockstepTime();
 
-	unsigned int getTargetTime();
+	float getTargetTime();
 
 	bool isPaused();
 

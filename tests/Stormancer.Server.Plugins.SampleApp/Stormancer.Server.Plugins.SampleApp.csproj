@@ -30,6 +30,8 @@
 		<NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
 	</ItemGroup>
 	<ItemGroup>
+		<ProjectReference Include="..\..\src\Stormancer.Plugins\Friends\Stormancer.Server.Plugins.Friends.RecentlyMet\Stormancer.Server.Plugins.Friends.RecentlyMet.csproj" />
+		<ProjectReference Include="..\..\src\Stormancer.Plugins\Friends\Stormancer.Server.Plugins.Friends\Stormancer.Server.Plugins.Friends.csproj" />
 		<ProjectReference Include="..\..\src\Stormancer.Plugins\GameSession\Stormancer.Server.Plugins.GameSession\Stormancer.Server.Plugins.GameSession.csproj" />
 		<ProjectReference Include="..\..\src\Stormancer.Plugins\Party\Stormancer.Server.Plugins.PartyMerging\Stormancer.Server.Plugins.PartyMerging.csproj" />
 		<ProjectReference Include="..\..\src\Stormancer.Plugins\Party\Stormancer.Server.Plugins.Party\Stormancer.Server.Plugins.Party.csproj" />
