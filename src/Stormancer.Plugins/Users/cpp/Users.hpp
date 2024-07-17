@@ -506,12 +506,11 @@ namespace Stormancer
 							auto rpcService = authScene->dependencyResolver().resolve<RpcService>();
 							auto logger = authScene->dependencyResolver().resolve<ILogger>();
 							return rpcService->rpc<T>("UserSession.GetUserOptions", ct, key)
-								.then([logger, key](pplx::task<void> t)
+								.then([logger, key](pplx::task<T> t)
 									{
 										try
 										{
-											t.get();
-
+											return t.get();
 										}
 										catch (std::exception& ex)
 										{
