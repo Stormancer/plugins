@@ -21,11 +21,15 @@
 // SOFTWARE.
 
 using Stormancer.Server.Plugins.Users;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Party.Interfaces
 {
+    /// <summary>
+    /// Context used to process an invitation.
+    /// </summary>
     public class InvitationContext
     {
         public IPartyService Party { get; }
@@ -36,9 +40,19 @@ namespace Stormancer.Server.Plugins.Party.Interfaces
         public Session Sender { get; }
 
         /// <summary>
-        /// Stormancer Id of the user to whom the invitation should be sent.
+        /// If the recipient is currently in game, gets their session.
         /// </summary>
-        public string RecipientUserId { get; }
+        public IEnumerable<Session> RecipientSessions { get; }
+
+        /// <summary>
+        /// Gets the user associated with the recipient, if they have an account on the game server.
+        /// </summary>
+        public User? RecipientUser { get; }
+
+        /// <summary>
+        /// Gets the user id used to invite the recipient.
+        /// </summary>
+        public PlatformId RecipientUserId { get; }
 
         /// <summary>
         /// Token that can be cancelled by the sender to cancel the invitation.
@@ -49,11 +63,13 @@ namespace Stormancer.Server.Plugins.Party.Interfaces
         /// </remarks>
         public CancellationToken InvitationCancellationToken { get; }
 
-        internal InvitationContext(IPartyService party, Session sender, string recipientUserId, CancellationToken invitationCancellationToken)
+        internal InvitationContext(IPartyService party, Session sender,PlatformId recipientUserId, User? recipientUser, IEnumerable<Session> recipientSessions, CancellationToken invitationCancellationToken)
         {
             Party = party;
             Sender = sender;
             RecipientUserId = recipientUserId;
+            RecipientUser = recipientUser;
+            RecipientSessions = recipientSessions;
             InvitationCancellationToken = invitationCancellationToken;
         }
     }
@@ -69,16 +85,12 @@ namespace Stormancer.Server.Plugins.Party.Interfaces
         string PlatformName { get; }
 
         /// <summary>
-        /// Whether this kind of invitations can be sent and received by users who are connected to <paramref name="platform"/>.
+        /// Determines if the handler supports the invitation provided
         /// </summary>
-        /// <param name="platform"></param>
+        /// <param name="ctx"></param>
         /// <returns></returns>
-        bool IsInvitationCompatibleWith(string platform);
+        bool CanHandle(InvitationContext ctx);
 
-        /// <summary>
-        /// Whether this platform can send an invite to a player who isn't currently playing the game.
-        /// </summary>
-        bool CanSendInviteToDisconnectedPlayer { get; }
 
         /// <summary>
         /// This method should provide a platform-specific implementation for sending an invitation.

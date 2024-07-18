@@ -104,7 +104,7 @@ namespace Stormancer.Server.Plugins.Friends
             var ownerRecord = await _storage.GetListMemberAsync(new MemberId(invitedUserId, ownerId));
             var invitedUserRecord = await _storage.GetListMemberAsync(new MemberId(ownerId, invitedUserId));
 
-            var builder = new MembersOperationsBuilder(ownerRecord,invitedUserRecord);
+            var builder = new MembersOperationsBuilder(ownerRecord, invitedUserRecord);
             if (ownerRecord == null)
             {
                 ownerRecord = new MemberRecord(new MemberId(invitedUserId, ownerId), MemberRecordStatus.SentInvitation, LIST_TYPE);
@@ -150,7 +150,6 @@ namespace Stormancer.Server.Plugins.Friends
                         dto = new FriendListUpdateDto
                         {
                             Operation = FriendListUpdateDtoOperation.AddOrUpdate,
-                            ItemId = operation.Id.UserId.ToString(),
                             Data = await CreateFriendDtoDetailed(record)
                         };
                         break;
@@ -161,7 +160,7 @@ namespace Stormancer.Server.Plugins.Friends
                         dto = new FriendListUpdateDto
                         {
                             Operation = FriendListUpdateDtoOperation.AddOrUpdate,
-                            ItemId = operation.Id.UserId.ToString(),
+
                             Data = await CreateFriendDtoDetailed(record)
                         };
                         break;
@@ -171,8 +170,14 @@ namespace Stormancer.Server.Plugins.Friends
                         dto = new FriendListUpdateDto
                         {
                             Operation = FriendListUpdateDtoOperation.Remove,
-                            ItemId = operation.Id.UserId.ToString(),
-                            Data = new Friend { Status = FriendConnectionStatus.Disconnected, UserId = operation.Id.UserId.ToString() }
+
+                            Data = new Friend
+                            {
+                                Status = FriendConnectionStatus.Disconnected,
+                                UserIds = new List<PlatformId> {
+                                    new PlatformId { Platform = Stormancer.Server.Plugins.Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = operation.Id.UserId.ToString() }
+                                }
+                            }
                         };
 
                         break;
@@ -205,7 +210,7 @@ namespace Stormancer.Server.Plugins.Friends
 
                 friend = new Friend
                 {
-                    UserId = friendId.ToString(),
+                    UserIds = new() { new PlatformId { Platform = Stormancer.Server.Plugins.Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = friendId.ToString() } },
                     Status = status,
                     Tags = tags,
                     CustomData = JsonSerializer.Serialize(customData)
@@ -218,7 +223,8 @@ namespace Stormancer.Server.Plugins.Friends
             {
                 friend = new Friend
                 {
-                    UserId = friendId.ToString(),
+                    UserIds = new() { new PlatformId { Platform = Stormancer.Server.Plugins.Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = friendId.ToString() } },
+
                     Status = FriendConnectionStatus.Disconnected,
 
 
@@ -442,7 +448,7 @@ namespace Stormancer.Server.Plugins.Friends
             {
                 var _ = NotifyAsync(new FriendListUpdateDto
                 {
-                    ItemId = user.Id,
+
                     Operation = FriendListUpdateDtoOperation.AddOrUpdate,
                     Data = CreateFriendDtoDetailed(user.Id, online ? newConfig : null, MemberRecordStatus.Accepted, record.Tags, record.CustomData)
                 }, record.OwnerId.ToString(), cancellationToken);
@@ -476,7 +482,7 @@ namespace Stormancer.Server.Plugins.Friends
 
                 await scope.ResolveAll<IFriendsEventHandler>().RunEventHandler(h => h.OnGetFriends(ctx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", "An error occurred while executing the friends event handlers", ex); });
 
-                await NotifyAsync(friends.Select(friend => new FriendListUpdateDto { ItemId = friend.UserId, Operation = FriendListUpdateDtoOperation.AddOrUpdate, Data = friend }), user.Id, cancellationToken);
+                await NotifyAsync(friends.Select(friend => new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.AddOrUpdate, Data = friend }), user.Id, cancellationToken);
 
                 if (!friends.Any())
                 {
@@ -487,7 +493,7 @@ namespace Stormancer.Server.Plugins.Friends
                 var owners = await _storage.GetListsContainingMemberAsync(userGuid, true, LIST_TYPE);
                 if (newStatus != FriendConnectionStatus.Disconnected)
                 {
-                    await NotifyAsync(new FriendListUpdateDto { ItemId = userGuid.ToString(), Operation = FriendListUpdateDtoOperation.UpdateStatus, Data = new Friend { Status = newStatus, UserId = userGuid.ToString() } }, owners.Select(m => m.OwnerId.ToString()), cancellationToken);
+                    await NotifyAsync(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.UpdateStatus, Data = new Friend { Status = newStatus, UserIds = new() { new PlatformId { Platform = Stormancer.Server.Plugins.Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = userGuid.ToString() } } } }, owners.Select(m => m.OwnerId.ToString()), cancellationToken);
                 }
             }
         }
@@ -519,7 +525,19 @@ namespace Stormancer.Server.Plugins.Friends
                 var oldStatus = ComputeStatus(config, true);
 
                 var owners = await _storage.GetListsContainingMemberAsync(userId, true, LIST_TYPE);
-                await NotifyAsync(new FriendListUpdateDto { ItemId = userId.ToString(), Operation = FriendListUpdateDtoOperation.UpdateStatus, Data = new Friend { Status = FriendConnectionStatus.Disconnected, UserId = userId.ToString() } }, owners.Select(m => m.OwnerId.ToString()), cancellationToken);
+                await NotifyAsync(new FriendListUpdateDto
+                {
+                    Operation = FriendListUpdateDtoOperation.UpdateStatus,
+                    Data = new Friend
+                    {
+                        Status = FriendConnectionStatus.Disconnected,
+                        UserIds = new() {
+                            new PlatformId {
+                                PlatformUserId = userId.ToString(), Platform = Stormancer.Server.Plugins.Users.Constants.PROVIDER_TYPE_STORMANCER 
+                            } 
+                        }
+                    }
+                }, owners.Select(m => m.OwnerId.ToString()), cancellationToken);
 
             }
         }
@@ -576,7 +594,7 @@ namespace Stormancer.Server.Plugins.Friends
 
         public async Task AddNonPersistedFriends(string userId, IEnumerable<Friend> friends, CancellationToken cancellationToken)
         {
-            await NotifyAsync(friends.Select(friend => new FriendListUpdateDto { ItemId = friend.UserId, Operation = FriendListUpdateDtoOperation.AddOrUpdate, Data = friend }), userId, cancellationToken);
+            await NotifyAsync(friends.Select(friend => new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.AddOrUpdate, Data = friend }), userId, cancellationToken);
         }
 
 
@@ -750,7 +768,7 @@ namespace Stormancer.Server.Plugins.Friends
 
 
             var dictionary = new Dictionary<string, IEnumerable<string>>();
-            foreach(var userId in userIds)
+            foreach (var userId in userIds)
             {
                 dictionary[userId] = new List<string>();
             }
@@ -761,8 +779,8 @@ namespace Stormancer.Server.Plugins.Friends
                 {
                     list.Add(member.FriendId.ToString());
                 }
-              
-                
+
+
             }
             return dictionary;
 
@@ -793,6 +811,11 @@ namespace Stormancer.Server.Plugins.Friends
                 return null;
             }
 
+        }
+
+        public Task ProcessUpdates(string userId, IEnumerable<FriendListUpdateDto> updates)
+        {
+            throw new NotImplementedException();
         }
     }
 }

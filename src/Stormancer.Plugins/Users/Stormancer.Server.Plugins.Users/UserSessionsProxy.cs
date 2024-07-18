@@ -234,6 +234,11 @@ namespace Stormancer.Server.Plugins.Users
         {
             return proxy.GetDetailedUserInformationsByIdentity(platform, ids,cancellationToken);
         }
+
+        public Task<IEnumerable<Session>> GetSessions(PlatformId userId, CancellationToken cancellationToken)
+        {
+            return proxy.GetSessionsByPlatformId(userId, cancellationToken);
+        }
     }
 
 

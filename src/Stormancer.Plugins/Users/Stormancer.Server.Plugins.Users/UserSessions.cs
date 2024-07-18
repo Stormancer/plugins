@@ -171,7 +171,11 @@ namespace Stormancer.Server.Plugins.Users
             var user = record.User;
             if (user is not null)
             {
+
                 yield return new StringField("user.id", user.Id, Field.Store.NO);
+                yield return new StringField("platformUserId.platform", record.platformId.Platform, Field.Store.NO);
+                yield return new StringField("platformUserId.id", record.platformId.PlatformUserId, Field.Store.NO);
+                yield return new StringField("platformUserId",record.platformId.ToString(), Field.Store.NO);
                 foreach (var field in DefaultMapper.JsonMapper("user.auth", user.Auth))
                 {
                     yield return field;
@@ -574,26 +578,45 @@ namespace Stormancer.Server.Plugins.Users
             return Task.FromResult(result.Hits.Select(h => h.Source!.SessionId));
 
         }
-        public Task<IEnumerable<Session>> GetSession(string userId, CancellationToken cancellationToken)
+        public Task<IEnumerable<Session>> GetSession(PlatformId userId, CancellationToken cancellationToken)
         {
             return Task.FromResult(GetSessionImpl(userId));
         }
 
-        private IEnumerable<Session> GetSessionImpl(string userId)
+        private IEnumerable<Session> GetSessionImpl(PlatformId userId, uint skip = 0, uint size = 10)
         {
-            var guid = Guid.Parse(userId);
-            var result = repository.Filter(JObject.FromObject(new
+            if (userId.Platform == "stormancer")
             {
-                match = new
+                var guid = Guid.Parse(userId.PlatformUserId);
+                var result = repository.Filter(JObject.FromObject(new
                 {
-                    field = "user.id",
-                    value = guid.ToString("N")
-                }
-            }), 10, 0);
+                    match = new
+                    {
+                        field = "user.id",
+                        value = guid.ToString("N")
+                    }
+                }), size, skip);
+                return result.Hits.Select(d => d.Source?.CreateView()).WhereNotNull();
+            }
+            else
+            {
+                var result = repository.Filter(JObject.FromObject(new
+                {
+                    must = new[] {
+                        new {
+                            match = new
+                            {
+                                field = "platformUserId",
+                                value = userId.ToString()
+                            }
+                        }
+                    }
+                }), size, skip);
+                return result.Hits.Select(d => d.Source?.CreateView()).WhereNotNull();
+            }
 
 
 
-            return result.Hits.Select(d => d.Source?.CreateView()).WhereNotNull();
 
 
         }
@@ -626,10 +649,13 @@ namespace Stormancer.Server.Plugins.Users
         {
             return GetSessionRecordByIdImpl(sessionId)?.CreateView();
         }
-
-        public Task<IEnumerable<Session>> GetSessionsByUserId(string userId, CancellationToken cancellationToken)
+        public Task<IEnumerable<Session>> GetSessions(PlatformId userId, CancellationToken cancellationToken)
         {
             return GetSession(userId, cancellationToken);
+        }
+        public Task<IEnumerable<Session>> GetSessionsByUserId(string userId, CancellationToken cancellationToken)
+        {
+            return GetSession(new PlatformId { Platform = Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = userId }, cancellationToken);
         }
 
         public Task<Session?> GetSessionById(SessionId sessionId, string authType, CancellationToken cancellationToken)
@@ -1071,7 +1097,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public async Task UpdateUserOptionsAsync(string userId, string key, JObject value, CancellationToken cancellationToken)
         {
-            var sessions = await GetSession(userId, cancellationToken);
+            var sessions = await GetSession(new PlatformId { Platform = Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = userId}, cancellationToken);
             bool first = true;
             foreach (var session in sessions)
             {
@@ -1125,14 +1151,14 @@ namespace Stormancer.Server.Plugins.Users
 
             var result = new Dictionary<string, UserSessionInfos>();
 
-            
 
-            foreach (var (id,user) in users)
+
+            foreach (var (id, user) in users)
             {
                 var r = new UserSessionInfos();
-                if(user!=null)
+                if (user != null)
                 {
-                    r.Sessions = GetSessionImpl(user.Id);
+                    r.Sessions = GetSessionImpl(new PlatformId { Platform = Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = user.Id });
                     r.User = user;
                 }
 
@@ -1142,6 +1168,8 @@ namespace Stormancer.Server.Plugins.Users
             return result;
 
         }
+
+
 
         private static DimensionsComparer _dimensionsComparer = new DimensionsComparer();
         private class DimensionsComparer : IEqualityComparer<FrozenDictionary<string, string>>

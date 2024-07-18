@@ -130,7 +130,18 @@ namespace Stormancer.Server.Plugins.Users
         /// <param name="userId"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
+        [Obsolete("Use GetSessions(PlatformId userId,CancellationToken cancellationToken)")]
         Task<IEnumerable<Session>> GetSessionsByUserId(string userId, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Gets the sessions associated by an user Id.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<IEnumerable<Session>> GetSessions(PlatformId userId,CancellationToken cancellationToken);
+
+
 
         /// <summary>
         /// Gets the session associated with a peer.

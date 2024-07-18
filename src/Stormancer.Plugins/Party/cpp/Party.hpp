@@ -664,14 +664,14 @@ namespace Stormancer
 			/// Send an invitation to another player.
 			/// </summary>
 			/// <param name="recipient">Stormancer Id of the player to be invited.</param>
-			/// <param name="forceStormancerInvite">If <c>true</c>, always send a Stormancer invitation, even if a platform-specific invitation system is available.</param>
+			/// <param name="preferPlatformInvite">If true, prefer sending the invitation through the platform, if false use only the internal invitation system.</param>
 			/// <remarks>
 			/// The Stormancer server determines the kind of invitation that should be sent according to the sender and the recipient's platform.
 			/// Unless <paramref name="forceStormancerInvite" /> is set to <c>true</c>, Stormancer will prioritize platform-specific invitation systems where possible.
 			/// If your game needs cancelable invitations as a feature, you should always set <paramref name="forceStormancerInvite" /> to <c>true</c>.
 			/// </remarks>
 			/// <returns>A task that completes when the invitation has been sent.</returns>
-			virtual pplx::task<void> sendInvitation(const std::string& recipient, bool forceStormancerInvite = false) = 0;
+			virtual pplx::task<void> sendInvitation(const ::Stormancer::Users::UserId& recipient, bool preferPlatformInvite = false) = 0;
 
 			/// <summary>
 			/// Show the system UI to send invitations to the current party, if the current platform supports it.
@@ -719,10 +719,10 @@ namespace Stormancer
 			/// <param name="callback">Callable object taking the stormancer Id of the recipient of the ivitation as parameter.</param>
 			/// <returns>A <c>Subscription</c> object to track the lifetime of the subscription.</returns>
 			/// <remarks>
-			/// An invtitation system may have the notion of a user declining an invitation that they received. The Stormancer invitation system does.
+			/// An invitation system may have the notion of a user declining an invitation that they received. The Stormancer invitation system does.
 			/// When an invitation that was sent through such a system is declined, and said system supports notifying the sender about the declination, this event will be triggered on the sender's side.
 			/// </remarks>
-			virtual Subscription subscribeOnSentInvitationDeclined(std::function<void(std::string)> callback) = 0;
+			virtual Subscription subscribeOnSentInvitationDeclined(std::function<void(Stormancer::Users::UserId)> callback) = 0;
 
 			/// <summary>
 			/// Register a callback to be run when the party leader changes the party settings.
@@ -1867,16 +1867,12 @@ namespace Stormancer
 					STORM_RETURN_TASK_FROM_EXCEPTION_OPT(std::runtime_error(PartyError::Str::Unauthorized), _dispatcher, void);
 				}
 
-				pplx::task<bool> sendInvitation(const std::string& recipientId, bool forceStormancerInvite)
+				pplx::task<bool> sendInvitation(const Stormancer::Users::UserId& recipientId, bool preferPlatformInvite)
 				{
-					if (!forceStormancerInvite)
-					{
-						return sendInvitationInternal(recipientId, false, pplx::cancellation_token::none());
-					}
-
+					
 					std::lock_guard<std::recursive_mutex> lg(_invitationsMutex);
 
-					auto& request = _pendingStormancerInvitations[recipientId];
+					auto& request = _pendingStormancerInvitations[recipientId.toString()];
 
 					auto currentOperation = request.pendingOperation;
 					request.pendingOperation = InvitationRequest::Operation::Send;
@@ -1884,12 +1880,12 @@ namespace Stormancer
 					{
 						auto token = request.cts.get_token();
 						std::weak_ptr<PartyService> wThat(this->shared_from_this());
-						request.task = sendInvitationInternal(recipientId, true, token)
-							.then([wThat, recipientId](pplx::task<bool> task)
+						request.task = sendInvitationInternal(recipientId, preferPlatformInvite, token)
+							.then([wThat, recipientId, preferPlatformInvite](pplx::task<bool> task)
 						{
 							if (auto that = wThat.lock())
 							{
-								return that->onInvitationComplete(task, recipientId);
+								return that->onInvitationComplete(task, recipientId,preferPlatformInvite);
 							}
 							return task;
 						}, _dispatcher);
@@ -2618,21 +2614,14 @@ namespace Stormancer
 					OnGameFinderFailed(dto);
 				}
 
-				pplx::task<bool> sendInvitationInternal(const std::string& recipientId, bool forceStormancerInvite, pplx::cancellation_token ct)
+				pplx::task<bool> sendInvitationInternal(const Stormancer::Users::UserId& recipientId, bool preferPlatformInvite, pplx::cancellation_token ct)
 				{
-					static const int sendInvitationVersion = parseVersion("2019-11-22.1");
-					if (_serverProtocolVersion >= sendInvitationVersion)
-					{
-						return _rpcService->rpc<bool>("party.sendinvitation", ct, recipientId, forceStormancerInvite);
-					}
-					else
-					{
-						return _users->sendRequestToUser<void>(recipientId, "party.invite", ct, _scene.lock()->id())
-							.then([] { return true; });
-					}
+					
+					return _rpcService->rpc<bool>("party.sendinvitation", ct, recipientId, preferPlatformInvite);
+					
 				}
 
-				pplx::task<bool> onInvitationComplete(pplx::task<bool> task, const std::string& recipientId)
+				pplx::task<bool> onInvitationComplete(pplx::task<bool> task, const Stormancer::Users::UserId & recipientId, bool preferPlatformInvite)
 				{
 					pplx::task_status status;
 					try
@@ -2648,10 +2637,10 @@ namespace Stormancer
 					{
 						std::lock_guard<std::recursive_mutex> lg(_invitationsMutex);
 
-						auto& invite = _pendingStormancerInvitations[recipientId];
+						auto& invite = _pendingStormancerInvitations[recipientId.toString()];
 						if (status != pplx::canceled || invite.pendingOperation == InvitationRequest::Operation::Cancel)
 						{
-							_pendingStormancerInvitations.erase(recipientId);
+							_pendingStormancerInvitations.erase(recipientId.toString());
 							UpdatedInviteList(getPendingStormancerInvitations());
 							return task;
 						}
@@ -2660,12 +2649,12 @@ namespace Stormancer
 							// Another sendInvitation() to the same recipient has been issued after a cancelInvitation()
 							invite.cts = pplx::cancellation_token_source();
 							std::weak_ptr<PartyService> wThat = this->shared_from_this();
-							invite.task = sendInvitationInternal(recipientId, true, invite.cts.get_token())
-								.then([wThat, recipientId](pplx::task<bool> task)
+							invite.task = sendInvitationInternal(recipientId, preferPlatformInvite, invite.cts.get_token())
+								.then([wThat, recipientId, preferPlatformInvite](pplx::task<bool> task)
 							{
 								if (auto that = wThat.lock())
 								{
-									return that->onInvitationComplete(task, recipientId);
+									return that->onInvitationComplete(task, recipientId,preferPlatformInvite);
 								}
 								return task;
 							}, _dispatcher);
@@ -3538,7 +3527,7 @@ namespace Stormancer
 					return party->isLeader() || !party->settings().onlyLeaderCanInvite;
 				}
 
-				pplx::task<void> sendInvitation(const std::string& recipient, bool forceStormancerInvitation) override
+				pplx::task<void> sendInvitation(const Stormancer::Users::UserId &recipient, bool preferPlatformInvite) override
 				{
 					auto party = tryGetParty();
 					if (!party)
@@ -3549,7 +3538,7 @@ namespace Stormancer
 					std::weak_ptr<Party_Impl> wThat = this->shared_from_this();
 					auto logger = _logger;
 					std::weak_ptr<PartyContainer> wParty = party;
-					party->partyService()->sendInvitation(recipient, forceStormancerInvitation)
+					party->partyService()->sendInvitation(recipient, preferPlatformInvite)
 						.then([wParty, wThat, logger, recipient](pplx::task<bool> task)
 					{
 						auto that = wThat.lock();
@@ -3568,7 +3557,7 @@ namespace Stormancer
 						}
 						catch (const std::exception& ex)
 						{
-							logger->log(LogLevel::Error, "PartyApi::sendInvitation", "Could not send an invitation to " + recipient, ex);
+							logger->log(LogLevel::Error, "PartyApi::sendInvitation", "Could not send an invitation to " + recipient.toString(), ex);
 						}
 					}, _dispatcher);
 					// TODO Use an observable RPC to tell when the invite has been sent as well as when it has been accepted or declined.
@@ -3651,7 +3640,7 @@ namespace Stormancer
 					return _onSentInvitationsUpdated.subscribe(callback);
 				}
 
-				Subscription subscribeOnSentInvitationDeclined(std::function<void(std::string)> callback) override
+				Subscription subscribeOnSentInvitationDeclined(std::function<void(Stormancer::Users::UserId)> callback) override
 				{
 					return _onSentInvitationDeclined.subscribe(callback);
 				}
@@ -4149,7 +4138,7 @@ namespace Stormancer
 				std::shared_ptr<PartyInvitation> _pendingInvitation;
 				Event<std::string> _onInvitationCanceled;
 				Event<std::vector<std::string>> _onSentInvitationsUpdated;
-				Event<std::string> _onSentInvitationDeclined;
+				Event<Stormancer::Users::UserId> _onSentInvitationDeclined;
 				Event<PartyGameFinderStatus> _onGameFinderStatusUpdate;
 				Event<GameFinder::GameFoundEvent> _onGameFound;
 				Event<PartyGameFinderFailure> _onGameFinderFailure;

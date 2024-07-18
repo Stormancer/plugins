@@ -250,11 +250,23 @@ namespace Stormancer.Server.Plugins.Users
 
         }
 
+        public Task<User?> GetUserByIdentity(PlatformId platformId)
+        {
+            return GetUserByIdentity(platformId.Platform, platformId.PlatformUserId);
+        }
+
         public async Task<User?> GetUserByIdentity(string provider, string login)
         {
-            var users = await GetUsersByIdentity(provider, Enumerable.Repeat(login, 1));
+            if (provider == Constants.PROVIDER_TYPE_STORMANCER)
+            {
+                return await GetUser(login);
+            }
+            else
+            {
+                var users = await GetUsersByIdentity(provider, Enumerable.Repeat(login, 1));
 
-            return users.TryGetValue(login, out var user) ? user : null;
+                return users.TryGetValue(login, out var user) ? user : null;
+            }
         }
 
 

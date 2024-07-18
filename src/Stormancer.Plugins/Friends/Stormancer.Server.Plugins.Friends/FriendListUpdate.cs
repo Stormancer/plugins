@@ -24,6 +24,7 @@
 
 using MessagePack;
 using System;
+using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.Friends
 {
@@ -59,28 +60,23 @@ namespace Stormancer.Server.Plugins.Friends
     [MessagePackObject]
     public class FriendListUpdateDto
     {
-        /// <summary>
-        /// Id of the item in the friend list.
-        /// </summary>
-        [Key(0)]
-        public required string ItemId { get; set; }
-
+       
         /// <summary>
         /// Gets or sets the Operation to be performed on the friend list.
         /// </summary>
-        [Key(1)]
+        [Key(0)]
         public required FriendListUpdateDtoOperation Operation { get; set; }
 
         /// <summary>
         /// Gets or sets the content of the update.
         /// </summary>
-        [Key(2)]
+        [Key(1)]
         public required Friend Data { get; set; }
 
         /// <summary>
         /// Gets or sets the timestamp of the message.
         /// </summary>
-        [Key(3)]
+        [Key(2)]
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     }
 }

@@ -153,6 +153,7 @@ namespace Stormancer
 			virtual SteamID getLobbyLeader(SteamIDLobby lobbyId) = 0;
 			virtual pplx::task<SteamIDLobby> createLobby(ELobbyType lobbyType = ELobbyType::k_ELobbyTypeFriendsOnly, int maxMembers = 5, bool joinable = true, const std::unordered_map<std::string, std::string> metadata = std::unordered_map<std::string, std::string>(), pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
 
+			virtual void inviteUserToLobby(SteamID userID, SteamIDLobby steamIDLobby) = 0;
 			virtual pplx::task<void> joinLobby(SteamIDLobby steamIDLobby, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
 
 			virtual pplx::task<void> leaveLobby(SteamIDLobby steamIDLobby, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
@@ -430,6 +431,12 @@ namespace Stormancer
 				MSGPACK_DEFINE(steamIDLobby, joinable)
 			};
 
+			struct InviteUserToLobbyArgs
+			{
+				SteamID userId;
+				SteamIDLobby lobbyId;
+				MSGPACK_DEFINE(userId,lobbyId)
+			};
 			using GetLobbyOwnerArgs = JoinLobbyDto;
 
 
@@ -630,6 +637,19 @@ namespace Stormancer
 
 							return pplx::task_from_result();
 						});
+
+					rpc->addProcedure("Steam.Invite", [wSteamImpl](RpcRequestContext_ptr ctx)
+					{
+						auto steamApi = wSteamImpl.lock();
+						if (!steamApi)
+						{
+							STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
+						}
+
+						auto args = ctx->readObject<InviteUserToLobbyArgs>();
+
+						steamApi->inviteUserToLobby(args.userId, args.lobbyId);
+					});
 
 
 
@@ -1029,6 +1049,12 @@ namespace Stormancer
 					lobbyEnterEventData.callResult.Set(hSteamAPICall, this, &SteamImpl::onLobbyEnterCallResult);
 
 					return pplx::create_task(lobbyEnterEventData.tce, taskOptions);
+				}
+
+				void inviteUserToLobby(SteamID userID, SteamIDLobby steamIDLobby) override
+				{
+					steamMatchmaking->inviteUserToLobby(steamIDLobby, userID);
+
 				}
 
 				pplx::task<void> leaveLobby(SteamIDLobby steamIDLobby, pplx::cancellation_token ct = pplx::cancellation_token::none()) override

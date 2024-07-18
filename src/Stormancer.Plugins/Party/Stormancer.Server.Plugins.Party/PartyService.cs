@@ -69,7 +69,6 @@ namespace Stormancer.Server.Plugins.Party
         private readonly RpcService _rpcService;
         private readonly IUserService _users;
         private readonly IEnumerable<IPartyPlatformSupport> _platformSupports;
-        private readonly StormancerPartyPlatformSupport _stormancerPartyPlatformSupport;
         private readonly InvitationCodeService invitationCodes;
         private readonly PartyLuceneDocumentStore partyDocumentsStore;
         private readonly PartyConfigurationService partyConfigurationService;
@@ -96,7 +95,6 @@ namespace Stormancer.Server.Plugins.Party
             IConfiguration configuration,
             IUserService users,
             IEnumerable<IPartyPlatformSupport> platformSupports,
-            StormancerPartyPlatformSupport stormancerPartyPlatformSupport,
             InvitationCodeService invitationCodes,
             PartyLuceneDocumentStore partyDocumentsStore,
             PartyConfigurationService partyConfigurationService,
@@ -116,7 +114,6 @@ namespace Stormancer.Server.Plugins.Party
             _rpcService = rpcService;
             _users = users;
             _platformSupports = platformSupports;
-            _stormancerPartyPlatformSupport = stormancerPartyPlatformSupport;
             this.invitationCodes = invitationCodes;
             this.partyDocumentsStore = partyDocumentsStore;
             this.partyConfigurationService = partyConfigurationService;
@@ -200,10 +197,14 @@ namespace Stormancer.Server.Plugins.Party
         [DoesNotReturn]
         private static void ThrowNoSuchUserError(string userId) => throw new ClientException($"party.noSuchUser?userId={userId}");
 
-        private bool TryGetMemberByUserId(string userId, out PartyMember member)
+        private bool TryGetMemberByUserId(string userId,[NotNullWhen(true)] out PartyMember? member)
         {
             member = _partyState.PartyMembers.FirstOrDefault(kvp => kvp.Value.UserId == userId).Value;
             return member != null;
+        }
+        private bool TryGetMemberBySessionId(SessionId sessionId,[NotNullWhen(true)] out PartyMember? member)
+        {
+            return _partyState.PartyMembers.TryGetValue(sessionId, out member);
         }
 
         private void Log(LogLevel level, string methodName, string message, string sessionId, string? userId = null)
@@ -1256,26 +1257,52 @@ namespace Stormancer.Server.Plugins.Party
             return dto;
         }
 
-        public async Task<bool> SendInvitation(string senderUserId, string recipientUserId, bool forceStormancerInvite, CancellationToken cancellationToken)
+        public async Task<bool> SendInvitation(SessionId senderSessionId, PlatformId recipientUserId, bool preferPlatformInvite, CancellationToken cancellationToken)
         {
             //Reimplement internal invitation.
             //throw new NotImplementedException();
 
-            PartyMember senderMember;
-            if (!TryGetMemberByUserId(senderUserId, out senderMember))
+            PartyMember? senderMember;
+            if (!TryGetMemberBySessionId(senderSessionId, out senderMember))
             {
-                ThrowNoSuchMemberError(senderUserId);
+                ThrowNoSuchMemberError(senderSessionId);
             }
 
-            var recipientSessions = await _userSessions.GetSessionsByUserId(recipientUserId, cancellationToken);
+            
+            var senderSession = await _userSessions.GetSessionById(senderSessionId, cancellationToken);
 
-            User? recipientUser = recipientSessions.FirstOrDefault()?.User;
-
-            if (recipientUser == null)
+            if(senderSession == null)
             {
-                ThrowNoSuchUserError(recipientUserId);
+                throw new ClientException("disconnected");
             }
-            var result = await _userSessions.SendRequest<bool, string>("party.invite", senderMember.UserId, recipientUserId, PartyId, cancellationToken);
+            var recipients = await _userSessions.GetDetailedUserInformationsByIdentityAsync(recipientUserId.Platform, new[] { recipientUserId.PlatformUserId },cancellationToken);
+
+            InvitationContext ctx;
+            if(recipients.TryGetValue(recipientUserId.PlatformUserId,out var sessionInfos))
+            {
+                ctx = new InvitationContext(this, senderSession, recipientUserId, sessionInfos.User, sessionInfos.Sessions, cancellationToken);
+            }
+            else
+            {
+                ctx = new InvitationContext(this, senderSession, recipientUserId, null, Enumerable.Empty<Session>(), cancellationToken);
+            }
+
+            if (preferPlatformInvite)
+            {
+                foreach (var handler in _platformSupports)
+                {
+                    if(handler.CanHandle(ctx))
+                    {
+                        return await handler.SendInvitation(ctx);
+                    }
+                }
+            }
+            
+            if (ctx.RecipientUser == null)
+            {
+                ThrowNoSuchUserError(recipientUserId.PlatformUserId);
+            }
+            var result = await _userSessions.SendRequest<bool, string>("party.invite", senderMember.UserId, recipientUserId.PlatformUserId, PartyId, cancellationToken);
 
             if (!result.Success)
             {

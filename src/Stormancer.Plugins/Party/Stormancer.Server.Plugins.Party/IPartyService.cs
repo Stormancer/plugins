@@ -23,6 +23,7 @@
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Party.Dto;
 using Stormancer.Server.Plugins.Party.Model;
+using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -129,8 +130,8 @@ namespace Stormancer.Server.Plugins.Party
         /// <summary>
         /// Invite a user to this party.
         /// </summary>
-        /// <param name="senderUserId">The stormancer Id of the user who sends the invitation.</param>
-        /// <param name="recipientUserId">The stormancer Id of the user who will receive the invitation.</param>
+        /// <param name="senderSessionId">The session Id of the user who sends the invitation.</param>
+        /// <param name="recipientUserId">The user Id of the user who will receive the invitation.</param>
         /// <param name="forceStormancerInvite">
         /// If <c>false</c>, the underlying invitation system to use for this invitation will be chosen automatically, prioritizing platform-specific systems.
         /// If <c>true</c>, only the base Stormancer invitation system will be used.
@@ -141,7 +142,7 @@ namespace Stormancer.Server.Plugins.Party
         /// The result of the task is <c>true</c> if the recipient accepted the invitation, <c>false</c> if they refused it.
         /// If the underlying invitation system doesn't support the notion of refusing an invitation, it will always be true.
         /// </returns>
-        Task<bool> SendInvitation(string senderUserId, string recipientUserId, bool forceStormancerInvite, CancellationToken cancellationToken);
+        Task<bool> SendInvitation(SessionId senderSessionId, PlatformId recipientUserId, bool forceStormancerInvite, CancellationToken cancellationToken);
 
         /// <summary>
         /// Updates the party configuration from scene metadata.

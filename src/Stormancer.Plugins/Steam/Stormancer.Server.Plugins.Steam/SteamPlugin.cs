@@ -25,6 +25,7 @@ using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Friends;
 using Stormancer.Server.Plugins.Party;
+using Stormancer.Server.Plugins.Party.Interfaces;
 using Stormancer.Server.Plugins.Profile;
 using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Steam;
@@ -49,6 +50,7 @@ namespace Stormancer.Server.Plugins.Steam
                 builder.Register<SteamFriendsEventHandler>().As<IFriendsEventHandler>();
                 builder.Register<SteamPartyEventHandler>().As<IPartyEventHandler>().InstancePerRequest();
                 builder.Register<SteamServiceLocator>().As<IServiceLocatorProvider>();
+                builder.Register<SteamPlatformInvitationsHandler>().As<IPartyPlatformSupport>().InstancePerRequest();
             };
 
             ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>

@@ -176,7 +176,7 @@ namespace Stormancer.Server.Plugins.Friends
         }
 
         [Api(ApiAccess.Public,ApiType.Rpc)]
-        public async Task<Dictionary<string,Friend>> Get(RequestContext<IScenePeerClient> ctx)
+        public async Task<List<Friend>> Get(RequestContext<IScenePeerClient> ctx)
         {
             var user = await _userSessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
 
@@ -185,11 +185,11 @@ namespace Stormancer.Server.Plugins.Friends
                 throw new ClientException("NotAuthenticated");
             }
 
-            var result = new Dictionary<string,Friend>();
+            var result = new List<Friend>();
 
             foreach(var friend in await _friends.GetFriends(user.Id,ctx.CancellationToken))
             {
-                result.Add(friend.UserId, friend);
+                result.Add(friend);
             }
             return result;
         }
@@ -235,6 +235,30 @@ namespace Stormancer.Server.Plugins.Friends
         public Task<IEnumerable<string>> GetBlockedList(string userId, CancellationToken cancellationToken)
         {
             return _friends.GetBlockedList(userId, cancellationToken);
+        }
+
+
+        [Api(ApiAccess.Public, ApiType.FireForget)]
+        public async Task UpdateFriendList(Packet<IScenePeerClient> packet)
+        {
+            var updates = packet.ReadObject<IEnumerable<FriendListUpdateDto>>();
+
+            var user = await _userSessions.GetUser(packet.Connection, CancellationToken.None);
+
+            if (user == null)
+            {
+                throw new ClientException("NotAuthenticated");
+            }
+
+            await _friends.ProcessUpdates(user.Id,updates);
+        }
+
+        [S2SApi]
+        public Task UpdateFriendList(string friendListOwnerId, IEnumerable<FriendListUpdateDto> updates)
+        {
+            return _friends.ProcessUpdates(friendListOwnerId, updates);
+
+         
         }
     }
 }

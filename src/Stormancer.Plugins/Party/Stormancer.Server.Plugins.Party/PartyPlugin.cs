@@ -88,7 +88,6 @@ namespace Stormancer.Server.Plugins.Party
                     r.Resolve<IConfiguration>(),
                     r.Resolve<IUserService>(),
                     r.Resolve<IEnumerable<IPartyPlatformSupport>>(),
-                    r.Resolve<StormancerPartyPlatformSupport>(),
                     r.Resolve<InvitationCodeService>(),
                     r.Resolve<PartyLuceneDocumentStore>(),
                     r.Resolve<PartyConfigurationService>(),
@@ -125,10 +124,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 builder.Register<PartyState>(r => new PartyState()).InstancePerScene();
 
-                builder.Register<StormancerPartyPlatformSupport>(r => new StormancerPartyPlatformSupport(
-                    r.Resolve<IUserSessions>(),
-                    r.Resolve<ISerializer>())
-                ).As<IPartyPlatformSupport>().AsSelf().InstancePerRequest();
+               
 
                 builder.Register<PartySceneLocator>(r => new PartySceneLocator()).As<IServiceLocatorProvider>();
 

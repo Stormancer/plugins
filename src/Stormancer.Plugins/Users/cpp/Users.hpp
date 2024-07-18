@@ -156,11 +156,29 @@ namespace Stormancer
 			MSGPACK_DEFINE(authParameters, loginResult);
 		};
 
+
+		struct UserId
+		{
+			std::string platform;
+			std::string userId;
+
+			std::string toString() const
+			{
+				return platform + ":" + userId;
+			}
+			bool operator==(const UserId& right) const
+			{
+				return platform == right.platform && userId == right.userId;
+			}
+
+			MSGPACK_DEFINE(platform,userId)
+		};
+
 		/// <summary>
 		/// A platform-specific user Id.
 		/// </summary>
 		/// <remarks>
-		/// For exmaple, it could be a Steam Id, a PSN Account Id or an Xbox User Id.
+		/// For example, it could be a Steam Id, a PSN Account Id or an Xbox User Id.
 		/// This type is abstract. Only concrete subtypes implemented by platform support plugins (e.g Steam Plugin) can be instantiated.
 		/// </remarks>
 		struct PlatformUserId

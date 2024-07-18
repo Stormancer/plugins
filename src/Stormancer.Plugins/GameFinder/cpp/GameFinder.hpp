@@ -12,7 +12,7 @@
 namespace Stormancer
 {
 	/// <summary>
-	/// The <c>GameFinder</c> enables parties or indivdual players to find Game Sessions according to custom server-side logic.
+	/// The <c>GameFinder</c> enables parties or individual players to find Game Sessions according to custom server-side logic.
 	/// </summary>
 	namespace GameFinder
 	{

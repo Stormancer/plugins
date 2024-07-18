@@ -132,7 +132,14 @@ namespace Stormancer.Server.Plugins.Users
         [S2SApi]
         public Task<IEnumerable<Session>> GetSessionsByUserId(string userId, CancellationToken cancellationToken)
         {
-            return _sessions.GetSessionsByUserId(userId, cancellationToken);
+            return _sessions.GetSessions(new PlatformId { Platform = Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = userId }, cancellationToken);
+        }
+
+
+        [S2SApi]
+        public Task<IEnumerable<Session>> GetSessionsByPlatformId(PlatformId platformId, CancellationToken cancellationToken)
+        {
+            return _sessions.GetSessions(platformId, cancellationToken);
         }
 
         [S2SApi]

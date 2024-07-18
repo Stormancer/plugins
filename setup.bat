@@ -18,3 +18,13 @@ mklink /J output\cpp\gamefinder src\Stormancer.Plugins\GameFinder\cpp
 
 rmdir output\cpp\replication
 mklink /J output\cpp\replication src\Stormancer.Plugins\Replication\cpp
+
+rmdir output\cpp\users
+mklink /J output\cpp\users src\Stormancer.Plugins\Users\cpp
+
+rmdir output\cpp\regions
+mklink /J output\cpp\regions src\Stormancer.Plugins\Regions\cpp
+
+
+rmdir output\cpp\friends
+mklink /J output\cpp\friends src\Stormancer.Plugins\Friends\cpp

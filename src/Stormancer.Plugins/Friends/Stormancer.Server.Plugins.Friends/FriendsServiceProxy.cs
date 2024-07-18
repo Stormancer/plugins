@@ -82,6 +82,11 @@ namespace Stormancer.Server.Plugins.Friends
             throw new NotSupportedException();
         }
 
+        public Task ProcessUpdates(string userId, IEnumerable<FriendListUpdateDto> updates)
+        {
+            return proxy.UpdateFriendList(userId, updates, CancellationToken.None);
+        }
+
         public Task RemoveFriend(User user, string friendId, CancellationToken cancellationToken)
         {
             throw new NotSupportedException();

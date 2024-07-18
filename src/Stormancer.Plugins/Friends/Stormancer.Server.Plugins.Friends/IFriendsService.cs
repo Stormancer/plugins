@@ -66,5 +66,14 @@ namespace Stormancer.Server.Plugins.Friends
         Task<Dictionary<string, IEnumerable<string>>> GetBlockedLists(IEnumerable<string> userIds, CancellationToken cancellationToken);
 
         Task<IEnumerable<string>> GetBlockedList(string userId, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Processes updates to a friend list.
+        /// </summary>
+        /// <remarks>
+        /// Plugins can emit friend list updates either from the server or from clients.
+        /// </remarks>
+        /// <param name="updates"></param>
+        Task ProcessUpdates(string userId,IEnumerable<FriendListUpdateDto> updates);
     }
 }

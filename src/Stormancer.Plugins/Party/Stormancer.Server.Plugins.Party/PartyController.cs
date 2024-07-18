@@ -181,9 +181,9 @@ namespace Stormancer.Server.Plugins.Party
             {
                 if (_partyService.CanSendInvitation(user.UserId))
                 {
-                    var recipient = ctx.ReadObject<string>();
+                    var recipient = ctx.ReadObject<PlatformId>();
                     var forceStormancerInvite = ctx.ReadObject<bool>();
-                    var accepted = await _partyService.SendInvitation(user.UserId, recipient, forceStormancerInvite, ctx.CancellationToken);
+                    var accepted = await _partyService.SendInvitation(ctx.RemotePeer.SessionId, recipient, forceStormancerInvite, ctx.CancellationToken);
                     await ctx.SendValue(accepted);
                 }
                 else

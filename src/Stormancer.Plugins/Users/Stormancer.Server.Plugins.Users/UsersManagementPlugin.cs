@@ -60,6 +60,12 @@ namespace Stormancer.Server.Plugins.Users
         /// Type <see cref="string"/> for the 'users' service.
         /// </summary>
         public const string SERVICE_TYPE = "stormancer.authenticator";
+
+
+        /// <summary>
+        /// Gets the provider type for Stormancer.
+        /// </summary>
+        public const string PROVIDER_TYPE_STORMANCER = "stormancer";
     }
 
 

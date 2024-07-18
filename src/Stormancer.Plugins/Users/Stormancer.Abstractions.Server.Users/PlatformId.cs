@@ -14,7 +14,7 @@ namespace Stormancer.Server.Plugins.Users
     /// An user may be authenticated to several platforms, in this case he will be associated to a main <see cref="PlatformId"/> and secondary ones.
     /// </remarks>
     [MessagePackObject]
-    public struct PlatformId
+    public struct PlatformId : IEquatable<PlatformId>
     {
 
         /// <summary>
@@ -35,6 +35,25 @@ namespace Stormancer.Server.Plugins.Users
         {
             var els = value.Split(':');
             return new PlatformId { Platform = els[0], PlatformUserId = els[1] };
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object? obj)
+        {
+            return obj is PlatformId id && Equals(id);
+        }
+
+        /// <inheritdoc/>
+        public bool Equals(PlatformId other)
+        {
+            return Platform == other.Platform &&
+                   PlatformUserId == other.PlatformUserId;
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Platform, PlatformUserId);
         }
 
         /// <summary>
@@ -87,6 +106,18 @@ namespace Stormancer.Server.Plugins.Users
             {
                 PlatformUserId = value;
             }
+        }
+
+        /// <inheritdoc/>
+        public static bool operator ==(PlatformId left, PlatformId right)
+        {
+            return left.Equals(right);
+        }
+
+        /// <inheritdoc/>
+        public static bool operator !=(PlatformId left, PlatformId right)
+        {
+            return !(left == right);
         }
     }
 }

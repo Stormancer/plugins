@@ -77,10 +77,10 @@ namespace Stormancer.Server.Plugins.Steam
     /// Steam Party Event Handler.
     /// </summary>
     [Priority(int.MinValue)]
-    public class SteamPartyEventHandler : IPartyEventHandler
+    internal class SteamPartyEventHandler : IPartyEventHandler
     {
         private const string LobbyPrefix = "Party-";
-        private const string PartyLobbyKey = "steam.lobby";
+        public const string PartyLobbyKey = "steam.lobby";
 
         private readonly RpcService _rpc;
         private readonly IUserSessions _userSessions;

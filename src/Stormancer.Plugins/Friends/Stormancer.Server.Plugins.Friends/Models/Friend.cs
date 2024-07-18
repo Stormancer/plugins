@@ -23,6 +23,7 @@
 
 using MessagePack;
 using Stormancer.Server.Plugins.Friends.Data;
+using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
 
@@ -82,10 +83,11 @@ namespace Stormancer.Server.Plugins.Friends
     public class Friend
     {
         /// <summary>
-        /// Gets or sets the id of the friend.
+        /// Gets or sets the list of user ids associated with the friend entry.
         /// </summary>
+        /// <remarks>User ids include Stormancer user ids, Steam ids, etc...</remarks>
         [Key(0)]
-        public required string UserId { get; set; }
+        public required List<PlatformId> UserIds { get; set; }
 
         /// <summary>
         /// Gets or sets the connection status of the friend.
@@ -166,9 +168,14 @@ namespace Stormancer.Server.Plugins.Friends
     public enum FriendConnectionStatus
     {
         /// <summary>
-        /// Player online
+        /// The user is in game.
         /// </summary>
-        Online = 0,
+        Connected = 3,
+
+        /// <summary>
+        /// The user is online on the platform, but not in game.
+        /// </summary>
+        Online = 2,
 
         /// <summary>
         /// Player away
@@ -178,6 +185,6 @@ namespace Stormancer.Server.Plugins.Friends
         /// <summary>
         /// Player disconnected.
         /// </summary>
-        Disconnected = 3
+        Disconnected = 0
     }
 }
