@@ -61,7 +61,7 @@ namespace Stormancer.Server.Plugins.Steam
                 case 1: // Online
                 case 5: // Looking to trade
                 case 6: // Looking to play
-                    return FriendConnectionStatus.Online;
+                    return FriendConnectionStatus.Connected;
                 case 2: // Busy
                 case 3: // Away
                 case 4: // Snooze
@@ -81,7 +81,7 @@ namespace Stormancer.Server.Plugins.Steam
                 throw new InvalidOperationException("Invalid UserId");
             }
 
-            var session = (await _sessions.GetSessionsByUserId(getFriendsCtx.UserId, CancellationToken.None)).FirstOrDefault();
+            var session = (await _sessions.GetSessions(new PlatformId(Users.Constants.PROVIDER_TYPE_STORMANCER, getFriendsCtx.UserId), CancellationToken.None)).FirstOrDefault();
 
             if (!(session?.User?.TryGetSteamId(out var steamId) ?? false))
             {
@@ -110,7 +110,7 @@ namespace Stormancer.Server.Plugins.Steam
                     SteamFriend = steamFriend,
                     User = infos[steamFriend.steamid]
                 })
-                .Where(friendData => friendData.SteamFriend.relationship == SteamFriendRelationship.Friend && !getFriendsCtx.Friends.Any(friend => friend.UserId == friendData.User?.UserId))
+                .Where(friendData => friendData.SteamFriend.relationship == SteamFriendRelationship.Friend && !getFriendsCtx.Friends.Any(friend => friend.UserIds.Contains(new PlatformId { Platform = Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = friendData.User?.UserId??string.Empty })))
                 .ToArray();
 
             if (!friendDatas.Any())
@@ -133,10 +133,17 @@ namespace Stormancer.Server.Plugins.Steam
             {
                 if (friendData.SteamFriend != null)
                 {
+                    var userIds = new List<PlatformId> { new PlatformId { Platform = SteamConstants.PLATFORM_NAME, PlatformUserId = friendData.SteamFriend.steamid.ToString() } };
+                    var status = new Dictionary<string, FriendConnectionStatus> { [SteamConstants.PLATFORM_NAME] = GetConnectionStatus(friendData) };
+                    if(friendData.User?.UserId !=null)
+                    {
+                        userIds.Add(new PlatformId { Platform = Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = friendData.User.UserId });
+                        status.Add(Constants.PROVIDER_TYPE_STORMANCER, friendData.User.Sessions.Any() ? FriendConnectionStatus.Connected : FriendConnectionStatus.Disconnected);
+                    }
                     getFriendsCtx.Friends.Add(new Friend
                     {
-                        UserId = friendData.User?.UserId ?? "steam-" + friendData.SteamFriend?.steamid.ToString(),
-                        Status = GetConnectionStatus(friendData),
+                        UserIds = userIds,
+                        Status = status,
                         Tags = new List<string> { "steam" },
                         CustomData = JObject.FromObject(new
                         {
@@ -156,7 +163,7 @@ namespace Stormancer.Server.Plugins.Steam
         {
             if(friend.User.Sessions.Any())
             {
-                return FriendConnectionStatus.Online;
+                return FriendConnectionStatus.Connected;
             }
             else
             {

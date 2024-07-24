@@ -30,8 +30,9 @@ namespace Stormancer.Server.Plugins.Friends
     /// </summary>
     public class GetFriendsCtx
     {
-        internal GetFriendsCtx(string userId, SessionId sessionId,List<Friend> friends, bool fromServer)
+        internal GetFriendsCtx(IFriendsService friendsService, string userId, SessionId sessionId,List<Friend> friends, bool fromServer)
         {
+            FriendsService = friendsService;
             UserId = userId;
             SessionId = sessionId;
             Friends = friends;
@@ -52,6 +53,11 @@ namespace Stormancer.Server.Plugins.Friends
         /// The friends request is from the server.
         /// </summary>
         public bool FromServer { get; }
+
+        /// <summary>
+        /// Gets the friends server that produced the event.
+        /// </summary>
+        public IFriendsService FriendsService { get; }
     }
 
     /// <summary>

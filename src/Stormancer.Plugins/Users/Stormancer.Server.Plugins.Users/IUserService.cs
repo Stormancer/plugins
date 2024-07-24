@@ -48,6 +48,13 @@ namespace Stormancer.Server.Plugins.Users
         Task<User?> GetUserByIdentity(string provider, string identifier);
 
         /// <summary>
+        /// Gets an user by identity using a PlatformId.
+        /// </summary>
+        /// <param name="platformId"></param>
+        /// <returns></returns>
+        Task<User?> GetUser(PlatformId platformId);
+
+        /// <summary>
         /// Gets users by claim (batched)
         /// </summary>
         /// <param name="provider"></param>

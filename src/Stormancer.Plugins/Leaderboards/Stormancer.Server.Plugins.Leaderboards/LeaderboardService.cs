@@ -28,6 +28,7 @@ using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Database;
 using Stormancer.Server.Plugins.Friends;
 using Stormancer.Server.Plugins.Users;
+using Stormancer.Server.Plugins.Utilities.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -213,9 +214,9 @@ namespace Stormancer.Server.Plugins.Leaderboards
             var startResult = await client.MultiGetAsync(v => v.GetMany<ScoreRecord>(ids));
             var results = startResult.GetMany<ScoreRecord>(ids);
 
-            foreach(var h in results )
+            foreach (var h in results)
             {
-                if(h.Found && finalResults.ContainsKey(h.Source.Id))
+                if (h.Found && finalResults.ContainsKey(h.Source.Id))
                 {
                     finalResults[h.Source.Id] = h.Source;
                 }
@@ -512,7 +513,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
                         throw new InvalidOperationException("LeaderboardQuery.UserId must be set if LeaderboardQuery.FriendsOnly is set.");
                     }
                     var friends = await friendsService.GetFriends(leaderboardQuery.UserId, cancellationToken);
-                    var friendIds = friends.Select(f => f.UserId);
+                    var friendIds = friends.Select(f => f.TryGetIdForPlatform(Users.Constants.PROVIDER_TYPE_STORMANCER, out var userId) ? userId : null).WhereNotNull();
                     if (leaderboardQuery.FriendsIds != null && leaderboardQuery.FriendsIds.Any())
                     {
                         leaderboardQuery.FilteredUserIds = leaderboardQuery.FriendsIds.Intersect(friendIds);
@@ -560,7 +561,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
         public Task UpdateScore(string id, string leaderboardName, Func<ScoreRecord?, Task<ScoreRecord>> updater)
         {
-            return UpdateScores(Enumerable.Repeat(new LeaderboardEntryId(leaderboardName, id),1) , (i, old) => updater(old));
+            return UpdateScores(Enumerable.Repeat(new LeaderboardEntryId(leaderboardName, id), 1), (i, old) => updater(old));
         }
 
         private Random random = new Random();

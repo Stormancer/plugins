@@ -48,10 +48,7 @@ namespace Stormancer.Server.Plugins.Friends
         /// </summary>
         UpdateStatus = 2,
 
-        /// <summary>
-        /// Resets the friend list.
-        /// </summary>
-        Reset = 3,
+     
     }
 
     /// <summary>
@@ -77,6 +74,6 @@ namespace Stormancer.Server.Plugins.Friends
         /// Gets or sets the timestamp of the message.
         /// </summary>
         [Key(2)]
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public ulong Timestamp { get; set; } =(ulong)(DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds;
     }
 }

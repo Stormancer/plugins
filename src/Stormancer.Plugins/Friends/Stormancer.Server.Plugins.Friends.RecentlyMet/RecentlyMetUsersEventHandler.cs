@@ -62,11 +62,11 @@ namespace Stormancer.Server.Plugins.Friends.RecentlyMet
             var userId = Guid.Parse(getMetUsersCtx.UserId);
             var ctx = await _dbAccessor.GetDbContextAsync();
 
-            var currentFriends = getMetUsersCtx.Friends.Select(f => Guid.Parse(f.UserId)).ToList();
+            var currentFriends = getMetUsersCtx.Friends.Select(f => f.TryGetIdForPlatform(Users.Constants.PROVIDER_TYPE_STORMANCER, out var id) ? Guid.Parse(id) : default).Where(guid => guid != default).ToList();
             currentFriends.Add(userId);
             var query = from historyRecord in ctx.Set<GameHistoryRecord>()
                         join userHistory in ctx.Set<UserGameHistoryRecord>()
-                        on historyRecord.Id  equals userHistory.GameHistoryRecordId
+                        on historyRecord.Id equals userHistory.GameHistoryRecordId
                         join otherHistory in ctx.Set<UserGameHistoryRecord>()
                         on historyRecord.Id equals otherHistory.GameHistoryRecordId
                         where userHistory.UserRecordId == userId && !currentFriends.Contains(otherHistory.UserRecordId)
@@ -74,16 +74,21 @@ namespace Stormancer.Server.Plugins.Friends.RecentlyMet
                         into g
                         select new
                         {
-                            date = g.Max(r=>r.CompletedOn),
+                            date = g.Max(r => r.CompletedOn),
                             userId = g.Key,
-                            
+
                         };
 
-            var recentlyPlayedWith = await query.OrderByDescending(s=>s.date).Take(_maxRecentlyMet).ToListAsync();
+            var recentlyPlayedWith = await query.OrderByDescending(s => s.date).Take(_maxRecentlyMet).ToListAsync();
 
             foreach (var friend in recentlyPlayedWith)
             {
-                getMetUsersCtx.Friends.Add(new Friend { UserId = friend.userId.ToString(), Status = FriendConnectionStatus.Disconnected, Tags = new List<string> { "recentlyMet" } });
+                getMetUsersCtx.Friends.Add(new Friend
+                {
+                    UserIds = new List<Users.PlatformId> { new Users.PlatformId { Platform = Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = friend.userId.ToString() } },
+                    Status = new Dictionary<string, FriendConnectionStatus> { [Users.Constants.PROVIDER_TYPE_STORMANCER] = FriendConnectionStatus.Disconnected },
+                    Tags = new List<string> { "recentlyMet" }
+                });
             }
         }
     }

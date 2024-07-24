@@ -16,6 +16,7 @@ namespace Stormancer.Server.Plugins.Users
     [MessagePackObject]
     public struct PlatformId : IEquatable<PlatformId>
     {
+        public PlatformId(string platform, string userId) { Platform = platform; PlatformUserId = userId; }
 
         /// <summary>
         /// Gets a string rep

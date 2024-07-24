@@ -62,12 +62,8 @@ namespace Stormancer.Server.Plugins.Friends
 
         public async Task InviteFriend(RequestContext<IScenePeerClient> ctx)
         {
-            var friendId = ctx.ReadObject<string>();
-            if (friendId == null)
-            {
-                throw new ClientException("friendId argument must be non null");
-            }
-
+            var friendId = ctx.ReadObject<PlatformId>();
+            
             var friend = await _users.GetUser(friendId);
 
             if (friend == null)
@@ -96,10 +92,15 @@ namespace Stormancer.Server.Plugins.Friends
             {
                 throw new ClientException("NotAuthenticated");
             }
-            var senderId = ctx.ReadObject<string>();
+            var senderId = ctx.ReadObject<PlatformId>();
             var accepts = ctx.ReadObject<bool>();
 
-            await _friends.ManageInvitation(user, senderId, accepts, ctx.CancellationToken);
+            var sender = await _users.GetUser(senderId);
+            if(sender == null)
+            {
+                throw new ClientException("UserNotFound");
+            }
+            await _friends.ManageInvitation(user, sender.Id, accepts, ctx.CancellationToken);
         }
 
         public async Task RemoveFriend(RequestContext<IScenePeerClient> ctx)
@@ -110,9 +111,15 @@ namespace Stormancer.Server.Plugins.Friends
                 throw new ClientException("NotAuthenticated");
             }
 
-            var friendId = ctx.ReadObject<string>();
+            var friendId = ctx.ReadObject<PlatformId>();
 
-            await _friends.RemoveFriend(user, friendId, ctx.CancellationToken);
+            var friend = await _users.GetUser(friendId);
+            if(friend == null)
+            {
+                throw new ClientException("UserNotFound");
+            }
+
+            await _friends.RemoveFriend(user, friend, ctx.CancellationToken);
         }
 
         public async Task SetStatus(RequestContext<IScenePeerClient> ctx)
@@ -134,7 +141,7 @@ namespace Stormancer.Server.Plugins.Friends
        
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task Block(string userIdToBlock, string expirationDate, RequestContext<IScenePeerClient> ctx)
+        public async Task Block(PlatformId userIdToBlock, string expirationDate, RequestContext<IScenePeerClient> ctx)
         {
             var user = await _userSessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
 
@@ -143,8 +150,13 @@ namespace Stormancer.Server.Plugins.Friends
                 throw new ClientException("NotAuthenticated");
             }
 
+            var target = await _users.GetUser(userIdToBlock);
+            if (target == null)
+            {
+                throw new ClientException("UserNotFound");
+            }
 
-            await _friends.Block(user.Id, userIdToBlock, !string.IsNullOrEmpty(expirationDate) ? DateTime.Parse(expirationDate) : DateTime.MaxValue, ctx.CancellationToken);
+            await _friends.Block(user, target, !string.IsNullOrEmpty(expirationDate) ? DateTime.Parse(expirationDate) : DateTime.MaxValue, ctx.CancellationToken);
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
@@ -157,9 +169,15 @@ namespace Stormancer.Server.Plugins.Friends
                 throw new ClientException("NotAuthenticated");
             }
 
-            var userIdToUnblock = ctx.ReadObject<string>();
+            var userIdToUnblock = ctx.ReadObject<PlatformId>();
 
-            await _friends.Unblock(user.Id, userIdToUnblock, ctx.CancellationToken);
+            var target = await _users.GetUser(userIdToUnblock);
+            if (target == null)
+            {
+                throw new ClientException("UserNotFound");
+            }
+
+            await _friends.Unblock(user, target, ctx.CancellationToken);
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
@@ -214,15 +232,25 @@ namespace Stormancer.Server.Plugins.Friends
         }
 
         [S2SApi]
-        public Task Block(string userId, string userIdToBlock,DateTime expiration, CancellationToken cancellationToken)
+        public async Task Block(string userId, string userIdToBlock,DateTime expiration, CancellationToken cancellationToken)
         {
-            return _friends.Block(userId, userIdToBlock, expiration, cancellationToken);
+            var users = await _users.GetUsers(new[] { userId, userIdToBlock }, cancellationToken);
+            if(users.TryGetValue(userId,out var sender) && sender is not null && users.TryGetValue(userIdToBlock, out var target) && target is not null)
+            {
+                await _friends.Block(sender,target, expiration, cancellationToken);
+            }
+           
+           
         }
 
         [S2SApi]
-        public Task Unblock(string userId, string userIdToUnblock, CancellationToken cancellationToken)
+        public async Task Unblock(string userId, string userIdToUnblock, CancellationToken cancellationToken)
         {
-            return _friends.Unblock(userId, userIdToUnblock, cancellationToken);
+            var users = await _users.GetUsers(new[] { userId, userIdToUnblock }, cancellationToken);
+            if (users.TryGetValue(userId, out var sender) && sender is not null && users.TryGetValue(userIdToUnblock, out var target) && target is not null)
+            {
+                await _friends.Unblock(sender, target, cancellationToken);
+            }
         }
 
         [S2SApi]
@@ -259,6 +287,12 @@ namespace Stormancer.Server.Plugins.Friends
             return _friends.ProcessUpdates(friendListOwnerId, updates);
 
          
+        }
+
+        [S2SApi]
+        public Task<FriendConnectionStatus> GetStatus(PlatformId platformId, CancellationToken cancellationToken)
+        {
+            return _friends.GetStatusAsync(platformId, cancellationToken);
         }
     }
 }

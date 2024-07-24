@@ -26,6 +26,7 @@ using Stormancer.Server.Plugins.Friends.Data;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Stormancer.Server.Plugins.Friends
 {
@@ -83,6 +84,26 @@ namespace Stormancer.Server.Plugins.Friends
     public class Friend
     {
         /// <summary>
+        /// Tries getting the user id of the friend for a specific platform.
+        /// </summary>
+        /// <param name="platform"></param>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public bool TryGetIdForPlatform(string platform,[NotNullWhen(true)] out string? id)
+        {
+            foreach(var pId in UserIds)
+            {
+                if(pId.Platform == platform)
+                {
+                    id = pId.PlatformUserId;
+                    return true;
+                }
+                
+            }
+            id = null;
+            return false;
+        }
+        /// <summary>
         /// Gets or sets the list of user ids associated with the friend entry.
         /// </summary>
         /// <remarks>User ids include Stormancer user ids, Steam ids, etc...</remarks>
@@ -93,7 +114,7 @@ namespace Stormancer.Server.Plugins.Friends
         /// Gets or sets the connection status of the friend.
         /// </summary>
         [Key(1)]
-        public required FriendConnectionStatus Status { get; set; }
+        public required Dictionary<string,FriendConnectionStatus> Status { get; set; }
 
         /// <summary>
         /// Gets or sets the tags associated with the friend.
@@ -170,12 +191,8 @@ namespace Stormancer.Server.Plugins.Friends
         /// <summary>
         /// The user is in game.
         /// </summary>
-        Connected = 3,
+        Connected = 2,
 
-        /// <summary>
-        /// The user is online on the platform, but not in game.
-        /// </summary>
-        Online = 2,
 
         /// <summary>
         /// Player away

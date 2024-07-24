@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using Stormancer.Server.Plugins.Users;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -39,7 +40,14 @@ namespace Stormancer.Server.Plugins.Friends
 
         Task ManageInvitation(User user, string senderId, bool accept, CancellationToken cancellationToken);
 
-        Task RemoveFriend(User user, string friendId, CancellationToken cancellationToken);
+        /// <summary>
+        /// Removes an user from a friend list.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="friend"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task RemoveFriend(User user, User friend, CancellationToken cancellationToken);
 
         Task Subscribe(IScenePeerClient peer, CancellationToken cancellationToken);
 
@@ -59,9 +67,24 @@ namespace Stormancer.Server.Plugins.Friends
 
         Task<MemberDto?> GetRelationship(string userId, string targetUserId, CancellationToken cancellationToken);
 
-        Task Block(string userId, string userIdToBlock, System.DateTime dateTime, CancellationToken cancellationToken);
+        /// <summary>
+        /// Blocks an user.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="userToBlock"></param>
+        /// <param name="expiration"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task Block(User user, User userToBlock, DateTime expiration, CancellationToken cancellationToken);
 
-        Task Unblock(string userId, string userIdToUnblock, CancellationToken cancellationToken);
+        /// <summary>
+        /// Unblocks an user.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="userToUnblock"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task Unblock(User user, User userToUnblock, CancellationToken cancellationToken);
 
         Task<Dictionary<string, IEnumerable<string>>> GetBlockedLists(IEnumerable<string> userIds, CancellationToken cancellationToken);
 
@@ -74,6 +97,14 @@ namespace Stormancer.Server.Plugins.Friends
         /// Plugins can emit friend list updates either from the server or from clients.
         /// </remarks>
         /// <param name="updates"></param>
-        Task ProcessUpdates(string userId,IEnumerable<FriendListUpdateDto> updates);
+        Task ProcessUpdates(string userId, IEnumerable<FriendListUpdateDto> updates);
+
+        /// <summary>
+        /// Gets the status of an user in the friend system.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<FriendConnectionStatus> GetStatusAsync(PlatformId userId, CancellationToken cancellationToken);
     }
 }

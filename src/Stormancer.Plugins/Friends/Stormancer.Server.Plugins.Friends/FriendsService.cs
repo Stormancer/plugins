@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using Lucene.Net.Documents;
+using Lucene.Net.Index;
 using Microsoft.AspNetCore.Builder;
 using Nest;
 using Newtonsoft.Json.Linq;
@@ -173,10 +174,10 @@ namespace Stormancer.Server.Plugins.Friends
 
                             Data = new Friend
                             {
-                                Status = FriendConnectionStatus.Disconnected,
-                                UserIds = new List<PlatformId> {
-                                    new PlatformId { Platform = Stormancer.Server.Plugins.Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = operation.Id.UserId.ToString() }
-                                }
+                                Status = new Dictionary<string, FriendConnectionStatus> { [Users.Constants.PROVIDER_TYPE_STORMANCER] = FriendConnectionStatus.Disconnected },
+                                UserIds = [
+                                    new (Users.Constants.PROVIDER_TYPE_STORMANCER,  operation.Id.UserId.ToString())
+                                ]
                             }
                         };
 
@@ -211,7 +212,7 @@ namespace Stormancer.Server.Plugins.Friends
                 friend = new Friend
                 {
                     UserIds = new() { new PlatformId { Platform = Stormancer.Server.Plugins.Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = friendId.ToString() } },
-                    Status = status,
+                    Status = new Dictionary<string, FriendConnectionStatus> { [Users.Constants.PROVIDER_TYPE_STORMANCER] = status },
                     Tags = tags,
                     CustomData = JsonSerializer.Serialize(customData)
                 };
@@ -225,7 +226,7 @@ namespace Stormancer.Server.Plugins.Friends
                 {
                     UserIds = new() { new PlatformId { Platform = Stormancer.Server.Plugins.Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = friendId.ToString() } },
 
-                    Status = FriendConnectionStatus.Disconnected,
+                    Status = new Dictionary<string, FriendConnectionStatus> { [Users.Constants.PROVIDER_TYPE_STORMANCER] = FriendConnectionStatus.Disconnected },
 
 
                 };
@@ -251,7 +252,7 @@ namespace Stormancer.Server.Plugins.Friends
         }
         private async Task<Friend> CreateFriendDtoDetailed(MemberRecord record)
         {
-            var config = await _channel.GetStatusConfig(record.FriendId);
+            var config = await _channel.GetStatusConfig(new PlatformId(Users.Constants.PROVIDER_TYPE_STORMANCER, record.FriendId.ToString("N")));
 
             return CreateFriendDtoDetailed(record.FriendId.ToString(), config, record.Status, record.Tags, record.CustomData);
 
@@ -273,7 +274,7 @@ namespace Stormancer.Server.Plugins.Friends
                     case FriendListStatusConfig.Away:
                         return FriendConnectionStatus.Away;
                     case FriendListStatusConfig.Online:
-                        return FriendConnectionStatus.Online;
+                        return FriendConnectionStatus.Connected;
                     default:
                         return FriendConnectionStatus.Disconnected;
                 }
@@ -383,12 +384,12 @@ namespace Stormancer.Server.Plugins.Friends
 
         }
 
-        public async Task RemoveFriend(User user, string friendId, CancellationToken cancellationToken)
+        public async Task RemoveFriend(User user, User friend, CancellationToken cancellationToken)
         {
 
 
 
-            var friendMemberId = new MemberId(Guid.Parse(user.Id), Guid.Parse(friendId));
+            var friendMemberId = new MemberId(Guid.Parse(user.Id), Guid.Parse(friend.Id));
             var originMemberId = new MemberId(friendMemberId.ListOwnerId, friendMemberId.UserId);
 
             var friendMember = await _storage.GetListMemberAsync(friendMemberId);
@@ -478,22 +479,28 @@ namespace Stormancer.Server.Plugins.Friends
                 {
                     friends.Add(await CreateFriendDtoDetailed(record));
                 }
-                var ctx = new GetFriendsCtx(user.Id, peer.SessionId, friends, false);
+                var ctx = new GetFriendsCtx(this,user.Id, peer.SessionId, friends, false);
 
                 await scope.ResolveAll<IFriendsEventHandler>().RunEventHandler(h => h.OnGetFriends(ctx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", "An error occurred while executing the friends event handlers", ex); });
 
-                await NotifyAsync(friends.Select(friend => new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.AddOrUpdate, Data = friend }), user.Id, cancellationToken);
+                _channel.ApplyFriendListUpdates(Guid.Parse(user.Id), friends.Select(friend => new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.AddOrUpdate, Data = friend }));
+                //await NotifyAsync(friends.Select(friend => new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.AddOrUpdate, Data = friend }), user.Id, cancellationToken);
 
-                if (!friends.Any())
-                {
-                    await NotifyAsync(Enumerable.Empty<FriendListUpdateDto>(), user.Id, cancellationToken);
-                }
+               
                 var newStatus = ComputeStatus(statusConfig, true);
                 var userGuid = Guid.Parse(user.Id);
                 var owners = await _storage.GetListsContainingMemberAsync(userGuid, true, LIST_TYPE);
                 if (newStatus != FriendConnectionStatus.Disconnected)
                 {
-                    await NotifyAsync(new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.UpdateStatus, Data = new Friend { Status = newStatus, UserIds = new() { new PlatformId { Platform = Stormancer.Server.Plugins.Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = userGuid.ToString() } } } }, owners.Select(m => m.OwnerId.ToString()), cancellationToken);
+                    await NotifyAsync(new FriendListUpdateDto
+                    {
+                        Operation = FriendListUpdateDtoOperation.UpdateStatus,
+                        Data = new Friend
+                        {
+                            Status = new Dictionary<string, FriendConnectionStatus> { [Users.Constants.PROVIDER_TYPE_STORMANCER] = newStatus },
+                            UserIds = new() { new PlatformId { Platform = Stormancer.Server.Plugins.Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = userGuid.ToString() } }
+                        }
+                    }, owners.Select(m => m.OwnerId.ToString()), cancellationToken);
                 }
             }
         }
@@ -509,7 +516,7 @@ namespace Stormancer.Server.Plugins.Friends
                 {
                     friends.Add(await CreateFriendDtoDetailed(record));
                 }
-                var ctx = new GetFriendsCtx(userId, SessionId.Empty, friends, true);
+                var ctx = new GetFriendsCtx(this,userId, SessionId.Empty, friends, true);
 
                 await scope.ResolveAll<IFriendsEventHandler>().RunEventHandler(h => h.OnGetFriends(ctx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", "An error occurred while executing the friends event handlers", ex); });
 
@@ -530,11 +537,11 @@ namespace Stormancer.Server.Plugins.Friends
                     Operation = FriendListUpdateDtoOperation.UpdateStatus,
                     Data = new Friend
                     {
-                        Status = FriendConnectionStatus.Disconnected,
+                        Status = new Dictionary<string, FriendConnectionStatus> { [Users.Constants.PROVIDER_TYPE_STORMANCER] = FriendConnectionStatus.Disconnected },
                         UserIds = new() {
                             new PlatformId {
-                                PlatformUserId = userId.ToString(), Platform = Stormancer.Server.Plugins.Users.Constants.PROVIDER_TYPE_STORMANCER 
-                            } 
+                                PlatformUserId = userId.ToString(), Platform = Stormancer.Server.Plugins.Users.Constants.PROVIDER_TYPE_STORMANCER
+                            }
                         }
                     }
                 }, owners.Select(m => m.OwnerId.ToString()), cancellationToken);
@@ -599,37 +606,18 @@ namespace Stormancer.Server.Plugins.Friends
 
 
 
-        public async Task Block(string userId, string userIdToBlock, DateTime expiration, CancellationToken cancellationToken)
+        public async Task Block(User user, User userToBlock, DateTime expiration, CancellationToken cancellationToken)
         {
-            if (string.IsNullOrWhiteSpace(userId))
-            {
-                throw new ArgumentNullException("userId");
-            }
+          
 
-            if (string.IsNullOrWhiteSpace(userIdToBlock))
-            {
-                throw new ArgumentNullException("userIdToBlock");
-            }
-
-            if (userId == userIdToBlock)
+            if (user.Id == userToBlock.Id)
             {
                 throw new InvalidOperationException("Cannot block himself.");
             }
 
-            var user = await _users.GetUser(userId);
-            var userToBlock = await _users.GetUser(userIdToBlock);
-
-            if (user == null)
-            {
-                throw new ArgumentNullException($"User with UserId {userId} not found");
-            }
-
-            if (userToBlock == null)
-            {
-                throw new ArgumentNullException($"User with UserId {userIdToBlock} not found");
-            }
-            var userToBlockId = Guid.Parse(userIdToBlock);
-            var originId = Guid.Parse(userId);
+     
+            var userToBlockId = Guid.Parse(userToBlock.Id);
+            var originId = Guid.Parse(user.Id);
             var currentOwnerMember = await _storage.GetListMemberAsync(new MemberId(userToBlockId, originId));
             var currentTargetMember = await _storage.GetListMemberAsync(new MemberId(originId, userToBlockId));
 
@@ -672,37 +660,17 @@ namespace Stormancer.Server.Plugins.Friends
 
         }
 
-        public async Task Unblock(string userId, string userIdToUnblock, CancellationToken cancellationToken)
+        public async Task Unblock(User user, User userToUnblock, CancellationToken cancellationToken)
         {
-            if (string.IsNullOrWhiteSpace(userId))
-            {
-                throw new ArgumentNullException("userId");
-            }
+           
 
-            if (string.IsNullOrWhiteSpace(userIdToUnblock))
-            {
-                throw new ArgumentNullException("userIdToBlock");
-            }
-
-            if (userId == userIdToUnblock)
+            if (user.Id == userToUnblock.Id)
             {
                 throw new InvalidOperationException("Cannot unblock himself.");
             }
 
-            var user = await _users.GetUser(userId);
-            var userToUnblock = await _users.GetUser(userIdToUnblock);
-
-            if (user == null)
-            {
-                throw new ArgumentNullException($"User with UserId {userId} not found");
-            }
-
-            if (userToUnblock == null)
-            {
-                throw new ArgumentNullException($"User with UserId {userIdToUnblock} not found");
-            }
-            var destId = Guid.Parse(userIdToUnblock);
-            var originId = Guid.Parse(userId);
+            var destId = Guid.Parse(userToUnblock.Id);
+            var originId = Guid.Parse(user.Id);
             var currentOwnerMember = await _storage.GetListMemberAsync(new MemberId(destId, originId));
             var currentTargetMember = await _storage.GetListMemberAsync(new MemberId(originId, destId));
 
@@ -815,7 +783,24 @@ namespace Stormancer.Server.Plugins.Friends
 
         public Task ProcessUpdates(string userId, IEnumerable<FriendListUpdateDto> updates)
         {
-            throw new NotImplementedException();
+            _channel.ApplyFriendListUpdates(Guid.Parse(userId), updates);
+            return Task.CompletedTask;
+        }
+
+        public async Task<FriendConnectionStatus> GetStatusAsync(PlatformId userId, CancellationToken cancellationToken)
+        {
+
+            var friendConfig = await _channel.GetStatusConfig(userId);
+
+            if (friendConfig == null) //Friend not connected.
+            {
+                return FriendConnectionStatus.Disconnected;
+            }
+            else //Friend connected
+            {
+                return ComputeStatus(friendConfig, true);
+            }
+
         }
     }
 }

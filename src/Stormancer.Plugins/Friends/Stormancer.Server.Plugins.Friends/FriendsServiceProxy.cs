@@ -42,9 +42,9 @@ namespace Stormancer.Server.Plugins.Friends
             return proxy.AddNonPersistedFriends(userId, friends, cancellationToken);
         }
 
-        public Task Block(string userId, string userIdToBlock,DateTime expiration, CancellationToken cancellationToken)
+        public Task Block(User user, User userToBlock,DateTime expiration, CancellationToken cancellationToken)
         {
-            return proxy.Block(userId, userIdToBlock,expiration, cancellationToken);
+            return proxy.Block(user.Id, userToBlock.Id,expiration, cancellationToken);
         }
 
         public Task<IEnumerable<string>> GetBlockedList(string userId, CancellationToken cancellationToken)
@@ -67,6 +67,11 @@ namespace Stormancer.Server.Plugins.Friends
             return proxy.GetRelationship(userId, targetUserId, cancellationToken);
         }
 
+        public Task<FriendConnectionStatus> GetStatusAsync(PlatformId userId, CancellationToken cancellationToken)
+        {
+            return proxy.GetStatus(userId, cancellationToken);
+        }
+
         public Task Invite(User user, User friendId, CancellationToken cancellationToken)
         {
             throw new NotSupportedException();
@@ -87,7 +92,7 @@ namespace Stormancer.Server.Plugins.Friends
             return proxy.UpdateFriendList(userId, updates, CancellationToken.None);
         }
 
-        public Task RemoveFriend(User user, string friendId, CancellationToken cancellationToken)
+        public Task RemoveFriend(User user, User friend, CancellationToken cancellationToken)
         {
             throw new NotSupportedException();
         }
@@ -102,9 +107,9 @@ namespace Stormancer.Server.Plugins.Friends
             throw new NotSupportedException();
         }
 
-        public Task Unblock(string userId, string userIdToUnblock, CancellationToken cancellationToken)
+        public Task Unblock(User user, User userToUnblock, CancellationToken cancellationToken)
         {
-            return proxy.Unblock(userId, userIdToUnblock, cancellationToken);
+            return proxy.Unblock(user.Id, userToUnblock.Id, cancellationToken);
         }
 
         public Task Unsubscribe(IScenePeerClient peer, CancellationToken cancellationToken)

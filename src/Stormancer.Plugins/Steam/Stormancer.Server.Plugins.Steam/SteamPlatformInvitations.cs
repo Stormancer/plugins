@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace Stormancer.Server.Plugins.Steam
 {
     [MessagePackObject]
-    internal class InviteUserToLobbyArgs
+    public class InviteUserToLobbyArgs
     {
         [Key(0)]
         public required ulong SteamUserId { get; set; }
@@ -79,13 +79,13 @@ namespace Stormancer.Server.Plugins.Steam
             }
             if (ctx.Party.ServerData.TryGetValue(SteamPartyEventHandler.PartyLobbyKey, out var data) && data is SteamPartyData steamPartyData && steamPartyData.SteamIDLobby != null)
             {
-                await peer.SendVoidRequest("Steam.Invite", new InviteUserToLobbyArgs
+                var result = await peer.RpcTask<InviteUserToLobbyArgs,VoidSteamResult>("Steam.Invite", new InviteUserToLobbyArgs
                 {
                     SteamUserId = steamId,
                     SteamLobbyId = steamPartyData.SteamIDLobby.Value
                 });
 
-                return true;
+                return result.Success;
             }
             else
             {

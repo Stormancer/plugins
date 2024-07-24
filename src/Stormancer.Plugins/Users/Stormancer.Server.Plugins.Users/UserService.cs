@@ -348,6 +348,16 @@ namespace Stormancer.Server.Plugins.Users
 
         }
 
-
+        public Task<User?> GetUser(PlatformId platformId)
+        {
+            if(platformId.Platform == Constants.PROVIDER_TYPE_STORMANCER)
+            {
+                return GetUser(platformId.PlatformUserId);
+            }
+            else
+            {
+                return GetUserByIdentity(platformId.Platform, platformId.PlatformUserId);
+            }
+        }
     }
 }
