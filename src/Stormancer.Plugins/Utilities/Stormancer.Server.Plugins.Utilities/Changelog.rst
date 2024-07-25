@@ -17,6 +17,10 @@ Added
 - Added Result<TError> utility type for exceptionless results.
 - Added RecyclableMemoryStreamProvider class.
 
+Fixed
+*****
+- Fixed bug in invalidation logic for cache entries created using the overload with an invalidation delay as argument.
+
 3.1.4.2
 -------
 Fixed

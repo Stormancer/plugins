@@ -121,16 +121,16 @@ namespace Stormancer.Server.Plugins
         public MemoryCache()
         {
 
-            
+
         }
-       
+
         private void TryStartCleaner()
         {
-            if(_timer == null && !_disposed)
+            if (_timer == null && !_disposed)
             {
-                lock(_syncRoot)
+                lock (_syncRoot)
                 {
-                    if(_timer == null && !_disposed)
+                    if (_timer == null && !_disposed)
                     {
                         _timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
                         _ = RunCleaner();
@@ -153,7 +153,7 @@ namespace Stormancer.Server.Plugins
                     entry.Value.OnInvalidated(entry.Key);
                 }
 
-                lock(_syncRoot)
+                lock (_syncRoot)
                 {
                     if (!cache.Any())
                     {
@@ -162,7 +162,7 @@ namespace Stormancer.Server.Plugins
                     }
                 }
             }
-       
+
         }
 
         /// <summary>
@@ -173,19 +173,13 @@ namespace Stormancer.Server.Plugins
         /// <param name="addFunction"></param>
         /// <param name="invalidationDelay"></param>
         /// <returns></returns>
-        public async Task<T?> Get(TKey id, Func<TKey, Task<T?>> addFunction, TimeSpan invalidationDelay)
+        public Task<T?> Get(TKey id, Func<TKey, Task<T?>> addFunction, TimeSpan invalidationDelay)
         {
-            CacheEntry? entry;
-            lock (_syncRoot)
+            return Get(id, static async (key, tuple) =>
             {
-                if (!cache.TryGetValue(id, out entry))
-                {
-                    entry = new CacheEntry(id, addFunction(id), DateTime.UtcNow + invalidationDelay, (i) => Remove(i));
-                    cache.Add(id, entry);
-                }
-            }
-
-            return await entry.Content;
+                var (addFunction, invalidationDelay) = tuple;
+                return (await addFunction(key), invalidationDelay);
+            }, (addFunction, invalidationDelay));
         }
 
         /// <summary>
@@ -193,7 +187,7 @@ namespace Stormancer.Server.Plugins
         /// </summary>
         /// <param name="id"></param>
         /// <param name="value"></param>
-        /// <param name="expiresOn">Date d'expiration de l'entrée. Can be null if the task didn't complete yet.</param>
+        /// <param name="expiresOn">Expiration date of the entry. Can be null if the task didn't complete yet.</param>
         /// <returns></returns>
         public bool TryPeek(TKey id, [NotNullWhen(true)] out Task<T?>? value, out DateTime? expiresOn)
         {
@@ -214,7 +208,12 @@ namespace Stormancer.Server.Plugins
             }
         }
 
-
+        /// <summary>
+        /// Gets an entry in the cache or adds it if necessary
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="addFunction"></param>
+        /// <returns></returns>
         public async Task<T?> Get(TKey id, Func<TKey, Task<(T?, TimeSpan)>> addFunction)
         {
             CacheEntry? entry;
@@ -236,7 +235,7 @@ namespace Stormancer.Server.Plugins
         /// <param name="addFunction"></param>
         /// <param name="state"></param>
         /// <returns></returns>
-        public async Task<T?> Get<TState>(TKey id, Func<TKey, TState, Task<(T?, TimeSpan)>> addFunction, TState state)
+        public Task<T?> Get<TState>(TKey id, Func<TKey, TState, Task<(T?, TimeSpan)>> addFunction, TState state)
         {
             CacheEntry? entry;
             lock (_syncRoot)
@@ -248,7 +247,7 @@ namespace Stormancer.Server.Plugins
                 }
             }
 
-            return await entry.Content;
+            return entry.Content;
         }
 
         /// <summary>
