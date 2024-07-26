@@ -176,7 +176,7 @@ namespace Stormancer.Server.Plugins.Friends
                             {
                                 Status = new Dictionary<string, FriendConnectionStatus> { [Users.Constants.PROVIDER_TYPE_STORMANCER] = FriendConnectionStatus.Disconnected },
                                 UserIds = [
-                                    new (Users.Constants.PROVIDER_TYPE_STORMANCER,  operation.Id.UserId.ToString())
+                                    new (Users.Constants.PROVIDER_TYPE_STORMANCER,  operation.Id.UserId.ToString("N"))
                                 ]
                             }
                         };
@@ -188,7 +188,7 @@ namespace Stormancer.Server.Plugins.Friends
                 }
                 if (dto != null)
                 {
-                    await NotifyAsync(dto, destinationUserId.ToString(), CancellationToken.None);
+                    await NotifyAsync(dto, destinationUserId.ToString("N"), CancellationToken.None);
                 }
             }
         }
@@ -254,7 +254,7 @@ namespace Stormancer.Server.Plugins.Friends
         {
             var config = await _channel.GetStatusConfig(new PlatformId(Users.Constants.PROVIDER_TYPE_STORMANCER, record.FriendId.ToString("N")));
 
-            return CreateFriendDtoDetailed(record.FriendId.ToString(), config, record.Status, record.Tags, record.CustomData);
+            return CreateFriendDtoDetailed(record.FriendId.ToString("N"), config, record.Status, record.Tags, record.CustomData);
 
         }
 
@@ -452,7 +452,7 @@ namespace Stormancer.Server.Plugins.Friends
 
                     Operation = FriendListUpdateDtoOperation.AddOrUpdate,
                     Data = CreateFriendDtoDetailed(user.Id, online ? newConfig : null, MemberRecordStatus.Accepted, record.Tags, record.CustomData)
-                }, record.OwnerId.ToString(), cancellationToken);
+                }, record.OwnerId.ToString("N"), cancellationToken);
             }
         }
 
@@ -498,9 +498,9 @@ namespace Stormancer.Server.Plugins.Friends
                         Data = new Friend
                         {
                             Status = new Dictionary<string, FriendConnectionStatus> { [Users.Constants.PROVIDER_TYPE_STORMANCER] = newStatus },
-                            UserIds = new() { new PlatformId { Platform = Stormancer.Server.Plugins.Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = userGuid.ToString() } }
+                            UserIds = new() { new PlatformId { Platform = Stormancer.Server.Plugins.Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = userGuid.ToString("N") } }
                         }
-                    }, owners.Select(m => m.OwnerId.ToString()), cancellationToken);
+                    }, owners.Select(m => m.OwnerId.ToString("N")), cancellationToken);
                 }
             }
         }
@@ -540,11 +540,11 @@ namespace Stormancer.Server.Plugins.Friends
                         Status = new Dictionary<string, FriendConnectionStatus> { [Users.Constants.PROVIDER_TYPE_STORMANCER] = FriendConnectionStatus.Disconnected },
                         UserIds = new() {
                             new PlatformId {
-                                PlatformUserId = userId.ToString(), Platform = Stormancer.Server.Plugins.Users.Constants.PROVIDER_TYPE_STORMANCER
+                                PlatformUserId = userId.ToString("N"), Platform = Stormancer.Server.Plugins.Users.Constants.PROVIDER_TYPE_STORMANCER
                             }
                         }
                     }
-                }, owners.Select(m => m.OwnerId.ToString()), cancellationToken);
+                }, owners.Select(m => m.OwnerId.ToString("N")), cancellationToken);
 
             }
         }
@@ -745,7 +745,7 @@ namespace Stormancer.Server.Plugins.Friends
             {
                 if (dictionary.TryGetValue(member.OwnerId.ToString("N"), out var e) && e is List<string> list)
                 {
-                    list.Add(member.FriendId.ToString());
+                    list.Add(member.FriendId.ToString("N"));
                 }
 
 

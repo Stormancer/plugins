@@ -239,9 +239,17 @@ namespace Stormancer.Server.Plugins.Users
 
         public Task<Dictionary<string, User?>> GetUsersByIdentity(string provider, IEnumerable<string> identifiers)
         {
+            
             if (_storage != null)
             {
-                return _storage.GetUsersByIdentity(provider, identifiers);
+                if (provider == Constants.PROVIDER_TYPE_STORMANCER)
+                {
+                    return _storage.GetUsers(identifiers, CancellationToken.None);
+                }
+                else
+                {
+                    return _storage.GetUsersByIdentity(provider, identifiers);
+                }
             }
             else
             {

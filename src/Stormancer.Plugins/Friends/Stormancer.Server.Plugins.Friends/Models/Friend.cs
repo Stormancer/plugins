@@ -39,8 +39,8 @@ namespace Stormancer.Server.Plugins.Friends
 
         public MemberDto(MemberRecord record)
         {
-            FriendId = record.FriendId.ToString();
-            OwnerId = record.OwnerId.ToString();
+            FriendId = record.FriendId.ToString("N");
+            OwnerId = record.OwnerId.ToString("N");
             Status = record.Status;
             Tags = record.Tags;
             Expiration = record.Expiration ?? DateTime.MaxValue;

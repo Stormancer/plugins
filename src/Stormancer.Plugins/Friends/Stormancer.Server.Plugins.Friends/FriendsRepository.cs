@@ -144,7 +144,7 @@ namespace Stormancer.Server.Plugins.Friends
                         ProcessFriendListUpdateLocally(container, dto);
                     }
                 }
-                Notify(dtos, ownerId.ToString());
+                Notify(dtos, ownerId.ToString("N"));
             }
         }
         public void ApplyFriendListUpdate(Guid ownerId, FriendListUpdateDto dto)
@@ -155,7 +155,7 @@ namespace Stormancer.Server.Plugins.Friends
                 {
                     ProcessFriendListUpdateLocally(container, dto);
                 }
-                Notify(dto, ownerId.ToString());
+                Notify(dto, ownerId.ToString("N"));
             }
         }
 
@@ -261,7 +261,7 @@ namespace Stormancer.Server.Plugins.Friends
                             {
                                 Status = new Dictionary<string, FriendConnectionStatus> { [Users.Constants.PROVIDER_TYPE_STORMANCER] = FriendConnectionStatus.Disconnected },
                                 UserIds = [
-                                    new (Users.Constants.PROVIDER_TYPE_STORMANCER,  operation.Id.UserId.ToString())
+                                    new (Users.Constants.PROVIDER_TYPE_STORMANCER,  operation.Id.UserId.ToString("N"))
                                 ]
                             }
                         };
@@ -345,7 +345,7 @@ namespace Stormancer.Server.Plugins.Friends
         {
             var config = await GetStatusConfig(new PlatformId(Users.Constants.PROVIDER_TYPE_STORMANCER, record.FriendId.ToString("N")));
 
-            return CreateFriendDtoDetailed(record.FriendId.ToString(), config, record.Status, record.Tags, record.CustomData);
+            return CreateFriendDtoDetailed(record.FriendId.ToString("N"), config, record.Status, record.Tags, record.CustomData);
 
         }
 

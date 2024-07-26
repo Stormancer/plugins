@@ -134,6 +134,7 @@ namespace Stormancer.Server.Plugins.Api.S2SProxyGenerator
 using Stormancer;
 ");
             buffer.Append($"namespace {rootNamespace}");
+            /*lang=c#-test*/
             buffer.Append(@"
 {
     /// <summary>

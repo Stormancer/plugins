@@ -1,5 +1,6 @@
 ﻿using MessagePack;
 using Stormancer.Core;
+using Stormancer.Server.Plugins.Friends;
 using Stormancer.Server.Plugins.Party.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -21,10 +22,12 @@ namespace Stormancer.Server.Plugins.Steam
     internal class SteamPlatformInvitationsHandler : IPartyPlatformSupport
     {
         private readonly ISceneHost _scene;
+        private readonly IFriendsService _friends;
 
-        public SteamPlatformInvitationsHandler(ISceneHost scene)
+        public SteamPlatformInvitationsHandler(ISceneHost scene, IFriendsService friends)
         {
             _scene = scene;
+            _friends = friends;
         }
 
         public string PlatformName => "steam";
@@ -43,11 +46,8 @@ namespace Stormancer.Server.Plugins.Steam
                 return true;
             }
 
-            if (ctx.RecipientUser != null && ctx.RecipientUser.TryGetSteamId(out _))
-            {
-                return true;
-            }
-
+            
+           
             return false;
 
 
@@ -61,7 +61,7 @@ namespace Stormancer.Server.Plugins.Steam
             }
 
             ulong steamId;
-            if (ctx.RecipientUserId.Platform == SteamConstants.STEAM_ID)
+            if (ctx.RecipientUserId.Platform == SteamConstants.PLATFORM_NAME)
             {
                 steamId = ulong.Parse(ctx.RecipientUserId.PlatformUserId);
             }

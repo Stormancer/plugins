@@ -1297,7 +1297,8 @@ namespace Stormancer.Server.Plugins.Party
                     }
                 }
             }
-            
+            var guid = new Guid();
+            guid.ToString();
             if (ctx.RecipientUser == null)
             {
                 ThrowNoSuchUserError(recipientUserId.PlatformUserId);

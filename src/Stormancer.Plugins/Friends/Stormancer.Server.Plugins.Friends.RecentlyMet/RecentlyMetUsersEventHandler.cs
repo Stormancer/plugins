@@ -85,7 +85,7 @@ namespace Stormancer.Server.Plugins.Friends.RecentlyMet
             {
                 getMetUsersCtx.Friends.Add(new Friend
                 {
-                    UserIds = new List<Users.PlatformId> { new Users.PlatformId { Platform = Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = friend.userId.ToString() } },
+                    UserIds = new List<Users.PlatformId> { new Users.PlatformId { Platform = Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = friend.userId.ToString("N") } },
                     Status = new Dictionary<string, FriendConnectionStatus> { [Users.Constants.PROVIDER_TYPE_STORMANCER] = FriendConnectionStatus.Disconnected },
                     Tags = new List<string> { "recentlyMet" }
                 });
