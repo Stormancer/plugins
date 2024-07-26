@@ -38,6 +38,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Linq;
+using System.Security.Cryptography.Xml;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -55,6 +56,7 @@ namespace Stormancer.Server.Plugins.Friends
         private readonly ISceneHost _scene;
         private readonly IUserService _users;
         private readonly IUserSessions _sessions;
+        private readonly Func<IEnumerable<IFriendsEventHandler>> _handlers;
         private readonly ISerializer _serializer;
         private readonly ILogger _logger;
 
@@ -66,7 +68,7 @@ namespace Stormancer.Server.Plugins.Friends
             ILogger logger,
             IUserService users,
             IUserSessions sessions,
-
+            Func<IEnumerable<IFriendsEventHandler>> handlers,
             ISerializer serializer
             )
         {
@@ -76,6 +78,7 @@ namespace Stormancer.Server.Plugins.Friends
             _storage = storage;
             _users = users;
             _sessions = sessions;
+            _handlers = handlers;
             _serializer = serializer;
         }
 
@@ -132,9 +135,10 @@ namespace Stormancer.Server.Plugins.Friends
             };
 
             await _storage.SaveBatchAsync(builder);
-            await NotifyChangesAsync(builder);
+            await _channel.ProcessBuilder(builder);
         }
 
+        [Obsolete]
         private async Task NotifyChangesAsync(MembersOperationsBuilder builder)
         {
             foreach (var operation in builder.Operations)
@@ -312,7 +316,7 @@ namespace Stormancer.Server.Plugins.Friends
             var builder = Process(accept);
 
             await _storage.SaveBatchAsync(builder);
-            await NotifyChangesAsync(builder);
+            await _channel.ProcessBuilder(builder);
 
             MembersOperationsBuilder Process(bool accept)
             {
@@ -398,7 +402,7 @@ namespace Stormancer.Server.Plugins.Friends
             var builder = Process();
 
             await _storage.SaveBatchAsync(builder);
-            await NotifyChangesAsync(builder);
+            await _channel.ProcessBuilder(builder);
 
             MembersOperationsBuilder Process()
             {
@@ -458,51 +462,54 @@ namespace Stormancer.Server.Plugins.Friends
 
         public async Task Subscribe(IScenePeerClient peer, CancellationToken cancellationToken)
         {
-            await using (var scope = _scene.CreateRequestScope())
+
+
+            var session = await _sessions.GetSessionById(peer.SessionId, cancellationToken);
+
+            if (session == null || session.User == null)
             {
-                var sessions = scope.Resolve<IUserSessions>();
-                var session = await sessions.GetSessionById(peer.SessionId, cancellationToken);
-
-                if (session == null || session.User == null)
-                {
-                    throw new ClientException("NotAuthenticated");
-                }
-
-                var user = session.User;
-
-
-                var statusConfig = GetUserFriendListConfig(user);
-                await _channel.AddPeer(Guid.Parse(user.Id), peer, statusConfig);
-                var friendsRecords = await _storage.GetListMembersAsync(Guid.Parse(user.Id));
-                var friends = new List<Friend>();
-                foreach (var record in friendsRecords)
-                {
-                    friends.Add(await CreateFriendDtoDetailed(record));
-                }
-                var ctx = new GetFriendsCtx(this,user.Id, peer.SessionId, friends, false);
-
-                await scope.ResolveAll<IFriendsEventHandler>().RunEventHandler(h => h.OnGetFriends(ctx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", "An error occurred while executing the friends event handlers", ex); });
-
-                _channel.ApplyFriendListUpdates(Guid.Parse(user.Id), friends.Select(friend => new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.AddOrUpdate, Data = friend }));
-                //await NotifyAsync(friends.Select(friend => new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.AddOrUpdate, Data = friend }), user.Id, cancellationToken);
-
-               
-                var newStatus = ComputeStatus(statusConfig, true);
-                var userGuid = Guid.Parse(user.Id);
-                var owners = await _storage.GetListsContainingMemberAsync(userGuid, true, LIST_TYPE);
-                if (newStatus != FriendConnectionStatus.Disconnected)
-                {
-                    await NotifyAsync(new FriendListUpdateDto
-                    {
-                        Operation = FriendListUpdateDtoOperation.UpdateStatus,
-                        Data = new Friend
-                        {
-                            Status = new Dictionary<string, FriendConnectionStatus> { [Users.Constants.PROVIDER_TYPE_STORMANCER] = newStatus },
-                            UserIds = new() { new PlatformId { Platform = Stormancer.Server.Plugins.Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = userGuid.ToString("N") } }
-                        }
-                    }, owners.Select(m => m.OwnerId.ToString("N")), cancellationToken);
-                }
+                throw new ClientException("NotAuthenticated");
             }
+
+            var user = session.User;
+
+
+            var statusConfig = GetUserFriendListConfig(user);
+            await _channel.AddPeer(Guid.Parse(user.Id), peer, statusConfig);
+            var friendsRecords = await _storage.GetListMembersAsync(Guid.Parse(user.Id));
+            var friends = new List<Friend>();
+            foreach (var record in friendsRecords)
+            {
+                friends.Add(await CreateFriendDtoDetailed(record));
+            }
+            var ctx = new GetFriendsCtx(this, user.Id, peer.SessionId, friends, false);
+
+            await _handlers().RunEventHandler(h => h.OnGetFriends(ctx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnGetFriends)}", ex); });
+
+            var addingFriendsCtx = new AddingFriendCtx(this,  user.Id, friends);
+            await _handlers().RunEventHandler(h => h.OnAddingFriend(addingFriendsCtx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnAddingFriend)}", ex); });
+
+
+            _channel.ApplyFriendListUpdates(Guid.Parse(user.Id), friends.Select(friend => new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.AddOrUpdate, Data = friend }));
+            //await NotifyAsync(friends.Select(friend => new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.AddOrUpdate, Data = friend }), user.Id, cancellationToken);
+
+
+            var newStatus = ComputeStatus(statusConfig, true);
+            var userGuid = Guid.Parse(user.Id);
+            var owners = await _storage.GetListsContainingMemberAsync(userGuid, true, LIST_TYPE);
+            if (newStatus != FriendConnectionStatus.Disconnected)
+            {
+                await NotifyAsync(new FriendListUpdateDto
+                {
+                    Operation = FriendListUpdateDtoOperation.UpdateStatus,
+                    Data = new Friend
+                    {
+                        Status = new Dictionary<string, FriendConnectionStatus> { [Users.Constants.PROVIDER_TYPE_STORMANCER] = newStatus },
+                        UserIds = new() { new PlatformId { Platform = Stormancer.Server.Plugins.Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = userGuid.ToString("N") } }
+                    }
+                }, owners.Select(m => m.OwnerId.ToString("N")), cancellationToken);
+            }
+
         }
 
 
@@ -516,7 +523,7 @@ namespace Stormancer.Server.Plugins.Friends
                 {
                     friends.Add(await CreateFriendDtoDetailed(record));
                 }
-                var ctx = new GetFriendsCtx(this,userId, SessionId.Empty, friends, true);
+                var ctx = new GetFriendsCtx(this, userId, SessionId.Empty, friends, true);
 
                 await scope.ResolveAll<IFriendsEventHandler>().RunEventHandler(h => h.OnGetFriends(ctx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", "An error occurred while executing the friends event handlers", ex); });
 
@@ -608,14 +615,14 @@ namespace Stormancer.Server.Plugins.Friends
 
         public async Task Block(User user, User userToBlock, DateTime expiration, CancellationToken cancellationToken)
         {
-          
+
 
             if (user.Id == userToBlock.Id)
             {
                 throw new InvalidOperationException("Cannot block himself.");
             }
 
-     
+
             var userToBlockId = Guid.Parse(userToBlock.Id);
             var originId = Guid.Parse(user.Id);
             var currentOwnerMember = await _storage.GetListMemberAsync(new MemberId(userToBlockId, originId));
@@ -624,8 +631,8 @@ namespace Stormancer.Server.Plugins.Friends
             var builder = Process();
 
             await _storage.SaveBatchAsync(builder);
+            await _channel.ProcessBuilder(builder);
 
-            await NotifyChangesAsync(builder);
             MembersOperationsBuilder Process()
             {
                 var builder = new MembersOperationsBuilder(currentOwnerMember, currentTargetMember);
@@ -662,7 +669,7 @@ namespace Stormancer.Server.Plugins.Friends
 
         public async Task Unblock(User user, User userToUnblock, CancellationToken cancellationToken)
         {
-           
+
 
             if (user.Id == userToUnblock.Id)
             {
@@ -678,7 +685,8 @@ namespace Stormancer.Server.Plugins.Friends
 
             await _storage.SaveBatchAsync(builder);
 
-            await NotifyChangesAsync(builder);
+            await _channel.ProcessBuilder(builder);
+
             MembersOperationsBuilder Process()
             {
                 var builder = new MembersOperationsBuilder(currentOwnerMember, currentTargetMember);
@@ -781,10 +789,16 @@ namespace Stormancer.Server.Plugins.Friends
 
         }
 
-        public Task ProcessUpdates(string userId, IEnumerable<FriendListUpdateDto> updates)
+        public async Task ProcessUpdates(string userId, IEnumerable<FriendListUpdateDto> updates)
         {
+            var ctx = new AddingFriendCtx(this, userId, updates.Where(dto => dto.Operation == FriendListUpdateDtoOperation.AddOrUpdate).Select(dto => dto.Data));
+            if (ctx.Friends.Any())
+            {
+                await _handlers().RunEventHandler(h => h.OnAddingFriend(ctx), ex => _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnAddingFriend)}", ex));
+            }
+
             _channel.ApplyFriendListUpdates(Guid.Parse(userId), updates);
-            return Task.CompletedTask;
+          
         }
 
         public async Task<FriendConnectionStatus> GetStatusAsync(PlatformId userId, CancellationToken cancellationToken)

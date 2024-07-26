@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Stormancer.Server.Plugins.Users;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -61,6 +63,34 @@ namespace Stormancer.Server.Plugins.Friends
     }
 
     /// <summary>
+    /// Context for <see cref="IFriendsEventHandler.OnAddingFriend"/>
+    /// </summary>
+    public class AddingFriendCtx
+    {
+        internal AddingFriendCtx(IFriendsService friendsService, string ownerId, IEnumerable<Friend> friends)
+        {
+            FriendsService = friendsService;
+            FriendListOwnerId = ownerId;
+            Friends = friends;
+        }
+
+        /// <summary>
+        /// Gets the id of the owner of the friend list.
+        /// </summary>
+        public string FriendListOwnerId { get; }
+
+        /// <summary>
+        /// Gets the sender of the event.
+        /// </summary>
+        public IFriendsService FriendsService { get; }
+
+        /// <summary>
+        /// Gets the list of friends being added or updated in the friendlist.
+        /// </summary>
+        public IEnumerable<Friend> Friends { get; }
+    }
+
+    /// <summary>
     /// Friends extensibility points.
     /// </summary>
     public interface IFriendsEventHandler
@@ -71,5 +101,12 @@ namespace Stormancer.Server.Plugins.Friends
         /// <param name="getFriendsCtx"></param>
         /// <returns></returns>
         Task OnGetFriends(GetFriendsCtx getFriendsCtx) => Task.CompletedTask;
+
+        /// <summary>
+        /// Called whenever a friend list is being updated with new friends.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task OnAddingFriend(AddingFriendCtx ctx) => Task.CompletedTask;
     }
 }
