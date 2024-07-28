@@ -493,18 +493,25 @@ namespace Stormancer.Server.Plugins.Party
                 }
                 finally
                 {
-                    if (_partyState.PartyMembers.IsEmpty)
-                    {
-                        partyDocumentsStore.DeleteDocument(_partyState.Settings.PartyId);
-                        CancelInvitationCode();
-                        _ = _scene.KeepAlive(TimeSpan.Zero);
-                    }
+                   
                 }
 
-                _ = RunInRequestScope((service, handlers, scope) =>
+                _ = RunInRequestScope(async (service, handlers, scope) =>
                 {
-                    var ctx = new QuitPartyContext(service, args);
-                    return handlers.RunEventHandler(handler => handler.OnQuit(ctx), exception => service.Log(LogLevel.Error, "OnDisconnected", "An exception was thrown by an OnQuit event handler", new { exception }, args.Peer.SessionId.ToString()));
+                    try
+                    {
+                        var ctx = new QuitPartyContext(service, args);
+                        await handlers.RunEventHandler(handler => handler.OnQuit(ctx), exception => service.Log(LogLevel.Error, "OnDisconnected", "An exception was thrown by an OnQuit event handler", new { exception }, args.Peer.SessionId.ToString()));
+                    }
+                    finally
+                    {
+                        if (_partyState.PartyMembers.IsEmpty)
+                        {
+                            partyDocumentsStore.DeleteDocument(_partyState.Settings.PartyId);
+                            CancelInvitationCode();
+                            _ = _scene.KeepAlive(TimeSpan.Zero);
+                        }
+                    }
                 });
             });
         }

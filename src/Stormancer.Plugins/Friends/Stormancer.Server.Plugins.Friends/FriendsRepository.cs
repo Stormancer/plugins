@@ -30,6 +30,7 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
@@ -398,6 +399,32 @@ namespace Stormancer.Server.Plugins.Friends
                 writer(s, serializer);
             }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_ORDERED, (writer, _serializer));
 
+        }
+
+        internal bool TryGetBlockList(Guid userId,[NotNullWhen(true)] out IEnumerable<string>? blockList)
+        {
+            if (_platformIds.TryGetValue(userId, out var container))
+            {
+                lock (container)
+                {
+                    var list = new List<string>();
+
+                    foreach(var item in container.Friends)
+                    {
+                        if(item.Tags.Contains("friends.blocked") && item.TryGetIdForPlatform(Users.Constants.PROVIDER_TYPE_STORMANCER,out var uid))
+                        {
+                            list.Add(uid);
+                        }
+                    }
+                    blockList = list;
+                    return true;
+                }
+            }
+            else
+            {
+                blockList = null;
+                return false;
+            }
         }
     }
 

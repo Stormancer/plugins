@@ -734,31 +734,44 @@ namespace Stormancer.Server.Plugins.Friends
 
         public async Task<Dictionary<string, IEnumerable<string>>> GetBlockedListsImpl(IEnumerable<string> userIds, CancellationToken cancellationToken)
         {
+            var result = new Dictionary<string, IEnumerable<string>>();
             if (userIds == null || !userIds.Any())
             {
-                return new Dictionary<string, IEnumerable<string>>();
+                return result;
+            }
+           
+            var offlineUsers = new List<string>();
+            foreach(var userId in userIds)
+            {
+                if(_channel.TryGetBlockList(Guid.Parse(userId), out var blockList)) //User online
+                {
+                    result[userId] = blockList;
+                }
+                else //If offline, get from DB
+                {
+                    offlineUsers.Add(userId);  
+                }
             }
 
-            var members = await _storage.GetListMembersAsync(userIds.Select(u => Guid.Parse(u)), MemberRecordStatus.Blocked);
+
+            var members = await _storage.GetListMembersAsync(offlineUsers.Select(u => Guid.Parse(u)), MemberRecordStatus.Blocked);
 
 
-
-            var dictionary = new Dictionary<string, IEnumerable<string>>();
-            foreach (var userId in userIds)
+            foreach (var userId in offlineUsers)
             {
-                dictionary[userId] = new List<string>();
+                result[userId] = new List<string>();
             }
 
             foreach (var member in members)
             {
-                if (dictionary.TryGetValue(member.OwnerId.ToString("N"), out var e) && e is List<string> list)
+                if (result.TryGetValue(member.OwnerId.ToString("N"), out var e) && e is List<string> list)
                 {
                     list.Add(member.FriendId.ToString("N"));
                 }
 
 
             }
-            return dictionary;
+            return result;
 
         }
 

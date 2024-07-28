@@ -67,5 +67,13 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
             return Task.CompletedTask;
         }
+
+        async Task IPartyEventHandler.OnQuit(Stormancer.Server.Plugins.Party.QuitPartyContext ctx)
+        {
+            if(!ctx.Party.PartyMembers.Any())
+            {
+                await _service.CancelMerging();
+            }
+        }
     }
 }
