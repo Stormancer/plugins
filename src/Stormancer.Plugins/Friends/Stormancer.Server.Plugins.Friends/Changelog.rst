@@ -17,6 +17,7 @@ Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
 - Fixes S2S service locator 
+- Platform friend updates can be retrieved from the client and are linked to corresponding Stormancer users found connected or in the database if they exist.
 
 Added
 *****
