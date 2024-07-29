@@ -509,11 +509,18 @@ namespace Stormancer.Server.Plugins.Users
 
                 await _eventHandlers().RunEventHandler(h => h.OnLoggedIn(loginContext), ex => logger.Log(LogLevel.Error, "userSessions", "An error occurred while running LoggedIn event handlers", ex));
 
-                foreach (var oldPeer in currentSessions.Select(s => _scene.TryGetPeer(s.SessionId, out var peer) ? peer : null).WhereNotNull())
+                foreach (var (oldPeer,s) in currentSessions.Select(s =>( _scene.TryGetPeer(s.SessionId, out var peer) ? peer : null,s)))
                 {
                     if (peer != oldPeer)
                     {
-                        await peer.DisconnectFromServer("ALREADY_CONNECTED");
+                        if (oldPeer != null) //We disconnect all the previous active session for the user.
+                        {
+                            await oldPeer.DisconnectFromServer("NEW_CONNECTION");
+                        }
+                        else //If the peer of the old session is disconnected, the session should have been destroyed before. Clearly it's still there, so we delete it. It should not happen.
+                        {
+                            repository.TryRemoveSession(s.SessionId, out _);
+                        }
                     }
                 }
             }
