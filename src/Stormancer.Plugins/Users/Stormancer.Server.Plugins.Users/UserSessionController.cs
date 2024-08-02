@@ -288,9 +288,16 @@ namespace Stormancer.Server.Plugins.Users
             var user = await _sessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
             if (user == null)
             {
-                throw new ClientException("notFound");
+                throw new ClientException("notAuthenticated");
             }
-            await _sessions.UpdateUserOptionsAsync(user.Id, key, value, ctx.CancellationToken);
+            try
+            {
+                await _sessions.UpdateUserOptionsAsync(user.Id, key, value, ctx.CancellationToken);
+            }
+            catch (InvalidOperationException ex) when (ex.Message == "notfound")
+            {
+                throw new ClientException("userNotPersistent");
+            }
 
         }
 
@@ -301,14 +308,14 @@ namespace Stormancer.Server.Plugins.Users
         }
 
         [S2SApi]
-        public Task<Dictionary<string, UserSessionInfos>> GetDetailedUserInformationsByIdentity(string platform, IEnumerable<string> ids,CancellationToken cancellationToken)
+        public Task<Dictionary<string, UserSessionInfos>> GetDetailedUserInformationsByIdentity(string platform, IEnumerable<string> ids, CancellationToken cancellationToken)
         {
-            return _sessions.GetDetailedUserInformationsByIdentityAsync(platform, ids,cancellationToken);
+            return _sessions.GetDetailedUserInformationsByIdentityAsync(platform, ids, cancellationToken);
         }
 
     }
 
-   
+
 
 
 }
