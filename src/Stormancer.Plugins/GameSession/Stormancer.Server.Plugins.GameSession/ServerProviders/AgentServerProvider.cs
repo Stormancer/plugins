@@ -241,7 +241,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         void IConfigurationChangedEventHandler.OnConfigurationChanged()
         {
-            _section = _configuration.GetValue<GameServerAgentsConfigurationSection>("gameservers.agents");
+            _section = _configuration.GetValue<GameServerAgentsConfigurationSection>("gameservers.agents", new GameServerAgentsConfigurationSection());
             _certificates = LoadSigningCertificates();
 
             if (_currentClientCredentials != _section.ClientCredentials)
