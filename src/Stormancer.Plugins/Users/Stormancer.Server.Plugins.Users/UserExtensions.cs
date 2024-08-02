@@ -44,7 +44,7 @@ namespace Stormancer
         /// <param name="key"></param>
         /// <param name="serializer"></param>
         /// <returns></returns>
-        public static T? GetSessionValue<T>(this Session session, string key, ISerializer serializer)
+        public static T? GetSessionValue<T>(this Session session, string key, IClusterSerializer serializer)
         {
             if (session.SessionData.TryGetValue(key, out var data) && serializer.TryDeserialize<T>(new System.Buffers.ReadOnlySequence<byte>(data), out T result, out _))
             {
