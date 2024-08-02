@@ -14,9 +14,9 @@ namespace Stormancer.Server.Plugins.Regions
         private readonly IUserSessions _sessions;
         private readonly AgentServerProxy _agentServer;
         private readonly RegionTestingStorage _storage;
-        private readonly ISerializer _serializer;
+        private readonly IClusterSerializer _serializer;
 
-        public RegionsTestingService(IUserSessions sessions, AgentServerProxy agentServer, RegionTestingStorage storage, ISerializer serializer)
+        public RegionsTestingService(IUserSessions sessions, AgentServerProxy agentServer, RegionTestingStorage storage, IClusterSerializer serializer)
         {
             _sessions = sessions;
             _agentServer = agentServer;

@@ -1,6 +1,7 @@
 ﻿using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Users;
+using Stormancer.Server.Plugins.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -16,14 +17,16 @@ namespace Stormancer.Server.Plugins.Limits
         private readonly Limits limits;
         private readonly Func<IEnumerable<ILimitsEventHandler>> handlers;
         private readonly ILogger logger;
-        private readonly ISerializer serializer;
+        private readonly IClusterSerializer serializer;
+        private readonly RecyclableMemoryStreamProvider _streamProvider;
 
-        public LimitsAuthenticationEventHandler(Limits limits, Func<IEnumerable<ILimitsEventHandler>> handlers, ILogger logger, ISerializer serializer)
+        public LimitsAuthenticationEventHandler(Limits limits, Func<IEnumerable<ILimitsEventHandler>> handlers, ILogger logger, IClusterSerializer serializer, RecyclableMemoryStreamProvider streamProvider)
         {
             this.limits = limits;
             this.handlers = handlers;
             this.logger = logger;
             this.serializer = serializer;
+            _streamProvider = streamProvider;
         }
 
         async Task IAuthenticationEventHandler.OnAuthenticationComplete(AuthenticationCompleteContext ctx, CancellationToken cancellationToken)
@@ -46,12 +49,12 @@ namespace Stormancer.Server.Plugins.Limits
               
 
                 var applyUserLimitCtx = new OnApplyingUserLimitContext(ctx);
-                await handlers().RunEventHandler(h => h.OnApplyingUserLimit(applyUserLimitCtx), ex => logger.Log(LogLevel.Error, "limits", $"An error occured while running {nameof(ILimitsEventHandler.OnApplyingUserLimit)}.", ex));
+                await handlers().RunEventHandler(h => h.OnApplyingUserLimit(applyUserLimitCtx), ex => logger.Log(LogLevel.Error, "limits", $"An error occurred while running {nameof(ILimitsEventHandler.OnApplyingUserLimit)}.", ex));
 
                 if (!applyUserLimitCtx.ApplyUserLimit)
                 {
-                    using var stream = new MemoryStream();
-                    serializer.Serialize(true, stream);
+                    using var stream = _streamProvider.GetStream();
+                    serializer.Serialize(stream,true);
                     ctx.Result.OnSessionUpdated += (SessionRecord s) => { s.SessionData["limits.skipQueue"] = stream.ToArray(); };
                     return;
                 }
