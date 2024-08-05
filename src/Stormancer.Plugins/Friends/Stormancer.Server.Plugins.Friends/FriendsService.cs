@@ -486,7 +486,12 @@ namespace Stormancer.Server.Plugins.Friends
 
             await _handlers().RunEventHandler(h => h.OnGetFriends(ctx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnGetFriends)}", ex); });
 
-            var addingFriendsCtx = new AddingFriendCtx(this, user.Id, friends);
+            var friendsWithInfos = await AddInfos(friends);
+
+            var addingFriendsCtx = new AddingFriendCtx(this, user.Id, friendsWithInfos);
+
+
+            
             await _handlers().RunEventHandler(h => h.OnAddingFriend(addingFriendsCtx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnAddingFriend)}", ex); });
 
 
@@ -512,6 +517,37 @@ namespace Stormancer.Server.Plugins.Friends
 
         }
 
+        private async Task<List<(UserSessionInfos? userInfos, Friend friend)>> AddInfos(IEnumerable<Friend> friends)
+        {
+            var list = new List<(UserSessionInfos? infos, Friend friend)>();
+            var ids = friends.Select(f => (f.UserIds.FirstOrDefault(), f)).GroupBy(p => p.Item1.Platform, p => p);
+            foreach (var group in ids)
+            {
+                var result = await _sessions.GetDetailedUserInformationsByIdentityAsync(group.Key, group.Select(t => t.Item1.PlatformUserId), CancellationToken.None);
+
+                foreach (var (platformId, f) in group)
+                {
+                    var friendUId = f.UserIds.FirstOrDefault().PlatformUserId;
+                    if (friendUId != null && result.TryGetValue(friendUId, out var infos))
+                    {
+                        if (infos.UserId != null)
+                        {
+                            var pid = new PlatformId { Platform = Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = infos.UserId };
+                            f.UserIds.Add(pid);
+                            f.Status[Users.Constants.PROVIDER_TYPE_STORMANCER] = await GetStatusAsync(pid, CancellationToken.None);
+                        }
+                        list.Add((infos, f));
+                    }
+                    else
+                    {
+                        list.Add((null, f));
+                    }
+
+
+                }
+            }
+            return list;
+        }
 
         public async Task<IEnumerable<Friend>> GetFriends(string userId, CancellationToken cancellationToken)
         {
@@ -804,15 +840,16 @@ namespace Stormancer.Server.Plugins.Friends
 
         public async Task ProcessUpdates(string userId, IEnumerable<FriendListUpdateDto> updates)
         {
-            var ctx = new AddingFriendCtx(this, userId, updates.Where(dto => dto.Operation == FriendListUpdateDtoOperation.AddOrUpdate).Select(dto => dto.Data));
-            if (ctx.Friends.Any())
+            var friends = updates.Where(dto => dto.Operation == FriendListUpdateDtoOperation.AddOrUpdate).Select(dto => dto.Data);
+            if (friends.Any())
             {
-                var ids = ctx.Friends.Select(f => (f.UserIds.FirstOrDefault(), f)).GroupBy(p => p.Item1.Platform, p => p);
+                var list = new List<(UserSessionInfos? infos, Friend friend)>();
+                var ids = friends.Select(f => (f.UserIds.FirstOrDefault(), f)).GroupBy(p => p.Item1.Platform, p => p);
                 foreach (var group in ids)
                 {
                     var result = await _sessions.GetDetailedUserInformationsByIdentityAsync(group.Key, group.Select(t => t.Item1.PlatformUserId), CancellationToken.None);
 
-                    foreach (var f in ctx.Friends)
+                    foreach (var (platformId,f) in group)
                     {
                         var friendUId = f.UserIds.FirstOrDefault().PlatformUserId;
                         if (friendUId != null && result.TryGetValue(friendUId, out var infos))
@@ -823,10 +860,17 @@ namespace Stormancer.Server.Plugins.Friends
                                 f.UserIds.Add(pid);
                                 f.Status[Users.Constants.PROVIDER_TYPE_STORMANCER] = await GetStatusAsync(pid, CancellationToken.None);
                             }
+                            list.Add((infos, f));
                         }
+                        else
+                        {
+                            list.Add((null, f));
+                        }
+
+                     
                     }
                 }
-
+                var ctx = new AddingFriendCtx(this, userId,list);
                 await _handlers().RunEventHandler(h => h.OnAddingFriend(ctx), ex => _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnAddingFriend)}", ex));
             }
 

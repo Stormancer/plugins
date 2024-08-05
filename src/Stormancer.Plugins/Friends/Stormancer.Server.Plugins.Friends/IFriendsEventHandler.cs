@@ -44,6 +44,10 @@ namespace Stormancer.Server.Plugins.Friends
         /// Gets the user id friends are requested for.
         /// </summary>
         public string UserId { get; }
+
+        /// <summary>
+        /// Gets the id of the session of the user requesting the friends.
+        /// </summary>
         public SessionId SessionId { get; }
 
         /// <summary>
@@ -67,7 +71,7 @@ namespace Stormancer.Server.Plugins.Friends
     /// </summary>
     public class AddingFriendCtx
     {
-        internal AddingFriendCtx(IFriendsService friendsService, string ownerId, IEnumerable<Friend> friends)
+        internal AddingFriendCtx(IFriendsService friendsService, string ownerId, IEnumerable<(UserSessionInfos? userInfos,Friend friend)> friends)
         {
             FriendsService = friendsService;
             FriendListOwnerId = ownerId;
@@ -85,9 +89,9 @@ namespace Stormancer.Server.Plugins.Friends
         public IFriendsService FriendsService { get; }
 
         /// <summary>
-        /// Gets the list of friends being added or updated in the friendlist.
+        /// Gets the list of friends being added or updated in the friend list.
         /// </summary>
-        public IEnumerable<Friend> Friends { get; }
+        public IEnumerable<(UserSessionInfos? userInfos, Friend friend)> Friends { get; }
     }
 
     /// <summary>
