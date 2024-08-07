@@ -103,6 +103,15 @@ namespace Stormancer.Server.Plugins.GameHistory
 
             return await ctx.Set<GameHistoryRecord>().FindAsync(gameId);
         }
+
+        public async Task UpdateGameHistoryRecordAsync(GameHistoryRecord historyRecord)
+        {
+            var ctx = await _dbContextAccessor.GetDbContextAsync();
+            ctx.Set<GameHistoryRecord>().Update(historyRecord);
+            await ctx.SaveChangesAsync();
+        }
+
+
     }
 
     internal class GameHistoryDbModelBuilder : IDbModelBuilder

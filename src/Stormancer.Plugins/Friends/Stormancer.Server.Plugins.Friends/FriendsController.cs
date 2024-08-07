@@ -32,7 +32,8 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Friends
 {
-    [Service(Named = false, ServiceType = FriendsPlugin.SERVICE_ID)]
+    
+    [Service(Named = false, ServiceType = FriendsConstants.SERVICE_ID)]
     class FriendsController : ControllerBase
     {
         private readonly ILogger _logger;

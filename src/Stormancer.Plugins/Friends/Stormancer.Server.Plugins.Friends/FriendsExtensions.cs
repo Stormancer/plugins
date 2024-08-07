@@ -36,7 +36,7 @@ namespace Stormancer
         /// <param name="scene"></param>
         public static void AddFriends(this ISceneHost scene)
         {
-            scene.TemplateMetadata[FriendsPlugin.METADATA_KEY] = "enabled";
+            scene.TemplateMetadata[FriendsConstants.METADATA_KEY] = "enabled";
         }
     }
 }

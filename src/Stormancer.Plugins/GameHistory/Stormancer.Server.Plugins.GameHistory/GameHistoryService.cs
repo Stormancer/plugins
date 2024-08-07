@@ -61,5 +61,10 @@ namespace Stormancer.Server.Plugins.GameHistory
         {
             return _storage.GetLatestHistoryRecordAsync(Guid.Parse(playerId), skip, count);
         }
+
+        public Task UpdateGameHistoryRecordAsync(GameHistoryRecord historyRecord)
+        {
+            return _storage.UpdateGameHistoryRecordAsync(historyRecord);
+        }
     }
 }

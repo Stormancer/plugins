@@ -20,7 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Stormancer.Core;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.GameHistory;
 using Stormancer.Server.Plugins.GameSession;
 
 namespace Stormancer.Server.Plugins.Friends.RecentlyMet
@@ -31,7 +33,18 @@ namespace Stormancer.Server.Plugins.Friends.RecentlyMet
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
+                builder.Register<RecentlyMetGameSessionState>().InstancePerScene();
                 builder.Register<RecentlyMetUsersEventHandler>().As<IFriendsEventHandler>().InstancePerRequest();
+                builder.Register<RecentlyMetFriendController>().InstancePerRequest();
+                builder.Register<RecentlyMetGameHistoryEventHandler>().As<IGameHistoryEventHandler>().InstancePerRequest();
+            };
+
+            ctx.SceneCreated += (ISceneHost scene) =>
+            {
+                if (scene.TemplateMetadata.ContainsKey(FriendsConstants.METADATA_KEY))
+                {
+                    scene.AddController<RecentlyMetFriendController>();
+                }
             };
         }
     }

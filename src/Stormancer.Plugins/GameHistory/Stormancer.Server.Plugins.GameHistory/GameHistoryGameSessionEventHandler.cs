@@ -43,6 +43,36 @@ namespace Stormancer.Server.Plugins.GameHistory
     }
 
     /// <summary>
+    /// Context of the event <see cref="IGameHistoryEventHandler.OnAddingParticipantToGame(OnAddingParticipantToGameContext)"/>
+    /// </summary>
+    public class OnAddingParticipantToGameContext
+    {
+        internal OnAddingParticipantToGameContext(ISceneHost scene, GameHistoryRecord gameHistoryRecord,  UserRecord newParticipant)
+        {
+            GameSessionScene = scene;
+            GameHistoryRecord = gameHistoryRecord;
+            NewParticipant = newParticipant;
+        }
+
+        /// <summary>
+        /// Gets the game session scene associated with the game history record.
+        /// </summary>
+        public ISceneHost GameSessionScene { get; }
+
+        /// <summary>
+        /// Gets the game history record.
+        /// </summary>
+        public GameHistoryRecord GameHistoryRecord { get; }
+
+       
+
+        /// <summary>
+        /// Gets the participant being added to the game history.
+        /// </summary>
+        public UserRecord NewParticipant { get; }
+    }
+
+    /// <summary>
     /// Interface used to customize the behavior of the GameHistory plugin.
     /// </summary>
     public interface IGameHistoryEventHandler
@@ -53,6 +83,13 @@ namespace Stormancer.Server.Plugins.GameHistory
         /// <param name="ctx"></param>
         /// <returns></returns>
         public Task OnAddingToHistory(OnAddingToHistoryContext ctx);
+
+        /// <summary>
+        /// Event fired when a new participant is added to a game history record.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        public Task OnAddingParticipantToGame(OnAddingParticipantToGameContext ctx);
     }
     internal class GameHistoryGameSessionEventHandler : IGameSessionEventHandler
     {
@@ -79,27 +116,54 @@ namespace Stormancer.Server.Plugins.GameHistory
             _scene = scene;
             _logger = logger;
         }
+        async Task IGameSessionEventHandler.GameSessionStarting(Stormancer.Server.Plugins.GameSession.GameSessionContext ctx)
+        {
+            var dbCtx = await _dbAccessor.GetDbContextAsync();
+            var onAddingToHistoryContext = new OnAddingToHistoryContext(ctx.Scene, Enumerable.Empty<UserRecord>());
+
+            await using var scope = _scene.CreateRequestScope();
+            var eventHandlers = scope.ResolveAll<IGameHistoryEventHandler>();
+            await eventHandlers.RunEventHandler(h => h.OnAddingToHistory(onAddingToHistoryContext), ex => { _logger.Log(LogLevel.Error, "gameHistory", $"An error occurred while executing {nameof(IGameHistoryEventHandler.OnAddingToHistory)}", ex); });
+
+            await _service.AddToHistoryAsync(
+                Guid.Parse(ctx.Service.GameSessionId),
+                onAddingToHistoryContext.Participants,
+                onAddingToHistoryContext.CustomData.Deserialize<JsonDocument>()!,
+                DateTime.UtcNow,DateTime.MaxValue);
+        }
+
+        async Task IGameSessionEventHandler.OnClientConnected(Stormancer.Server.Plugins.GameSession.ClientConnectedContext ctx)
+        {
+            var dbCtx = await _dbAccessor.GetDbContextAsync();
+            var user = await dbCtx.Set<UserRecord>().FindAsync(Guid.Parse(ctx.Player.Player.UserId));
+
+            var historyRecord = await _service.GetGameHistory(Guid.Parse(ctx.GameSession.GameSessionId));
+
+            if (user != null && historyRecord != null)
+            {
+                await using var scope = _scene.CreateRequestScope();
+                var eventHandlers = scope.ResolveAll<IGameHistoryEventHandler>();
+                var onAddingToHistoryContext = new OnAddingParticipantToGameContext(_scene, historyRecord, user);
+                await eventHandlers.RunEventHandler(h => h.OnAddingParticipantToGame(onAddingToHistoryContext), ex => { _logger.Log(LogLevel.Error, "gameHistory", $"An error occurred while executing {nameof(IGameHistoryEventHandler.OnAddingToHistory)}", ex); });
+
+                historyRecord.Participants.Add(user);
+
+                await _service.UpdateGameHistoryRecordAsync(historyRecord);
+            }
+
+
+        }
 
         public async Task GameSessionCompleted(GameSessionCompleteCtx ctx)
         {
-            var dbCtx = await _dbAccessor.GetDbContextAsync();
-            var participantIds = ctx.PlayerIds.Select(i => Guid.Parse(i)).ToList();
-            var participants = await dbCtx.Set<UserRecord>().Where(u => participantIds.Contains(u.Id)).ToListAsync();
-
-            if (participants.Any())
+            var historyRecord = await _service.GetGameHistory(Guid.Parse(ctx.Service.GameSessionId));
+            if (historyRecord != null)
             {
-                var onAddingToHistoryContext = new OnAddingToHistoryContext(ctx.Scene, participants);
 
-                await using var scope = _scene.CreateRequestScope();
-                var eventHandlers = scope.ResolveAll<IGameHistoryEventHandler>();
-                await eventHandlers.RunEventHandler(h => h.OnAddingToHistory(onAddingToHistoryContext), ex => { _logger.Log(LogLevel.Error, "gameHistory", $"An error occurred while executing {nameof(IGameHistoryEventHandler.OnAddingToHistory)}", ex); });
-
-                await _service.AddToHistoryAsync(
-                    Guid.Parse(ctx.Service.GameSessionId),
-                    participants,
-                    onAddingToHistoryContext.CustomData.Deserialize<JsonDocument>()!,
-                    ctx.Service.OnCreated, DateTime.UtcNow);
+                historyRecord.CompletedOn = DateTime.UtcNow;
+                await _service.UpdateGameHistoryRecordAsync(historyRecord);
             }
+
         }
 
 

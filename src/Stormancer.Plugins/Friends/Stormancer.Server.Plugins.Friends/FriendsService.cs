@@ -135,8 +135,79 @@ namespace Stormancer.Server.Plugins.Friends
             };
 
             await _storage.SaveBatchAsync(builder);
-            await _channel.ProcessBuilder(builder);
+            await ProcessBuilder(builder);
         }
+
+        public async Task ProcessBuilder(MembersOperationsBuilder builder)
+        {
+            foreach (var operation in builder.Operations)
+            {
+                Guid destinationUserId = operation.Id.ListOwnerId;
+                FriendListUpdateDto? dto;
+                switch (operation.Type)
+                {
+
+
+                    case MembersOperationType.Add:
+                        Debug.Assert(operation.Record != null);
+                        var record = operation.Record;
+                        dto = new FriendListUpdateDto
+                        {
+                            Operation = FriendListUpdateDtoOperation.AddOrUpdate,
+                            Data = await CreateFriendDtoDetailed(record)
+                        };
+                        var friendsWithInfos = await AddInfos(Enumerable.Repeat(dto.Data,1));
+
+                        var addingFriendsCtx = new AddingFriendCtx(this, destinationUserId.ToString("N"), friendsWithInfos);
+
+
+
+                        await _handlers().RunEventHandler(h => h.OnAddingFriend(addingFriendsCtx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnAddingFriend)}", ex); });
+
+
+                        break;
+                    case MembersOperationType.Update:
+                        record = builder.KnownMembers[new MemberId(operation.Id.UserId, operation.Id.ListOwnerId)];
+                        Debug.Assert(record != null);
+                        operation.Updater(record);
+                        dto = new FriendListUpdateDto
+                        {
+                            Operation = FriendListUpdateDtoOperation.AddOrUpdate,
+
+                            Data = await CreateFriendDtoDetailed(record)
+                        };
+                        break;
+                    case MembersOperationType.Delete:
+                        record = builder.KnownMembers[new MemberId(operation.Id.UserId, operation.Id.ListOwnerId)];
+                        Debug.Assert(record != null);
+                        dto = new FriendListUpdateDto
+                        {
+                            Operation = FriendListUpdateDtoOperation.Remove,
+
+                            Data = new Friend
+                            {
+                                Status = new Dictionary<string, FriendConnectionStatus> { [Users.Constants.PROVIDER_TYPE_STORMANCER] = FriendConnectionStatus.Disconnected },
+                                UserIds = [
+                                    new (Users.Constants.PROVIDER_TYPE_STORMANCER,  operation.Id.UserId.ToString("N"))
+                                ]
+                            }
+                        };
+
+                        break;
+                    default:
+                        dto = null;
+                        break;
+                }
+
+
+                if (dto != null)
+                {
+                    _channel.ApplyFriendListUpdate(destinationUserId, dto);
+
+                }
+            }
+        }
+
 
         [Obsolete]
         private async Task NotifyChangesAsync(MembersOperationsBuilder builder)
@@ -316,7 +387,7 @@ namespace Stormancer.Server.Plugins.Friends
             var builder = Process(accept);
 
             await _storage.SaveBatchAsync(builder);
-            await _channel.ProcessBuilder(builder);
+            await ProcessBuilder(builder);
 
             MembersOperationsBuilder Process(bool accept)
             {
@@ -402,7 +473,7 @@ namespace Stormancer.Server.Plugins.Friends
             var builder = Process();
 
             await _storage.SaveBatchAsync(builder);
-            await _channel.ProcessBuilder(builder);
+            await ProcessBuilder(builder);
 
             MembersOperationsBuilder Process()
             {
@@ -667,7 +738,7 @@ namespace Stormancer.Server.Plugins.Friends
             var builder = Process();
 
             await _storage.SaveBatchAsync(builder);
-            await _channel.ProcessBuilder(builder);
+            await ProcessBuilder(builder);
 
             MembersOperationsBuilder Process()
             {
@@ -721,7 +792,7 @@ namespace Stormancer.Server.Plugins.Friends
 
             await _storage.SaveBatchAsync(builder);
 
-            await _channel.ProcessBuilder(builder);
+            await ProcessBuilder(builder);
 
             MembersOperationsBuilder Process()
             {

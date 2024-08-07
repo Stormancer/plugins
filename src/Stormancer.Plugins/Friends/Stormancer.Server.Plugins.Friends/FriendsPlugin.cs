@@ -30,12 +30,35 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Friends
 {
+    /// <summary>
+    /// Constants for the friends plugin.
+    /// </summary>
+    public static class FriendsConstants
+    {
+        /// <summary>
+        /// Id of the friend service in the service locator.
+        /// </summary>
+        public const string SERVICE_ID = "stormancer.friends";
+
+        /// <summary>
+        /// Id of the friends system scene.
+        /// </summary>
+        public const string SCENE_ID = "friends";
+
+        /// <summary>
+        /// Id of the friend system scene template.
+        /// </summary>
+        public const string TEMPLATE_ID = "friends";
+
+        /// <summary>
+        /// Client key for friends metadata.
+        /// </summary>
+        public const string METADATA_KEY = "stormancer.friends";
+    }
+
     class FriendsPlugin : IHostPlugin
     {
-        public const string SERVICE_ID = "stormancer.friends";
-        public const string SCENE_ID = "friends";
-        public const string TEMPLATE_ID = "friends";
-        internal const string METADATA_KEY = "stormancer.friends";
+       
 
         public void Build(HostPluginBuildContext ctx)
         {
@@ -51,7 +74,7 @@ namespace Stormancer.Server.Plugins.Friends
             
             ctx.SceneDependenciesRegistration+=(IDependencyBuilder builder, ISceneHost scene) =>
             {
-                if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(FriendsConstants.METADATA_KEY))
                 {
                     builder.Register<FriendsService>().As<IFriendsService>().InstancePerRequest();
                 }
@@ -63,7 +86,7 @@ namespace Stormancer.Server.Plugins.Friends
 
             ctx.HostStarting += (IHost host) =>
             {
-                host.AddSceneTemplate(TEMPLATE_ID, (ISceneHost sceneHost) =>
+                host.AddSceneTemplate(FriendsConstants.TEMPLATE_ID, (ISceneHost sceneHost) =>
                 {
                     sceneHost.AddFriends();
                 });
@@ -71,12 +94,12 @@ namespace Stormancer.Server.Plugins.Friends
 
             ctx.HostStarted += (IHost host) =>
             {
-                host.EnsureSceneExists(SCENE_ID, TEMPLATE_ID, false, true);
+                host.EnsureSceneExists(FriendsConstants.SCENE_ID, FriendsConstants.TEMPLATE_ID, false, true);
             };
 
             ctx.SceneCreated += (ISceneHost scene) =>
             {
-                if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(FriendsConstants.METADATA_KEY))
                 {
                     scene.AddController<FriendsController>();
                 }
@@ -84,7 +107,7 @@ namespace Stormancer.Server.Plugins.Friends
 
             ctx.SceneStarted += (ISceneHost scene) =>
             {
-                if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(FriendsConstants.METADATA_KEY))
                 {
                     //scene.DependencyResolver.Resolve<IFriendsService>();
                 }
@@ -98,8 +121,8 @@ namespace Stormancer.Server.Plugins.Friends
         {
             switch (ctx.ServiceType)
             {
-                case FriendsPlugin.SERVICE_ID:
-                    ctx.SceneId = FriendsPlugin.SCENE_ID;
+                case FriendsConstants.SERVICE_ID:
+                    ctx.SceneId = FriendsConstants.SCENE_ID;
                     break;
                 default:
                     break;
