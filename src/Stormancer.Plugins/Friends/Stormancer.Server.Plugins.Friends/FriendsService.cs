@@ -149,51 +149,65 @@ namespace Stormancer.Server.Plugins.Friends
 
 
                     case MembersOperationType.Add:
-                        Debug.Assert(operation.Record != null);
-                        var record = operation.Record;
-                        dto = new FriendListUpdateDto
                         {
-                            Operation = FriendListUpdateDtoOperation.AddOrUpdate,
-                            Data = await CreateFriendDtoDetailed(record)
-                        };
-                        var friendsWithInfos = await AddInfos(Enumerable.Repeat(dto.Data,1));
-
-                        var addingFriendsCtx = new AddingFriendCtx(this, destinationUserId.ToString("N"), friendsWithInfos);
-
-
-
-                        await _handlers().RunEventHandler(h => h.OnAddingFriend(addingFriendsCtx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnAddingFriend)}", ex); });
-
-
-                        break;
-                    case MembersOperationType.Update:
-                        record = builder.KnownMembers[new MemberId(operation.Id.UserId, operation.Id.ListOwnerId)];
-                        Debug.Assert(record != null);
-                        operation.Updater(record);
-                        dto = new FriendListUpdateDto
-                        {
-                            Operation = FriendListUpdateDtoOperation.AddOrUpdate,
-
-                            Data = await CreateFriendDtoDetailed(record)
-                        };
-                        break;
-                    case MembersOperationType.Delete:
-                        record = builder.KnownMembers[new MemberId(operation.Id.UserId, operation.Id.ListOwnerId)];
-                        Debug.Assert(record != null);
-                        dto = new FriendListUpdateDto
-                        {
-                            Operation = FriendListUpdateDtoOperation.Remove,
-
-                            Data = new Friend
+                            Debug.Assert(operation.Record != null);
+                            var record = operation.Record;
+                            dto = new FriendListUpdateDto
                             {
-                                Status = new Dictionary<string, FriendConnectionStatus> { [Users.Constants.PROVIDER_TYPE_STORMANCER] = FriendConnectionStatus.Disconnected },
-                                UserIds = [
-                                    new (Users.Constants.PROVIDER_TYPE_STORMANCER,  operation.Id.UserId.ToString("N"))
-                                ]
-                            }
-                        };
+                                Operation = FriendListUpdateDtoOperation.AddOrUpdate,
+                                Data = await CreateFriendDtoDetailed(record)
+                            };
+                            var friendsWithInfos = await AddInfos(Enumerable.Repeat(dto.Data, 1));
 
-                        break;
+                            var addingFriendsCtx = new AddingFriendCtx(this, destinationUserId.ToString("N"), friendsWithInfos);
+
+
+
+                            await _handlers().RunEventHandler(h => h.OnAddingFriend(addingFriendsCtx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnAddingFriend)}", ex); });
+
+
+                            break;
+                        }
+                    case MembersOperationType.Update:
+                        {
+                            var record = builder.KnownMembers[new MemberId(operation.Id.UserId, operation.Id.ListOwnerId)];
+                            Debug.Assert(record != null);
+                            operation.Updater(record);
+                            dto = new FriendListUpdateDto
+                            {
+                                Operation = FriendListUpdateDtoOperation.AddOrUpdate,
+
+                                Data = await CreateFriendDtoDetailed(record)
+                            };
+                            var friendsWithInfos = await AddInfos(Enumerable.Repeat(dto.Data, 1));
+
+                            var addingFriendsCtx = new AddingFriendCtx(this, destinationUserId.ToString("N"), friendsWithInfos);
+
+
+
+                            await _handlers().RunEventHandler(h => h.OnAddingFriend(addingFriendsCtx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnAddingFriend)}", ex); });
+
+                            break;
+                        }
+                    case MembersOperationType.Delete:
+                        {
+                            var record = builder.KnownMembers[new MemberId(operation.Id.UserId, operation.Id.ListOwnerId)];
+                            Debug.Assert(record != null);
+                            dto = new FriendListUpdateDto
+                            {
+                                Operation = FriendListUpdateDtoOperation.Remove,
+
+                                Data = new Friend
+                                {
+                                    Status = new Dictionary<string, FriendConnectionStatus> { [Users.Constants.PROVIDER_TYPE_STORMANCER] = FriendConnectionStatus.Disconnected },
+                                    UserIds = [
+                                        new (Users.Constants.PROVIDER_TYPE_STORMANCER,  operation.Id.UserId.ToString("N"))
+                                    ]
+                                }
+                            };
+
+                            break;
+                        }
                     default:
                         dto = null;
                         break;
