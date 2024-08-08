@@ -139,6 +139,7 @@ namespace Stormancer.Server.Plugins.GameHistory
 
             var historyRecord = await _service.GetGameHistory(Guid.Parse(ctx.GameSession.GameSessionId));
 
+            _logger.Log(LogLevel.Info, "gameHistory", "Adding player to game history", new { historyRecord, user });
             if (user != null && historyRecord != null)
             {
                 await using var scope = _scene.CreateRequestScope();
