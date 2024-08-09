@@ -812,11 +812,12 @@ namespace Stormancer.Server.Plugins.GameSession
 
             var playerConnectedCtx = new ClientConnectedContext(this, new PlayerPeer(peer.SessionId, new Player(peer.SessionId, userId)), HostSessionId == peer.SessionId);
             await using var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag);
+            _logger.Log(LogLevel.Info, "gamesession.onClientConnected", "Running GameSession.OnClientConnected event.",new { playerConnectedCtx.Player, GameSessionId });
             await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
                 h => h.OnClientConnected(playerConnectedCtx),
                 ex => _logger.Log(LogLevel.Error, "gameSession", "An error occurred while executing OnClientConnected event", ex));
 
-
+            _logger.Log(LogLevel.Info, "gamesession.onClientConnected", "Completed GameSession.OnClientConnected event.", new { playerConnectedCtx.Player, GameSessionId });
             var count = _clients.Count;
             if (MaxClientsConnected < count)
             {
