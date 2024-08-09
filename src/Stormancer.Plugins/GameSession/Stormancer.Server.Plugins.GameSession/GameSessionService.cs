@@ -676,7 +676,6 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async Task OnPeerConnected(IScenePeerClient peer)
         {
-            _logger.Log(LogLevel.Info, "gamesession.onClientConnected", $"Running GameSession.OnPeerConnected 679", new {  });
             if (!TryResetShutdown())
             {
                 await peer.Disconnect("sceneShutdown");
@@ -692,7 +691,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             var session = client.Value?.Session ?? await sessions.GetSession(peer, CancellationToken.None);
 
-            _logger.Log(LogLevel.Info, "gamesession.onClientConnected", $"Running GameSession.OnPeerConnected 695", new { });
+           
             if (session is null)
             {
                 return;
@@ -702,7 +701,7 @@ namespace Stormancer.Server.Plugins.GameSession
             var isDedicatedServer = IsDedicatedServer(session);
             //Is authenticated as a dedicated server
 
-            _logger.Log(LogLevel.Info, "gamesession.onClientConnected", $"Running GameSession.OnPeerConnected 705", new { });
+           
             if (isDedicatedServer)
             {
                 GetServerTcs().TrySetResult(peer);
@@ -726,7 +725,7 @@ namespace Stormancer.Server.Plugins.GameSession
             }
 
 
-            _logger.Log(LogLevel.Info, "gamesession.onClientConnected", $"Running GameSession.OnPeerConnected 729", new { });
+          
             if (client.Value == null)
             {
                 await peer.Disconnect("noClient");
@@ -757,7 +756,7 @@ namespace Stormancer.Server.Plugins.GameSession
             //Check if the gameSession is Dedicated or listen-server            
 
             // If the host is not defined a P2P was sent with "" to notify client is host.
-            _logger.Log(LogLevel.Trace, "gamesession", $"Gamesession {_scene.Id} evaluating {userId} as host (expected host :{_config.HostSessionId})", new { });
+         
             if (HostSessionId.IsEmpty() && !serverFound && ((string.IsNullOrEmpty(_config.HostSessionId)) || _config.HostSessionId == peer.SessionId.ToString()))
             {
                 HostSessionId = peer.SessionId;
@@ -815,12 +814,11 @@ namespace Stormancer.Server.Plugins.GameSession
 
             var playerConnectedCtx = new ClientConnectedContext(this, new PlayerPeer(peer.SessionId, new Player(peer.SessionId, userId)), HostSessionId == peer.SessionId);
             await using var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag);
-            _logger.Log(LogLevel.Info, "gamesession.onClientConnected", "Running GameSession.OnClientConnected event.",new { playerConnectedCtx.Player, GameSessionId });
+           
             await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
                 h => h.OnClientConnected(playerConnectedCtx),
                 ex => _logger.Log(LogLevel.Error, "gameSession", "An error occurred while executing OnClientConnected event", ex));
-
-            _logger.Log(LogLevel.Info, "gamesession.onClientConnected", "Completed GameSession.OnClientConnected event.", new { playerConnectedCtx.Player, GameSessionId });
+            
             var count = _clients.Count;
             if (MaxClientsConnected < count)
             {

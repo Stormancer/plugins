@@ -12,13 +12,15 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <Description>Provides a friend system to a Stormancer application.</Description>
-    <Deterministic>true</Deterministic>	  
+    <Deterministic>true</Deterministic>
+	  <PackageReadmeFile>Readme.md</PackageReadmeFile>
   </PropertyGroup>
 
   <PropertyGroup>
     <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
   <ItemGroup>
+	  <None Include="docs\Readme.md" Pack="true" PackagePath="\" />
     <None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
   </ItemGroup>
   
@@ -37,9 +39,13 @@
   </ItemGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api.S2SProxyGenerator\Stormancer.Server.Plugins.Api.S2SProxyGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"  />
+    <ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api.S2SProxyGenerator\Stormancer.Server.Plugins.Api.S2SProxyGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\GameHistory\Stormancer.Server.Plugins.GameHistory\Stormancer.Server.Plugins.GameHistory.csproj" />
     <ProjectReference Include="..\Stormancer.Server.Plugins.Friends\Stormancer.Server.Plugins.Friends.csproj" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Folder Include="docs\" />
   </ItemGroup>
   
   <Target Name="PostPack" AfterTargets="Pack">
