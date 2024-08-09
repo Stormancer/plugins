@@ -676,7 +676,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public async Task OnPeerConnected(IScenePeerClient peer)
         {
-
+            _logger.Log(LogLevel.Info, "gamesession.onClientConnected", $"Running GameSession.OnPeerConnected 679", new {  });
             if (!TryResetShutdown())
             {
                 await peer.Disconnect("sceneShutdown");
@@ -692,6 +692,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             var session = client.Value?.Session ?? await sessions.GetSession(peer, CancellationToken.None);
 
+            _logger.Log(LogLevel.Info, "gamesession.onClientConnected", $"Running GameSession.OnPeerConnected 695", new { });
             if (session is null)
             {
                 return;
@@ -700,6 +701,8 @@ namespace Stormancer.Server.Plugins.GameSession
 
             var isDedicatedServer = IsDedicatedServer(session);
             //Is authenticated as a dedicated server
+
+            _logger.Log(LogLevel.Info, "gamesession.onClientConnected", $"Running GameSession.OnPeerConnected 705", new { });
             if (isDedicatedServer)
             {
                 GetServerTcs().TrySetResult(peer);
@@ -723,7 +726,7 @@ namespace Stormancer.Server.Plugins.GameSession
             }
 
 
-
+            _logger.Log(LogLevel.Info, "gamesession.onClientConnected", $"Running GameSession.OnPeerConnected 729", new { });
             if (client.Value == null)
             {
                 await peer.Disconnect("noClient");
