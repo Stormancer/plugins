@@ -5,3 +5,21 @@ This plugin provides a framework for user profiles, based on composition of prof
 The plugin provides both Server side and client side profile access features. 
 
 The Platform plugins integrate with the profiles plugin to provide platform pseudo by default.
+
+
+## The User profile part
+
+The user profile part contains data that can be used to display information about the user: Their platform, their display name, etc...
+
+If not extended by other plugin, it has the following structure:
+
+    {
+        "userId": "xxx-yyy",
+        "lastPlatform":"steam",
+        "crossplay":
+        {
+            "enabled":true
+        },
+        "pseudo":"steamName",
+
+    }

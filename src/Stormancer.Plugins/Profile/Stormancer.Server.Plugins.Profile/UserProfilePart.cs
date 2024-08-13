@@ -63,6 +63,10 @@ namespace Stormancer.Server.Plugins.Profile
                         {
                             j["platforms"] = new JObject();
                         }
+                        if(!j.ContainsKey("crossplay"))
+                        {
+                            j["crossplay"] = JObject.FromObject(user.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION,out var option)? option: new CrossplayUserOptions());
+                        }
 
                         if (!j.ContainsKey("pseudo"))
                         {
