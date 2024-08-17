@@ -95,6 +95,52 @@ namespace Stormancer.Server.Plugins.Friends
     }
 
     /// <summary>
+    /// Context for <see cref="IFriendsEventHandler.OnUpdatingStatus"/>
+    /// </summary>
+    public class UpdatingFriendStatusCtx
+    {
+        internal UpdatingFriendStatusCtx(IFriendsService friends, Guid ownerId, Friend friend, FriendConnectionStatus newStatus, User friendUser, Session friendSession)
+        {
+            Friends = friends;
+            OwnerId = ownerId;
+            Friend = friend;
+            NewStatus = newStatus;
+            FriendUser = friendUser;
+            FriendSession = friendSession;
+        }
+
+        /// <summary>
+        /// Gets the friends service
+        /// </summary>
+        public IFriendsService Friends { get; }
+
+        /// <summary>
+        /// Gets the owner of the list being updated.
+        /// </summary>
+        public Guid OwnerId { get; }
+
+        /// <summary>
+        /// Gets the friend object being updated.
+        /// </summary>
+        public Friend Friend { get; }
+
+        /// <summary>
+        /// Gets the updated status.
+        /// </summary>
+        public FriendConnectionStatus NewStatus { get; }
+
+        /// <summary>
+        /// Gets the user corresponding to the friend whose status is being updated.
+        /// </summary>
+        public User FriendUser { get; }
+
+        /// <summary>
+        /// Gets the user session corresponding to the friend whose status is being updated.
+        /// </summary>
+        public Session FriendSession { get; }
+    }
+
+    /// <summary>
     /// Friends extensibility points.
     /// </summary>
     public interface IFriendsEventHandler
@@ -112,5 +158,12 @@ namespace Stormancer.Server.Plugins.Friends
         /// <param name="ctx"></param>
         /// <returns></returns>
         Task OnAddingFriend(AddingFriendCtx ctx) => Task.CompletedTask;
+
+        /// <summary>
+        /// Called whenever the connection status in the friends system of a friend object is updated.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task OnUpdatingStatus(UpdatingFriendStatusCtx ctx) => Task.CompletedTask;
     }
 }

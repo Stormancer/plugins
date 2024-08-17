@@ -367,6 +367,26 @@ namespace Stormancer.Server.Plugins.Friends
                 return false;
             }
         }
+
+        /// <summary>
+        /// Gets the list of friend lists currently managed by the system that contain the userId, and for each of them returns the corresponding friend object.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+        internal async IAsyncEnumerable<(Guid ownerId,Friend friend)> GetListsContainingMemberAsync(PlatformId userId)
+        {
+            foreach(var (sessionId, container) in _peers)
+            {
+                lock(container)
+                {
+                    var friend = container.Friends.FirstOrDefault(f => f.UserIds.Contains(userId));
+                    if(friend!=null)
+                    {
+                        yield return (container.Key, friend);
+                    }
+                }
+            }
+        }
     }
 
 

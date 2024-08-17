@@ -586,18 +586,19 @@ namespace Stormancer.Server.Plugins.Friends
 
             var newStatus = ComputeStatus(statusConfig, true);
             var userGuid = Guid.Parse(user.Id);
-            var owners = await _storage.GetListsContainingMemberAsync(userGuid, true, LIST_TYPE);
+           
             if (newStatus != FriendConnectionStatus.Disconnected)
             {
-                await NotifyAsync(new FriendListUpdateDto
+                
+                await foreach (var (ownerId,friend) in _channel.GetListsContainingMemberAsync(new PlatformId(Users.Constants.PROVIDER_TYPE_STORMANCER, user.Id)))
                 {
-                    Operation = FriendListUpdateDtoOperation.UpdateStatus,
-                    Data = new Friend
-                    {
-                        Status = new Dictionary<string, FriendConnectionStatus> { [Users.Constants.PROVIDER_TYPE_STORMANCER] = newStatus },
-                        UserIds = new() { new PlatformId { Platform = Stormancer.Server.Plugins.Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = userGuid.ToString("N") } }
-                    }
-                }, owners.Select(m => m.OwnerId.ToString("N")), cancellationToken);
+                    var updatingFriendCtx = new UpdatingFriendStatusCtx(this, ownerId, friend, newStatus, user, session);
+                    var customData = friend.CustomData;
+                    await _handlers().RunEventHandler(h => h.OnUpdatingStatus(updatingFriendCtx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnAddingFriend)}", ex); });
+
+                    _channel.ApplyFriendListUpdate(ownerId, new FriendListUpdateDto { Data = friend, Operation = customData != friend.CustomData ? FriendListUpdateDtoOperation.AddOrUpdate : FriendListUpdateDtoOperation.UpdateStatus });
+                }
+               
             }
 
         }
