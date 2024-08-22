@@ -51,6 +51,8 @@ namespace Stormancer.Server.Plugins.Friends
 
         Task Subscribe(IScenePeerClient peer, CancellationToken cancellationToken);
 
+        Task RefreshSubscription(IScenePeerClient peer, CancellationToken cancellationToken);
+
         Task Unsubscribe(IScenePeerClient peer, CancellationToken cancellationToken);
 
         Task SetStatus(User user, FriendListStatusConfig status, string customData, CancellationToken cancellationToken);

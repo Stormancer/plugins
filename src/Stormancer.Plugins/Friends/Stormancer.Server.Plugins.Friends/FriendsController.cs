@@ -59,6 +59,12 @@ namespace Stormancer.Server.Plugins.Friends
             return _friends.Subscribe(ctx.RemotePeer, ctx.CancellationToken);
         }
 
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public Task RefreshSubscription(RequestContext<IScenePeerClient> ctx)
+        {
+            return _friends.RefreshSubscription(ctx.RemotePeer, ctx.CancellationToken);
+        }
+
         protected override Task OnDisconnected(DisconnectedArgs args) => _friends.Unsubscribe(args.Peer, System.Threading.CancellationToken.None);
 
         public async Task InviteFriend(RequestContext<IScenePeerClient> ctx)

@@ -112,6 +112,12 @@ namespace Stormancer.Server.Plugins.Friends
             return proxy.Unblock(user.Id, userToUnblock.Id, cancellationToken);
         }
 
+        public Task RefreshSubscription(IScenePeerClient peer, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
+
+
         public Task Unsubscribe(IScenePeerClient peer, CancellationToken cancellationToken)
         {
             throw new NotSupportedException();

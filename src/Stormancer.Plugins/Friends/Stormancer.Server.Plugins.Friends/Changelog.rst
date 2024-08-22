@@ -23,6 +23,7 @@ Added
 *****
 - Added block list expiration to block API.
 - Added Blocklist based party compatibility policy, to prevent blocked players from being matched together by matchmakers.
+- Added subscription refresh capability (the user will get notifications as if he subscribed for the first time)
 
 Fixed
 *****

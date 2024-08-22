@@ -653,6 +653,12 @@ namespace Stormancer.Server.Plugins.Friends
             }
         }
 
+        public async Task RefreshSubscription(IScenePeerClient peer, CancellationToken cancellationToken)
+        {
+            await _channel.RemovePeer(peer.SessionId);
+            await Subscribe(peer, cancellationToken);
+        }
+
         public async Task Unsubscribe(IScenePeerClient peer, CancellationToken cancellationToken)
         {
             var (config, userId) = await _channel.RemovePeer(peer.SessionId);
