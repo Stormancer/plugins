@@ -90,10 +90,25 @@ namespace Stormancer.Server.Plugins.Users
     /// </summary>
     public class LoggingInCtx
     {
-        public AuthenticationContext AuthCtx { get; set; }
+        /// <summary>
+        /// Authentication context.
+        /// </summary>
+        public required AuthenticationContext AuthCtx { get; init; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the auth should fail.
+        /// </summary>
         public bool HasError { get; set; }
-        public string Reason { get; set; }
-        public string Type { get; internal set; }
+
+        /// <summary>
+        /// Gets or sets the reason for the failure.
+        /// </summary>
+        public string? Reason { get; set; }
+
+        /// <summary>
+        /// Gets the authentication type.
+        /// </summary>
+        public required string Type { get; init; }
 
         /// <summary>
         /// Context object passed by the pre authentication phase of the provider.
@@ -131,6 +146,6 @@ namespace Stormancer.Server.Plugins.Users
         /// <summary>
         /// Gets the peer which was logged in.
         /// </summary>
-        public IScenePeerClient Peer { get;  set; }
+        public required IScenePeerClient Peer { get;  init; }
     }
 }

@@ -116,8 +116,13 @@ namespace Stormancer.Server.Plugins.Users
             var peer = _scene.RemotePeers.FirstOrDefault(p => p.SessionId == sessionIds.FirstOrDefault());
             var sender = await sessions.GetUser(ctx.RemotePeer, ctx.CancellationToken);
 
+            if(sender == null)
+            {
+                throw new ClientException($"");
+            }
             if (peer == null)
             {
+              
                 throw new ClientException($"userDisconnected?id={userId}");
             }
             var tcs = new TaskCompletionSource<bool>();

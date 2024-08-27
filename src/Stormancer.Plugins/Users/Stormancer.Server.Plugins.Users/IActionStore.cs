@@ -63,8 +63,7 @@ namespace Stormancer.Server.Plugins.Users
 
             public void Dispose()
             {
-                Action action;
-                actions.TryRemove(id, out action);
+                actions.TryRemove(id, out _);
             }
         }
         public SingleNodeActionStore(Func<ILogger> logger)
@@ -82,17 +81,20 @@ namespace Stormancer.Server.Plugins.Users
 
         public bool TryRun(string id)
         {
-            Action action;
-            var success = _actions.TryRemove(id, out action);
+          
+            var success = _actions.TryRemove(id, out var action);
             if (success)
             {
                 try
                 {
-                    action();
+                    if (action != null)
+                    {
+                        action();
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger().Log(LogLevel.Error, "actionStore", $"An error occured while running the action '{id}'", ex);
+                    _logger().Log(LogLevel.Error, "actionStore", $"An error occurred while running the action '{id}'", ex);
                 }
             }
             return success;

@@ -111,7 +111,7 @@ namespace Stormancer.Server.Plugins.Users
 
             if (!validationCtx.HasError)
             {
-              
+
 
                 var authResult = await provider.Authenticate(authenticationCtx, ct);
 
@@ -133,11 +133,11 @@ namespace Stormancer.Server.Plugins.Users
                         }
 
                         authResult.OnSessionUpdated?.Invoke(s);
-                     
-                    },ct);
+
+                    }, ct);
 
 
-             
+
                     result.Success = true;
                     result.UserId = authResult?.AuthenticatedUser?.Id;
                     result.Username = authResult?.AuthenticatedUser?.UserData[UsersConstants.UserHandleKey]?.ToObject<string>() ?? string.Empty;
@@ -167,16 +167,16 @@ namespace Stormancer.Server.Plugins.Users
                 result.ErrorMsg = validationCtx.Reason;
                 //return result;
             }
-            
+
             result.Authentications = session?.Identities.ToDictionary(entry => entry.Key, entry => entry.Value) ?? _emptyDictionary;
-            if(result.Metadata == null)
+            if (result.Metadata == null)
             {
                 result.Metadata = _emptyDictionary;
             }
             if (!result.Success && session == null)
             {
-                // FIXME: Temporary workaround to issue where disconnections cause large increases in CPU/Memory usage
-                var _ = Task.Delay(1000).ContinueWith(t => peer.DisconnectFromServer(result.ErrorMsg));
+
+                var _ = Task.Delay(1000).ContinueWith(t => peer.DisconnectFromServer(result.ErrorMsg ?? string.Empty));
             }
 
             return result;
@@ -185,7 +185,7 @@ namespace Stormancer.Server.Plugins.Users
 
         private static Dictionary<string, string> _emptyDictionary = new Dictionary<string, string>();
 
-        
+
         public async Task SetupAuth(AuthParameters auth)
         {
             var provider = GetProviders().FirstOrDefault(p => p.Type == auth.Type);

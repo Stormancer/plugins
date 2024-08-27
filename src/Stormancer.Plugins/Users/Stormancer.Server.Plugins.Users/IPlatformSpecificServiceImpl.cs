@@ -25,12 +25,28 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
+    /// <summary>
+    /// Provides a way for platforms to provide display names for a specific user id.
+    /// </summary>
     public interface IPlatformSpecificServiceImpl
     {
+        /// <summary>
+        /// Gets the string identifying the platform.
+        /// </summary>
         string Platform { get; }
 
-        Task<string> GetDisplayableUserId(PlatformId platformId);
+        /// <summary>
+        /// Gets the display name for an user.
+        /// </summary>
+        /// <param name="platformId"></param>
+        /// <returns></returns>
+        Task<string?> GetDisplayableUserId(PlatformId platformId);
 
-        Task<Dictionary<PlatformId, string>> GetDisplayableUserIds(IEnumerable<PlatformId> platformIds);
+        /// <summary>
+        /// Gets display names for a list of users.
+        /// </summary>
+        /// <param name="platformIds"></param>
+        /// <returns></returns>
+        Task<Dictionary<PlatformId, string?>> GetDisplayableUserIds(IEnumerable<PlatformId> platformIds);
     }
 }

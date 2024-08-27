@@ -756,20 +756,27 @@ namespace Stormancer.Server.Plugins.GameSession
             //Check if the gameSession is Dedicated or listen-server            
 
             // If the host is not defined a P2P was sent with "" to notify client is host.
-         
-            if (HostSessionId.IsEmpty() && !serverFound && ((string.IsNullOrEmpty(_config.HostSessionId)) || _config.HostSessionId == peer.SessionId.ToString()))
-            {
-                HostSessionId = peer.SessionId;
-                if (GetServerTcs().TrySetResult(peer))
-                {
-                    _logger.Log(LogLevel.Debug, LOG_CATEOGRY, "Host defined and connecting", userId);
-                    await SendP2PToken(Enumerable.Repeat(peer.SessionId, 1), true, "", default);
 
-                }
-                else
+            if (state.DirectConnectionEnabled())
+            {
+                if (HostSessionId.IsEmpty() && !serverFound && ((string.IsNullOrEmpty(_config.HostSessionId)) || _config.HostSessionId == peer.SessionId.ToString()))
                 {
-                    _logger.Log(LogLevel.Debug, LOG_CATEOGRY, "Client connecting", userId);
+                    HostSessionId = peer.SessionId;
+                    if (GetServerTcs().TrySetResult(peer))
+                    {
+                        _logger.Log(LogLevel.Debug, LOG_CATEOGRY, "Host defined and connecting", userId);
+                        await SendP2PToken(Enumerable.Repeat(peer.SessionId, 1), true, "", default);
+
+                    }
+                    else
+                    {
+                        _logger.Log(LogLevel.Debug, LOG_CATEOGRY, "Client connecting", userId);
+                    }
                 }
+            }
+            else
+            {
+                await SendP2PToken(Enumerable.Repeat(peer.SessionId, 1), false, string.Empty, SessionId.Empty);
             }
 
 

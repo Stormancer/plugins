@@ -41,7 +41,7 @@ namespace Stormancer.Server.Plugins.Users
     [Route("_users")]
     public class UsersAdminController : ControllerBase
     {
-        
+
         private readonly ISceneHost scene;
         private readonly IUserService _users;
 
@@ -86,7 +86,7 @@ namespace Stormancer.Server.Plugins.Users
         {
             await using var scope = scene.CreateRequestScope();
             var _users = scope.Resolve<IUserService>();
-            var query = Request.Query.Where(s => s.Key != "take" && s.Key != "skip").Where(s => s.Value.Any()).ToDictionary(s => s.Key, s => s.Value.First());
+            var query = Request.Query.Where(s => s.Key != "take" && s.Key != "skip").Where(s => s.Value.Any()).ToDictionary(s => s.Key, s => s.Value.First() ?? string.Empty);
             var users = await _users.Query(query, take, skip, cancellationToken);
 
             return users.Select(user => new UserViewModel { id = user.Id, user = user });
@@ -138,7 +138,7 @@ namespace Stormancer.Server.Plugins.Users
                 throw new ClientException("NotFound");
             }
 
-          
+
             var auth = scope.Resolve<IAuthenticationService>();
             await auth.Unlink(user, provider);
         }
@@ -153,7 +153,7 @@ namespace Stormancer.Server.Plugins.Users
         [Route("_kick")]
         public async Task<ActionResult> Kick([FromBody] KickArguments args, CancellationToken cancellationToken)
         {
-            if(args.reason == null)
+            if (args.reason == null)
             {
                 return BadRequest("'reason' cannot be null.");
             }
