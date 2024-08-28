@@ -7,7 +7,6 @@
     <Authors>Stormancer</Authors>
     <Version>1.1.0.1</Version>
     <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
@@ -27,7 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
+    <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg" />
   </ItemGroup>
 
   <ItemGroup>
