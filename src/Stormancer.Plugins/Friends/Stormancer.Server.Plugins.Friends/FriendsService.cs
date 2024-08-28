@@ -134,12 +134,13 @@ namespace Stormancer.Server.Plugins.Friends
                 _ => builder
             };
 
-            await _storage.SaveBatchAsync(builder);
+           
             await ProcessBuilder(builder);
         }
 
         public async Task ProcessBuilder(MembersOperationsBuilder builder)
         {
+            await _storage.SaveBatchAsync(builder);
             foreach (var operation in builder.Operations)
             {
                 Guid destinationUserId = operation.Id.ListOwnerId;
@@ -400,7 +401,7 @@ namespace Stormancer.Server.Plugins.Friends
 
             var builder = Process(accept);
 
-            await _storage.SaveBatchAsync(builder);
+           
             await ProcessBuilder(builder);
 
             MembersOperationsBuilder Process(bool accept)
@@ -486,7 +487,7 @@ namespace Stormancer.Server.Plugins.Friends
 
             var builder = Process();
 
-            await _storage.SaveBatchAsync(builder);
+           
             await ProcessBuilder(builder);
 
             MembersOperationsBuilder Process()
@@ -619,8 +620,14 @@ namespace Stormancer.Server.Plugins.Friends
                         if (infos.UserId != null)
                         {
                             var pid = new PlatformId { Platform = Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = infos.UserId };
-                            f.UserIds.Add(pid);
-                            f.Status[Users.Constants.PROVIDER_TYPE_STORMANCER] = await GetStatusAsync(pid, CancellationToken.None);
+                            if (!f.UserIds.Contains(pid))
+                            {
+                                f.UserIds.Add(pid);
+                            }
+                            if (!f.Tags.Contains("friends.blocked"))
+                            {
+                                f.Status[Users.Constants.PROVIDER_TYPE_STORMANCER] = await GetStatusAsync(pid, CancellationToken.None);
+                            }
                         }
                         list.Add((infos, f));
                     }
@@ -758,7 +765,7 @@ namespace Stormancer.Server.Plugins.Friends
 
             var builder = Process();
 
-            await _storage.SaveBatchAsync(builder);
+          
             await ProcessBuilder(builder);
 
             MembersOperationsBuilder Process()
@@ -810,8 +817,6 @@ namespace Stormancer.Server.Plugins.Friends
             var currentTargetMember = await _storage.GetListMemberAsync(new MemberId(originId, destId));
 
             var builder = Process();
-
-            await _storage.SaveBatchAsync(builder);
 
             await ProcessBuilder(builder);
 
@@ -949,8 +954,14 @@ namespace Stormancer.Server.Plugins.Friends
                             if (infos.UserId != null)
                             {
                                 var pid = new PlatformId { Platform = Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = infos.UserId };
-                                f.UserIds.Add(pid);
-                                f.Status[Users.Constants.PROVIDER_TYPE_STORMANCER] = await GetStatusAsync(pid, CancellationToken.None);
+                                if (!f.UserIds.Contains(pid))
+                                {
+                                    f.UserIds.Add(pid);
+                                }
+                                if (!f.Tags.Contains("friends.blocked"))
+                                {
+                                    f.Status[Users.Constants.PROVIDER_TYPE_STORMANCER] = await GetStatusAsync(pid, CancellationToken.None);
+                                }
                             }
                             list.Add((infos, f));
                         }
