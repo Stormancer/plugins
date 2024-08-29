@@ -1,6 +1,7 @@
 ﻿using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Epic;
+using Stormancer.Server.Plugins.Friends;
 using Stormancer.Server.Plugins.Profile;
 using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Users;
@@ -27,6 +28,7 @@ namespace Stormancer.Server.Plugins.Epic
                 builder.Register<EpicProfilePartBuilder>().As<IProfilePartBuilder>();
                 builder.Register<EpicService>().As<IEpicService>();
                 builder.Register<EpicServiceLocator>().As<IServiceLocatorProvider>();
+                builder.Register<EpicFriendsEventHandler>().As<IFriendsEventHandler>().InstancePerRequest();
             };
 
             ctx.SceneDependenciesRegistration += (builder, scene) =>

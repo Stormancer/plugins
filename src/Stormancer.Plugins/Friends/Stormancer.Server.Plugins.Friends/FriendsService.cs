@@ -581,6 +581,30 @@ namespace Stormancer.Server.Plugins.Friends
             await _handlers().RunEventHandler(h => h.OnAddingFriend(addingFriendsCtx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnAddingFriend)}", ex); });
 
 
+            if(user.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION,out var crossPlayOptions))
+            {
+                //Remove user on other platforms if the user has crossplay disabled.
+                if(!crossPlayOptions.Enabled)
+                {
+                    var platform = session.platformId.Platform;
+
+                    var friendsToDelete = new List<Friend>();
+                    foreach(var friend in friends)
+                    {
+                        if(!friend.UserIds.Any(p=>p.Platform == platform))
+                        {
+                            friendsToDelete.Add(friend);
+                        }
+                    }
+
+                    foreach(var f in friendsToDelete)
+                    {
+                        friends.Remove(f);
+                    }
+                }
+            }
+
+
             _channel.ApplyFriendListUpdates(Guid.Parse(user.Id), friends.Select(friend => new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.AddOrUpdate, Data = friend }));
             //await NotifyAsync(friends.Select(friend => new FriendListUpdateDto { Operation = FriendListUpdateDtoOperation.AddOrUpdate, Data = friend }), user.Id, cancellationToken);
 
@@ -595,7 +619,7 @@ namespace Stormancer.Server.Plugins.Friends
                 {
                     var updatingFriendCtx = new UpdatingFriendStatusCtx(this, ownerId, friend, newStatus, user, session);
                     var customData = friend.CustomData;
-                    await _handlers().RunEventHandler(h => h.OnUpdatingStatus(updatingFriendCtx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnAddingFriend)}", ex); });
+                    await _handlers().RunEventHandler(h => h.OnUpdatingStatus(updatingFriendCtx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnUpdatingStatus)}", ex); });
 
                     _channel.ApplyFriendListUpdate(ownerId, new FriendListUpdateDto { Data = friend, Operation = customData != friend.CustomData ? FriendListUpdateDtoOperation.AddOrUpdate : FriendListUpdateDtoOperation.UpdateStatus });
                 }
@@ -615,11 +639,11 @@ namespace Stormancer.Server.Plugins.Friends
                 foreach (var (platformId, f) in group)
                 {
                     var friendUId = f.UserIds.FirstOrDefault().PlatformUserId;
-                    if (friendUId != null && result.TryGetValue(friendUId, out var infos))
+                    if (friendUId != null && result.TryGetValue(friendUId, out var info))
                     {
-                        if (infos.UserId != null)
+                        if (info.UserId != null)
                         {
-                            var pid = new PlatformId { Platform = Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = infos.UserId };
+                            var pid = new PlatformId { Platform = Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = info.UserId };
                             if (!f.UserIds.Contains(pid))
                             {
                                 f.UserIds.Add(pid);
@@ -629,7 +653,7 @@ namespace Stormancer.Server.Plugins.Friends
                                 f.Status[Users.Constants.PROVIDER_TYPE_STORMANCER] = await GetStatusAsync(pid, CancellationToken.None);
                             }
                         }
-                        list.Add((infos, f));
+                        list.Add((info, f));
                     }
                     else
                     {
@@ -976,6 +1000,8 @@ namespace Stormancer.Server.Plugins.Friends
                 var ctx = new AddingFriendCtx(this, userId,list);
                 await _handlers().RunEventHandler(h => h.OnAddingFriend(ctx), ex => _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnAddingFriend)}", ex));
             }
+
+
 
             _channel.ApplyFriendListUpdates(Guid.Parse(userId), updates);
 

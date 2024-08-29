@@ -16,9 +16,14 @@ Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
 - Improved sandbox error logs.
+
 Fixed
 *****
 - Made the plugin compatible with Users 9.0.0
+
+Added
+*****
+- Added epic account id to friends with Epic accounts.
 
 1.1.3.2
 -------

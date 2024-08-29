@@ -159,6 +159,20 @@ namespace Stormancer.Server.Plugins.Steam
 
             }
         }
+
+        Task IFriendsEventHandler.OnAddingFriend(Stormancer.Server.Plugins.Friends.AddingFriendCtx ctx)
+        {
+            foreach (var friend in ctx.Friends)
+            {
+                if(friend.userInfos?.User !=null && !friend.friend.UserIds.Any(p=>p.Platform == SteamConstants.PLATFORM_NAME) && friend.userInfos.User.TryGetSteamId(out var steamId))
+                {
+                    friend.friend.UserIds.Add(new PlatformId(SteamConstants.PLATFORM_NAME, steamId.ToString()));
+                }
+            }
+
+            return Task.CompletedTask;
+        }
+
         private FriendConnectionStatus GetConnectionStatus(SteamFriendUser friend)
         {
             if(friend.User.Sessions.Any())

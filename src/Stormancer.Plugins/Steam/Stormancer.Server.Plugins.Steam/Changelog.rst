@@ -15,17 +15,19 @@ Unreleased
 Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
+
 Added
 *****
 - Added support for the new Steam Authentication tokens introduced with the Steamworks SDK 1.57. Supports both the new and old authentication protocol. Switch to the new protocol happens by adding a `version` field to the auth parameters with `v1` as the content.
 - Added support for multiple appIds, the client advertises its appId when sending the authentication request. If no appId is set, it defaults to the appId provided in the server configuration (field `steam.appId`). Additional authorized appId are configured by setting the `steam.appIds` server configuration to a list of steam app ids.
 - Added `defaultAuthProtocol` field to the steam auth config section. This enables developer to chose the default Steam auth protocol to use if the client doesn't provide it. Defaults to v0001, the oldest protocol. This can be useful if you use a modified steam.hpp in the game client that doesn't advertise its protocol version and doesn't use v0001.
-- Don't call Steam leave lobby web API on player leave lobby because it doesn't work with webAPI tokens.
+- Added steam id to friends with a steam account.
 
 Fixed
 *****
 - When all steam players leave the party, cleanup lobby id to make sure that the next joining player create a new steam lobby.
 - Fixed serialization issue when retrieving the owner of a steam lobby from a lobby member.
+- Don't call Steam leave lobby web API on player leave lobby because it doesn't work with webAPI tokens.
 
 Changed
 *******
