@@ -29,14 +29,44 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Users
 {
+    /// <summary>
+    /// Provides method to access users stored in the server database.
+    /// </summary>
     public interface IUserService
     {
+        /// <summary>
+        /// Queries users.
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="take"></param>
+        /// <param name="skip"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string,string>> query, int take, int skip, CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Gets an user by its id.
+        /// </summary>
+        /// <param name="uid"></param>
+        /// <returns></returns>
         Task<User?> GetUser(string uid);
 
+        /// <summary>
+        /// Adds an authentication method to an user.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="provider"></param>
+        /// <param name="identifier"></param>
+        /// <param name="authDataModifier"></param>
+        /// <returns></returns>
         Task<User> AddAuthentication(User user, string provider,string identifier, Action<dynamic> authDataModifier);
 
+        /// <summary>
+        /// Removes an authentication method from an user.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="provider"></param>
+        /// <returns></returns>
         Task<User> RemoveAuthentication(User user, string provider);
 
         /// <summary>
@@ -115,6 +145,12 @@ namespace Stormancer.Server.Plugins.Users
         /// <returns>The new handle, including an unicity hash at the end if configured to generate one.</returns>
         Task<string?> UpdateUserHandleAsync(string userId,string newHandle,CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Gets a batch of users from the database, using their unique ids.
+        /// </summary>
+        /// <param name="userIds"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         Task<Dictionary<string, User?>> GetUsers(IEnumerable<string> userIds, CancellationToken cancellationToken);
     }
 }

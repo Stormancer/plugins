@@ -30,10 +30,24 @@ using Stormancer;
 
 namespace Stormancer.Server.Plugins.Users
 {
+    /// <summary>
+    /// Provides extensibility to user related operations
+    /// </summary>
     public interface IUserEventHandler
     {
-        Task OnAuthenticationChanged(AuthenticationChangedCtx ctx);
+        /// <summary>
+        /// Event triggered whenever the authentication methods of an user is updated.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task OnAuthenticationChanged(AuthenticationChangedCtx ctx) => Task.CompletedTask;
 
+        /// <summary>
+        /// Event triggered whenever an user handle is updated.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        /// <remarks>User handles provide display names stored directly in the user.</remarks>
         Task OnUpdatingUserHandle(UpdateUserHandleCtx ctx)
         {
             return Task.CompletedTask;
@@ -93,6 +107,38 @@ namespace Stormancer.Server.Plugins.Users
         /// Gets the user the change was applied to.
         /// </summary>
         public User User { get; }
+    }
+
+    /// <summary>
+    /// Context class passed to <see cref="IUserEventHandler.OnUpdatingUserHandle(UpdateUserHandleCtx)"/>
+    /// </summary>
+    public class UpdateUserHandleCtx
+    {
+        internal UpdateUserHandleCtx(string userId, string newHandle)
+        {
+            UserId = userId;
+            NewHandle = newHandle;
+        }
+
+        /// <summary>
+        /// Gets the id of the user.
+        /// </summary>
+        public string UserId { get; }
+
+        /// <summary>
+        /// Gets the new handle.
+        /// </summary>
+        public string NewHandle { get; }
+
+        /// <summary>
+        /// Gets or sets a boolean indicating if the new handle should be accepted.
+        /// </summary>
+        public bool Accept { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the error message if the update was rejected.
+        /// </summary>
+        public string ErrorMessage { get; set; } = "";
     }
 }
 

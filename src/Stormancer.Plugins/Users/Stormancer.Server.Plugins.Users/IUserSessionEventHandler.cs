@@ -53,26 +53,28 @@ namespace Stormancer.Server.Plugins.Users
         public  required IEnumerable<Session> ConnectedSessions { get; init; }
     }
 
+    /// <summary>
+    /// Context passed to the event <see cref="IUserSessionEventHandler.OnLoggedOut(LogoutContext)"/>
+    /// </summary>
     public class LogoutContext
     {
-        public Session Session { get; set; }
-        public DateTime ConnectedOn { get; set; }
-        public DisconnectionReason Reason { get; internal set; }
+        /// <summary>
+        /// Gets the session being logged out.
+        /// </summary>
+        public required Session Session { get; init; }
+
+        /// <summary>
+        /// Gets the time the session was created.
+        /// </summary>
+        public required DateTime ConnectedOn { get; init; }
+
+        /// <summary>
+        /// Gets the reason why the session was logged out.
+        /// </summary>
+        public required DisconnectionReason Reason { get; init; }
     }
 
-    public class UpdateUserHandleCtx
-    {
-        public UpdateUserHandleCtx(string userId, string newHandle)
-        {
-            UserId = userId;
-            NewHandle = newHandle;
-        }
-
-        public string UserId { get; }
-        public string NewHandle { get; }
-        public bool Accept { get; set; } = true;
-        public string ErrorMessage { get; set; } = "";
-    }
+   
     /// <summary>
     /// Context passed to <see cref="IUserSessionEventHandler.OnKicking(KickContext)"/> event handler.
     /// </summary>
@@ -106,10 +108,23 @@ namespace Stormancer.Server.Plugins.Users
         public bool Kick { get; set; } = true;
     }
 
+    /// <summary>
+    /// Provides extension points for the user sessions flow.
+    /// </summary>
     public interface IUserSessionEventHandler
     {
+        /// <summary>
+        /// Event triggered when an user session is logged in.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
         Task OnLoggedIn(LoginContext ctx)=>Task.CompletedTask;
 
+        /// <summary>
+        /// Event triggered when an user session is logged out.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
         Task OnLoggedOut(LogoutContext ctx) => Task.CompletedTask;
 
        

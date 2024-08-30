@@ -495,7 +495,7 @@ namespace Stormancer.Server.Plugins.Users
             }
             sessionModifier?.Invoke(session);
 
-
+            session.SetDimension("platform", session.platformId.Platform);
             if (repository.AddOrUpdateSessionRecord(session, null))
             {
 
@@ -1090,6 +1090,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public ValueTask<IEnumerable<AuthenticatedUsersCount>> GetAuthenticatedUsersByDimensionsAsync()
         {
+            var time = DateTime.UtcNow;
             return ValueTask.FromResult(repository
             .All
             .Select(d => d.Source)
@@ -1097,6 +1098,7 @@ namespace Stormancer.Server.Plugins.Users
             .GroupBy(s => s.Dimensions, _dimensionsComparer)
             .Select(g => new AuthenticatedUsersCount
             {
+                Timestamp = time,
                 Count = g.Count(),
                 Dimensions = g.Key
             }));
@@ -1243,14 +1245,19 @@ namespace Stormancer.Server.Plugins.Users
     public class AuthenticatedUsersCount
     {
         /// <summary>
-        /// 
+        /// The vector associated with the group.
         /// </summary>
-        public required FrozenDictionary<string, string> Dimensions { get; set; }
+        public required FrozenDictionary<string, string> Dimensions { get; init; }
 
         /// <summary>
         /// Count of players matching the vector in the dimensions space.
         /// </summary>
-        public required int Count { get; set; }
+        public required int Count { get; init; }
+
+        /// <summary>
+        /// The timestamp associated with the sample.
+        /// </summary>
+        public required DateTime Timestamp { get; init; }
     }
 
     /// <summary>
