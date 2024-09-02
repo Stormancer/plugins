@@ -36,6 +36,7 @@ namespace Stormancer.Server.Plugins
     /// Represents a simple memory cache.
     /// </summary>
     /// <typeparam name="T"></typeparam>
+    /// <typeparam name="TKey"></typeparam>
     public class MemoryCache<TKey, T> : IDisposable where T : class where TKey : notnull
     {
         private class CacheEntry
@@ -121,7 +122,7 @@ namespace Stormancer.Server.Plugins
         public MemoryCache()
         {
 
-
+            
         }
 
         private void TryStartCleaner()
@@ -168,7 +169,6 @@ namespace Stormancer.Server.Plugins
         /// <summary>
         /// Gets from cache or update the cache if entry not found or stale. 
         /// </summary>
-        /// <typeparam name="T"></typeparam>
         /// <param name="id"></param>
         /// <param name="addFunction"></param>
         /// <param name="invalidationDelay"></param>
@@ -223,6 +223,7 @@ namespace Stormancer.Server.Plugins
                 {
                     entry = new CacheEntry(id, addFunction(id), (i) => Remove(i));
                     cache[id] = entry;
+                    TryStartCleaner();
                 }
             }
 
@@ -244,6 +245,7 @@ namespace Stormancer.Server.Plugins
                 {
                     entry = new CacheEntry(id, addFunction(id, state), (i) => Remove(i));
                     cache[id] = entry;
+                    TryStartCleaner();
                 }
             }
 
@@ -279,7 +281,7 @@ namespace Stormancer.Server.Plugins
                     {
                         var entry = new CacheEntry(r.Key, r.Value, (i) => Remove(i));
                         cache[r.Key] = entry;
-
+                        TryStartCleaner();
                         results.Add(r.Key, entry.Content);
                     }
                 }

@@ -33,7 +33,7 @@ namespace Stormancer.Server.Plugins.Users
     class AdminImpersonationAuthenticationProvider : IAuthenticationProvider
     {
         private const string Provider_Name = "impersonation";
-        private string _secret;
+        private string? _secret;
         private bool _isEnabled;
         private readonly ILogger logger;
         private readonly IUserService _users;
@@ -94,7 +94,7 @@ namespace Stormancer.Server.Plugins.Users
         public async Task<AuthenticationResult> Authenticate(AuthenticationContext authenticationCtx, CancellationToken ct )
         {
             var pId = new PlatformId { Platform = Provider_Name };
-            if (!authenticationCtx.Parameters.TryGetValue("secret", out string secret) || string.IsNullOrWhiteSpace(secret))
+            if (!authenticationCtx.Parameters.TryGetValue("secret", out var secret) || string.IsNullOrWhiteSpace(secret))
             {
                 return AuthenticationResult.CreateFailure("Missing impersonation secret.", pId, authenticationCtx.Parameters);
             }
@@ -103,16 +103,16 @@ namespace Stormancer.Server.Plugins.Users
             {
                 return AuthenticationResult.CreateFailure("Invalid impersonation secret.", pId, authenticationCtx.Parameters);
             }
-            if (!authenticationCtx.Parameters.TryGetValue("impersonated-provider", out string ImpersonatingProvider) || string.IsNullOrWhiteSpace(ImpersonatingProvider))
+            if (!authenticationCtx.Parameters.TryGetValue("impersonated-provider", out var ImpersonatingProvider) || string.IsNullOrWhiteSpace(ImpersonatingProvider))
             {
                 return AuthenticationResult.CreateFailure("'impersonated-provider' must not be empty.", pId, authenticationCtx.Parameters);
             }
 
-            if (!authenticationCtx.Parameters.TryGetValue("claimPath", out string ImpersonatingClaimPath) || string.IsNullOrWhiteSpace(ImpersonatingClaimPath))
+            if (!authenticationCtx.Parameters.TryGetValue("claimPath", out var ImpersonatingClaimPath) || string.IsNullOrWhiteSpace(ImpersonatingClaimPath))
             {
                 return AuthenticationResult.CreateFailure("'claimPath' must not be empty.", pId, authenticationCtx.Parameters);
             }
-            if (!authenticationCtx.Parameters.TryGetValue("claimValue", out string ImpersonatingClaimValue) || string.IsNullOrWhiteSpace(ImpersonatingClaimValue))
+            if (!authenticationCtx.Parameters.TryGetValue("claimValue", out var ImpersonatingClaimValue) || string.IsNullOrWhiteSpace(ImpersonatingClaimValue))
             {
                 return AuthenticationResult.CreateFailure("'claimValue' must not be empty.", pId, authenticationCtx.Parameters);
             }

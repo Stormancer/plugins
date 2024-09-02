@@ -26,6 +26,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -270,6 +271,9 @@ using Stormancer.Server.Plugins.ServiceLocator;
 
 
                         buffer.Append($@"
+        ///<summary>
+        ///Generated proxy method to call <see cref=""{type}.{method.Name}"" />
+        ///</summary>
         public {(!returnsOperation ? "async " : "")}{returnType} {method.Name}(");
 
                         if (requireServiceInstanceId)
