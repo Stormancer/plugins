@@ -53,6 +53,7 @@ namespace Stormancer.Server.Plugins.Friends
             public Guid Key { get; }
             public UserFriendListConfig? Config { get; set; }
             public List<Friend> Friends { get; } = new List<Friend>();
+            public User User { get; internal set; }
         }
 
         //[pId=>{SessionId}]
@@ -68,13 +69,13 @@ namespace Stormancer.Server.Plugins.Friends
             _scene = scene;
             _serializer = serializer;
         }
-        public Task AddPeer(Guid key, IScenePeerClient peer, UserFriendListConfig statusConfig)
+        public Task AddPeer(Guid key, IScenePeerClient peer, User user, UserFriendListConfig statusConfig)
         {
             if (statusConfig == null)
             {
                 throw new ArgumentNullException("statusConfig");
             }
-            var v = new UserContainer(peer.SessionId, key) { Config = statusConfig };
+            var v = new UserContainer(peer.SessionId, key) { Config = statusConfig, User = user };
             _platformIds.AddOrUpdate(key, v, (k, old) => v);
             _peers.AddOrUpdate(peer.SessionId, v, (k, old) => v);
             return Task.FromResult(true);
@@ -342,7 +343,7 @@ namespace Stormancer.Server.Plugins.Friends
 
         }
 
-        internal bool TryGetBlockList(Guid userId,[NotNullWhen(true)] out IEnumerable<string>? blockList)
+        internal bool TryGetBlockList(Guid userId, [NotNullWhen(true)] out IEnumerable<string>? blockList)
         {
             if (_platformIds.TryGetValue(userId, out var container))
             {
@@ -350,9 +351,9 @@ namespace Stormancer.Server.Plugins.Friends
                 {
                     var list = new List<string>();
 
-                    foreach(var item in container.Friends)
+                    foreach (var item in container.Friends)
                     {
-                        if(item.Tags.Contains("friends.blocked") && item.TryGetIdForPlatform(Users.Constants.PROVIDER_TYPE_STORMANCER,out var uid))
+                        if (item.Tags.Contains("friends.blocked") && item.TryGetIdForPlatform(Users.Constants.PROVIDER_TYPE_STORMANCER, out var uid))
                         {
                             list.Add(uid);
                         }
@@ -373,16 +374,16 @@ namespace Stormancer.Server.Plugins.Friends
         /// </summary>
         /// <param name="userId"></param>
         /// <returns></returns>
-        internal async IAsyncEnumerable<(Guid ownerId,Friend friend)> GetListsContainingMemberAsync(PlatformId userId)
+        internal async IAsyncEnumerable<(Guid ownerId, User owner, Friend friend)> GetListsContainingMemberAsync(PlatformId userId)
         {
-            foreach(var (sessionId, container) in _peers)
+            foreach (var (sessionId, container) in _peers)
             {
-                lock(container)
+                lock (container)
                 {
                     var friend = container.Friends.FirstOrDefault(f => f.UserIds.Contains(userId));
-                    if(friend!=null)
+                    if (friend != null)
                     {
-                        yield return (container.Key, friend);
+                        yield return (container.Key, container.User, friend);
                     }
                 }
             }

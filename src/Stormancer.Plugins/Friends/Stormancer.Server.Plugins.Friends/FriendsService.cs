@@ -134,7 +134,7 @@ namespace Stormancer.Server.Plugins.Friends
                 _ => builder
             };
 
-           
+
             await ProcessBuilder(builder);
         }
 
@@ -401,7 +401,7 @@ namespace Stormancer.Server.Plugins.Friends
 
             var builder = Process(accept);
 
-           
+
             await ProcessBuilder(builder);
 
             MembersOperationsBuilder Process(bool accept)
@@ -487,7 +487,7 @@ namespace Stormancer.Server.Plugins.Friends
 
             var builder = Process();
 
-           
+
             await ProcessBuilder(builder);
 
             MembersOperationsBuilder Process()
@@ -561,7 +561,7 @@ namespace Stormancer.Server.Plugins.Friends
 
 
             var statusConfig = GetUserFriendListConfig(user);
-            await _channel.AddPeer(Guid.Parse(user.Id), peer, statusConfig);
+            await _channel.AddPeer(Guid.Parse(user.Id), peer,user, statusConfig);
             var friendsRecords = await _storage.GetListMembersAsync(Guid.Parse(user.Id));
             var friends = new List<Friend>();
             foreach (var record in friendsRecords)
@@ -577,29 +577,44 @@ namespace Stormancer.Server.Plugins.Friends
             var addingFriendsCtx = new AddingFriendCtx(this, user.Id, friendsWithInfos);
 
 
-            
+
             await _handlers().RunEventHandler(h => h.OnAddingFriend(addingFriendsCtx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnAddingFriend)}", ex); });
 
 
-            if(user.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION,out var crossPlayOptions))
+            if (user.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION, out var crossPlayOptions) && !crossPlayOptions.Enabled)
             {
-                //Remove user on other platforms if the user has crossplay disabled.
-                if(!crossPlayOptions.Enabled)
+               
+                var platform = session.platformId.Platform;
+
+                var friendsToDelete = new List<Friend>();
+                foreach (var friend in friendsWithInfos)
                 {
-                    var platform = session.platformId.Platform;
+                    //Remove user on other platforms if the user has cross play disabled.
 
-                    var friendsToDelete = new List<Friend>();
-                    foreach(var friend in friends)
+                    if (!friend.friend.UserIds.Any(p => p.Platform == platform))
                     {
-                        if(!friend.UserIds.Any(p=>p.Platform == platform))
-                        {
-                            friendsToDelete.Add(friend);
-                        }
+                        friendsToDelete.Add(friend.friend);
                     }
-
-                    foreach(var f in friendsToDelete)
+                    //If friend is on the same platform, but as cross play enabled, set them as disconnected.
+                    else if(!(friend.userInfos?.User?.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION, out var op) ?? false) || op.Enabled)
                     {
-                        friends.Remove(f);
+                        friend.friend.Status["stormancer"] = FriendConnectionStatus.Disconnected;
+                    }
+                }
+
+                foreach (var f in friendsToDelete)
+                {
+                    friends.Remove(f);
+                }
+
+            }
+            else
+            {
+                foreach(var friend in friendsWithInfos)
+                {
+                    if(friend.userInfos?.User?.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION, out var op)??false && !op.Enabled)
+                    {
+                        friend.friend.Status["stormancer"] = FriendConnectionStatus.Disconnected;
                     }
                 }
             }
@@ -611,21 +626,36 @@ namespace Stormancer.Server.Plugins.Friends
 
             var newStatus = ComputeStatus(statusConfig, true);
             var userGuid = Guid.Parse(user.Id);
-           
+
             if (newStatus != FriendConnectionStatus.Disconnected)
             {
-                
-                await foreach (var (ownerId,friend) in _channel.GetListsContainingMemberAsync(new PlatformId(Users.Constants.PROVIDER_TYPE_STORMANCER, user.Id)))
+
+                await foreach (var (ownerId,owner, friend) in _channel.GetListsContainingMemberAsync(new PlatformId(Users.Constants.PROVIDER_TYPE_STORMANCER, user.Id)))
                 {
+                    
                     var updatingFriendCtx = new UpdatingFriendStatusCtx(this, ownerId, friend, newStatus, user, session);
                     var customData = friend.CustomData;
                     await _handlers().RunEventHandler(h => h.OnUpdatingStatus(updatingFriendCtx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnUpdatingStatus)}", ex); });
 
+                    if (AreCrossPlayOptionsEqual(owner, user))
+                    {
+                        friend.Status["stormancer"] = updatingFriendCtx.NewStatus;
+                    }
+                    else
+                    {
+                        friend.Status["stormancer"] = FriendConnectionStatus.Disconnected;
+                    }
                     _channel.ApplyFriendListUpdate(ownerId, new FriendListUpdateDto { Data = friend, Operation = customData != friend.CustomData ? FriendListUpdateDtoOperation.AddOrUpdate : FriendListUpdateDtoOperation.UpdateStatus });
                 }
-               
+
             }
 
+        }
+        private bool AreCrossPlayOptionsEqual(User user1, User user2)
+        {
+            var o1 = user1.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION, out var v) ? v.Enabled : true;
+            var o2 = user2.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION, out v) ? v.Enabled : true;
+            return o1 == o2;
         }
 
         private async Task<List<(UserSessionInfos? userInfos, Friend friend)>> AddInfos(IEnumerable<Friend> friends)
@@ -789,7 +819,7 @@ namespace Stormancer.Server.Plugins.Friends
 
             var builder = Process();
 
-          
+
             await ProcessBuilder(builder);
 
             MembersOperationsBuilder Process()
@@ -970,7 +1000,7 @@ namespace Stormancer.Server.Plugins.Friends
                 {
                     var result = await _sessions.GetDetailedUserInformationsByIdentityAsync(group.Key, group.Select(t => t.Item1.PlatformUserId), CancellationToken.None);
 
-                    foreach (var (platformId,f) in group)
+                    foreach (var (platformId, f) in group)
                     {
                         var friendUId = f.UserIds.FirstOrDefault().PlatformUserId;
                         if (friendUId != null && result.TryGetValue(friendUId, out var infos))
@@ -994,10 +1024,10 @@ namespace Stormancer.Server.Plugins.Friends
                             list.Add((null, f));
                         }
 
-                     
+
                     }
                 }
-                var ctx = new AddingFriendCtx(this, userId,list);
+                var ctx = new AddingFriendCtx(this, userId, list);
                 await _handlers().RunEventHandler(h => h.OnAddingFriend(ctx), ex => _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnAddingFriend)}", ex));
             }
 
