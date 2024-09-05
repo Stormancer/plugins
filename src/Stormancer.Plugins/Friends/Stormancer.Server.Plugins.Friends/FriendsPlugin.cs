@@ -25,6 +25,7 @@ using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
 using Stormancer.Server.Plugins.Friends.Data;
+using Stormancer.Server.Plugins.Party;
 using Stormancer.Server.Plugins.ServiceLocator;
 using System.Threading.Tasks;
 
@@ -64,7 +65,7 @@ namespace Stormancer.Server.Plugins.Friends
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
-                builder.Register<FriendsPartyCompatibilityPolicy>().As<IPartyCompatibilityPolicy>().InstancePerRequest();
+                builder.Register<FriendsPartyCompatibilityPolicy>().As<IPartyCompatibilityPolicy>().As<IPartyEventHandler>().InstancePerRequest();
                 builder.Register<FriendsController>().InstancePerRequest();
                 builder.Register<FriendsSceneLocator>().As<IServiceLocatorProvider>().InstancePerRequest();
                 builder.Register<FriendsRepository>().InstancePerScene();

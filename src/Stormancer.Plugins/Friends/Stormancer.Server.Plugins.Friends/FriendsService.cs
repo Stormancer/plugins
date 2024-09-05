@@ -561,7 +561,7 @@ namespace Stormancer.Server.Plugins.Friends
 
 
             var statusConfig = GetUserFriendListConfig(user);
-            await _channel.AddPeer(Guid.Parse(user.Id), peer,user, statusConfig);
+            await _channel.AddPeer(Guid.Parse(user.Id), peer, user, statusConfig);
             var friendsRecords = await _storage.GetListMembersAsync(Guid.Parse(user.Id));
             var friends = new List<Friend>();
             foreach (var record in friendsRecords)
@@ -583,7 +583,7 @@ namespace Stormancer.Server.Plugins.Friends
 
             if (user.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION, out var crossPlayOptions) && !crossPlayOptions.Enabled)
             {
-               
+
                 var platform = session.platformId.Platform;
 
                 var friendsToDelete = new List<Friend>();
@@ -596,7 +596,7 @@ namespace Stormancer.Server.Plugins.Friends
                         friendsToDelete.Add(friend.friend);
                     }
                     //If friend is on the same platform, but as cross play enabled, set them as disconnected.
-                    else if(!(friend.userInfos?.User?.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION, out var op) ?? false) || op.Enabled)
+                    else if (!(friend.userInfos?.User?.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION, out var op) ?? false) || op.Enabled)
                     {
                         friend.friend.Status["stormancer"] = FriendConnectionStatus.Disconnected;
                     }
@@ -610,9 +610,9 @@ namespace Stormancer.Server.Plugins.Friends
             }
             else
             {
-                foreach(var friend in friendsWithInfos)
+                foreach (var friend in friendsWithInfos)
                 {
-                    if(friend.userInfos?.User?.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION, out var op)??false && !op.Enabled)
+                    if ((friend.userInfos?.User?.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION, out var op) ?? false) && !op.Enabled)
                     {
                         friend.friend.Status["stormancer"] = FriendConnectionStatus.Disconnected;
                     }
@@ -630,9 +630,9 @@ namespace Stormancer.Server.Plugins.Friends
             if (newStatus != FriendConnectionStatus.Disconnected)
             {
 
-                await foreach (var (ownerId,owner, friend) in _channel.GetListsContainingMemberAsync(new PlatformId(Users.Constants.PROVIDER_TYPE_STORMANCER, user.Id)))
+                await foreach (var (ownerId, owner, friend) in _channel.GetListsContainingMemberAsync(new PlatformId(Users.Constants.PROVIDER_TYPE_STORMANCER, user.Id)))
                 {
-                    
+
                     var updatingFriendCtx = new UpdatingFriendStatusCtx(this, ownerId, friend, newStatus, user, session);
                     var customData = friend.CustomData;
                     await _handlers().RunEventHandler(h => h.OnUpdatingStatus(updatingFriendCtx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnUpdatingStatus)}", ex); });
@@ -678,10 +678,10 @@ namespace Stormancer.Server.Plugins.Friends
                             {
                                 f.UserIds.Add(pid);
                             }
-                            if (!f.Tags.Contains("friends.blocked"))
-                            {
+                            //if (!f.Tags.Contains("friends.blocked"))
+                            //{
                                 f.Status[Users.Constants.PROVIDER_TYPE_STORMANCER] = await GetStatusAsync(pid, CancellationToken.None);
-                            }
+                            //}
                         }
                         list.Add((info, f));
                     }
