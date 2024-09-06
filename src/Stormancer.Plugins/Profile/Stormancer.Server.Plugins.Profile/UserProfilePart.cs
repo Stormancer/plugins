@@ -31,10 +31,12 @@ namespace Stormancer.Server.Plugins.Profile
     class PseudoProfilePart : IProfilePartBuilder
     {
         private readonly IUserService _users;
+        private readonly CrossplayService _crossplay;
 
-        public PseudoProfilePart(IUserService users)
+        public PseudoProfilePart(IUserService users, CrossplayService crossplay)
         {
             _users = users;
+            this._crossplay = crossplay;
         }
 
         public async Task GetProfiles(ProfileCtx ctx, CancellationToken cancellationToken)
@@ -65,7 +67,7 @@ namespace Stormancer.Server.Plugins.Profile
                         }
                         if(!j.ContainsKey("crossplay"))
                         {
-                            j["crossplay"] = JObject.FromObject(user.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION,out var option)? option: new CrossplayUserOptions());
+                            j["crossplay"] = JObject.FromObject(new CrossplayUserOptions { Enabled = _crossplay.IsCrossplayEnabled(user) });
                         }
 
                         if (!j.ContainsKey("pseudo"))

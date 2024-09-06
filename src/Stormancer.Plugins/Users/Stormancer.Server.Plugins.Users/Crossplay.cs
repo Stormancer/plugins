@@ -18,14 +18,16 @@ namespace Stormancer.Server.Plugins.Users
     public class CrossplayController : ControllerBase
     {
         private readonly IUserSessions _sessions;
+        private readonly CrossplayService _crossplay;
 
         /// <summary>
         /// Creates an instance of <see cref="CrossplayController"/>.
         /// </summary>
         /// <param name="sessions"></param>
-        public CrossplayController(IUserSessions sessions)
+        public CrossplayController(IUserSessions sessions, CrossplayService crossplay)
         {
             _sessions = sessions;
+            this._crossplay = crossplay;
         }
         /// <summary>
         /// Gets values indicating if cross play is enabled for each group of a list of player groups.
@@ -46,9 +48,9 @@ namespace Stormancer.Server.Plugins.Users
                 foreach (var session in sessions)
                 {
 
-                    if (session.Value?.User != null && session.Value.User.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION, out var option))
+                    if (session.Value?.User != null)
                     {
-                        crossPlayEnabled &= option.Enabled;
+                        crossPlayEnabled &= _crossplay.IsCrossplayEnabled(session.Value.User);
                     }
 
 
@@ -75,32 +77,58 @@ namespace Stormancer.Server.Plugins.Users
         public const string SECTION = "crossplay";
 
         /// <summary>
-        /// Gets or sets a bool indicating if cross play is enabled for the player.
+        /// Gets or sets a bool indicating if cross play is enabled for the player in the application options.
         /// </summary>
         public bool Enabled { get; set; } = true;
     }
 
+
     /// <summary>
-    /// A policy evaluating if 2 parties are compatible using cross play information.
+    /// Provides a method to evaluate if cross play is enabled on an user, allowing plugins to influence the result by implementing <see cref="ICrossplayUserPolicy"/>
     /// </summary>
-    internal class CrossPlayPartyCompatibilityPolicy : IPartyCompatibilityPolicy
+    public class CrossplayService
     {
+        private readonly IEnumerable<ICrossplayUserPolicy> _policies;
 
-        ///<inheritdoc/>
-        public Task<CompatibilityTestResult> AreCompatible(Party party1, Party party2, object context)
+        /// <summary>
+        /// Creates a new <see cref="CrossplayService"/> object.
+        /// </summary>
+        /// <param name="policies"></param>
+        public CrossplayService(IEnumerable<ICrossplayUserPolicy> policies)
         {
-            if (party1.Platform != party2.Platform)
-            {
-                return Task.FromResult(new CompatibilityTestResult(false, "crossplay"));
-            }
-            else
-            {
-                return Task.FromResult(new CompatibilityTestResult(true));
-            }
-
+            this._policies = policies;
         }
 
+        /// <summary>
+        /// Returns 
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
+        public bool IsCrossplayEnabled(User user)
+        {
+            bool value = user.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION, out var option) ? option.Enabled : true;
 
+            foreach (var policy in _policies)
+            {
+                value = policy.IsCrossplayEnabled(user, value);
+            }
+
+            return value;
+        }
+    }
+
+    /// <summary>
+    /// Contract to implement for plugin who influence if a player has cross play enabled or not.
+    /// </summary>
+    public interface ICrossplayUserPolicy
+    {
+        /// <summary>
+        /// Determines if a user should be allowed to play with players on another platform.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="currentValue"></param>
+        /// <returns></returns>
+        bool IsCrossplayEnabled(User user, bool currentValue);
     }
 
 

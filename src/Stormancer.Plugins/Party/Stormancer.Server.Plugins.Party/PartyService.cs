@@ -67,6 +67,7 @@ namespace Stormancer.Server.Plugins.Party
         private readonly Func<IEnumerable<IPartyEventHandler>> _handlers;
         private readonly PartyState _partyState;
         private readonly RpcService _rpcService;
+        private readonly IConfiguration configuration;
         private readonly IUserService _users;
         private readonly IEnumerable<IPartyPlatformSupport> _platformSupports;
         private readonly InvitationCodeService invitationCodes;
@@ -75,6 +76,7 @@ namespace Stormancer.Server.Plugins.Party
         private readonly IProfileService _profiles;
         private readonly PartyAnalyticsWorker _analyticsWorker;
         private readonly ISerializer _serializer;
+        private readonly CrossplayService _crossplayService;
         private readonly IClusterSerializer _clusterSerializer;
 
         public IReadOnlyDictionary<SessionId, PartyMember> PartyMembers => _partyState.PartyMembers;
@@ -101,6 +103,7 @@ namespace Stormancer.Server.Plugins.Party
             IProfileService profiles,
             PartyAnalyticsWorker analyticsWorker,
             ISerializer serializer,
+            CrossplayService crossplayService,
             IClusterSerializer clusterSerializer
         )
         {
@@ -112,6 +115,7 @@ namespace Stormancer.Server.Plugins.Party
             _locator = locator;
             _partyState = partyState;
             _rpcService = rpcService;
+            this.configuration = configuration;
             _users = users;
             _platformSupports = platformSupports;
             this.invitationCodes = invitationCodes;
@@ -120,6 +124,7 @@ namespace Stormancer.Server.Plugins.Party
             _profiles = profiles;
             _analyticsWorker = analyticsWorker;
             _serializer = serializer;
+            this._crossplayService = crossplayService;
             _clusterSerializer = clusterSerializer;
             ApplySettings(configuration.Settings);
 
@@ -292,12 +297,8 @@ namespace Stormancer.Server.Plugins.Party
         }
         private void CheckCrossPlay(User user)
         {
-            var crossplayEnabled = true;
-            if (user.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION, out var options) && options.Enabled == false)
-            {
-                crossplayEnabled = false;
-            }
-
+            var crossplayEnabled = _crossplayService.IsCrossplayEnabled(user);
+           
             //If cross play is disabled on the player, and we are the first player, set the platform of the party.
             if (_partyState.PartyMembers.Count == 0)
             {

@@ -58,6 +58,7 @@ namespace Stormancer.Server.Plugins.Friends
         private readonly IUserSessions _sessions;
         private readonly Func<IEnumerable<IFriendsEventHandler>> _handlers;
         private readonly ISerializer _serializer;
+        private readonly CrossplayService _crossplayService;
         private readonly ILogger _logger;
 
         public FriendsService(
@@ -69,7 +70,8 @@ namespace Stormancer.Server.Plugins.Friends
             IUserService users,
             IUserSessions sessions,
             Func<IEnumerable<IFriendsEventHandler>> handlers,
-            ISerializer serializer
+            ISerializer serializer,
+            CrossplayService crossplayService
             )
         {
             _logger = logger;
@@ -80,6 +82,7 @@ namespace Stormancer.Server.Plugins.Friends
             _sessions = sessions;
             _handlers = handlers;
             _serializer = serializer;
+            this._crossplayService = crossplayService;
         }
 
         public async Task Invite(User user, User friend, CancellationToken cancellationToken)
@@ -581,7 +584,7 @@ namespace Stormancer.Server.Plugins.Friends
             await _handlers().RunEventHandler(h => h.OnAddingFriend(addingFriendsCtx), ex => { _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnAddingFriend)}", ex); });
 
 
-            if (user.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION, out var crossPlayOptions) && !crossPlayOptions.Enabled)
+            if (!_crossplayService.IsCrossplayEnabled(user))
             {
 
                 var platform = session.platformId.Platform;
@@ -596,7 +599,7 @@ namespace Stormancer.Server.Plugins.Friends
                         friendsToDelete.Add(friend.friend);
                     }
                     //If friend is on the same platform, but as cross play enabled, set them as disconnected.
-                    else if (!(friend.userInfos?.User?.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION, out var op) ?? false) || op.Enabled)
+                    else if (_crossplayService.IsCrossplayEnabled(user))
                     {
                         friend.friend.Status["stormancer"] = FriendConnectionStatus.Disconnected;
                     }
@@ -612,7 +615,7 @@ namespace Stormancer.Server.Plugins.Friends
             {
                 foreach (var friend in friendsWithInfos)
                 {
-                    if ((friend.userInfos?.User?.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION, out var op) ?? false) && !op.Enabled)
+                    if (!_crossplayService.IsCrossplayEnabled(user))
                     {
                         friend.friend.Status["stormancer"] = FriendConnectionStatus.Disconnected;
                     }
@@ -653,8 +656,8 @@ namespace Stormancer.Server.Plugins.Friends
         }
         private bool AreCrossPlayOptionsEqual(User user1, User user2)
         {
-            var o1 = user1.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION, out var v) ? v.Enabled : true;
-            var o2 = user2.TryGetOption<CrossplayUserOptions>(CrossplayUserOptions.SECTION, out v) ? v.Enabled : true;
+            var o1 = _crossplayService.IsCrossplayEnabled(user1);
+            var o2 = _crossplayService.IsCrossplayEnabled(user2);
             return o1 == o2;
         }
 
@@ -680,7 +683,7 @@ namespace Stormancer.Server.Plugins.Friends
                             }
                             //if (!f.Tags.Contains("friends.blocked"))
                             //{
-                                f.Status[Users.Constants.PROVIDER_TYPE_STORMANCER] = await GetStatusAsync(pid, CancellationToken.None);
+                            f.Status[Users.Constants.PROVIDER_TYPE_STORMANCER] = await GetStatusAsync(pid, CancellationToken.None);
                             //}
                         }
                         list.Add((info, f));

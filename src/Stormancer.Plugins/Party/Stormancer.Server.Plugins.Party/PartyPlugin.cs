@@ -22,6 +22,7 @@
 
 using Stormancer.Abstractions.Server;
 using Stormancer.Abstractions.Server.Components;
+using Stormancer.Abstractions.Server.GameFinder;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
@@ -75,7 +76,7 @@ namespace Stormancer.Server.Plugins.Party
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
                 builder.Register<PartyAnalyticsWorker>().SingleInstance();
-
+                builder.Register<CrossPlayPartyCompatibilityPolicy>().As<IPartyCompatibilityPolicy>();
                 builder.Register<PartyService>(r => new PartyService(
                     r.Resolve<ISceneHost>(),
                     r.Resolve<ILogger>(),
@@ -94,6 +95,7 @@ namespace Stormancer.Server.Plugins.Party
                     r.Resolve<IProfileService>(),
                     r.Resolve<PartyAnalyticsWorker>(),
                     r.Resolve<ISerializer>(),
+                    r.Resolve<CrossplayService>(),
                     r.Resolve<IClusterSerializer>())
                 ).As<IPartyService>().InstancePerRequest();
 
