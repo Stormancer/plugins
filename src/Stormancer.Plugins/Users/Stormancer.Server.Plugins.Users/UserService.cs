@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 
+using Lucene.Net.Codecs.Lucene3x;
 using Newtonsoft.Json.Linq;
 using Stormancer.Core.Helpers;
 using Stormancer.Diagnostics;
@@ -73,6 +74,7 @@ namespace Stormancer.Server.Plugins.Users
     {
 
         private readonly string _indexName;
+        private readonly Func<IEnumerable<IUserIdentityIdProvider>> _userIdentityProviders;
         private readonly IUserStorage? _storage;
         private readonly ILogger _logger;
         private readonly Func<IEnumerable<IUserEventHandler>> _handlers;
@@ -85,6 +87,7 @@ namespace Stormancer.Server.Plugins.Users
 
 
         public UserService(
+            Func<IEnumerable<IUserIdentityIdProvider>> userIdentityProviders,
             IUserStorage? storage,
             IEnvironment environment,
             ILogger logger,
@@ -97,6 +100,7 @@ namespace Stormancer.Server.Plugins.Users
             _handlers = eventHandlers;
             _configuration = configuration;
             _analytics = analytics;
+            this._userIdentityProviders = userIdentityProviders;
             _storage = storage;
             _logger = logger;
             //_logger.Log(LogLevel.Trace, "users", $"Using index {_indexName}", new { index = _indexName });
@@ -239,7 +243,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public Task<Dictionary<string, User?>> GetUsersByIdentity(string provider, IEnumerable<string> identifiers)
         {
-            
+
             if (_storage != null)
             {
                 if (provider == Constants.PROVIDER_TYPE_STORMANCER)
@@ -258,9 +262,64 @@ namespace Stormancer.Server.Plugins.Users
 
         }
 
-        public Task<User?> GetUserByIdentity(PlatformId platformId)
+
+        public async Task<Dictionary<PlatformId, User?>> GetUsersAsync(IEnumerable<PlatformId> platformIds)
         {
-            return GetUserByIdentity(platformId.Platform, platformId.PlatformUserId);
+            var groups = platformIds.GroupBy(pId => pId.Platform);
+            var r = new Dictionary<PlatformId, User?>();
+            foreach (var group in groups)
+            {
+                var userIdentityProvider = GetUserIdentityProvider(group.Key);
+
+                if (userIdentityProvider != null)
+                {
+                    var ids = new Dictionary<string, PlatformId>();
+                    foreach (var pId in group)
+                    {
+                        ids.Add(await userIdentityProvider.GetIdentityInformation(pId), pId);
+                    }
+                    var results = await GetUsersByIdentity(group.Key, ids.Keys);
+
+                    foreach (var (key, value) in results)
+                    {
+                        r[ids[key]] = value;
+                    }
+                }
+                else
+                {
+                    var results = await GetUsersByIdentity(group.Key, group.Select(p => p.PlatformUserId));
+
+                    foreach (var (key, value) in results)
+                    {
+                        r[new PlatformId(group.Key,key)] = value;
+                    }
+                }
+            }
+            return r;
+        }
+
+        private IUserIdentityIdProvider? GetUserIdentityProvider(string platform)
+        {
+            foreach (var userIdentityProvider in _userIdentityProviders())
+            {
+                if (userIdentityProvider.CanHandle(platform))
+                {
+                    return userIdentityProvider;
+                }
+            }
+            return null;
+        }
+        public async Task<User?> GetUserByIdentity(PlatformId platformId)
+        {
+            var provider = platformId.Platform;
+            var id = platformId.PlatformUserId;
+            var userIdentityProvider = GetUserIdentityProvider(platformId.Platform);
+            if (userIdentityProvider != null)
+            {
+                id = await userIdentityProvider.GetIdentityInformation(platformId);
+            }
+
+            return await GetUserByIdentity(provider, id);
         }
 
         public async Task<User?> GetUserByIdentity(string provider, string login)
@@ -281,7 +340,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public Task<User?> GetUser(string uid)
         {
-            if(_storage !=null)
+            if (_storage != null)
             {
                 return _storage.GetUser(uid);
             }
@@ -289,28 +348,28 @@ namespace Stormancer.Server.Plugins.Users
             {
                 return Task.FromResult<User?>(null);
             }
-           
+
 
         }
 
         public Task UpdateUserData<T>(string uid, T data)
         {
-           if(_storage != null)
+            if (_storage != null)
             {
                 return _storage.UpdateUserData<T>(uid, data);
             }
-           else
+            else
             {
                 return Task.CompletedTask;
             }
         }
         public Task<IEnumerable<User>> QueryUserHandlePrefix(string prefix, int take, int skip)
         {
-           if(_storage !=null)
+            if (_storage != null)
             {
                 return _storage.QueryUserHandlePrefix(prefix, take, skip);
             }
-           else
+            else
             {
                 return Task.FromResult(Enumerable.Empty<User>());
             }
@@ -318,11 +377,11 @@ namespace Stormancer.Server.Plugins.Users
         }
         public Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string, string>> query, int take, int skip, CancellationToken cancellationToken)
         {
-            if(_storage != null)
+            if (_storage != null)
             {
                 return _storage.Query(query, take, skip, cancellationToken);
             }
-           else
+            else
             {
                 return Task.FromResult(Enumerable.Empty<User>());
             }
@@ -331,7 +390,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public Task Delete(string id)
         {
-            if(_storage != null)
+            if (_storage != null)
             {
                 return _storage.Delete(id);
             }
@@ -339,13 +398,13 @@ namespace Stormancer.Server.Plugins.Users
             {
                 return Task.CompletedTask;
             }
-           
+
 
         }
 
         public Task<Dictionary<string, User?>> GetUsers(IEnumerable<string> userIds, CancellationToken cancellationToken)
         {
-            if(_storage != null)
+            if (_storage != null)
             {
                 return _storage.GetUsers(userIds, cancellationToken);
             }
@@ -358,7 +417,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public Task<User?> GetUser(PlatformId platformId)
         {
-            if(platformId.Platform == Constants.PROVIDER_TYPE_STORMANCER)
+            if (platformId.Platform == Constants.PROVIDER_TYPE_STORMANCER)
             {
                 return GetUser(platformId.PlatformUserId);
             }

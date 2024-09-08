@@ -52,6 +52,28 @@ namespace Stormancer.Server.Plugins.Users
         {
             return Task.CompletedTask;
         }
+
+      
+    }
+
+    /// <summary>
+    /// Implement this interface to extract information used to identify a player on the database from one of their <see cref="PlatformId"/>
+    /// </summary>
+    public interface IUserIdentityIdProvider
+    {
+        /// <summary>
+        /// Gets a boolean indicating if the provider can handle a platform.
+        /// </summary>
+        /// <param name="platform"></param>
+        /// <returns></returns>
+        bool CanHandle(string platform);
+
+        /// <summary>
+        /// Gets the identity information to use when querying the DB for the user.
+        /// </summary>
+        /// <param name="platformId"></param>
+        /// <returns></returns>
+        Task<string> GetIdentityInformation(PlatformId platformId);
     }
 
     /// <summary>

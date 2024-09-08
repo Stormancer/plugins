@@ -230,15 +230,22 @@ namespace Stormancer.Server.Plugins.Users
             return proxy.UpdateUserOptionsAsync(userId, key, value, cancellationToken);
         }
 
-        public Task<Dictionary<string, UserSessionInfos>> GetDetailedUserInformationsByIdentityAsync(string platform, IEnumerable<string> ids,CancellationToken cancellationToken)
+        public Task<Dictionary<string, UserSessionInfos>> GetDetailedUserInformationByIdentityAsync(string platform, IEnumerable<string> ids,CancellationToken cancellationToken)
         {
-            return proxy.GetDetailedUserInformationsByIdentity(platform, ids,cancellationToken);
+            return proxy.GetDetailedUserInformationByIdentity(platform, ids,cancellationToken);
+        }
+
+        public Task<Dictionary<PlatformId, UserSessionInfos>> GetDetailedUserInformationAsync(IEnumerable<PlatformId> platformIds, CancellationToken cancellationToken)
+        {
+            return proxy.GetDetailedUserInformationAsync(platformIds,cancellationToken);
         }
 
         public Task<IEnumerable<Session>> GetSessions(PlatformId userId, CancellationToken cancellationToken)
         {
             return proxy.GetSessionsByPlatformId(userId, cancellationToken);
         }
+
+        
     }
 
 

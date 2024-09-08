@@ -85,6 +85,13 @@ namespace Stormancer.Server.Plugins.Users
         Task<User?> GetUser(PlatformId platformId);
 
         /// <summary>
+        /// Gets a batch of users using <see cref="PlatformId"/> objects.
+        /// </summary>
+        /// <param name="platformIds"></param>
+        /// <returns></returns>
+        Task<Dictionary<PlatformId, User?>> GetUsersAsync(IEnumerable<PlatformId> platformIds);
+
+        /// <summary>
         /// Gets users by claim (batched)
         /// </summary>
         /// <param name="provider"></param>

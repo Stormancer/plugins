@@ -1154,7 +1154,7 @@ namespace Stormancer.Server.Plugins.Users
 
         }
 
-        public async Task<Dictionary<string, UserSessionInfos>> GetDetailedUserInformationsByIdentityAsync(string platform, IEnumerable<string> ids, CancellationToken cancellationToken)
+        public async Task<Dictionary<string, UserSessionInfos>> GetDetailedUserInformationByIdentityAsync(string platform, IEnumerable<string> ids, CancellationToken cancellationToken)
         {
             var users = await _userService.GetUsersByIdentity(platform, ids);
 
@@ -1178,7 +1178,28 @@ namespace Stormancer.Server.Plugins.Users
 
         }
 
+        public async Task<Dictionary<PlatformId, UserSessionInfos>> GetDetailedUserInformationAsync(IEnumerable<PlatformId> platformIds, CancellationToken cancellationToken)
+        {
+            var users = await _userService.GetUsersAsync(platformIds);
+            var result = new Dictionary<PlatformId, UserSessionInfos>();
 
+
+
+            foreach (var (id, user) in users)
+            {
+                var r = new UserSessionInfos();
+                if (user != null)
+                {
+                    r.Sessions = GetSessionImpl(new PlatformId { Platform = Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = user.Id });
+                    r.User = user;
+                }
+
+                result[id] = r;
+            }
+
+            return result;
+
+        }
 
         private static DimensionsComparer _dimensionsComparer = new DimensionsComparer();
         private class DimensionsComparer : IEqualityComparer<FrozenDictionary<string, string>>

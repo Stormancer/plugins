@@ -100,7 +100,7 @@ namespace Stormancer.Server.Plugins.Steam
                 return;
             }
 
-            var infos = await _sessions.GetDetailedUserInformationsByIdentityAsync(SteamConstants.PLATFORM_NAME, steamFriends.Select(steamFriend => steamFriend.steamid),CancellationToken.None);
+            var infos = await _sessions.GetDetailedUserInformationByIdentityAsync(SteamConstants.PLATFORM_NAME, steamFriends.Select(steamFriend => steamFriend.steamid),CancellationToken.None);
             // Get users from friends
             
             // Remove already present in context friendList

@@ -308,9 +308,15 @@ namespace Stormancer.Server.Plugins.Users
         }
 
         [S2SApi]
-        public Task<Dictionary<string, UserSessionInfos>> GetDetailedUserInformationsByIdentity(string platform, IEnumerable<string> ids, CancellationToken cancellationToken)
+        public Task<Dictionary<string, UserSessionInfos>> GetDetailedUserInformationByIdentity(string platform, IEnumerable<string> ids, CancellationToken cancellationToken)
         {
-            return _sessions.GetDetailedUserInformationsByIdentityAsync(platform, ids, cancellationToken);
+            return _sessions.GetDetailedUserInformationByIdentityAsync(platform, ids, cancellationToken);
+        }
+
+        [S2SApi]
+        public Task<Dictionary<PlatformId, UserSessionInfos>> GetDetailedUserInformationAsync(IEnumerable<PlatformId> platformIds, CancellationToken cancellationToken)
+        {
+            return _sessions.GetDetailedUserInformationAsync(platformIds, cancellationToken);
         }
 
     }

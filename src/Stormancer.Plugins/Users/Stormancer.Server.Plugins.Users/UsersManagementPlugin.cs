@@ -192,6 +192,7 @@ namespace Stormancer.Server.Plugins.Users
             ).As<IServiceLocatorProvider>();
 
             b.Register(dr => new UserService(
+                dr.Resolve<Func<IEnumerable<IUserIdentityIdProvider>>>(),
                 dr.ResolveOptional<IUserStorage>(),
                 dr.Resolve<IEnvironment>(),
                 dr.Resolve<ILogger>(),

@@ -202,12 +202,12 @@ namespace Stormancer.Server.Plugins.Party
         [DoesNotReturn]
         private static void ThrowNoSuchUserError(string userId) => throw new ClientException($"party.noSuchUser?userId={userId}");
 
-        private bool TryGetMemberByUserId(string userId,[NotNullWhen(true)] out PartyMember? member)
+        private bool TryGetMemberByUserId(string userId, [NotNullWhen(true)] out PartyMember? member)
         {
             member = _partyState.PartyMembers.FirstOrDefault(kvp => kvp.Value.UserId == userId).Value;
             return member != null;
         }
-        private bool TryGetMemberBySessionId(SessionId sessionId,[NotNullWhen(true)] out PartyMember? member)
+        private bool TryGetMemberBySessionId(SessionId sessionId, [NotNullWhen(true)] out PartyMember? member)
         {
             return _partyState.PartyMembers.TryGetValue(sessionId, out member);
         }
@@ -298,7 +298,7 @@ namespace Stormancer.Server.Plugins.Party
         private void CheckCrossPlay(User user)
         {
             var crossplayEnabled = _crossplayService.IsCrossplayEnabled(user);
-           
+
             //If cross play is disabled on the player, and we are the first player, set the platform of the party.
             if (_partyState.PartyMembers.Count == 0)
             {
@@ -494,7 +494,7 @@ namespace Stormancer.Server.Plugins.Party
                 }
                 finally
                 {
-                   
+
                 }
 
                 _ = RunInRequestScope(async (service, handlers, scope) =>
@@ -1276,17 +1276,17 @@ namespace Stormancer.Server.Plugins.Party
                 ThrowNoSuchMemberError(senderSessionId);
             }
 
-            
+
             var senderSession = await _userSessions.GetSessionById(senderSessionId, cancellationToken);
 
-            if(senderSession == null)
+            if (senderSession == null)
             {
                 throw new ClientException("disconnected");
             }
-            var recipients = await _userSessions.GetDetailedUserInformationsByIdentityAsync(recipientUserId.Platform, new[] { recipientUserId.PlatformUserId },cancellationToken);
+            var recipients = await _userSessions.GetDetailedUserInformationAsync([recipientUserId], cancellationToken);
 
             InvitationContext ctx;
-            if(recipients.TryGetValue(recipientUserId.PlatformUserId,out var sessionInfos))
+            if (recipients.TryGetValue(recipientUserId, out var sessionInfos))
             {
                 ctx = new InvitationContext(this, senderSession, recipientUserId, sessionInfos.User, sessionInfos.Sessions, cancellationToken);
             }
@@ -1299,7 +1299,7 @@ namespace Stormancer.Server.Plugins.Party
             {
                 foreach (var handler in _platformSupports)
                 {
-                    if(handler.CanHandle(ctx))
+                    if (handler.CanHandle(ctx))
                     {
                         return await handler.SendInvitation(ctx);
                     }
@@ -1474,7 +1474,7 @@ namespace Stormancer.Server.Plugins.Party
                 party.Players.Add(member.Value.UserId, new Models.Player(member.Value.SessionId, member.Value.UserId, member.Value.UserData) { LocalPlayers = member.Value.LocalPlayers });
             }
 
-           
+
             return Task.FromResult(party);
         }
 

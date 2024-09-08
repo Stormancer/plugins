@@ -664,37 +664,37 @@ namespace Stormancer.Server.Plugins.Friends
         private async Task<List<(UserSessionInfos? userInfos, Friend friend)>> AddInfos(IEnumerable<Friend> friends)
         {
             var list = new List<(UserSessionInfos? infos, Friend friend)>();
-            var ids = friends.Select(f => (f.UserIds.FirstOrDefault(), f)).GroupBy(p => p.Item1.Platform, p => p);
-            foreach (var group in ids)
+            var ids = friends.Select(f => (f.UserIds.FirstOrDefault(), f));
+
+            var result = await _sessions.GetDetailedUserInformationAsync(friends.Select(f => f.UserIds.FirstOrDefault()), CancellationToken.None);
+
+            foreach (var (platformId, f) in ids)
             {
-                var result = await _sessions.GetDetailedUserInformationsByIdentityAsync(group.Key, group.Select(t => t.Item1.PlatformUserId), CancellationToken.None);
 
-                foreach (var (platformId, f) in group)
+                var friendUId = f.UserIds.FirstOrDefault();
+
+                if (!friendUId.IsUnknown && result.TryGetValue(friendUId, out var info))
                 {
-                    var friendUId = f.UserIds.FirstOrDefault().PlatformUserId;
-                    if (friendUId != null && result.TryGetValue(friendUId, out var info))
+                    if (info.UserId != null)
                     {
-                        if (info.UserId != null)
+                        var pid = new PlatformId { Platform = Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = info.UserId };
+                        if (!f.UserIds.Contains(pid))
                         {
-                            var pid = new PlatformId { Platform = Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = info.UserId };
-                            if (!f.UserIds.Contains(pid))
-                            {
-                                f.UserIds.Add(pid);
-                            }
-                            //if (!f.Tags.Contains("friends.blocked"))
-                            //{
-                            f.Status[Users.Constants.PROVIDER_TYPE_STORMANCER] = await GetStatusAsync(pid, CancellationToken.None);
-                            //}
+                            f.UserIds.Add(pid);
                         }
-                        list.Add((info, f));
+                        //if (!f.Tags.Contains("friends.blocked"))
+                        //{
+                        f.Status[Users.Constants.PROVIDER_TYPE_STORMANCER] = await GetStatusAsync(pid, CancellationToken.None);
+                        //}
                     }
-                    else
-                    {
-                        list.Add((null, f));
-                    }
-
-
+                    list.Add((info, f));
                 }
+                else
+                {
+                    list.Add((null, f));
+                }
+
+
             }
             return list;
         }
@@ -998,38 +998,38 @@ namespace Stormancer.Server.Plugins.Friends
             if (friends.Any())
             {
                 var list = new List<(UserSessionInfos? infos, Friend friend)>();
-                var ids = friends.Select(f => (f.UserIds.FirstOrDefault(), f)).GroupBy(p => p.Item1.Platform, p => p);
-                foreach (var group in ids)
+                var ids = friends.Select(f => (f.UserIds.FirstOrDefault(), f));
+
+                var result = await _sessions.GetDetailedUserInformationAsync(ids.Select(t => t.Item1), CancellationToken.None);
+
+
+
+                foreach (var (platformId, f) in ids)
                 {
-                    var result = await _sessions.GetDetailedUserInformationsByIdentityAsync(group.Key, group.Select(t => t.Item1.PlatformUserId), CancellationToken.None);
-
-                    foreach (var (platformId, f) in group)
+                    var friendUId = f.UserIds.FirstOrDefault();
+                    if (!friendUId.IsUnknown && result.TryGetValue(friendUId, out var info))
                     {
-                        var friendUId = f.UserIds.FirstOrDefault().PlatformUserId;
-                        if (friendUId != null && result.TryGetValue(friendUId, out var infos))
+                        if (info.UserId != null)
                         {
-                            if (infos.UserId != null)
+                            var pid = new PlatformId { Platform = Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = info.UserId };
+                            if (!f.UserIds.Contains(pid))
                             {
-                                var pid = new PlatformId { Platform = Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = infos.UserId };
-                                if (!f.UserIds.Contains(pid))
-                                {
-                                    f.UserIds.Add(pid);
-                                }
-                                if (!f.Tags.Contains("friends.blocked"))
-                                {
-                                    f.Status[Users.Constants.PROVIDER_TYPE_STORMANCER] = await GetStatusAsync(pid, CancellationToken.None);
-                                }
+                                f.UserIds.Add(pid);
                             }
-                            list.Add((infos, f));
-                        }
-                        else
-                        {
-                            list.Add((null, f));
-                        }
 
+                            f.Status[Users.Constants.PROVIDER_TYPE_STORMANCER] = await GetStatusAsync(pid, CancellationToken.None);
 
+                        }
+                        list.Add((info, f));
                     }
+                    else
+                    {
+                        list.Add((null, f));
+                    }
+
+
                 }
+
                 var ctx = new AddingFriendCtx(this, userId, list);
                 await _handlers().RunEventHandler(h => h.OnAddingFriend(ctx), ex => _logger.Log(Diagnostics.LogLevel.Warn, "FriendsEventHandlers", $"An error occurred while executing {nameof(IFriendsEventHandler.OnAddingFriend)}", ex));
             }

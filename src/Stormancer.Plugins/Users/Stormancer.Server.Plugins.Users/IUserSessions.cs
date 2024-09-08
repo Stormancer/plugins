@@ -314,18 +314,26 @@ namespace Stormancer.Server.Plugins.Users
 
 
         /// <summary>
-        /// Gets information about an user.
+        /// Gets information about an user using the internal identity.
         /// </summary>
         /// <param name="platform"></param>
         /// <param name="ids"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<Dictionary<string, UserSessionInfos>> GetDetailedUserInformationsByIdentityAsync(string platform, IEnumerable<string> ids, CancellationToken cancellationToken);
+        Task<Dictionary<string, UserSessionInfos>> GetDetailedUserInformationByIdentityAsync(string platform, IEnumerable<string> ids, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Gets information about a batch of users using their <see cref="PlatformId"/>.
+        /// </summary>
+        /// <param name="platformIds"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<Dictionary<PlatformId, UserSessionInfos>> GetDetailedUserInformationAsync(IEnumerable<PlatformId> platformIds, CancellationToken cancellationToken);
     }
 
 
     /// <summary>
-    /// Contains informations about an user.
+    /// Contains information about an user.
     /// </summary>
     /// <remarks>
     /// Contains the Session if the player is connected, the User if they are not connected, but a persistent user was found in the database, or nothing if the user couldn't be found.
