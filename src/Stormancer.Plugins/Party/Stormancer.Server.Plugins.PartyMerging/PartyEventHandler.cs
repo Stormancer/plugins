@@ -20,32 +20,33 @@ namespace Stormancer.Server.Plugins.PartyMerging
         }
         async Task IPartyEventHandler.OnGameFinderStateChanged(Stormancer.Server.Plugins.Party.GameFinderStateChangedContext context)
         {
-            
-            switch (context.NewState)
+            try
             {
-                case PartyGameFinderStateChange.StartPending:
-                    await _service.PauseMerging();
+                switch (context.NewState)
+                {
+                    case PartyGameFinderStateChange.StartPending:
+                        await _service.PauseMerging();
 
-                    break;
+                        break;
 
-                case PartyGameFinderStateChange.Stopped:
-                    _service.TryRestartMerging();
-                    break;
+                    case PartyGameFinderStateChange.Stopped:
+                        _service.TryRestartMerging();
+                        break;
 
-                case PartyGameFinderStateChange.Started:
-                    try
-                    {
+                    case PartyGameFinderStateChange.Started:
+
                         await _service.CancelMerging();
-                    }
-                    catch (OperationCanceledException)
-                    {
 
-                    }
-                    catch(ClientException)
-                    {
+                        break;
 
-                    }
-                    break;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+
+            }
+            catch (ClientException)
+            {
 
             }
         }
@@ -82,7 +83,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
                     await _service.CancelMerging();
                 }
             }
-            catch(ClientException)
+            catch (ClientException)
             {
                 //Ignore client exceptions.
             }
