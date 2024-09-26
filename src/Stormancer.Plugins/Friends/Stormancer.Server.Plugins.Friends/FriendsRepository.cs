@@ -376,6 +376,8 @@ namespace Stormancer.Server.Plugins.Friends
         /// <returns></returns>
         internal async IAsyncEnumerable<(Guid ownerId, User owner, Friend friend)> GetListsContainingMemberAsync(PlatformId userId)
         {
+            var list = new List<(Guid ownerId, User owner, Friend friend)>();
+
             foreach (var (sessionId, container) in _peers)
             {
                 lock (container)
@@ -383,9 +385,15 @@ namespace Stormancer.Server.Plugins.Friends
                     var friend = container.Friends.FirstOrDefault(f => f.UserIds.Contains(userId));
                     if (friend != null)
                     {
-                        yield return (container.Key, container.User, friend);
+                       list.Add((container.Key, container.User, friend));
                     }
                 }
+            }
+
+
+            foreach(var item in list)
+            {
+                yield return item;
             }
         }
     }
