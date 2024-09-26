@@ -276,7 +276,8 @@ namespace Stormancer.Server.Plugins.Users
                     var ids = new Dictionary<string, PlatformId>();
                     foreach (var pId in group)
                     {
-                        ids.Add(await userIdentityProvider.GetIdentityInformation(pId), pId);
+                        
+                        ids[await userIdentityProvider.GetIdentityInformation(pId)]= pId;
                     }
                     var results = await GetUsersByIdentity(group.Key, ids.Keys);
 

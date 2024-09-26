@@ -29,6 +29,7 @@ Added
 Fixed
 *****
 - GetUsers doesn't crash when receiving invalid user ids.
+- When getting detailed infos about users, properly handle duplicated ids in the request.
 
 Added
 *****
