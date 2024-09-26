@@ -50,7 +50,7 @@ namespace Stormancer.Server.Plugins.Party
     /// A plugin for managing player parties.
     /// </summary>
     /// <remarks>
-    /// A party is a group of players who want to play a game toghether.
+    /// A party is a group of players who want to play a game together.
     /// This group can queue as a single unit in a GameFinder.
     /// 
     /// Plugin settings:
