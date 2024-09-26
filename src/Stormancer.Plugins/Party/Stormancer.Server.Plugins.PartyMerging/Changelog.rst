@@ -17,3 +17,4 @@ Added
 - Created the plugin party merging, which enables to create server side logic to merge parties on request by party leaders.
 - Added progressive party merging.
 - The party data "stormancer.partyMerging.merged" is  set to true as soon as an user joins the party through the merging process.
+- Analytics for merging operations

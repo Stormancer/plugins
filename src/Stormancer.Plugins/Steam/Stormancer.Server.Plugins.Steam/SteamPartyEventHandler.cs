@@ -252,22 +252,29 @@ namespace Stormancer.Server.Plugins.Steam
 
         private async Task<VoidSteamResult> JoinSteamLobbyAsync(IScenePeerClient target, ulong lobbyId, CancellationToken cancellationToken)
         {
-            var joinLobbyParameter = new JoinLobbyArgs { SteamIDLobby = lobbyId };
-            var joinSteamLobbyResult = await target.RpcTask<JoinLobbyArgs, VoidSteamResult>("Steam.JoinLobby", joinLobbyParameter, cancellationToken);
-
-
-            if (!joinSteamLobbyResult.Success)
+            try
             {
-                _logger.Log(LogLevel.Error, "SteamPartyEventHandler.OnJoining", "Steam lobby join failed", new
+                var joinLobbyParameter = new JoinLobbyArgs { SteamIDLobby = lobbyId };
+                var joinSteamLobbyResult = await target.RpcTask<JoinLobbyArgs, VoidSteamResult>("Steam.JoinLobby", joinLobbyParameter, cancellationToken);
+
+
+                if (!joinSteamLobbyResult.Success)
                 {
+                    _logger.Log(LogLevel.Error, "SteamPartyEventHandler.OnJoining", "Steam lobby join failed", new
+                    {
 
-                    joinSteamLobbyResult.ErrorId,
-                    joinSteamLobbyResult.ErrorDetails
-                });
+                        joinSteamLobbyResult.ErrorId,
+                        joinSteamLobbyResult.ErrorDetails
+                    });
 
 
+                }
+                return joinSteamLobbyResult;
             }
-            return joinSteamLobbyResult;
+            catch(OperationCanceledException)
+            {
+                return new VoidSteamResult { ErrorId = "canceled", Success = false };
+            }
         }
 
         private async Task<VoidSteamResult> LeaveSteamLobbyAsync(IScenePeerClient target, ulong lobbyId, CancellationToken cancellationToken)

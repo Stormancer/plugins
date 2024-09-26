@@ -811,7 +811,7 @@ namespace Stormancer.Server.Plugins.Friends
 
             if (user.Id == userToBlock.Id)
             {
-                throw new InvalidOperationException("Cannot block himself.");
+                throw new ClientException("social.blockList.addFailed?cannotBlockYourself");
             }
 
 

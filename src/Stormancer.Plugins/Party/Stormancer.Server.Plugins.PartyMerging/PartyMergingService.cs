@@ -26,7 +26,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
         public int LastPlayersCount { get; set; }
         public int LastPartiesCount { get; set; }
 
-        public AnalyticsAccumulator<TimeSpan, int> AverageTimeInMerger { get; set; } = new AnalyticsAccumulator<TimeSpan, int>(256, (span) => 
+        public AnalyticsAccumulator<TimeSpan, double> AverageTimeInMerger { get; set; } = new AnalyticsAccumulator<TimeSpan, double>(256, (span) => 
         {
 
             TimeSpan result = TimeSpan.Zero;
@@ -36,7 +36,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
             }
             if (span.Length > 0)
             {
-                return result.Milliseconds / span.Length;
+                return result.TotalSeconds / span.Length;
             }
             else
             {
@@ -379,7 +379,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
         /// <summary>
         /// Average time passed in the merger for the last merging requests.
         /// </summary>
-        public required int AverageTimeInMerger { get; init; }
+        public required double AverageTimeInMerger { get; init; }
 
         /// <summary>
         /// Custom data
