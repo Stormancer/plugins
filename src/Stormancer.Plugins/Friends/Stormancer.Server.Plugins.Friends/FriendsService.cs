@@ -902,7 +902,7 @@ namespace Stormancer.Server.Plugins.Friends
 
             foreach (var userId in userIds)
             {
-                result.Add(userId, Enumerable.Empty<string>());
+                result[userId] = Enumerable.Empty<string>();
             }
             var batch = userIds.Chunk(100).SelectMany(chunk =>
             {
@@ -937,7 +937,7 @@ namespace Stormancer.Server.Plugins.Friends
                 {
                     result[userId] = blockList;
                 }
-                else //If offline, get from DB
+                else if(!offlineUsers.Contains(userId)) //If offline, get from DB
                 {
                     offlineUsers.Add(userId);
                 }
