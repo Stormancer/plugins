@@ -20,6 +20,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
         }
         async Task IPartyEventHandler.OnGameFinderStateChanged(Stormancer.Server.Plugins.Party.GameFinderStateChangedContext context)
         {
+            
             switch (context.NewState)
             {
                 case PartyGameFinderStateChange.StartPending:
@@ -37,6 +38,10 @@ namespace Stormancer.Server.Plugins.PartyMerging
                         await _service.CancelMerging();
                     }
                     catch (OperationCanceledException)
+                    {
+
+                    }
+                    catch(ClientException)
                     {
 
                     }
