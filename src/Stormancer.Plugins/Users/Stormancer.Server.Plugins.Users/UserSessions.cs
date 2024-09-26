@@ -282,7 +282,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <summary>
         /// Gets the identities associated with the session.
         /// </summary>
-        public ConcurrentDictionary<string, string> Identities { get; set; } = new ConcurrentDictionary<string, string>();
+        public Dictionary<string, string> Identities { get; set; } = new Dictionary<string, string>();
 
         /// <summary>
         /// Gets the authentication expiration dates per identity.
@@ -292,7 +292,7 @@ namespace Stormancer.Server.Plugins.Users
         /// <summary>
         /// Gets the session data.
         /// </summary>
-        public ConcurrentDictionary<string, byte[]> SessionData { get; internal set; } = new ConcurrentDictionary<string, byte[]>();
+        public Dictionary<string, byte[]> SessionData { get; internal set; } = new Dictionary<string, byte[]>();
 
         /// <summary>
         /// Gets or sets the date the session was created.
@@ -357,8 +357,8 @@ namespace Stormancer.Server.Plugins.Users
                 platformId = platformId,
                 User = User,
                 SessionId = SessionId,
-                SessionData = new Dictionary<string, byte[]>(SessionData),
-                Identities = new Dictionary<string, string>(Identities),
+                SessionData = SessionData,
+                Identities = Identities,
                 ConnectedOn = ConnectedOn,
                 AuthenticatorUrl = AuthenticatorUrl,
                 MaxAge = MaxAge
@@ -486,7 +486,7 @@ namespace Stormancer.Server.Plugins.Users
                 {
                     User = user,
                     platformId = onlineId,
-                    SessionData = new ConcurrentDictionary<string, byte[]>(sessionData.AsEnumerable()),
+                    SessionData = sessionData,
                     SessionId = peer.SessionId,
                     ConnectedOn = DateTime.UtcNow,
                     AuthenticatorUrl = await GetAuthenticatorUrl(),
