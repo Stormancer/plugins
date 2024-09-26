@@ -56,6 +56,7 @@ namespace Stormancer.Server.Plugins.Friends
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public Task Subscribe(RequestContext<IScenePeerClient> ctx)
         {
+            
             return _friends.Subscribe(ctx.RemotePeer, ctx.CancellationToken);
         }
 
