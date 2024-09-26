@@ -161,17 +161,23 @@ namespace Stormancer.Server.Plugins.Party
                         if (_partyState.PartyMembers.TryGetValue(sessionId, out var member) && member.ConnectionStatus == PartyMemberConnectionStatus.Reservation && _partyState.PartyMembers.TryRemove(sessionId, out _))
                         {
 
-
-                            var handlers = _handlers();
-                            var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene);
-                            partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
-                            await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
-
-                            if (partyResetCtx.ShouldReset)
+                            try
                             {
-                                await TryCancelPendingGameFinder();
+                                var handlers = _handlers();
+                                var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene);
+                                partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
+                                await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
+
+                                if (partyResetCtx.ShouldReset)
+                                {
+                                    await TryCancelPendingGameFinder();
+                                }
+                                await BroadcastStateUpdateRpc(PartyMemberDisconnection.Route, new PartyMemberDisconnection { UserId = member.UserId, Reason = PartyDisconnectionReason.Left });
                             }
-                            await BroadcastStateUpdateRpc(PartyMemberDisconnection.Route, new PartyMemberDisconnection { UserId = member.UserId, Reason = PartyDisconnectionReason.Left });
+                            catch(ObjectDisposedException) //Ignore
+                            {
+
+                            }
                         }
                     }
                 }
