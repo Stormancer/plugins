@@ -550,8 +550,7 @@ namespace Stormancer.Server.Plugins.Friends
         }
 
         public async Task Subscribe(IScenePeerClient peer, CancellationToken cancellationToken)
-        {
-            return;
+        { 
 
             var session = await _sessions.GetSessionById(peer.SessionId, cancellationToken);
 
@@ -725,7 +724,6 @@ namespace Stormancer.Server.Plugins.Friends
 
         public async Task Unsubscribe(IScenePeerClient peer, CancellationToken cancellationToken)
         {
-            return;
             var (config, userId) = await _channel.RemovePeer(peer.SessionId);
             if (config != null)
             {
