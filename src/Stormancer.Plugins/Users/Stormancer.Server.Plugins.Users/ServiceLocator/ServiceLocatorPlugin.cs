@@ -68,8 +68,9 @@ namespace Stormancer.Server.Plugins.ServiceLocator
               };
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
               {
+                  builder.Register<ServiceLocatorProviderRepository>(r => new ServiceLocatorProviderRepository(r.ResolveAll<IServiceLocatorProvider>())).SingleInstance();
                   builder.Register<ServiceLocator>(r=>new ServiceLocator(
-                      r.Resolve<Func<IEnumerable<IServiceLocatorProvider>>>(),
+                      r.Resolve<ServiceLocatorProviderRepository>(),
                       r.Resolve<IScenesManager>(),
                       r.Resolve<IEnvironment>(),
                       r.Resolve<IConfiguration>(),

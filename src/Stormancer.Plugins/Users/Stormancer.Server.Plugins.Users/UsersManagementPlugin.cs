@@ -127,7 +127,7 @@ namespace Stormancer.Server.Plugins.Users
                     dr.Resolve<ILogger>())
                 ).As<IUserSessions>().InstancePerRequest();
 
-                b.Register<SessionsAnalyticsWorker>().SingleInstance();
+             
 
                 b.Register(r=>new SessionsRepository()
                 ).AsSelf().SingleInstance();
@@ -159,6 +159,7 @@ namespace Stormancer.Server.Plugins.Users
         private void RegisterDependencies(IDependencyBuilder b)
         {
             //Indices
+            b.Register<SessionsAnalyticsWorker>().SingleInstance();
             b.Register<CrossplayService>().InstancePerRequest();
             b.Register<SceneAuthorizationController>();
             b.Register(dr=> new UserSessionController(

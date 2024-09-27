@@ -57,6 +57,15 @@ namespace Stormancer.Server.Plugins.ServiceLocator
 
     }
 
+    internal class ServiceLocatorProviderRepository
+    {
+        public ServiceLocatorProviderRepository(IEnumerable<IServiceLocatorProvider> providers)
+        {
+            Providers = providers;
+        }
+        public IEnumerable<IServiceLocatorProvider> Providers { get; }
+    }
+
     internal class ServiceLocator : IServiceLocator
     {
         private readonly IEnvironment _env;
@@ -66,13 +75,13 @@ namespace Stormancer.Server.Plugins.ServiceLocator
         private readonly IHost host;
         private readonly ServiceLocatorHostDatabase db;
         private readonly IScenesManager _management;
-        private readonly Func<IEnumerable<IServiceLocatorProvider>> _handlers;
+        private readonly ServiceLocatorProviderRepository _providers;
         private readonly ILogger _logger;
 
         private ServiceLocatorConfig? _config;
 
         public ServiceLocator(
-            Func<IEnumerable<IServiceLocatorProvider>> handlers,
+           ServiceLocatorProviderRepository providers,
             IScenesManager management,
             IEnvironment env,
             IConfiguration config,
@@ -90,7 +99,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
             this.host = host;
             this.db = db;
             _management = management;
-            _handlers = handlers;
+            _providers = providers;
             _logger = logger;
 
             //config.SettingsChanged += (sender, args) => Config_SettingsChanged(args);
@@ -139,7 +148,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
 
         public async Task<string?> GetSceneId(string serviceType, string serviceName, Session? session)
         {
-            var handlers = _handlers();
+            var handlers = _providers.Providers;
             var ctx = new ServiceLocationCtx { ServiceName = serviceName, ServiceType = serviceType, Session = session };
             await handlers.RunEventHandler(slp => slp.LocateService(ctx), ex => _logger.Log(LogLevel.Error, "serviceLocator", "An error occurred while executing the LocateService extensibility point", ex));
 

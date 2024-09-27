@@ -67,7 +67,7 @@ namespace Stormancer.Server.Plugins.Friends
             {
                 builder.Register<FriendsPartyCompatibilityPolicy>().As<IPartyCompatibilityPolicy>().As<IPartyEventHandler>().InstancePerRequest();
                 builder.Register<FriendsController>().InstancePerRequest();
-                builder.Register<FriendsSceneLocator>().As<IServiceLocatorProvider>().InstancePerRequest();
+                builder.Register<FriendsSceneLocator>().As<IServiceLocatorProvider>();
                 builder.Register<FriendsRepository>().InstancePerScene();
                 builder.Register<FriendsDbModelBuilder>().As<IDbModelBuilder>();
                 builder.Register<MembersStorageService>();
