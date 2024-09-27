@@ -61,23 +61,14 @@ namespace Stormancer.Server.Plugins.Party
         //Dependencies
         private readonly ISceneHost _scene;
         private readonly ILogger _logger;
-        private readonly IUserSessions _userSessions;
-        private readonly GameFinderProxy _gameFinderClient;
-        private readonly IServiceLocator _locator;
-        private readonly Func<IEnumerable<IPartyEventHandler>> _handlers;
+        private readonly Lazy<IUserSessions> _userSessions;
+        private readonly Lazy<IEnumerable<IPartyEventHandler>> _handlers;
         private readonly PartyState _partyState;
-        private readonly RpcService _rpcService;
-        private readonly IConfiguration configuration;
-        private readonly IUserService _users;
-        private readonly IEnumerable<IPartyPlatformSupport> _platformSupports;
-        private readonly InvitationCodeService invitationCodes;
-        private readonly PartyLuceneDocumentStore partyDocumentsStore;
-        private readonly PartyConfigurationService partyConfigurationService;
-        private readonly IProfileService _profiles;
-        private readonly PartyAnalyticsWorker _analyticsWorker;
-        private readonly ISerializer _serializer;
-        private readonly CrossplayService _crossplayService;
-        private readonly IClusterSerializer _clusterSerializer;
+        private readonly Lazy<IEnumerable<IPartyPlatformSupport>> _platformSupports;
+        private readonly Lazy<InvitationCodeService> invitationCodes;
+        private readonly Lazy<PartyConfigurationService> partyConfigurationService;
+        private readonly Lazy<ISerializer> _serializer;
+        private readonly Lazy<CrossplayService> _crossplayService;
 
         public IReadOnlyDictionary<SessionId, PartyMember> PartyMembers => _partyState.PartyMembers;
 
@@ -88,47 +79,26 @@ namespace Stormancer.Server.Plugins.Party
         public PartyService(
             ISceneHost scene,
             ILogger logger,
-            IUserSessions userSessions,
-            GameFinderProxy gameFinderClient,
-            IServiceLocator locator,
-            Func<IEnumerable<IPartyEventHandler>> handlers,
+            Lazy<IUserSessions> userSessions,
+            Lazy<IEnumerable<IPartyEventHandler>> handlers,
             PartyState partyState,
-            RpcService rpcService,
-            IConfiguration configuration,
-            IUserService users,
-            IEnumerable<IPartyPlatformSupport> platformSupports,
-            InvitationCodeService invitationCodes,
-            PartyLuceneDocumentStore partyDocumentsStore,
-            PartyConfigurationService partyConfigurationService,
-            IProfileService profiles,
-            PartyAnalyticsWorker analyticsWorker,
-            ISerializer serializer,
-            CrossplayService crossplayService,
-            IClusterSerializer clusterSerializer
+            Lazy<IEnumerable<IPartyPlatformSupport>> platformSupports,
+            Lazy<InvitationCodeService> invitationCodes,
+            Lazy<PartyConfigurationService> partyConfigurationService,
+            Lazy<ISerializer> serializer,
+            Lazy<CrossplayService> crossplayService
         )
         {
             _handlers = handlers;
             _scene = scene;
             _logger = logger;
             _userSessions = userSessions;
-            _gameFinderClient = gameFinderClient;
-            _locator = locator;
             _partyState = partyState;
-            _rpcService = rpcService;
-            this.configuration = configuration;
-            _users = users;
             _platformSupports = platformSupports;
             this.invitationCodes = invitationCodes;
-            this.partyDocumentsStore = partyDocumentsStore;
             this.partyConfigurationService = partyConfigurationService;
-            _profiles = profiles;
-            _analyticsWorker = analyticsWorker;
             _serializer = serializer;
             this._crossplayService = crossplayService;
-            _clusterSerializer = clusterSerializer;
-            ApplySettings(configuration.Settings);
-
-
 
         }
 
@@ -163,9 +133,9 @@ namespace Stormancer.Server.Plugins.Party
 
                             try
                             {
-                                var handlers = _handlers();
+                                var handlers = _handlers.Value;
                                 var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene);
-                                partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
+                                partyConfigurationService.Value.ShouldResetPartyMembersReadyState(partyResetCtx);
                                 await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
 
                                 if (partyResetCtx.ShouldReset)
@@ -182,21 +152,6 @@ namespace Stormancer.Server.Plugins.Party
                     }
                 }
             });
-        }
-
-        private void ApplySettings(dynamic settings)
-        {
-            var timeoutSetting = settings?.party?.clientAckTimeoutSeconds;
-            var timeout = (double?)timeoutSetting;
-
-            if (timeout.HasValue && timeout.Value > 0)
-            {
-                _clientRpcTimeout = TimeSpan.FromSeconds(timeout.Value);
-            }
-            else if (timeoutSetting != null)
-            {
-                _logger.Warn("PartyService.ApplySettings", "party.clientAckTimeoutSeconds must be a strictly positive decimal number");
-            }
         }
 
         [DoesNotReturn]
@@ -244,7 +199,7 @@ namespace Stormancer.Server.Plugins.Party
 
         internal async Task OnConnecting(IScenePeerClient peer)
         {
-            var handlers = _handlers();
+            var handlers = _handlers.Value;
             await _partyState.TaskQueue.PushWork(async () =>
             {
 
@@ -264,7 +219,7 @@ namespace Stormancer.Server.Plugins.Party
                     }
                 }
 
-                var session = await _userSessions.GetSession(peer, CancellationToken.None);
+                var session = await _userSessions.Value.GetSession(peer, CancellationToken.None);
                 if (session?.User == null)
                 {
                     throw new ClientException(JoinDeniedError + "?reason=notAuthenticated");
@@ -303,7 +258,7 @@ namespace Stormancer.Server.Plugins.Party
         }
         private void CheckCrossPlay(User user)
         {
-            var crossplayEnabled = _crossplayService.IsCrossplayEnabled(user);
+            var crossplayEnabled = _crossplayService.Value.IsCrossplayEnabled(user);
 
             //If cross play is disabled on the player, and we are the first player, set the platform of the party.
             if (_partyState.PartyMembers.Count == 0)
@@ -337,7 +292,7 @@ namespace Stormancer.Server.Plugins.Party
                 _partyState.PendingAcceptedPeers.Remove(peer);
                 _ = RunInRequestScope(async (service, handlers, scope) =>
                 {
-                    var session = await service._userSessions.GetSession(peer, CancellationToken.None);
+                    var session = await service._userSessions.Value.GetSession(peer, CancellationToken.None);
                     if (session != null)
                     {
                         var deniedCtx = new JoinDeniedContext(service, session);
@@ -357,7 +312,7 @@ namespace Stormancer.Server.Plugins.Party
             {
                 _partyState.PendingAcceptedPeers.Remove(peer);
                 var userData = peer.ContentType == "party/userdata" ? peer.UserData : new byte[0];
-                var session = await _userSessions.GetSession(peer, CancellationToken.None);
+                var session = await _userSessions.Value.GetSession(peer, CancellationToken.None);
 
 
                 if (session == null)
@@ -395,7 +350,7 @@ namespace Stormancer.Server.Plugins.Party
 
 
 
-                await _userSessions.UpdateSessionData(peer.SessionId, "party", _partyState.Settings.PartyId, CancellationToken.None);
+                await _userSessions.Value.UpdateSessionData(peer.SessionId, "party", _partyState.Settings.PartyId, CancellationToken.None);
 
 
                 if (_partyState.PartyMembers.TryGetValue(peer.SessionId, out var partyUser))
@@ -407,9 +362,9 @@ namespace Stormancer.Server.Plugins.Party
                 else
                 {
 
-                    var profile = await _profiles.GetProfile(user.Id, new Dictionary<string, string> { ["user"] = "summary" }, session, CancellationToken.None);
+                    //var profile = await _profiles.GetProfile(user.Id, new Dictionary<string, string> { ["user"] = "summary" }, session, CancellationToken.None);
 
-                    var mainLocalUser = new Models.LocalPlayerInfos { StormancerUserId = user.Id, Platform = session.platformId.Platform, PlatformId = session.platformId.PlatformUserId, Pseudo = profile?["user"]?["pseudo"]?.ToObject<string>() ?? "anonymous" };
+                    var mainLocalUser = new Models.LocalPlayerInfos { StormancerUserId = user.Id, Platform = session.platformId.Platform, PlatformId = session.platformId.PlatformUserId, Pseudo = "anonymous" };
 
                     partyUser = new PartyMember { UserId = user.Id, SessionId = peer.SessionId, StatusInParty = PartyMemberStatus.NotReady, Peer = peer, UserData = userData, LocalPlayers = new List<Models.LocalPlayerInfos> { mainLocalUser }, ConnectionStatus = PartyMemberConnectionStatus.Connected };
                     _partyState.PartyMembers.TryAdd(peer.SessionId, partyUser);
@@ -473,9 +428,9 @@ namespace Stormancer.Server.Plugins.Party
                     {
                         Log(LogLevel.Trace, "OnDisconnected", $"Member left the party, reason: {args.Reason}", args.Peer.SessionId, partyUser.UserId);
 
-                        var handlers = _handlers();
+                        var handlers = _handlers.Value;
                         var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene);
-                        partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
+                        partyConfigurationService.Value.ShouldResetPartyMembersReadyState(partyResetCtx);
                         await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
 
                         if (partyResetCtx.ShouldReset)
@@ -492,7 +447,7 @@ namespace Stormancer.Server.Plugins.Party
                         }
 
 
-                        await _userSessions.UpdateSessionData(args.Peer.SessionId, "party", Array.Empty<byte>(), CancellationToken.None);
+                        await _userSessions.Value.UpdateSessionData(args.Peer.SessionId, "party", Array.Empty<byte>(), CancellationToken.None);
                         await BroadcastStateUpdateRpc(PartyMemberDisconnection.Route, new PartyMemberDisconnection { UserId = partyUser.UserId, Reason = ParseDisconnectionReason(args.Reason) });
 
 
@@ -512,9 +467,9 @@ namespace Stormancer.Server.Plugins.Party
                     }
                     finally
                     {
-                        if (_partyState.PartyMembers.IsEmpty)
+                        if (_partyState.PartyMembers.IsEmpty && _partyState.HasLuceneDocument)
                         {
-                            partyDocumentsStore.DeleteDocument(_partyState.Settings.PartyId);
+                            scope.Resolve<PartyLuceneDocumentStore>().DeleteDocument(_partyState.Settings.PartyId);
                             CancelInvitationCode();
                             _ = _scene.KeepAlive(TimeSpan.Zero);
                         }
@@ -538,9 +493,10 @@ namespace Stormancer.Server.Plugins.Party
         }
         public Task UpdateSettings(Func<PartyState, PartySettingsDto?> partySettingsUpdater, CancellationToken ct)
         {
+           
             return _partyState.TaskQueue.PushWork(async () =>
             {
-
+                await using var scope = _scene.CreateRequestScope();
                 try
                 {
                     var partySettingsDto = partySettingsUpdater(_partyState);
@@ -562,7 +518,7 @@ namespace Stormancer.Server.Plugins.Party
 
 
 
-                    await using var scope = _scene.CreateRequestScope();
+                  
                     var handlers = scope.Resolve<IEnumerable<IPartyEventHandler>>();
 
                     var originalDto = partySettingsDto.Clone();
@@ -654,7 +610,7 @@ namespace Stormancer.Server.Plugins.Party
                         var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartySettingsUpdated, _scene);
 
 
-                        partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
+                        partyConfigurationService.Value.ShouldResetPartyMembersReadyState(partyResetCtx);
                         await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
 
                         if (partyResetCtx.ShouldReset)
@@ -675,7 +631,11 @@ namespace Stormancer.Server.Plugins.Party
                 }
                 finally
                 {
-                    partyDocumentsStore.UpdateDocument(_partyState.Settings.PartyId, _partyState.SearchDocument, _partyState.Settings.CustomData);
+                    if (_partyState.SearchDocument != null)
+                    {
+                        _partyState.HasLuceneDocument = true;
+                        scope.Resolve<PartyLuceneDocumentStore>().UpdateDocument(_partyState.Settings.PartyId, _partyState.SearchDocument, _partyState.Settings.CustomData);
+                    }
                 }
             });
         }
@@ -714,7 +674,7 @@ namespace Stormancer.Server.Plugins.Party
                 throw new ArgumentNullException(nameof(partyUserStatus));
             }
 
-            var handlers = _handlers();
+            var handlers = _handlers.Value;
             await _partyState.TaskQueue.PushWork(async () =>
             {
                 if (cancellationToken.IsCancellationRequested)
@@ -921,7 +881,7 @@ namespace Stormancer.Server.Plugins.Party
                 if (flags != 0)
                 {
                     var partyResetCtx = new PartyMemberReadyStateResetContext(flags, _scene);
-                    partyConfigurationService.ShouldResetPartyMembersReadyState(partyResetCtx);
+                    partyConfigurationService.Value.ShouldResetPartyMembersReadyState(partyResetCtx);
                     await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
 
                     if (partyResetCtx.ShouldReset)
@@ -1114,6 +1074,7 @@ namespace Stormancer.Server.Plugins.Party
             {
                 cts.CancelAfter(_clientRpcTimeout);
 
+                var rpc = _scene.DependencyResolver.Resolve<RpcService>();
                 await Task.WhenAll(
                         dataPerMember.Where(kvp => kvp.Key.Peer != null).Select(kvp =>
                         {
@@ -1121,7 +1082,7 @@ namespace Stormancer.Server.Plugins.Party
                             {
                                 if (kvp.Key.Peer != null)
                                 {
-                                    return _rpcService.Rpc(
+                                    return rpc.Rpc(
                                         route,
                                         kvp.Key.Peer,
                                         s =>
@@ -1182,15 +1143,16 @@ namespace Stormancer.Server.Plugins.Party
             _scene.Send(filter, route, static (s, t) =>
             {
                 var (serializer, data) = t;
-                serializer.Serialize(data, s);
+                serializer.Value.Serialize(data, s);
             }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE, (_serializer, data));
         }
 
         public async Task SendPartyState(string recipientUserId, CancellationToken ct)
         {
-            var handlers = _handlers();
+            var handlers = _handlers.Value;
             await _partyState.TaskQueue.PushWork(async () =>
             {
+                var rpc = _scene.DependencyResolver.Resolve<RpcService>();
                 if (ct.IsCancellationRequested)
                 {
                     return;
@@ -1210,7 +1172,7 @@ namespace Stormancer.Server.Plugins.Party
                     {
                         cts.CancelAfter(_clientRpcTimeout);
 
-                        await _rpcService.Rpc(
+                        await rpc.Rpc(
                             SendPartyStateRoute,
                             member.Peer,
                             s => member.Peer.Serializer().Serialize(state, s),
@@ -1224,7 +1186,7 @@ namespace Stormancer.Server.Plugins.Party
 
         public async Task SendPartyStateAsRequestAnswer(RequestContext<IScenePeerClient> ctx)
         {
-            var handlers = _handlers();
+            var handlers = _handlers.Value;
             await _partyState.TaskQueue.PushWork(async () =>
             {
                 if (ctx.CancellationToken.IsCancellationRequested)
@@ -1283,13 +1245,13 @@ namespace Stormancer.Server.Plugins.Party
             }
 
 
-            var senderSession = await _userSessions.GetSessionById(senderSessionId, cancellationToken);
+            var senderSession = await _userSessions.Value.GetSessionById(senderSessionId, cancellationToken);
 
             if (senderSession == null)
             {
                 throw new ClientException("disconnected");
             }
-            var recipients = await _userSessions.GetDetailedUserInformationAsync([recipientUserId], cancellationToken);
+            var recipients = await _userSessions.Value.GetDetailedUserInformationAsync([recipientUserId], cancellationToken);
 
             InvitationContext ctx;
             if (recipients.TryGetValue(recipientUserId, out var sessionInfos))
@@ -1303,7 +1265,7 @@ namespace Stormancer.Server.Plugins.Party
 
             if (preferPlatformInvite)
             {
-                foreach (var handler in _platformSupports)
+                foreach (var handler in _platformSupports.Value)
                 {
                     if (handler.CanHandle(ctx))
                     {
@@ -1317,7 +1279,7 @@ namespace Stormancer.Server.Plugins.Party
             {
                 ThrowNoSuchUserError(recipientUserId.PlatformUserId);
             }
-            var result = await _userSessions.SendRequest<bool, string>("party.invite", senderMember.UserId, recipientUserId.PlatformUserId, PartyId, cancellationToken);
+            var result = await _userSessions.Value.SendRequest<bool, string>("party.invite", senderMember.UserId, recipientUserId.PlatformUserId, PartyId, cancellationToken);
 
             if (!result.Success)
             {
@@ -1454,12 +1416,12 @@ namespace Stormancer.Server.Plugins.Party
 
         public Task<string> CreateInvitationCodeAsync(CancellationToken cancellationToken)
         {
-            return invitationCodes.CreateCode(this._scene, cancellationToken);
+            return invitationCodes.Value.CreateCode(this._scene, cancellationToken);
         }
 
         public void CancelInvitationCode()
         {
-            invitationCodes.CancelCode(this._scene);
+            invitationCodes.Value.CancelCode(this._scene);
         }
 
         public Task<Models.Party> GetModel()

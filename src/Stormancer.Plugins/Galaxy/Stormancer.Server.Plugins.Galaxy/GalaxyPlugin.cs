@@ -18,15 +18,9 @@ namespace Stormancer.Server.Plugins.Galaxy
             {
                 builder.Register<GalaxyProfilePartBuilder>().As<IProfilePartBuilder>();
                 builder.Register<GalaxyService>().As<IGalaxyService>();
+                builder.Register<GalaxyAuthenticationProvider>().As<IAuthenticationProvider>();
             };
 
-            ctx.SceneDependenciesRegistration += (builder, scene) =>
-            {
-                if (scene.Template == Constants.SCENE_TEMPLATE)
-                {
-                    builder.Register<GalaxyAuthenticationProvider>().As<IAuthenticationProvider>();
-                }
-            };
 
             ctx.SceneCreating += (ISceneHost scene) =>
             {

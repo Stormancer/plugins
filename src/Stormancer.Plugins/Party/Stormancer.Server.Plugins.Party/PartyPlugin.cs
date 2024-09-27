@@ -28,6 +28,7 @@ using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Components;
 using Stormancer.Server.PartyManagement;
+using Stormancer.Server.Plugins.Analytics;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.GameFinder;
 using Stormancer.Server.Plugins.GameSession;
@@ -71,33 +72,28 @@ namespace Stormancer.Server.Plugins.Party
         //Service ids for service locator.
         public const string PARTY_MANAGEMENT_SERVICEID = "stormancer.plugins.partyManagement";
         public const string PARTY_SERVICEID = "stormancer.plugins.party";
+
+        private static PartyService CreatePartyService(IDependencyResolver r)
+        {
+            return new PartyService(
+                     r.Resolve<ISceneHost>(),
+                     r.Resolve<ILogger>(),
+                     r.Resolve<Lazy<IUserSessions>>(),
+                     r.Resolve<Lazy<IEnumerable<IPartyEventHandler>>>(),
+                     r.Resolve<PartyState>(),
+                     r.Resolve<Lazy<IEnumerable<IPartyPlatformSupport>>>(),
+                     r.Resolve<Lazy<InvitationCodeService>>(),
+                     r.Resolve<Lazy<PartyConfigurationService>>(),
+                     r.Resolve<Lazy<ISerializer>>(),
+                     r.Resolve<Lazy<CrossplayService>>());
+        }
         public void Build(HostPluginBuildContext ctx)
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
-                builder.Register<PartyAnalyticsWorker>().SingleInstance();
-                builder.Register<CrossPlayPartyCompatibilityPolicy>().As<IPartyCompatibilityPolicy>();
-                builder.Register<PartyService>(r => new PartyService(
-                    r.Resolve<ISceneHost>(),
-                    r.Resolve<ILogger>(),
-                    r.Resolve<IUserSessions>(),
-                    r.Resolve<GameFinderProxy>(),
-                    r.Resolve<IServiceLocator>(),
-                    r.Resolve<Func<IEnumerable<IPartyEventHandler>>>(),
-                    r.Resolve<PartyState>(),
-                    r.Resolve<RpcService>(),
-                    r.Resolve<IConfiguration>(),
-                    r.Resolve<IUserService>(),
-                    r.Resolve<IEnumerable<IPartyPlatformSupport>>(),
-                    r.Resolve<InvitationCodeService>(),
-                    r.Resolve<PartyLuceneDocumentStore>(),
-                    r.Resolve<PartyConfigurationService>(),
-                    r.Resolve<IProfileService>(),
-                    r.Resolve<PartyAnalyticsWorker>(),
-                    r.Resolve<ISerializer>(),
-                    r.Resolve<CrossplayService>(),
-                    r.Resolve<IClusterSerializer>())
-                ).As<IPartyService>().InstancePerRequest();
+                builder.Register<PartyAnalyticsWorker>(r=> new PartyAnalyticsWorker(r.Resolve<IAnalyticsService>())).SingleInstance();
+                builder.Register<CrossPlayPartyCompatibilityPolicy>(r=> new CrossPlayPartyCompatibilityPolicy()).As<IPartyCompatibilityPolicy>();
+                builder.Register<PartyService>(CreatePartyService).As<IPartyService>().InstancePerRequest();
 
                 builder.Register<PartyController>(r => new PartyController(
                     r.Resolve<ILogger>(),

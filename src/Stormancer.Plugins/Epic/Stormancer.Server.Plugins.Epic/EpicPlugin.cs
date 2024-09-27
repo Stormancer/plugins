@@ -28,16 +28,11 @@ namespace Stormancer.Server.Plugins.Epic
                 builder.Register<EpicProfilePartBuilder>().As<IProfilePartBuilder>();
                 builder.Register<EpicService>().As<IEpicService>();
                 builder.Register<EpicServiceLocator>().As<IServiceLocatorProvider>();
-                builder.Register<EpicFriendsEventHandler>().As<IFriendsEventHandler>().InstancePerRequest();
+                builder.Register<EpicFriendsEventHandler>().As<IFriendsEventHandler>().InstancePerRequest(); 
+                builder.Register<EpicAuthenticationProvider>().As<IAuthenticationProvider>();
             };
 
-            ctx.SceneDependenciesRegistration += (builder, scene) =>
-            {
-                if (scene.Template == Constants.SCENE_TEMPLATE)
-                {
-                    builder.Register<EpicAuthenticationProvider>().As<IAuthenticationProvider>();
-                }
-            };
+          
 
             ctx.SceneCreating += (ISceneHost scene) =>
             {

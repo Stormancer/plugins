@@ -153,6 +153,7 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// Gets a value indicating if the state was disposed.
         /// </summary>
         public bool IsDisposed { get; private set; }
+        public bool HasLuceneDocument { get; internal set; }
 
         ///<inheritdoc/>
         public void Dispose()

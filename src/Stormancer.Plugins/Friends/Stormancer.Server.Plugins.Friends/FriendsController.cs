@@ -56,13 +56,14 @@ namespace Stormancer.Server.Plugins.Friends
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public Task Subscribe(RequestContext<IScenePeerClient> ctx)
         {
-            
+            return Task.CompletedTask;
             return _friends.Subscribe(ctx.RemotePeer, ctx.CancellationToken);
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public Task RefreshSubscription(RequestContext<IScenePeerClient> ctx)
         {
+            return Task.CompletedTask;
             return _friends.RefreshSubscription(ctx.RemotePeer, ctx.CancellationToken);
         }
 
@@ -277,21 +278,23 @@ namespace Stormancer.Server.Plugins.Friends
         [Api(ApiAccess.Public, ApiType.FireForget)]
         public async Task UpdateFriendList(Packet<IScenePeerClient> packet)
         {
+            return;
             var updates = packet.ReadObject<IEnumerable<FriendListUpdateDto>>();
 
             var user = await _userSessions.GetUser(packet.Connection, CancellationToken.None);
 
-            if (user == null)
+            if (user != null)
             {
-                throw new ClientException("NotAuthenticated");
+                await _friends.ProcessUpdates(user.Id, updates);
             }
 
-            await _friends.ProcessUpdates(user.Id,updates);
+          
         }
 
         [S2SApi]
         public Task UpdateFriendList(string friendListOwnerId, IEnumerable<FriendListUpdateDto> updates)
         {
+            return Task.CompletedTask;
             return _friends.ProcessUpdates(friendListOwnerId, updates);
 
          

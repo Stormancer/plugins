@@ -67,6 +67,8 @@ namespace Stormancer.Server.Plugins.GameFinder
                 builder.Register<ServiceLocationProvider>().As<IServiceLocatorProvider>();
                 builder.Register<QuickQueueGameSessionEventHandler>().As<GameSession.IGameSessionEventHandler>().InstancePerScene();
                 builder.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
+                builder.Register<GameFinderService>().As<IGameFinderService>().As<IConfigurationChangedEventHandler>().InstancePerScene();
+
             };
             ctx.SceneCreated += SceneCreated;
 
@@ -102,8 +104,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             {
                 if (Configs.TryGetValue(scene.Id, out var config))
                 {
-                    builder.Register<GameFinderService>().As<IGameFinderService>().As<IConfigurationChangedEventHandler>().InstancePerScene();
-
+                    
                     config.RegisterDependencies(builder);
                 }
             }

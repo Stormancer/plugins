@@ -352,17 +352,20 @@ namespace Stormancer.Server.Plugins.Users
         /// <returns></returns>
         public Session CreateView()
         {
-            return new Session
+            lock (SessionData)
             {
-                platformId = platformId,
-                User = User,
-                SessionId = SessionId,
-                SessionData = SessionData,
-                Identities = Identities,
-                ConnectedOn = ConnectedOn,
-                AuthenticatorUrl = AuthenticatorUrl,
-                MaxAge = MaxAge
-            };
+                return new Session
+                {
+                    platformId = platformId,
+                    User = User,
+                    SessionId = SessionId,
+                    SessionData = SessionData,
+                    Identities = Identities,
+                    ConnectedOn = ConnectedOn,
+                    AuthenticatorUrl = AuthenticatorUrl,
+                    MaxAge = MaxAge
+                };
+            }
         }
     }
 
@@ -677,7 +680,10 @@ namespace Stormancer.Server.Plugins.Users
             {
                 throw new ClientException("session.notFound");
             }
-            session.SessionData[key] = data;
+            lock (session.SessionData)
+            {
+                session.SessionData[key] = data;
+            }
         }
 
         public Task UpdateSessionData<T>(SessionId sessionId, string key, T data, CancellationToken cancellationToken)

@@ -29,6 +29,7 @@ using Stormancer.Core;
 using Stormancer.Core.Helpers;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Components;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Database;
 using Stormancer.Server.Plugins.Friends.Data;
 using Stormancer.Server.Plugins.Friends.Models;
@@ -59,6 +60,7 @@ namespace Stormancer.Server.Plugins.Friends
         private readonly Func<IEnumerable<IFriendsEventHandler>> _handlers;
         private readonly ISerializer _serializer;
         private readonly CrossplayService _crossplayService;
+        private readonly IConfiguration _configuration;
         private readonly ILogger _logger;
 
         public FriendsService(
@@ -71,7 +73,8 @@ namespace Stormancer.Server.Plugins.Friends
             IUserSessions sessions,
             Func<IEnumerable<IFriendsEventHandler>> handlers,
             ISerializer serializer,
-            CrossplayService crossplayService
+            CrossplayService crossplayService,
+            IConfiguration configurationManager
             )
         {
             _logger = logger;
@@ -83,6 +86,7 @@ namespace Stormancer.Server.Plugins.Friends
             _handlers = handlers;
             _serializer = serializer;
             this._crossplayService = crossplayService;
+            this._configuration = configurationManager;
         }
 
         public async Task Invite(User user, User friend, CancellationToken cancellationToken)
@@ -548,10 +552,14 @@ namespace Stormancer.Server.Plugins.Friends
                 }, record.OwnerId.ToString("N"), cancellationToken);
             }
         }
-
+        private static Dictionary<string, bool> _defaultFeaturesConfig = new Dictionary<string, bool>();
         public async Task Subscribe(IScenePeerClient peer, CancellationToken cancellationToken)
-        { 
-
+        {
+            return;
+            if (!_configuration.GetValue<Dictionary<string, bool>>("features", _defaultFeaturesConfig).TryGetValue("friends", out var active) || !active)
+            {
+                return;
+            }
             var session = await _sessions.GetSessionById(peer.SessionId, cancellationToken);
 
             if (session == null || session.User == null)
@@ -936,7 +944,7 @@ namespace Stormancer.Server.Plugins.Friends
                 {
                     result[userId] = blockList;
                 }
-                else if(!offlineUsers.Contains(userId)) //If offline, get from DB
+                else if (!offlineUsers.Contains(userId)) //If offline, get from DB
                 {
                     offlineUsers.Add(userId);
                 }
