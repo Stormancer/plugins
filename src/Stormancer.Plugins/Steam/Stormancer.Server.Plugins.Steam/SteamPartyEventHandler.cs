@@ -247,17 +247,14 @@ namespace Stormancer.Server.Plugins.Steam
                 var joinSteamLobbyResult = await target.RpcTask<JoinLobbyArgs, VoidSteamResult>("Steam.JoinLobby", joinLobbyParameter, cancellationToken);
 
 
-                if (!joinSteamLobbyResult.Success)
-                {
-                    _logger.Log(LogLevel.Error, "SteamPartyEventHandler.OnJoining", "Steam lobby join failed", new
-                    {
-
-                        joinSteamLobbyResult.ErrorId,
-                        joinSteamLobbyResult.ErrorDetails
-                    });
-
-
-                }
+                //if (!joinSteamLobbyResult.Success)
+                //{
+                //    _logger.Log(LogLevel.Error, "SteamPartyEventHandler.OnJoining", "Steam lobby join failed", new
+                //    {
+                //        joinSteamLobbyResult.ErrorId,
+                //        joinSteamLobbyResult.ErrorDetails
+                //    });
+                //}
                 return joinSteamLobbyResult;
             }
             catch (OperationCanceledException)
@@ -411,10 +408,10 @@ namespace Stormancer.Server.Plugins.Steam
                     var args = new UpdateLobbyJoinableArgs { Joinable = joinable, SteamIDLobby = steamLobbyId };
                     var result = await target.RpcTask<UpdateLobbyJoinableArgs, VoidSteamResult>("Steam.UpdateLobbyJoinable", args, ct, Core.PacketPriority.MEDIUM_PRIORITY);
 
-                    if(result.Success)
-                    {
-                        logger.Log(LogLevel.Info, "steam", "Set joinable succeeded.", new { joinable, steamLobbyId});
-                    }
+                    //if(result.Success)
+                    //{
+                    //    logger.Log(LogLevel.Trace, "steam", "Set joinable succeeded.", new { joinable, steamLobbyId});
+                    //}
 
                     return (result, !result.Success);
 
