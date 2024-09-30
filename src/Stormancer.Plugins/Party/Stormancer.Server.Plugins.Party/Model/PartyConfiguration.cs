@@ -24,6 +24,9 @@ using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.Party.Model
 {
+    /// <summary>
+    /// Party settings.
+    /// </summary>
     public class PartyConfiguration
     {
         /// <summary>
@@ -34,7 +37,7 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// <summary>
         /// Current party leader can be changed.
         /// </summary>
-        public string PartyLeaderId { get; set; }
+        public string? PartyLeaderId { get; set; }
 
         /// <summary>
         /// Not used yet
@@ -54,12 +57,12 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// <summary>
         /// The name of game finder scene
         /// </summary>
-        public string GameFinderName { get; set; }
+        public string? GameFinderName { get; set; }
 
         /// <summary>
         /// Game-specific data
         /// </summary>
-        public string CustomData { get; set; }
+        public string? CustomData { get; set; }
 
         /// <summary>
         /// Client-specified settings that can be used by other server components

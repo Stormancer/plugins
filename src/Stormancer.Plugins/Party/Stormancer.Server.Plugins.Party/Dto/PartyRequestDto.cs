@@ -36,19 +36,19 @@ namespace Stormancer.Server.Plugins.Party
         /// Platform Session Id.
         /// </summary>
         [Key(0)]
-        public string PlatformSessionId { get; set; }
+        public string? PlatformSessionId { get; set; }
 
         /// <summary>
         /// GameFinder name.
         /// </summary>
         [Key(1)]
-        public string GameFinderName { get; set; }
+        public string? GameFinderName { get; set; }
 
         /// <summary>
         /// Custom Data.
         /// </summary>
         [Key(2)]
-        public string CustomData { get; set; }
+        public string? CustomData { get; set; }
 
         /// <summary>
         /// Server settings set by client.

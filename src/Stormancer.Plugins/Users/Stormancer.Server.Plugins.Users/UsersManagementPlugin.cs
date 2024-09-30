@@ -159,7 +159,7 @@ namespace Stormancer.Server.Plugins.Users
         private void RegisterDependencies(IDependencyBuilder b)
         {
             //Indices
-            b.Register<SessionsAnalyticsWorker>(static r => new SessionsAnalyticsWorker(r.Resolve<IAnalyticsService>(), r.Resolve<ISceneHost>())).SingleInstance();
+            b.Register<SessionsAnalyticsWorker>(static r => new SessionsAnalyticsWorker(r.Resolve<IAnalyticsService>(), r.Resolve<ISceneHost>())).InstancePerScene();
             b.Register<CrossplayService>(static r => new CrossplayService(r.ResolveAll<ICrossplayUserPolicy>())).InstancePerRequest();
             b.Register<SceneAuthorizationController>(static r => new SceneAuthorizationController(r.Resolve<IEnvironment>(), r.Resolve<IUserSessions>(), r.Resolve<ILogger>()));
             b.Register(dr => new UserSessionController(

@@ -84,7 +84,7 @@ namespace Stormancer.Server.Plugins.Party
             {
                 lock (syncRoot)
                 {
-                    
+
                     if (_data.TryGetValue(id, out var doc))
                     {
                         yield return new Document<JObject>(id, JObject.FromObject(new { customData = doc.Item2, indexedData = doc.Item1 })) { Version = 1 };
@@ -107,7 +107,7 @@ namespace Stormancer.Server.Plugins.Party
             lucene.TryCreateIndex(PARTY_LUCENE_INDEX, DefaultMapper.JsonMapper);
         }
 
-        public void UpdateDocument(string id, JObject? document, string customData)
+        public void UpdateDocument(string id, JObject? document, string? customData)
         {
             if (document != null)
             {
@@ -119,7 +119,7 @@ namespace Stormancer.Server.Plugins.Party
 
                         lucene.IndexDocument(PARTY_LUCENE_INDEX, id, document);
                     }
-                    _data[id] = (document, customData);
+                    _data[id] = (document, customData ?? string.Empty);
                 }
             }
             else
@@ -135,13 +135,13 @@ namespace Stormancer.Server.Plugins.Party
             lock (syncRoot)
             {
                 mustRemove = _data.Remove(id);
-                
+
             }
-            if(mustRemove)
+            if (mustRemove)
             {
                 lucene.DeleteDocument(PARTY_LUCENE_INDEX, id);
             }
-          
+
 
         }
     }

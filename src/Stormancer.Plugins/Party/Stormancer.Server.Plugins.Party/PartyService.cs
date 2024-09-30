@@ -134,7 +134,7 @@ namespace Stormancer.Server.Plugins.Party
                             try
                             {
                                 var handlers = _handlers.Value;
-                                var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene,this);
+                                var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene, this);
                                 partyConfigurationService.Value.ShouldResetPartyMembersReadyState(partyResetCtx);
                                 await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", $"An error occurred while processing an '{nameof(IPartyEventHandler.OnPlayerReadyStateReset)}' event.", ex));
 
@@ -144,7 +144,7 @@ namespace Stormancer.Server.Plugins.Party
                                 }
                                 await BroadcastStateUpdateRpc(PartyMemberDisconnection.Route, new PartyMemberDisconnection { UserId = member.UserId, Reason = PartyDisconnectionReason.Left });
                             }
-                            catch(ObjectDisposedException) //Ignore
+                            catch (ObjectDisposedException) //Ignore
                             {
 
                             }
@@ -429,7 +429,7 @@ namespace Stormancer.Server.Plugins.Party
                         Log(LogLevel.Trace, "OnDisconnected", $"Member left the party, reason: {args.Reason}", args.Peer.SessionId, partyUser.UserId);
 
                         var handlers = _handlers.Value;
-                        var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene,this);
+                        var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene, this);
                         partyConfigurationService.Value.ShouldResetPartyMembersReadyState(partyResetCtx);
                         await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", $"An error occurred while processing an '{nameof(IPartyEventHandler.OnPlayerReadyStateReset)}' event.", ex));
 
@@ -493,7 +493,7 @@ namespace Stormancer.Server.Plugins.Party
         }
         public Task UpdateSettings(Func<PartyState, PartySettingsDto?> partySettingsUpdater, CancellationToken ct)
         {
-           
+
             return _partyState.TaskQueue.PushWork(async () =>
             {
                 await using var scope = _scene.CreateRequestScope();
@@ -518,7 +518,7 @@ namespace Stormancer.Server.Plugins.Party
 
 
 
-                  
+
                     var handlers = scope.Resolve<IEnumerable<IPartyEventHandler>>();
 
                     var originalDto = partySettingsDto.Clone();
@@ -607,7 +607,7 @@ namespace Stormancer.Server.Plugins.Party
 
                     if (changed)
                     {
-                        var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartySettingsUpdated, _scene,this);
+                        var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartySettingsUpdated, _scene, this);
 
 
                         partyConfigurationService.Value.ShouldResetPartyMembersReadyState(partyResetCtx);
@@ -880,7 +880,7 @@ namespace Stormancer.Server.Plugins.Party
 
                 if (flags != 0)
                 {
-                    var partyResetCtx = new PartyMemberReadyStateResetContext(flags, _scene,this);
+                    var partyResetCtx = new PartyMemberReadyStateResetContext(flags, _scene, this);
                     partyConfigurationService.Value.ShouldResetPartyMembersReadyState(partyResetCtx);
                     await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", $"An error occurred while processing an '{nameof(IPartyEventHandler.OnPlayerReadyStateReset)}' event.", ex));
 
@@ -903,7 +903,7 @@ namespace Stormancer.Server.Plugins.Party
                     return;
                 }
 
-             
+
                 if (!TryGetMemberByUserId(playerToPromote, out var user))
                 {
                     ThrowNoSuchMemberError(playerToPromote);
@@ -968,23 +968,31 @@ namespace Stormancer.Server.Plugins.Party
 
         private async Task FindGame_Impl()
         {
-
-            //Construct gameFinder request
-            var gameFinderRequest = new Models.Party() { Players = new Dictionary<string, Models.Player>() };
-            gameFinderRequest.CustomData = _partyState.Settings.CustomData;
-            gameFinderRequest.PartyId = _partyState.Settings.PartyId;
-            gameFinderRequest.PartyLeaderId = _partyState.Settings.PartyLeaderId;
-            foreach (var partyUser in _partyState.PartyMembers.Values)
-            {
-                gameFinderRequest.Players.Add(partyUser.UserId, new Models.Player(partyUser.SessionId, partyUser.UserId, partyUser.UserData));
-
-            }
-
-            gameFinderRequest.CustomData = _partyState.Settings.CustomData;
-
-            //Send S2S find match request
             try
             {
+                if (_partyState.Settings.PartyLeaderId == null)
+                {
+                    throw new InvalidOperationException("noLeader.");
+                }
+                if (_partyState.Settings.GameFinderName == null)
+                {
+                    throw new InvalidOperationException("noGameFinderSelected.");
+                }
+                //Construct gameFinder request
+                var gameFinderRequest = new Models.Party() { Players = new Dictionary<string, Models.Player>() };
+                gameFinderRequest.CustomData = _partyState.Settings.CustomData;
+                gameFinderRequest.PartyId = _partyState.Settings.PartyId;
+                gameFinderRequest.PartyLeaderId = _partyState.Settings.PartyLeaderId;
+                foreach (var partyUser in _partyState.PartyMembers.Values)
+                {
+                    gameFinderRequest.Players.Add(partyUser.UserId, new Models.Player(partyUser.SessionId, partyUser.UserId, partyUser.UserData));
+
+                }
+
+                gameFinderRequest.CustomData = _partyState.Settings.CustomData;
+
+                //Send S2S find match request
+
                 await using var scope = _scene.CreateRequestScope();
 
                 var gameFinder = scope.Resolve<GameFinderProxy>();
@@ -1211,7 +1219,7 @@ namespace Stormancer.Server.Plugins.Party
         {
             var dto = new PartyStateDto
             {
-                LeaderId = _partyState.Settings.PartyLeaderId,
+                LeaderId = _partyState.Settings.PartyLeaderId ??string.Empty,
                 Settings = new PartySettingsUpdateDto(_partyState),
                 PartyMembers = _partyState.PartyMembers.Values.Select(member =>
                     new PartyMemberDto { PartyUserStatus = member.StatusInParty, UserData = member.UserData, UserId = member.UserId, SessionId = member.SessionId, LocalPlayers = member.LocalPlayers, ConnectionStatus = member.ConnectionStatus }).ToList(),
@@ -1429,7 +1437,7 @@ namespace Stormancer.Server.Plugins.Party
             {
                 PartyId = this.PartyId,
                 CreationTimeUtc = this.State.CreatedOnUtc,
-                PartyLeaderId = this.Settings.PartyLeaderId,
+                PartyLeaderId = this.Settings.PartyLeaderId??string.Empty,
                 CustomData = this.Settings.CustomData,
                 Players = new Dictionary<string, Models.Player>(),
                 Platform = _partyState.Platform

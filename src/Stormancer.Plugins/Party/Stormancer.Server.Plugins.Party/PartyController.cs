@@ -392,13 +392,22 @@ namespace Stormancer.Server.Plugins.Party
         public ulong Version { get; set; } = 0;
     }
 
+    /// <summary>
+    /// A reservation for one or several players in a party.
+    /// </summary>
     [MessagePackObject]
     public class PartyReservation
     {
+        /// <summary>
+        /// Gets or sets the list of players in the reservation.
+        /// </summary>
         [Key(0)]
-        public IEnumerable<Models.Player> PartyMembers { get; set; }
+        public required IEnumerable<Models.Player> PartyMembers { get; set; }
 
+        /// <summary>
+        /// Gets custom json data associated with the reservation.
+        /// </summary>
         [Key(1)]
-        public JObject CustomData { get; set; }
+        public required JObject CustomData { get; set; }
     }
 }

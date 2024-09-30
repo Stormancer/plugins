@@ -39,13 +39,13 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// Gets or sets the name of the selected GameFinder.
         /// </summary>
         [Key(0)]
-        public string GameFinderName { get; set; } = string.Empty;
+        public string? GameFinderName { get; set; } 
 
         /// <summary>
         /// Gets or sets customData
         /// </summary>
         [Key(1)]
-        public string CustomData { get; set; } = string.Empty;
+        public string? CustomData { get; set; }
 
         /// <summary>
         /// Gets or sets a <see cref="bool"/> indicating if only the leader can invite players in the group.
