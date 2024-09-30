@@ -58,7 +58,7 @@ namespace Stormancer.Server.Plugins.Party
     }
 
     /// <summary>
-    /// List of circonstances that can trigger a status reset
+    /// List of circumstances that can trigger a status reset
     /// </summary>
     public enum PartyMemberReadyStateResetEventType
     {
@@ -85,17 +85,18 @@ namespace Stormancer.Server.Plugins.Party
     public class PartyMemberReadyStateResetContext
     {
 
-        internal PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType eventType, ISceneHost scene)
+        internal PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType eventType, ISceneHost scene, IPartyService party)
         {
             PartyScene = scene;
+            Party = party;
             EventType = eventType;
             ShouldReset = true;
         }
 
         /// <summary>
-        /// Circonstance that triggered the event.
+        /// Circumstance that triggered the event.
         /// </summary>
-        public PartyMemberReadyStateResetEventType EventType { get; set; }
+        public PartyMemberReadyStateResetEventType EventType { get;  }
 
         /// <summary>
         /// Gets or sets a boolean value indicating whether the ready status should be reset.
@@ -105,12 +106,12 @@ namespace Stormancer.Server.Plugins.Party
         /// <summary>
         /// Party scene that triggered the event.
         /// </summary>
-        public ISceneHost PartyScene { get; set; }
+        public ISceneHost PartyScene { get;  }
 
         /// <summary>
         /// Party the event
         /// </summary>
-        public IPartyService Party => PartyScene.DependencyResolver.Resolve<IPartyService>();
+        public IPartyService Party { get; }
 
     }
 
@@ -297,9 +298,19 @@ namespace Stormancer.Server.Plugins.Party
     }
 
 
+    /// <summary>
+    /// Context passed to <see cref="IPartyEventHandler.OnQuit(QuitPartyContext)"/>
+    /// </summary>
     public class QuitPartyContext
     {
+        /// <summary>
+        /// Gets or sets the party that triggered the event.
+        /// </summary>
         public IPartyService Party { get; }
+
+        /// <summary>
+        /// Gets or sets the disconnection info.
+        /// </summary>
         public DisconnectedArgs Args { get; }
 
         internal QuitPartyContext(IPartyService party, DisconnectedArgs args)
@@ -309,18 +320,50 @@ namespace Stormancer.Server.Plugins.Party
         }
     }
 
+    /// <summary>
+    /// Determines when game finding should start.
+    /// </summary>
     public enum GameFinderRequestPolicy
     {
+        /// <summary>
+        /// Game finding should start when all players are ready.
+        /// </summary>
         StartWhenAllMembersReady,
+
+        /// <summary>
+        /// Game finding should start immediately.
+        /// </summary>
         StartNow,
+
+        /// <summary>
+        /// Game finding should not start at the end of the event.
+        /// </summary>
         DoNotStart
     }
 
+    /// <summary>
+    /// Context passed to <see cref="IPartyEventHandler.OnPlayerReadyStateChanged(PlayerReadyStateContext)"/>.
+    /// </summary>
     public class PlayerReadyStateContext
     {
+        /// <summary>
+        /// Gets the party scene.
+        /// </summary>
         public ISceneHost PartyScene { get; }
+
+        /// <summary>
+        /// Gets the party.
+        /// </summary>
         public IPartyService Party { get; }
+
+        /// <summary>
+        /// Gets the member whose ready state changed.
+        /// </summary>
         public PartyMember Member { get; }
+
+        /// <summary>
+        /// Gets or sets the policy indicating if and when game finding should start.
+        /// </summary>
         public GameFinderRequestPolicy GameFinderPolicy { get; set; } = GameFinderRequestPolicy.StartWhenAllMembersReady;
 
         internal PlayerReadyStateContext(IPartyService party, PartyMember user, ISceneHost scene)
@@ -336,10 +379,30 @@ namespace Stormancer.Server.Plugins.Party
     /// </summary>
     public class UpdatingPlayerReadyStateContext
     {
+        /// <summary>
+        /// Gets the party scene.
+        /// </summary>
         public ISceneHost PartyScene { get; }
+
+        /// <summary>
+        /// Gets the new ready state of the party member.
+        /// </summary>
         public PartyMemberStatus NewStatus { get; }
+
+        /// <summary>
+        /// Gets the party.
+        /// </summary>
         public IPartyService Party { get; }
+
+        /// <summary>
+        /// Gets the member whose ready state changed.
+        /// </summary>
         public PartyMember Member { get; }
+
+
+        /// <summary>
+        /// Gets or sets the policy indicating if and when game finding should start.
+        /// </summary>
         public GameFinderRequestPolicy GameFinderPolicy { get; set; } = GameFinderRequestPolicy.StartWhenAllMembersReady;
 
 
@@ -347,6 +410,10 @@ namespace Stormancer.Server.Plugins.Party
         /// Set to false to refuse the ready state update.
         /// </summary>
         public bool Accept { get; set; } = true;
+
+        /// <summary>
+        /// Sets the error id to return to the player if the handler refused the state change.
+        /// </summary>
         public string ErrorId { get; set; } = string.Empty;
 
         internal UpdatingPlayerReadyStateContext(IPartyService party, PartyMember user, ISceneHost scene, PartyMemberStatus newStatus)

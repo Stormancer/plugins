@@ -25,14 +25,23 @@ using Stormancer.Server.Plugins.Party.Model;
 
 namespace Stormancer.Server.Plugins.Party.Dto
 {
+    /// <summary>
+    /// Object containing the details of a party disconnection event.
+    /// </summary>
     [MessagePackObject]
     public class PartyMemberDisconnection
     {
-        public const string Route = "party.memberDisconnected";
+        internal const string Route = "party.memberDisconnected";
 
+        /// <summary>
+        /// Gets or sets the stormancer id of the user that disconnected from the party. 
+        /// </summary>
         [Key(0)]
-        public string UserId { get; set; }
+        public required string UserId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the reason why the user was disconnected.
+        /// </summary>
         [Key(1)]
         public PartyDisconnectionReason Reason { get; set; }
     }

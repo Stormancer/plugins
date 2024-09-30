@@ -22,6 +22,7 @@
 
 
 using MessagePack;
+using System;
 
 namespace Stormancer.Server.Plugins.Party
 {
@@ -82,6 +83,6 @@ namespace Stormancer.Server.Plugins.Party
         /// Gets or sets member data to associate the party leader with on party join.
         /// </summary>
         [Key(7)]
-        public byte[] UserData { get; set; } = new byte[0];
+        public byte[] UserData { get; set; } = Array.Empty<byte>();
     }
 }

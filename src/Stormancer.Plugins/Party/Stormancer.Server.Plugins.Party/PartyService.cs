@@ -134,9 +134,9 @@ namespace Stormancer.Server.Plugins.Party
                             try
                             {
                                 var handlers = _handlers.Value;
-                                var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene);
+                                var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene,this);
                                 partyConfigurationService.Value.ShouldResetPartyMembersReadyState(partyResetCtx);
-                                await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
+                                await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", $"An error occurred while processing an '{nameof(IPartyEventHandler.OnPlayerReadyStateReset)}' event.", ex));
 
                                 if (partyResetCtx.ShouldReset)
                                 {
@@ -429,9 +429,9 @@ namespace Stormancer.Server.Plugins.Party
                         Log(LogLevel.Trace, "OnDisconnected", $"Member left the party, reason: {args.Reason}", args.Peer.SessionId, partyUser.UserId);
 
                         var handlers = _handlers.Value;
-                        var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene);
+                        var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartyMembersListUpdated, _scene,this);
                         partyConfigurationService.Value.ShouldResetPartyMembersReadyState(partyResetCtx);
-                        await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
+                        await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", $"An error occurred while processing an '{nameof(IPartyEventHandler.OnPlayerReadyStateReset)}' event.", ex));
 
                         if (partyResetCtx.ShouldReset)
                         {
@@ -467,7 +467,7 @@ namespace Stormancer.Server.Plugins.Party
                     }
                     finally
                     {
-                        if (_partyState.PartyMembers.IsEmpty && _partyState.HasLuceneDocument)
+                        if (_partyState.PartyMembers.IsEmpty && _partyState.HasIndexedDocument)
                         {
                             scope.Resolve<PartyLuceneDocumentStore>().DeleteDocument(_partyState.Settings.PartyId);
                             CancelInvitationCode();
@@ -607,11 +607,11 @@ namespace Stormancer.Server.Plugins.Party
 
                     if (changed)
                     {
-                        var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartySettingsUpdated, _scene);
+                        var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartySettingsUpdated, _scene,this);
 
 
                         partyConfigurationService.Value.ShouldResetPartyMembersReadyState(partyResetCtx);
-                        await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
+                        await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", $"An error occurred while processing an '{nameof(IPartyEventHandler.OnPlayerReadyStateReset)}' event.", ex));
 
                         if (partyResetCtx.ShouldReset)
                         {
@@ -633,7 +633,7 @@ namespace Stormancer.Server.Plugins.Party
                 {
                     if (_partyState.SearchDocument != null)
                     {
-                        _partyState.HasLuceneDocument = true;
+                        _partyState.HasIndexedDocument = true;
                         scope.Resolve<PartyLuceneDocumentStore>().UpdateDocument(_partyState.Settings.PartyId, _partyState.SearchDocument, _partyState.Settings.CustomData);
                     }
                 }
@@ -880,9 +880,9 @@ namespace Stormancer.Server.Plugins.Party
 
                 if (flags != 0)
                 {
-                    var partyResetCtx = new PartyMemberReadyStateResetContext(flags, _scene);
+                    var partyResetCtx = new PartyMemberReadyStateResetContext(flags, _scene,this);
                     partyConfigurationService.Value.ShouldResetPartyMembersReadyState(partyResetCtx);
-                    await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", "An error occurred while processing an 'OnPlayerReadyStateRest' event.", ex));
+                    await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", $"An error occurred while processing an '{nameof(IPartyEventHandler.OnPlayerReadyStateReset)}' event.", ex));
 
                     if (partyResetCtx.ShouldReset)
                     {
@@ -903,8 +903,8 @@ namespace Stormancer.Server.Plugins.Party
                     return;
                 }
 
-                PartyMember user;
-                if (!TryGetMemberByUserId(playerToPromote, out user))
+             
+                if (!TryGetMemberByUserId(playerToPromote, out var user))
                 {
                     ThrowNoSuchMemberError(playerToPromote);
                 }
@@ -1158,8 +1158,7 @@ namespace Stormancer.Server.Plugins.Party
                     return;
                 }
 
-                PartyMember member;
-                if (!TryGetMemberByUserId(recipientUserId, out member))
+                if (!TryGetMemberByUserId(recipientUserId, out var member))
                 {
                     return;
                 }

@@ -35,7 +35,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
             IConfiguration configuration,
             ILogger logger)
         {
-          
+
             this.party = party;
             _userSessions = userSessions;
             this.state = state;
@@ -66,23 +66,24 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                 string? partyId = await _userSessions.GetSessionData<string>(ctx.Player.SessionId, "party", CancellationToken.None);
 
                 bool shouldCreate = false;
-                
+
                 lock (state.syncRoot)
                 {
-                   
-                    if(partyId == null)
+
+                    if (partyId == null)
                     {
-                        var party = ctx.GameSession.GetGameSessionConfig().Teams.SelectMany(t => t.Parties).FirstOrDefault(p => p.Players.ContainsKey(ctx.Player.Player.UserId));
+                        var config = ctx.GameSession.GetGameSessionConfig();
+                        var party = config != null ? config.Teams.SelectMany(t => t.Parties).FirstOrDefault(p => p.Players.ContainsKey(ctx.Player.Player.UserId)) : null;
 
                         if (party != null)
                         {
-                           
+
 
                             partyId = party.PartyId;
                         }
                     }
 
-                    if(partyId!=null)
+                    if (partyId != null)
                     {
                         if (!state.UserIdToPartyId.Values.Contains(partyId))
                         {
@@ -127,7 +128,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
 
         public async Task OnClientLeaving(ClientLeavingContext ctx)
         {
-          
+
             if (IsEnabled)
             {
 
@@ -147,15 +148,15 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                 {
                     try
                     {
-                        
+
                         //logger.Log(LogLevel.Info, "gamesession.joinedGameSession.leaving", $"Removing  {ctx.GameSession.GameSessionId} from party {partyId}", new { state.UserIdToPartyId });
-                        await party.RemovePartyFromGameSession(partyId,ctx.GameSession.GameSessionId, default);
+                        await party.RemovePartyFromGameSession(partyId, ctx.GameSession.GameSessionId, default);
                     }
-                    catch(InvalidOperationException)
+                    catch (InvalidOperationException)
                     {
                         //Party already destroyed. Ignore the error.
                     }
-                    catch(ClientException)
+                    catch (ClientException)
                     {
                         //Party closed.
                     }
@@ -167,11 +168,11 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
 
         public async Task OnGameSessionShutdown(Stormancer.Server.Plugins.GameSession.GameSessionShutdownContext ctx)
         {
-            
-            if(IsEnabled)
+
+            if (IsEnabled)
             {
                 var partyIds = new List<string>();
-                lock(state.syncRoot)
+                lock (state.syncRoot)
                 {
                     //logger.Log(LogLevel.Info, "gamesession.joinedGameSession.shutdown", $"Gamesession {ctx.GameSession.GameSessionId} closing.", new { state.UserIdToPartyId });
                     foreach (var entry in state.UserIdToPartyId.Values.Distinct())
@@ -180,14 +181,14 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                     }
                 }
 
-                foreach(var partyId in partyIds)
+                foreach (var partyId in partyIds)
                 {
                     try
                     {
                         //logger.Log(LogLevel.Info, "gamesession.joinedGameSession.shutdown", $"Removing gamesession {ctx.GameSession.GameSessionId} from party {partyId}.", new { state.UserIdToPartyId });
                         await party.RemovePartyFromGameSession(partyId, ctx.GameSession.GameSessionId, default);
                     }
-                    catch (Exception) 
+                    catch (Exception)
                     {
                         logger.Log(LogLevel.Warn, "gamesession.joinedGameSession.shutdown", $"An error occured while closing gamesession..", new { ctx.GameSession.GameSessionId });
 

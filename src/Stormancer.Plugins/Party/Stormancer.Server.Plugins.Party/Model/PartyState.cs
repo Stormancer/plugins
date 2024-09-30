@@ -55,7 +55,7 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// </summary>
         /// <remarks>
         /// Settings initially have the values that were given to <see cref="IPartyManagementService.CreateParty(PartyRequestDto, string)"/> .
-        /// During the lifetime of the party, they may be updated by calls to <see cref="IPartyService.UpdateSettings(Dto.PartySettingsDto)"/> and <see cref="IPartyService.PromoteLeader(string)"/>
+        /// During the lifetime of the party, they may be updated by calls to <see cref="IPartyService.UpdateSettings(Dto.PartySettingsDto,CancellationToken)"/> and <see cref="IPartyService.PromoteLeader(string, CancellationToken)"/>
         /// </remarks>
         public PartyConfiguration Settings { get; set; } = default!;
 
@@ -86,7 +86,7 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// </summary>
         /// <remarks>
         /// Any operation that modifies the state must be pushed onto this queue.
-        /// This is also true of operations that need to retrieve the whole state at once, such as <see cref="IPartyService.GetPartyState"/>.
+        /// This is also true of operations that need to retrieve the whole state at once.
         /// </remarks>
         public TaskQueue TaskQueue { get; } = new TaskQueue();
 
@@ -153,7 +153,11 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// Gets a value indicating if the state was disposed.
         /// </summary>
         public bool IsDisposed { get; private set; }
-        public bool HasLuceneDocument { get; internal set; }
+
+        /// <summary>
+        /// Gets a boolean indicating if a document associated with the party was indexed in the in memory DB.
+        /// </summary>
+        public bool HasIndexedDocument { get; internal set; }
 
         ///<inheritdoc/>
         public void Dispose()

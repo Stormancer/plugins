@@ -29,13 +29,13 @@ namespace Stormancer.Server.Plugins.Party.Dto
     public class PartyStateDto
     {
         [Key(0)]
-        public PartySettingsUpdateDto Settings { get; set; }
+        public required PartySettingsUpdateDto Settings { get; set; }
 
         [Key(1)]
-        public string LeaderId { get; set; }
+        public required string LeaderId { get; set; }
 
         [Key(2)]
-        public List<PartyMemberDto> PartyMembers { get; set; }
+        public required List<PartyMemberDto> PartyMembers { get; set; }
 
         [Key(3)]
         public int Version { get; set; }

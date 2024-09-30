@@ -103,7 +103,6 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// <summary>
         /// Creates a <see cref="PartySettingsDto"/> object.
         /// </summary>
-        /// <param name="config"></param>
         /// <param name="partyState"></param>
         public PartySettingsDto(PartyState partyState)
         {
@@ -154,16 +153,16 @@ namespace Stormancer.Server.Plugins.Party.Dto
         internal const string Route = "party.settingsUpdated";
 
         /// <summary>
-        /// Gets or sets the name of the gamefinder currently selected.
+        /// Gets or sets the name of the game finder currently selected.
         /// </summary>
         [Key(0)]
-        public string GameFinderName { get; set; }
+        public string? GameFinderName { get; set; }
 
         /// <summary>
         /// Gets or sets custom data associated with the party.
         /// </summary>
         [Key(1)]
-        public string CustomData { get; set; }
+        public string? CustomData { get; set; }
 
         /// <summary>
         /// Gets the settings version.
@@ -196,7 +195,7 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// Json document used as a source to index the party in the in memory database for querying.
         /// </summary>
         [Key(6)]
-        public string IndexedDocument { get; set; }
+        public string? IndexedDocument { get; set; }
 
         /// <summary>
         /// Gets or sets the party id.
@@ -216,6 +215,9 @@ namespace Stormancer.Server.Plugins.Party.Dto
             PartyId = state.Settings.PartyId;
         }
 
+        /// <summary>
+        /// Creates a new instance of <see cref="PartySettingsUpdateDto"/>.
+        /// </summary>
         public PartySettingsUpdateDto()
         {
             // Required for serialization to work

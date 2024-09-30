@@ -29,7 +29,7 @@ using System.Collections.Generic;
 namespace Stormancer.Server.Plugins.Party.Dto
 {
     /// <summary>
-    /// Informations about a party member.
+    /// Information about a party member.
     /// </summary>
     [MessagePackObject]
     public class PartyMemberDto
@@ -38,8 +38,11 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// Gets or sets the Party member's user id.
         /// </summary>
         [Key(0)]
-        public string UserId { get; set; } = default!;
+        public required string UserId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the ready status of the player.
+        /// </summary>
         [Key(1)]
         public PartyMemberStatus PartyUserStatus { get; set; }
 
@@ -47,7 +50,7 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// Gets or sets the party member user data.
         /// </summary>
         [Key(2)]
-        public byte[] UserData { get; set; }
+        public byte[] UserData { get; set; } = Array.Empty<byte>();
 
         /// <summary>
         /// Gets or sets the Party member's session id.
