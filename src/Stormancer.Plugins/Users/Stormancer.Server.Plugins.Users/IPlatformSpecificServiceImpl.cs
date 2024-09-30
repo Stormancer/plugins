@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -28,6 +29,7 @@ namespace Stormancer.Server.Plugins.Users
     /// <summary>
     /// Provides a way for platforms to provide display names for a specific user id.
     /// </summary>
+    [Obsolete]
     public interface IPlatformSpecificServiceImpl
     {
         /// <summary>

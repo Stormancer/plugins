@@ -127,18 +127,18 @@ namespace Stormancer.Server.Plugins.Users
                     dr.Resolve<ILogger>())
                 ).As<IUserSessions>().InstancePerRequest();
 
-             
 
-                b.Register(r=>new SessionsRepository()
+
+                b.Register(r => new SessionsRepository()
                 ).AsSelf().SingleInstance();
 
-                b.Register(r=>new DeviceIdentifierAuthenticationProvider(
+                b.Register(r => new DeviceIdentifierAuthenticationProvider(
                     r.Resolve<IUserService>(),
                     r.Resolve<ILogger>())
                 ).As<IAuthenticationProvider>();
-                
-              
-                
+
+
+
                 b.Register<LoginPasswordAuthenticationProvider>().As<IAuthenticationProvider>();
                 b.Register<AdminImpersonationAuthenticationProvider>().As<IAuthenticationProvider>();
                 b.Register<EphemeralAuthenticationProvider>().As<IAuthenticationProvider>();
@@ -153,16 +153,16 @@ namespace Stormancer.Server.Plugins.Users
         private void HostStarted(IHost host)
         {
             host.EnsureSceneExists(Constants.GetSceneId(), Constants.SCENE_TEMPLATE, true, true);
-            
+
         }
 
         private void RegisterDependencies(IDependencyBuilder b)
         {
             //Indices
-            b.Register<SessionsAnalyticsWorker>().SingleInstance();
-            b.Register<CrossplayService>().InstancePerRequest();
-            b.Register<SceneAuthorizationController>();
-            b.Register(dr=> new UserSessionController(
+            b.Register<SessionsAnalyticsWorker>(static r => new SessionsAnalyticsWorker(r.Resolve<IAnalyticsService>(), r.Resolve<ISceneHost>())).SingleInstance();
+            b.Register<CrossplayService>(static r => new CrossplayService(r.ResolveAll<ICrossplayUserPolicy>())).InstancePerRequest();
+            b.Register<SceneAuthorizationController>(static r => new SceneAuthorizationController(r.Resolve<IEnvironment>(), r.Resolve<IUserSessions>(), r.Resolve<ILogger>()));
+            b.Register(dr => new UserSessionController(
                 dr.Resolve<IUserSessions>(),
                 dr.Resolve<IUserService>(),
                 dr.Resolve<ISerializer>(),
@@ -170,26 +170,26 @@ namespace Stormancer.Server.Plugins.Users
                 dr.Resolve<IEnvironment>(),
                 dr.Resolve<ILogger>(),
                 dr.Resolve<IConfiguration>()));
-            b.Register(dr => new CrossplayController(dr.Resolve<IUserSessions>(),dr.Resolve<CrossplayService>()));
+            b.Register(dr => new CrossplayController(dr.Resolve<IUserSessions>(), dr.Resolve<CrossplayService>()));
             b.Register(dr => new AuthenticationController(
-                dr.Resolve<IAuthenticationService>(), 
-                dr.Resolve<IUserSessions>(), 
+                dr.Resolve<IAuthenticationService>(),
+                dr.Resolve<IUserSessions>(),
                 dr.Resolve<RpcService>(),
                 dr.Resolve<ISceneHost>())
             ).InstancePerRequest();
 
-            b.Register(dr=>new AuthenticationService(
-                dr.Resolve < Func < IEnumerable < IAuthenticationEventHandler >>>(),
+            b.Register(dr => new AuthenticationService(
+                dr.Resolve<Func<IEnumerable<IAuthenticationEventHandler>>>(),
                 dr.Resolve<IEnumerable<IAuthenticationProvider>>(),
                 dr.Resolve<IConfiguration>(),
                 dr.Resolve<IUserService>(),
                 dr.Resolve<IUserSessions>(),
                 dr.Resolve<ILogger>(),
                 dr.Resolve<ISceneHost>()
-                
+
             )).As<IAuthenticationService>().InstancePerRequest();
 
-            b.Register<LocatorProvider>(r=>new LocatorProvider(r.Resolve<IConfiguration>())
+            b.Register<LocatorProvider>(r => new LocatorProvider(r.Resolve<IConfiguration>())
             ).As<IServiceLocatorProvider>();
 
             b.Register(dr => new UserService(
@@ -206,12 +206,9 @@ namespace Stormancer.Server.Plugins.Users
             b.Register<UsersAdminController>().InstancePerRequest();
             b.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
 
-            //b.Register<UserSessionCache>(dr => new UserSessionCache(dr.Resolve<ISceneHost>(), dr.Resolve<ISerializer>(), dr.Resolve<ILogger>())).AsSelf().InstancePerScene();
-            b.Register(dr=>new PlatformSpecificServices(
-                dr.Resolve<IEnumerable<IPlatformSpecificServiceImpl>>())
-            ).As<IPlatformSpecificServices>();
 
-            b.Register(dr=>new Analytics.AnalyticsEventHandler(
+
+            b.Register(dr => new Analytics.AnalyticsEventHandler(
                 dr.Resolve<IAnalyticsService>())
             ).As<IUserSessionEventHandler>();
         }

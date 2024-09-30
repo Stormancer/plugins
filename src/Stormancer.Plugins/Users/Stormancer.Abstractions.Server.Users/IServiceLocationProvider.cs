@@ -68,5 +68,6 @@ namespace Stormancer.Server.Plugins.ServiceLocator
         /// <param name="ctx">Service location context.</param>
         /// <returns>A task that completes when the method completes.</returns>
         Task LocateService(ServiceLocationCtx ctx);
+
     }
 }

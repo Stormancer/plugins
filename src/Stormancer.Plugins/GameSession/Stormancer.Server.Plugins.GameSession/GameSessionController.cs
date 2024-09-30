@@ -40,16 +40,12 @@ namespace Stormancer.Server.Plugins.GameSession
     class GameSessionController : ControllerBase
     {
         private readonly IGameSessionService _service;
-        private readonly ILogger _logger;
         private readonly IUserSessions _sessions;
-        private readonly IEnvironment _environment;
 
-        public GameSessionController(IGameSessionService service, ILogger logger, IUserSessions sessions, IEnvironment environment)
+        public GameSessionController(IGameSessionService service, IUserSessions sessions)
         {
             _service = service;
-            _logger = logger;
             _sessions = sessions;
-            _environment = environment;
         }
 
         protected override Task OnConnecting(IScenePeerClient client)
@@ -76,7 +72,6 @@ namespace Stormancer.Server.Plugins.GameSession
         public async Task PostResults(RequestContext<IScenePeerClient> ctx)
         {
             var session = await _sessions.GetSession(ctx.RemotePeer,ctx.CancellationToken);
-            _logger.Log(LogLevel.Info, $"gamesession.{_service.GameSessionId}", $"Received Post result from {session.User?.Id}", new { }, _service.GameSessionId, session.User?.Id);
             var writer = await _service.PostResults(ctx.InputStream, ctx.RemotePeer, session) ;
             if (!ctx.CancellationToken.IsCancellationRequested)
             {

@@ -34,6 +34,7 @@ using Stormancer.Server.Plugins.Utilities;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
@@ -74,6 +75,13 @@ namespace Stormancer.Server.Plugins.Steam
     }
 
     /// <summary>
+    /// Exception thrown when a leader cannot be found for the lobby.
+    /// </summary>
+    public class SteamLobbyLeaderNotFoundException : Exception
+    {
+
+    }
+    /// <summary>
     /// Steam Party Event Handler.
     /// </summary>
     [Priority(int.MinValue)]
@@ -82,46 +90,27 @@ namespace Stormancer.Server.Plugins.Steam
         private const string LobbyPrefix = "Party-";
         public const string PartyLobbyKey = "steam.lobby";
 
-        private readonly RpcService _rpc;
-        private readonly IUserSessions _userSessions;
+
         private readonly ISteamService _steamService;
         private readonly ILogger _logger;
         private readonly ISceneHost _scene;
-        private readonly ISerializer _serializer;
-        private readonly IServiceLocator _serviceLocator;
-        private readonly IConfiguration _configuration;
+
 
         /// <summary>
         /// Steam Party Event Handler contructor.
         /// </summary>
-        /// <param name="sessions"></param>
         /// <param name="steam"></param>
         /// <param name="logger"></param>
         /// <param name="scene"></param>
-        /// <param name="rpc"></param>
-        /// <param name="serializer"></param>
-        /// <param name="locator"></param>
-        /// <param name="configuration"></param>
         public SteamPartyEventHandler(
-            IUserSessions sessions,
             ISteamService steam,
             ILogger logger,
-            ISceneHost scene,
-            RpcService rpc,
-            ISerializer serializer,
-            IServiceLocator locator,
-            IConfiguration configuration
-
+            ISceneHost scene
         )
         {
-            _rpc = rpc;
-            _userSessions = sessions;
             _steamService = steam;
             _logger = logger;
             _scene = scene;
-            _serializer = serializer;
-            _serviceLocator = locator;
-            _configuration = configuration;
         }
 
 
@@ -271,7 +260,7 @@ namespace Stormancer.Server.Plugins.Steam
                 }
                 return joinSteamLobbyResult;
             }
-            catch(OperationCanceledException)
+            catch (OperationCanceledException)
             {
                 return new VoidSteamResult { ErrorId = "canceled", Success = false };
             }
@@ -283,7 +272,7 @@ namespace Stormancer.Server.Plugins.Steam
             {
 
                 var joinLobbyParameter = new LeaveLobbyArgs { };
-                var joinSteamLobbyResult = await target.RpcTask<LeaveLobbyArgs,VoidSteamResult>("Steam.LeaveLobby",joinLobbyParameter, cancellationToken, PacketPriority.MEDIUM_PRIORITY);
+                var joinSteamLobbyResult = await target.RpcTask<LeaveLobbyArgs, VoidSteamResult>("Steam.LeaveLobby", joinLobbyParameter, cancellationToken, PacketPriority.MEDIUM_PRIORITY);
                 if (!joinSteamLobbyResult.Success)
                 {
                     _logger.Log(LogLevel.Error, "SteamPartyEventHandler.OnJoining", "Steam lobby join failed", new
@@ -303,11 +292,60 @@ namespace Stormancer.Server.Plugins.Steam
             }
         }
 
+        private async Task<TResult> RunSteamCommand<TArgs, TResult>(ulong steamLobbyId, SteamPartyData data, Func<IScenePeerClient, TArgs, CancellationToken, Task<(TResult result, bool retry)>> func, TArgs args, int retries = 1, CancellationToken cancellationToken = default) where TResult : class
+        {
+            var tries = 0;
+            TResult? lastResult = default;
+            Exception? lastException = null;
+            while (tries <= retries)
+            {
+                try
+                {
+                    var leader = await GetLobbyLeaderAsync(steamLobbyId, data, tries > 0, cancellationToken);
+                    if (leader == null)
+                    {
+                        throw new SteamLobbyLeaderNotFoundException();
+                    }
+                    var (result, retry) = await func(leader, args, cancellationToken);
 
-        private async Task<IScenePeerClient?> GetLobbyLeaderAsync(ulong steamLobbyId, SteamPartyData data, CancellationToken cancellationToken)
+                    lastResult = result;
+                    if (!retry)
+                    {
+                        return result;
+                    }
+
+                    await Task.Delay(500);
+                }
+                catch (SteamLobbyLeaderNotFoundException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    lastException = ex;
+                    await Task.Delay(500);
+                }
+
+
+                tries++;
+            }
+
+            if (lastException != null)
+            {
+                throw lastException;
+            }
+            else
+            {
+                //If last exception is not filled, lastResult has been set at least once.
+                return lastResult!;
+            }
+
+        }
+
+        private async Task<IScenePeerClient?> GetLobbyLeaderAsync(ulong steamLobbyId, SteamPartyData data, bool forceRefresh, CancellationToken cancellationToken)
         {
             var peer = _scene.RemotePeers.FirstOrDefault(p => p.SessionId == data.CurrentLeaderSessionId);
-            if (peer == null)
+            if (peer == null || forceRefresh)
             {
                 return await UpdateLobbyLeaderAsync(steamLobbyId, data, cancellationToken);
             }
@@ -326,8 +364,8 @@ namespace Stormancer.Server.Plugins.Steam
             }
             else
             {
-                var result = await peer.RpcTask<JoinLobbyArgs,GetLobbyLeaderSteamResult>("Steam.GetLobbyOwner",new JoinLobbyArgs { SteamIDLobby = steamLobbyId },cancellationToken, Core.PacketPriority.MEDIUM_PRIORITY);
-               
+                var result = await peer.RpcTask<JoinLobbyArgs, GetLobbyLeaderSteamResult>("Steam.GetLobbyOwner", new JoinLobbyArgs { SteamIDLobby = steamLobbyId }, cancellationToken, Core.PacketPriority.MEDIUM_PRIORITY);
+
                 if (!result.Success)
                 {
                     _logger.Log(LogLevel.Error, "SteamPartyEventHandler.GetLobbyLeader", "get Steam lobby leader failed", new
@@ -360,27 +398,24 @@ namespace Stormancer.Server.Plugins.Steam
         {
             try
             {
-                var target = await GetLobbyLeaderAsync(steamLobbyId, data, cancellationToken);
-                if (target == null)
-                {
-                    return new VoidSteamResult { Success = false, ErrorDetails = "leader not found" };
-                }
 
-                var args = new UpdateLobbyJoinableArgs { Joinable = joinable, SteamIDLobby = steamLobbyId };
-                var result = await target.RpcTask<UpdateLobbyJoinableArgs, VoidSteamResult>("Steam.UpdateLobbyJoinable", args, cancellationToken, Core.PacketPriority.MEDIUM_PRIORITY);
 
-                if (!result.Success)
+                return await RunSteamCommand(steamLobbyId, data, static async (target, state, ct) =>
                 {
-                    _logger.Log(LogLevel.Error, "SteamPartyEventHandler.SetLobbyJoinableAsync", "Steam lobby set joinable failed", new
+                    var (joinable, steamLobbyId) = state;
+                    if (target == null)
                     {
+                        return (new VoidSteamResult { Success = false, ErrorDetails = "leader not found" },true);
+                    }
 
-                        result.ErrorId,
-                        result.ErrorDetails
-                    });
+                    var args = new UpdateLobbyJoinableArgs { Joinable = joinable, SteamIDLobby = steamLobbyId };
+                    var result = await target.RpcTask<UpdateLobbyJoinableArgs, VoidSteamResult>("Steam.UpdateLobbyJoinable", args, ct, Core.PacketPriority.MEDIUM_PRIORITY);
 
 
-                }
-                return result;
+                    return (result, !result.Success);
+
+                }, (joinable, steamLobbyId), 1, cancellationToken);
+
             }
             catch (InvalidOperationException ex) //don't bubble up exceptions occurring when the steam client can't process the request.
             {

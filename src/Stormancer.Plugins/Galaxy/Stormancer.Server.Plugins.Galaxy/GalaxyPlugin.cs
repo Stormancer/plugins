@@ -39,17 +39,7 @@ namespace Stormancer.Server.Plugins.Galaxy
         }
     }
 
-    internal class GalaxyServiceLocator : IServiceLocatorProvider
-    {
-        public Task LocateService(ServiceLocationCtx ctx)
-        {
-            if (ctx.ServiceType == "stormancer.galaxy")
-            {
-                ctx.SceneId = Constants.GetSceneId();
-            }
-            return Task.CompletedTask;
-        }
-    }
+
 }
 
 namespace Stormancer

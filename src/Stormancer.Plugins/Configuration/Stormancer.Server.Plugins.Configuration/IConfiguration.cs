@@ -37,7 +37,7 @@ namespace Stormancer.Server.Plugins.Configuration
     /// Object registered in the dependency container implementing this interface are notified of configuration changes.
     /// </summary>
     /// <remarks>
-    /// The object must be registered as an "host" or "scene" dependency. "Reques"t and "per dependency" scoped dependencies are not notified.
+    /// The object must be registered as an "host" or "scene" dependency. "Request" and "per dependency" scoped dependencies are not notified.
     /// </remarks>
     public interface IConfigurationChangedEventHandler
     {

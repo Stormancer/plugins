@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using Stormancer.Core;
+using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Friends;
@@ -42,23 +43,17 @@ namespace Stormancer.Server.Plugins.Steam
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
-                builder.Register<SteamController>().InstancePerRequest();
-                builder.Register<SteamPartyController>().InstancePerRequest();
-                builder.Register<SteamProfilePartBuilder>().As<IProfilePartBuilder>();
-                builder.Register<SteamService>().As<ISteamService>();
-                builder.Register<SteamKeyStore>().As<IConfigurationChangedEventHandler>().AsSelf().SingleInstance();
-                builder.Register<SteamFriendsEventHandler>().As<IFriendsEventHandler>();
-                builder.Register<SteamPartyEventHandler>().As<IPartyEventHandler>().InstancePerRequest();
-                builder.Register<SteamServiceLocator>().As<IServiceLocatorProvider>();
-                builder.Register<SteamPlatformInvitationsHandler>().As<IPartyPlatformSupport>().InstancePerRequest();
-            };
-
-            ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
-            {
-                if (scene.Template == Constants.SCENE_TEMPLATE)
-                {
-                    builder.Register<SteamAuthenticationProvider>().As<IAuthenticationProvider>();
-                }
+                builder.Register(static r=> new SteamController(r.Resolve<IUserService>(),r.Resolve<ISteamService>())).InstancePerRequest();
+                builder.Register(static r=> new SteamPartyController(r.Resolve<IPartyService>(),r.Resolve<IUserService>(),r.Resolve<ISteamService>())).InstancePerRequest();
+                builder.Register(static r=>new SteamProfilePartBuilder(r.Resolve<IUserService>(),r.Resolve<ISteamService>(),r.Resolve<ILogger>())).As<IProfilePartBuilder>();
+                builder.Register(static r => new ConfigurationMonitor<SteamConfigurationSection>(r.Resolve<IConfiguration>())).SingleInstance();
+                builder.Register(static r=>new SteamService(r.Resolve<ConfigurationMonitor<SteamConfigurationSection>>(),r.Resolve<ILogger>(),r.Resolve<IUserSessions>(),r.Resolve<SteamKeyStore>())).As<ISteamService>();
+                builder.Register(static r=> new SteamKeyStore(r.Resolve<IConfiguration>(),r.Resolve<Secrets.ISecretsStore>(),r.Resolve<ILogger>())).As<IConfigurationChangedEventHandler>().AsSelf().SingleInstance();
+                builder.Register(static r=> new SteamFriendsEventHandler(r.Resolve<IUserSessions>(),r.Resolve<IUserService>(),r.Resolve<ISteamService>(),r.Resolve<ISceneHost>())).As<IFriendsEventHandler>();
+                builder.Register(static r=> new SteamPartyEventHandler(r.Resolve<ISteamService>(),r.Resolve<ILogger>(),r.Resolve<ISceneHost>())).As<IPartyEventHandler>().InstancePerRequest();
+                builder.Register(static r=> SteamServiceLocator.Instance).As<IServiceLocatorProvider>();
+                builder.Register(static r=> new SteamPlatformInvitationsHandler(r.Resolve<ISceneHost>(),r.Resolve<IFriendsService>())).As<IPartyPlatformSupport>().InstancePerRequest();
+                builder.Register(static r=> new SteamAuthenticationProvider(r.Resolve<ConfigurationMonitor<SteamConfigurationSection>>(),r.Resolve<ILogger>(),r.Resolve<IUserService>(),r.Resolve<ISteamService>())).As<IAuthenticationProvider>();
             };
 
             ctx.SceneCreating += (ISceneHost scene) =>
@@ -88,6 +83,7 @@ namespace Stormancer.Server.Plugins.Steam
 
     internal class SteamServiceLocator : IServiceLocatorProvider
     {
+        public static SteamServiceLocator Instance { get; } = new SteamServiceLocator();
         public Task LocateService(ServiceLocationCtx ctx)
         {
             if (ctx.ServiceType == "stormancer.steam")

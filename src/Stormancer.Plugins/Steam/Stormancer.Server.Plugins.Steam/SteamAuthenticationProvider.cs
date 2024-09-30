@@ -91,8 +91,8 @@ namespace Stormancer.Server.Plugins.Steam
     class SteamAuthenticationProvider : IAuthenticationProvider, IUserSessionEventHandler
     {
         private ConcurrentDictionary<ulong, string> _vacSessions = new ConcurrentDictionary<ulong, string>();
-        private bool _vacEnabled = false;
-        private string _defaultAuthProtocol;
+    
+        private readonly ConfigurationMonitor<SteamConfigurationSection> _configuration;
         private ILogger _logger;
         private readonly IUserService _users;
         private readonly ISteamService _steam;
@@ -105,13 +105,12 @@ namespace Stormancer.Server.Plugins.Steam
         /// <param name="logger"></param>
         /// <param name="users"></param>
         /// <param name="steam"></param>
-        public SteamAuthenticationProvider(IConfiguration configuration, ILogger logger, IUserService users, ISteamService steam)
+        public SteamAuthenticationProvider(ConfigurationMonitor<SteamConfigurationSection> configuration, ILogger logger, IUserService users, ISteamService steam)
         {
+            this._configuration = configuration;
             _logger = logger;
             _users = users;
             _steam = steam;
-
-            ApplyConfig(configuration.Settings);
 
         }
 
@@ -124,11 +123,7 @@ namespace Stormancer.Server.Plugins.Steam
             result["provider.steamauthentication"] = "enabled";
         }
 
-        private void ApplyConfig(dynamic config)
-        {
-            _vacEnabled = config?.steam?.vac ?? false;
-            _defaultAuthProtocol = config.auth?.steam?.defaultAuthProtocol ?? "v0001";
-        }
+     
 
         /// <summary>
         /// On logged in.
@@ -188,7 +183,7 @@ namespace Stormancer.Server.Plugins.Steam
             }
             if (!authenticationCtx.Parameters.TryGetValue("version", out var versionStr))
             {
-                versionStr = _defaultAuthProtocol;
+                versionStr = _configuration.Value.defaultAuthProtocol;
             }
             try
             {
@@ -197,7 +192,7 @@ namespace Stormancer.Server.Plugins.Steam
 
                 pId.PlatformUserId = steamId.ToString()!;
 
-                if (_vacEnabled)
+                if (_configuration.Value.vac)
                 {
 
                     string vacSessionId;
@@ -264,7 +259,6 @@ namespace Stormancer.Server.Plugins.Steam
                         user.LastPlatform = SteamConstants.PLATFORM_NAME;
                     }
 
-                    bool updateUserData = false;
                     //if (playerSummary != null)
                     //{
                     //    var userDataSteamId = user.UserData[SteamConstants.STEAM_ID];

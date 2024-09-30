@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Stormancer.Core;
+using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
 using Stormancer.Server.Plugins.GameSession;
@@ -32,10 +34,10 @@ namespace Stormancer.Server.Plugins.GameHistory
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
-                builder.Register<GameHistoryService>();
-                builder.Register<GameHistoryStorage>();
-                builder.Register<GameHistoryGameSessionEventHandler>().As<IGameSessionEventHandler>().InstancePerRequest();
-                builder.Register<GameHistoryDbModelBuilder>().As<IDbModelBuilder>();
+                builder.Register(static r=>new GameHistoryService(r.Resolve<GameHistoryStorage>()));
+                builder.Register(static r=> new GameHistoryStorage(r.Resolve<DbContextAccessor>()));
+                builder.Register(static r=> new GameHistoryGameSessionEventHandler(r.Resolve<GameHistoryService>(),r.Resolve<DbContextAccessor>(),r.Resolve<ISceneHost>(),r.Resolve<ILogger>())).As<IGameSessionEventHandler>().InstancePerRequest();
+                builder.Register<GameHistoryDbModelBuilder>(static r=> new GameHistoryDbModelBuilder()).As<IDbModelBuilder>();
             };
         }
     }

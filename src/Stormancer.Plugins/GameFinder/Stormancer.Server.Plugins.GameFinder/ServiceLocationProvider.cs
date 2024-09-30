@@ -8,6 +8,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 {
     class ServiceLocationProvider : IServiceLocatorProvider
     {
+        public static ServiceLocationProvider Instance { get; } = new ServiceLocationProvider();
         public Task LocateService(ServiceLocationCtx ctx)
         {
             switch(ctx.ServiceType)

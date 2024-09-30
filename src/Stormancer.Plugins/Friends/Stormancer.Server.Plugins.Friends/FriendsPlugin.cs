@@ -67,10 +67,11 @@ namespace Stormancer.Server.Plugins.Friends
             {
                 builder.Register<FriendsPartyCompatibilityPolicy>().As<IPartyCompatibilityPolicy>().As<IPartyEventHandler>().InstancePerRequest();
                 builder.Register<FriendsController>().InstancePerRequest();
-                builder.Register<FriendsSceneLocator>().As<IServiceLocatorProvider>();
+                builder.Register(static r=>FriendsSceneLocator.Instance).As<IServiceLocatorProvider>();
                 builder.Register<FriendsRepository>().InstancePerScene();
                 builder.Register<FriendsDbModelBuilder>().As<IDbModelBuilder>();
                 builder.Register<MembersStorageService>();
+                builder.Register(dr => new FriendsServiceProxy(dr.Resolve<FriendsProxy>())).As<IFriendsService>().InstancePerRequest();
             };
             
             ctx.SceneDependenciesRegistration+=(IDependencyBuilder builder, ISceneHost scene) =>
@@ -79,10 +80,7 @@ namespace Stormancer.Server.Plugins.Friends
                 {
                     builder.Register<FriendsService>().As<IFriendsService>().InstancePerRequest();
                 }
-                else
-                {
-                    builder.Register(dr=>new FriendsServiceProxy(dr.Resolve<FriendsProxy>())).As<IFriendsService>().InstancePerRequest();
-                }
+               
             };
 
             ctx.HostStarting += (IHost host) =>
@@ -118,6 +116,8 @@ namespace Stormancer.Server.Plugins.Friends
 
     class FriendsSceneLocator : IServiceLocatorProvider
     {
+        
+        public static FriendsSceneLocator Instance { get; } = new FriendsSceneLocator();
         public Task LocateService(ServiceLocationCtx ctx)
         {
             switch (ctx.ServiceType)

@@ -37,6 +37,9 @@ using System.Threading;
 using Microsoft.IO;
 using Stormancer.Server.Plugins.Utilities;
 using Stormancer.Abstractions.Server.Components;
+using Newtonsoft.Json.Bson;
+using Stormancer.Server.Plugins.Database;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Stormancer.Server.Plugins.ServiceLocator
 {
@@ -66,6 +69,27 @@ namespace Stormancer.Server.Plugins.ServiceLocator
         public IEnumerable<IServiceLocatorProvider> Providers { get; }
     }
 
+    internal class ServiceLocatorConfiguration : IConfigurationChangedEventHandler
+    {
+        public ServiceLocatorConfig Value { get; private set; }
+        private readonly IConfiguration _configuration;
+
+        public ServiceLocatorConfiguration(IConfiguration configuration)
+        {
+            this._configuration = configuration;
+            UpdateConfiguration();
+        }
+
+        [MemberNotNull("Value")]
+        private void UpdateConfiguration()
+        {
+            Value = _configuration.GetValue<ServiceLocatorConfig>("serviceLocator") ?? new ServiceLocatorConfig();
+        }
+        public void OnConfigurationChanged()
+        {
+            UpdateConfiguration();
+        }
+    }
     internal class ServiceLocator : IServiceLocator
     {
         private readonly IEnvironment _env;
@@ -78,13 +102,13 @@ namespace Stormancer.Server.Plugins.ServiceLocator
         private readonly ServiceLocatorProviderRepository _providers;
         private readonly ILogger _logger;
 
-        private ServiceLocatorConfig? _config;
+        private ServiceLocatorConfiguration _config;
 
         public ServiceLocator(
            ServiceLocatorProviderRepository providers,
             IScenesManager management,
             IEnvironment env,
-            IConfiguration config,
+            ServiceLocatorConfiguration config,
             IClusterSerializer serializer,
             Stormancer.Server.Plugins.Utilities.RecyclableMemoryStreamProvider memoryStreamProvider,
             ISceneHost scene,
@@ -101,15 +125,13 @@ namespace Stormancer.Server.Plugins.ServiceLocator
             _management = management;
             _providers = providers;
             _logger = logger;
-
+            _config = config;
+           
             //config.SettingsChanged += (sender, args) => Config_SettingsChanged(args);
-            Config_SettingsChanged(config.Settings);
+          
         }
 
-        private void Config_SettingsChanged(dynamic e)
-        {
-            _config = (e.serviceLocator as JObject)?.ToObject<ServiceLocatorConfig>() ?? new ServiceLocatorConfig();
-        }
+       
 
         public async Task<string> GetSceneConnectionToken(string serviceType, string serviceName, Session? session)
         {
@@ -152,7 +174,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
             var ctx = new ServiceLocationCtx { ServiceName = serviceName, ServiceType = serviceType, Session = session };
             await handlers.RunEventHandler(slp => slp.LocateService(ctx), ex => _logger.Log(LogLevel.Error, "serviceLocator", "An error occurred while executing the LocateService extensibility point", ex));
 
-            if (_config != null && string.IsNullOrEmpty(ctx.SceneId) && _config.DefaultMapping.TryGetValue(ctx.ServiceType, out var template))
+            if (_config != null && string.IsNullOrEmpty(ctx.SceneId) && _config.Value.DefaultMapping.TryGetValue(ctx.ServiceType, out var template))
             {
                 ctx.SceneId = Smart.Format(template, ctx);
             }

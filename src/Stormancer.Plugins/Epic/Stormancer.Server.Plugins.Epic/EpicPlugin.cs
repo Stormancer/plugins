@@ -27,7 +27,7 @@ namespace Stormancer.Server.Plugins.Epic
                 builder.Register<EpicController>().InstancePerRequest();
                 builder.Register<EpicProfilePartBuilder>().As<IProfilePartBuilder>();
                 builder.Register<EpicService>().As<IEpicService>();
-                builder.Register<EpicServiceLocator>().As<IServiceLocatorProvider>();
+                builder.Register(static r=>EpicServiceLocator.Instance).As<IServiceLocatorProvider>();
                 builder.Register<EpicFriendsEventHandler>().As<IFriendsEventHandler>().InstancePerRequest(); 
                 builder.Register<EpicAuthenticationProvider>().As<IAuthenticationProvider>();
             };
@@ -54,6 +54,7 @@ namespace Stormancer.Server.Plugins.Epic
 
     internal class EpicServiceLocator : IServiceLocatorProvider
     {
+        public static EpicServiceLocator Instance { get; } = new EpicServiceLocator();
         public Task LocateService(ServiceLocationCtx ctx)
         {
             if (ctx.ServiceType == "stormancer.epic")

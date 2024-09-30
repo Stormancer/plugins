@@ -29,11 +29,12 @@ namespace Stormancer.Server.Plugins.Users.Analytics
             using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
             while (!cancellationToken.IsCancellationRequested)
             {
-
-                await timer.WaitForNextTickAsync(cancellationToken);
-                await using var scope = _scene.CreateRequestScope();
                 try
                 {
+                    await timer.WaitForNextTickAsync(cancellationToken);
+               
+                    await using var scope = _scene.CreateRequestScope();
+               
                     var userSessions = (UserSessions)scope.Resolve<IUserSessions>();
                     var groups = await userSessions.GetAuthenticatedUsersByDimensionsAsync();
                     foreach (var group in groups)

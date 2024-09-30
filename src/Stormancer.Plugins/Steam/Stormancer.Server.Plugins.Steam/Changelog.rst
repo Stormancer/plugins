@@ -15,6 +15,7 @@ Unreleased
 Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
+- Performance optimizations.
 
 Added
 *****
@@ -22,6 +23,7 @@ Added
 - Added support for multiple appIds, the client advertises its appId when sending the authentication request. If no appId is set, it defaults to the appId provided in the server configuration (field `steam.appId`). Additional authorized appId are configured by setting the `steam.appIds` server configuration to a list of steam app ids.
 - Added `defaultAuthProtocol` field to the steam auth config section. This enables developer to chose the default Steam auth protocol to use if the client doesn't provide it. Defaults to v0001, the oldest protocol. This can be useful if you use a modified steam.hpp in the game client that doesn't advertise its protocol version and doesn't use v0001.
 - Added steam id to friends with a steam account.
+- Fix https://github.com/Stormancer/plugins/issues/15
 
 Fixed
 *****
@@ -29,6 +31,7 @@ Fixed
 - Fixed serialization issue when retrieving the owner of a steam lobby from a lobby member.
 - Don't call Steam leave lobby web API on player leave lobby because it doesn't work with webAPI tokens.
 - Prevent cancellations from being logged as errors in SteamPartyEventHandler.Joined
+- Fixed 
 
 Changed
 *******

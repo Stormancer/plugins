@@ -68,12 +68,13 @@ namespace Stormancer.Server.Plugins.ServiceLocator
               };
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
               {
-                  builder.Register<ServiceLocatorProviderRepository>(r => new ServiceLocatorProviderRepository(r.ResolveAll<IServiceLocatorProvider>())).SingleInstance();
-                  builder.Register<ServiceLocator>(r=>new ServiceLocator(
+                  builder.Register(static r => new ServiceLocatorConfiguration(r.Resolve<IConfiguration>())).AsSelf().As<IConfigurationChangedEventHandler>().SingleInstance();
+                  builder.Register(static r => new ServiceLocatorProviderRepository(r.ResolveAll<IServiceLocatorProvider>())).SingleInstance();
+                  builder.Register(static r=>new ServiceLocator(
                       r.Resolve<ServiceLocatorProviderRepository>(),
                       r.Resolve<IScenesManager>(),
                       r.Resolve<IEnvironment>(),
-                      r.Resolve<IConfiguration>(),
+                      r.Resolve<ServiceLocatorConfiguration>(),
                       r.Resolve<IClusterSerializer>(),
                       r.Resolve<RecyclableMemoryStreamProvider>(),
                       r.Resolve<ISceneHost>(),
@@ -82,11 +83,11 @@ namespace Stormancer.Server.Plugins.ServiceLocator
                       r.Resolve<ILogger>())
                   ).As<IServiceLocator>().InstancePerRequest();
                   
-                  builder.Register<ServiceLocatorDbApiHandler>(r=> new ServiceLocatorDbApiHandler(
+                  builder.Register(static r=> new ServiceLocatorDbApiHandler(
                       r.Resolve<ServiceLocatorHostDatabase>())
                   ).As<IApiHandler>();
 
-                  builder.Register<ServiceLocatorHostDatabase>(r=>new ServiceLocatorHostDatabase()).SingleInstance();
+                  builder.Register(static r=>new ServiceLocatorHostDatabase()).SingleInstance();
               };
             ctx.SceneCreated += (ISceneHost scene) =>
             {

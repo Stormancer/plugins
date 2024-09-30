@@ -149,13 +149,19 @@ namespace Stormancer.Server.Plugins.Steam
         }
     }
 
+
     /// <summary>
     /// Steam configuration section
     /// </summary>
-    public class SteamConfigurationSection
+    public class SteamConfigurationSection : IConfigurationSection<SteamConfigurationSection>
     {
 
-        internal const string SECTION_KEY = "steam";
+  
+        ///<inheritdoc/>
+        public static string SectionPath { get; }= "steam";
+
+        ///<inheritdoc/>
+        public static SteamConfigurationSection Default { get; } = new SteamConfigurationSection();
 
         /// <summary>
         /// The Game Steam App Id
@@ -192,6 +198,19 @@ namespace Stormancer.Server.Plugins.Steam
         /// </remarks>
         public string? apiKey { get; set; }
 
+        /// <summary>
+        /// Determines if the VAC is enabled.
+        /// </summary>
+        public bool vac { get; set; }
+
+        /// <summary>
+        /// The auth protocol to use by default.
+        /// </summary>
+        /// <remarks>
+        /// Defaults to `v0001`.
+        /// </remarks>
+        public string defaultAuthProtocol { get; set; } = "v0001";
+
     }
 
     /// <summary>
@@ -216,7 +235,7 @@ namespace Stormancer.Server.Plugins.Steam
         private const string FallbackApiRooWithIp = "https://208.64.202.87";
 
 
-        private SteamConfigurationSection _configSection;
+        private readonly ConfigurationMonitor<SteamConfigurationSection> _configSection;
 
 
         private readonly ILogger _logger;
@@ -233,13 +252,13 @@ namespace Stormancer.Server.Plugins.Steam
         /// <param name="logger"></param>
         /// <param name="userSessions"></param>
         /// <param name="keyStore"></param>
-        public SteamService(IConfiguration configuration, ILogger logger, IUserSessions userSessions, SteamKeyStore keyStore)
+        public SteamService(ConfigurationMonitor<SteamConfigurationSection> configuration, ILogger logger, IUserSessions userSessions, SteamKeyStore keyStore)
         {
             _logger = logger;
             _userSessions = userSessions;
             this.keyStore = keyStore;
 
-            _configSection = configuration.GetValue<SteamConfigurationSection>(SteamConfigurationSection.SECTION_KEY);
+            _configSection = configuration;
 
         }
 
@@ -247,26 +266,26 @@ namespace Stormancer.Server.Plugins.Steam
 
         public async Task<(ulong steamId, uint appId)> AuthenticateUserTicket(string ticket, uint? appId, SteamAuthenticationProtocolVersion protocol)
         {
-            if (protocol == SteamAuthenticationProtocolVersion.V1 && _configSection.backendIdentity == null)
+            if (protocol == SteamAuthenticationProtocolVersion.V1 && _configSection.Value.backendIdentity == null)
             {
                 throw new InvalidOperationException("'backendIdentity' must be set to use the v1 steam authentication protocol.");
             }
             var apiV1 = protocol == SteamAuthenticationProtocolVersion.V1;
 
-            var actualAppId = appId ?? _configSection.appId;
+            var actualAppId = appId ?? _configSection.Value.appId;
 
-            if (_configSection.appIds.Any())
+            if (_configSection.Value.appIds.Any())
             {
-                if (!_configSection.appIds.Contains(actualAppId))
+                if (!_configSection.Value.appIds.Contains(actualAppId))
                 {
-                    throw new InvalidOperationException($"'{actualAppId}' is not an authorized Steam AppId. Authorized AppId ars '{string.Join(',', _configSection.appIds)}'");
+                    throw new InvalidOperationException($"'{actualAppId}' is not an authorized Steam AppId. Authorized AppId ars '{string.Join(',', _configSection.Value.appIds)}'");
                 }
             }
             else
             {
-                if (actualAppId != _configSection.appId)
+                if (actualAppId != _configSection.Value.appId)
                 {
-                    throw new InvalidOperationException($"'{actualAppId}' is not an authorized Steam AppId. Authorized AppId is '{_configSection.appId}'");
+                    throw new InvalidOperationException($"'{actualAppId}' is not an authorized Steam AppId. Authorized AppId is '{_configSection.Value.appId}'");
                 }
             }
 
@@ -284,7 +303,7 @@ namespace Stormancer.Server.Plugins.Steam
 
             if (apiV1)
             {
-                querystring += $"&identity={_configSection.backendIdentity}";
+                querystring += $"&identity={_configSection.Value.backendIdentity}";
             }
 
             using (var response = await TryGetAsync(AuthenticateUri + querystring))
@@ -301,7 +320,7 @@ namespace Stormancer.Server.Plugins.Steam
                 var json = await response.Content.ReadAsStringAsync();
                 var steamResponse = JsonConvert.DeserializeObject<SteamAuthenticationResponse>(json);
 
-                if (steamResponse.response == null)
+                if (steamResponse?.response == null)
                 {
                     throw new SteamException($"The Steam API failed to authenticate user ticket. The response is null.'. AppId : {actualAppId}");
                 }
@@ -439,9 +458,12 @@ namespace Stormancer.Server.Plugins.Steam
                     var json = await response.Content.ReadAsStringAsync();
                     var steamResponse = JsonConvert.DeserializeObject<SteamPlayerSummariesResponse>(json);
 
-                    foreach (var summary in steamResponse.response.players)
+                    if (steamResponse != null)
                     {
-                        result.Add(summary.steamid, summary);
+                        foreach (var summary in steamResponse.response.players)
+                        {
+                            result.Add(summary.steamid, summary);
+                        }
                     }
                 }
             }
@@ -497,7 +519,7 @@ namespace Stormancer.Server.Plugins.Steam
 
             var createLobbyInputJson = new
             {
-                appid = _configSection.appId,
+                appid = _configSection.Value.appId,
                 lobby_name = lobbyName,
                 lobby_type = (int)LobbyType.FriendsOnly,
                 max_members = maxMembers,
@@ -523,7 +545,7 @@ namespace Stormancer.Server.Plugins.Steam
             var jsonResponse = await response.Content.ReadAsStringAsync();
             var json = JsonConvert.DeserializeObject<SteamCreateLobbyResponse>(jsonResponse);
 
-            if (json.response == null)
+            if (json?.response == null)
             {
                 throw new InvalidOperationException("Lobby creation failed (response is null).");
             }

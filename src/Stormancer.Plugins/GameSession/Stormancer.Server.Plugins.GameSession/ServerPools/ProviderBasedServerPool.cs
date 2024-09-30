@@ -44,7 +44,6 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         private readonly ISceneHost scene;
         private readonly IDataProtector _dataProtector;
         private readonly GameSessionEventsRepository _events;
-        private readonly IGameSessions gameSessions;
 
         public ProviderBasedServerPoolProvider(IEnumerable<IGameServerProvider> serverProviders, ILogger logger, ISceneHost scene, IDataProtector dataProtector, GameSessionEventsRepository events)
         {
@@ -82,16 +81,16 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
     }
     class GameServerAuthClaims
     {
-        public string ProviderType { get; set; }
-        public string GameServerId { get; set; }
+        public required string ProviderType { get; set; }
+        public required string GameServerId { get; set; }
     }
     class ProviderBasedServerPool : IServerPool
     {
         private class GameServerRequest
         {
-            public TaskCompletionSource<WaitGameServerResult> RequestCompletedCompletionSource { get; set; }
-            public GameSessionConfiguration GameSessionConfiguration { get; set; }
-            public string Id { get; set; }
+            public required TaskCompletionSource<WaitGameServerResult> RequestCompletedCompletionSource { get; set; }
+            public required GameSessionConfiguration GameSessionConfiguration { get; set; }
+            public required string Id { get; set; }
             public CancellationToken CancellationToken { get; internal set; }
         }
 

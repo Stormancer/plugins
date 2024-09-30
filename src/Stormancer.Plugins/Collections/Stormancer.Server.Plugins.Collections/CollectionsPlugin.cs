@@ -26,7 +26,7 @@ namespace Stormancer.Server.Plugins.Collections
                 builder.Register<CollectionsService>().As<ICollectionService>().InstancePerRequest();
                 builder.Register<CollectionsRepository>().As<IConfigurationChangedEventHandler>().AsSelf().SingleInstance();
                 builder.Register<CollectionProfilePartBuilder>().As<IProfilePartBuilder>().InstancePerRequest();
-                builder.Register<CollectionServiceLocator>().As<IServiceLocatorProvider>();
+                builder.Register<CollectionServiceLocator>(r=> CollectionServiceLocator.Instance).As<IServiceLocatorProvider>();
                 builder.Register<CollectionsModelConfiguration>().As<IDbModelBuilder>();
             };
 
@@ -56,6 +56,7 @@ namespace Stormancer.Server.Plugins.Collections
 
     internal class CollectionServiceLocator : IServiceLocatorProvider
     {
+        public static CollectionServiceLocator Instance { get; } = new CollectionServiceLocator();
         public Task LocateService(ServiceLocationCtx ctx)
         {
             if (ctx.ServiceType == CollectionsPlugin.SERVICE_ID)

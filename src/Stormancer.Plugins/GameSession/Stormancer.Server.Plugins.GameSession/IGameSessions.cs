@@ -108,20 +108,20 @@ namespace Stormancer.Server.Plugins.GameSession
 
     internal class GameSessions : IGameSessions
     {
-        private readonly IScenesManager management;
+        private readonly Lazy<IScenesManager> management;
         private readonly RecyclableMemoryStreamProvider _memoryStreamProvider;
         private readonly IEnvironment _env;
-        private readonly GameSessionProxy s2SProxy;
-        private readonly IUserSessions sessions;
+        private readonly Lazy<GameSessionProxy> s2SProxy;
+        private readonly Lazy<IUserSessions> sessions;
         private readonly ISerializer serializer;
         private readonly JsonSerializer _jsonSerializer;
 
         public GameSessions(
-            IScenesManager management,
+            Lazy<IScenesManager> management,
             RecyclableMemoryStreamProvider memoryStreamProvider, 
             IEnvironment env,
-            GameSessionProxy s2sProxy, 
-            IUserSessions sessions,
+            Lazy<GameSessionProxy> s2sProxy, 
+            Lazy<IUserSessions> sessions,
             ISerializer serializer,
             JsonSerializer jsonSerializer)
         {
@@ -137,7 +137,7 @@ namespace Stormancer.Server.Plugins.GameSession
         public async Task Create(string template, string id, GameSessionConfiguration config, CancellationToken cancellationToken)
         {
             var appInfos = await _env.GetApplicationInfos();
-            await management.CreateOrUpdateSceneAsync(new Platform.Core.Models.SceneDefinition { 
+            await management.Value.CreateOrUpdateSceneAsync(new Platform.Core.Models.SceneDefinition { 
                 AccountId = appInfos.AccountId,
                 Application = appInfos.ApplicationName,
                 Id = id,
@@ -160,12 +160,12 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             using (var stream = _memoryStreamProvider.GetStream())
             {
-                var session = await sessions.GetSessionById(userSessionId, cancellationToken);
+                var session = await sessions.Value.GetSessionById(userSessionId, cancellationToken);
                 serializer.Serialize(session,(IBufferWriter<byte>) stream);
                 return await TaskHelper.Retry(async (_, _) => version switch
                 {
-                    TokenVersion.V3 => await management.CreateConnectionTokenAsync(id, stream.ToArray(), "stormancer/userSession",3),
-                    TokenVersion.V1 => await management.CreateConnectionTokenAsync(id, stream.ToArray(), "stormancer/userSession",1),
+                    TokenVersion.V3 => await management.Value.CreateConnectionTokenAsync(id, stream.ToArray(), "stormancer/userSession",3),
+                    TokenVersion.V1 => await management.Value.CreateConnectionTokenAsync(id, stream.ToArray(), "stormancer/userSession",1),
                     _ => throw new InvalidOperationException("Unhandled TokenVersion value")
 
                 }, RetryPolicies.IncrementalDelay(4, TimeSpan.FromSeconds(200)), CancellationToken.None, ex => true,true) ;
@@ -174,17 +174,17 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public Task<GameSessionReservation?> CreateReservation(string gameSessionId, Team team, JObject args, CancellationToken cancellationToken)
         {
-            return s2SProxy.CreateReservation(gameSessionId, team, args, cancellationToken);
+            return s2SProxy.Value.CreateReservation(gameSessionId, team, args, cancellationToken);
         }
 
         public Task CancelReservation(string gameSessionId, string reservationId, CancellationToken cancellationToken)
         {
-            return s2SProxy.CancelReservation(gameSessionId, reservationId, cancellationToken);
+            return s2SProxy.Value.CancelReservation(gameSessionId, reservationId, cancellationToken);
         }
 
         public Task<string> CreateServerConnectionToken(string gameSessionId, string serverId)
         {
-            return management.CreateConnectionTokenAsync(gameSessionId, Encoding.UTF8.GetBytes(serverId), "application/server-id");
+            return management.Value.CreateConnectionTokenAsync(gameSessionId, Encoding.UTF8.GetBytes(serverId), "application/server-id");
         }
     }
 }

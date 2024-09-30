@@ -36,26 +36,19 @@ namespace Stormancer.Server.Plugins.Analytics
 {
     class AnalyticsService : IAnalyticsService
     {
-        private const string LOG_CATEGORY = "Analytics";
        
         private readonly ConcurrentDictionary<string, ConcurrentQueue<AnalyticsDocument>> _documents = new ConcurrentDictionary<string, ConcurrentQueue<AnalyticsDocument>>();
-        private readonly IESClientFactory _cFactory;
         private readonly IEnvironment _environment;
 
         
-        private ILogger _logger;
-        private readonly Func<IEnumerable<IAnalyticsOutput>> outputs;
+     
+        private readonly Lazy<IEnumerable<IAnalyticsOutput>> outputs;
 
         public AnalyticsService(
-            IESClientFactory clientFactory,
             IEnvironment environment,
-            ILogger logger,
-            IConfiguration configuration,
-            Func<IEnumerable<IAnalyticsOutput>> outputs)
+            Lazy<IEnumerable<IAnalyticsOutput>> outputs)
         {
-            _cFactory = clientFactory;
             _environment = environment;
-            _logger = logger;
             this.outputs = outputs;
           
         }
@@ -92,7 +85,7 @@ namespace Stormancer.Server.Plugins.Analytics
                     doc.IsDeploymentActive = _environment.IsActive;
                     documents.Add(doc);
                 }
-                foreach(var output in outputs())
+                foreach(var output in outputs.Value)
                 {
                     tasks.Add(output.Flush(dataType, documents));
                 }   

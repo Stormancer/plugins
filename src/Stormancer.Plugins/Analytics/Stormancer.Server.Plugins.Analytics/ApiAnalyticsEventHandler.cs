@@ -30,6 +30,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Nest;
 
 namespace Stormancer.Server.Plugins.Analytics
 {
@@ -40,8 +41,14 @@ namespace Stormancer.Server.Plugins.Analytics
     /// The API analytics system stores event related to all network API calls, C2S &amp; S2S.
     /// Config Path: "instrumentation": { "EnableApiInstrumentation":true|false}
     /// </remarks>
-    public class InstrumentationConfig
+    public class InstrumentationConfig : IConfigurationSection<InstrumentationConfig>
     {
+        ///<inheritdoc/>
+        public static string SectionPath => "instrumentation";
+
+        ///<inheritdoc/>
+        public static InstrumentationConfig Default { get; } = new InstrumentationConfig();
+
         /// <summary>
         /// Enables API instrumentation.
         /// </summary>
@@ -57,33 +64,30 @@ namespace Stormancer.Server.Plugins.Analytics
         /// Disabled by default.
         /// </remarks>
         public bool EnableS2SInstrumentation { get; set; } = false;
+
+        /// <summary>
+        /// Enables tracking of scene connection/disconnection events.
+        /// </summary>
+        public bool EnableSceneEventsInstrumentation { get; set; } = false;
     }
-    internal class ApiAnalyticsEventHandler : IApiHandler, IConfigurationChangedEventHandler
+
+   
+    internal class ApiAnalyticsEventHandler : IApiHandler
     {
         private readonly IAnalyticsService _analytics;
-        private readonly ILogger _logger;
-        private readonly IConfiguration configuration;
+        private readonly ConfigurationMonitor<InstrumentationConfig> _config;
         private readonly Stopwatch _watch = new Stopwatch();
 
-        // The field is always set in ApplySettings. 
-        private InstrumentationConfig _config = default!;
+       
+     
 
-
-        private void ApplySettings()
-        {
-            var config = configuration.Settings;
-            _config = (InstrumentationConfig?)(config?.instrumentation?.ToObject<InstrumentationConfig>()) ?? new InstrumentationConfig();
-        }
-
-        public ApiAnalyticsEventHandler(IAnalyticsService analytics, ILogger logger, IConfiguration configuration)
+        public ApiAnalyticsEventHandler(IAnalyticsService analytics,ConfigurationMonitor<InstrumentationConfig> configuration)
         {
             _analytics = analytics;
             _watch.Start();
 
-
-            _logger = logger;
-            this.configuration = configuration;
-            ApplySettings();
+            this._config = configuration;
+            
         }
 
 
@@ -114,7 +118,7 @@ namespace Stormancer.Server.Plugins.Analytics
 
         public Task RunRpc(ApiCallContext<RequestContext<IScenePeerClient>> ctx, Func<ApiCallContext<RequestContext<IScenePeerClient>>, Task> next)
         {
-            if (_config.EnableApiInstrumentation)
+            if (_config.Value.EnableApiInstrumentation)
             {
                 static async Task RunThenNext(Stopwatch watch, IAnalyticsService analytics, Func<ApiCallContext<RequestContext<IScenePeerClient>>, Task> next, ApiCallContext<RequestContext<IScenePeerClient>> ctx)
                 {
@@ -142,7 +146,7 @@ namespace Stormancer.Server.Plugins.Analytics
 
         public Task RunRpc(ApiCallContext<RequestContext<IScenePeer>> ctx, Func<ApiCallContext<RequestContext<IScenePeer>>, Task> next)
         {
-            if (_config.EnableS2SInstrumentation)
+            if (_config.Value.EnableS2SInstrumentation)
             {
                 static async Task RunThenNext(Stopwatch watch, IAnalyticsService analytics, Func<ApiCallContext<RequestContext<IScenePeer>>, Task> next, ApiCallContext<RequestContext<IScenePeer>> ctx)
                 {
@@ -168,7 +172,7 @@ namespace Stormancer.Server.Plugins.Analytics
 
         public Task RunFF(ApiCallContext<Packet<IScenePeer>> ctx, Func<ApiCallContext<Packet<IScenePeer>>, Task> next)
         {
-            if (_config.EnableS2SInstrumentation)
+            if (_config.Value.EnableS2SInstrumentation)
             {
                 static async Task RunThenNext(Stopwatch watch, IAnalyticsService analytics, Func<ApiCallContext<Packet<IScenePeer>>, Task> next, ApiCallContext<Packet<IScenePeer>> ctx)
                 {
@@ -194,7 +198,7 @@ namespace Stormancer.Server.Plugins.Analytics
 
         public Task RunFF(ApiCallContext<Packet<IScenePeerClient>> ctx, Func<ApiCallContext<Packet<IScenePeerClient>>, Task> next)
         {
-            if (_config.EnableApiInstrumentation)
+            if (_config.Value.EnableApiInstrumentation)
             {
                 static async Task RunThenNext(Stopwatch watch, IAnalyticsService analytics, Func<ApiCallContext<Packet<IScenePeerClient>>, Task> next, ApiCallContext<Packet<IScenePeerClient>> ctx)
                 {
@@ -220,22 +224,33 @@ namespace Stormancer.Server.Plugins.Analytics
 
         public Task OnConnected(IScenePeerClient client)
         {
+            if(_config.Value.EnableSceneEventsInstrumentation)
+            {
+                _analytics.Push("api", "scene", JObject.FromObject(new
+                {
+                    type = "scene.connect",
+                    
+                }));
+            }
             return Task.CompletedTask;
         }
 
         public Task OnDisconnected(IScenePeerClient client)
         {
+            if (_config.Value.EnableSceneEventsInstrumentation)
+            {
+                _analytics.Push("api", "ff.cs", JObject.FromObject(new
+                {
+                    type = "scene.disconnect",
+                }));
+            }
             return Task.CompletedTask;
         }
 
-        public void OnConfigurationChanged()
-        {
-            ApplySettings();
-        }
-
+    
         public async Task RunS2S(ApiCallContext<IS2SRequestContext> ctx, Func<ApiCallContext<IS2SRequestContext>, Task> next)
         {
-            if (_config.EnableS2SInstrumentation)
+            if (_config.Value.EnableS2SInstrumentation)
             {
                 var start = _watch.ElapsedMilliseconds;
                 await next(ctx);
