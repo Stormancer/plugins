@@ -67,9 +67,11 @@ namespace Stormancer.Server.Plugins.GameFinder
                 builder.Register(r=>ServiceLocationProvider.Instance).As<IServiceLocatorProvider>();
                 builder.Register<QuickQueueGameSessionEventHandler>().As<GameSession.IGameSessionEventHandler>().InstancePerScene();
                 builder.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
-                builder.Register<GameFinderService>().As<IGameFinderService>().As<IConfigurationChangedEventHandler>().InstancePerScene();
+               
 
             };
+
+            
             ctx.SceneCreated += SceneCreated;
 
             ctx.HostStarting += (IHost host) =>
@@ -102,6 +104,8 @@ namespace Stormancer.Server.Plugins.GameFinder
         {
             if (scene.TemplateMetadata.TryGetValue(METADATA_KEY, out var gameFinderType))
             {
+                //The game finder service must be registered at the scene level to prevent it from being instantiated on each scene including non game finder when IConfigurationChangedEventHandler is resolved.
+                builder.Register<GameFinderService>().As<IGameFinderService>().As<IConfigurationChangedEventHandler>().InstancePerScene();
                 if (Configs.TryGetValue(scene.Id, out var config))
                 {
                     
