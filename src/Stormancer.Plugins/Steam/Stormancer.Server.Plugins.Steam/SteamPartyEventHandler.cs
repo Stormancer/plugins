@@ -402,7 +402,7 @@ namespace Stormancer.Server.Plugins.Steam
 
                 return await RunSteamCommand(steamLobbyId, data, static async (target, state, ct) =>
                 {
-                    var (joinable, steamLobbyId) = state;
+                    var (joinable, steamLobbyId,logger) = state;
                     if (target == null)
                     {
                         return (new VoidSteamResult { Success = false, ErrorDetails = "leader not found" },true);
@@ -411,10 +411,14 @@ namespace Stormancer.Server.Plugins.Steam
                     var args = new UpdateLobbyJoinableArgs { Joinable = joinable, SteamIDLobby = steamLobbyId };
                     var result = await target.RpcTask<UpdateLobbyJoinableArgs, VoidSteamResult>("Steam.UpdateLobbyJoinable", args, ct, Core.PacketPriority.MEDIUM_PRIORITY);
 
+                    if(result.Success)
+                    {
+                        logger.Log(LogLevel.Info, "steam", "Set joinable succeeded.", new { joinable, steamLobbyId});
+                    }
 
                     return (result, !result.Success);
 
-                }, (joinable, steamLobbyId), 1, cancellationToken);
+                }, (joinable, steamLobbyId,_logger), 1, cancellationToken);
 
             }
             catch (InvalidOperationException ex) //don't bubble up exceptions occurring when the steam client can't process the request.
