@@ -19,37 +19,41 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-//using Battlefleet.Server.Profiles;
-//using Stormancer;
-//using Stormancer.Plugins;
-//using System;
-//using System.Collections.Generic;
-//using System.Linq;
-//using System.Text;
-//using System.Threading.Tasks;
+using Stormancer.Plugins;
+using Stormancer.Server.Plugins.API;
+using Stormancer.Server.Plugins.Configuration;
+using System;
 
 
-//namespace Stormancer
-//{
-//    public static class AppBuilderExtensions
-//    {
-//        public static void ConfigureRegistrations(this IAppBuilder appBuilder, Action<IDependencyBuilder> dependencyBuilderAction)
-//        {
-//            appBuilder.AddPlugin(new RegistrationsPlugin(dependencyBuilderAction));
-//        }
 
-//        private class RegistrationsPlugin:IHostPlugin
-//        {
-//            private Action<IDependencyBuilder> dependencyBuilderAction;
-//            public RegistrationsPlugin(Action<IDependencyBuilder> dependencyBuilderAction)
-//            {
-//                this.dependencyBuilderAction = dependencyBuilderAction;
-//            }
+namespace Stormancer
+{
 
-//            public void Build(HostPluginBuildContext ctx)
-//            {
-//                ctx.HostDependenciesRegistration += dependencyBuilderAction;
-//            }
-//        }
-//    }
-//}
+    internal class ApiPlugin : IHostPlugin
+    {
+        public void Build(HostPluginBuildContext ctx)
+        {
+            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
+            {
+
+                builder.Register(static r => new ConfigurationMonitor<FeaturesConfigurationSection>(r.Resolve<IConfiguration>())).SingleInstance();
+                builder.Register(static r => new FeaturesService(r.Resolve<ConfigurationMonitor<FeaturesConfigurationSection>>())).SingleInstance();
+            };
+        }
+    }
+
+    /// <summary>
+    /// Plugin entry point class.
+    /// </summary>
+    public class App
+    {
+        /// <summary>
+        /// Plugin entry point.
+        /// </summary>
+        /// <param name="builder"></param>
+        public void Run(IAppBuilder builder)
+        {
+            builder.AddPlugin(new ApiPlugin());
+        }
+    }
+}

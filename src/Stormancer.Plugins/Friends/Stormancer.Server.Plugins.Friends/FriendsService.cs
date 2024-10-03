@@ -29,6 +29,7 @@ using Stormancer.Core;
 using Stormancer.Core.Helpers;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Components;
+using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Database;
 using Stormancer.Server.Plugins.Friends.Data;
@@ -60,7 +61,7 @@ namespace Stormancer.Server.Plugins.Friends
         private readonly Func<IEnumerable<IFriendsEventHandler>> _handlers;
         private readonly ISerializer _serializer;
         private readonly CrossplayService _crossplayService;
-        private readonly IConfiguration _configuration;
+        private readonly FeaturesService _features;
         private readonly ILogger _logger;
 
         public FriendsService(
@@ -74,7 +75,7 @@ namespace Stormancer.Server.Plugins.Friends
             Func<IEnumerable<IFriendsEventHandler>> handlers,
             ISerializer serializer,
             CrossplayService crossplayService,
-            IConfiguration configurationManager
+            FeaturesService features
             )
         {
             _logger = logger;
@@ -86,7 +87,7 @@ namespace Stormancer.Server.Plugins.Friends
             _handlers = handlers;
             _serializer = serializer;
             this._crossplayService = crossplayService;
-            this._configuration = configurationManager;
+            this._features = features;
         }
 
         public async Task Invite(User user, User friend, CancellationToken cancellationToken)
@@ -555,8 +556,8 @@ namespace Stormancer.Server.Plugins.Friends
         private static Dictionary<string, bool> _defaultFeaturesConfig = new Dictionary<string, bool>();
         public async Task Subscribe(IScenePeerClient peer, CancellationToken cancellationToken)
         {
-            return;
-            if (!_configuration.GetValue<Dictionary<string, bool>>("features", _defaultFeaturesConfig).TryGetValue("friends", out var active) || !active)
+            
+            if (!_features.GetFeatureFlag("friends"))
             {
                 return;
             }

@@ -39,6 +39,63 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Friends
 {
+    internal class Index<TKey, TValue> where TKey : notnull
+    {
+        private class Container
+        {
+            public List<TValue> List { get; } = new List<TValue>();
+            public bool IsRemoved { get; set; } = true;
+        }
+        private ConcurrentDictionary<TKey, Container> _index = new ConcurrentDictionary<TKey, Container>();
+
+        public void Add(TKey key, TValue value)
+        {
+            var c = _index.GetOrAdd(key, (_) => new Container());
+            lock (c)
+            {
+                c.List.Add(value);
+                if(c.IsRemoved)
+                {
+                    c.IsRemoved = false;
+                    _index.TryAdd(key, c);
+                }
+            }
+        }
+
+        public void Remove(TKey key, TValue value)
+        {
+            if (_index.TryGetValue(key, out var c))
+            {
+                lock (c)
+                {
+                    c.List.Remove(value);
+                    if (c.List.Count == 0)
+                    {
+                        c.IsRemoved = true;
+                        _index.TryRemove(key, out _);
+                    }
+                }
+            }
+        }
+
+        public bool TryGet(TKey key, out TValue[] values)
+        {
+            if (_index.TryGetValue(key, out var v))
+            {
+                lock (v)
+                {
+                    values = v.List.ToArray();
+                }
+                return true;
+            }
+            else
+            {
+                values = Array.Empty<TValue>();
+                return false;
+            }
+        }
+    }
+
     //TODO: update to support distributed scene
     class FriendsRepository
     {
@@ -63,6 +120,8 @@ namespace Stormancer.Server.Plugins.Friends
         private readonly ConcurrentDictionary<SessionId, UserContainer> _peers = new();
         private readonly ISceneHost _scene;
         private readonly ISerializer _serializer;
+
+        private readonly Index<PlatformId, Guid> _index = new();
 
         public FriendsRepository(ISceneHost scene, ISerializer serializer)
         {
@@ -118,6 +177,10 @@ namespace Stormancer.Server.Plugins.Friends
                 if (_platformIds.TryRemove(container.Key, out _))
                 {
 
+                    foreach(var userId in container.Friends.SelectMany(f=>f.UserIds))
+                    {
+                        _index.Remove(userId, container.Key);
+                    }
                     return Task.FromResult(((UserFriendListConfig?)container.Config, container.Key));
                 }
             }
@@ -175,6 +238,7 @@ namespace Stormancer.Server.Plugins.Friends
                             if (!f.UserIds.Contains(userId))
                             {
                                 f.UserIds.Add(userId);
+                                _index.Add(userId, container.Key);
                             }
 
 
@@ -200,6 +264,7 @@ namespace Stormancer.Server.Plugins.Friends
                         {
                             f.UserIds.Remove(userId);
                             f.Status.Remove(userId.Platform);
+                            _index.Remove(userId, container.Key);
                         }
                         if (!f.UserIds.Any())
                         {
@@ -378,22 +443,20 @@ namespace Stormancer.Server.Plugins.Friends
         {
             var list = new List<(Guid ownerId, User owner, Friend friend)>();
 
-            foreach (var (sessionId, container) in _peers)
+            if(_index.TryGet(userId,out var ids))
             {
-                lock (container)
+                foreach(var id in ids)
                 {
-                    var friend = container.Friends.FirstOrDefault(f => f.UserIds.Contains(userId));
-                    if (friend != null)
+                    if(_platformIds.TryGetValue(id,out var container))
                     {
-                       list.Add((container.Key, container.User, friend));
+                        var friend = container.Friends.FirstOrDefault(f => f.TryGetIdForPlatform(userId.Platform, out var i) && i == userId.PlatformUserId);
+                        if (friend != null)
+                        {
+                            yield return (id, container.User, friend);
+                        }
                     }
+
                 }
-            }
-
-
-            foreach(var item in list)
-            {
-                yield return item;
             }
         }
     }

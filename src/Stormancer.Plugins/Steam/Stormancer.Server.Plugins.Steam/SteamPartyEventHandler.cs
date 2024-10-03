@@ -222,17 +222,17 @@ namespace Stormancer.Server.Plugins.Steam
 
 
 
-            if (!createSteamLobbyResult.Success)
-            {
-                _logger.Log(LogLevel.Error, "SteamPartyEventHandler.OnJoining", "Steam lobby creation failed", new
-                {
-                    party.Settings.PartyId,
-                    UserId = leaderSession.User.Id,
-                    createSteamLobbyResult.ErrorId,
-                    createSteamLobbyResult.ErrorDetails
-                });
+            //if (!createSteamLobbyResult.Success)
+            //{
+            //    _logger.Log(LogLevel.Error, "SteamPartyEventHandler.OnJoining", "Steam lobby creation failed", new
+            //    {
+            //        party.Settings.PartyId,
+            //        UserId = leaderSession.User.Id,
+            //        createSteamLobbyResult.ErrorId,
+            //        createSteamLobbyResult.ErrorDetails
+            //    });
 
-            }
+            //}
 
 
 
@@ -270,17 +270,17 @@ namespace Stormancer.Server.Plugins.Steam
 
                 var joinLobbyParameter = new LeaveLobbyArgs { };
                 var joinSteamLobbyResult = await target.RpcTask<LeaveLobbyArgs, VoidSteamResult>("Steam.LeaveLobby", joinLobbyParameter, cancellationToken, PacketPriority.MEDIUM_PRIORITY);
-                if (!joinSteamLobbyResult.Success)
-                {
-                    _logger.Log(LogLevel.Error, "SteamPartyEventHandler.OnJoining", "Steam lobby join failed", new
-                    {
+                //if (!joinSteamLobbyResult.Success)
+                //{
+                //    _logger.Log(LogLevel.Error, "SteamPartyEventHandler.OnJoining", "Steam lobby join failed", new
+                //    {
 
-                        joinSteamLobbyResult.ErrorId,
-                        joinSteamLobbyResult.ErrorDetails
-                    });
+                //        joinSteamLobbyResult.ErrorId,
+                //        joinSteamLobbyResult.ErrorDetails
+                //    });
 
 
-                }
+                //}
                 return joinSteamLobbyResult;
             }
             catch (InvalidOperationException ex) //don't bubble up exceptions occurring when the steam client can't process the request.

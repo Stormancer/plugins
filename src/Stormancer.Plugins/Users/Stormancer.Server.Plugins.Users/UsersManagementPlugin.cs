@@ -82,6 +82,7 @@ namespace Stormancer.Server.Plugins.Users
             ctx.HostStarted += HostStarted;
             ctx.HostDependenciesRegistration += RegisterDependencies;
             ctx.SceneDependenciesRegistration += RegisterSceneDependencies;
+           
             ctx.SceneCreated += SceneCreated;
             ctx.SceneStarted += (ISceneHost scene) =>
             {
@@ -102,8 +103,12 @@ namespace Stormancer.Server.Plugins.Users
 
         private void SceneCreated(ISceneHost scene)
         {
-            if (scene.Template != Constants.SCENE_TEMPLATE)
+            if (scene.Template == Constants.SCENE_TEMPLATE)
             {
+                var env = scene.DependencyResolver.Resolve<Components.IEnvironment>();
+                var appInfos = env.GetApplicationInfos().Result;
+                scene.TemplateMetadata["accountId"]=appInfos.AccountId;
+                scene.InstanceMetadata["appId"] = appInfos.ApplicationName;
                 //var index = scene.DependencyResolver.Resolve<UserSessionCache>();
                 //scene.Connected.Add(index.OnConnected, 1000);
                 //scene.Disconnected.Add(args => index.OnDisconnected(args.Peer));
