@@ -108,7 +108,7 @@ namespace Stormancer.Server.Plugins.Users
                 var env = scene.DependencyResolver.Resolve<Components.IEnvironment>();
                 var appInfos = env.GetApplicationInfos().Result;
                 scene.TemplateMetadata["accountId"]=appInfos.AccountId;
-                scene.InstanceMetadata["appId"] = appInfos.ApplicationName;
+                scene.TemplateMetadata["appId"] = appInfos.ApplicationName;
                 //var index = scene.DependencyResolver.Resolve<UserSessionCache>();
                 //scene.Connected.Add(index.OnConnected, 1000);
                 //scene.Disconnected.Add(args => index.OnDisconnected(args.Peer));
