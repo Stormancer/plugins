@@ -10,15 +10,20 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
 {
-    public class NpgSQLConfigurationSection
+    /// <summary>
+    /// Configuration section for the PostgreSQL database connection. 
+    /// </summary>
+    public class NpgSQLConfigurationSection : IConfigurationSection<NpgSQLConfigurationSection>
     {
-        /// <summary>
-        /// Gets the path of the Npgsql section in the configuration.
-        /// </summary>
-        public const string SECTION_PATH = "npgsql";
+        ///<inheritdoc/>
+        public static string SectionPath { get; } = "npgsql";
+
+        ///<inheritdoc/>
+        public static NpgSQLConfigurationSection Default { get; } = new NpgSQLConfigurationSection();
+       
 
         /// <summary>
-        /// Gets or sets the host of the postgresql server.
+        /// Gets or sets the host of the postgreSQL server.
         /// </summary>
         public string? Host { get; set; }
 
@@ -48,6 +53,16 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
         [MemberNotNullWhen(true, nameof(Database))]
         [MemberNotNullWhen(true, nameof(Host))]
         internal bool IsValid => !string.IsNullOrEmpty(Host) && !string.IsNullOrEmpty(Username) && !string.IsNullOrEmpty(Password) && !string.IsNullOrEmpty(Database);
+
+        /// <summary>
+        /// Gets or sets the max connection pool size for postgresql
+        /// </summary>
+        /// <remarks>
+        /// Defaults to 50. Beware that by default Postgresql is configured with a max connection count at 100. As each node might create connections to the database, more than 2 nodes might hit the limit. In this case, it might be necessary to use something like pgpool to better control connections to the server
+        /// </remarks>
+        public int MaxPoolSize { get; set; } = 50;
+
+       
     }
     internal class NpgSQLConfiguratorState : IConfigurationChangedEventHandler
     {
@@ -67,7 +82,7 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
                 {
                     async Task<NpgsqlDataSource?> CreateDataSource()
                     {
-                        var section = _configuration.GetValue(NpgSQLConfigurationSection.SECTION_PATH, new NpgSQLConfigurationSection());
+                        var section = _configuration.GetValue(NpgSQLConfigurationSection.SectionPath, new NpgSQLConfigurationSection());
 
                         if (section.PasswordPath != null)
                         {
@@ -86,7 +101,8 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
                                 { "Host", section.Host },
                                 { "Database", section.Database },
                                 {"Username",section.Username },
-                                {"Password",section.Password }
+                                {"Password",section.Password },
+                                {"Maximum Pool Size",section.MaxPoolSize}
                             };
 
                             var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.ConnectionString);
