@@ -132,15 +132,14 @@ namespace Stormancer.Server.Plugins.GameSession
                 {
                     events.Clear();
 
-                    var client = await _esClientFactory.CreateClient<GameSessionEvent>("gameservers");
-
-
+                   
                     while (_events.TryDequeue(out var evt) && events.Count < 100)
                     {
                         events.Add(evt);
                     }
                     if (events.Any())
                     {
+                        var client = await _esClientFactory.CreateClient<GameSessionEvent>("gameservers");
                         await foreach (var response in client.BulkAll(events, d => d.ContinueAfterDroppedDocuments(true)).ToAsyncEnumerable())
                         {
                         }

@@ -17,7 +17,7 @@ namespace Stormancer.Server.Plugins.API
         public static FeaturesConfigurationSection Default { get; } = new FeaturesConfigurationSection();
 
         /// <summary>
-        /// Gets or sets the feature flags.
+        /// Feature flags.
         /// </summary>
         public Dictionary<string, bool> flags { get; set; } = new Dictionary<string, bool>();
     }

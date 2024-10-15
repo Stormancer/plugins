@@ -36,7 +36,7 @@ namespace Stormancer
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
 
-                builder.Register(static r => new ConfigurationMonitor<FeaturesConfigurationSection>(r.Resolve<IConfiguration>())).SingleInstance();
+                builder.Register(static r => new ConfigurationMonitor<FeaturesConfigurationSection>(r.Resolve<IConfiguration>())).AsSelf().As<IConfigurationChangedEventHandler>().SingleInstance();
                 builder.Register(static r => new FeaturesService(r.Resolve<ConfigurationMonitor<FeaturesConfigurationSection>>())).SingleInstance();
             };
         }

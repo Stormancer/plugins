@@ -415,8 +415,12 @@ namespace Stormancer.Server.Plugins.Steam
 
                     return (result, !result.Success);
 
-                }, (joinable, steamLobbyId,_logger), 1, cancellationToken);
+                }, (joinable, steamLobbyId,_logger), 3, cancellationToken);
 
+            }
+            catch(SteamLobbyLeaderNotFoundException)
+            {
+                return new VoidSteamResult { Success = false, ErrorDetails = "Leader not found", ErrorId = "steam.leaderNotFound" };
             }
             catch (InvalidOperationException ex) //don't bubble up exceptions occurring when the steam client can't process the request.
             {
