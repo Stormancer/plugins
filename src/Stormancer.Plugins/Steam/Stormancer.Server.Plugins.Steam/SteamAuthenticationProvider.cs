@@ -288,6 +288,8 @@ namespace Stormancer.Server.Plugins.Steam
             }
             catch (SteamException)
             {
+                //Wait 1s before sending the response to slow down bad behaving clients.
+                await Task.Delay(1000);
                 return AuthenticationResult.CreateFailure($"Authentication refused by steam.", pId, authenticationCtx.Parameters);
 
             }

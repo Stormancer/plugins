@@ -195,48 +195,59 @@ namespace Stormancer.Server.Plugins.Steam
 
         private async Task<CreateSteamLobbyResult> CreateSteamLobbyAsync(IScenePeerClient leaderPeer, Session leaderSession, IPartyService party, CancellationToken cancellationToken)
         {
-            if (leaderSession.User == null)
+            try
             {
-                throw new InvalidOperationException("The user must be authenticated with steam.");
+                if (leaderSession.User == null)
+                {
+                    throw new InvalidOperationException("The user must be authenticated with steam.");
+                }
+
+                var steamId = leaderSession.User.GetSteamId();
+                var lobbyName = $"{LobbyPrefix}{party.Settings.PartyId}";
+
+
+                var joinable = party.Settings.ServerSettings.ShouldSyncJoinable() ? party.Settings.IsJoinable : true;
+
+                var maxMembers = party.Settings.ServerSettings.SteamMaxMembers() ?? 5;
+                var lobbyType = party.Settings.ServerSettings.SteamLobbyType() ?? LobbyType.FriendsOnly;
+
+                var partyDataBearerToken = await _steamService.CreatePartyDataBearerToken(party.Settings.PartyId, leaderSession.User.Id, (ulong)steamId);
+                var createLobbyParameters = new CreateLobbyDto
+                {
+                    LobbyType = lobbyType,
+                    MaxMembers = maxMembers,
+                    Joinable = joinable,
+                    Metadata = new Dictionary<string, string> { { "partyDataToken", partyDataBearerToken } }
+                };
+
+                var createSteamLobbyResult = await leaderPeer.RpcTask<CreateLobbyDto, CreateSteamLobbyResult>("Steam.CreateLobby", createLobbyParameters, cancellationToken);
+
+
+
+                //if (!createSteamLobbyResult.Success)
+                //{
+                //    _logger.Log(LogLevel.Error, "SteamPartyEventHandler.OnJoining", "Steam lobby creation failed", new
+                //    {
+                //        party.Settings.PartyId,
+                //        UserId = leaderSession.User.Id,
+                //        createSteamLobbyResult.ErrorId,
+                //        createSteamLobbyResult.ErrorDetails
+                //    });
+
+                //}
+
+
+
+                return createSteamLobbyResult;
             }
-
-            var steamId = leaderSession.User.GetSteamId();
-            var lobbyName = $"{LobbyPrefix}{party.Settings.PartyId}";
-
-
-            var joinable = party.Settings.ServerSettings.ShouldSyncJoinable() ? party.Settings.IsJoinable : true;
-
-            var maxMembers = party.Settings.ServerSettings.SteamMaxMembers() ?? 5;
-            var lobbyType = party.Settings.ServerSettings.SteamLobbyType() ?? LobbyType.FriendsOnly;
-
-            var partyDataBearerToken = await _steamService.CreatePartyDataBearerToken(party.Settings.PartyId, leaderSession.User.Id, (ulong)steamId);
-            var createLobbyParameters = new CreateLobbyDto
+            catch(OperationCanceledException ex)
             {
-                LobbyType = lobbyType,
-                MaxMembers = maxMembers,
-                Joinable = joinable,
-                Metadata = new Dictionary<string, string> { { "partyDataToken", partyDataBearerToken } }
-            };
-
-            var createSteamLobbyResult = await leaderPeer.RpcTask<CreateLobbyDto, CreateSteamLobbyResult>("Steam.CreateLobby", createLobbyParameters, cancellationToken);
-
-
-
-            //if (!createSteamLobbyResult.Success)
-            //{
-            //    _logger.Log(LogLevel.Error, "SteamPartyEventHandler.OnJoining", "Steam lobby creation failed", new
-            //    {
-            //        party.Settings.PartyId,
-            //        UserId = leaderSession.User.Id,
-            //        createSteamLobbyResult.ErrorId,
-            //        createSteamLobbyResult.ErrorDetails
-            //    });
-
-            //}
-
-
-
-            return createSteamLobbyResult;
+                return new CreateSteamLobbyResult { Success = false, ErrorId = "disconnected", ErrorDetails = ex.Message };
+            }
+            catch(Exception ex)
+            {
+                return new CreateSteamLobbyResult { Success = false, ErrorId = "unknown", ErrorDetails = ex.ToString() };
+            }
         }
 
         private async Task<VoidSteamResult> JoinSteamLobbyAsync(IScenePeerClient target, ulong lobbyId, CancellationToken cancellationToken)
@@ -257,9 +268,13 @@ namespace Stormancer.Server.Plugins.Steam
                 //}
                 return joinSteamLobbyResult;
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
-                return new VoidSteamResult { ErrorId = "canceled", Success = false };
+                return new VoidSteamResult { ErrorId = "canceled", Success = false, ErrorDetails =ex.Message  };
+            }
+            catch(Exception ex)
+            {
+                return new VoidSteamResult { Success = false, ErrorId = "unknown", ErrorDetails = ex.ToString() };
             }
         }
 

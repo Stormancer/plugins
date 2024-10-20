@@ -268,7 +268,7 @@ namespace Stormancer.Server.Plugins.Steam
         {
             if (protocol == SteamAuthenticationProtocolVersion.V1 && _configSection.Value.backendIdentity == null)
             {
-                throw new InvalidOperationException("'backendIdentity' must be set to use the v1 steam authentication protocol.");
+                throw new SteamException("'backendIdentity' must be set to use the v1 steam authentication protocol.");
             }
             var apiV1 = protocol == SteamAuthenticationProtocolVersion.V1;
 
@@ -278,14 +278,14 @@ namespace Stormancer.Server.Plugins.Steam
             {
                 if (!_configSection.Value.appIds.Contains(actualAppId))
                 {
-                    throw new InvalidOperationException($"'{actualAppId}' is not an authorized Steam AppId. Authorized AppId ars '{string.Join(',', _configSection.Value.appIds)}'");
+                    throw new SteamException($"'{actualAppId}' is not an authorized Steam AppId. Authorized AppId ars '{string.Join(',', _configSection.Value.appIds)}'");
                 }
             }
             else
             {
                 if (actualAppId != _configSection.Value.appId)
                 {
-                    throw new InvalidOperationException($"'{actualAppId}' is not an authorized Steam AppId. Authorized AppId is '{_configSection.Value.appId}'");
+                    throw new SteamException($"'{actualAppId}' is not an authorized Steam AppId. Authorized AppId is '{_configSection.Value.appId}'");
                 }
             }
 
