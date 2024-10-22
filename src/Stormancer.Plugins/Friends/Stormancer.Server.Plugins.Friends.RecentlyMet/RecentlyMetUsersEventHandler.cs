@@ -42,6 +42,7 @@ namespace Stormancer.Server.Plugins.Friends.RecentlyMet
         public List<string> UserIds { get; set; } = default!;
     }
 
+    [Priority(priority: int.MinValue)]
     class RecentlyMetUsersEventHandler : IFriendsEventHandler
     {
 
