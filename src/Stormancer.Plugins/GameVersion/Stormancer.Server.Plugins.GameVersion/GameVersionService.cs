@@ -25,25 +25,59 @@ using Stormancer.Core;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Configuration;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameVersion
 {
-    internal class GameVersionService: IConfigurationChangedEventHandler
+    /// <summary>
+    /// Game version configuration.
+    /// </summary>
+    public class GameVersionConfigurationSection : IConfigurationSection<GameVersionConfigurationSection>
     {
-        public string CurrentGameVersion { get; private set; } = "NA";
+        /// <inheritdoc/>
+        public static string SectionPath => "clientVersion";
 
-        public bool CheckClientVersion { get; private set; } = false;
+        /// <inheritdoc/>
+        public static GameVersionConfigurationSection Default { get; } = new GameVersionConfigurationSection();
 
-        private readonly string prefix;
+        /// <summary>
+        /// Enables version checking.
+        /// </summary>
+        /// <remarks>
+        /// Defaults to false.
+        /// </remarks>
+        public bool enableVersionChecking { get; set; }
+
+        /// <summary>
+        /// Gets the authorized game version.
+        /// </summary>
+        /// <remarks>
+        /// If <see cref="AuthorizedVersions"/> is set, it replaces this configuration field.
+        /// </remarks>
+        public string? version { get; set; }
+
+        /// <summary>
+        /// list of authorized game versions
+        /// </summary>
+        public IEnumerable<string> AuthorizedVersions { get; set; } = Enumerable.Empty<string>();
+
+
+    }
+
+    internal class GameVersionService : IConfigurationChangedEventHandler
+    {
+        public GameVersionConfigurationSection CurrentConfiguration { get; private set; } = new GameVersionConfigurationSection();
+
         private readonly IConfiguration configuration;
         private readonly ISceneHost scene;
 
-        public GameVersionService(IConfiguration configuration, IEnvironment environment, ISceneHost scene)
+        public GameVersionService(IConfiguration config, IEnvironment environment, ISceneHost scene)
         {
-            this.configuration = configuration;
+            this.configuration = config;
             this.scene = scene;
-            prefix = scene.TemplateMetadata[GameVersionPlugin.METADATA_KEY];
+
 
             environment.ActiveDeploymentChanged += (sender, v) =>
             {
@@ -53,67 +87,28 @@ namespace Stormancer.Server.Plugins.GameVersion
                 }
             };
 
-            
+
             UpdateSettings();
 
             scene.Connected.Add(p =>
             {
-                p.Send("gameVersion.update", CurrentGameVersion);
+                p.Send("gameVersion.update", GetRecommendedVersionString());
                 return Task.FromResult(true);
             });
         }
-
+        private string GetRecommendedVersionString() => CurrentConfiguration.AuthorizedVersions.Any() ? string.Join(",", CurrentConfiguration.AuthorizedVersions) : CurrentConfiguration.version ?? "NA";
         private void UpdateSettings()
         {
-            dynamic config = configuration.Settings;
-            dynamic? configEntry;
-            if (prefix == "default")
-            {
-                configEntry = config?.clientVersion;
-            }
-            else
-            {
-                configEntry = config?.clientVersion?[prefix];
-            }
+            var config = configuration.GetValue<GameVersionConfigurationSection>(GameVersionConfigurationSection.SectionPath);
 
-            var (newGameVersion, checkClientVersion) = GetVersion((JObject?)configEntry);
-            if (newGameVersion != CurrentGameVersion)
-            {
-                CurrentGameVersion = newGameVersion;
-                scene.Broadcast("gameVersion.update", CurrentGameVersion);
-            }
+            var oldVersionString = GetRecommendedVersionString();
+            CurrentConfiguration = config;
+            var newVersionString = GetRecommendedVersionString();
 
-            CheckClientVersion = checkClientVersion;
-        }
-
-        private (string, bool) GetVersion(JObject? c)
-        {
-            dynamic? configuration = c;
-            string? gameVersion;
-            bool checkClientVersion;
-            try
+            if (oldVersionString != newVersionString)
             {
-                gameVersion = configuration?.version;
+                scene.Broadcast("gameVersion.update", newVersionString);
             }
-            catch (Exception)
-            {
-                gameVersion = null;
-            }
-
-            try
-            {
-                checkClientVersion = (bool?)configuration?.enableVersionChecking ?? false;
-            }
-            catch (Exception)
-            {
-                checkClientVersion = false;
-            }
-
-            if (gameVersion == null)
-            {
-                gameVersion = "NA";
-            }
-            return (gameVersion, checkClientVersion);
         }
 
         public void OnConfigurationChanged()

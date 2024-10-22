@@ -16,6 +16,10 @@ Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
 
+Added
+*****
+- Added support for multiple supported version strings, through the `clientVersion.authorizedVersions` config value.
+- Added a configuration section class that inherits from IConfigurationSection<T>
 
 2.2.0.1
 -------

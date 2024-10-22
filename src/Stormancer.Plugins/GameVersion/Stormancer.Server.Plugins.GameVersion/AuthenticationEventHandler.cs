@@ -22,6 +22,7 @@
 
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Users;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameVersion
@@ -54,48 +55,97 @@ namespace Stormancer.Server.Plugins.GameVersion
 
         public Task OnLoggingIn(LoggingInCtx authenticationCtx)
         {
-            if (!gameVersionService.CheckClientVersion)
+            var config = gameVersionService.CurrentConfiguration;
+            if (!config.enableVersionChecking)
             {
                 return Task.CompletedTask;
             }
             //Don't control the game version on "services" clients. Services clients include game server hosting agents.
-            if(authenticationCtx.Context is string type && type == "service")
+            if (authenticationCtx.Context is string type && type == "service")
             {
                 return Task.CompletedTask;
             }
 
-            var serverVersion = gameVersionService.CurrentGameVersion;
 
+           
+
+            string? reason = null;
             if (authenticationCtx.AuthCtx.Parameters.TryGetValue("gameVersion.clientVersion", out var clientVersion))
             {
-                if (serverVersion.EndsWith('*'))
+                if (config.AuthorizedVersions.Any())
                 {
-                   
-                    if(!clientVersion.StartsWith(serverVersion.TrimEnd('*')))
+                    foreach (var version in config.AuthorizedVersions)
                     {
+                        if (CheckClientVersionString(clientVersion,version))
+                        {
+                            return Task.CompletedTask;
+                        }
+                      
+                    }
+
+                    authenticationCtx.Reason = $"badGameVersion?mismatch&serverVersion={string.Join(",", config.AuthorizedVersions)}&clientVersion={clientVersion}";
+                    authenticationCtx.HasError = true;
+                    return Task.CompletedTask;
+                }
+                else if(config.version !=null)
+                {
+                    if (CheckClientVersionString(clientVersion,config.version))
+                    {
+                        return Task.CompletedTask;
+                    }
+                    else
+                    {
+                        authenticationCtx.Reason = $"badGameVersion?mismatch&serverVersion={config.version}&clientVersion={clientVersion}";
                         authenticationCtx.HasError = true;
-                        authenticationCtx.Reason = $"badGameVersion?mismatch&serverVersion={serverVersion}&clientVersion={clientVersion}";
-                        _logger.Log(LogLevel.Trace, "GameVersion", "Client tried to connect with an outdated game version.", new { clientVersion, serverVersion });
+                        return Task.CompletedTask;
                     }
                 }
                 else
                 {
-                    if (clientVersion != serverVersion)
-                    {
-                        authenticationCtx.HasError = true;
-                        authenticationCtx.Reason = $"badGameVersion?mismatch&serverVersion={serverVersion}&clientVersion={clientVersion}";
-                        _logger.Log(LogLevel.Trace, "GameVersion", "Client tried to connect with an outdated game version.", new { clientVersion, serverVersion });
-                    }
+                    authenticationCtx.Reason = $"badGameVersion?mismatch&serverVersion=None&clientVersion={clientVersion}";
+                    authenticationCtx.HasError = true;
+                    return Task.CompletedTask;
                 }
             }
             else
             {
                 authenticationCtx.HasError = true;
-                authenticationCtx.Reason = $"badGameVersion?absentClientVersion&serverVersion={serverVersion}";
-                _logger.Log(LogLevel.Trace, "GameVersion", "Client tried to connect without game version.", new { serverVersion });
+               reason = $"badGameVersion?missingClientVersion";
+
             }
 
             return Task.CompletedTask;
+        }
+
+
+        private bool CheckClientVersionString(string clientVersion, string serverVersion)
+        {
+            if (serverVersion.EndsWith('*'))
+            {
+
+                if (!clientVersion.StartsWith(serverVersion.TrimEnd('*')))
+                {
+                    
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                if (clientVersion != serverVersion)
+                {
+                    
+                    return false;
+
+                }
+                else
+                {
+                    return true;
+                }
+            }
         }
     }
 }
