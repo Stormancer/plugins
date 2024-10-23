@@ -6,6 +6,11 @@ using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
 using Stormancer.Server.Plugins.ServiceLocator;
 using System.Threading.Tasks;
 using Stormancer.Diagnostics;
+using Stormancer.Server.Plugins.Users;
+using Stormancer.Server.Plugins.Configuration;
+using Stormancer.Server.Plugins.BlobStorage;
+using Stormancer.Server.Plugins.AdminApi;
+using Stormancer.Server.Plugins.PlayerReports.Admin;
 
 namespace Stormancer.Server.Plugins.PlayerReports
 {
@@ -31,11 +36,17 @@ namespace Stormancer.Server.Plugins.PlayerReports
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
-                builder.Register<ReportsController>().InstancePerRequest();
-                builder.Register<ReportsService>().InstancePerRequest();
-                builder.Register<ModelConfigurator>().As<IDbModelBuilder>();
-                builder.Register<PlayerReportsServiceLocator>().As<IServiceLocatorProvider>();
-                builder.Register<InternalBugReportBackend>().As<IBugReportingBackend>().InstancePerRequest();
+                builder.Register(r => new ReportsController(r.Resolve<ReportsService>(), r.Resolve<IUserSessions>())).InstancePerRequest();
+                builder.Register(r => new ReportsService(r.Resolve<DbContextAccessor>(), r.ResolveAll<IBugReportingBackend>(), r.Resolve<ILogger>(), r.Resolve<ConfigurationMonitor<BugReportsConfigurationSection>>())).InstancePerRequest();
+                builder.Register(r => ModelConfigurator.Instance).As<IDbModelBuilder>();
+                builder.Register(r => PlayerReportsServiceLocator.Instance).As<IServiceLocatorProvider>();
+                builder.Register(r => new InternalBugReportBackend(r.Resolve<IBlobStorage>(), r.Resolve<DbContextAccessor>(), r.Resolve<ConfigurationMonitor<BugReportsInternalBackendConfigurationSection>>())).As<IBugReportingBackend>().InstancePerRequest();
+
+                builder.Register(r => new ConfigurationMonitor<BugReportsConfigurationSection>(r.Resolve<IConfiguration>())).AsSelf().As<IConfigurationChangedEventHandler>().SingleInstance();
+                builder.Register(r => new ConfigurationMonitor<BugReportsInternalBackendConfigurationSection>(r.Resolve<IConfiguration>())).AsSelf().As<IConfigurationChangedEventHandler>().SingleInstance();
+
+                builder.Register(r => new AdminWebApiConfig()).As<IAdminWebApiConfig>();
+                builder.Register(r => new PlayerReportsAdminController(r.Resolve<DbContextAccessor>())).InstancePerRequest();
 
             };
             IHost? _host = null;
@@ -60,19 +71,20 @@ namespace Stormancer.Server.Plugins.PlayerReports
                     //_host?.DependencyResolver.Resolve<ILogger>().Log(LogLevel.Error,"test", "Added player reports controller.", new { });
                     scene.AddController<ReportsController>();
                 }
-            
+
             };
         }
     }
 
     internal class PlayerReportsServiceLocator : IServiceLocatorProvider
     {
+        public static PlayerReportsServiceLocator Instance { get; } = new PlayerReportsServiceLocator();
         public Task LocateService(ServiceLocationCtx ctx)
         {
-            if(ctx.ServiceType == PlayerReportsConstants.SERVICE_ID)
+            if (ctx.ServiceType == PlayerReportsConstants.SERVICE_ID)
             {
                 ctx.SceneId = PlayerReportsConstants.SCENE_ID;
-               
+
             }
             return Task.CompletedTask;
         }

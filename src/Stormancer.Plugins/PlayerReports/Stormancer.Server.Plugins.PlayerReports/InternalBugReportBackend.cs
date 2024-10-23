@@ -19,9 +19,9 @@ namespace Stormancer.Server.Plugins.PlayerReports
     {
         private readonly IBlobStorage _blobStorage;
         private readonly DbContextAccessor _dbContextAccessor;
-        private readonly IConfiguration _configuration;
+        private readonly ConfigurationMonitor<BugReportsInternalBackendConfigurationSection> _configuration;
 
-        public InternalBugReportBackend(IBlobStorage blobStorage, DbContextAccessor dbContextAccessor, IConfiguration configuration)
+        public InternalBugReportBackend(IBlobStorage blobStorage, DbContextAccessor dbContextAccessor, ConfigurationMonitor<BugReportsInternalBackendConfigurationSection> configuration)
         {
             _blobStorage = blobStorage;
             _dbContextAccessor = dbContextAccessor;
@@ -35,7 +35,7 @@ namespace Stormancer.Server.Plugins.PlayerReports
             var storedAttachments = new List<BugReportAttachementRecord>();
             try
             {
-                var config = _configuration.GetValue(BugReportsInternalBackendConfigurationSection.PATH, new BugReportsInternalBackendConfigurationSection());
+                var config = _configuration.Value;
                 if (config.AttachmentStorageId == null)
                 {
                     return;
@@ -80,13 +80,18 @@ namespace Stormancer.Server.Plugins.PlayerReports
     /// <summary>
     /// Configuration of the bug reports internal storage backend.
     /// </summary>
-    public class BugReportsInternalBackendConfigurationSection
+    public class BugReportsInternalBackendConfigurationSection : IConfigurationSection<BugReportsInternalBackendConfigurationSection>
     {
-        internal const string PATH = "bugReports.backends.internal";
+
+        /// <inheritdoc/>
+        public static string SectionPath { get; } = "bugReports.backends.internal";
+
+        /// <inheritdoc/>
+        public static BugReportsInternalBackendConfigurationSection Default { get; } = new BugReportsInternalBackendConfigurationSection();
 
 
         /// <summary>
-        /// Id of the blob store used to store attachments.
+        /// Id of the blob store used to store bug report attachments.
         /// </summary>
         public string? AttachmentStorageId { get; set; }
     }

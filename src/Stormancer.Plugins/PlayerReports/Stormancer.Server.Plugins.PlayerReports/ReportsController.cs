@@ -12,13 +12,11 @@ namespace Stormancer.Server.Plugins.PlayerReports
     {
         private readonly ReportsService _reports;
         private readonly IUserSessions _sessions;
-        private readonly ISerializer _serializer;
 
-        public ReportsController(ReportsService reports, IUserSessions sessions, ISerializer serializer)
+        public ReportsController(ReportsService reports, IUserSessions sessions)
         {
             _reports = reports;
             _sessions = sessions;
-            _serializer = serializer;
         }
 
         protected override Task OnConnected(IScenePeerClient peer)

@@ -13,9 +13,17 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.PlayerReports
 {
-    public class BugReportsConfigurationSection
+    /// <summary>
+    /// Configuration section related to the bug reporting system.
+    /// </summary>
+    public class BugReportsConfigurationSection : IConfigurationSection<BugReportsConfigurationSection>
     {
-        internal const string PATH = "bugReports";
+
+        ///<inheritdoc/>
+        public static string SectionPath { get; } = "bugReports";
+
+        ///<inheritdoc/>
+        public static BugReportsConfigurationSection Default { get; } = new BugReportsConfigurationSection();
 
 
         /// <summary>
@@ -23,14 +31,25 @@ namespace Stormancer.Server.Plugins.PlayerReports
         /// </summary>
         public string? Backend { get; set; }
     }
-    internal class ReportsService
+
+    /// <summary>
+    /// Provides API to create player reports.
+    /// </summary>
+    public class ReportsService
     {
         private readonly DbContextAccessor _dbContextAccessor;
         private readonly IEnumerable<IBugReportingBackend> _backends;
         private readonly ILogger _logger;
-        private readonly IConfiguration _configuration;
+        private readonly ConfigurationMonitor<BugReportsConfigurationSection> _configuration;
 
-        public ReportsService(DbContextAccessor dbContextAccessor, IEnumerable<IBugReportingBackend> backends, ILogger logger, IConfiguration configuration)
+        /// <summary>
+        /// Creates a new instance of <see cref="ReportsService"/>
+        /// </summary>
+        /// <param name="dbContextAccessor"></param>
+        /// <param name="backends"></param>
+        /// <param name="logger"></param>
+        /// <param name="configuration"></param>
+        public ReportsService(DbContextAccessor dbContextAccessor, IEnumerable<IBugReportingBackend> backends, ILogger logger,ConfigurationMonitor<BugReportsConfigurationSection> configuration)
         {
             _dbContextAccessor = dbContextAccessor;
             _backends = backends;
@@ -61,9 +80,18 @@ namespace Stormancer.Server.Plugins.PlayerReports
             await ctx.SaveChangesAsync();
         }
 
+        /// <summary>
+        /// Saves a bug report
+        /// </summary>
+        /// <param name="reporterId"></param>
+        /// <param name="message"></param>
+        /// <param name="customData"></param>
+        /// <param name="attachments"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         public async Task SaveBugReportAsync(string reporterId, string message, JObject customData, IEnumerable<BugReportAttachmentContent> attachments, CancellationToken cancellationToken)
         {
-            var config = _configuration.GetValue<BugReportsConfigurationSection>("bugReports") ?? new BugReportsConfigurationSection();
+            var config = _configuration.Value;
             if (config.Backend == null)
             {
                 return;

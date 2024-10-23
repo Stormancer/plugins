@@ -128,6 +128,7 @@ namespace Stormancer.Server.Plugins.PlayerReports
 
     internal class ModelConfigurator : Stormancer.Server.Plugins.Database.EntityFrameworkCore.IDbModelBuilder
     {
+        public static ModelConfigurator Instance { get; } = new ModelConfigurator();
         public void OnModelCreating(ModelBuilder modelBuilder, string contextId, Dictionary<string, object> customData)
         {
             modelBuilder.Entity<PlayerReport>();
