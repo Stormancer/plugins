@@ -10,7 +10,7 @@ Server configuration
 The target client versions  is set in the application config :
 
     "clientVersion":{
-        "version":"1.45.*",          //The version string the client must adhere to for authentication to be accepted.
+        "authorizedVersions":["1.45.*"],          //The version string the client must adhere to for authentication to be accepted.
         "enableVersionChecking":true //enables version checking (defaults to false)
     }
 
