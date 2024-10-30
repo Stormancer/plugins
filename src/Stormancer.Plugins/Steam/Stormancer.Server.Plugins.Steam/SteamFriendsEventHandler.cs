@@ -72,92 +72,9 @@ namespace Stormancer.Server.Plugins.Steam
             }
         }
 
-        public async Task OnGetFriends(GetFriendsCtx getFriendsCtx)
+        public Task OnGetFriends(GetFriendsCtx getFriendsCtx)
         {
-
-
-            if (string.IsNullOrWhiteSpace(getFriendsCtx.UserId))
-            {
-                throw new InvalidOperationException("Invalid UserId");
-            }
-
-            var session = (await _sessions.GetSessions(new PlatformId(Users.Constants.PROVIDER_TYPE_STORMANCER, getFriendsCtx.UserId), CancellationToken.None)).FirstOrDefault();
-
-            if (!(session?.User?.TryGetSteamId(out var steamId) ?? false))
-            {
-                return;
-            }
-
-            var result = await _steamService.GetFriendListFromClientAsync(_scene, session);
-
-            if (!result.Success)
-            {
-                return;
-            }
-            var steamFriends = result.friends;
-            if (!steamFriends.Any())
-            {
-                return;
-            }
-
-            var infos = await _sessions.GetDetailedUserInformationByIdentityAsync(SteamConstants.PLATFORM_NAME, steamFriends.Select(steamFriend => steamFriend.steamid),CancellationToken.None);
-            // Get users from friends
-            
-            // Remove already present in context friendList
-            var friendDatas = steamFriends
-                .Select(steamFriend => new SteamFriendUser
-                {
-                    SteamFriend = steamFriend,
-                    User = infos[steamFriend.steamid]
-                })
-                .Where(friendData => friendData.SteamFriend.relationship == SteamFriendRelationship.Friend && !getFriendsCtx.Friends.Any(friend => friend.UserIds.Contains(new PlatformId { Platform = Users.Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = friendData.User?.UserId??string.Empty })))
-                .ToArray();
-
-            if (!friendDatas.Any())
-            {
-                return;
-            }
-
-            // Get steam player summaries
-            var steamIds = friendDatas.Select(data => data?.SteamFriend != null ? ulong.Parse(data.SteamFriend.steamid) : 0);
-            var steamPlayerSummaries = await _steamService.GetPlayerSummaries(steamIds);
-
-            // Fill data with steam player summaries
-            foreach (var friendData in friendDatas)
-            {
-                friendData.SteamPlayerSummary = steamPlayerSummaries.FirstOrDefault(kvp => kvp.Value.steamid.ToString() == friendData.SteamFriend?.steamid).Value;
-            }
-
-            // Add steam friends to friends list
-            foreach (var friendData in friendDatas)
-            {
-                if (friendData.SteamFriend != null)
-                {
-                    var userIds = new List<PlatformId> { new PlatformId { Platform = SteamConstants.PLATFORM_NAME, PlatformUserId = friendData.SteamFriend.steamid.ToString() } };
-                    var status = new Dictionary<string, FriendConnectionStatus> { [SteamConstants.PLATFORM_NAME] = GetConnectionStatus(friendData) };
-                    if(friendData.User?.UserId !=null)
-                    {
-                        userIds.Add(new PlatformId { Platform = Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = friendData.User.UserId });
-                        status.Add(Constants.PROVIDER_TYPE_STORMANCER, friendData.User.Sessions.Any() ? FriendConnectionStatus.Connected : FriendConnectionStatus.Disconnected);
-                    }
-                    getFriendsCtx.Friends.Add(new Friend
-                    {
-                        UserIds = userIds,
-                        Status = status,
-                        Tags = new List<string> { "steam" },
-                        CustomData = JObject.FromObject(new
-                        {
-                            steam = new
-                            {
-                                steamId = friendData.SteamFriend?.steamid ?? "",
-                                personaName = friendData.SteamPlayerSummary?.personaname ?? "",
-                                avatar = friendData.SteamPlayerSummary?.avatar ?? ""
-                            }
-                        }).ToString()
-                    });
-                }
-
-            }
+            return Task.CompletedTask;
         }
 
         Task IFriendsEventHandler.OnAddingFriend(Stormancer.Server.Plugins.Friends.AddingFriendCtx ctx)

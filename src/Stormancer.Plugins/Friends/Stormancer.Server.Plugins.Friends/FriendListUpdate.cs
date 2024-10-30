@@ -73,6 +73,7 @@ namespace Stormancer.Server.Plugins.Friends
         /// <summary>
         /// Gets or sets the timestamp of the message.
         /// </summary>
+        /// <remarks>currently unused both by server and client</remarks>
         [Key(2)]
         public ulong Timestamp { get; set; } =(ulong)(DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds;
     }

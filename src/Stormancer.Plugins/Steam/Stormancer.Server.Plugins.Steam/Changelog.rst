@@ -16,6 +16,7 @@ Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
 - Performance optimizations.
+- Removes friendlist querying from the server since the client plugin now does it itself
 
 Added
 *****
