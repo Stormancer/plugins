@@ -268,7 +268,7 @@ namespace Stormancer.Server.Plugins
                 {
                     if (cache.TryGetValue(id, out var entry) && entry.ExpiresOn != null && entry.ExpiresOn >= DateTime.UtcNow)
                     {
-                        results.Add(id, entry.Content);
+                        results[id] = entry.Content;
                     }
                     else
                     {
@@ -282,7 +282,7 @@ namespace Stormancer.Server.Plugins
                         var entry = new CacheEntry(r.Key, r.Value, (i) => Remove(i));
                         cache[r.Key] = entry;
                         TryStartCleaner();
-                        results.Add(r.Key, entry.Content);
+                        results[r.Key] = entry.Content;
                     }
                 }
 

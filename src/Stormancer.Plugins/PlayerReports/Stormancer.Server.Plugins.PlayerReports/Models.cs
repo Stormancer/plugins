@@ -36,12 +36,24 @@ namespace Stormancer.Server.Plugins.PlayerReports
         /// <summary>
         /// Gets or sets the player reporting the other player.
         /// </summary>
+        [ForeignKey(nameof(ReporterId))]
         public UserRecord Reporter { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets the player reported in the report.
         /// </summary>
+        [ForeignKey(nameof(ReportedId))]
         public UserRecord Reported { get; set; } = default!;
+
+        /// <summary>
+        /// Gets or sets the id of the reported user.
+        /// </summary>
+        public Guid ReportedId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the id of the reporter user.
+        /// </summary>
+        public Guid ReporterId { get; set; }
 
         /// <summary>
         /// Gets or sets the utc time this record was created.

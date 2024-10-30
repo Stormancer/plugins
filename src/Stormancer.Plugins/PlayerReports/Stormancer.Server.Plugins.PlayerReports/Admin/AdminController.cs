@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.EntityFrameworkCore;
+using Nest;
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.AdminApi;
 using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
@@ -52,22 +54,46 @@ namespace Stormancer.Server.Plugins.PlayerReports.Admin
         {
             var context = await _contextAccessor.GetDbContextAsync();
 
-            var total = await context.Set<PlayerReport>().CountAsync();
-            var reports = await context.Set<PlayerReport>().Skip(skip).Take(size).OrderByDescending(k => k.CreatedOn).Include(r => r.Reported).Include(r => r.Reporter).ToListAsync();
+            var total = await context.Set<PlayerReport>().GroupBy(r => r.ReportedId).Select(r=>r.Key).CountAsync();
+            var reports = await context.Set<PlayerReport>().GroupBy(r => r.ReportedId).Select(g => new { ReportedUserId = g.Key, TotalReports = g.Count(), TotalDistinctReporters = g.GroupBy(r => r.ReporterId).Count() }).Skip(skip).Take(size).ToListAsync();
 
             return new GetPlayerReportsResult
             {
                 Reports = reports.Select(r => new PlayerReportSummary
                 {
-                    CreatedOn = r.CreatedOn,
-                    Message = r.Message,
-                    ReporterId = r.Reporter.Id,
-                    ReportedId = r.Reported.Id,
-                    Context = JToken.Parse(JsonSerializer.Serialize(r.Context))
+                    ReportedUserId = r.ReportedUserId.ToString("N"),
+                    TotalDistinctReporters = r.TotalDistinctReporters,
+                    TotalReports = r.TotalReports,
                 }),
                 Skip = skip,
                 Total = total
             };
+        }
+
+        [HttpGet]
+        [Route("{reportedUserId}")]
+        public async Task<IEnumerable<PlayerReportDetails>> GetDetails(string reportedUserId)
+        {
+            var guid = Guid.Parse(reportedUserId);
+
+            var context = await _contextAccessor.GetDbContextAsync();
+            var result = await context
+                .Set<PlayerReport>()
+                .Where(r => r.ReportedId == guid)
+                .ToListAsync();
+
+            return result.Select(r => new PlayerReportDetails {
+             Context = JToken.Parse(JsonSerializer.Serialize(r.Context)),
+             CreatedOn = r.CreatedOn,
+             Message = r.Message,
+             ReportedUserId = r.ReportedId.ToString("N"),
+             ReporterUserId = r.ReporterId.ToString("N"),
+            });
+            //CreatedOn = r.CreatedOn,
+            //        Message = r.Message,
+            //        ReporterId = r.Reporter.Id,
+            //        ReportedId = r.Reported.Id,
+            //        Context = JToken.Parse(JsonSerializer.Serialize(r.Context))
         }
 
 
@@ -95,15 +121,55 @@ namespace Stormancer.Server.Plugins.PlayerReports.Admin
     }
 
     /// <summary>
-    /// Summary of a player report.
+    /// Summary information about an user who have been reported in the game.
     /// </summary>
     public class PlayerReportSummary
     {
-        public DateTime CreatedOn { get; internal set; }
-        public string Message { get; internal set; }
-        public Guid ReporterId { get; internal set; }
-        public Guid ReportedId { get; internal set; }
-        public JToken Context { get; internal set; }
+        /// <summary>
+        /// IId of the user being reported.
+        /// </summary>
+        public required string ReportedUserId { get; init; }
+
+        /// <summary>
+        /// Total count of reports against the user.
+        /// </summary>
+        public required int TotalReports { get; init; }
+
+        /// <summary>
+        /// Total count of distinct users who reported the user.
+        /// </summary>
+        public required int TotalDistinctReporters { get; init; }
+    }
+
+    /// <summary>
+    /// Summary of a player report.
+    /// </summary>
+    public class PlayerReportDetails
+    {
+        /// <summary>
+        /// Date the reports was created on (UTC)
+        /// </summary>
+        public required DateTime CreatedOn { get; init; }
+
+        /// <summary>
+        /// Report message
+        /// </summary>
+        public required string Message { get; init; }
+
+        /// <summary>
+        /// Id of the user who created the report.
+        /// </summary>
+        public required string ReporterUserId { get; init; }
+
+        /// <summary>
+        /// Id of the user being reported.
+        /// </summary>
+        public required string ReportedUserId { get;init; }
+
+        /// <summary>
+        /// Additional data in the report.
+        /// </summary>
+        public required JToken Context { get; init; }
     }
 
 }
