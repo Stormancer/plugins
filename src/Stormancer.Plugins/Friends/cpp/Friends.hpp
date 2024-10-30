@@ -29,17 +29,12 @@ namespace Stormancer
 			/// <summary>
 			/// The user status is set as away, but he's either online or in game.
 			/// </summary>
+			/// 
 			Away = 1,
-
-			/// <summary>
-			/// The user is online on its platform, but hasn't launched the game.
-			/// </summary>
-			Online = 2,
-
 			/// <summary>
 			/// The use is in the game client, connected to the social system.
 			/// </summary>
-			Connected = 3,
+			Connected = 2,
 		};
 
 		enum class FriendListStatusConfig
@@ -52,9 +47,47 @@ namespace Stormancer
 		struct Friend
 		{
 			std::vector<Stormancer::Users::UserId> userIds;
-			FriendStatus status;
+			std::unordered_map<std::string, FriendStatus> status;
 			std::vector<std::string> tags;
 			std::string customData;
+
+			FriendStatus getStatusForPlatform(std::string platform) const
+			{
+				auto it = status.find(platform);
+				if (it != status.end())
+				{
+					return it->second;
+				}
+				else
+				{
+					return FriendStatus::Disconnected;
+				}
+			}
+
+			FriendStatus getStatus() const
+			{
+				for (auto s : status)
+				{
+					if (s.second != FriendStatus::Disconnected)
+					{
+						return s.second;
+					}
+				}
+				return FriendStatus::Disconnected;
+			}
+
+			bool isOnPlatform(const std::string& platform) const
+			{
+				for (auto& userId : userIds)
+				{
+					if (userId.platform == platform)
+					{
+						return true;
+					}
+				}
+
+				return false;
+			}
 
 			MSGPACK_DEFINE(userIds, status, tags, customData)
 		};
@@ -71,7 +104,9 @@ namespace Stormancer
 			FriendListUpdateOperationInternal operation;
 			Friend data;
 
-			MSGPACK_DEFINE(operation, data)
+			uint64 timestamp;
+
+			MSGPACK_DEFINE(operation, data, timestamp)
 		};
 
 		enum class FriendListUpdateOperation
@@ -96,16 +131,15 @@ namespace Stormancer
 		{
 		public:
 
-			/// <summary>
-			/// Function called when the friendlist is loaded initially.
-			/// </summary>
-			/// <param name="friends"></param>
-			virtual void getFriends(std::unordered_map<std::string, std::shared_ptr<Friend>>& friends) = 0;
-
 			///<summary>
-			/// Called by friends API to listen to plate
+			/// Called by the friend system to listen to platform friend changes.
 			///</summary>
-			virtual Subscription subscribeFriendsChanged(std::function<void(FriendListUpdatedEvent)> callback) = 0;
+			/// <remarks>
+			/// This method is called whenever the client connects or reconnects to the friends system. The platform implementation is expected to call the callback
+			/// to notify the friend system whenever it needs to post updates to the friend list, for instance to add all platform friends on startup, when friend
+			/// status changes or when a  friend is added/removed in the platform.
+			/// </remarks>
+			virtual Subscription subscribeFriendsChanged(std::function<void(std::vector<FriendListUpdateDto>)> callback) = 0;
 		};
 
 		/// <summary>
@@ -166,7 +200,7 @@ namespace Stormancer
 			/// </summary>
 			/// <param name="userId">Id of the user to invite.</param>
 			/// <returns>A task that completes when the server acknowledged the invitation request.</returns>
-			virtual pplx::task<void> inviteFriend(std::string userId) = 0;
+			virtual pplx::task<void> inviteFriend(const Stormancer::Users::UserId& userId) = 0;
 
 			/// <summary>
 			/// Answers a friend invitation.
@@ -174,14 +208,14 @@ namespace Stormancer
 			/// <param name="originId">Id of the user that sent the friend invitation.</param>
 			/// <param name="accept">If true, accepts the invitation. If false, refuse.</param>
 			/// <returns>A task that completes when the server acknowledged the request.</returns>
-			virtual pplx::task<void> answerFriendInvitation(std::string originId, bool accept = true) = 0;
+			virtual pplx::task<void> answerFriendInvitation(const Stormancer::Users::UserId& originId, bool accept = true) = 0;
 
 			/// <summary>
 			/// Removes a friend from the list.
 			/// </summary>
 			/// <param name="userId">Id of the user to remove.</param>
 			/// <returns>A task that completes when the server acknowledged the request.</returns>
-			virtual pplx::task<void> removeFriend(std::string userId) = 0;
+			virtual pplx::task<void> removeFriend(const Stormancer::Users::UserId& userId) = 0;
 
 			/// <summary>
 			/// Updates the current user's status in the friend system.
@@ -205,12 +239,11 @@ namespace Stormancer
 			/// <summary>
 			/// Ask the friend list for a full refresh. This should be called only in platform events when users are added or removed from the user friend list.
 			/// </summary>
-			/// <returns>A task which terminate when the server has returned the friend list and the local plugin processed the changes locally.</returns>
 			virtual pplx::task<void> refresh() = 0;
 
-			virtual pplx::task<void> block(std::string userIdToBlock, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
+			virtual pplx::task<void> block(const Stormancer::Users::UserId& userIdToBlock, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
 
-			virtual pplx::task<void> unblock(std::string userIdToUnblock, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
+			virtual pplx::task<void> unblock(const Stormancer::Users::UserId& userIdToUnblock, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
 
 			virtual pplx::task<std::vector<std::string>> getBlockedList(pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
 		};
@@ -221,11 +254,14 @@ namespace Stormancer
 			{
 			public:
 
-				FriendsService(std::shared_ptr<Scene> scene, std::shared_ptr<ILogger> logger)
+				FriendsService(std::shared_ptr<Scene> scene, std::shared_ptr<ILogger> logger, std::shared_ptr<Serializer> serializer, std::vector<std::shared_ptr<IFriendsEventHandler>> friendsEventHandlers)
 					: _scene(scene)
 					, _logger(logger)
 					, _rpcService(scene->dependencyResolver().resolve<RpcService>())
-				{}
+					, _serializer(serializer)
+					, _friendsEventHandlers(friendsEventHandlers)
+				{
+				}
 
 				Event<FriendListUpdatedEvent> friendListChanged;
 				std::vector<std::shared_ptr<Friend>> friends;
@@ -246,52 +282,9 @@ namespace Stormancer
 						});
 				}
 
-				void update(std::vector<Friend> newFriends)
+				bool tryGet(const std::vector<Friend>& friendsList, const Stormancer::Users::UserId& userId, Friend& item)
 				{
-					auto oldFriends = friends;
-					
-
-					for (auto oldFriendIt = oldFriends.begin(); oldFriendIt < oldFriends.end(); oldFriendIt++)
-					{
-						Friend foundFriend;
-						auto& ids = oldFriendIt->get()->userIds;
-						if (!tryGet(newFriends,ids, foundFriend))
-						{
-							// REMOVE
-							friends.erase(oldFriendIt);
-							friendListChanged(FriendListUpdatedEvent{ FriendListUpdateOperation::Remove, *oldFriendIt });
-						}
-					}
-
-					for (auto newFriend : newFriends)
-					{
-						std::shared_ptr<Friend> foundFriend;
-
-						auto& userIds = newFriend.userIds;
-						if (!tryGet(friends,userIds,foundFriend))
-						{
-							// ADD
-							friends.push_back(std::make_shared<Friend>(newFriend));
-							friendListChanged(FriendListUpdatedEvent{ FriendListUpdateOperation::AddOrUpdate, friends.back() });
-						}
-						else
-						{
-							// UPDATE
-							
-							
-							foundFriend->status = newFriend.status;
-							foundFriend->tags = newFriend.tags;
-							foundFriend->userIds = newFriend.userIds;
-							foundFriend->customData = newFriend.customData;
-							friendListChanged(FriendListUpdatedEvent{ FriendListUpdateOperation::AddOrUpdate,foundFriend  });
-							
-						}
-					}
-				}
-
-				bool tryGet(const std::vector<Friend>& friends,const Stormancer::Users::UserId& userId, Friend& item)
-				{
-					for (auto& i : friends)
+					for (auto& i : friendsList)
 					{
 						for (auto& uid : i.userIds)
 						{
@@ -306,9 +299,9 @@ namespace Stormancer
 				}
 
 
-				bool tryGet(const std::vector<Friend>& friends, const std::vector<Stormancer::Users::UserId> ids, Friend& item)
+				bool tryGet(const std::vector<Friend>& friendsList, const std::vector<Stormancer::Users::UserId> ids, Friend& item)
 				{
-					for (auto& i : friends)
+					for (auto& i : friendsList)
 					{
 						for (auto& uid : i.userIds)
 						{
@@ -325,9 +318,9 @@ namespace Stormancer
 					return false;
 				}
 
-				bool tryGet(const std::vector<std::shared_ptr<Friend>>& friends, const std::vector<Stormancer::Users::UserId> ids, std::shared_ptr<Friend>& item)
+				bool tryGet(const std::vector<std::shared_ptr<Friend>>& friendsList, const std::vector<Stormancer::Users::UserId> ids, std::shared_ptr<Friend>& item)
 				{
-					for (auto& i : friends)
+					for (auto& i : friendsList)
 					{
 						for (auto& uid : i->userIds)
 						{
@@ -347,22 +340,30 @@ namespace Stormancer
 
 				pplx::task<void> subscribe()
 				{
-					return _rpcService->rpc<void>("Friends.Subscribe");
+					std::weak_ptr<FriendsService> wFriendsService = this->shared_from_this();
+					return _rpcService->rpc<void>("Friends.Subscribe").then([wFriendsService]()
+						{
+							if (auto that = wFriendsService.lock())
+							{
+								that->subscribeFriendsChangedForAllEventHandlers();
+							}
+						});
 				}
 
-				pplx::task<void> inviteFriend(std::string userId)
+
+				pplx::task<void> inviteFriend(const Stormancer::Users::UserId& userId)
 				{
-					return _rpcService->rpc<void, std::string>("friends.invitefriend", userId);
+					return _rpcService->rpc<void, Stormancer::Users::UserId>("friends.invitefriend", userId);
 				}
 
-				pplx::task<void> answerFriendInvitation(std::string originId, bool accept = true)
+				pplx::task<void> answerFriendInvitation(const Stormancer::Users::UserId& originId, bool accept = true)
 				{
-					return _rpcService->rpc<void, std::string, bool>("friends.acceptfriendinvitation", originId, accept);
+					return _rpcService->rpc<void, const Stormancer::Users::UserId&, bool>("friends.acceptfriendinvitation", originId, accept);
 				}
 
-				pplx::task<void> removeFriend(std::string userId)
+				pplx::task<void> removeFriend(const Stormancer::Users::UserId& userId)
 				{
-					return _rpcService->rpc<void, std::string>("friends.removefriend", userId);
+					return _rpcService->rpc<void, Stormancer::Users::UserId>("friends.removefriend", userId);
 				}
 
 				pplx::task<void> setStatus(FriendListStatusConfig status, std::string details)
@@ -372,33 +373,33 @@ namespace Stormancer
 
 				pplx::task<void> refresh()
 				{
-					std::weak_ptr<FriendsService> wFriendsService = this->shared_from_this();
-					return _rpcService->rpc<std::vector<Friend>>("Friends.Get")
-						.then([wFriendsService](std::vector<Friend> newFriends)
+					friends.clear();
+					_eventHandlerSubscriptions.clear();
+					return _rpcService->rpc<void>("Friends.RefreshSubscription").then([wFriendsService = weak_from_this()]()
+						{
+							if (auto that = wFriendsService.lock())
 							{
-								if (auto friendsService = wFriendsService.lock())
-								{
-									friendsService->update(newFriends);
-								}
-							});
+								that->subscribeFriendsChangedForAllEventHandlers();
+							}
+						});;
 				}
 
 
-				
+
 
 				bool isLoaded()
 				{
 					return _isLoaded;
 				}
 
-				pplx::task<void> block(std::string userIdToBlock, pplx::cancellation_token ct = pplx::cancellation_token::none())
+				pplx::task<void> block(const Stormancer::Users::UserId& userIdToBlock, pplx::cancellation_token ct = pplx::cancellation_token::none())
 				{
-					return _rpcService->rpc<void, std::string, std::string>("Friends.Block", ct, userIdToBlock, "");
+					return _rpcService->rpc<void, Stormancer::Users::UserId, std::string>("Friends.Block", ct, userIdToBlock, "");
 				}
 
-				pplx::task<void> unblock(std::string userIdToUnblock, pplx::cancellation_token ct = pplx::cancellation_token::none())
+				pplx::task<void> unblock(const Stormancer::Users::UserId& userIdToUnblock, pplx::cancellation_token ct = pplx::cancellation_token::none())
 				{
-					return _rpcService->rpc<void, std::string>("Friends.Unblock", ct, userIdToUnblock);
+					return _rpcService->rpc<void, Stormancer::Users::UserId>("Friends.Unblock", ct, userIdToUnblock);
 				}
 
 				pplx::task<std::vector<std::string>> getBlockedList(pplx::cancellation_token ct = pplx::cancellation_token::none())
@@ -407,6 +408,15 @@ namespace Stormancer
 				}
 
 			private:
+
+				void updateFriendList(std::vector<FriendListUpdateDto> updates)
+				{
+					auto serializer = this->_serializer;
+					_scene.lock()->send("Friends.UpdateFriendList", [serializer, updates](obytestream& s)
+						{
+							serializer->serialize(s, updates);
+						});
+				}
 
 				void onFriendNotification(const FriendListUpdateDto& update)
 				{
@@ -429,9 +439,9 @@ namespace Stormancer
 
 				void onFriendAddOrUpdate(const FriendListUpdateDto& update)
 				{
-					
+
 					std::shared_ptr<Friend> fr;
-					if (tryGet(friends,update.data.userIds,fr))
+					if (tryGet(friends, update.data.userIds, fr))
 					{
 						if (fr)
 						{
@@ -444,7 +454,7 @@ namespace Stormancer
 					}
 					else
 					{
-						auto fr = std::make_shared<Friend>(update.data);
+						fr = std::make_shared<Friend>(update.data);
 						friends.push_back(fr);
 						friendListChanged(FriendListUpdatedEvent{ FriendListUpdateOperation::AddOrUpdate, fr });
 					}
@@ -465,7 +475,7 @@ namespace Stormancer
 
 				void onFriendRemove(const FriendListUpdateDto& update)
 				{
-					
+
 					for (auto it = friends.begin(); it != friends.end(); it++)
 					{
 						for (auto& uid : update.data.userIds)
@@ -482,12 +492,29 @@ namespace Stormancer
 							}
 						}
 					}
-					
+
+				}
+
+				void subscribeFriendsChangedForAllEventHandlers()
+				{
+					for (auto& handler : _friendsEventHandlers)
+					{
+						_eventHandlerSubscriptions.push_back(handler->subscribeFriendsChanged([wFriendsService = weak_from_this()](auto updates)
+							{
+								if (auto that = wFriendsService.lock())
+								{
+									that->updateFriendList(updates);
+								}
+							}));
+					}
 				}
 
 				std::weak_ptr<Scene> _scene;
 				std::shared_ptr<ILogger> _logger;
 				std::shared_ptr<RpcService> _rpcService;
+				std::shared_ptr<Serializer> _serializer;
+				std::vector<std::shared_ptr<IFriendsEventHandler>> _friendsEventHandlers;
+				std::vector<Subscription> _eventHandlerSubscriptions;
 				bool _isLoaded = false;
 			};
 
@@ -495,10 +522,11 @@ namespace Stormancer
 			{
 			public:
 
-				Friends_Impl(std::weak_ptr<Users::UsersApi> users, std::vector<std::shared_ptr<IFriendsEventHandler>> friendsEventHandlers)
+				Friends_Impl(std::weak_ptr<Users::UsersApi> users, std::shared_ptr<ILogger> logger)
 					: ClientAPI(users, "stormancer.friends")
-					, _friendsEventHandlers(friendsEventHandlers)
-				{}
+					, _logger(logger)
+				{
+				}
 
 				FriendsResult friends() override
 				{
@@ -507,7 +535,7 @@ namespace Stormancer
 					{
 						auto service = getFriendService();
 						result.isReady = true;
-						
+
 						for (auto ptr : service.get()->friends)
 						{
 							result.friends.push_back(*ptr);
@@ -524,21 +552,33 @@ namespace Stormancer
 
 				bool isLoaded() override
 				{
-					auto task = getFriendService();
-					return task.is_done() && task.get()->isLoaded();
+					if (auto users = _wUsers.lock())
+					{
+						if (users->connectionState() != Stormancer::Users::GameConnectionState::Authenticated)
+						{
+							return false;
+						}
+						auto task = getFriendService();
+						return task.is_done() && task.get() && task.get()->isLoaded();
+					}
+					else
+					{
+						return false;
+					}
+
 				}
 
-				pplx::task<void> inviteFriend(std::string userId) override
+				pplx::task<void> inviteFriend(const Stormancer::Users::UserId& userId) override
 				{
 					return getFriendService().then([userId](std::shared_ptr<FriendsService> s) { return s->inviteFriend(userId); });
 				}
 
-				pplx::task<void> answerFriendInvitation(std::string originId, bool accept = true) override
+				pplx::task<void> answerFriendInvitation(const Stormancer::Users::UserId& originId, bool accept = true) override
 				{
 					return getFriendService().then([originId, accept](std::shared_ptr<FriendsService> s) { return s->answerFriendInvitation(originId, accept); });
 				}
 
-				pplx::task<void> removeFriend(std::string userId) override
+				pplx::task<void> removeFriend(const Stormancer::Users::UserId& userId) override
 				{
 					return getFriendService().then([userId](std::shared_ptr<FriendsService> s) { return s->removeFriend(userId); });
 				}
@@ -561,12 +601,12 @@ namespace Stormancer
 					return friendListChanged.subscribe(callback);
 				}
 
-				pplx::task<void> block(std::string userIdToBlock, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
+				pplx::task<void> block(const Stormancer::Users::UserId& userIdToBlock, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
 				{
 					return getFriendService().then([userIdToBlock, ct](std::shared_ptr<FriendsService> s) { return s->block(userIdToBlock, ct); });
 				}
 
-				pplx::task<void> unblock(std::string userIdToUnblock, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
+				pplx::task<void> unblock(const Stormancer::Users::UserId& userIdToUnblock, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
 				{
 					return getFriendService().then([userIdToUnblock, ct](std::shared_ptr<FriendsService> s) { return s->unblock(userIdToUnblock, ct); });
 				}
@@ -602,12 +642,30 @@ namespace Stormancer
 							that->_friendListChangedSubscription = nullptr;
 						};
 
-					return this->getService(initializer, cleanup);
+					auto logger = _logger;
+					auto result = this->getService(initializer, cleanup);
+
+					//observe the possible exception
+					result.then([logger](pplx::task<std::shared_ptr<FriendsService>> task)
+						{
+							try
+							{
+								task.get();
+							}
+							catch (const std::exception& ex)
+							{
+								logger->log(LogLevel::Debug, "friends", "Could not get friends service", ex.what());
+							}
+						});
+
+					return result;
 				}
 
 				Event<FriendListUpdatedEvent>::Subscription _friendListChangedSubscription;
-				std::vector<std::shared_ptr<IFriendsEventHandler>> _friendsEventHandlers;
+
+				std::shared_ptr<ILogger> _logger;
 			};
+
 		}
 
 		class FriendsPlugin : public IPlugin
@@ -627,7 +685,7 @@ namespace Stormancer
 
 			void registerClientDependencies(ContainerBuilder& builder) override
 			{
-				builder.registerDependency<details::Friends_Impl, Users::UsersApi, ContainerBuilder::All<IFriendsEventHandler>>().as<FriendsApi>().singleInstance();
+				builder.registerDependency<details::Friends_Impl, Users::UsersApi, ILogger>().as<FriendsApi>().singleInstance();
 			}
 
 			void registerSceneDependencies(ContainerBuilder& builder, std::shared_ptr<Scene> scene) override
@@ -635,7 +693,7 @@ namespace Stormancer
 				auto name = scene->getHostMetadata(METADATA_KEY);
 				if (name.length() > 0)
 				{
-					builder.registerDependency<details::FriendsService, Scene, ILogger>().singleInstance();
+					builder.registerDependency<details::FriendsService, Scene, ILogger, Serializer, ContainerBuilder::All<IFriendsEventHandler>>().singleInstance();
 				}
 			}
 
