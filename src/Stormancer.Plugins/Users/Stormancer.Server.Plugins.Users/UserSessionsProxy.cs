@@ -68,16 +68,24 @@ namespace Stormancer.Server.Plugins.Users
         }
 
 
-        public Task<Session?> GetSessionById(SessionId sessionId, CancellationToken cancellationToken)
+        public async Task<Session?> GetSessionById(SessionId sessionId, CancellationToken cancellationToken)
         {
-            return sessionCache.Get(sessionId, async (id) =>
+            var session = await sessionCache.Get(sessionId, async (id) =>
             {
                 var session = await proxy.GetSessionById(sessionId, cancellationToken);
 
                 return (session, TimeSpan.FromSeconds(CACHE_DURATION_SECONDS));
             });
 
+            if (session == null)
+            {
+                sessionCache.Remove(sessionId);
+            }
+
+            return session;
         }
+
+        
 
         public async Task<T?> GetSessionData<T>(SessionId sessionId, string key, CancellationToken cancellationToken)
         {

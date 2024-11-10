@@ -49,17 +49,28 @@ namespace Stormancer.Server.Plugins.ServiceLocator
             _sessions = sessions;
             this.logger = logger;
         }
+        private Task<Session> TryGetSession(IScenePeerClient peer, CancellationToken cancellationToken)
+        {
+            //Retry later if we fail to get the user session.
+            return TaskHelper.Retry(async (peer, cancellationToken) =>
+            {
+                var session = await _sessions.GetSession(peer, cancellationToken);
+                if (session == null || session.User == null)
+                {
+                    logger.Log(LogLevel.Error, "locator", "An user tried to locate a service without being authenticated.", new { session });
+                    throw new ClientException("locator.notAuthenticated");
+
+                }
+
+                return session;
+            }, RetryPolicies.IncrementalDelay(2, TimeSpan.FromMilliseconds(500)), cancellationToken, ex => ex is ClientException, peer);
+        }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task<string> GetSceneConnectionToken(string serviceType, string serviceName, RequestContext<IScenePeerClient> ctx)
         {
 
-            var session = await _sessions.GetSession(ctx.RemotePeer,ctx.CancellationToken);
-            if (session == null || session.User == null)
-            {
-                logger.Log(LogLevel.Error, "locator", "An user tried to locate a service without being authenticated.", new { session });
-                throw new ClientException("locator.notAuthenticated");
-            }
+            var session = await TryGetSession(ctx.RemotePeer, ctx.CancellationToken);
 
             try
             {
