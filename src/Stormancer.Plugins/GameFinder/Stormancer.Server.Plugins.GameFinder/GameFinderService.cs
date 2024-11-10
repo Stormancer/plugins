@@ -246,7 +246,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                         _data.peersToGroup[p.SessionId] = party;
                     }
 
-                    ct.Register(() =>
+                    using var registration = ct.Register(() =>
                     {
                         state.Tcs.TrySetCanceled();
                     });
@@ -940,7 +940,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
             try
             {
-                request.CancellationToken.Register(() =>
+                using var registration = request.CancellationToken.Register(() =>
                 {
                     session.Close();
                     if (!IsRunning)
