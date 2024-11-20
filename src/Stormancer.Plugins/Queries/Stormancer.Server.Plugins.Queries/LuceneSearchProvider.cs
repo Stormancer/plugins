@@ -112,7 +112,7 @@ namespace Stormancer.Server.Plugins.Queries
                 {
                     index.Writer.UpdateDocument(new Term("_id", id), index.Mapper(id, document));
 
-                    index.Writer.Flush(false, false);
+                    index.Writer.Commit();
                     return true;
                 }
                 else
@@ -129,7 +129,7 @@ namespace Stormancer.Server.Plugins.Queries
                 if (_indices.TryGetValue(type, out var index))
                 {
                     index.Writer.DeleteDocuments(new Term("_id", id));
-                    index.Writer.Flush(false, true);
+                    index.Writer.Commit();
                     return true;
                 }
                 else

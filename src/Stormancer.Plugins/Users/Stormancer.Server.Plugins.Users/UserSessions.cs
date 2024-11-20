@@ -158,7 +158,7 @@ namespace Stormancer.Server.Plugins.Users
             if (success)
             {
                 _index.Writer.UpdateDocument(new Lucene.Net.Index.Term("_id", id), MapSessionRecord(session));
-                _index.Writer.Flush(false, false);
+                _index.Writer.Commit();
             }
 
             return success;
@@ -201,7 +201,7 @@ namespace Stormancer.Server.Plugins.Users
             if (success)
             {
                 _index.Writer.DeleteDocuments(new Lucene.Net.Index.Term("_id", sessionId.ToString()));
-                _index.Writer.Flush(false, false);
+                _index.Writer.Commit();
             }
             return success;
         }
