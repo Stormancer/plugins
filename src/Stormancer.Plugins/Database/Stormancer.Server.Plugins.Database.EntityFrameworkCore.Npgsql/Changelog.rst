@@ -11,6 +11,10 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Changed
+*******
+- Allow design-time database context creation for migration generation
+
 Added
 *******
 - Initial release

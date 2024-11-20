@@ -17,11 +17,9 @@ Add the following code in it:
         {
             public AppDbContext CreateDbContext(string[] args)
             {
-                var host = ServerApplication.CreateHost(builder => builder
-                       .Configure(args)
-                       .AddAllStartupActions()
-                 );
-                 using var scope host.DependencyResolver.CreateRequestScope();
-                return scope.Resolve<DbContextAccessor>().GetDbContextAsync().Result;
+            var host = ServerApplication.CreateUnconnectedHost(builder => builder.AddAllStartupActions());
+            var scope = host.DependencyResolver.CreateChild(Stormancer.Server.Plugins.API.Constants.ApiRequestTag);
+
+            return scope.Resolve<DbContextAccessor>().GetDbContextAsync().Result;
             }
         }

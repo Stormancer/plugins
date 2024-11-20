@@ -1,10 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
 using Npgsql;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Secrets;
+using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -20,7 +23,7 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
 
         ///<inheritdoc/>
         public static NpgSQLConfigurationSection Default { get; } = new NpgSQLConfigurationSection();
-       
+
 
         /// <summary>
         /// Gets or sets the host of the postgreSQL server.
@@ -62,27 +65,33 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
         /// </remarks>
         public int MaxPoolSize { get; set; } = 50;
 
-       
+
     }
     internal class NpgSQLConfiguratorState : IConfigurationChangedEventHandler
     {
-        public NpgSQLConfiguratorState(ISecretsStore store, IConfiguration configuration) {
+        public NpgSQLConfiguratorState(ISecretsStore store, IConfiguration configuration, IHost host)
+        {
             _store = store;
             _configuration = configuration;
+            _host = host;
         }
         private readonly object _lock = new object();
         private readonly ISecretsStore _store;
         private readonly IConfiguration _configuration;
+        private readonly IHost _host;
 
-        public Task<NpgsqlDataSource?> GetDataSource() 
-        { 
-            lock(_lock)
+        public Task<NpgsqlDataSource?> GetDataSource()
+        {
+            lock (_lock)
             {
-                if(_dataSourceTask ==null)
+                if (_dataSourceTask == null)
                 {
                     async Task<NpgsqlDataSource?> CreateDataSource()
                     {
-                        var section = _configuration.GetValue(NpgSQLConfigurationSection.SectionPath, new NpgSQLConfigurationSection());
+                        if (!_configuration.TryGetValue(NpgSQLConfigurationSection.SectionPath, out NpgSQLConfigurationSection? section) || section == null)
+                        {
+                            return null;
+                        }
 
                         if (section.PasswordPath != null)
                         {
@@ -94,9 +103,10 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
                             }
                         }
 
+                        DbConnectionStringBuilder builder = null;
                         if (section.IsValid)
                         {
-                            var builder = new DbConnectionStringBuilder
+                            builder = new DbConnectionStringBuilder
                             {
                                 { "Host", section.Host },
                                 { "Database", section.Database },
@@ -104,7 +114,21 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
                                 {"Password",section.Password },
                                 {"Maximum Pool Size",section.MaxPoolSize}
                             };
+                        }
+                        else if (section.Host is not null)
+                        {
+                            builder = new DbConnectionStringBuilder
+                            {
+                                { "Host", section.Host }
+                            };
+                        }
+                        else
+                        {
+                            return null;
+                        }
 
+                        if (section.IsValid || _host.IsDesignTime)
+                        {
                             var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.ConnectionString);
                             dataSourceBuilder.UseNodaTime();
 
@@ -127,19 +151,19 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
         {
             async Task DisposeAsync(Task<NpgsqlDataSource?>? task)
             {
-                if(task!=null)
+                if (task != null)
                 {
                     using (await task)
                     {
                     }
                 }
             }
-            lock(_lock)
+            lock (_lock)
             {
                 _ = DisposeAsync(_dataSourceTask);
                 _dataSourceTask = null;
             }
-           
+
         }
 
         private Task<NpgsqlDataSource?>? _dataSourceTask;
@@ -150,30 +174,41 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
 
         public NpgSQLConfigurator(NpgSQLConfiguratorState state)
         {
-            
+
             _state = state;
         }
         public void OnConfiguring(DbContextOptionsBuilder optionsBuilder, string contextId, Dictionary<string, object> customData)
         {
             if (customData.TryGetValue("npgsql", out var npgsqlData) && npgsqlData is NpgsqlDataSource source)
             {
-               
+
                 optionsBuilder
-                    .UseNpgsql(source, o => o.UseNodaTime())
+                    .UseNpgsql(source, o =>
+                    {
+                        o = o.UseNodaTime();
+                        var migrationAssemblyName = AppDomain.CurrentDomain.GetAssemblies()
+                            .SelectMany(a => a.GetTypes())
+                            .FirstOrDefault(t => t.IsAssignableTo(typeof(IDesignTimeDbContextFactory<AppDbContext>)))
+                            ?.Assembly?.FullName;
+                        if (migrationAssemblyName != null)
+                        {
+                            o.MigrationsAssembly(migrationAssemblyName);
+                        }
+                    })
                     .UseSnakeCaseNamingConvention();
-                    
+
             }
         }
 
         public async Task OnPreInit(InitializeDbContext ctx)
         {
             var source = await _state.GetDataSource();
-            if(source != null)
+            if (source != null)
             {
                 ctx.CustomData["npgsql"] = source;
             }
-           
-            
+
+
 
 
         }
