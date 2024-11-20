@@ -14,6 +14,7 @@ Unreleased
 Added
 *****
 - Added GetOptions() method that returns an IOptions<T> to IConfiguration.
+- Added TryGetValue() method to IConfiguration to check if a configuration section exists when retrieving its value
 
 2.1.2.5
 ----------

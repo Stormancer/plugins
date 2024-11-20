@@ -73,7 +73,17 @@ namespace Stormancer.Server.Plugins.Configuration
         /// <param name="path"></param>
         /// <param name="defaultValue"></param>
         /// <returns></returns>
-        T GetValue<T>(string path, T defaultValue = default);
+        T? GetValue<T>(string path, T? defaultValue = default)
+            => TryGetValue<T>(path, out var result) ? result : defaultValue;
+
+        /// <summary>
+        /// Gets a configuration object from the provided path if it is present
+        /// </summary>
+        /// <typeparam name="T">Type of the object to deserialize</typeparam>
+        /// <param name="path"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        bool TryGetValue<T>(string path, out T? value);
 
         /// <summary>
         /// Gets a section of the configuration.
@@ -136,32 +146,25 @@ namespace Stormancer.Server.Plugins.Configuration
 
         }
 
-        public T? GetValue<T>(string path, T defaultValue = default)
+
+        public bool TryGetValue<T>(string path, out T? value)
         {
             var segments = path.Split('.');
-            var node = this.Settings;
-            for (int i = 0; i < segments.Length; i++)
+            if (TryGetValue<T>(segments, Settings, out T? result))
             {
-                node = node[segments[i]];
-                if (node == null)
-                {
-                    return defaultValue;
-                }
-            }
-
-            if (TryGetValue<T>(segments, Settings, out T result))
-            {
-                return result;
+                value = result;
+                return true;
             }
             else if (TryGetValue<T>(segments, defaultSettings, out result))
             {
-                return result;
+                value = result;
+                return true;
             }
             else
             {
-                return defaultValue;
+                value = default;
+                return false;
             }
-
         }
 
         private bool TryGetValue<T>(string[] segments, JObject container, [MaybeNullWhen(false)] out T value)
@@ -186,7 +189,7 @@ namespace Stormancer.Server.Plugins.Configuration
 
         public IOptions<T> GetOptions<T>(string path) where T : class, new()
         {
-            return new Options<T>((path) => GetValue<T>(path), path);
+            return new Options<T>((path) => ((IConfiguration)this).GetValue<T>(path), path);
         }
 
         private class Options<T> : IOptions<T> where T : class, new()
@@ -202,7 +205,7 @@ namespace Stormancer.Server.Plugins.Configuration
             public T Value => _valueFactory(_path) ?? new();
         }
     }
-   
+
 
 }
 
