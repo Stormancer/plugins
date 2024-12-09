@@ -16,6 +16,26 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.PlayerReports.Admin
 {
+    /// <summary>
+    /// Possible sort values for reports.
+    /// </summary>
+    public enum PlayerReportSortedByValues
+    {
+        /// <summary>
+        /// Sort by last report date
+        /// </summary>
+        LastReportedOn,
+
+        /// <summary>
+        /// Sort by total number of reports
+        /// </summary>
+        TotalReports,
+
+        /// <summary>
+        /// Sort by number of reports by distinct reporters.
+        /// </summary>
+        DistinctTotalReports,
+    }
     class AdminWebApiConfig : IAdminWebApiConfig
     {
         public void ConfigureApplicationParts(ApplicationPartManager apm)
@@ -48,14 +68,30 @@ namespace Stormancer.Server.Plugins.PlayerReports.Admin
         /// </summary>
         /// <param name="skip"></param>
         /// <param name="size"></param>
+        /// <param name="sortedBy"></param>
         /// <returns></returns>
         [HttpGet]
-        public async Task<GetPlayerReportsResult> Index(int skip = 0, int size = 50)
+        public async Task<GetPlayerReportsResult> Index(int skip = 0, int size = 50, PlayerReportSortedByValues sortedBy = PlayerReportSortedByValues.LastReportedOn)
         {
             var context = await _contextAccessor.GetDbContextAsync();
 
-            var total = await context.Set<PlayerReport>().GroupBy(r => r.ReportedId).Select(r=>r.Key).CountAsync();
-            var reports = await context.Set<PlayerReport>().GroupBy(r => r.ReportedId).Select(g => new { ReportedUserId = g.Key, TotalReports = g.Count(), TotalDistinctReporters = g.GroupBy(r => r.ReporterId).Count() }).Skip(skip).Take(size).ToListAsync();
+            var total = await context.Set<PlayerReport>().GroupBy(r => r.ReportedId).Select(r => r.Key).CountAsync();
+            var reportsQuery = context.Set<PlayerReport>().GroupBy(r => r.ReportedId).Select(g => new
+            {
+                ReportedUserId = g.Key,
+                TotalReports = g.Count(),
+                TotalDistinctReporters = g.GroupBy(r => r.ReporterId).Count(),
+                LastReportedOn = g.Max(r => r.CreatedOn)
+            });
+
+            var reports = await (sortedBy switch
+            {
+                PlayerReportSortedByValues.LastReportedOn => reportsQuery.OrderByDescending(r => r.LastReportedOn),
+                PlayerReportSortedByValues.TotalReports => reportsQuery.OrderByDescending(r=> r.TotalReports),
+                PlayerReportSortedByValues.DistinctTotalReports => reportsQuery.OrderByDescending(r=>r.TotalDistinctReporters),
+                _ => reportsQuery
+            }).Skip(skip).Take(size).ToListAsync();
+
 
             return new GetPlayerReportsResult
             {
@@ -64,6 +100,7 @@ namespace Stormancer.Server.Plugins.PlayerReports.Admin
                     ReportedUserId = r.ReportedUserId.ToString("N"),
                     TotalDistinctReporters = r.TotalDistinctReporters,
                     TotalReports = r.TotalReports,
+                    LastReportedOn = r.LastReportedOn,
                 }),
                 Skip = skip,
                 Total = total
@@ -82,12 +119,13 @@ namespace Stormancer.Server.Plugins.PlayerReports.Admin
                 .Where(r => r.ReportedId == guid)
                 .ToListAsync();
 
-            return result.Select(r => new PlayerReportDetails {
-             Context = JToken.Parse(JsonSerializer.Serialize(r.Context)),
-             CreatedOn = r.CreatedOn,
-             Message = r.Message,
-             ReportedUserId = r.ReportedId.ToString("N"),
-             ReporterUserId = r.ReporterId.ToString("N"),
+            return result.Select(r => new PlayerReportDetails
+            {
+                Context = JToken.Parse(JsonSerializer.Serialize(r.Context)),
+                CreatedOn = r.CreatedOn,
+                Message = r.Message,
+                ReportedUserId = r.ReportedId.ToString("N"),
+                ReporterUserId = r.ReporterId.ToString("N"),
             });
             //CreatedOn = r.CreatedOn,
             //        Message = r.Message,
@@ -139,6 +177,11 @@ namespace Stormancer.Server.Plugins.PlayerReports.Admin
         /// Total count of distinct users who reported the user.
         /// </summary>
         public required int TotalDistinctReporters { get; init; }
+
+        /// <summary>
+        /// The date time the user was last reported on.
+        /// </summary>
+        public required DateTime LastReportedOn { get; init; }
     }
 
     /// <summary>
@@ -164,7 +207,7 @@ namespace Stormancer.Server.Plugins.PlayerReports.Admin
         /// <summary>
         /// Id of the user being reported.
         /// </summary>
-        public required string ReportedUserId { get;init; }
+        public required string ReportedUserId { get; init; }
 
         /// <summary>
         /// Additional data in the report.
