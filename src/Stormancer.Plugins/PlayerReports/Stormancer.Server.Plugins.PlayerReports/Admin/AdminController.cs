@@ -117,6 +117,7 @@ namespace Stormancer.Server.Plugins.PlayerReports.Admin
             var result = await context
                 .Set<PlayerReport>()
                 .Where(r => r.ReportedId == guid)
+                .OrderByDescending(r=>r.CreatedOn)
                 .ToListAsync();
 
             return result.Select(r => new PlayerReportDetails
