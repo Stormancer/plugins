@@ -175,7 +175,7 @@ namespace Stormancer.Server.Plugins.Users
                 yield return new StringField("user.id", user.Id, Field.Store.NO);
                 yield return new StringField("platformUserId.platform", record.platformId.Platform, Field.Store.NO);
                 yield return new StringField("platformUserId.id", record.platformId.PlatformUserId, Field.Store.NO);
-                yield return new StringField("platformUserId",record.platformId.ToString(), Field.Store.NO);
+                yield return new StringField("platformUserId", record.platformId.ToString(), Field.Store.NO);
                 foreach (var field in DefaultMapper.JsonMapper("user.auth", user.Auth))
                 {
                     yield return field;
@@ -512,7 +512,7 @@ namespace Stormancer.Server.Plugins.Users
 
                 await _eventHandlers().RunEventHandler(h => h.OnLoggedIn(loginContext), ex => logger.Log(LogLevel.Error, "userSessions", "An error occurred while running LoggedIn event handlers", ex));
 
-                foreach (var (oldPeer,s) in currentSessions.Select(s =>( _scene.TryGetPeer(s.SessionId, out var peer) ? peer : null,s)))
+                foreach (var (oldPeer, s) in currentSessions.Select(s => (_scene.TryGetPeer(s.SessionId, out var peer) ? peer : null, s)))
                 {
                     if (peer != oldPeer)
                     {
@@ -1096,23 +1096,43 @@ namespace Stormancer.Server.Plugins.Users
 
         public ValueTask<IEnumerable<AuthenticatedUsersCount>> GetAuthenticatedUsersByDimensionsAsync()
         {
-            var time = DateTime.UtcNow;
-            return ValueTask.FromResult(repository
-            .All
-            .Select(d => d.Source)
-            .WhereNotNull()
-            .GroupBy(s => s.Dimensions, _dimensionsComparer)
-            .Select(g => new AuthenticatedUsersCount
+
+            static IEnumerable<AuthenticatedUsersCount> GetAuthenticatedUsersByDimensions(SessionsRepository repository)
             {
-                Timestamp = time,
-                Count = g.Count(),
-                Dimensions = g.Key
-            }));
+                var time = DateTime.UtcNow;
+
+                var total = 0;
+                foreach (var g in repository
+                    .All
+                    .Select(d => d.Source)
+                    .WhereNotNull()
+                    .GroupBy(s => s.Dimensions, _dimensionsComparer))
+                {
+                    var count = g.Count();
+                    total += count;
+                    yield return new AuthenticatedUsersCount
+                    {
+                        Timestamp = time,
+                        Count = count,
+                        Dimensions = g.Key
+                    }
+;
+                }
+
+                yield return new AuthenticatedUsersCount
+                {
+                    Timestamp = time,
+                    Count = total,
+                    Dimensions = FrozenDictionary<string, string>.Empty
+                };
+            }
+
+            return ValueTask.FromResult(GetAuthenticatedUsersByDimensions(repository));
         }
 
         public async Task UpdateUserOptionsAsync(string userId, string key, JObject value, CancellationToken cancellationToken)
         {
-            var sessions = await GetSession(new PlatformId { Platform = Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = userId}, cancellationToken);
+            var sessions = await GetSession(new PlatformId { Platform = Constants.PROVIDER_TYPE_STORMANCER, PlatformUserId = userId }, cancellationToken);
             bool first = true;
             foreach (var session in sessions)
             {
