@@ -64,28 +64,28 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 builder.Register(static r => new GameSessionController(r.Resolve<IGameSessionService>(), r.Resolve<IUserSessions>())).InstancePerRequest();
                 builder.Register(static r => new ServerPoolController(r.Resolve<ServerPools>(), r.Resolve<IUserSessions>(), r.Resolve<IGameSessions>(), r.Resolve<AgentBasedGameServerProvider>())).InstancePerRequest();
-                builder.Register(static r=> new AgentServerController(r.Resolve<AgentBasedGameServerProvider>())).InstancePerRequest();
-                builder.Register(static r=>new DedicatedServerAuthProvider(r.Resolve<IDataProtector>())).As<IAuthenticationProvider>();
-                builder.Register(static r=>new GameServerAgentAuthenticationProvider(r.Resolve<GameServerAgentConfiguration>())).As<IAuthenticationProvider>();
-                builder.Register(static r=>new GameServerAgentConfiguration(r.Resolve<IConfiguration>(),r.Resolve<ISecretsStore>(),r.Resolve<IHttpClientFactory>())).As<IConfigurationChangedEventHandler>().AsSelf().SingleInstance();
-                builder.Register(static r=> new DevDedicatedServerAuthProvider()).As<IAuthenticationProvider>();
-                builder.Register(static r=> new GameSessions(r.Resolve<Lazy<IScenesManager>>(), r.Resolve<Utilities.RecyclableMemoryStreamProvider>(), r.Resolve<IEnvironment>(), r.Resolve<Lazy<GameSessionProxy>>(), r.Resolve<Lazy<IUserSessions>>(), r.Resolve<ISerializer>(), r.Resolve<JsonSerializer>())).As<IGameSessions>();
+                builder.Register(static r => new AgentServerController(r.Resolve<AgentBasedGameServerProvider>())).InstancePerRequest();
+                builder.Register(static r => new DedicatedServerAuthProvider(r.Resolve<IDataProtector>())).As<IAuthenticationProvider>();
+                builder.Register(static r => new GameServerAgentAuthenticationProvider(r.Resolve<GameServerAgentConfiguration>())).As<IAuthenticationProvider>();
+                builder.Register(static r => new GameServerAgentConfiguration(r.Resolve<IConfiguration>(), r.Resolve<ISecretsStore>(), r.Resolve<IHttpClientFactory>())).As<IConfigurationChangedEventHandler>().AsSelf().SingleInstance();
+                builder.Register(static r => new DevDedicatedServerAuthProvider()).As<IAuthenticationProvider>();
+                builder.Register(static r => new GameSessions(r.Resolve<Lazy<IScenesManager>>(), r.Resolve<Utilities.RecyclableMemoryStreamProvider>(), r.Resolve<IEnvironment>(), r.Resolve<Lazy<GameSessionProxy>>(), r.Resolve<Lazy<IUserSessions>>(), r.Resolve<ISerializer>(), r.Resolve<JsonSerializer>())).As<IGameSessions>();
 
                 builder.Register(static r => GameSessionsServiceLocator.Instance).As<IServiceLocatorProvider>();
 
-                builder.Register(static r=>new CompositeServerPoolProvider(r.Resolve<Func<IServerPools>>(),r.Resolve<ILogger>())).As<IServerPoolProvider>();
-                builder.Register(static r=> new DevServerPoolProvider(r.Resolve<ILogger>(),r.Resolve<GameSessionEventsRepository>())).As<IServerPoolProvider>().SingleInstance();
-                builder.Register(static r=> new ProviderBasedServerPoolProvider(r.ResolveAll<IGameServerProvider>(),r.Resolve<ILogger>(), r.Resolve<ISceneHost>(), r.Resolve<IDataProtector>(), r.Resolve<GameSessionEventsRepository>())).As<IServerPoolProvider>().InstancePerScene();
-                builder.Register(static r=>new GameSessionAnalyticsWorker(r.Resolve<IAnalyticsService>(),r.Resolve<GameSessionsRepository>())).SingleInstance();
+                builder.Register(static r => new CompositeServerPoolProvider(r.Resolve<Func<IServerPools>>(), r.Resolve<ILogger>())).As<IServerPoolProvider>();
+                builder.Register(static r => new DevServerPoolProvider(r.Resolve<ILogger>(), r.Resolve<GameSessionEventsRepository>())).As<IServerPoolProvider>().SingleInstance();
+                builder.Register(static r => new ProviderBasedServerPoolProvider(r.ResolveAll<IGameServerProvider>(), r.Resolve<ILogger>(), r.Resolve<ISceneHost>(), r.Resolve<IDataProtector>(), r.Resolve<GameSessionEventsRepository>())).As<IServerPoolProvider>().InstancePerScene();
+                builder.Register(static r => new GameSessionAnalyticsWorker(r.Resolve<IAnalyticsService>(), r.Resolve<GameSessionsRepository>())).SingleInstance();
 
-                builder.Register(static r=> new AdminWebApiConfig()).As<IAdminWebApiConfig>();
+                builder.Register(static r => new AdminWebApiConfig()).As<IAdminWebApiConfig>();
 
-                builder.Register(static r=>new DockerAgentAdminController(r.Resolve<ISceneHost>()));
-                builder.Register(static r=> new GameSessionsAdminController(r.Resolve<ISceneHost>()));
+                builder.Register(static r => new DockerAgentAdminController(r.Resolve<ISceneHost>()));
+                builder.Register(static r => new GameSessionsAdminController(r.Resolve<ISceneHost>()));
 
-                builder.Register(static r=>new GameSessionsRepository()).SingleInstance();
-                builder.Register(static r=>new GameSessionEventsRepository(r.Resolve<Database.IESClientFactory>(),r.Resolve<ILogger>())).SingleInstance();
-                builder.Register(static r=>new GameSessionsMonitoringService(r.Resolve<GameSessionProxy>(), r.Resolve<ServerPoolProxy>(),r.Resolve<GameSessionEventsRepository>())).InstancePerRequest();
+                builder.Register(static r => new GameSessionsRepository()).SingleInstance();
+                builder.Register(static r => new GameSessionEventsRepository(r.Resolve<Database.IESClientFactory>(), r.Resolve<ILogger>())).SingleInstance();
+                builder.Register(static r => new GameSessionsMonitoringService(r.Resolve<GameSessionProxy>(), r.Resolve<ServerPoolProxy>(), r.Resolve<GameSessionEventsRepository>())).InstancePerRequest();
 
                 builder.Register(static d => new GameSessionState(d.Resolve<ISceneHost>()));
 
@@ -171,6 +171,12 @@ namespace Stormancer.Server.Plugins.GameSession
 
 
                         }
+                    });
+                    scene.AddProcedure("p2pmesh.getP2PToken", async (rq) =>
+                    {
+                        var target = rq.ReadObject<SessionId>();
+                        var token = await scene.DependencyResolver.Resolve<Components.IPeerInfosService>().CreateP2pToken(target, scene.Id);
+                        await rq.SendValue(token);
                     });
                 }
             };
