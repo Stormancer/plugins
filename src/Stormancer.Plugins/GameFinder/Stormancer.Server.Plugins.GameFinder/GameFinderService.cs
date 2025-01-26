@@ -426,7 +426,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                         }
 
                         //_logger.Log(LogLevel.Debug, $"{LOG_CATEGORY}.FindGamesOnce", $"Resolve game for {waitingParties.Count} players", new { waitingCount = waitingParties.Count, currentGame = game });
-                        _ = ResolveGameFound(game, waitingParties, resolver, cancellationToken); // Resolve game, but don't wait for completion.
+                        await ResolveGameFound(game, waitingParties, resolver, cancellationToken); // Resolve game, but don't wait for completion.
                                                                                                  //_logger.Log(LogLevel.Debug, $"{LOG_CATEGORY}.FindGamesOnce", $"Resolve complete game for {waitingParties.Count} players", new { waitingCount = waitingParties.Count, currentGame = game });
                     }
 
