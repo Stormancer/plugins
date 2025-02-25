@@ -63,9 +63,16 @@ namespace Stormancer.Server.Plugins.PartyMerging
 
                         if (DateTime.UtcNow > lastAnalytics + TimeSpan.FromMinutes(1))
                         {
+                            lastAnalytics = DateTime.UtcNow;
                             var analytics = scope.Resolve<IAnalyticsService>();
+                            var data = merger.GetAnalytics();
+                            
+                            analytics.Push("merger", merger.MergerId, JObject.FromObject(data));
 
-                            analytics.Push("merger", merger.MergerId, JObject.FromObject(merger.GetAnalytics()));
+                            if(data.LastPlayerCount>0)
+                            {
+                                await scene.KeepAlive(TimeSpan.FromMinutes(5));
+                            }
                             
                         }
                       

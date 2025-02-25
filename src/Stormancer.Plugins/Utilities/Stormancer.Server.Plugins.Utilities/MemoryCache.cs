@@ -143,25 +143,29 @@ namespace Stormancer.Server.Plugins
         {
             while (_timer != null && await _timer.WaitForNextTickAsync())
             {
-                KeyValuePair<TKey, CacheEntry>[] copy;
-                lock (_syncRoot)
+                try
                 {
-                    copy = cache.Where(kvp => (kvp.Value.ExpiresOn ?? DateTime.MaxValue) < DateTime.UtcNow).ToArray();
-                }
-
-                foreach (var entry in copy)
-                {
-                    entry.Value.OnInvalidated(entry.Key);
-                }
-
-                lock (_syncRoot)
-                {
-                    if (!cache.Any())
+                    KeyValuePair<TKey, CacheEntry>[] copy;
+                    lock (_syncRoot)
                     {
-                        _timer?.Dispose();
-                        _timer = null;
+                        copy = cache.Where(kvp => (kvp.Value.ExpiresOn ?? DateTime.MaxValue) < DateTime.UtcNow).ToArray();
+                    }
+
+                    foreach (var entry in copy)
+                    {
+                        entry.Value.OnInvalidated(entry.Key);
+                    }
+
+                    lock (_syncRoot)
+                    {
+                        if (!cache.Any())
+                        {
+                            _timer?.Dispose();
+                            _timer = null;
+                        }
                     }
                 }
+                catch (Exception ex) { }
             }
 
         }
