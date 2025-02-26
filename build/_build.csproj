@@ -12,8 +12,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Discord.Net" Version="3.13.1" />
-    <PackageReference Include="Nuke.Common" Version="8.0.0" />
+    <PackageReference Include="Discord.Net" Version="3.17.1" />
+    <PackageReference Include="Nuke.Common" Version="9.0.4" />
   </ItemGroup>
 
 </Project>
