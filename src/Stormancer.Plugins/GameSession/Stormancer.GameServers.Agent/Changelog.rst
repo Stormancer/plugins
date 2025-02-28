@@ -10,7 +10,7 @@ Please use only reStructuredText in this file, no Markdown!
 This project adheres to semantic versioning.
 
 
-Unreleased
+0.5.1.2
 ----------
 Added
 *****

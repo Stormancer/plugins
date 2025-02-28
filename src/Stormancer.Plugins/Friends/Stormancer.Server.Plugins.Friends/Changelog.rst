@@ -1,4 +1,4 @@
-﻿=========
+=========
 Changelog
 =========
 
@@ -11,7 +11,7 @@ This project adheres to semantic versioning.
 
 
 
-Unreleased
+5.0.1.82
 ----------
 Changed
 *******

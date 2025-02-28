@@ -1,4 +1,4 @@
-﻿=========
+=========
 Changelog
 =========
 
@@ -9,7 +9,7 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-Unreleased
+0.5.0.5
 ----------
 - Updated to latest SDK.
 

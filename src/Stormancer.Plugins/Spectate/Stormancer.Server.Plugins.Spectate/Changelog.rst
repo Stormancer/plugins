@@ -11,7 +11,7 @@ This project adheres to semantic versioning.
 
 
 
-Unreleased
+0.3.2.4
 ----------
 Changed
 *******
