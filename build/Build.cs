@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -58,7 +60,7 @@ class Build : NukeBuild
     AbsolutePath SourceDirectory => RootDirectory / "src";
     AbsolutePath OutputDirectory => RootDirectory / "output";
 
-   
+
     private async Task StartDiscord()
     {
         var tcs = new TaskCompletionSource<bool>();
@@ -105,7 +107,7 @@ class Build : NukeBuild
         .Before(Restore)
         .Executes(() =>
         {
-            SourceDirectory.GlobDirectories("**/bin", "**/obj").ForEach(p=>p.DeleteDirectory());
+            SourceDirectory.GlobDirectories("**/bin", "**/obj").ForEach(p => p.DeleteDirectory());
             OutputDirectory.CreateOrCleanDirectory();
         });
 
@@ -125,25 +127,29 @@ class Build : NukeBuild
                 .SetConfiguration(Configuration)
                 .EnableNoRestore());
         });
+
+    private IEnumerable<Project> GetPackageProjects() => Solution.AllProjects.Where(p =>
+    {
+        if (!p.Path.HasExtension(".csproj"))
+        {
+            return false;
+        }
+        var property = p.GetProperty<string>("StrmPushPackage");
+
+        if (!string.IsNullOrEmpty(property))
+        {
+            return property == "true";
+        }
+        return !p.Name.StartsWith("_") && !p.Name.Contains("Test") && !p.Name.Contains("sample", StringComparison.InvariantCultureIgnoreCase);
+    });
+
     Target Publish => _ => _
     .DependsOn(Compile)
     .Executes(async () =>
     {
         await StartDiscord();
         Debug.Assert(_channel != null);
-        foreach (var project in Solution.AllProjects.Where(p => {
-            if (!p.Path.HasExtension(".csproj"))
-            {
-                return false;
-            }
-            var property = p.GetProperty<string>("StrmPushPackage");
-            
-            if(!string.IsNullOrEmpty(property))
-            {
-                return property == "true";
-            }
-            return !p.Name.StartsWith("_") && !p.Name.Contains("Test") && !p.Name.Contains("sample", StringComparison.InvariantCultureIgnoreCase);
-            }))
+        foreach (var project in GetPackageProjects())
         {
             var changelogFile = Path.Combine(project.Directory, "Changelog.rst");
 
@@ -200,7 +206,7 @@ class Build : NukeBuild
             var versionString = packagePath.Substring(startIndex, packagePath.Length - startIndex - ".nupkg".Length);
             var currentPackageVersion = new NuGetVersion(versionString);
             var versionStr = await NuGetVersionResolver.GetLatestVersion(project.Name, Configuration == "Debug");
-            
+
             //await _channel.SendMessageAsync($"*[{BuildType} {Configuration}]* `{project.Name}` : Current package on nuget: {versionStr}.");
 
             var version = versionStr != null ? new NuGetVersion(versionStr) : null;
@@ -268,7 +274,7 @@ class Build : NukeBuild
 
                         await _channel.SendMessageAsync($"*[{BuildType} {Configuration}]* Published https://www.nuget.org/packages/{project.Name}/{currentPackageVersion}");
                     }
-                    catch( Exception)
+                    catch (Exception)
                     {
                         await _channel.SendMessageAsync($"*[{BuildType} {Configuration}]* An error occurred while pushing `{project.Name}` version `{currentPackageVersion}`.");
                     }
@@ -278,6 +284,45 @@ class Build : NukeBuild
         await _client.StopAsync();
 
 
+    });
+
+    Target PrepareRelease => _ => _
+    .Executes(() =>
+    {
+        foreach (var project in GetPackageProjects())
+        {
+
+            if(project.Name.Contains("sample", StringComparison.InvariantCultureIgnoreCase))
+            {
+                continue;
+            }
+            var changelogFile = Path.Combine(project.Directory, "Changelog.rst");
+            if (!File.Exists(changelogFile))
+            {
+                // no changelog to edit
+                continue;
+            }
+
+            Microsoft.Build.Evaluation.Project msbuildProject = project.GetMSBuildProject(configuration: "Release");
+            var version = msbuildProject.GetProperty("Version").EvaluatedValue;
+
+            var lines = File.ReadAllLines(changelogFile);
+            var edited = false;
+            for (var i = 0; i < lines.Length; i++)
+            {
+                if (lines[i] == "Unreleased")
+                {
+                    lines[i] = version;
+                    edited = true;
+                }
+            }
+
+            if (edited)
+            {
+                File.WriteAllLines(changelogFile, lines);
+                Console.WriteLine($"prepared release version {version} for project {project.Name}");
+            }
+        }
     });
 
     private string MsBuildEscape(string value)
