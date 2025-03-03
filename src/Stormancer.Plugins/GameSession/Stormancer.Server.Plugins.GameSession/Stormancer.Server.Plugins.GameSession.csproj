@@ -5,7 +5,7 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>6.2.1.85</Version>
+		<Version>6.2.1.86</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -24,8 +24,8 @@
 	
 	<ItemGroup>
 		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
-		<None Include="..\cpp\GameSession.hpp" Link="cpp\GameSession.hpp" Pack="true" PackagePath="\client\cpp\GameSession.hpp"/>
-		<None Include="..\cpp\ServerPools.hpp" Link="cpp\ServerPools.hpp" Pack="true" PackagePath="\client\cpp\ServerPools.hpp"/>
+		<None Include="..\cpp\GameSession.hpp" Link="cpp\GameSession.hpp" Pack="true" PackagePath="\client\cpp\GameSession.hpp" />
+		<None Include="..\cpp\ServerPools.hpp" Link="cpp\ServerPools.hpp" Pack="true" PackagePath="\client\cpp\ServerPools.hpp" />
 	</ItemGroup>
 	<ItemGroup>
 		<None Include="docs\Readme.md" Pack="true" PackagePath="\" />
@@ -40,7 +40,7 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Stormancer.Abstractions.Server" Version="10.1.0.9-pre" />
+		<PackageReference Include="Stormancer.Abstractions.Server" Version="10.1.1" />
 		<PackageReference Include="System.Interactive.Async" Version="6.0.1" />
 		<PackageReference Include="System.Linq.Async" Version="6.0.1" />
 	</ItemGroup>
