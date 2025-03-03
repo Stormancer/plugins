@@ -6,8 +6,7 @@
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
 		<Version>1.1.0.1</Version>
-		<IncludeSymbols>true</IncludeSymbols>
-		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<IncludeSymbols>false</IncludeSymbols>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
