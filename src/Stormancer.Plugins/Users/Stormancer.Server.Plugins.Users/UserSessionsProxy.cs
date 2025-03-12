@@ -142,7 +142,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public async Task<User?> GetUser(IScenePeerClient peer, CancellationToken cancellationToken)
         {
-            var session = await proxy.GetSessionById(peer.SessionId, cancellationToken);
+            var session = await GetSessionById(peer.SessionId, cancellationToken);
             return session?.User;
         }
 

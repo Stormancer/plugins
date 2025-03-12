@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Adds a cache to GetUser in the UserSession Service
+
 10.0.2.46
 ----------
 Changed
