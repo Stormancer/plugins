@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Fixed
+*****
+- Fixed an issue that prevented DbContextAccessor instances from being created by the dependency container.
+
 0.1.0.15
 ----------
 Changed
