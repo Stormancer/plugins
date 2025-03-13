@@ -39,6 +39,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Admin\Stormancer.Server.Plugins.AdminApi\Stormancer.Server.Plugins.WebApi.csproj" />
     <ProjectReference Include="..\..\Database\Stormancer.Server.Plugins.Database.EntityFramework\Stormancer.Server.Plugins.Database.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\..\GameSession\Stormancer.Server.Plugins.GameSession\Stormancer.Server.Plugins.GameSession.csproj" />
     <ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users.EntityFramework\Stormancer.Server.Plugins.Users.EntityFramework.csproj" />

@@ -23,7 +23,9 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.OData;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.OData.ModelBuilder;
 using Microsoft.OpenApi.Models;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
@@ -94,7 +96,7 @@ namespace Stormancer.Server.Plugins.AdminApi
                 {
                     services.AddLocalization();
                     var configs = scene.DependencyResolver.Resolve<IEnumerable<IAdminWebApiConfig>>();
-
+                    var oDataModelConfigurators = scene.DependencyResolver.Resolve<IEnumerable<IODataModelConfigurator>>();
                     services.AddMvc(options =>
                     {
                     })
@@ -106,7 +108,15 @@ namespace Stormancer.Server.Plugins.AdminApi
                             }
                         })
                         .AddNewtonsoftJson()
-                        .AddControllersAsServices();
+                        .AddControllersAsServices().AddOData(options=>
+                        {
+                            var modelBuilder = new ODataConventionModelBuilder();
+                            foreach (var configurator in oDataModelConfigurators)
+                            {
+                                configurator.ConfigureAdminODataModel(modelBuilder);
+                            }
+                            options.EnableQueryFeatures(200).AddRouteComponents("odata", modelBuilder.GetEdmModel());
+                        });
   
                     services.AddSwaggerGen(c =>
                     {

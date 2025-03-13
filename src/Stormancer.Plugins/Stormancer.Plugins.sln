@@ -252,6 +252,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Directory.Build.props = Directory.Build.props
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Database.EntityFrameworkCore.Generator", "Database\Stormancer.Server.Plugins.Database.EntityFrameworkCore.Generator\Stormancer.Server.Plugins.Database.EntityFrameworkCore.Generator.csproj", "{AC1D618E-FD56-4FDB-A514-BD2603F593EE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -987,6 +989,18 @@ Global
 		{3CA5F90B-639F-4769-9007-72F92ACC28B0}.Release|x64.Build.0 = Release|Any CPU
 		{3CA5F90B-639F-4769-9007-72F92ACC28B0}.Release|x86.ActiveCfg = Release|Any CPU
 		{3CA5F90B-639F-4769-9007-72F92ACC28B0}.Release|x86.Build.0 = Release|Any CPU
+		{AC1D618E-FD56-4FDB-A514-BD2603F593EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AC1D618E-FD56-4FDB-A514-BD2603F593EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AC1D618E-FD56-4FDB-A514-BD2603F593EE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AC1D618E-FD56-4FDB-A514-BD2603F593EE}.Debug|x64.Build.0 = Debug|Any CPU
+		{AC1D618E-FD56-4FDB-A514-BD2603F593EE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{AC1D618E-FD56-4FDB-A514-BD2603F593EE}.Debug|x86.Build.0 = Debug|Any CPU
+		{AC1D618E-FD56-4FDB-A514-BD2603F593EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AC1D618E-FD56-4FDB-A514-BD2603F593EE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AC1D618E-FD56-4FDB-A514-BD2603F593EE}.Release|x64.ActiveCfg = Release|Any CPU
+		{AC1D618E-FD56-4FDB-A514-BD2603F593EE}.Release|x64.Build.0 = Release|Any CPU
+		{AC1D618E-FD56-4FDB-A514-BD2603F593EE}.Release|x86.ActiveCfg = Release|Any CPU
+		{AC1D618E-FD56-4FDB-A514-BD2603F593EE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1095,6 +1109,7 @@ Global
 		{C642E4C0-E7E1-4363-BCEE-5DB068C8B814} = {B2295F61-8B88-470D-AE05-2A16F02F4F1C}
 		{7AD13366-8DBE-4F24-A71A-C68D10F78E3E} = {B2295F61-8B88-470D-AE05-2A16F02F4F1C}
 		{3CA5F90B-639F-4769-9007-72F92ACC28B0} = {859E7CD1-B3D2-40CD-A1BE-A6472AA24A2B}
+		{AC1D618E-FD56-4FDB-A514-BD2603F593EE} = {402B76D2-4FBE-4B23-BF8C-19DE49E9D06E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}

@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+*****
+- Added OData support. The OData model can be configured by implementing IODataModelCOnfigurator
+
 3.2.0.4
 ----------
 Changed
