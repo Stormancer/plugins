@@ -23,6 +23,7 @@
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.AdminApi;
 using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
 using Stormancer.Server.Plugins.GameSession;
 
@@ -38,6 +39,8 @@ namespace Stormancer.Server.Plugins.GameHistory
                 builder.Register(static r=> new GameHistoryStorage(r.Resolve<DbContextAccessor>()));
                 builder.Register(static r=> new GameHistoryGameSessionEventHandler(r.Resolve<GameHistoryService>(),r.Resolve<DbContextAccessor>(),r.Resolve<ISceneHost>(),r.Resolve<ILogger>())).As<IGameSessionEventHandler>().InstancePerRequest();
                 builder.Register<GameHistoryDbModelBuilder>(static r=> new GameHistoryDbModelBuilder()).As<IDbModelBuilder>();
+                builder.Register(static r => new AdminWebApiConfig()).As<IAdminWebApiConfig>().SingleInstance();
+                builder.Register(static r => new GameHistoryAdminController(r.Resolve<DbContextAccessor>())).InstancePerRequest();
             };
         }
     }

@@ -9,12 +9,21 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+*****
+- Added admin API.
 2.0.3.17
 ----------
+Changed
+******
 - Updated to latest SDK.
 
 2.0.3.7
-----------
+-------
+Changed
+*******
 - Remove dependency to Stormancer.Abstraction.Server
 
 2.0.3.3
