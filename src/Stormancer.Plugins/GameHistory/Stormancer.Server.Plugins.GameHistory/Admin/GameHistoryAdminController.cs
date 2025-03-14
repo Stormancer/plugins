@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameHistory
@@ -38,11 +39,11 @@ namespace Stormancer.Server.Plugins.GameHistory
             var dbContext = await _dbContextAccessor.GetDbContextAsync();
 
             var result = (IQueryable<GameHistoryRecord>)(options.ApplyTo(dbContext.Set<GameHistoryRecord>().Include(r => r.Participants)));
-            return Ok(result.Select(r => new GameHistoryItem
+            return Ok((await result.ToListAsync()).Select(r => new GameHistoryItem
             {
                 Participants = r.Participants.Select(p => p.Id),
                 CompletedOn = r.CompletedOn,
-                CustomData = JToken.Parse(r.CustomData.ToString() ?? "null"),
+                CustomData = JToken.Parse(JsonSerializer.Serialize(r.CustomData)),
                 CreatedOn = r.CreatedOn,
                 Id = r.Id
             }));
@@ -57,7 +58,7 @@ namespace Stormancer.Server.Plugins.GameHistory
             {
                 Participants = r.Participants.Select(p => p.Id),
                 CompletedOn = r.CompletedOn,
-                CustomData = JToken.Parse(r.CustomData.ToString() ?? "null"),
+                CustomData = JToken.Parse(JsonSerializer.Serialize(r.CustomData)),
                 CreatedOn = r.CreatedOn,
                 Id = r.Id
             });
