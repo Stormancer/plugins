@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -30,22 +31,48 @@ namespace Stormancer.Server.Plugins.GameHistory
             this._dbContextAccessor = dbContextAccessor;
         }
 
-        [EnableQuery]
+
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<GameHistoryRecord>>> Get()
+        public async Task<ActionResult<IEnumerable<GameHistoryItem>>> Get(ODataQueryOptions<GameHistoryRecord> options)
         {
             var dbContext = await _dbContextAccessor.GetDbContextAsync();
 
-            return Ok(dbContext.Set<GameHistoryRecord>().Include(r => r.Participants));
+            var result = (IQueryable<GameHistoryRecord>)(options.ApplyTo(dbContext.Set<GameHistoryRecord>().Include(r => r.Participants)));
+            return Ok(result.Select(r => new GameHistoryItem
+            {
+                Participants = r.Participants.Select(p => p.Id),
+                CompletedOn = r.CompletedOn,
+                CustomData = JToken.Parse(r.CustomData.ToString() ?? "null"),
+                CreatedOn = r.CreatedOn,
+                Id = r.Id
+            }));
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<GameHistoryRecord>> Details(Guid id)
+        public async Task<ActionResult<GameHistoryItem>> Details(Guid id)
         {
             var dbContext = await _dbContextAccessor.GetDbContextAsync();
-            return Ok(await dbContext.Set<GameHistoryRecord>().FindAsync(id));
+            var r = await dbContext.Set<GameHistoryRecord>().FindAsync(id);
+            return Ok(new GameHistoryItem
+            {
+                Participants = r.Participants.Select(p => p.Id),
+                CompletedOn = r.CompletedOn,
+                CustomData = JToken.Parse(r.CustomData.ToString() ?? "null"),
+                CreatedOn = r.CreatedOn,
+                Id = r.Id
+            });
         }
     }
 
-   
+    public class GameHistoryItem
+    {
+        public required IEnumerable<Guid> Participants { get; init; }
+        public required DateTime CompletedOn { get; init; }
+
+        public required JToken CustomData { get; init; }
+        public required DateTime CreatedOn { get; init; }
+        public required Guid Id { get; init; }
+    }
+
+
 }
