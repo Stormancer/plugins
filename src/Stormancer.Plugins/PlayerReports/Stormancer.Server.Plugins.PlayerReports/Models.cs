@@ -122,6 +122,11 @@ namespace Stormancer.Server.Plugins.PlayerReports
     public class BugReportAttachementRecord
     {
         /// <summary>
+        /// Id of the attachment.
+        /// </summary>
+        public required string AttachmentId { get; set; }
+
+        /// <summary>
         /// Name of the attachment.
         /// </summary>
         public string Name { get; set; } = default!;
@@ -135,7 +140,7 @@ namespace Stormancer.Server.Plugins.PlayerReports
         /// Gets or sets the content type of the attachment.
         /// </summary>
         public string ContentType { get; set; } = default!;
-
+        public string StorageId { get; internal set; }
     }
 
     internal class ModelConfigurator : Stormancer.Server.Plugins.Database.EntityFrameworkCore.IDbModelBuilder

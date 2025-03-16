@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+*****
+- Added get blob content API.
+
 0.1.0.6
 ----------
 Changed

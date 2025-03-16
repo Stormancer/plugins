@@ -129,7 +129,7 @@ namespace Stormancer.Server.Plugins.Azure
             }
             catch (Exception ex)
             {
-                _logger.Log(LogLevel.Error, "blobStorage", $"An error occurred while creating the blob '{path}' in {client.AccountName}/{config.Container}.",ex);
+                _logger.Log(LogLevel.Error, "blobStorage", $"An error occurred while creating the blob '{path}' in {client.AccountName}/{config.Container}.", ex);
                 return new CreateBlobResult { Success = false };
             }
         }
@@ -152,6 +152,33 @@ namespace Stormancer.Server.Plugins.Azure
 
             return new DeleteBlobResult { Success = response.Value };
 
+        }
+
+        public async ValueTask<GetBlobContentResult> GetContentAsync(JObject configuration, string path)
+        {
+            var config = configuration.ToObject<AzureBlobStorageConfig>();
+
+            if (!(config?.Validate() ?? false))
+            {
+                return new GetBlobContentResult { Success = false, Reason = "invalidBackendConfig" };
+            }
+
+            try
+            {
+                var connectionString = await _cache.GetConnectionString(config.ConnectionStringPath);
+                var client = new BlobServiceClient(connectionString);
+
+                var blobContainerClient = client.GetBlobContainerClient(config.Container);
+
+                var blobClient = blobContainerClient.GetBlobClient(path);
+                var result = await blobClient.DownloadStreamingAsync();
+                return new GetBlobContentResult { Success = true, Content = result.Value.Content, ContentType = result.Value.Details.ContentType };
+            }
+            catch (RequestFailedException ex)
+            {
+                return new GetBlobContentResult { Success = false, Reason = ex.Message };
+
+            }
         }
     }
 }

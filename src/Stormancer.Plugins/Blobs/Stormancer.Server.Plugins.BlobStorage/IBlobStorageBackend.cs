@@ -34,6 +34,14 @@ namespace Stormancer.Server.Plugins.BlobStorage
         /// <param name="path"></param>
         /// <returns></returns>
         ValueTask<DeleteBlobResult> DeleteAsync(JObject configuration, string path);
+
+        /// <summary>
+        /// Gets the content of a blob.
+        /// </summary>
+        /// <param name="configuration"></param>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        ValueTask<GetBlobContentResult> GetContentAsync(JObject configuration, string path);
     }
 
     

@@ -9,6 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+*****
+- Added Admin web apis to retrieve bug reports and bug reports attachments.
 
 0.1.0.33
 ----------
