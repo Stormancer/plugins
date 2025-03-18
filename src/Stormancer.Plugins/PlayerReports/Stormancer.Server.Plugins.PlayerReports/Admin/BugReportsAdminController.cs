@@ -93,7 +93,7 @@ namespace Stormancer.Server.Plugins.PlayerReports.Admin
         /// <param name="attachmentId"></param>
         /// <returns></returns>
         [HttpGet]
-        [Route("attachments/{reportId}/{attachmentId")]
+        [Route("attachments/{reportId}/{attachmentId}")]
         [ActionName("attachment")]
         public async Task<ActionResult> GetAttachment(string reportId, string attachmentId)
         {
