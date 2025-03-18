@@ -1,4 +1,5 @@
-﻿using Stormancer.Server.Plugins.Configuration;
+﻿using Microsoft.AspNetCore.Mvc.Diagnostics;
+using Stormancer.Server.Plugins.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -129,6 +130,7 @@ namespace Stormancer.Server.Plugins.BlobStorage
                     if (result.Success)
                     {
                         result.Path = CreatePath(blobStoreId, result.Path);
+                        return result;
                     }
                     else
                     {
