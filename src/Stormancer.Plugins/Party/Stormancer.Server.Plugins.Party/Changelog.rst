@@ -10,6 +10,12 @@ Please use only reStructuredText in this file, no Markdown!
 This project adheres to semantic versioning.
 
 
+Unreleased
+----------
+Changed
+*******
+- Move PARTY_SCENE_ID to PartyConstants to enable other plugins to extend parties without hardcoding the party template id.
+
 5.2.0.87
 ----------
 Changed

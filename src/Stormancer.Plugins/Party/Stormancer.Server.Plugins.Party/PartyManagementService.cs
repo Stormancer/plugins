@@ -94,7 +94,7 @@ namespace Stormancer.Server.PartyManagement
                 AccountId = appInfos.AccountId,
                 Application = appInfos.ApplicationName,
                 Id = sceneUri,
-                SceneType = PartyPlugin.PARTY_SCENE_TYPE,
+                SceneType = PartyConstants.PARTY_SCENE_TYPE,
                 Metadata = metadata.ToDictionary(),
                 PartitioningPolicy = Stormancer.Server.Cluster.Constants.PARTITIONING_POLICY_HASH,
                 ShardGroup = Cluster.Constants.SHARDGROUP_DEFAULT,

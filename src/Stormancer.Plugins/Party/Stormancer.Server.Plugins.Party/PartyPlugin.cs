@@ -64,7 +64,7 @@ namespace Stormancer.Server.Plugins.Party
     class PartyPlugin : IHostPlugin
     {
         internal const string PARTYMANAGEMENT_METADATA_KEY = "stormancer.partymanagement";
-        public const string PARTY_SCENE_TYPE = "party";
+       
         public const string CLIENT_METADATA_KEY = "stormancer.party.plugin";
         public const string PARTY_MANAGEMENT_SCENEID = "party-manager";
         public const string PARTY_MANAGEMENT_SCENE_TYPE = "partyManager";
@@ -166,7 +166,7 @@ namespace Stormancer.Server.Plugins.Party
 
             ctx.HostStarting += (IHost host) =>
             {
-                host.AddSceneTemplate(PARTY_SCENE_TYPE, (ISceneHost scene) =>
+                host.AddSceneTemplate(PartyConstants.PARTY_SCENE_TYPE, (ISceneHost scene) =>
                 {
                     scene.AddParty();
                 });
