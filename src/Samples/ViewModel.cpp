@@ -15,11 +15,12 @@
 #include "gamefinder/GameFinder.hpp"
 #include "gamesession/GameSession.hpp"
 #include "gameversion/GameVersion.hpp"
+
+
+#include "gamesession/P2PMesh.hpp"
 #include "replication/Lockstep.hpp"
 
-#undef STORM_PLUGIN_IMPL
-#define STORM_PLUGIN_IMPL 1
-#include "replication/P2PMesh.hpp"
+
 
 using json = nlohmann::json;
 
@@ -107,8 +108,9 @@ ClientViewModel::ClientViewModel(int id, AppViewModel* parent)
 {
 	Stormancer::IClientFactory::SetConfig(id, [this](size_t configId) 
 	{
-		auto config = Stormancer::Configuration::create(this->parent->settings.endpoint, this->parent->settings.account, this->parent->settings.application);
+		auto config = Stormancer::Configuration::create(this->parent->settings.account, this->parent->settings.application);
 
+		config->addServerEndpoint(this->parent->settings.endpoint);
 		config->logger = std::make_shared<Logger>(&(this->logs));
 		config->addPlugin(new Stormancer::Users::UsersPlugin());
 		config->addPlugin(new Stormancer::Party::PartyPlugin());
@@ -127,8 +129,11 @@ ClientViewModel::ClientViewModel(int id, AppViewModel* parent)
 	auto users = client->dependencyResolver().resolve<Stormancer::Users::UsersApi>();
 	users->getCredentialsCallback = [this]() {
 		Stormancer::Users::AuthParameters params;
-		params.type = "deviceidentifier";
-		params.parameters["deviceidentifier"] = this->deviceIdentifier;
+		
+		//params.type = "deviceidentifier";
+		//params.parameters["deviceidentifier"] = this->deviceIdentifier;
+
+		params.type = "ephemeral";
 		return pplx::task_from_result(params);
 	};
 
@@ -193,7 +198,7 @@ std::string ClientViewModel::getSessionId() const
 {
 	auto client = Stormancer::IClientFactory::GetClient(id);
 
-	return client->sessionId();
+	return client->sessionId().toString();
 
 }
 const char* ClientViewModel::getConnectionStatus() const
