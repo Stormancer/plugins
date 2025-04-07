@@ -100,7 +100,7 @@ namespace Stormancer
 			{
 				if (length > 500 * 1024)//500ko max
 				{
-					rturn pplx::task_from_exception<bool>(std::runtime_error("data connot be more than 500kb"));
+					return pplx::task_from_exception<void>(std::runtime_error("data connot be more than 500kb"));
 				}
 				return getService().then([message, customContext, data, length](std::shared_ptr<details::ReportsService> service)
 				{
