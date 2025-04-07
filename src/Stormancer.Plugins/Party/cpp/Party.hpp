@@ -944,10 +944,9 @@ namespace Stormancer
 
 				virtual ~IPartyInvitationInternal() = default;
 
-				virtual std::string getSenderId() = 0;
+				virtual Users::UserId getSenderId() = 0;
 
-				virtual std::string getSenderPlatformId() = 0;
-
+			
 				virtual pplx::task<void> acceptAndJoinParty(const std::vector<byte>& userData, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
 
 				virtual void decline() = 0;
@@ -977,9 +976,8 @@ namespace Stormancer
 			/// Get the Stormancer Id of the user who sent the invitation.
 			/// </summary>
 			/// <returns>The Stormancer Id of the player who sent the invitation.</returns>
-			std::string getSenderId() const { return _internal->getSenderId(); }
+			Users::UserId getSenderId() const { return _internal->getSenderId(); }
 
-			std::string getSenderPlatformId() const { return _internal->getSenderPlatformId(); }
 
 			/// <summary>
 			/// Accept the invitation and join the corresponding party.
@@ -1182,13 +1180,9 @@ namespace Stormancer
 				/// You must provide a way to retrieve the stormancer user Id of the user who sent the invitation.
 				/// </remarks>
 				/// <returns>The stormancer user Id of the player who sent the invitation.</returns>
-				virtual std::string getSenderId() = 0;
+				virtual Users::UserId getSenderId() = 0;
 
-				/// <summary>
-				/// Get the platform-specific user Id of the sender.
-				/// </summary>
-				/// <returns>The platform-specific user Id of the sender.</returns>
-				virtual std::string getSenderPlatformId() = 0;
+			
 
 				// Called by PartyApi 
 				Subscription subscribeOnInvitationCanceled(std::function<void()> callback)
@@ -2839,10 +2833,12 @@ namespace Stormancer
 			STORM_CLANG_DIAGNOSTIC("clang diagnostic ignored \"-Wdeprecated-declarations\"")
 				class Party_Impl : public ClientAPI<Party_Impl, details::PartyManagementService>, public PartyApi
 			{
+			private:
+				Stormancer::Subscription _connectionStateChangedSubscription;
 			public:
 
 				Party_Impl(
-					std::weak_ptr<Stormancer::Users::UsersApi> users,
+					std::shared_ptr<Stormancer::Users::UsersApi> users,
 					std::weak_ptr<ILogger> logger,
 					std::shared_ptr<IActionDispatcher> dispatcher,
 					std::shared_ptr<GameFinder::GameFinderApi> gameFinder,
@@ -2855,6 +2851,9 @@ namespace Stormancer
 					, _scope(client->dependencyResolver().beginLifetimeScope("party"))
 					, _wClient(client) // _wClient is a weak_ptr so no cycle here
 				{
+					
+					
+					
 				}
 
 				const DependencyScope& dependencyScope() const override
@@ -3023,6 +3022,10 @@ namespace Stormancer
 									{
 										return pplx::task_from_exception<std::shared_ptr<PartyContainer>>(ex);
 									});
+								}
+								else
+								{
+									that->_party = nullptr;
 								}
 							}
 							throw;
@@ -3723,6 +3726,26 @@ namespace Stormancer
 				void initialize()
 				{
 					auto wThat = STORM_WEAK_FROM_THIS();
+					_connectionStateChangedSubscription = this->_wUsers.lock()->connectionStateChanged.subscribe([wThat](Stormancer::Users::GameConnectionState state)
+					{
+						if (state.state == Users::GameConnectionState::Disconnected)
+						{
+							if (auto that = wThat.lock())
+							{
+								that->leaveParty().then([](pplx::task<void> t){
+										
+									try
+									{
+										t.get();
+									}
+									catch(...){}
+								});
+							}
+								
+						}
+					});
+
+
 					_subscriptions.push_back(_gameFinder->subscribeGameFinderStateChanged([wThat](GameFinder::GameFinderStatusChangedEvent evt)
 					{
 						if (auto that = wThat.lock())
@@ -3758,7 +3781,10 @@ namespace Stormancer
 					{
 						if (auto that = wThat.lock())
 						{
-							that->onInvitationReceived(invite);
+							that->_dispatcher->post([that, invite]()
+							{
+								that->onInvitationReceived(invite);
+							});
 						}
 					}));
 				}
@@ -3999,14 +4025,14 @@ namespace Stormancer
 									std::lock_guard<std::recursive_mutex> lg(party->_invitationsMutex);
 									that->_isValid = false;
 									party->removeInvitation((const Stormancer::Party::details::Party_Impl::InvitationInternal&)*that);
-									party->_logger->log(LogLevel::Trace, "InvitationInternal", "Invitation from " + that->_senderId + " was canceled");
-									party->_onInvitationCanceled(that->_senderId);
+									party->_logger->log(LogLevel::Trace, "InvitationInternal", "Invitation from " + that->_senderId.toString() + " was canceled");
+									party->_onInvitationCanceled(that->_senderId.userId);
 								}
 							}
 						});
 					}
 
-					std::string getSenderId() override
+					Users::UserId getSenderId() override
 					{
 						if (!_impl)
 						{
@@ -4016,15 +4042,6 @@ namespace Stormancer
 						return _impl->getSenderId();
 					}
 
-					std::string getSenderPlatformId() override
-					{
-						if (!_impl)
-						{
-							throw std::runtime_error(PartyError::Str::InvalidInvitation);
-						}
-
-						return _impl->getSenderPlatformId();
-					}
 
 					pplx::task<void> acceptAndJoinParty(const std::vector<byte>& userData, const std::unordered_map<std::string, std::string>& userMetadata = {}, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
 					{
@@ -4123,7 +4140,7 @@ namespace Stormancer
 
 					std::shared_ptr<Platform::IPlatformInvitation> _impl;
 					std::weak_ptr<Party_Impl> _party;
-					std::string _senderId;
+					Users::UserId _senderId;
 					Subscription _cancellationSubscription;
 					bool _isValid = true;
 				};
@@ -4155,7 +4172,10 @@ namespace Stormancer
 						{
 							return _party->get();
 						}
-						catch (...) {}
+						catch (...) 
+						{
+						
+						}
 					}
 					return nullptr;
 				}
@@ -4427,8 +4447,21 @@ namespace Stormancer
 					auto inviteInternal = std::make_shared<InvitationInternal>(invite, this->shared_from_this());
 					inviteInternal->initialize();
 
+					for (auto it = std::find_if(_invitationsNew.begin(), _invitationsNew.end(),[inviteInternal](auto& invitation){return invitation->getSenderId() == inviteInternal->getSenderId();});
+							it != _invitationsNew.end();
+							it =  std::find_if(_invitationsNew.begin(), _invitationsNew.end(),[inviteInternal](auto& invitation){return invitation->getSenderId() == inviteInternal->getSenderId();})
+							)
+					{
+						//Auto decline previous invitations from the same sender.
+						it->get()->decline();
+							
+					}
+
 					{
 						std::lock_guard<std::recursive_mutex> lg(_invitationsMutex);
+						
+
+					
 						_invitationsNew.push_back(inviteInternal);
 					}
 
@@ -4605,15 +4638,12 @@ namespace Stormancer
 						return pplx::task_from_result();
 					}
 
-					std::string getSenderId() override
+					Users::UserId getSenderId() override
 					{
-						return senderId;
+						return Users::UserId("stormancer", senderId);
 					}
 
-					std::string getSenderPlatformId() override
-					{
-						return senderId;
-					}
+					
 
 					std::string senderId;
 					std::string sceneId;

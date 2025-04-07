@@ -335,53 +335,9 @@ namespace Stormancer
 						return;
 					}
 
-					auto party = wPartyApi.lock();
-					if (party != nullptr)
-					{
-						if (connectionToken.empty()) 
-						{
-							//We don't want to process if we didn't synchronized the party data yet, or if we are already processing a merge response.
-							if (party->isInParty() && !that->_isProcessingMergeResponse)
-							{
-								that->onMergePartyComplete();
-							}
+					that->onPartyConnectionTokenReceived(connectionToken);
 
-							return;
-						}
-						that->_isProcessingMergeResponse = true;
-						that->onPartyConnectionTokenReceived(connectionToken);
-
-						Stormancer::taskIf(party->isInParty(), [party]() {
-							return party->leaveParty();
-						}).then([party, connectionToken]()
-						{
-							return party->joinParty(connectionToken);
-						}).then([wThis](pplx::task<void> t)
-						{
-							try
-							{
-								t.get();
-								if (auto that = wThis.lock())
-								{
-									that->_isProcessingMergeResponse = false;
-									that->onMergePartyComplete();
-									
-								}
-							}
-							catch (std::exception& ex)
-							{
-								if (auto that = wThis.lock())
-								{
-									that->_isProcessingMergeResponse = false;
-									that->onMergePartyError(ex.what());
-									
-								}
-							}
-							
-
-						});
-
-					}
+					
 				});
 			}
 			void shutdown()
