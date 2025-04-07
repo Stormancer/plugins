@@ -44,83 +44,83 @@ namespace Stormancer
 				{
 					_scene = std::make_shared<pplx::task<std::shared_ptr<Scene>>>(users->getSceneForService(_type, _name, ct)
 						.then([wThat, cleanup](std::shared_ptr<Scene> scene)
-							{
-								auto that = wThat.lock();
-								if (!that)
-								{
-									throw ObjectDeletedException("TManager");
-								}
-
-								std::weak_ptr<Scene> wScene = scene;
-								that->_connectionChangedSub = scene->getConnectionStateChangedObservable().subscribe([wThat, wScene, cleanup](ConnectionState state)
-									{
-										auto that = wThat.lock();
-										if (!that)
-										{
-											throw ObjectDeletedException("TManager");
-										}
-
-										if (state == ConnectionState::Disconnected || state == ConnectionState::Disconnecting)
-										{
-											cleanup(that, wScene.lock());
-											if (that->_connectionChangedSub.is_subscribed())
-											{
-												that->_connectionChangedSub.unsubscribe();
-											}
-											that->_scene = nullptr;
-											that->_serviceTask = nullptr;
-										}
-									});
-								if (scene->getCurrentConnectionState() == ConnectionState::Disconnected || scene->getCurrentConnectionState() == ConnectionState::Disconnecting)
-								{
-									cleanup(that, scene);
-
-									if (that->_connectionChangedSub.is_subscribed())
-									{
-										that->_connectionChangedSub.unsubscribe();
-									}
-									that->_scene = nullptr;
-									that->_serviceTask = nullptr;
-								}
-								return scene;
-							})
-						.then([wThat, cleanup](pplx::task<std::shared_ptr<Scene>> t)
-							{
-								try
-								{
-									return t.get();
-								}
-								catch (std::exception&)
-								{
-									auto that = wThat.lock();
-									if (!that)
-									{
-										throw ObjectDeletedException("TManager");
-									}
-
-									cleanup(that, nullptr);
-									if (that->_connectionChangedSub.is_subscribed())
-									{
-										that->_connectionChangedSub.unsubscribe();
-									}
-									that->_scene = nullptr;
-									that->_serviceTask = nullptr;
-									throw;
-								}
-							}));
-				}
-
-				auto taskService = _scene->then([wThat, initializer](std::shared_ptr<Scene> scene)
 					{
-						auto service = scene->dependencyResolver().resolve<TService>();
 						auto that = wThat.lock();
 						if (!that)
 						{
 							throw ObjectDeletedException("TManager");
 						}
-						initializer(that, service, scene);
 
-						return service;
+						std::weak_ptr<Scene> wScene = scene;
+						that->_connectionChangedSub = scene->getConnectionStateChangedObservable().subscribe([wThat, wScene, cleanup](ConnectionState state)
+						{
+							auto that = wThat.lock();
+							if (!that)
+							{
+								throw ObjectDeletedException("TManager");
+							}
+
+							if (state == ConnectionState::Disconnected || state == ConnectionState::Disconnecting)
+							{
+								cleanup(that, wScene.lock());
+								if (that->_connectionChangedSub.is_subscribed())
+								{
+									that->_connectionChangedSub.unsubscribe();
+								}
+								that->_scene = nullptr;
+								that->_serviceTask = nullptr;
+							}
+						});
+						if (scene->getCurrentConnectionState() == ConnectionState::Disconnected || scene->getCurrentConnectionState() == ConnectionState::Disconnecting)
+						{
+							cleanup(that, scene);
+
+							if (that->_connectionChangedSub.is_subscribed())
+							{
+								that->_connectionChangedSub.unsubscribe();
+							}
+							that->_scene = nullptr;
+							that->_serviceTask = nullptr;
+						}
+						return scene;
+					})
+						.then([wThat, cleanup](pplx::task<std::shared_ptr<Scene>> t)
+					{
+						try
+						{
+							return t.get();
+						}
+						catch (std::exception&)
+						{
+							auto that = wThat.lock();
+							if (!that)
+							{
+								throw ObjectDeletedException("TManager");
+							}
+
+							cleanup(that, nullptr);
+							if (that->_connectionChangedSub.is_subscribed())
+							{
+								that->_connectionChangedSub.unsubscribe();
+							}
+							that->_scene = nullptr;
+							that->_serviceTask = nullptr;
+							throw;
+						}
+					}));
+				}
+
+				auto taskService = _scene->then([wThat, initializer](std::shared_ptr<Scene> scene)
+				{
+					auto service = scene->dependencyResolver().resolve<TService>();
+					auto that = wThat.lock();
+					if (!that)
+					{
+						throw ObjectDeletedException("TManager");
+					}
+					initializer(that, service, scene);
+
+					return service;
 					}).then([wThat](pplx::task<std::shared_ptr<TService>> task)
 						{
 							try
@@ -150,7 +150,7 @@ namespace Stormancer
 							return taskService;
 						}
 					}
-					_serviceTask = std::make_shared<pplx::task<std::shared_ptr<TService>>>(taskService);
+				_serviceTask = std::make_shared<pplx::task<std::shared_ptr<TService>>>(taskService);
 			}
 
 			if (!_serviceTask)
@@ -164,10 +164,15 @@ namespace Stormancer
 	protected:
 
 		std::weak_ptr<Users::UsersApi> _wUsers;
-
+		
 		std::string _type;
 
 		std::string _name;
+
+		bool isServiceConnected()
+		{
+			return _serviceTask !=nullptr && _serviceTask->is_done();
+		}
 
 	private:
 

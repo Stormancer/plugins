@@ -162,6 +162,14 @@ namespace Stormancer
 			std::string platform;
 			std::string userId;
 
+			UserId(){}
+			UserId(std::string platform, std::string userId)
+				: platform(platform)
+				, userId(userId)
+			{
+
+			}
+
 			std::string toString() const
 			{
 				return platform + ":" + userId;
@@ -437,6 +445,12 @@ namespace Stormancer
 				_autoReconnectEnabled = autoReconnect;
 			}
 
+			/// @brief Gets the id of the account where the application the client is connected to is located.
+			std::string accoundId;
+
+			/// @brief Gets the id of the application the client is connected to.
+			std::string appId;
+
 			/// <summary>
 			/// Set the platform-specific user that should be authenticated with Stormancer.
 			/// </summary>
@@ -520,23 +534,24 @@ namespace Stormancer
 			{
 				return getAuthenticationScene(ct)
 					.then([key, ct](std::shared_ptr<Scene> authScene)
+				{
+					auto rpcService = authScene->dependencyResolver().resolve<RpcService>();
+					auto logger = authScene->dependencyResolver().resolve<ILogger>();
+					return rpcService->rpc<T>("UserSession.GetUserOptions", ct,key)
+						.then([logger, key](pplx::task<T> t)
+					{
+						try
 						{
-							auto rpcService = authScene->dependencyResolver().resolve<RpcService>();
-							auto logger = authScene->dependencyResolver().resolve<ILogger>();
-							return rpcService->rpc<T>("UserSession.GetUserOptions", ct, key)
-								.then([logger, key](pplx::task<T> t)
-									{
-										try
-										{
-											return t.get();
-										}
-										catch (std::exception& ex)
-										{
-											logger->log(LogLevel::Error, "authentication", "Failed getting user options '" + key, ex.what());
-											throw;
-										}
-									});
-						});
+							return t.get();
+							
+						}
+						catch (std::exception& ex)
+						{
+							logger->log(LogLevel::Error, "authentication", "Failed getting user options '" + key , ex.what());
+							throw;
+						}
+					});
+				});
 			}
 
 
@@ -1191,6 +1206,17 @@ namespace Stormancer
 									}
 								});
 						}
+						auto metadata = scene->getSceneMetadata();
+						auto it = metadata.find("accountId");
+						if (it != metadata.end())
+						{
+							that->accoundId = it->second;
+						}
+						it = metadata.find("appId");
+						if (it != metadata.end())
+						{
+							that->appId = it->second;
+						}
 
 						auto rpcService = scene->dependencyResolver().resolve<RpcService>();
 
@@ -1448,6 +1474,7 @@ namespace Stormancer
 
 			static constexpr const char* PLUGIN_NAME = "Users";
 			static constexpr const char* PLUGIN_VERSION = "1.0.0";
+			static constexpr const char* AUTH_SCENE_NAME = "authenticator";
 
 			PluginDescription getDescription() override
 			{
@@ -1467,8 +1494,12 @@ namespace Stormancer
 
 			void clientDisconnecting(std::shared_ptr<IClient> client) override
 			{
-				auto user = client->dependencyResolver().resolve<UsersApi>();
-				user->logout();
+			/*	auto user = client->dependencyResolver().resolve<UsersApi>();
+				user->logout();*/
+			}
+
+			void sceneDisconnecting(std::shared_ptr<Scene> scene) override
+			{
 			}
 		};
 	}
