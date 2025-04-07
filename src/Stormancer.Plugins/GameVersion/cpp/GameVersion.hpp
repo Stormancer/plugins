@@ -13,7 +13,7 @@ namespace Stormancer
 {
 	namespace GameVersion
 	{
-		bool IsBadGameVersionError(const std::string& authError)
+		inline static bool IsBadGameVersionError(const std::string& authError)
 		{
 			size_t startPos = authError.find("badGameVersion");
 			return startPos != std::string::npos;
@@ -220,6 +220,11 @@ namespace Stormancer
 				});
 			}
 
+			void sceneDestroyed()
+			{
+				_scene.reset();
+			}
+
 			ILogger_ptr _logger;
 			Event<std::string> _onGameVersionUpdated;
 			Event<std::string> _onServerVersionUpdated;
@@ -264,6 +269,16 @@ namespace Stormancer
 				{
 					auto api = scene->dependencyResolver().resolve<GameVersionApi>();
 					api->sceneCreated(scene);
+				}
+			}
+			void sceneDisconnecting(std::shared_ptr<Scene> scene) override
+			{
+				auto name = scene->getHostMetadata("stormancer.gameVersion");
+
+				if (!name.empty())
+				{
+					auto api = scene->dependencyResolver().resolve<GameVersionApi>();
+					api->sceneDestroyed();
 				}
 			}
 
