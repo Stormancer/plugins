@@ -54,7 +54,7 @@ constexpr const char* SteamBackendIdentity = "steam.backendIdentity";
 /// <summary>
 /// The lobbyID the client should connect on authentication. 
 /// Automatic connection to a Steam lobby on successful authentication should occur when the game has been launched by a lobby invitation.
-/// You can get the LobbyID by searching the "+connect_lobby" parameter in the command line arguments (argv).
+/// The LobbyID is available in the program launch arguments after the string "+connect_lobby".
 /// </summary>
 constexpr const char* ConnectLobby = "steam.connectLobby";
 
