@@ -90,7 +90,7 @@ void ShowClient(ClientViewModel& vm)
 	}
 	if (ImGui::CollapsingHeader("Connection", ImGuiTreeNodeFlags_None))
 	{
-		ImGui::InputTextWithHint("User id", "Device identifier", &vm.deviceIdentifier);
+		ImGui::InputTextWithHint("Device identifier", "Device identifier", &vm.deviceIdentifier);
 
 		if (ImGui::Button("Connect"))
 		{
