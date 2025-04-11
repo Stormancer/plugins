@@ -15,7 +15,7 @@
 #include "gamefinder/GameFinder.hpp"
 #include "gamesession/GameSession.hpp"
 #include "gameversion/GameVersion.hpp"
-
+#include "users/auth_ephemeral.hpp"
 
 #include "gamesession/P2PMesh.hpp"
 #include "replication/Lockstep.hpp"
@@ -120,6 +120,7 @@ ClientViewModel::ClientViewModel(int id, AppViewModel* parent)
 		config->addPlugin(new Stormancer::Party::PartyMergingPlugin());
 		config->addPlugin(new Stormancer::Gameplay::LockstepPlugin());
 		config->addPlugin(new Stormancer::P2PMeshPlugin());
+		config->addPlugin(new Stormancer::Users::Auth::EphemeralPlugin());
 		config->additionalParameters[Stormancer::GameVersion::ConfigurationKeys::ClientVersion] = this->parent->settings.gameVersion;
 		return config;
 	});
@@ -127,15 +128,8 @@ ClientViewModel::ClientViewModel(int id, AppViewModel* parent)
 	auto client = Stormancer::IClientFactory::GetClient(id);
 
 	auto users = client->dependencyResolver().resolve<Stormancer::Users::UsersApi>();
-	users->getCredentialsCallback = [this]() {
-		Stormancer::Users::AuthParameters params;
-		
-		//params.type = "deviceidentifier";
-		//params.parameters["deviceidentifier"] = this->deviceIdentifier;
 
-		params.type = "ephemeral";
-		return pplx::task_from_result(params);
-	};
+	users->authProvider = "ephemeral";
 
 	gameFinder.initialize();
 	gameSession.initialize();
