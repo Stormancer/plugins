@@ -92,6 +92,20 @@ void ShowClient(ClientViewModel& vm)
 	{
 		ImGui::InputTextWithHint("Device identifier", "Device identifier", &vm.deviceIdentifier);
 
+		std::vector<std::string> providers = vm.authenticationProviders;
+		if (ImGui::BeginCombo("Authentication Provider", vm.authenticationProvider.c_str()))
+		{
+			for (auto provider : providers)
+			{
+				const bool is_selected = provider == vm.authenticationProvider;
+				if (ImGui::Selectable(provider.c_str(), is_selected))
+				{
+					vm.authenticationProvider = provider;
+				}
+			}
+			ImGui::EndCombo();
+		}
+
 		if (ImGui::Button("Connect"))
 		{
 			vm.connect();

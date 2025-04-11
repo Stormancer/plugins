@@ -16,6 +16,8 @@
 #include "gamesession/GameSession.hpp"
 #include "gameversion/GameVersion.hpp"
 #include "users/auth_ephemeral.hpp"
+#include "users/auth_deviceIdentifier.hpp"
+#include "steam/Steam.hpp"
 
 #include "gamesession/P2PMesh.hpp"
 #include "replication/Lockstep.hpp"
@@ -121,15 +123,18 @@ ClientViewModel::ClientViewModel(int id, AppViewModel* parent)
 		config->addPlugin(new Stormancer::Gameplay::LockstepPlugin());
 		config->addPlugin(new Stormancer::P2PMeshPlugin());
 		config->addPlugin(new Stormancer::Users::Auth::EphemeralPlugin());
+		config->addPlugin(new Stormancer::Users::Auth::AuthDeviceIdentifierPlugin());
+		config->addPlugin(new Stormancer::Steam::SteamPlugin());		
+
 		config->additionalParameters[Stormancer::GameVersion::ConfigurationKeys::ClientVersion] = this->parent->settings.gameVersion;
 		return config;
 	});
 
 	auto client = Stormancer::IClientFactory::GetClient(id);
 
-	auto users = client->dependencyResolver().resolve<Stormancer::Users::UsersApi>();
+	auto users = client->dependencyResolver().resolve<Stormancer::Users::UsersApi>();	
 
-	users->authProvider = "ephemeral";
+	authenticationProviders= users->getAuthenticationProviders();
 
 	gameFinder.initialize();
 	gameSession.initialize();
@@ -152,7 +157,9 @@ void ClientViewModel::connect()
 	auto client = Stormancer::IClientFactory::GetClient(id);
 
 	isProcessing = true;
-	client->dependencyResolver().resolve<Stormancer::Users::UsersApi>()->login().then([this](pplx::task<void> t) 
+	auto users = client->dependencyResolver().resolve<Stormancer::Users::UsersApi>();
+	users->authProvider = authenticationProvider;
+	users->login().then([this](pplx::task<void> t)
 	{
 	
 		this->isProcessing = false;

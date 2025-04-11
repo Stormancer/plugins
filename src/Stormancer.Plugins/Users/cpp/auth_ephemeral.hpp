@@ -9,16 +9,25 @@ namespace Stormancer
 		{
 			namespace details
 			{
-				class EphemeralAuth: public ::Stormancer::Users::IAuthenticationEventHandler
+				class EphemeralAuth: public ::Stormancer::Users::IAuthenticationProvider
 				{
+				public: 
+					virtual std::string getProviderName() const override
+					{
+						return providerName;
+					}
+
 					virtual pplx::task<void> retrieveCredentials(const ::Stormancer::Users::CredentialsContext& ctx)
 					{
-						if (ctx.tryUseProvider("ephemeral"))
+						if (ctx.tryUseProvider(providerName))
 						{
-							ctx.authParameters->type = "ephemeral";
+							ctx.authParameters->type = providerName;
 						}
 						return pplx::task_from_result();
 					}
+
+				private:
+					static constexpr const char* providerName = "ephemeral";
 				};
 
 			}
@@ -40,7 +49,7 @@ namespace Stormancer
 
 				void registerClientDependencies(ContainerBuilder& builder) override
 				{
-					builder.registerDependency<details::EphemeralAuth>().as<IAuthenticationEventHandler>();
+					builder.registerDependency<details::EphemeralAuth>().as<IAuthenticationProvider>();
 					
 				}
 			};

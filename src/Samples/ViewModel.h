@@ -47,6 +47,9 @@ public:
 	bool running = true;
 
 	std::string deviceIdentifier;
+
+	std::string authenticationProvider = "ephemeral";
+	std::vector<std::string> authenticationProviders;
 	
 	std::string getServerApp();
 

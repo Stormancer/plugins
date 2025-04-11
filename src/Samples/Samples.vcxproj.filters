@@ -162,6 +162,9 @@
     <ClInclude Include="GameFinderUI.h">
       <Filter>Source Files\GameFinder</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\output\cpp\users\Users.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
     <ClInclude Include="Lockstep.h">
       <Filter>Source Files\Gamesession</Filter>
     </ClInclude>
@@ -176,9 +179,6 @@
     </ClInclude>
     <ClInclude Include="FriendsUI.h">
       <Filter>Source Files\Friends</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\output\cpp\users\Users.hpp">
-      <Filter>Header Files\Plugins</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

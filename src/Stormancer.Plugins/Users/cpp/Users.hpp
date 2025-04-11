@@ -425,30 +425,32 @@ namespace Stormancer
 		};
 
 		/// <summary>
-		/// Run custom code to provide or modify authentication credentials.
+		/// Run custom code to provide authentication credentials.
 		/// </summary>
 		/// <remarks>
-		/// This interface allows injecting custom logic into the authentication process.
+		/// This interface allows custom to retrieve authentication credentials.
 		/// When the client needs to authenticate with the Stormancer application, it has to provide credentials.
 		/// The nature of these credentials depends on the platform that the client is running on (PC with Steam or another platform, consoles...),
 		/// as well as possibly custom logic on the server application.
 		/// This means that the logic needed to retrieve these credentials is at least platform-specific, and maybe even game-specific for more complex scenarios.
-		/// In order to provide this logic, at least one plugin that provides a class implementing <c>IAuthenticationEventHandler</c> must be registered in the client.
-		/// Typically, you should register the one that corresponds to your platform (e.g SteamPlugin, PSNPlugin, XboxLivePlugin...).
-		/// If you need additional authentication parameters for your game, you would create a custom plugin with a class that implements <c>IAuthenticationEventHandler</c>,
-		/// then in your custom <c>IPlugin</c> class, override <c>IPlugin::registerClientDependencies()</c>, and inside this method,
-		/// register your custom <c>IAuthenticationEventHandler</c> in the <c>ContainerBuilder</c>.
+		/// In order to provide this logic, at least one plugin that provides a class implementing <c>IAuthenticationProvider</c> must be registered in the client.
+		/// You can choose the IAuthenticationProvider used by changing the authProvider field in <c>UsersApi</c>.
 		/// </remarks>
-		class IAuthenticationEventHandler
+		class IAuthenticationProvider
 		{
 		public:
+			/// <summary>
+			/// Gets the authentication provider name.
+			/// </summary>
+			/// <returns>The authentication provider name</returns>
+			virtual std::string getProviderName() const = 0;
 
 			/// <summary>
 			/// Add or update credentials.
 			/// </summary>
 			/// <remarks>
 			/// Add the elements required by your server-side authentication logic inside <c>context.authParameters</c>.
-			/// There can be multiple <c>IAuthenticationEventHandler</c> instances registered at once ;
+			/// There can be multiple <c>IAuthenticationProvider</c> instances registered at once ;
 			/// each of their <c>retrieveCredentials()</c> method will be run sequentially, in an undefined order.
 			/// </remarks>
 			/// <param name="context">
@@ -459,10 +461,9 @@ namespace Stormancer
 			/// A pplx::task&lt;void&gt; that should complete when the processing that you needed to do is done.
 			/// You must not modify <c>context</c> after this task has completed, or else you would run into a race condition.
 			/// </returns>
-			virtual pplx::task<void> retrieveCredentials(const CredentialsContext&)
-			{
-				return pplx::task_from_result();
-			}
+			virtual pplx::task<void> retrieveCredentials(const CredentialsContext&)  = 0;
+
+
 
 			/// <summary>
 			/// Fulfill a request from the server to renew credentials for a specific authentication provider.
@@ -488,7 +489,25 @@ namespace Stormancer
 			{
 				return pplx::task_from_result();
 			}
+		};
 
+		/// <summary>
+		/// Run custom code to modify authentication process.
+		/// </summary>
+		/// <remarks>
+		/// This interface allows injecting custom logic into the authentication process.
+		/// When the client needs to authenticate with the Stormancer application, it has to provide credentials.
+		/// The nature of these credentials depends on the platform that the client is running on (PC with Steam or another platform, consoles...),
+		/// as well as possibly custom logic on the server application.
+		/// This means that the logic needed to retrieve these credentials is at least platform-specific, and maybe even game-specific for more complex scenarios.
+		/// In order to provide this logic, at least one plugin that provides a class implementing <c>IAuthenticationProvider</c> must be registered in the client.
+		/// If you need additional authentication parameters for your game, you would create a custom plugin with a class that implements <c>IAuthenticationEventHandler</c>,
+		/// then in your custom <c>IPlugin</c> class, override <c>IPlugin::registerClientDependencies()</c>, and inside this method,
+		/// register your custom <c>IAuthenticationEventHandler</c> in the <c>ContainerBuilder</c>.
+		/// </remarks>
+		class IAuthenticationEventHandler
+		{
+		public:
 			/// <summary>
 			/// Function called after the user successfully logged in.
 			/// </summary>
@@ -516,6 +535,8 @@ namespace Stormancer
 			virtual void onLoginFailed(LoginFailureContext&)
 			{
 			}
+
+
 
 			virtual ~IAuthenticationEventHandler() = default;
 		};
@@ -564,12 +585,14 @@ namespace Stormancer
 			UsersApi(
 				std::shared_ptr<IClient> client,
 				std::shared_ptr<Configuration> configuration,
-				std::vector<std::shared_ptr<IAuthenticationEventHandler>> authEventHandlers,
+				std::vector<std::shared_ptr<IAuthenticationProvider>> authProviders,
+				std::vector<std::shared_ptr<IAuthenticationEventHandler>> authEventHandlers,				
 				std::shared_ptr<IActionDispatcher> userDispatcher
 			)
 				: _wClient(client)
 				, _configuration(configuration)
 				, _logger(client->dependencyResolver().resolve<ILogger>())
+				, _authenticationProviders(authProviders)
 				, _authenticationEventHandlers(authEventHandlers)
 				, _userDispatcher(userDispatcher)
 			{
@@ -578,6 +601,16 @@ namespace Stormancer
 			~UsersApi()
 			{
 				_connectionSubscription.unsubscribe();
+			}
+
+			std::vector<std::string> getAuthenticationProviders() const
+			{
+				std::vector<std::string> result;
+				for (auto authProvider : _authenticationProviders)
+				{
+					result.push_back(authProvider->getProviderName());
+				}
+				return result;
 			}
 
 			void setAutoReconnect(bool autoReconnect)
@@ -1540,7 +1573,7 @@ namespace Stormancer
 				credentialsContext.authParameters->type = authProvider;
 				credentialsContext.platformUserId = _currentLocalUser;
 				pplx::task<void> eventHandlersTask = pplx::task_from_result();
-				for (auto evHandler : _authenticationEventHandlers)
+				for (auto evHandler : _authenticationProviders)
 				{
 					eventHandlersTask = eventHandlersTask.then([evHandler, credentialsContext]()
 						{
@@ -1562,11 +1595,11 @@ namespace Stormancer
 				context.usersApi = this->shared_from_this();
 
 				pplx::task<void> handlersTask = pplx::task_from_result();
-				for (const auto& handler : _authenticationEventHandlers)
+				for (const auto& provider : _authenticationProviders)
 				{
-					handlersTask = handlersTask.then([handler, context]
+					handlersTask = handlersTask.then([provider, context]
 						{
-							return handler->renewCredentials(context);
+							return provider->renewCredentials(context);
 						}, _userDispatcher);
 				}
 
@@ -1602,6 +1635,7 @@ namespace Stormancer
 			std::shared_ptr<pplx::task<std::shared_ptr<Scene>>> _authTask;
 
 			std::unordered_map<std::string, std::function<pplx::task<void>(OperationCtx&)>> _operationHandlers;
+			std::vector<std::shared_ptr<IAuthenticationProvider>> _authenticationProviders;
 			std::vector<std::shared_ptr<IAuthenticationEventHandler>> _authenticationEventHandlers;
 			std::shared_ptr<IActionDispatcher> _userDispatcher;
 			// The current platform-specific local user, set by the game using setCurrentLocalUser().
@@ -1635,6 +1669,7 @@ namespace Stormancer
 				builder.registerDependency<UsersApi,
 					IClient,
 					Configuration,
+					ContainerBuilder::All<IAuthenticationProvider>,
 					ContainerBuilder::All<IAuthenticationEventHandler>,
 					IActionDispatcher
 				>().singleInstance();

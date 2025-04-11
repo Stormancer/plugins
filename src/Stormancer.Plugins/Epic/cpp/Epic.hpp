@@ -1038,7 +1038,7 @@ namespace Stormancer
 
 		// https://dev.epicgames.com/docs/services/en-US/WebAPIRef/AuthWebAPI/index.html
 
-		class EpicAuthenticationEventHandler : public std::enable_shared_from_this<EpicAuthenticationEventHandler>, public Users::IAuthenticationEventHandler
+		class EpicAuthenticationEventHandler : public std::enable_shared_from_this<EpicAuthenticationEventHandler>, public Users::IAuthenticationProvider, public Users::IAuthenticationEventHandler
 		{
 		public:
 
@@ -1290,6 +1290,7 @@ namespace Stormancer
 				builder.registerDependency<details::EpicPartyProvider, Party::Platform::InvitationMessenger, Users::UsersApi, details::EpicState, details::EpicApi, ILogger, Party::PartyApi, IActionDispatcher>().as<Party::Platform::IPlatformSupportProvider>();
 				builder.registerDependency<details::EpicPartyEventHandler, ILogger, details::EpicState>().as<Party::IPartyEventHandler>();
 				builder.registerDependency<EpicAuthenticationEventHandler, details::EpicState, ILogger>().as<Users::IAuthenticationEventHandler>();
+				builder.registerDependency<EpicAuthenticationEventHandler, details::EpicState, ILogger>().as<Users::IAuthenticationProvider>();
 			}
 
 			void clientCreated(std::shared_ptr<IClient> client) override

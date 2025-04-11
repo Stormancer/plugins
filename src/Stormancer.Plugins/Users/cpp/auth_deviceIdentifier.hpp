@@ -10,12 +10,12 @@ namespace Stormancer
 		{
 			struct AuthDeviceIdentifierConfiguration
 			{
-				static constexpr char* DeviceIdentifierConfigPath = "stormancer.auth.deviceIdentifier";
+				static constexpr const char* DeviceIdentifierConfigPath = "stormancer.auth.deviceIdentifier";
 			};
 			class AuthDeviceIdentifierPlugin;
 			namespace details
 			{
-				class AuthDeviceIdentifier: public ::Stormancer::Users::IAuthenticationEventHandler
+				class AuthDeviceIdentifier: public ::Stormancer::Users::IAuthenticationProvider
 				{
 				public:
 					AuthDeviceIdentifier(std::shared_ptr<Configuration> config)
@@ -23,17 +23,22 @@ namespace Stormancer
 					{
 					}
 
+					virtual std::string getProviderName() const override
+					{
+						return providerName;
+					}
+
 					virtual pplx::task<void> retrieveCredentials(const ::Stormancer::Users::CredentialsContext& ctx)
 					{
-						if (ctx.tryUseProvider("deviceidentifier"))
+						if (ctx.tryUseProvider(providerName))
 						{
 							std::string identifier;
 							if (tryGetDeviceIdentifier(identifier))
 							{
-								ctx.authParameters->type = "deviceidentifier";
+								ctx.authParameters->type = providerName;
 
 
-								ctx.authParameters->parameters["deviceidentifier"] = identifier;
+								ctx.authParameters->parameters[providerName] = identifier;
 							}
 						}
 						return pplx::task_from_result();
@@ -53,9 +58,11 @@ namespace Stormancer
 						}
 					}
 
-					std::shared_ptr<Configuration> _config;
-				};
+				private:
 
+					std::shared_ptr<Configuration> _config;
+					static constexpr const char* providerName = "deviceidentifier";
+				};
 			}
 
 			/// <summary>
@@ -75,7 +82,7 @@ namespace Stormancer
 
 				void registerClientDependencies(ContainerBuilder& builder) override
 				{
-					builder.registerDependency<details::AuthDeviceIdentifier,Configuration>().as<IAuthenticationEventHandler>();
+					builder.registerDependency<details::AuthDeviceIdentifier,Configuration>().as<IAuthenticationProvider>();
 					
 				}
 			};

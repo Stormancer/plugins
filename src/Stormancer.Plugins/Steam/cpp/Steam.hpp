@@ -2386,7 +2386,7 @@ namespace Stormancer
 		// https://partner.steamgames.com/doc/features/auth#client_to_backend_webapi
 		// https://partner.steamgames.com/doc/api/ISteamUser#GetAuthSessionTicket
 
-		class SteamAuthenticationEventHandler : public std::enable_shared_from_this<SteamAuthenticationEventHandler>, public Users::IAuthenticationEventHandler
+		class SteamAuthenticationEventHandler : public std::enable_shared_from_this<SteamAuthenticationEventHandler>, public Users::IAuthenticationProvider
 		{
 		public:
 
@@ -2395,6 +2395,11 @@ namespace Stormancer
 			SteamAuthenticationEventHandler(std::shared_ptr<details::SteamState> steamConfig)
 				: _steamState(steamConfig)
 			{
+			}
+
+			virtual std::string getProviderName() const override
+			{
+				return platformName;
 			}
 
 			pplx::task<void> retrieveCredentials(const Users::CredentialsContext& context) override
@@ -2520,7 +2525,7 @@ namespace Stormancer
 				builder.registerDependency<details::SteamState, Configuration, ILogger>().singleInstance();
 				builder.registerDependency<details::SteamImpl, Users::UsersApi, details::SteamState, Configuration, IScheduler, ILogger, Party::PartyApi, Party::Platform::InvitationMessenger>().asSelf().as<SteamApi>().as<Friends::IFriendsEventHandler>().singleInstance();
 				builder.registerDependency<details::SteamPartyProvider, Party::Platform::InvitationMessenger, Users::UsersApi, details::SteamImpl, ILogger, Party::PartyApi, IActionDispatcher>().as<Party::Platform::IPlatformSupportProvider>();
-				builder.registerDependency<SteamAuthenticationEventHandler, details::SteamState>().as<Users::IAuthenticationEventHandler>();
+				builder.registerDependency<SteamAuthenticationEventHandler, details::SteamState>().as<Users::IAuthenticationProvider>();
 			}
 
 			void clientCreated(std::shared_ptr<IClient> client)
