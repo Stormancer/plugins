@@ -1,6 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿using Newtonsoft.Json.Linq;
 using System;
-using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.BlobStorage
 {
@@ -42,6 +43,33 @@ namespace Stormancer.Server.Plugins.BlobStorage
         /// <param name="path"></param>
         /// <returns></returns>
         ValueTask<GetBlobContentResult> GetContentAsync(JObject configuration, string path);
+
+        /// <summary>
+        /// Commits a list of block in the block staging area.
+        /// </summary>
+        /// <param name="configuration"></param>
+        /// <param name="path"></param>
+        /// <param name="blobBlockList"></param>
+        /// <returns></returns>
+        ValueTask<CommitBlockListResult> CommitBlockListAsync(JObject configuration, string path, IEnumerable<string> blobBlockList);
+
+        /// <summary>
+        /// Stages a block in in a blob staging area.
+        /// </summary>
+        /// <param name="configuration"></param>
+        /// <param name="path"></param>
+        /// <param name="blobBlockId"></param>
+        /// <param name="content"></param>
+        /// <returns></returns>
+        ValueTask<StageBlockResult> StageBlobBlockAsync(JObject configuration, string path, string blobBlockId, ReadOnlyMemory<byte> content);
+
+        /// <summary>
+        /// Gets the list of blocks in a blob.
+        /// </summary>
+        /// <param name="configuration"></param>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        ValueTask<GetBlockListResult> GetBlobBlockListAsync(JObject configuration, string path);
     }
 
     

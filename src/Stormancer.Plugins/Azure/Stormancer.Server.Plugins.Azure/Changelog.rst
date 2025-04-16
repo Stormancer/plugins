@@ -14,6 +14,7 @@ Unreleased
 Added
 *****
 - Added Get blob content API.
+- Added Staging & commit blocks API to upload big blobs.
 
 0.1.0.6
 ----------

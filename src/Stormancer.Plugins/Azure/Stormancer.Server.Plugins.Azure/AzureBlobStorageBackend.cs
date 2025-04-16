@@ -1,6 +1,8 @@
 ﻿using Azure;
 using Azure.Storage;
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Specialized;
+using CommunityToolkit.HighPerformance;
 using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.BlobStorage;
@@ -131,6 +133,90 @@ namespace Stormancer.Server.Plugins.Azure
             {
                 _logger.Log(LogLevel.Error, "blobStorage", $"An error occurred while creating the blob '{path}' in {client.AccountName}/{config.Container}.", ex);
                 return new CreateBlobResult { Success = false };
+            }
+        }
+
+        public async ValueTask<StageBlockResult> StageBlobBlockAsync(JObject configuration, string path,string blobBlockId, ReadOnlyMemory<byte> content)
+        {
+            var config = configuration.ToObject<AzureBlobStorageConfig>();
+
+            if (!(config?.Validate() ?? false))
+            {
+                return new StageBlockResult { Success = false };
+            }
+
+            var connectionString = await _cache.GetConnectionString(config.ConnectionStringPath);
+            var client = new BlobServiceClient(connectionString);
+
+            var blobContainerClient = client.GetBlobContainerClient(config.Container);
+            try
+            {
+                var blobClient = blobContainerClient.GetBlockBlobClient(path);
+
+                await blobClient.StageBlockAsync(blobBlockId, content.AsStream());
+              
+                return new StageBlockResult { Success = true };
+            }
+            catch (Exception ex)
+            {
+                _logger.Log(LogLevel.Error, "blobStorage", $"An error occurred while creating the blob '{path}' in {client.AccountName}/{config.Container}.", ex);
+                return new StageBlockResult { Success = false };
+            }
+        }
+        public async ValueTask<CommitBlockListResult> CommitBlockListAsync(JObject configuration, string path, IEnumerable<string> blobBlockList)
+        {
+            var config = configuration.ToObject<AzureBlobStorageConfig>();
+
+            if (!(config?.Validate() ?? false))
+            {
+                return new CommitBlockListResult { Success = false };
+            }
+
+            var connectionString = await _cache.GetConnectionString(config.ConnectionStringPath);
+            var client = new BlobServiceClient(connectionString);
+
+            var blobContainerClient = client.GetBlobContainerClient(config.Container);
+            try
+            {
+                var blobClient = blobContainerClient.GetBlockBlobClient(path);
+
+                await blobClient.CommitBlockListAsync(blobBlockList, new global::Azure.Storage.Blobs.Models.CommitBlockListOptions {   });
+
+                return new CommitBlockListResult { Success = true };
+            }
+            catch (Exception ex)
+            {
+                _logger.Log(LogLevel.Error, "blobStorage", $"An error occurred while creating the blob '{path}' in {client.AccountName}/{config.Container}.", ex);
+                return new CommitBlockListResult { Success = false };
+            }
+        }
+
+        public async ValueTask<GetBlockListResult> GetBlobBlockListAsync(JObject configuration, string path)
+        {
+            var config = configuration.ToObject<AzureBlobStorageConfig>();
+
+            if (!(config?.Validate() ?? false))
+            {
+                return new GetBlockListResult { Success = false };
+            }
+
+            var connectionString = await _cache.GetConnectionString(config.ConnectionStringPath);
+            var client = new BlobServiceClient(connectionString);
+
+            var blobContainerClient = client.GetBlobContainerClient(config.Container);
+            try
+            {
+                var blobClient = blobContainerClient.GetBlockBlobClient(path);
+
+                var blocklist = await blobClient.GetBlockListAsync();
+                blocklist.Value.CommittedBlocks
+
+                return new GetBlockListResult { Success = true, BlockList =  };
+            }
+            catch (Exception ex)
+            {
+                _logger.Log(LogLevel.Error, "blobStorage", $"An error occurred while creating the blob '{path}' in {client.AccountName}/{config.Container}.", ex);
+                return new GetBlockListResult { Success = false };
             }
         }
 
