@@ -136,7 +136,7 @@ namespace Stormancer.Server.Plugins.Azure
             }
         }
 
-        public async ValueTask<StageBlockResult> StageBlobBlockAsync(JObject configuration, string path,string blobBlockId, ReadOnlyMemory<byte> content)
+        public async ValueTask<StageBlockResult> StageBlobBlockAsync(JObject configuration, string path, string blobBlockId, ReadOnlyMemory<byte> content)
         {
             var config = configuration.ToObject<AzureBlobStorageConfig>();
 
@@ -154,7 +154,7 @@ namespace Stormancer.Server.Plugins.Azure
                 var blobClient = blobContainerClient.GetBlockBlobClient(path);
 
                 await blobClient.StageBlockAsync(blobBlockId, content.AsStream());
-              
+
                 return new StageBlockResult { Success = true };
             }
             catch (Exception ex)
@@ -180,7 +180,7 @@ namespace Stormancer.Server.Plugins.Azure
             {
                 var blobClient = blobContainerClient.GetBlockBlobClient(path);
 
-                await blobClient.CommitBlockListAsync(blobBlockList, new global::Azure.Storage.Blobs.Models.CommitBlockListOptions {   });
+                await blobClient.CommitBlockListAsync(blobBlockList, new global::Azure.Storage.Blobs.Models.CommitBlockListOptions { });
 
                 return new CommitBlockListResult { Success = true };
             }
@@ -209,9 +209,14 @@ namespace Stormancer.Server.Plugins.Azure
                 var blobClient = blobContainerClient.GetBlockBlobClient(path);
 
                 var blocklist = await blobClient.GetBlockListAsync();
-                blocklist.Value.CommittedBlocks
 
-                return new GetBlockListResult { Success = true, BlockList =  };
+                var response = blocklist.GetRawResponse();
+                if (response.IsError)
+                {
+                    return new GetBlockListResult { Success = false, Reason =response.ReasonPhrase };
+                }
+
+                return new GetBlockListResult { Success = true, BlockList = blocklist.Value.CommittedBlocks.Select(b => new BlobBlock { Id = b.Name, Size = b.SizeLong }) };
             }
             catch (Exception ex)
             {

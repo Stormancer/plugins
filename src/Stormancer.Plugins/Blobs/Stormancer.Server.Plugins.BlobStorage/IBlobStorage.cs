@@ -359,7 +359,7 @@ namespace Stormancer.Server.Plugins.BlobStorage
         /// <summary>
         /// List of blocks in the blob.
         /// </summary>
-        public IEnumerable<string>? BlockList { get; init; }
+        public IEnumerable<BlobBlock>? BlockList { get; init; }
 
         /// <summary>
         /// Gets the length of the blob
