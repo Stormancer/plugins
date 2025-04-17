@@ -1,4 +1,5 @@
 ﻿using Stormancer.Core;
+using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Analytics;
 using Stormancer.Server.Plugins.Configuration;
@@ -34,7 +35,7 @@ namespace Stormancer.Server.Plugins.BlobStorage
             {
                 builder.Register(dr => new BlobController(dr.Resolve<IBlobStorage>())).InstancePerRequest();
                 builder.Register(dr => new BlobStorageKeyStore()).SingleInstance();
-                builder.Register(dr => new BlobStorage(dr.ResolveAll<IBlobStorageBackend>(), dr.Resolve<Lazy<IEnumerable<IBlobStorageEventHandler>>>(), dr.Resolve<IConfiguration>(), dr.Resolve<BlobStorageKeyStore>())).As<IBlobStorage>().InstancePerRequest();
+                builder.Register(dr => new BlobStorage(dr.ResolveAll<IBlobStorageBackend>(), dr.Resolve<Lazy<IEnumerable<IBlobStorageEventHandler>>>(), dr.Resolve<IConfiguration>(),dr.Resolve<ILogger>(), dr.Resolve<BlobStorageKeyStore>())).As<IBlobStorage>().InstancePerRequest();
             };
 
             ctx.HostStarting += (IHost host) =>
