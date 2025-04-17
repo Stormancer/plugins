@@ -24,7 +24,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
-		<None Include="..\cpp\Steam.hpp" Link="cpp\Steam.hpp" />
+		<EmbeddedResource Include="..\cpp\Steam.hpp" Link="cpp\Steam.hpp" />
 		<None Include="docs/README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 

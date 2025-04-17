@@ -22,6 +22,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
+		<EmbeddedResource Include="..\cpp\blobStorage.hpp" Link="cpp\blobStorage.hpp" />
 	</ItemGroup>
 	<ItemGroup>
 		<None Include="docs\Readme.md" Pack="true" PackagePath="\" />
@@ -44,6 +45,9 @@
 		<ProjectReference Include="..\..\Configuration\Stormancer.Server.Plugins.Configuration\Stormancer.Server.Plugins.Configuration.csproj" />
 		<ProjectReference Include="..\..\Database\Stormancer.Server.Plugins.Database.EntityFramework\Stormancer.Server.Plugins.Database.EntityFrameworkCore.csproj" />
 		<ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="cpp\" />
 	</ItemGroup>
 	<Target Name="PostPack" AfterTargets="Pack">
 		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
