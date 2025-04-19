@@ -36,6 +36,7 @@ namespace Stormancer.Server.Plugins.BlobStorage
                 builder.Register(dr => new BlobController(dr.Resolve<IBlobStorage>())).InstancePerRequest();
                 builder.Register(dr => new BlobStorageKeyStore()).SingleInstance();
                 builder.Register(dr => new BlobStorage(dr.ResolveAll<IBlobStorageBackend>(), dr.Resolve<Lazy<IEnumerable<IBlobStorageEventHandler>>>(), dr.Resolve<IConfiguration>(),dr.Resolve<ILogger>(), dr.Resolve<BlobStorageKeyStore>())).As<IBlobStorage>().InstancePerRequest();
+                builder.Register(dr => BlobStorageServiceLocator.Instance).As<IServiceLocatorProvider>();
             };
 
             ctx.HostStarting += (IHost host) =>
@@ -60,6 +61,8 @@ namespace Stormancer.Server.Plugins.BlobStorage
 
     internal class BlobStorageServiceLocator : IServiceLocatorProvider
     {
+        public static BlobStorageServiceLocator Instance { get; } = new BlobStorageServiceLocator();
+
         public Task LocateService(ServiceLocationCtx ctx)
         {
             if(ctx.ServiceType == BlobStorageConstants.METADATA_KEY)
