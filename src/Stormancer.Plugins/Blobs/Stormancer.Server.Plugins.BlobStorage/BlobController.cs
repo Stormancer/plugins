@@ -10,6 +10,9 @@ using System.Threading.Tasks;
 namespace Stormancer.Server.Plugins.BlobStorage
 {
 
+    /// <summary>
+    /// Provides API to upload block blobs.
+    /// </summary>
     public class BlobController : ControllerBase
     {
         private readonly IBlobStorage _blobStorage;
@@ -29,6 +32,7 @@ namespace Stormancer.Server.Plugins.BlobStorage
         /// <param name="args"></param>
         /// <param name="request"></param>
         /// <returns></returns>
+        [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task StageBlock(StageBlockArgs args, RequestContext<IScenePeerClient> request)
         {
             int length = (int)(request.InputStream.Length - request.InputStream.Position);
@@ -44,6 +48,7 @@ namespace Stormancer.Server.Plugins.BlobStorage
         /// <param name="args"></param>
         /// <param name="request"></param>
         /// <returns></returns>
+        [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task CommitBlocks(CommitBlobArgs args,RequestContext<IScenePeerClient> request)
         {
             await _blobStorage.CommitBlockListAsync(request.RemotePeer.SessionId,args.Token, args.BlockIds,request.CancellationToken);
