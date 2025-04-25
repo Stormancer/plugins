@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Don't try creating Game session monitoring events if Elasticsearch is disabled.
+
 6.2.1.86
 ----------
 Changed

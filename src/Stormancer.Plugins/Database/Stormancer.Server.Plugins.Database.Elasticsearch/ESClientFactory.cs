@@ -182,6 +182,11 @@ namespace Stormancer.Server.Plugins.Database
         /// ES connection pools.
         /// </summary>
         public Dictionary<string, ESConnectionPoolConfig> ConnectionPools { get; set; } = new Dictionary<string, ESConnectionPoolConfig>();
+
+        /// <summary>
+        /// Gets or sets a boolean indicating if ES should be enabled.
+        /// </summary>
+        public bool Enabled { get; set; } = true;
     }
 
     internal class ESClientPlugin : IHostPlugin
@@ -263,13 +268,78 @@ namespace Stormancer.Server.Plugins.Database
     /// </example>
     public interface IESClientFactory
     {
+        /// <summary>
+        /// Gets a boolean indicating if the Elasticsearch client is configured.
+        /// </summary>
+        bool IsEnabled { get; }
+
+        /// <summary>
+        /// Ensures a mapping is created for a specific index.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="name"></param>
+        /// <param name="mappingDefinition"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         Task<Nest.IElasticClient> EnsureMappingCreated<T>(string name, Func<PutMappingDescriptor<T>, IPutMappingRequest> mappingDefinition, params object[] parameters) where T : class;
+
+        /// <summary>
+        /// Creates an Elasticsearch client.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="name"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         Task<Nest.IElasticClient> CreateClient<T>(string name, params object[] parameters);
+
+        /// <summary>
+        /// Creates an Elasticsearch client.
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="name"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         Task<Nest.IElasticClient> CreateClient(string type, string name, params object[] parameters);
+
+        /// <summary>
+        /// Gets connection parameters for an index.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="name"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         ConnectionParameters GetConnectionParameters<T>(string name, params object[] parameters);
+
+        /// <summary>
+        /// Gets the name of an index
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="name"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         string GetIndex<T>(string name, params object[] parameters);
+
+        /// <summary>
+        /// Gets the name of an index.
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="name"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
         string GetIndex(string type, string name, params object[] parameters);
+
+        /// <summary>
+        /// Gets a connection pool.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         IConnectionPool? GetConnectionPool(string id);
+
+        /// <summary>
+        /// Creates an elasticsearch client.
+        /// </summary>
+        /// <param name="p"></param>
+        /// <returns></returns>
         Nest.IElasticClient CreateClient(ConnectionParameters p);
         Task Init();
     }
@@ -331,6 +401,7 @@ namespace Stormancer.Server.Plugins.Database
 
         //private List<Elasticsearch.Net.Connection.HttpClientConnection> _connections = new List<Elasticsearch.Net.Connection.HttpClientConnection>();
 
+        public bool IsEnabled { get; private set; }
         public ESClientFactory(IEnvironment environment, IConfiguration configuration, ILogger logger, Func<IEnumerable<IESClientFactoryEventHandler>> eventHandlers, ISecretsStore secretsStore)
         {
             _eventHandlers = eventHandlers;
@@ -346,7 +417,9 @@ namespace Stormancer.Server.Plugins.Database
         {
             dynamic config = _configuration.Settings;
             _clients.Clear();
-            _config = (ESConfig?)(config?.elasticsearch?.ToObject<ESConfig>()) ?? new ESConfig();
+            var c = (ESConfig?)(config?.elasticsearch?.ToObject<ESConfig>());
+            IsEnabled = c != null && c.Enabled;
+            _config = c ?? new ESConfig();
 
             _connectionPools = _config.ConnectionPools?.ToDictionary(kvp => kvp.Key, kvp =>
             {

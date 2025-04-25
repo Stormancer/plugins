@@ -127,28 +127,30 @@ namespace Stormancer.Server.Plugins.GameSession
                 {
                     return;
                 }
-
-                try
+                if (_esClientFactory.IsEnabled)
                 {
-                    events.Clear();
+                    try
+                    {
+                        events.Clear();
 
-                   
-                    while (_events.TryDequeue(out var evt) && events.Count < 100)
-                    {
-                        events.Add(evt);
-                    }
-                    if (events.Any())
-                    {
-                        var client = await _esClientFactory.CreateClient<GameSessionEvent>("gameservers");
-                        await foreach (var response in client.BulkAll(events, d => d.ContinueAfterDroppedDocuments(true)).ToAsyncEnumerable())
+
+                        while (_events.TryDequeue(out var evt) && events.Count < 100)
                         {
+                            events.Add(evt);
                         }
-                    }
+                        if (events.Any())
+                        {
+                            var client = await _esClientFactory.CreateClient<GameSessionEvent>("gameservers");
+                            await foreach (var response in client.BulkAll(events, d => d.ContinueAfterDroppedDocuments(true)).ToAsyncEnumerable())
+                            {
+                            }
+                        }
 
-                }
-                catch (Exception ex)
-                {
-                    _logger.Log(LogLevel.Error, "gamesessions.events", "An error occurred while storing the game session events.", ex);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Log(LogLevel.Error, "gamesessions.events", "An error occurred while storing the game session events.", ex);
+                    }
                 }
             }
         }

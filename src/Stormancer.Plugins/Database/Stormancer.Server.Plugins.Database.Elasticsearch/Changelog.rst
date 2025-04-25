@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+*****
+- Added IESClientFactory.IsEnabled getter to determine if a configuration section exists for Elasticsearch.
+
 2.3.1.3
 ----------
 Added
