@@ -44,7 +44,7 @@ namespace Stormancer.Server.Plugins.Models
         /// Party constructor with player list.
         /// </summary>
         /// <param name="players"></param>
-        public Party(Dictionary<string, Player> players)
+        public Party(Dictionary<Guid, Player> players)
         {
             Players = players;
         }
@@ -59,7 +59,7 @@ namespace Stormancer.Server.Plugins.Models
         /// Players in party.
         /// </summary>
         [Key(1)]
-        public required Dictionary<string, Player> Players { get; set; } 
+        public required Dictionary<Guid, Player> Players { get; set; } 
 
 
         /// <summary>
@@ -87,7 +87,7 @@ namespace Stormancer.Server.Plugins.Models
         /// user id of the party leader.
         /// </summary>
         [Key(5)]
-        public string PartyLeaderId { get; set; } = default!;
+        public Guid PartyLeaderId { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets the platform id associated with the party if it's not a cross play party.

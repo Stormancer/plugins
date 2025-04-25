@@ -67,7 +67,7 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// <summary>
         /// Current User ID
         /// </summary>
-        public string UserId { get; set; } = default!;
+        public Guid UserId { get; set; } = default!;
 
 
         /// <summary>

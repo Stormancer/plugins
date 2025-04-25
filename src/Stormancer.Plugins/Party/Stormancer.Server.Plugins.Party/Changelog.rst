@@ -15,6 +15,7 @@ Unreleased
 Changed
 *******
 - Move PARTY_SCENE_ID to PartyConstants to enable other plugins to extend parties without hardcoding the party template id.
+- Use Guid to store User ids.
 
 5.2.0.87
 ----------

@@ -40,7 +40,7 @@ namespace Stormancer.Server.Plugins.Models
         }
 
         [SetsRequiredMembers]
-        public Player(SessionId sessionId, string userId, byte[]? data = null)
+        public Player(SessionId sessionId, Guid userId, byte[]? data = null)
         {
             UserId = userId;
             SessionId = sessionId;
@@ -64,7 +64,7 @@ namespace Stormancer.Server.Plugins.Models
         public required SessionId SessionId { get; set; }
 
         [Key(2)]
-        public required string UserId { get; set; }
+        public required Guid UserId { get; set; }
 
         [Key(3)]
         public List<LocalPlayerInfos>? LocalPlayers { get; set; } 

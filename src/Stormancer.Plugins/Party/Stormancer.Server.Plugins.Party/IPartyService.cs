@@ -65,7 +65,7 @@ namespace Stormancer.Server.Plugins.Party
         /// <param name="partyUserStatus"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        Task UpdateGameFinderPlayerStatus(string userId, PartyMemberStatusUpdateRequest partyUserStatus, CancellationToken ct);
+        Task UpdateGameFinderPlayerStatus(Guid userId, PartyMemberStatusUpdateRequest partyUserStatus, CancellationToken ct);
 
         /// <summary>
         /// Updates party user data.
@@ -75,7 +75,7 @@ namespace Stormancer.Server.Plugins.Party
         /// <param name="data"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        Task UpdatePartyUserData(string userId, byte[] data, List<Models.LocalPlayerInfos> localPlayers, CancellationToken ct);
+        Task UpdatePartyUserData(Guid userId, byte[] data, List<Models.LocalPlayerInfos> localPlayers, CancellationToken ct);
 
         /// <summary>
         /// Promotes an user as leader.
@@ -83,7 +83,7 @@ namespace Stormancer.Server.Plugins.Party
         /// <param name="newLeaderUserId"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        Task PromoteLeader(string newLeaderUserId, CancellationToken ct);
+        Task PromoteLeader(Guid newLeaderUserId, CancellationToken ct);
 
         /// <summary>
         /// Kicks a player.
@@ -93,7 +93,7 @@ namespace Stormancer.Server.Plugins.Party
         /// <param name="reason"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        Task KickPlayer(string playerToKick, bool allowKickLeader, string? reason = null, CancellationToken ct = default);
+        Task KickPlayer(Guid playerToKick, bool allowKickLeader, string? reason = null, CancellationToken ct = default);
 
         /// <summary>
         /// Send the whole party state to the given user.
@@ -107,13 +107,13 @@ namespace Stormancer.Server.Plugins.Party
         /// <param name="recipientUserId">User who will receive the party state via an RPC.</param>
         /// <param name="cancellationToken"></param>
         /// <returns>Task that completes when the RPC containing the party state that is sent to <paramref name="recipientUserId"/> completes.</returns>
-        Task SendPartyState(string recipientUserId, CancellationToken cancellationToken);
+        Task SendPartyState(Guid recipientUserId, CancellationToken cancellationToken);
 
         /// <summary>
         /// Send the whole party state as the answer to the given RPC in <paramref name="ctx"/>.
         /// </summary>
         /// <remarks>
-        /// Unlike <see cref="SendPartyState(string,CancellationToken)"/>, this method sends the state as an answer to the calling RPC, instead of a new RPC.
+        /// Unlike <see cref="SendPartyState(Guid,CancellationToken)"/>, this method sends the state as an answer to the calling RPC, instead of a new RPC.
         /// This allows blocking the party for a much shorter time.
         /// </remarks>
         /// <param name="ctx">Context for a client RPC requesting the party state.</param>
@@ -125,7 +125,7 @@ namespace Stormancer.Server.Plugins.Party
         /// </summary>
         /// <param name="senderUserId">The stormancer Id of the user</param>
         /// <returns><c>true</c> if the user can send invitations, <c>false</c> otherwise.</returns>
-        bool CanSendInvitation(string senderUserId);
+        bool CanSendInvitation(Guid senderUserId);
 
         /// <summary>
         /// Invite a user to this party.

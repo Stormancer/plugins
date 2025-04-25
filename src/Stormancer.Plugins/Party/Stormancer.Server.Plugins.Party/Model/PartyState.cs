@@ -118,7 +118,7 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// There can be at most one pending invitation for a given sender/recipient couple at a time.
         /// If one is issued while another one exists, the existing one is canceled.
         /// </remarks>
-        public Dictionary<string, ConcurrentDictionary<string, Invitation>> PendingInvitations { get; } = new Dictionary<string, ConcurrentDictionary<string, Invitation>>();
+        public Dictionary<Guid, ConcurrentDictionary<Guid, Invitation>> PendingInvitations { get; } = new Dictionary<Guid, ConcurrentDictionary<Guid, Invitation>>();
 
 
         /// <summary>

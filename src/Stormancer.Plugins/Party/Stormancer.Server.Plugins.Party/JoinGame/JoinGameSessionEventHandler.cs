@@ -17,7 +17,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
     /// </summary>
     internal class JoinGameSessionState
     {
-        public Dictionary<string, string> UserIdToPartyId = new Dictionary<string, string>();
+        public Dictionary<Guid, string> UserIdToPartyId = new Dictionary<Guid, string>();
         internal object syncRoot = new object();
     }
     internal class JoinGameSessionEventHandler : IGameSessionEventHandler
@@ -118,7 +118,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                 }
                 else
                 {
-                    logger.Log(LogLevel.Warn, "party.gamesession.join", "No party found associated with player.", new { }, ctx.GameSession.GameSessionId, ctx.Player.Player.UserId);
+                    logger.Log(LogLevel.Warn, "party.gamesession.join", "No party found associated with player.", new { }, ctx.GameSession.GameSessionId, ctx.Player.Player.UserId.ToString());
                 }
 
             }

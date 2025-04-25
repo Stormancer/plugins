@@ -252,7 +252,7 @@ namespace Stormancer.Server.Plugins.GameSession
         private readonly CancellationTokenSource _sceneCts = new();
 
 
-        private readonly ConcurrentDictionary<string, Client> _clients = new();
+        private readonly ConcurrentDictionary<Guid, Client> _clients = new();
         private ServerStatus _status = ServerStatus.WaitingPlayers;
         // A source that is canceled when the game session is complete
         private CancellationTokenSource? _gameCompleteCts = new();
@@ -390,7 +390,7 @@ namespace Stormancer.Server.Plugins.GameSession
             }
         }
 
-        private async Task<string?> GetUserId(IScenePeerClient peer)
+        private async Task<Guid> GetUserId(IScenePeerClient peer)
         {
             var existingClient = _clients.FirstOrDefault(client => client.Value.Peer == peer);
             if (existingClient.Key != null)
@@ -1612,7 +1612,7 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             public Guid ReservationId { get; } = Guid.NewGuid();
             public DateTime ExpiresOn { get; set; } = DateTime.UtcNow + TimeSpan.FromMinutes(1);
-            public List<string> UserIds { get; set; } = new List<string>();
+            public List<Guid> UserIds { get; set; } = new List<Guid>();
         }
 
         private ConcurrentDictionary<Guid, ReservationState> _reservationStates = new ConcurrentDictionary<Guid, ReservationState>();
@@ -1620,7 +1620,7 @@ namespace Stormancer.Server.Plugins.GameSession
         private GameServer? _server;
         private DateTime _serverRequestedOn;
 
-        private Team? FindPlayerTeam(string userId)
+        private Team? FindPlayerTeam(UserId userId)
         {
             if (_config == null)
             {

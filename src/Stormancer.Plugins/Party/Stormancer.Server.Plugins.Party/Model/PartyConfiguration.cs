@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using System;
 using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.Party.Model
@@ -37,7 +38,7 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// <summary>
         /// Current party leader can be changed.
         /// </summary>
-        public string? PartyLeaderId { get; set; }
+        public Guid PartyLeaderId { get; set; }
 
         /// <summary>
         /// Not used yet

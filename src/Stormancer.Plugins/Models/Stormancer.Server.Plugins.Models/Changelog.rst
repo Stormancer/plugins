@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Use Guid to store userId.
+
 4.0.0.9
 ----------
 Changed

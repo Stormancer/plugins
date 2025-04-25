@@ -88,9 +88,9 @@ namespace Stormancer.Server.Plugins.Friends
         /// <returns></returns>
         Task Unblock(User user, User userToUnblock, CancellationToken cancellationToken);
 
-        Task<Dictionary<string, IEnumerable<string>>> GetBlockedLists(IEnumerable<string> userIds, CancellationToken cancellationToken);
+        Task<Dictionary<Guid, IEnumerable<Guid>>> GetBlockedLists(IEnumerable<Guid> userIds, CancellationToken cancellationToken);
 
-        Task<IEnumerable<string>> GetBlockedList(string userId, CancellationToken cancellationToken);
+        Task<IEnumerable<Guid>> GetBlockedList(Guid userId, CancellationToken cancellationToken);
 
         /// <summary>
         /// Processes updates to a friend list.
@@ -98,8 +98,9 @@ namespace Stormancer.Server.Plugins.Friends
         /// <remarks>
         /// Plugins can emit friend list updates either from the server or from clients.
         /// </remarks>
+        /// <param name="userId"></param>
         /// <param name="updates"></param>
-        Task ProcessUpdates(string userId, IEnumerable<FriendListUpdateDto> updates);
+        Task ProcessUpdates(Guid userId, IEnumerable<FriendListUpdateDto> updates);
 
         /// <summary>
         /// Gets the status of an user in the friend system.

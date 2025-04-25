@@ -31,6 +31,7 @@ using Newtonsoft.Json.Linq;
 namespace Stormancer.Server.Plugins.Users
 {
 
+  
     /// <summary>
     /// An user
     /// </summary>
@@ -53,11 +54,11 @@ namespace Stormancer.Server.Plugins.Users
         /// Gets or sets the id of the user.
         /// </summary>
         [Key(0)]
-        public string Id { get; set; } = default!;
+        public Guid Id { get; set; } = default!;
 
 
         /// <summary>
-        /// Gets or sets the auth informations of the user.
+        /// Gets or sets the auth information of the user.
         /// </summary>
         [Key(1)]
         public JObject Auth { get; set; }
@@ -81,7 +82,7 @@ namespace Stormancer.Server.Plugins.Users
         public DateTime LastLogin { get; set; }
 
         /// <summary>
-        /// Gets or sets informations about the channels the user can be contacted through.
+        /// Gets or sets information about the channels the user can be contacted through.
         /// </summary>
         [Key(5)]
         public JObject Channels { get; set; }
