@@ -3,6 +3,7 @@
 #include "Friends/Friends.hpp"
 #include "Party/Party.hpp"
 #include "Users/Users.hpp"
+#include "Users/Environment.hpp"
 
 #include "stormancer/Configuration.h"
 #include "stormancer/IPlugin.h"
@@ -172,6 +173,8 @@ namespace Stormancer
 			// Steam Utils
 
 			virtual SteamIDApp getAppId() = 0;
+
+			virtual int getAppBuildId() = 0;
 		};
 
 		std::string convertEResultToString(EResult result)
@@ -246,7 +249,7 @@ namespace Stormancer
 
 				const SteamID _steamID;
 			};
-
+			class SteamImpl;
 			class SteamState
 			{
 			public:
@@ -304,6 +307,9 @@ namespace Stormancer
 					_connectLobby = "";
 				}
 
+				bool isInitialized = false;
+
+				std::weak_ptr<SteamImpl> steamImpl;
 			private:
 
 				bool _authenticationEnabled = true;
@@ -526,6 +532,32 @@ namespace Stormancer
 				Party::PartyId _partyId;
 				std::string _senderSteamID;
 			};
+			class SteamImpl;
+			class SteamApiCallbacks
+			{
+				
+			public:
+				SteamApiCallbacks(SteamImpl* impl)
+					:_impl(impl)
+				{
+				}
+
+			private:
+				STEAM_CALLBACK(SteamApiCallbacks, onLobbyDataUpdateCallback, LobbyDataUpdate_t);
+
+				STEAM_CALLBACK(SteamApiCallbacks, onLobbyInviteCallback, LobbyInvite_t);
+
+				STEAM_CALLBACK(SteamApiCallbacks, onGameLobbyJoinRequestedCallback, GameLobbyJoinRequested_t);
+
+			
+				STEAM_CALLBACK(SteamApiCallbacks, onLobbyEnterCallback, LobbyEnter_t);
+
+				STEAM_CALLBACK(SteamApiCallbacks, onLobbyChatUpdateCallback, LobbyChatUpdate_t);
+				STEAM_CALLBACK(SteamApiCallbacks, onPersonaStateChangeCallback, PersonaStateChange_t);
+
+				SteamImpl* _impl;
+
+			};
 
 			class SteamPartyProvider;
 
@@ -533,6 +565,7 @@ namespace Stormancer
 			{
 				friend class SteamPartyProvider;
 				friend class SteamPlugin;
+				friend SteamApiCallbacks;
 
 			public:
 
@@ -540,10 +573,11 @@ namespace Stormancer
 
 				SteamImpl(std::shared_ptr<Users::UsersApi> usersApi, std::shared_ptr<SteamState> steamConfig, std::shared_ptr<Configuration> config, std::shared_ptr<IScheduler> scheduler, std::shared_ptr<ILogger> logger, std::shared_ptr<Party::PartyApi> partyApi, std::shared_ptr<Party::Platform::InvitationMessenger> invitationMessenger)
 					: ClientAPI(usersApi, "stormancer.steam")
+					, _logger(logger)
 					, _wSteamConfig(steamConfig)
 					, _wScheduler(scheduler)
 					, _wActionDispatcher(config->actionDispatcher)
-					, _logger(logger)
+					
 					, _wUsersApi(usersApi)
 					, _wPartyApi(partyApi)
 					, _wInvitationMessenger(invitationMessenger)
@@ -743,16 +777,30 @@ namespace Stormancer
 						});
 				}
 
+				bool isInitialized()
+				{
+					return _wSteamConfig.lock()->isInitialized;
+				}
+				std::shared_ptr<SteamApiCallbacks> _callbackRegistrations;
 				void initialize() override
 				{
+					
+
 					if (auto steamConfig = _wSteamConfig.lock())
 					{
+						if (isInitialized())
+						{
+							return;
+						}
+
 						if (steamConfig->getSteamApiInitialize())
 						{
-							if (!SteamAPI_Init())
+							SteamErrMsg error;
+							if (SteamAPI_InitEx(&error) != ESteamAPIInitResult::k_ESteamAPIInitResult_OK)
 							{
-								_logger->log(LogLevel::Error, "Steam", "SteamAPI_Init failed");
-								return;
+								_logger->log(LogLevel::Error, "Steam", std::string("SteamAPI_Init failed : ")+error);
+								
+								throw std::runtime_error(error);
 							}
 							else
 							{
@@ -760,11 +808,16 @@ namespace Stormancer
 							}
 
 						}
+						_wSteamConfig.lock()->isInitialized = true;
+
+						_callbackRegistrations = std::make_shared<SteamApiCallbacks>(this);
+
 
 						if (steamConfig->getSteamApiRunCallbacks())
 						{
 							scheduleRunSteamAPiCallbacks();
 						}
+						
 
 						auto connectLobbyArgument = steamConfig->getConnectLobby();
 
@@ -786,135 +839,6 @@ namespace Stormancer
 							}
 						}
 					}
-
-					auto usersApi = _wUsersApi.lock();
-					if (!usersApi)
-					{
-						_logger->log(LogLevel::Error, "Steam", "UsersApi deleted");
-						return;
-					}
-
-					auto wSteamImpl = STORM_WEAK_FROM_THIS();
-
-					usersApi->setOperationHandler("Steam.GetFriends", [wSteamApi = wSteamImpl, wUsersApi = _wUsersApi, logger = _logger](Stormancer::Users::OperationCtx& ctx)
-						{
-							auto steamApi = wSteamApi.lock();
-							if (!steamApi)
-							{
-								STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
-							}
-
-							uint32 maxFriendsCount = ctx.request->readObject<uint32>();
-
-							return steamApi->getFriends(k_EFriendFlagImmediate, maxFriendsCount, ctx.request->cancellationToken())
-								.then([ctx](std::vector<SteamFriend> friends)
-									{
-										ctx.request->sendValueTemplated(friends);
-									});
-						});
-
-					usersApi->setOperationHandler("Steam.CreateLobby", [wSteamImpl, wUsersApi = _wUsersApi, logger = _logger](Stormancer::Users::OperationCtx& ctx)
-						{
-							auto steamImpl = wSteamImpl.lock();
-							if (!steamImpl)
-							{
-								STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
-							}
-
-							auto createLobbyDto = ctx.request->readObject<CreateLobbyDto>();
-
-							// Create lobby
-							return steamImpl->createLobby(createLobbyDto.lobbyType, createLobbyDto.maxMembers, createLobbyDto.joinable, createLobbyDto.metadata, ctx.request->cancellationToken())
-								.then([wSteamImpl, wUsersApi, ctx](SteamIDLobby steamIDLobby)
-									{
-										auto steamImpl = wSteamImpl.lock();
-										if (!steamImpl)
-										{
-											STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
-										}
-
-										auto usersApi = wUsersApi.lock();
-										if (!usersApi)
-										{
-											STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("UsersApi"), void);
-										}
-
-										{
-											std::lock_guard<std::recursive_mutex> lg(steamImpl->_mutex);
-
-											// Keep steamIDLobby to leave on party leave
-											steamImpl->_partySteamIDLobby = steamIDLobby;
-										}
-
-										auto myUserId = usersApi->userId();
-
-										return steamImpl->setLobbyMemberData(steamIDLobby, "stormancer.userId", myUserId, ctx.request->cancellationToken())
-											.then([steamIDLobby, ctx]()
-												{
-													// Send back steamIDLobby to server
-													ctx.request->sendValue([steamIDLobby](obytestream& stream)
-														{
-															Serializer serializer;
-															serializer.serialize(stream, steamIDLobby);
-														});
-												});
-									});
-						});
-
-					usersApi->setOperationHandler("Steam.JoinLobby", [wSteamImpl, wUsersApi = _wUsersApi, logger = _logger](Stormancer::Users::OperationCtx& ctx)
-						{
-							auto steamImpl = wSteamImpl.lock();
-							if (!steamImpl)
-							{
-								STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
-							}
-
-							auto joinLobbyDto = ctx.request->readObject<JoinLobbyDto>();
-							auto steamIDLobby = joinLobbyDto.steamIDLobby;
-
-							std::lock_guard<std::recursive_mutex> lg(steamImpl->_mutex);
-
-							// Keep steamIDLobby to leave on party leave
-							steamImpl->_partySteamIDLobby = steamIDLobby;
-
-							return steamImpl->inLobby(steamIDLobby, ctx.request->cancellationToken())
-								.then([steamIDLobby, wSteamImpl, ctx](bool inLobby)
-									{
-										if (inLobby)
-										{
-											// We already are in the lobby, do nothing
-											return pplx::task_from_result();
-										}
-										else
-										{
-											// Join lobby
-											auto steamImpl = wSteamImpl.lock();
-											if (!steamImpl)
-											{
-												STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
-											}
-
-											return steamImpl->joinLobby(steamIDLobby, ctx.request->cancellationToken());
-										}
-									})
-								.then([wSteamImpl, wUsersApi, steamIDLobby, ctx]()
-									{
-										auto steamImpl = wSteamImpl.lock();
-										if (!steamImpl)
-										{
-											STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("SteamApi"), void);
-										}
-
-										auto usersApi = wUsersApi.lock();
-										if (!usersApi)
-										{
-											STORM_RETURN_TASK_FROM_EXCEPTION(ObjectDeletedException("UsersApi"), void);
-										}
-
-										auto myUserId = usersApi->userId();
-										return steamImpl->setLobbyMemberData(steamIDLobby, "stormancer.userId", myUserId, ctx.request->cancellationToken());
-									});
-						});
 				}
 
 
@@ -1357,6 +1281,18 @@ namespace Stormancer
 					return steamUtils->GetAppID();
 				}
 
+				int getAppBuildId() override
+				{
+					auto steamApps = SteamApps();
+
+					if (!steamApps)
+					{
+						return -1;
+					}
+
+					return steamApps->GetAppBuildId();
+				}
+
 				pplx::task<std::unordered_map<SteamID, std::string>> queryUserIds(const std::vector<SteamID>& steamIDs, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
 				{
 					return getService([](auto, auto, auto) {}, [](auto, auto) {}, ct)
@@ -1590,20 +1526,47 @@ namespace Stormancer
 
 				void onRequestLobbyListCallResult(LobbyMatchList_t* callback, bool failure);
 				CCallResult<SteamImpl, LobbyMatchList_t> _requestLobbyListCallResult;
+				void onLobbyEnterCallResult(LobbyEnter_t* callback, bool failure)
+				{
 
-				STEAM_CALLBACK(SteamImpl, onLobbyDataUpdateCallback, LobbyDataUpdate_t);
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
 
-				STEAM_CALLBACK(SteamImpl, onLobbyInviteCallback, LobbyInvite_t);
+					auto it = _lobbyEnterEventData.find(callback->m_ulSteamIDLobby);
+					if (it != _lobbyEnterEventData.end())
+					{
+						if (failure || callback->m_EChatRoomEnterResponse != k_EChatRoomEnterResponseSuccess)
+						{
+							_logger->log(LogLevel::Info, "Steam", "Failed to join steam lobby " + std::to_string(callback->m_ulSteamIDLobby), convertEChatRoomEnterResponseToString(callback->m_EChatRoomEnterResponse));
 
-				STEAM_CALLBACK(SteamImpl, onGameLobbyJoinRequestedCallback, GameLobbyJoinRequested_t);
+							it->second.tce.set_exception(std::runtime_error("steam.joinLobbyFailed(" + convertEChatRoomEnterResponseToString(callback->m_EChatRoomEnterResponse) + ")"));
+							return;
+						}
+						else
+						{
+							_logger->log(LogLevel::Info, "Steam", "Joined steam lobby", std::to_string(callback->m_ulSteamIDLobby));
 
-				void onLobbyEnterCallResult(LobbyEnter_t* callback, bool failure);
-				STEAM_CALLBACK(SteamImpl, onLobbyEnterCallback, LobbyEnter_t);
+						}
 
-				STEAM_CALLBACK(SteamImpl, onLobbyChatUpdateCallback, LobbyChatUpdate_t);
-				STEAM_CALLBACK(SteamImpl, onPersonaStateChangeCallback, PersonaStateChange_t);
+						it->second.tce.set();
+					}
+				}
 
-				void onLobbyCreatedCallResult(LobbyCreated_t* callback, bool failure);
+				void onLobbyCreatedCallResult(LobbyCreated_t* callback, bool failure)
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+
+
+					if (failure || callback->m_eResult != EResult::k_EResultOK)
+					{
+						_logger->log(LogLevel::Info, "Steam", "Lobby creation failed", convertEResultToString(callback->m_eResult));
+
+						_lobbyCreatedTce->set_exception(std::runtime_error("Create lobby failed (" + convertEResultToString(callback->m_eResult) + ")"));
+						return;
+					}
+					_logger->log(LogLevel::Info, "Steam", "Lobby created", std::to_string(callback->m_ulSteamIDLobby));
+					_lobbyCreatedTce->set(callback->m_ulSteamIDLobby);
+				}
 				CCallResult<SteamImpl, LobbyCreated_t> _lobbyCreatedCallResult;
 
 				void fillLobbyData(Lobby& lobby, ISteamMatchmaking* steamMatchmaking)
@@ -1654,7 +1617,152 @@ namespace Stormancer
 					}
 				}
 
+				void onLobbyDataUpdateCallback(LobbyDataUpdate_t* callback)
+				{
 
+					if (!callback || !CSteamID(callback->m_ulSteamIDLobby).IsValid() || !CSteamID(callback->m_ulSteamIDMember).IsValid())
+					{
+						return;
+					}
+
+					// We only watch lobby changes for requestLobbyData calls (not user changes)
+					if (callback->m_ulSteamIDLobby == callback->m_ulSteamIDMember) // The lobby itself changed
+					{
+						std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+						auto it = _requestLobbyDataTces.find(callback->m_ulSteamIDLobby);
+						if (it != _requestLobbyDataTces.end())
+						{
+							auto requestLobbyDataTce = it->second;
+							_requestLobbyDataTces.erase(it);
+
+							if (!callback->m_bSuccess)
+							{
+								_logger->log(LogLevel::Error, "Steam", std::string() + "Update lobby data failed", "");
+
+								requestLobbyDataTce.set_exception(std::runtime_error("Steam request lobby data failed (success == false)"));
+							}
+
+							auto steamMatchmaking = SteamMatchmaking();
+							if (!steamMatchmaking)
+							{
+								requestLobbyDataTce.set_exception(std::runtime_error("SteamMatchmaking() returned null"));
+								return;
+							}
+
+							Lobby lobby;
+
+							try
+							{
+								lobby.steamIDLobby = callback->m_ulSteamIDLobby;
+								fillLobbyData(lobby, steamMatchmaking);
+							}
+							catch (const std::exception& ex)
+							{
+								_logger->log(LogLevel::Error, "Steam", std::string() + "Fill lobby data failed", ex.what());
+
+								requestLobbyDataTce.set_exception(ex);
+								return;
+							}
+							_logger->log(LogLevel::Info, "Steam", std::string() + "Lobby data updated", " islobby=" + std::to_string(callback->m_ulSteamIDLobby == callback->m_ulSteamIDMember) + " lobby=" + std::to_string(callback->m_ulSteamIDLobby) + " member=" + std::to_string(callback->m_ulSteamIDMember));
+
+							requestLobbyDataTce.set(lobby);
+						}
+						else
+						{
+						}
+					}
+					else // Lobby member changed
+					{
+					}
+				}
+
+				void onGameLobbyJoinRequestedCallback(GameLobbyJoinRequested_t* callback)
+				{
+					if (!callback->m_steamIDLobby.IsValid())
+					{
+						_logger->log(LogLevel::Warn, "Steam", "onGameLobbyJoinRequestedCallback skipped", "SteamIDLobby invalid");
+						return;
+					}
+
+					SteamIDLobby steamIDLobby = callback->m_steamIDLobby.ConvertToUint64();
+
+					_logger->log(LogLevel::Trace, "Steam", "Game lobby join requested", std::to_string(steamIDLobby));
+
+					SteamID senderId = callback->m_steamIDFriend.ConvertToUint64();
+
+					Party::PartyId partyId;
+					partyId.id = std::to_string(steamIDLobby);
+					partyId.type = PARTY_TYPE_STEAMIDLOBBY;
+					partyId.platform = platformName;
+
+					auto invitationMessenger = _wInvitationMessenger.lock();
+					if (!invitationMessenger)
+					{
+						_logger->log(LogLevel::Warn, "Steam", "onGameLobbyJoinRequestedCallback skipped", "Invitation messenger deleted");
+						return;
+					}
+
+					auto steamPartyInvitation = std::make_shared<SteamPartyInvitation>(partyId, std::to_string(senderId));
+					invitationMessenger->notifyInvitationReceived(steamPartyInvitation);
+				}
+
+				
+
+				void onLobbyEnterCallback(LobbyEnter_t* callback)
+				{
+					onLobbyEnterCallResult(callback, false);
+				}
+
+				
+
+				void onLobbyChatUpdateCallback(LobbyChatUpdate_t* /*callback*/)
+				{
+				}
+
+
+				void onPersonaStateChangeCallback(PersonaStateChange_t* callback)
+				{
+					if (callback->m_nChangeFlags & k_EPersonaChangeStatus)
+					{
+						Friends::FriendListUpdateDto dto;
+						dto.operation = Friends::FriendListUpdateOperationInternal::UpdateStatus;
+						dto.data.status["steam"] = getFriendStatusFromSteam(SteamFriends()->GetFriendPersonaState(callback->m_ulSteamID));
+						this->friendListUpdateEvent(dto);
+					}
+					else if (callback->m_nChangeFlags & k_EPersonaChangeRelationshipChanged)
+					{
+						Friends::FriendListUpdateDto dto;
+						std::string personaName = std::string(SteamFriends()->GetFriendPersonaName(callback->m_ulSteamID));
+						switch (SteamFriends()->GetFriendRelationship(callback->m_ulSteamID))
+						{
+
+						case EFriendRelationship::k_EFriendRelationshipFriend:
+							dto.operation = Friends::FriendListUpdateOperationInternal::AddOrUpdate;
+							dto.data.status["steam"] = getFriendStatusFromSteam(SteamFriends()->GetFriendPersonaState(callback->m_ulSteamID));
+							dto.data.userIds.push_back(Users::UserId("steam", std::to_string(callback->m_ulSteamID)));
+							dto.data.tags.push_back("steam");
+							dto.data.customData = "{ \"steam\":{ \"personaName\":\"" + personaName + "\"},\"pseudo\":\"" + personaName + "\"}";
+							this->friendListUpdateEvent(dto);
+							break;
+						case EFriendRelationship::k_EFriendRelationshipBlocked:
+							dto.operation = Friends::FriendListUpdateOperationInternal::AddOrUpdate;
+							dto.data.userIds.push_back(Users::UserId("steam", std::to_string(callback->m_ulSteamID)));
+							dto.data.tags.push_back("friends.blocked");
+							dto.data.tags.push_back("steam");
+							dto.data.customData = "{ \"steam\":{ \"personaName\":\"" + personaName + "\"},\"pseudo\":\"" + personaName + "\"}";
+							this->friendListUpdateEvent(dto);
+							break;
+						default:
+							break;
+						}
+					}
+				}
+
+
+				void onLobbyInviteCallback(LobbyInvite_t* /*callback*/)
+				{
+				}
 
 				std::string convertEChatRoomEnterResponseToString(uint32 chatRoomEnterResponse)
 				{
@@ -1693,6 +1801,25 @@ namespace Stormancer
 
 #pragma region private_members
 
+
+				
+				Friends::FriendStatus getFriendStatusFromSteam(EPersonaState state)
+				{
+					switch (state)
+					{
+					case EPersonaState::k_EPersonaStateAway:
+					case EPersonaState::k_EPersonaStateBusy:
+					case EPersonaState::k_EPersonaStateSnooze:
+						return Friends::FriendStatus::Away;
+					case EPersonaState::k_EPersonaStateOnline:
+					case EPersonaState::k_EPersonaStateLookingToTrade:
+					case EPersonaState::k_EPersonaStateLookingToPlay:
+						return Friends::FriendStatus::Connected;
+					default:
+						return Friends::FriendStatus::Disconnected;
+					}
+				}
+
 				struct LobbyEnterEventData
 				{
 					pplx::task_completion_event<void> tce;
@@ -1715,10 +1842,61 @@ namespace Stormancer
 				std::weak_ptr<Users::UsersApi> _wUsersApi;
 				std::weak_ptr<Party::PartyApi> _wPartyApi;
 				std::weak_ptr<Party::Platform::InvitationMessenger> _wInvitationMessenger;
+				
 
 #pragma endregion
 
 				Event<Friends::FriendListUpdateDto> friendListUpdateEvent;
+			};
+
+			void SteamApiCallbacks::onPersonaStateChangeCallback(PersonaStateChange_t* ctx)
+			{
+				this->_impl->onPersonaStateChangeCallback(ctx);
+			}
+
+			void SteamApiCallbacks::onLobbyDataUpdateCallback(LobbyDataUpdate_t* ctx)
+			{
+				this->_impl->onLobbyDataUpdateCallback(ctx);
+			}
+
+			void SteamApiCallbacks::onLobbyInviteCallback(LobbyInvite_t* ctx)
+			{
+				this->_impl->onLobbyInviteCallback(ctx);
+			}
+
+			void SteamApiCallbacks::onLobbyEnterCallback(LobbyEnter_t* ctx)
+			{
+				this->_impl->onLobbyEnterCallback(ctx);
+			}
+			void SteamApiCallbacks::onLobbyChatUpdateCallback(LobbyChatUpdate_t* ctx)
+			{
+				this->_impl->onLobbyChatUpdateCallback(ctx);
+			}
+
+			void SteamApiCallbacks::onGameLobbyJoinRequestedCallback(GameLobbyJoinRequested_t* ctx)
+			{
+				this->_impl->onGameLobbyJoinRequestedCallback(ctx);
+			}
+
+			class SteamProjectEnvironmentEventHandler : public Stormancer::IProjectEnvironmentEventsHandler
+			{
+			public:
+				SteamProjectEnvironmentEventHandler(std::shared_ptr<SteamApi> steamApi)
+					:_steamApi(steamApi)
+				{
+
+				}
+				void onGetMetadata(std::unordered_map<std::string, std::string>& metadata) override
+				{
+					metadata["steam.appBuildId"] = std::to_string(_steamApi->getAppBuildId());
+					
+				}
+
+				virtual ~SteamProjectEnvironmentEventHandler() = default;
+			private:
+				std::shared_ptr<SteamApi> _steamApi;
+
+
 			};
 
 			inline void SteamImpl::onRequestLobbyListCallResult(LobbyMatchList_t* callback, bool failure)
@@ -1763,205 +1941,10 @@ namespace Stormancer
 				_requestLobbyListTce->set(lobbies);
 			}
 
-			inline void SteamImpl::onLobbyDataUpdateCallback(LobbyDataUpdate_t* callback)
-			{
-
-				if (!callback || !CSteamID(callback->m_ulSteamIDLobby).IsValid() || !CSteamID(callback->m_ulSteamIDMember).IsValid())
-				{
-					return;
-				}
-
-				// We only watch lobby changes for requestLobbyData calls (not user changes)
-				if (callback->m_ulSteamIDLobby == callback->m_ulSteamIDMember) // The lobby itself changed
-				{
-					std::lock_guard<std::recursive_mutex> lg(_mutex);
-
-					auto it = _requestLobbyDataTces.find(callback->m_ulSteamIDLobby);
-					if (it != _requestLobbyDataTces.end())
-					{
-						auto requestLobbyDataTce = it->second;
-						_requestLobbyDataTces.erase(it);
-
-						if (!callback->m_bSuccess)
-						{
-							_logger->log(LogLevel::Error, "Steam", std::string() + "Update lobby data failed", "");
-
-							requestLobbyDataTce.set_exception(std::runtime_error("Steam request lobby data failed (success == false)"));
-						}
-
-						auto steamMatchmaking = SteamMatchmaking();
-						if (!steamMatchmaking)
-						{
-							requestLobbyDataTce.set_exception(std::runtime_error("SteamMatchmaking() returned null"));
-							return;
-						}
-
-						Lobby lobby;
-
-						try
-						{
-							lobby.steamIDLobby = callback->m_ulSteamIDLobby;
-							fillLobbyData(lobby, steamMatchmaking);
-						}
-						catch (const std::exception& ex)
-						{
-							_logger->log(LogLevel::Error, "Steam", std::string() + "Fill lobby data failed", ex.what());
-
-							requestLobbyDataTce.set_exception(ex);
-							return;
-						}
-						_logger->log(LogLevel::Info, "Steam", std::string() + "Lobby data updated", " islobby=" + std::to_string(callback->m_ulSteamIDLobby == callback->m_ulSteamIDMember) + " lobby=" + std::to_string(callback->m_ulSteamIDLobby) + " member=" + std::to_string(callback->m_ulSteamIDMember));
-
-						requestLobbyDataTce.set(lobby);
-					}
-					else
-					{
-					}
-				}
-				else // Lobby member changed
-				{
-				}
-			}
-
-			inline void SteamImpl::onGameLobbyJoinRequestedCallback(GameLobbyJoinRequested_t* callback)
-			{
-				if (!callback->m_steamIDLobby.IsValid())
-				{
-					_logger->log(LogLevel::Warn, "Steam", "onGameLobbyJoinRequestedCallback skipped", "SteamIDLobby invalid");
-					return;
-				}
-
-				SteamIDLobby steamIDLobby = callback->m_steamIDLobby.ConvertToUint64();
-
-				_logger->log(LogLevel::Trace, "Steam", "Game lobby join requested", std::to_string(steamIDLobby));
-
-				SteamID senderId = callback->m_steamIDFriend.ConvertToUint64();
-
-				Party::PartyId partyId;
-				partyId.id = std::to_string(steamIDLobby);
-				partyId.type = PARTY_TYPE_STEAMIDLOBBY;
-				partyId.platform = platformName;
-
-				auto invitationMessenger = _wInvitationMessenger.lock();
-				if (!invitationMessenger)
-				{
-					_logger->log(LogLevel::Warn, "Steam", "onGameLobbyJoinRequestedCallback skipped", "Invitation messenger deleted");
-					return;
-				}
-
-				auto steamPartyInvitation = std::make_shared<SteamPartyInvitation>(partyId, std::to_string(senderId));
-				invitationMessenger->notifyInvitationReceived(steamPartyInvitation);
-			}
-
-			inline void SteamImpl::onLobbyCreatedCallResult(LobbyCreated_t* callback, bool failure)
-			{
-				std::lock_guard<std::recursive_mutex> lg(_mutex);
+			
 
 
 
-				if (failure || callback->m_eResult != EResult::k_EResultOK)
-				{
-					_logger->log(LogLevel::Info, "Steam", "Lobby creation failed", convertEResultToString(callback->m_eResult));
-
-					_lobbyCreatedTce->set_exception(std::runtime_error("Create lobby failed (" + convertEResultToString(callback->m_eResult) + ")"));
-					return;
-				}
-				_logger->log(LogLevel::Info, "Steam", "Lobby created", std::to_string(callback->m_ulSteamIDLobby));
-				_lobbyCreatedTce->set(callback->m_ulSteamIDLobby);
-			}
-
-			inline void SteamImpl::onLobbyEnterCallback(LobbyEnter_t* callback)
-			{
-				onLobbyEnterCallResult(callback, false);
-			}
-
-			inline void SteamImpl::onLobbyEnterCallResult(LobbyEnter_t* callback, bool failure)
-			{
-
-				std::lock_guard<std::recursive_mutex> lg(_mutex);
-
-				auto it = _lobbyEnterEventData.find(callback->m_ulSteamIDLobby);
-				if (it != _lobbyEnterEventData.end())
-				{
-					if (failure || callback->m_EChatRoomEnterResponse != k_EChatRoomEnterResponseSuccess)
-					{
-						_logger->log(LogLevel::Info, "Steam", "Failed to join steam lobby " + std::to_string(callback->m_ulSteamIDLobby), convertEChatRoomEnterResponseToString(callback->m_EChatRoomEnterResponse));
-
-						it->second.tce.set_exception(std::runtime_error("steam.joinLobbyFailed(" + convertEChatRoomEnterResponseToString(callback->m_EChatRoomEnterResponse) + ")"));
-						return;
-					}
-					else
-					{
-						_logger->log(LogLevel::Info, "Steam", "Joined steam lobby", std::to_string(callback->m_ulSteamIDLobby));
-
-					}
-
-					it->second.tce.set();
-				}
-			}
-
-			inline void SteamImpl::onLobbyChatUpdateCallback(LobbyChatUpdate_t* /*callback*/)
-			{
-			}
-
-
-			Friends::FriendStatus getFriendStatusFromSteam(EPersonaState state)
-			{
-				switch (state)
-				{
-				case EPersonaState::k_EPersonaStateAway:
-				case EPersonaState::k_EPersonaStateBusy:
-				case EPersonaState::k_EPersonaStateSnooze:
-					return Friends::FriendStatus::Away;
-				case EPersonaState::k_EPersonaStateOnline:
-				case EPersonaState::k_EPersonaStateLookingToTrade:
-				case EPersonaState::k_EPersonaStateLookingToPlay:
-					return Friends::FriendStatus::Connected;
-				default:
-					return Friends::FriendStatus::Disconnected;
-				}
-			}
-			inline void SteamImpl::onPersonaStateChangeCallback(PersonaStateChange_t* callback)
-			{
-				if (callback->m_nChangeFlags & k_EPersonaChangeStatus)
-				{
-					Friends::FriendListUpdateDto dto;
-					dto.operation = Friends::FriendListUpdateOperationInternal::UpdateStatus;
-					dto.data.status["steam"] = getFriendStatusFromSteam(SteamFriends()->GetFriendPersonaState(callback->m_ulSteamID));
-					this->friendListUpdateEvent(dto);
-				}
-				else if (callback->m_nChangeFlags & k_EPersonaChangeRelationshipChanged)
-				{
-					Friends::FriendListUpdateDto dto;
-					std::string personaName = std::string(SteamFriends()->GetFriendPersonaName(callback->m_ulSteamID));
-					switch (SteamFriends()->GetFriendRelationship(callback->m_ulSteamID))
-					{
-
-					case EFriendRelationship::k_EFriendRelationshipFriend:
-						dto.operation = Friends::FriendListUpdateOperationInternal::AddOrUpdate;
-						dto.data.status["steam"] = getFriendStatusFromSteam(SteamFriends()->GetFriendPersonaState(callback->m_ulSteamID));
-						dto.data.userIds.push_back(Users::UserId("steam", std::to_string(callback->m_ulSteamID)));
-						dto.data.tags.push_back("steam");
-						dto.data.customData = "{ \"steam\":{ \"personaName\":\"" + personaName + "\"},\"pseudo\":\"" + personaName + "\"}";
-						this->friendListUpdateEvent(dto);
-						break;
-					case EFriendRelationship::k_EFriendRelationshipBlocked:
-						dto.operation = Friends::FriendListUpdateOperationInternal::AddOrUpdate;
-						dto.data.userIds.push_back(Users::UserId("steam", std::to_string(callback->m_ulSteamID)));
-						dto.data.tags.push_back("friends.blocked");
-						dto.data.tags.push_back("steam");
-						dto.data.customData = "{ \"steam\":{ \"personaName\":\"" + personaName + "\"},\"pseudo\":\"" + personaName + "\"}";
-						this->friendListUpdateEvent(dto);
-						break;
-					default:
-						break;
-					}
-				}
-			}
-
-			inline void SteamImpl::onLobbyInviteCallback(LobbyInvite_t* /*callback*/)
-			{
-			}
 
 			class SteamPartyProvider : public Party::Platform::IPlatformSupportProvider
 			{
@@ -1978,9 +1961,10 @@ namespace Stormancer
 					std::shared_ptr<IActionDispatcher> actionDispatcher
 				)
 					: IPlatformSupportProvider(messenger)
+					, _logger(logger)
 					, _wUsersApi(usersApi)
 					, _wSteamApi(steamApi)
-					, _logger(logger)
+
 					, _wPartyApi(partyApi)
 					, _wActionDispatcher(actionDispatcher)
 				{
@@ -2397,6 +2381,8 @@ namespace Stormancer
 			{
 			}
 
+			virtual ~SteamAuthenticationEventHandler() {}
+
 			virtual std::string getProviderName() const override
 			{
 				return platformName;
@@ -2443,6 +2429,7 @@ namespace Stormancer
 
 			pplx::task<void> getSteamCredentials(std::function<void(const std::string& type, const std::string& provider, const std::string& steamTicketHex)> fulfillCredentialsCallback)
 			{
+				this->_steamState->steamImpl.lock()->initialize();
 				if (!_steamState->getAuthenticationEnabled())
 				{
 					return pplx::task_from_result();
@@ -2502,9 +2489,12 @@ namespace Stormancer
 
 			std::recursive_mutex _mutex;
 			std::shared_ptr<details::SteamState> _steamState;
+			
 
 #pragma endregion
 		};
+
+		
 
 		class SteamPlugin : public IPlugin
 		{
@@ -2525,13 +2515,16 @@ namespace Stormancer
 				builder.registerDependency<details::SteamState, Configuration, ILogger>().singleInstance();
 				builder.registerDependency<details::SteamImpl, Users::UsersApi, details::SteamState, Configuration, IScheduler, ILogger, Party::PartyApi, Party::Platform::InvitationMessenger>().asSelf().as<SteamApi>().as<Friends::IFriendsEventHandler>().singleInstance();
 				builder.registerDependency<details::SteamPartyProvider, Party::Platform::InvitationMessenger, Users::UsersApi, details::SteamImpl, ILogger, Party::PartyApi, IActionDispatcher>().as<Party::Platform::IPlatformSupportProvider>();
-				builder.registerDependency<SteamAuthenticationEventHandler, details::SteamState>().as<Users::IAuthenticationProvider>();
+				builder.registerDependency < SteamAuthenticationEventHandler, details::SteamState > ().as<Users::IAuthenticationProvider>();
+				builder.registerDependency<details::SteamProjectEnvironmentEventHandler, SteamApi>().as<IProjectEnvironmentEventsHandler>();
 			}
 
 			void clientCreated(std::shared_ptr<IClient> client)
 			{
-				auto steamApi = client->dependencyResolver().resolve<SteamApi>();
-				steamApi->initialize();
+				auto steamApi = std::static_pointer_cast<details::SteamImpl>(client->dependencyResolver().resolve<SteamApi>());
+				auto steamState = client->dependencyResolver().resolve<details::SteamState>();
+				
+				steamState->steamImpl = steamApi;
 			}
 
 			void registerSceneDependencies(ContainerBuilder& builder, std::shared_ptr<Scene> scene) override

@@ -792,7 +792,7 @@ namespace Stormancer
 			/// </remarks>
 			/// <param name="callback">Callable object taking a <c>PartyInvitation</c> parameter.</param>
 			/// <returns>A <c>Subscription</c> object to track the lifetime of the subscription.</returns>
-			virtual Event<PartyInvitation>::Subscription subscribeOnInvitationReceived(std::function<void(PartyInvitation)> callback) = 0;
+			virtual [[nodiscard("Store the subscription to not unsubscribe immediately from the event.")]] Event<PartyInvitation>::Subscription subscribeOnInvitationReceived(std::function<void(PartyInvitation)> callback) = 0;
 
 			/// <summary>
 			/// Register a callback to be run when an invitation sent to the local player was canceled by the sender.
@@ -962,6 +962,10 @@ namespace Stormancer
 			{
 			}
 
+			PartyInvitation()
+			{
+			}
+
 #ifdef __clang__
 			// Avoid clang warnings with implicit default constructors. Note: the same solution cannot be applied with MSVC (and isn't needed).
 			STORM_WARNINGS_PUSH;
@@ -1001,7 +1005,7 @@ namespace Stormancer
 			/// An invitation becomes invalid once it has been accepted or denied.
 			/// </remarks>
 			/// <returns><c>true</c> if the invitation is valid, <c>false</c> otherwise.</returns>
-			bool isValid() const { return _internal->isValid(); }
+			bool isValid() const { return _internal && _internal->isValid(); }
 
 		private:
 
@@ -3998,10 +4002,11 @@ namespace Stormancer
 				{
 				public:
 
-					InvitationInternal(std::shared_ptr<Platform::IPlatformInvitation> impl, std::shared_ptr<Party_Impl> party)
+					InvitationInternal(std::shared_ptr<Platform::IPlatformInvitation> impl, std::shared_ptr<Party_Impl> party,std::shared_ptr<IActionDispatcher> dispatcher)
 						: _impl(impl)
 						, _party(party)
 						, _senderId(impl->getSenderId())
+						, _dispatcher(dispatcher)
 					{
 					}
 
@@ -4064,7 +4069,7 @@ namespace Stormancer
 						auto impl = this->_impl;
 						auto wParty = _party;
 						return party->normalizePartyId(_impl->getPartyId(), ct)
-							.then([wParty, impl, party, userMetadata, userData, ct, invitation = shared_from_this()](PartyId partyId)
+							.then([wParty, impl, party, userMetadata, userData, ct, invitation = shared_from_this(),dispatcher = _dispatcher](PartyId partyId)
 						{
 							if (party->isInParty())
 							{
@@ -4090,7 +4095,7 @@ namespace Stormancer
 								.then([wParty](pplx::task<std::shared_ptr<PartyContainer>> task)
 							{
 								triggerPartyJoinedEvents(wParty, task);
-							})
+							},dispatcher)
 								.then([invitation]() // On success
 							{
 								invitation->_isValid = false;
@@ -4141,8 +4146,10 @@ namespace Stormancer
 					std::shared_ptr<Platform::IPlatformInvitation> _impl;
 					std::weak_ptr<Party_Impl> _party;
 					Users::UserId _senderId;
+					std::shared_ptr<IActionDispatcher> _dispatcher;
 					Subscription _cancellationSubscription;
 					bool _isValid = true;
+
 				};
 
 				// Events
@@ -4444,7 +4451,7 @@ namespace Stormancer
 
 				void onInvitationReceived(std::shared_ptr<Platform::IPlatformInvitation> invite)
 				{
-					auto inviteInternal = std::make_shared<InvitationInternal>(invite, this->shared_from_this());
+					auto inviteInternal = std::make_shared<InvitationInternal>(invite, this->shared_from_this(),_dispatcher);
 					inviteInternal->initialize();
 
 					for (auto it = std::find_if(_invitationsNew.begin(), _invitationsNew.end(),[inviteInternal](auto& invitation){return invitation->getSenderId() == inviteInternal->getSenderId();});

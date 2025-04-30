@@ -8,37 +8,78 @@ namespace Stormancer
 	{
 		namespace Auth
 		{
-			struct AuthDeviceIdentifierConfiguration
+			/// <summary>
+			/// A device identifier created by the 
+			/// </summary>
+			class IDeviceIdentifier
 			{
-				static constexpr const char* DeviceIdentifierConfigPath = "stormancer.auth.deviceIdentifier";
+			public:
+				
+				virtual std::string get() = 0;
+
+				virtual ~IDeviceIdentifier() {}
 			};
+
+			/// <summary>
+			/// Platforms need to implement IDeviceIDentifierProvider
+			/// </summary>
+			class IDeviceIdentifierProvider
+			{
+			public:
+				/// <summary>
+				/// Captures a device identifier for use during this session.
+				/// The backend MUST prevent the identifier from being captured again until it is released.
+				/// </summary>
+				/// <returns></returns>
+				virtual IDeviceIdentifier* capture() = 0;
+			};
+
+			
+
 			class AuthDeviceIdentifierPlugin;
 			namespace details
 			{
+				class DeviceIdentifierStore
+				{
+				public:
+					IDeviceIdentifier* currentIdentifier;
+
+					~DeviceIdentifierStore()
+					{
+						if (currentIdentifier != nullptr)
+						{
+							delete currentIdentifier;
+						}
+					}
+				};
+
 				class AuthDeviceIdentifier: public ::Stormancer::Users::IAuthenticationProvider
 				{
 				public:
-					AuthDeviceIdentifier(std::shared_ptr<Configuration> config)
+
+					std::string getProviderName() const override
+					{
+						return "deviceidentifier";
+					}
+
+					AuthDeviceIdentifier(std::shared_ptr<Configuration> config, std::shared_ptr<IDeviceIdentifierProvider> deviceIdentifierProvider,std::shared_ptr< DeviceIdentifierStore> store)
 						:_config(config)
+						, _deviceIdentifierProvider(deviceIdentifierProvider)
+						, _store(store)
 					{
 					}
 
-					virtual std::string getProviderName() const override
+					pplx::task<void> retrieveCredentials(const ::Stormancer::Users::CredentialsContext& ctx) override
 					{
-						return providerName;
-					}
-
-					virtual pplx::task<void> retrieveCredentials(const ::Stormancer::Users::CredentialsContext& ctx)
-					{
-						if (ctx.tryUseProvider(providerName))
+						if (ctx.tryUseProvider("deviceidentifier"))
 						{
 							std::string identifier;
 							if (tryGetDeviceIdentifier(identifier))
 							{
-								ctx.authParameters->type = providerName;
+								ctx.authParameters->type = "deviceidentifier";
 
 
-								ctx.authParameters->parameters[providerName] = identifier;
+								ctx.authParameters->parameters["deviceidentifier"] = identifier;
 							}
 						}
 						return pplx::task_from_result();
@@ -46,23 +87,46 @@ namespace Stormancer
 
 					bool tryGetDeviceIdentifier(std::string& deviceIdentifier)
 					{
-						auto configIt = _config->additionalParameters.find(AuthDeviceIdentifierConfiguration::DeviceIdentifierConfigPath);
-						if (configIt != _config->additionalParameters.end())
-						{
-							deviceIdentifier = configIt->second;
-							return true;
-						}
-						else
+						if (!_deviceIdentifierProvider)
 						{
 							return false;
 						}
+						_store->currentIdentifier = _deviceIdentifierProvider->capture();
+
+						if (!_store->currentIdentifier)
+						{
+							return false;
+						}
+						
+						deviceIdentifier = _store->currentIdentifier->get();
+						return true;
 					}
 
-				private:
+					
 
 					std::shared_ptr<Configuration> _config;
-					static constexpr const char* providerName = "deviceidentifier";
+					std::shared_ptr<IDeviceIdentifierProvider> _deviceIdentifierProvider;
+					std::shared_ptr< DeviceIdentifierStore> _store;
 				};
+
+				class AuthDeviceIdentifierAuthenticationEventHandler : public Users::IAuthenticationEventHandler
+				{
+				public:
+					AuthDeviceIdentifierAuthenticationEventHandler(std::shared_ptr< DeviceIdentifierStore> store)
+						:_store(store)
+					{
+					}
+
+					pplx::task<void> OnLoggingOut() override
+					{
+						delete _store->currentIdentifier;
+						_store->currentIdentifier = nullptr;
+
+						return pplx::task_from_result();
+					}
+					std::shared_ptr< DeviceIdentifierStore> _store;
+				};
+
 			}
 
 			/// <summary>
@@ -82,8 +146,9 @@ namespace Stormancer
 
 				void registerClientDependencies(ContainerBuilder& builder) override
 				{
-					builder.registerDependency<details::AuthDeviceIdentifier,Configuration>().as<IAuthenticationProvider>();
-					
+					builder.registerDependency<details::AuthDeviceIdentifier,Configuration, IDeviceIdentifierProvider, details::DeviceIdentifierStore>().as<IAuthenticationProvider>();
+					builder.registerDependency<details::AuthDeviceIdentifierAuthenticationEventHandler, details::DeviceIdentifierStore>().as<Users::IAuthenticationEventHandler>();
+					builder.registerDependency< details::DeviceIdentifierStore>().singleInstance();
 				}
 			};
 		}

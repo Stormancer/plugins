@@ -44,7 +44,7 @@ namespace Stormancer
 			/// <summary>
 			/// Delay in gameplay time between a command is pushed to the API and executed.
 			/// </summary>
-			FrameDuration MinDelaySeconds = 0.1f;
+			FrameDuration MinDelaySeconds = 0.05f;
 			FrameDuration MaxDelaySeconds = 0.6f;
 			FrameDuration FixedDeltaTimeSeconds = 1.f / 30.f;
 			FrameDuration DelayMarginSeconds = 0.066666f;
@@ -140,6 +140,20 @@ namespace Stormancer
 			std::unordered_map<int, std::vector<byte>> consistencyData;
 		};
 
+		struct ReplayFileHeader
+		{
+			int version = 2;
+
+			std::string buildId;
+
+			int playerId;
+
+			std::string gameId;
+			std::vector<byte> initializationData;
+
+			std::unordered_map<std::string, std::string> metadata;
+		};
+
 		class LockstepPlugin : public IPlugin
 		{
 			PluginDescription getDescription();
@@ -169,13 +183,14 @@ namespace Stormancer
 				virtual bool isPaused() const = 0;
 				virtual void pause(bool pause) = 0;
 
+				
 				virtual std::vector<LockstepPlayer> getPlayers() const = 0;
 
 				virtual int getCurrentPlayerId() const = 0;
 
 				virtual ReplayMode getReplayMode() = 0;
-				virtual bool trySetReplayInitialData(byte* buffer, size_t length, std::string& buildId) = 0;
-				virtual bool tryGetReplayInitialData(std::vector<byte>& initialData, std::string& buildId, std::string& gameId) = 0;
+				virtual bool trySetReplayInitialData(byte* buffer, size_t length, std::string& buildId, std::unordered_map<std::string, std::string>& metadata) = 0;
+				virtual bool tryGetReplayInitialData(std::vector<byte>& initialData,int& playerId, std::string& buildId, std::string& gameId, std::unordered_map<std::string, std::string>& metadata) = 0;
 
 				virtual void initialize() = 0;
 
@@ -211,6 +226,11 @@ namespace Stormancer
 
 			virtual Time getCommandTime() const = 0;
 
+			FrameDuration getCommandLatency() const
+			{
+				return (FrameDuration)(getCommandTime() - getCurrentTime());
+			}
+
 			virtual FrameDuration getLatency() const = 0;
 
 			virtual bool isEnabled() const = 0;
@@ -223,8 +243,9 @@ namespace Stormancer
 			/// <param name="frame"></param>
 			virtual int pushCommand(byte* buffer, int length) = 0;
 
-			virtual void loadReplayFile(byte* buffer, size_t length) = 0;
-
+			virtual ReplayFileHeader loadReplayFile(byte* buffer, size_t length) = 0;
+			virtual ReplayFileHeader readReplayFileHeader(byte* buffer, size_t length) = 0;
+			
 			virtual void endFrame() = 0;
 
 
@@ -240,10 +261,10 @@ namespace Stormancer
 
 			virtual ReplayMode getReplayMode() = 0;
 
-			virtual bool trySetReplayInitialData(byte* buffer, size_t length, std::string& buildId) = 0;
-			virtual bool tryGetReplayInitialData(std::vector<byte>& initialData, std::string& buildId, std::string& gameId) = 0;
+			virtual bool trySetReplayInitialData(byte* buffer, size_t length, std::string& buildId, std::unordered_map<std::string,std::string>& metadata) = 0;
+			virtual bool tryGetReplayInitialData(std::vector<byte>& initialData, int& playerId, std::string& buildId, std::string& gameId,std::unordered_map<std::string,std::string>& metadata) = 0;
 
-			virtual pplx::task<bool> uploadPendingReplay(std::string pendingReplayFilePath) = 0;
+			virtual pplx::task<std::string> getOrCreateReplayRecord(std::string gameSessionId, std::unordered_map<std::string,std::string> map) = 0;
 
 			/// <summary>
 			/// Resets the lockstep system
@@ -349,7 +370,9 @@ namespace Stormancer
 
 					std::string gameId;
 					std::vector<byte> initializationData;
-					MSGPACK_DEFINE(version, buildId, playerId, gameId, initializationData)
+
+					std::unordered_map<std::string, std::string> metadata;
+					MSGPACK_DEFINE(version, buildId, playerId, gameId, initializationData,metadata)
 				};
 				struct RecordHeader
 				{
@@ -411,9 +434,9 @@ namespace Stormancer
 				{
 				public:
 					ReplayReader(byte* buffer, size_t length)
-						: _buffer(buffer)
-						, _length(length)
 					{
+						_buffer.resize(length);
+						std::memcpy(_buffer.data(), buffer, length);
 						readHeader();
 					}
 
@@ -421,7 +444,7 @@ namespace Stormancer
 					{
 
 						msgpack::unpacked unp;
-						size_t readOffset2 = msgpack::unpack(unp, reinterpret_cast<const char*>(_buffer), getRemainingLength());
+						size_t readOffset2 = msgpack::unpack(unp, reinterpret_cast<const char*>(_buffer.data()), getRemainingLength());
 
 						_offset += readOffset2;
 
@@ -443,8 +466,8 @@ namespace Stormancer
 						}
 
 						msgpack::unpacked unp;
-						auto pointer = reinterpret_cast<const char*>(_buffer + _offset);
-						size_t readOffset2 = msgpack::unpack(unp, pointer, remainingLength);
+						auto pointer = reinterpret_cast<const char*>(_buffer.data() + _offset);
+						size_t readOffset2 = msgpack::unpack(unp,pointer, remainingLength);
 
 						if (readOffset2 > 0)
 						{
@@ -464,11 +487,11 @@ namespace Stormancer
 				private:
 					size_t getRemainingLength()
 					{
-						return _length - _offset;
+						return _buffer.size() - _offset;
 					}
-					byte* _buffer;
+					std::vector<byte> _buffer;
 					size_t _offset = 0;
-					size_t _length;
+				
 
 				};
 
@@ -496,8 +519,8 @@ namespace Stormancer
 						_writer = writer;
 					}
 
-
-					bool trySetInitializationData(byte* buffer, size_t length, std::string& buildId)
+					
+					bool trySetInitializationData(byte* buffer, size_t length, std::string& buildId, std::unordered_map<std::string, std::string>& metadata)
 					{
 						if (_fileHeaderWritten)
 						{
@@ -506,6 +529,7 @@ namespace Stormancer
 						header.initializationData.resize(length);
 						std::memcpy(header.initializationData.data(), buffer, length);
 						header.buildId = buildId;
+						header.metadata = metadata;
 						return true;
 					}
 
@@ -566,7 +590,7 @@ namespace Stormancer
 						write(evt);
 					}
 					FileHeader header;
-
+					
 					void start()
 					{
 						if (_started)
@@ -919,8 +943,9 @@ namespace Stormancer
 			public:
 				bool endOfRecording = false;
 
-				ReplayLockstepService(byte* buffer, size_t length)
-					:_reader(buffer, length)
+				ReplayLockstepService(std::shared_ptr<LockstepOptions> options,byte* buffer, size_t length)
+					:_options(options)
+					, _reader(buffer, length)
 				{
 
 				}
@@ -941,15 +966,17 @@ namespace Stormancer
 					return ReplayMode::Playing;
 				}
 
-				bool trySetReplayInitialData(byte* buffer, size_t length, std::string& buildId) override
+				bool trySetReplayInitialData(byte* buffer, size_t length, std::string& buildId, std::unordered_map<std::string, std::string>& metadata) override
 				{
 					return false;
 				}
-				bool tryGetReplayInitialData(std::vector<byte>& initialData, std::string& buildId, std::string& gameId) override
+				bool tryGetReplayInitialData(std::vector<byte>& initialData,int& playerId, std::string& buildId, std::string& gameId, std::unordered_map<std::string,std::string>& metadata) override
 				{
 					initialData = _reader.header.initializationData;
 					buildId = _reader.header.buildId;
 					gameId = _reader.header.gameId;
+					metadata = _reader.header.metadata;
+					playerId = _reader.header.playerId;
 					return true;
 				}
 
@@ -977,12 +1004,12 @@ namespace Stormancer
 				}
 				void tick(FrameDuration deltaSeconds, FrameDuration realDeltaSeconds) override
 				{
-
+					
 
 					Frame previousFrame = _currentFrame;
 					Frame frame;
 					frame.currentTimeSeconds = previousFrame.currentTimeSeconds + deltaSeconds;
-
+					_previousFrame = previousFrame;
 					_currentFrame = frame;
 					if (_currentHeader.type == 0)
 					{
@@ -994,7 +1021,7 @@ namespace Stormancer
 					}
 
 
-
+					
 					while (_currentHeader.gameTime <= _currentFrame.currentTimeSeconds && (!_isPaused || canExecuteDuringPause()))
 					{
 						readCurrentRecord(_currentHeader.gameTime >= previousFrame.currentTimeSeconds, previousFrame);
@@ -1009,9 +1036,8 @@ namespace Stormancer
 					if (deltaSeconds > 0 || previousFrame.commands.size() > 0)
 					{
 						this->onStep(previousFrame);
-						this->onEndFrame(previousFrame);
 					}
-
+					
 
 				}
 				bool canExecuteDuringPause()
@@ -1032,13 +1058,14 @@ namespace Stormancer
 						{
 							process(record);
 						}
+						break;
 					}
 					case Replays::ExecuteCommandRecord::Type:
 					{
 						Replays::ExecuteCommandRecord record;
 						if (_reader.tryReadRecord(record) && execute)
 						{
-							process(record, frame);
+							process(record,frame);
 						}
 						break;
 					}
@@ -1128,7 +1155,7 @@ namespace Stormancer
 						if (c.commandId == record.commandId && c.playerId == record.playerId)
 						{
 							frame.commands.push_back(c);
-							_commands.erase(_commands.begin() + i);
+							_commands.erase(_commands.begin()+i);
 							return;
 						}
 					}
@@ -1136,7 +1163,7 @@ namespace Stormancer
 
 				void endFrame() override
 				{
-				
+					this->onEndFrame(_previousFrame);
 				}
 
 				Time getCurrentTime() const override
@@ -1146,7 +1173,7 @@ namespace Stormancer
 
 				Time getTargetTime() const override
 				{
-					return _currentFrame.currentTimeSeconds + _options.FixedDeltaTimeSeconds;
+					return _currentFrame.currentTimeSeconds + _options->FixedDeltaTimeSeconds;
 				}
 
 				Time getCommandTime() const  override
@@ -1185,16 +1212,18 @@ namespace Stormancer
 				}
 
 
+
 				~ReplayLockstepService() override {};
 			private:
 
 				Frame _currentFrame;
+				Frame _previousFrame;
 				bool _isPaused = true;
 
 				std::vector<LockstepPlayer> _players;
 				std::vector<Command> _commands;
 				Time _timeSinceLastGameplayProgress = 0;
-				LockstepOptions _options;
+				std::shared_ptr<LockstepOptions> _options;
 				Replays::ReplayReader _reader;
 				Replays::RecordHeader _currentHeader;
 			};
@@ -1203,8 +1232,9 @@ namespace Stormancer
 			{
 
 			public:
-				OfflineLockstepService(std::shared_ptr<ILogger> logger, std::function<void(ReplayWriteEvent&)> replayWriter)
+				OfflineLockstepService(std::shared_ptr<ILogger> logger, std::shared_ptr<LockstepOptions> options, std::function<void(ReplayWriteEvent&)> replayWriter)
 					: _logger(logger)
+					, _options(options)
 					, _replayWriter("offline", 0, replayWriter)
 				{
 
@@ -1220,17 +1250,17 @@ namespace Stormancer
 					return ReplayMode::Recording;
 				}
 
-				bool trySetReplayInitialData(byte* buffer, size_t length, std::string& buildId) override
+				bool trySetReplayInitialData(byte* buffer, size_t length, std::string& buildId, std::unordered_map<std::string, std::string>& metadata) override
 				{
-					return _replayWriter.trySetInitializationData(buffer, length, buildId);
+					return _replayWriter.trySetInitializationData(buffer, length, buildId,metadata);
 				}
 
-				bool tryGetReplayInitialData(std::vector<byte>& initialData, std::string& buildId, std::string& gameId) override
+				bool tryGetReplayInitialData(std::vector<byte>& initialData, int& playerId, std::string& buildId, std::string& gameId, std::unordered_map<std::string, std::string>& metadata) override
 				{
 					initialData = _replayWriter.header.initializationData;
 					buildId = _replayWriter.header.buildId;
 					gameId = _replayWriter.header.gameId;
-
+					playerId = _replayWriter.header.playerId;
 					return true;
 				}
 
@@ -1323,7 +1353,7 @@ namespace Stormancer
 
 							frame.commands.push_back(command);
 
-							_replayWriter.writeExecuteCommandRecord(previousFrame.currentTimeSeconds, 0, command.commandId);
+							_replayWriter.writeExecuteCommandRecord(frame.currentTimeSeconds, 0, command.commandId);
 							if (command.content.size() == 0)
 							{
 								this->_logger->log(LogLevel::Error, "lockstep", "executing command of length 0");
@@ -1366,7 +1396,7 @@ namespace Stormancer
 
 				Time getTargetTime() const
 				{
-					return _currentFrame.currentTimeSeconds + _options.FixedDeltaTimeSeconds;
+					return _currentFrame.currentTimeSeconds + _options->FixedDeltaTimeSeconds;
 				}
 
 				int lastExecutedCommand() const
@@ -1405,7 +1435,7 @@ namespace Stormancer
 					player.playerId = 0;
 
 					//When offline, use minimum delay
-					Time syncTime = getCurrentTime() + _options.MinDelaySeconds;
+					Time syncTime = getCurrentTime() + _options->MinDelaySeconds;
 
 					if (_cmds.size() > 0)
 					{
@@ -1452,12 +1482,13 @@ namespace Stormancer
 
 					}
 				}
-				LockstepOptions _options;
+				
 				bool _initialized = false;
 
 				int _lastCmdId = 0;
 
 				std::shared_ptr<ILogger> _logger;
+				std::shared_ptr<LockstepOptions> _options;
 				Replays::ReplayWriter _replayWriter;
 
 
@@ -1478,18 +1509,58 @@ namespace Stormancer
 
 			};
 
+			struct CreateReplayRecordArgs
+			{
+				std::string gameId;
+
+				std::unordered_map<std::string, std::string> metadata;
+
+				MSGPACK_DEFINE(gameId,metadata)
+			};
+
+			struct CreateReplayResponse
+			{
+				bool success;
+				std::string reason;
+				std::string token;
+
+				MSGPACK_DEFINE(success,reason,token)
+			};
+
 			class LockstepReplayUploadService
 			{
 			public:
 				LockstepReplayUploadService(std::shared_ptr<RpcService> rpc)
 					: _rpc(rpc)
 				{
-
 				}
-				pplx::task<bool> tryUploadReplay(std::string filePath)
+
+				pplx::task<std::string> getOrCreateReplayRecordAsync(const std::string& gamesessionId, const std::unordered_map<std::string,std::string>& metadata)
 				{
 					auto rpc = _rpc.lock();
-					return pplx::task_from_result(false);
+					CreateReplayRecordArgs args;
+					args.gameId = gamesessionId;
+					args.metadata = metadata;
+					return rpc->rpc<CreateReplayResponse, CreateReplayRecordArgs>("LockstepReplay.GetOrCreateReplayRecord", args).then([](pplx::task< CreateReplayResponse> t) 
+					{
+						try
+						{
+							auto result = t.get();
+							if (result.success)
+							{
+								return result.token;
+							}
+							else
+							{
+								throw std::runtime_error(result.reason);
+							}
+						}
+						catch(...)
+						{
+							throw;
+						}
+					});
+					
 				}
 			private:
 				std::weak_ptr<RpcService> _rpc;
@@ -1500,8 +1571,9 @@ namespace Stormancer
 				friend LockstepPlugin;
 
 			public:
-				LockstepService(std::shared_ptr<P2PMeshService> mesh, std::shared_ptr<IClient> client, std::shared_ptr<Serializer> serializer, std::shared_ptr<ILogger> logger)
-					:_mesh(mesh)
+				LockstepService(std::shared_ptr<P2PMeshService> mesh, std::shared_ptr<IClient> client, std::shared_ptr<Serializer> serializer, std::shared_ptr<ILogger> logger, std::shared_ptr<LockstepOptions> options)
+					: _options(options)
+					, _mesh(mesh)
 					, _client(client)
 					, _logger(logger)
 				{
@@ -1541,19 +1613,19 @@ namespace Stormancer
 					return ReplayMode::Recording;
 				}
 
-				bool trySetReplayInitialData(byte* buffer, size_t length, std::string& buildId) override
+				bool trySetReplayInitialData(byte* buffer, size_t length, std::string& buildId,std::unordered_map<std::string, std::string>& metadata) override
 				{
 					if (_writer == nullptr)
 					{
 						return false;
 					}
-					else
+					else 
 					{
-						return _writer->trySetInitializationData(buffer, length, buildId);
+						return _writer->trySetInitializationData(buffer, length, buildId,metadata);
 					}
-
+					
 				}
-				bool tryGetReplayInitialData(std::vector<byte>& initialData, std::string& buildId, std::string& gameId) override
+				bool tryGetReplayInitialData(std::vector<byte>& initialData, int& playerId, std::string& buildId, std::string& gameId, std::unordered_map<std::string, std::string>& metadata) override
 				{
 					if (!_writer)
 					{
@@ -1564,6 +1636,8 @@ namespace Stormancer
 						initialData = _writer->header.initializationData;
 						buildId = _writer->header.buildId;
 						gameId = _writer->header.gameId;
+						metadata = _writer->header.metadata;
+						playerId = _writer->header.playerId;
 						return true;
 					}
 				}
@@ -1574,7 +1648,7 @@ namespace Stormancer
 				{
 					unsigned int l = 0;
 					Time highestGameplayTime = _currentFrame.currentTimeSeconds;
-
+					
 					for (auto& state : _playerStates)
 					{
 						if (!state.isLocal)
@@ -1585,7 +1659,8 @@ namespace Stormancer
 							{
 								l = v;
 							}
-							Time gameplayTime = state.gameplayTimeSeconds + (Time)l / 1000.0f;
+						
+							Time gameplayTime = state.gameplayTimeSeconds + (FrameDuration)(l / 1000.0f);
 							if (gameplayTime > highestGameplayTime)
 							{
 								highestGameplayTime = gameplayTime;
@@ -1593,25 +1668,26 @@ namespace Stormancer
 						}
 
 					}
-					_latency = (Time)l / 1000.0f + _options.DelayMarginSeconds;
+					_latency = (FrameDuration)(l / 1000.0f);// +_options->DelayMarginSeconds;
 
 
-					if (_latency < _options.MinDelaySeconds)
+					if (_latency < _options->MinDelaySeconds)
 					{
-						_latency = _options.MinDelaySeconds;
+						_latency = _options->MinDelaySeconds;
 					}
-					if (_latency > _options.MaxDelaySeconds)
-					{
-						_latency = _options.MaxDelaySeconds;
-					}
-
+				
 
 					auto candidateCommandTime = highestGameplayTime + _latency;
-
+					if (candidateCommandTime > getCurrentTime() + _options->MaxDelaySeconds)
+					{
+						candidateCommandTime = getCurrentTime() + _options->MaxDelaySeconds;
+					}
+				
 					if (candidateCommandTime > _currentCommandTime)
 					{
 						_currentCommandTime = candidateCommandTime;
 					}
+
 
 
 
@@ -1739,10 +1815,6 @@ namespace Stormancer
 					}
 
 					auto n = currentPlayerState->_firstCommand;
-					if (_currentFrame.validatedTimeSeconds >= time)
-					{
-						DebugBreak();
-					}
 					_writer->writeAddCommandRecord(getCurrentTime(), node->command.gameplayTimeSeconds, _currentPlayerId, node->command.commandId, node->command.content);
 					this->_logger->log(LogLevel::Info, "lockstep", std::to_string(_currentFrame.currentTimeSeconds) + "| Enqueued command " + std::to_string(_currentPlayerId) + "/" + std::to_string(node->command.commandId) + "for time " + std::to_string(node->command.gameplayTimeSeconds));
 
@@ -1768,7 +1840,7 @@ namespace Stormancer
 
 					_timeSinceLastGameplayProgress += targetDeltaSeconds;
 
-					Time deltaSeconds;
+					FrameDuration deltaSeconds;
 
 
 
@@ -1779,7 +1851,7 @@ namespace Stormancer
 					}
 					else
 					{
-						deltaSeconds = _options.FixedDeltaTimeSeconds;
+						deltaSeconds = _options->FixedDeltaTimeSeconds;
 					}
 
 					if (_timeSinceLastGameplayProgress < deltaSeconds)
@@ -1803,7 +1875,7 @@ namespace Stormancer
 						nextTime = _currentFrame.currentTimeSeconds;
 
 					}
-					else if (nextTime > targetTime + _options.FixedDeltaTimeSeconds && (getCurrentTime() - _lastPausedOn) > _options.MinPauseDelayOnSlowAdjust)
+					else if ((nextTime > targetTime + _options->FixedDeltaTimeSeconds && (getCurrentTime() - _lastPausedOn) > _options->MinPauseDelayOnSlowAdjust) || (nextTime > targetTime && nextTime-targetTime > .2))
 					{
 						//_logger->log(LogLevel::Info, "lockstep", std::to_string(this->_currentPlayerId) + " nextTime > targetTime", std::to_string(nextTime) + ">" + std::to_string(targetTime));
 
@@ -1814,7 +1886,7 @@ namespace Stormancer
 
 					updateLatency(deltaSeconds);
 
-
+					//_logger->log(LogLevel::Debug, "lockstep", std::to_string(_currentFrame.currentTimeSeconds) + "|" + std::to_string(_currentPlayerId) + " target time : " + std::to_string(targetTime)+" nextTime="+std::to_string(nextTime)+" deltaSeconds="+std::to_string(deltaSeconds));
 					return deltaSeconds;
 				}
 
@@ -1828,7 +1900,7 @@ namespace Stormancer
 					{
 						return;
 					}
-					synchronizeState(currentPlayerState);
+					
 
 					if (!_initialized && canInitialize())
 					{
@@ -1840,6 +1912,7 @@ namespace Stormancer
 					}
 
 					auto oldTime = _currentFrame.currentTimeSeconds;
+					auto oldValidatedTime = _currentFrame.validatedTimeSeconds;
 					auto currentTime = oldTime + deltaSeconds;
 					if (deltaSeconds == 0)
 					{
@@ -1867,6 +1940,7 @@ namespace Stormancer
 					auto nextTime = currentTime;
 
 					_currentFrame.currentTimeSeconds = currentTime;
+					_currentFrame.validatedTimeSeconds = oldValidatedTime;
 					bool gameplayProgress = deltaSeconds != 0;
 
 
@@ -1935,12 +2009,36 @@ namespace Stormancer
 					}
 
 					onStep(_currentFrame);
+					
 
 				}
-
+				Time _lastEndFrame = -1;
 				void endFrame()
 				{
-					onEndFrame(_currentFrame);
+					PlayerState* currentPlayerState = nullptr;
+					if (_lastEndFrame < _currentFrame.currentTimeSeconds)
+					{
+
+						_lastEndFrame = _currentFrame.currentTimeSeconds;
+						onEndFrame(_currentFrame);
+						
+						if (tryGetState(_client.lock()->sessionId(), currentPlayerState))
+						{
+							currentPlayerState->addFrame(_currentFrame.currentTimeSeconds, _currentFrame.consistencyData);
+							synchronizeState(currentPlayerState);
+						}
+
+					
+					}
+					else
+					{
+						if (tryGetState(_client.lock()->sessionId(), currentPlayerState))
+						{
+							synchronizeState(currentPlayerState);
+						}
+					}
+
+					checkConsistency();
 				}
 
 				bool isPaused() const
@@ -1992,7 +2090,7 @@ namespace Stormancer
 					}
 					if (!found)
 					{
-						result = _currentFrame.currentTimeSeconds + _options.FixedDeltaTimeSeconds;
+						result = _currentFrame.currentTimeSeconds + _options->FixedDeltaTimeSeconds;
 					}
 					return result;
 				}
@@ -2041,7 +2139,7 @@ namespace Stormancer
 
 				void synchronizeState(const PlayerState* currentPlayerState)
 				{
-					_currentFrame.validatedTimeSeconds = getCommandTime();
+					
 					for (auto& playerState : _playerStates)
 					{
 						if (!playerState.isLocal)
@@ -2054,7 +2152,7 @@ namespace Stormancer
 						}
 					}
 				}
-
+				
 				void sendStateToPlayer(const PlayerState* currentPlayerState, PlayerState& playerState)
 				{
 					auto client = _client.lock();
@@ -2066,11 +2164,12 @@ namespace Stormancer
 					frame.gameplayTimeSeconds = _currentFrame.currentTimeSeconds; //_currentGamePlayTimeSeconds;
 					frame.consistencyData = _currentFrame.consistencyData;
 					frame.deltaTimePerFrameSeconds = _lastDeltaTimePerFrameSeconds;
-					frame.validatedGameplayTimeSeconds = _currentFrame.validatedTimeSeconds;//  _currentFrame.currentTimeSeconds /*_currentGamePlayTimeSeconds*/ + getCommandDelay();
-
+					
 					frame.sentOn = _client.lock()->clock();
 					frame.firstCommandReceived = playerState._firstCommand != nullptr ? playerState._firstCommand->command.commandId : 0;
 					frame.lastCommandReceived = playerState._lastCommand != nullptr ? playerState._lastCommand->command.commandId : 0;
+
+					auto validatedGameplayTimeSeconds = _currentCommandTime - _options->FixedDeltaTimeSeconds;
 
 					auto cmd = playerState.lastLocalCommandReceivedByRemotePeer;
 
@@ -2087,16 +2186,29 @@ namespace Stormancer
 					{
 						while (cmd != nullptr)
 						{
-
-							//_logger->log(LogLevel::Info, "lockstep", std::to_string(_currentFrame.currentTimeSeconds) + "| Send command " + std::to_string(_currentPlayerId) + "/" + std::to_string(cmd->command.commandId) + " to " + std::to_string(playerState.playerId));
+							
+							_logger->log(LogLevel::Info, "lockstep", std::to_string(_currentFrame.currentTimeSeconds) + "| Send command " + std::to_string(_currentPlayerId) + "/" + std::to_string(cmd->command.commandId) + " to " + std::to_string(playerState.playerId));
 							frame.commands.push_back(cmd->command);
-
+							if (cmd->command.gameplayTimeSeconds > validatedGameplayTimeSeconds)
+							{
+								validatedGameplayTimeSeconds = cmd->command.gameplayTimeSeconds;
+							}
 							cmd = cmd->next;
 						}
 						playerState.lastCommandUpdateOn = currentTimeMs;
 					}
 
+					_currentFrame.validatedTimeSeconds = validatedGameplayTimeSeconds;
+					frame.validatedGameplayTimeSeconds = validatedGameplayTimeSeconds;
+
+					if (_currentCommandTime == validatedGameplayTimeSeconds) //If we sent commands for "validatedGameplayTimeSeconds", we can't send commands scheduled for execution at the same time.
+					{
+						_currentCommandTime += _options->FixedDeltaTimeSeconds;
+					}
+					_currentFrame.validatedTimeSeconds = validatedGameplayTimeSeconds;
+					frame.validatedGameplayTimeSeconds = validatedGameplayTimeSeconds;
 					auto serializer = _serializer;
+					_logger->log(LogLevel::Info, "lockstep", std::to_string(_currentFrame.currentTimeSeconds) + "| Sending frame validation for time" + std::to_string(validatedGameplayTimeSeconds));
 					_mesh->send(playerState.sessionId, "lockstep.frame", [frame, serializer](obytestream& stream)
 						{
 							serializer->serialize(stream, frame);
@@ -2188,26 +2300,35 @@ namespace Stormancer
 									state->isSynchronized = true;
 									if (args.gameplayTimeSeconds >= state->gameplayTimeSeconds)
 									{
+										
+
+										for (auto& command : args.commands)
+										{
+											
+
+											if (state->_lastCommand == nullptr || state->_lastCommand->command.commandId == command.commandId - 1)
+											{	
+												if (command.gameplayTimeSeconds < service->_currentFrame.currentTimeSeconds)
+												{
+
+													service->_logger->log(LogLevel::Error, "lockstep", std::to_string(service->_currentFrame.currentTimeSeconds) + "|" + std::to_string(service->_currentPlayerId) + "detected desync : adding command " + std::to_string(state->playerId) + "/" + std::to_string(command.commandId) + " for frame " + std::to_string(command.gameplayTimeSeconds) + " but current time is" + std::to_string(service->_currentFrame.currentTimeSeconds) + ". Validated time for origin player is " + std::to_string(state->validatedGamePlayTimeSeconds) + "=>" + std::to_string(args.validatedGameplayTimeSeconds));
+												}
+												else
+												{
+													service->_logger->log(LogLevel::Debug, "lockstep", std::to_string(service->_currentFrame.currentTimeSeconds) + "|" + std::to_string(service->_currentPlayerId) + " added command " + std::to_string(state->playerId) + "/" + std::to_string(command.commandId) + " for frame " + std::to_string(command.gameplayTimeSeconds) + ". Current time" + std::to_string(service->_currentFrame.currentTimeSeconds) + ". Old validated times = " + std::to_string(state->validatedGamePlayTimeSeconds)+"=>"+ std::to_string(args.validatedGameplayTimeSeconds));
+												}
+
+												state->addCommand(command);
+												service->_writer->writeAddCommandRecord(service->getCurrentTime(), command.gameplayTimeSeconds, state->playerId, command.commandId, command.content);
+											}
+											
+										}
+										service->_logger->log(LogLevel::Info, "lockstep", std::to_string(service->_currentFrame.currentTimeSeconds) + "|" + std::to_string(service->_currentPlayerId) + " updated validated time for player "+ std::to_string(state->playerId) +" " + std::to_string(state->validatedGamePlayTimeSeconds) + "=>" + std::to_string(args.validatedGameplayTimeSeconds));
 										state->deltaTimePerFrameSeconds = args.deltaTimePerFrameSeconds;
 										state->validatedGamePlayTimeSeconds = args.validatedGameplayTimeSeconds;
 										state->gameplayTimeSeconds = args.gameplayTimeSeconds;
 										state->addFrame(args.gameplayTimeSeconds, args.consistencyData);
 
-										for (auto& command : args.commands)
-										{
-											if (command.gameplayTimeSeconds <= service->_currentFrame.currentTimeSeconds)
-											{
-
-												service->_logger->log(LogLevel::Error, "lockstep", std::to_string(service->_currentFrame.currentTimeSeconds) + "|" + std::to_string(service->_currentPlayerId) + "detected desync : adding command " + std::to_string(state->playerId) + "/" + std::to_string(command.commandId) + " for frame " + std::to_string(command.gameplayTimeSeconds) + " but current time is" + std::to_string(service->_currentFrame.currentTimeSeconds) + ". Validated time for origin player is " + std::to_string(state->validatedGamePlayTimeSeconds));
-											}
-											else
-											{
-												service->_logger->log(LogLevel::Info, "lockstep", std::to_string(service->_currentFrame.currentTimeSeconds) + "|" + std::to_string(service->_currentPlayerId) + " added command " + std::to_string(state->playerId) + "/" + std::to_string(command.commandId) + " for frame " + std::to_string(command.gameplayTimeSeconds) + ". Current time" + std::to_string(service->_currentFrame.currentTimeSeconds) + ". Validated time for player is " + std::to_string(state->validatedGamePlayTimeSeconds));
-											}
-
-											state->addCommand(command);
-											service->_writer->writeAddCommandRecord(service->getCurrentTime(), command.gameplayTimeSeconds, state->playerId, command.commandId, command.content);
-										}
 										auto node = state->lastLocalCommandReceivedByRemotePeer;
 										if (node == nullptr)
 										{
@@ -2231,9 +2352,7 @@ namespace Stormancer
 											service->_logger->log(LogLevel::Info, "lockstep", std::to_string(service->_currentFrame.currentTimeSeconds) + "|" + std::to_string(service->_currentPlayerId) + "Set first command.");
 										}*/
 										state->lastLocalCommandReceivedByRemotePeer = node;
-										service->checkConsistency();
-
-
+										
 										//service->_logger->log(LogLevel::Info, "lockstep", std::to_string(service->_currentFrame.currentTimeSeconds) + "|" + std::to_string(service->_currentPlayerId) + " received frame from " + std::to_string(state->playerId) + " validatedGamePlayTime" + std::to_string(state->validatedGamePlayTimeSeconds));
 									}
 								}
@@ -2296,15 +2415,16 @@ namespace Stormancer
 							else if (data.gameplayTimeSeconds < _targetConsistencyCheck)
 							{
 								state.removeOldestConsistencyData();
+								data = {};
 							}
 						}
 						if (!data.isValid)
 						{
 							return false;
 						}
-						else if (data.gameplayTimeSeconds == _targetConsistencyCheck)
+						else if(data.gameplayTimeSeconds == _targetConsistencyCheck)
 						{
-							evt.consistencyData.emplace(state.playerId, data.hash);
+							evt.consistencyData.emplace(state.playerId,data.hash);
 						}
 					}
 
@@ -2317,9 +2437,9 @@ namespace Stormancer
 
 				void checkConsistency()
 				{
-					while (tryPerformConsistencyCheck())
+					while (_targetConsistencyCheck < _currentFrame.currentTimeSeconds && tryPerformConsistencyCheck())
 					{
-						_targetConsistencyCheck += _options.FixedDeltaTimeSeconds;
+						_targetConsistencyCheck += _options->FixedDeltaTimeSeconds;
 					}
 				}
 
@@ -2334,6 +2454,24 @@ namespace Stormancer
 						if (it->playerId < state.playerId)
 						{
 							it++;
+						}
+						else if (it->playerId == state.playerId)
+						{
+							if (it->sessionId == state.sessionId)
+							{
+								return *it;
+							}
+							else
+							{
+								_logger->log(Stormancer::LogLevel::Error, "lockstep", "Duplicated player state add.");
+								throw std::runtime_error("Duplicate player state");
+								
+							}
+
+						}
+						else
+						{
+							break;
 						}
 					}
 					it = _playerStates.insert(it, state);
@@ -2421,7 +2559,7 @@ namespace Stormancer
 							break;
 						}
 						}
-
+					
 						_writer->writeUpdatePlayersCommand(_currentFrame.currentTimeSeconds, cmd);
 
 						_currentPlayersUpdateId = cmd.updateId;
@@ -2538,7 +2676,7 @@ namespace Stormancer
 					else
 					{
 						_writer->header.playerId = getCurrentPlayerId();
-
+		
 						requestSnapshot(target);
 					}
 
@@ -2562,7 +2700,7 @@ namespace Stormancer
 
 
 
-				LockstepOptions _options;
+				std::shared_ptr<LockstepOptions> _options;
 
 				std::vector<PlayersUpdateCommand> _pendingPlayersUpdateCommand;
 
@@ -2579,7 +2717,7 @@ namespace Stormancer
 			{
 				friend LockstepPlugin;
 			public:
-				LockstepApiImpl(std::shared_ptr<Users::UsersApi> users, std::shared_ptr<ILogger> logger);
+				LockstepApiImpl(std::shared_ptr<Users::UsersApi> users, std::shared_ptr<ILogger> logger, std::shared_ptr<LockstepOptions> options);
 
 				FrameDuration adjustTick(FrameDuration deltaSeconds, FrameDuration realDeltaSeconds) override;
 
@@ -2605,9 +2743,10 @@ namespace Stormancer
 				/// <param name="frame"></param>
 				int pushCommand(byte* buffer, int length) override;
 
-				void loadReplayFile(byte* buffer, size_t length) override;
+				ReplayFileHeader loadReplayFile(byte* buffer, size_t length) override;
+				ReplayFileHeader readReplayFileHeader(byte* buffer, size_t length) override;
 
-				pplx::task<bool> uploadPendingReplay(std::string pendingReplayFilePath) override;
+				pplx::task<std::string> getOrCreateReplayRecord(std::string gameSessionId, std::unordered_map<std::string, std::string> map)  override;
 
 				void endFrame() override;
 
@@ -2624,8 +2763,8 @@ namespace Stormancer
 
 				ReplayMode getReplayMode() override;
 
-				bool trySetReplayInitialData(byte* buffer, size_t length, std::string& buildId) override;
-				bool tryGetReplayInitialData(std::vector<byte>& initialData, std::string& buildId, std::string& gameId) override;
+				bool trySetReplayInitialData(byte* buffer, size_t length, std::string& buildId, std::unordered_map<std::string, std::string>& metadata) override;
+				bool tryGetReplayInitialData(std::vector<byte>& initialData, int& playerId, std::string& buildId, std::string& gameId, std::unordered_map<std::string, std::string>& metadata) override;
 
 				/// <summary>
 				/// Resets the lockstep system
@@ -2657,6 +2796,8 @@ namespace Stormancer
 
 				std::function<void(ReplayWriteEvent&)> _replayWriter = [](auto _) {};
 
+				std::shared_ptr<LockstepOptions> _options;
+
 
 			};
 		}
@@ -2664,12 +2805,16 @@ namespace Stormancer
 		static constexpr const char* PLUGIN_NAME = "Lockstep";
 		static constexpr const char* PLUGIN_VERSION = "1.0.0";
 		static constexpr const char* LOCKSTEP_HOST_METADATA = "stormancer.lockstep";
+		static constexpr const char* LOCKSTEP_REPLAY_METADATA = "stormancer.plugins.lockstep.replays";
 
-		details::LockstepApiImpl::LockstepApiImpl(std::shared_ptr<Users::UsersApi> users, std::shared_ptr<ILogger> logger)
-			: ClientAPI< LockstepApiImpl, LockstepReplayUploadService>(users, "stormancer.plugins.lockstep.replays")
+		details::LockstepApiImpl::LockstepApiImpl(std::shared_ptr<Users::UsersApi> users, std::shared_ptr<ILogger> logger, std::shared_ptr<LockstepOptions> options)
+			: ClientAPI< LockstepApiImpl, LockstepReplayUploadService>(users, LOCKSTEP_REPLAY_METADATA)
+			, _logger(logger)
+			, _options(options)
+
 		{
 
-			auto service = std::make_shared<details::OfflineLockstepService>(logger, _replayWriter);
+			auto service = std::make_shared<details::OfflineLockstepService>(logger, _options, _replayWriter);
 
 			onSceneConnected(service);
 		}
@@ -2687,7 +2832,7 @@ namespace Stormancer
 
 		void details::LockstepApiImpl::Reset()
 		{
-			auto service = std::make_shared<details::OfflineLockstepService>(_logger, _replayWriter);
+			auto service = std::make_shared<details::OfflineLockstepService>(_logger, _options, _replayWriter);
 			service->replayWriter = _replayWriter;
 			onSceneConnected(service);
 		}
@@ -2743,21 +2888,34 @@ namespace Stormancer
 			return _service->pushCommand(buffer, length);
 		}
 
-		void details::LockstepApiImpl::loadReplayFile(byte* buffer, size_t length)
+		ReplayFileHeader details::LockstepApiImpl::readReplayFileHeader(byte* buffer, size_t length)
 		{
-			//TODO load replay file.
-			auto service = std::make_shared<ReplayLockstepService>(buffer, length);
+			auto service = std::make_shared<ReplayLockstepService>(_options, buffer, length);
+			service->initialize();
+			ReplayFileHeader result;
+			service->tryGetReplayInitialData(result.initializationData, result.playerId, result.buildId, result.gameId, result.metadata);
+			return result;
+
+		}
+		ReplayFileHeader details::LockstepApiImpl::loadReplayFile(byte* buffer, size_t length)
+		{
+			
+			auto service = std::make_shared<ReplayLockstepService>(_options,buffer, length);
 			service->replayWriter = _replayWriter;
 
 			onSceneConnected(service);
 
+			ReplayFileHeader result;
+			service->tryGetReplayInitialData(result.initializationData,result.playerId, result.buildId, result.gameId, result.metadata);
+			return result;
+
 		}
 
-		pplx::task<bool> details::LockstepApiImpl::uploadPendingReplay(std::string pendingReplayFilePath)
+		pplx::task<std::string> details::LockstepApiImpl::getOrCreateReplayRecord(std::string gameSessionId, std::unordered_map<std::string, std::string> metadata)
 		{
-			return this->getService().then([pendingReplayFilePath](std::shared_ptr<LockstepReplayUploadService> service)
+			return this->getService().then([gameSessionId,metadata](std::shared_ptr<LockstepReplayUploadService> service)
 				{
-					return service->tryUploadReplay(pendingReplayFilePath);
+					return service->getOrCreateReplayRecordAsync(gameSessionId,metadata);
 				});
 		}
 
@@ -2771,14 +2929,14 @@ namespace Stormancer
 			return _service->getReplayMode();
 		}
 
-		bool  details::LockstepApiImpl::trySetReplayInitialData(byte* buffer, size_t length, std::string& buildId)
+		bool  details::LockstepApiImpl::trySetReplayInitialData(byte* buffer, size_t length, std::string& buildId, std::unordered_map<std::string, std::string>& metadata)
 		{
-			return _service->trySetReplayInitialData(buffer, length, buildId);
+			return _service->trySetReplayInitialData(buffer, length, buildId,metadata);
 		}
 
-		bool details::LockstepApiImpl::tryGetReplayInitialData(std::vector<byte>& initialData, std::string& buildId, std::string& gameId)
+		bool details::LockstepApiImpl::tryGetReplayInitialData(std::vector<byte>& initialData, int& playerId, std::string& buildId, std::string& gameId, std::unordered_map<std::string, std::string>& metadata)
 		{
-			return _service->tryGetReplayInitialData(initialData, buildId, gameId);
+			return _service->tryGetReplayInitialData(initialData,playerId, buildId, gameId,metadata);
 
 		}
 
@@ -2832,7 +2990,7 @@ namespace Stormancer
 		}
 		void details::LockstepApiImpl::onSceneDisconnected()
 		{
-			onSceneConnected(std::make_shared<details::OfflineLockstepService>(_logger, _replayWriter));
+			onSceneConnected(std::make_shared<details::OfflineLockstepService>(_logger, _options, _replayWriter));
 		}
 
 		std::vector<LockstepPlayer> details::LockstepApiImpl::getPlayers() const
@@ -2846,14 +3004,19 @@ namespace Stormancer
 
 		void LockstepPlugin::registerClientDependencies(ContainerBuilder& clientBuilder)
 		{
-			clientBuilder.registerDependency<details::LockstepApiImpl, Users::UsersApi, ILogger>().as<LockstepApi>().singleInstance();
+			clientBuilder.registerDependency<LockstepOptions>().singleInstance();
+			clientBuilder.registerDependency < details::LockstepApiImpl, Users::UsersApi, ILogger,LockstepOptions> ().as<LockstepApi>().singleInstance();
 		}
 
 		void LockstepPlugin::registerSceneDependencies(ContainerBuilder& sceneBuilder, std::shared_ptr<Scene> scene)
 		{
 			if (!scene->getHostMetadata(LOCKSTEP_HOST_METADATA).empty())
 			{
-				sceneBuilder.registerDependency < details::LockstepService, P2PMeshService, IClient, Serializer, ILogger >().singleInstance();
+				sceneBuilder.registerDependency < details::LockstepService, P2PMeshService, IClient, Serializer, ILogger, LockstepOptions>().singleInstance();
+			}
+			if (!scene->getHostMetadata(LOCKSTEP_REPLAY_METADATA).empty())
+			{
+				sceneBuilder.registerDependency<details::LockstepReplayUploadService,RpcService>().singleInstance();
 			}
 		}
 

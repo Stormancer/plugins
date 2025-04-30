@@ -79,7 +79,7 @@ void LockstepViewModel::addCommand(byte cmd)
 
 }
 
-float LockstepViewModel::getLockstepTime()
+Stormancer::Gameplay::Time LockstepViewModel::getLockstepTime()
 {
 	auto client = Stormancer::IClientFactory::GetClient(_clientId);
 
@@ -88,7 +88,7 @@ float LockstepViewModel::getLockstepTime()
 	return api->getCurrentTime();
 }
 
-float LockstepViewModel::getTargetTime()
+Stormancer::Gameplay::Time LockstepViewModel::getTargetTime()
 {
 	auto client = Stormancer::IClientFactory::GetClient(_clientId);
 

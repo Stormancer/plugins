@@ -172,7 +172,7 @@ namespace Stormancer
 				}
 
 				std::shared_ptr<::Stormancer::IP2PScenePeer> peer;
-				if (false && _p2pManager->tryGetPeer(sessionId, peer) && sessionId !=localSessionId)
+				if (_p2pManager->tryGetPeer(sessionId, peer) && sessionId !=localSessionId)
 				{
 
 					peer->send(route, [writer, localSessionId](obytestream& stream) 

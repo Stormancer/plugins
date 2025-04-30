@@ -425,16 +425,16 @@ namespace Stormancer
 		};
 
 		/// <summary>
-		/// Run custom code to provide authentication credentials.
+		/// Interface providing authentication credentials.
 		/// </summary>
 		/// <remarks>
-		/// This interface allows custom to retrieve authentication credentials.
+		/// This interface enables client to provide ways to retrieve authentication credentials.
 		/// When the client needs to authenticate with the Stormancer application, it has to provide credentials.
 		/// The nature of these credentials depends on the platform that the client is running on (PC with Steam or another platform, consoles...),
 		/// as well as possibly custom logic on the server application.
 		/// This means that the logic needed to retrieve these credentials is at least platform-specific, and maybe even game-specific for more complex scenarios.
-		/// In order to provide this logic, at least one plugin that provides a class implementing <c>IAuthenticationProvider</c> must be registered in the client.
-		/// You can choose the IAuthenticationProvider used by changing the authProvider field in <c>UsersApi</c>.
+		/// In order to provide this logic, at least one plugin that provides a class implementing `IAuthenticationProvider` must be registered in the client.
+		/// The `IAuthenticationProvider` used is selected through the authProvider field in `UsersApi`.
 		/// </remarks>
 		class IAuthenticationProvider
 		{
@@ -512,6 +512,16 @@ namespace Stormancer
 			/// Function called after the user successfully logged in.
 			/// </summary>
 			virtual pplx::task<void> OnLoggedIn(OnLoggedInContext)
+			{
+				return pplx::task_from_result();
+			}
+
+			virtual pplx::task<void> OnRetrievingCredentials(const Users::CredentialsContext& context)
+			{
+				return pplx::task_from_result();
+			}
+
+			virtual pplx::task<void> OnRetrievedCredentials(const Users::CredentialsContext& context)
 			{
 				return pplx::task_from_result();
 			}
@@ -1573,6 +1583,15 @@ namespace Stormancer
 				credentialsContext.authParameters->type = authProvider;
 				credentialsContext.platformUserId = _currentLocalUser;
 				pplx::task<void> eventHandlersTask = pplx::task_from_result();
+
+				for (auto handler : _authenticationEventHandlers)
+				{
+					eventHandlersTask = eventHandlersTask.then([handler, credentialsContext]()
+						{
+							return handler->OnRetrievingCredentials(credentialsContext);
+						}, _userDispatcher);
+				}
+
 				for (auto evHandler : _authenticationProviders)
 				{
 					eventHandlersTask = eventHandlersTask.then([evHandler, credentialsContext]()
@@ -1580,6 +1599,14 @@ namespace Stormancer
 							return evHandler->retrieveCredentials(credentialsContext);
 						}, _userDispatcher);
 				}
+				for (auto handler : _authenticationEventHandlers)
+				{
+					eventHandlersTask = eventHandlersTask.then([handler, credentialsContext]()
+						{
+							return handler->OnRetrievedCredentials(credentialsContext);
+						}, _userDispatcher);
+				}
+
 				return eventHandlersTask.then([credentialsContext]()
 					{
 

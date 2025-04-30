@@ -17,12 +17,86 @@
 #include "gameversion/GameVersion.hpp"
 #include "users/auth_ephemeral.hpp"
 #include "users/auth_deviceIdentifier.hpp"
+
+#if defined(ENABLE_STEAM)
 #include "steam/Steam.hpp"
+#endif
 
 #include "gamesession/P2PMesh.hpp"
 #include "replication/Lockstep.hpp"
+#include <filesystem>
+class DeviceIdentifier : public Stormancer::Users::Auth::IDeviceIdentifier
+{
+public:
 
+	DeviceIdentifier(std::filesystem::path path)
+	{
+		_handle = std::fopen(path.string().c_str(), "wx");
+		
+		
+		_path = path;
+	}
+	bool isValid()
+	{
+		return _handle != nullptr;
+	}
+	std::string get() override
+	{
+		
+		return _path.filename().string();
+	}
 
+	virtual ~DeviceIdentifier() 
+	{
+		if (_handle)
+		{
+			std::fclose(_handle);
+			std::filesystem::remove(_path);
+			_handle = nullptr;
+		}
+	}
+private:
+	std::filesystem::path _path;
+	std::FILE* _handle;
+};
+class DeviceIdentifierProvider : public Stormancer::Users::Auth::IDeviceIdentifierProvider
+{
+	Stormancer::Users::Auth::IDeviceIdentifier* capture() override
+	{
+		auto path = std::filesystem::path("identifiers");
+		std::filesystem::create_directory(path);
+		for (int i = 0; i< 1000; i++)
+		{
+			auto identifier = new DeviceIdentifier(path/std::to_string(i));
+			if (identifier->isValid())
+			{
+				return identifier;
+			}
+		}
+
+		throw std::runtime_error("failed to create identifier.");
+	}
+};
+
+/// <summary>
+/// Sample plugin that adds an implementation for the contract Stormancer::Users::Auth::IDeviceIdentifierProvider.
+/// </summary>
+class SamplePlugin : public Stormancer::IPlugin
+{
+public:
+
+	static constexpr const char* PLUGIN_NAME = "Environment";
+	static constexpr const char* PLUGIN_VERSION = "1.0.0";
+
+	Stormancer::PluginDescription getDescription() override
+	{
+		return Stormancer::PluginDescription(PLUGIN_NAME, PLUGIN_VERSION);
+	}
+	void registerClientDependencies(Stormancer::ContainerBuilder& clientBuilder)
+	{
+		clientBuilder.registerDependency<DeviceIdentifierProvider>().as<Stormancer::Users::Auth::IDeviceIdentifierProvider>();
+	}
+};
 
 using json = nlohmann::json;
 
@@ -124,7 +198,11 @@ ClientViewModel::ClientViewModel(int id, AppViewModel* parent)
 		config->addPlugin(new Stormancer::P2PMeshPlugin());
 		config->addPlugin(new Stormancer::Users::Auth::EphemeralPlugin());
 		config->addPlugin(new Stormancer::Users::Auth::AuthDeviceIdentifierPlugin());
+		config->addPlugin< SamplePlugin>();
+
+#if defined(ENABLE_STEAM)
 		config->addPlugin(new Stormancer::Steam::SteamPlugin());		
+#endif
 
 		config->additionalParameters[Stormancer::GameVersion::ConfigurationKeys::ClientVersion] = this->parent->settings.gameVersion;
 		return config;

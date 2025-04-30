@@ -110,15 +110,15 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NOMINMAX;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(Stormancer-Steam-SdkPath)\public\steam;$(Stormancer-Cpp-LibPath)\include;..\..\output\cpp;C:\Program Files (x86)\Visual Leak Detector\include;imgui;backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(Stormancer-Cpp-LibPath)\include;..\..\output\cpp;C:\Program Files (x86)\Visual Leak Detector\include;imgui;backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d12.lib;d3dcompiler.lib;dxgi.lib;libStormancer_$(Configuration)_Windows.lib;steam_api$(PlatformArchitecture).lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\Program Files (x86)\Visual Leak Detector\lib\Win64;$(Stormancer-Cpp-LibPath)\libs\Windows\;$(Stormancer-Steam-SdkPath)\redistributable_bin\win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d12.lib;d3dcompiler.lib;dxgi.lib;libStormancer_$(Configuration)_Windows.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Program Files (x86)\Visual Leak Detector\lib\Win64;$(Stormancer-Cpp-LibPath)\libs\Windows\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -172,6 +172,13 @@
     <Natvis Include="imgui.natvis" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\output\cpp\party\Party.hpp" />
+    <ClInclude Include="..\..\output\cpp\party\PartyMerging.hpp" />
+    <ClInclude Include="..\..\output\cpp\steam\Steam.hpp" />
+    <ClInclude Include="..\..\output\cpp\users\auth_deviceIdentifier.hpp" />
+    <ClInclude Include="..\..\output\cpp\users\auth_ephemeral.hpp" />
+    <ClInclude Include="..\..\output\cpp\users\ClientAPI.hpp" />
+    <ClInclude Include="..\..\output\cpp\users\Environment.hpp" />
     <ClInclude Include="..\..\output\cpp\users\Users.hpp" />
     <ClInclude Include="..\Stormancer.Plugins\Replication\cpp\Lockstep.hpp" />
     <ClInclude Include="..\Stormancer.Plugins\Replication\cpp\P2PMesh.hpp" />
@@ -198,4 +205,25 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <!--Steam Support-->
+  <ItemDefinitionGroup Condition="'$(Stormancer-Steam-SdkPath)' != ''">
+    <ClCompile>
+      <PreprocessorDefinitions>ENABLE_STEAM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(Stormancer-Steam-SdkPath)\public\steam;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>steam_api$(PlatformArchitecture).lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(Stormancer-Steam-SdkPath)\redistributable_bin\win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <Target BeforeTargets="Build" Name="CheckSteam" Condition="'$(Stormancer-Steam-SdkPath)' == ''">
+    <Warning Text="Environment variable Stormancer-Steam-SdkPath not set. Steam is disabled in the sample" />
+  </Target>
+  <Target BeforeTargets="Build" Name="CheckSteam" Condition="'$(Stormancer-Steam-SdkPath)' != ''">
+    <Copy SourceFiles="$(Stormancer-Steam-SdkPath)\redistributable_bin\win64\steam_api64.dll" DestinationFolder="$(OutDir)" />
+  </Target>
+  <Target BeforeTargets="Build" Name="CheckSteamLib" Condition="'$(Stormancer-Steam-SdkPath)' != '' AND !Exists('$(Stormancer-Steam-SdkPath)\public\steam\steam_api.h')">
+    <Error Text="Failed to find $(Stormancer-Steam-SdkPath)\public\steam\steam_api.h. $(Stormancer-Steam-SdkPath) should point to the root of the Steam SDK." />
+  </Target>
 </Project>

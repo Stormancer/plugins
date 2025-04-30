@@ -25,9 +25,9 @@ public:
 
 	bool tick(float delta);
 
-	float getLockstepTime();
+	Stormancer::Gameplay::Time getLockstepTime();
 
-	float getTargetTime();
+	Stormancer::Gameplay::Time getTargetTime();
 
 	bool isPaused();
 
