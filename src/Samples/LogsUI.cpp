@@ -161,6 +161,15 @@ std::string to_string(Stormancer::LogLevel level)
 }
 void Logger::log(Stormancer::LogLevel level, const std::string& category, const std::string& message, const std::string& data)
 {
+	if (!_component)
+	{
+		return;
+	}
 	auto l = to_string(level);
 	_component->AddLog(l, category, message, data);
+}
+
+void Logger::disable()
+{
+	_component = nullptr;
 }

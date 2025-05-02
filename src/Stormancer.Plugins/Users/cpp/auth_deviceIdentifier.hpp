@@ -91,6 +91,11 @@ namespace Stormancer
 						{
 							return false;
 						}
+						if (_store->currentIdentifier)
+						{
+							delete _store->currentIdentifier;
+							_store->currentIdentifier = nullptr;
+						}
 						_store->currentIdentifier = _deviceIdentifierProvider->capture();
 
 						if (!_store->currentIdentifier)

@@ -24,6 +24,8 @@ public:
     Logger(LogsComponent* component);
     void log(Stormancer::LogLevel level, const std::string& category, const std::string& message, const std::string& data = "") override;
 
+    void disable();
 private:
     LogsComponent* _component;
+
 };

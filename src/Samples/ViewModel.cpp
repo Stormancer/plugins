@@ -31,14 +31,16 @@ public:
 
 	DeviceIdentifier(std::filesystem::path path)
 	{
-		_handle = std::fopen(path.string().c_str(), "wx");
-		
+		wchar_t buffer[1024];
+		wchar_t* filenamePart;
+		GetFullPathName(path.wstring().c_str(), 1024, buffer, &filenamePart);
+		_handle = CreateFile(path.wstring().c_str(), GENERIC_WRITE, 0, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 		
 		_path = path;
 	}
 	bool isValid()
 	{
-		return _handle != nullptr;
+		return _handle != INVALID_HANDLE_VALUE;
 	}
 	std::string get() override
 	{
@@ -50,14 +52,14 @@ public:
 	{
 		if (_handle)
 		{
-			std::fclose(_handle);
+			CloseHandle(_handle);
 			std::filesystem::remove(_path);
 			_handle = nullptr;
 		}
 	}
 private:
 	std::filesystem::path _path;
-	std::FILE* _handle;
+	HANDLE  _handle = 0;
 };
 class DeviceIdentifierProvider : public Stormancer::Users::Auth::IDeviceIdentifierProvider
 {
@@ -187,7 +189,8 @@ ClientViewModel::ClientViewModel(int id, AppViewModel* parent)
 		auto config = Stormancer::Configuration::create(this->parent->settings.account, this->parent->settings.application);
 
 		config->addServerEndpoint(this->parent->settings.endpoint);
-		config->logger = std::make_shared<Logger>(&(this->logs));
+		_logger = std::make_shared<Logger>(&(this->logs));
+		config->logger = _logger;
 		config->addPlugin(new Stormancer::Users::UsersPlugin());
 		config->addPlugin(new Stormancer::Party::PartyPlugin());
 		config->addPlugin(new Stormancer::GameFinder::GameFinderPlugin());
@@ -220,6 +223,10 @@ ClientViewModel::ClientViewModel(int id, AppViewModel* parent)
 
 ClientViewModel::~ClientViewModel()
 {
+	if (_logger)
+	{
+		_logger->disable();
+	}
 	Stormancer::IClientFactory::ReleaseClient(id);
 
 }
@@ -258,7 +265,7 @@ void ClientViewModel::disconnect()
 	auto client = Stormancer::IClientFactory::GetClient(id);
 
 	isProcessing = true;
-	client->disconnect().then([this](pplx::task<void> t)
+	client->dependencyResolver().resolve<Stormancer::Users::UsersApi>()->logout().then([this](pplx::task<void> t)
 	{
 
 		this->isProcessing = false;
