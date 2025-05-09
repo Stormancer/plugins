@@ -201,5 +201,8 @@
     <ClInclude Include="..\..\output\cpp\party\PartyMerging.hpp">
       <Filter>Header Files\Plugins</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\output\cpp\gamesession\GameSession.hpp">
+      <Filter>Header Files\Plugins</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

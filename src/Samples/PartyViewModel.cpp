@@ -108,7 +108,7 @@ void PartyViewModel::joinCurrentGameSession()
 		.then([client](std::string connectionToken)
 	{
 		auto gs = client->dependencyResolver().resolve<Stormancer::GameSessions::GameSession>();
-		return gs->connectToGameSession(connectionToken);
+		return gs->connectToGameSession(connectionToken,"",false);
 	})
 		.then([this](pplx::task<Stormancer::GameSessions::GameSessionConnectionParameters> t)
 	{

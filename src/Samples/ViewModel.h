@@ -53,7 +53,7 @@ public:
 	
 	std::string getServerApp();
 
-	float deltaTime = 0.016f;
+	float deltaTime = 1.0f/60;
 	//AUTH
 	void connect();
 

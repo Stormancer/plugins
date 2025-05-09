@@ -212,8 +212,12 @@ ClientViewModel::ClientViewModel(int id, AppViewModel* parent)
 	});
 
 	auto client = Stormancer::IClientFactory::GetClient(id);
-
+	using namespace std::chrono_literals;
+	client->setServerTimeout(60s);
 	auto users = client->dependencyResolver().resolve<Stormancer::Users::UsersApi>();	
+
+	auto lockstepOptions = client->dependencyResolver().resolve<Stormancer::Gameplay::LockstepOptions>();
+	lockstepOptions->FixedDeltaTimeSeconds = deltaTime;
 
 	authenticationProviders= users->getAuthenticationProviders();
 

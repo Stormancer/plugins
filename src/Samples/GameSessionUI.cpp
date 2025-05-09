@@ -6,7 +6,7 @@
 #include "Lockstep.h"
 #include "ViewModel.h"
 
-void ShowUI(GameSessionViewModel& vm, float deltaTime,float& nextDeltaTime)
+void ShowUI(GameSessionViewModel& vm, float deltaTime)
 {
 	if (vm.parent->gameFinder.isGameFound())
 	{
@@ -60,14 +60,9 @@ void ShowUI(GameSessionViewModel& vm, float deltaTime,float& nextDeltaTime)
 
 		if (vm.lockstep->isEnabled())
 		{
-			if (vm.lockstep->tick(deltaTime))
-			{
-				nextDeltaTime = 0.016f;
-			}
-			else
-			{
-				nextDeltaTime = 0.0f;
-			}
+			
+			vm.lockstep->tick(deltaTime);
+			
 
 			ImGui::SeparatorText("Lockstep");
 
@@ -92,16 +87,25 @@ void ShowUI(GameSessionViewModel& vm, float deltaTime,float& nextDeltaTime)
 				ImGui::Text("time");
 				ImGui::TableNextColumn();
 				ImGui::Text(std::to_string(vm.lockstep->getLockstepTime()).c_str());
+
 				ImGui::TableNextRow();
 				ImGui::TableNextColumn();
 				ImGui::Text("target time");
 				ImGui::TableNextColumn();
 				ImGui::Text(std::to_string(vm.lockstep->getTargetTime()).c_str());
+
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+				ImGui::Text("commandLatency");
+				ImGui::TableNextColumn();
+				ImGui::Text(std::to_string(vm.lockstep->getCommandLatency()).c_str());
+
 				ImGui::TableNextRow();
 				ImGui::TableNextColumn();
 				ImGui::Text("state");
 				ImGui::TableNextColumn();
 				ImGui::Text(vm.lockstep->currentState.c_str());
+
 				ImGui::EndTable();
 
 				for (auto& player : vm.lockstep->getPlayers())
@@ -130,7 +134,7 @@ void ShowUI(GameSessionViewModel& vm, float deltaTime,float& nextDeltaTime)
 						ImGui::TableNextColumn();
 						ImGui::Text("Latency");
 						ImGui::TableNextColumn();
-						ImGui::Text(std::to_string(player.latencyMs).c_str());
+						ImGui::Text(std::to_string(player.latencySeconds).c_str());
 						
 						ImGui::TableNextRow();
 						ImGui::TableNextColumn();

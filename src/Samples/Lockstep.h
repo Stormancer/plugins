@@ -23,11 +23,13 @@ public:
 
 	void addCommand(byte cmd);
 
-	bool tick(float delta);
+	void tick(float delta);
 
 	Stormancer::Gameplay::Time getLockstepTime();
 
 	Stormancer::Gameplay::Time getTargetTime();
+
+	Stormancer::Gameplay::FrameDuration getCommandLatency();
 
 	bool isPaused();
 
@@ -38,10 +40,17 @@ public:
 	std::vector<::Stormancer::Gameplay::LockstepPlayer> getPlayers();
 
 private:
+	double gameplayTime = 0;
+	double realTime = 0;
+
 	int _clientId;
 	GameSessionViewModel* parent;
 	Stormancer::Subscription _onStepSubscription;
 	Stormancer::Subscription _onRollbackSubscription;
+
+	Stormancer::Subscription _onInstallSnapshotSubscription;
+	Stormancer::Subscription _onCreateSnapshotSubscription;
+	Stormancer::Subscription _onStartSubscription;
 
 	std::vector<Snapshot> snapshots;
 };
