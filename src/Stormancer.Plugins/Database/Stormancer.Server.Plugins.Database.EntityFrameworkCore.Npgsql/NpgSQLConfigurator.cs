@@ -79,6 +79,7 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
         private readonly ISecretsStore _store;
         private readonly IConfiguration _configuration;
         private readonly IHost _host;
+        public bool IsConfigured { get; internal set; }
 
         public Task<NpgsqlDataSource?> GetDataSource()
         {
@@ -160,6 +161,23 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
             }
             lock (_lock)
             {
+                if(_configuration.TryGetValue(NpgSQLConfigurationSection.SectionPath, out NpgSQLConfigurationSection? section) && section != null)
+                {
+                    if (section.PasswordPath != null)
+                    {
+                        var secret = _store.GetSecret(section.PasswordPath).Result;
+                        if (secret != null && secret.Value != null)
+                        {
+                            section.Password = Encoding.UTF8.GetString(secret.Value);
+                        }
+                    }
+
+                    IsConfigured = section.IsValid;
+                }
+                else
+                {
+                    IsConfigured=false;
+                }
                 _ = DisposeAsync(_dataSourceTask);
                 _dataSourceTask = null;
             }
@@ -177,6 +195,9 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
 
             _state = state;
         }
+
+        public bool IsConfigured => _state.IsConfigured;
+
         public void OnConfiguring(DbContextOptionsBuilder optionsBuilder, string contextId, Dictionary<string, object> customData)
         {
             if (customData.TryGetValue("npgsql", out var npgsqlData) && npgsqlData is NpgsqlDataSource source)

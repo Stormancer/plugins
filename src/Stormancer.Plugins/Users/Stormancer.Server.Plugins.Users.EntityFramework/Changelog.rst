@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+*****
+- Adds an implemenatation of IUserStorage.Enabled
+
 1.0.0.6
 ----------
 Changed

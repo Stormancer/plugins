@@ -112,7 +112,7 @@ namespace Stormancer.Server.Plugins.Users
         public async Task<User> AddAuthentication(User user, string provider, string identifier, Action<dynamic> authDataModifier)
         {
             bool added = false;
-            if (_storage != null)
+            if (_storage != null && _storage.Enabled)
             {
                 (user, added) = await _storage.AddAuthentication(user, provider, identifier, authDataModifier);
             }
@@ -136,7 +136,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public async Task<User> RemoveAuthentication(User user, string provider)
         {
-            if (_storage != null)
+            if (_storage != null && _storage.Enabled)
             {
                 user = await _storage.RemoveAuthentication(user, provider);
             }
@@ -151,7 +151,7 @@ namespace Stormancer.Server.Plugins.Users
         public async Task<User> CreateUser(string userId, JObject userData, string currentPlatform = "")
         {
             var user = new User() { Id = userId, LastPlatform = currentPlatform, UserData = userData };
-            if (_storage != null)
+            if (_storage != null && _storage.Enabled)
             {
                 user = await _storage.CreateUser(user);
             }
@@ -180,7 +180,7 @@ namespace Stormancer.Server.Plugins.Users
                 throw new ClientException($"badHandle?tooLong&maxLength={section.MaxLength}");
             }
 
-            if (_storage == null)
+            if (_storage == null || !_storage.Enabled)
             {
                 throw new NotSupportedException();
             }
@@ -214,7 +214,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public Task UpdateLastPlatform(string userId, string lastPlatform)
         {
-            if (_storage != null)
+            if (_storage != null && _storage.Enabled)
             {
                 return _storage.UpdateLastPlatform(userId, lastPlatform);
             }
@@ -244,7 +244,7 @@ namespace Stormancer.Server.Plugins.Users
         public Task<Dictionary<string, User?>> GetUsersByIdentity(string provider, IEnumerable<string> identifiers)
         {
 
-            if (_storage != null)
+            if (_storage != null && _storage.Enabled)
             {
                 if (provider == Constants.PROVIDER_TYPE_STORMANCER)
                 {
@@ -341,7 +341,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public Task<User?> GetUser(string uid)
         {
-            if (_storage != null)
+            if (_storage != null && _storage.Enabled)
             {
                 return _storage.GetUser(uid);
             }
@@ -355,7 +355,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public Task UpdateUserData<T>(string uid, T data)
         {
-            if (_storage != null)
+            if (_storage != null && _storage.Enabled)
             {
                 return _storage.UpdateUserData<T>(uid, data);
             }
@@ -366,7 +366,7 @@ namespace Stormancer.Server.Plugins.Users
         }
         public Task<IEnumerable<User>> QueryUserHandlePrefix(string prefix, int take, int skip)
         {
-            if (_storage != null)
+            if (_storage != null && _storage.Enabled)
             {
                 return _storage.QueryUserHandlePrefix(prefix, take, skip);
             }
@@ -378,7 +378,7 @@ namespace Stormancer.Server.Plugins.Users
         }
         public Task<IEnumerable<User>> Query(IEnumerable<KeyValuePair<string, string>> query, int take, int skip, CancellationToken cancellationToken)
         {
-            if (_storage != null)
+            if (_storage != null && _storage.Enabled)
             {
                 return _storage.Query(query, take, skip, cancellationToken);
             }
@@ -391,7 +391,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public Task Delete(string id)
         {
-            if (_storage != null)
+            if (_storage != null && _storage.Enabled)
             {
                 return _storage.Delete(id);
             }
@@ -405,7 +405,7 @@ namespace Stormancer.Server.Plugins.Users
 
         public Task<Dictionary<string, User?>> GetUsers(IEnumerable<string> userIds, CancellationToken cancellationToken)
         {
-            if (_storage != null)
+            if (_storage != null && _storage.Enabled)
             {
                 return _storage.GetUsers(userIds, cancellationToken);
             }

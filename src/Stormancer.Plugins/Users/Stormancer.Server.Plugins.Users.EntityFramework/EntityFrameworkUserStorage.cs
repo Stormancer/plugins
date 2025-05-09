@@ -23,6 +23,8 @@ namespace Stormancer.Server.Plugins.Users.EntityFramework
             _logger = logger;
         }
 
+        public bool Enabled => _dbContext.IsValid;
+
         public async Task<User> CreateUser(User user)
         {
             var record = UserRecord.CreateRecordFromUser(user);

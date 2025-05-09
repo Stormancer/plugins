@@ -245,7 +245,7 @@ namespace Stormancer
 							{
 								authTypeExchangecode = true;
 							}
-							
+
 							if (!exchangeCodeRetrieved && arg.compare(0, 15, "-AUTH_PASSWORD=<password>", 15) == 0)
 							{
 								exchangeCode = arg.substr(15, arg.size() - 15);
@@ -421,6 +421,18 @@ namespace Stormancer
 					return _productUserId;
 				}
 
+				bool isLoggedIn() const
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+					return _loggedIn;
+				}
+
+				void setLoggedIn(bool loggedIn)
+				{
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+					_loggedIn = loggedIn;
+				}
+
 			private:
 
 				void clear()
@@ -432,7 +444,7 @@ namespace Stormancer
 						_platformHandleOwned = false;
 						EOS_Platform_Release(_platformHandle);
 					}
-
+					_loggedIn = false;
 					_platformHandle = nullptr;
 				}
 
@@ -456,6 +468,7 @@ namespace Stormancer
 				std::shared_ptr<ILogger> _logger;
 				EOS_EpicAccountId _epicAccountId;
 				EOS_ProductUserId _productUserId;
+				bool _loggedIn = false;
 			};
 
 			class EpicTicker : public std::enable_shared_from_this<EpicTicker>
@@ -484,12 +497,12 @@ namespace Stormancer
 						{
 							auto wEpicTicker = STORM_WEAK_FROM_THIS();
 							actionDispatcher->post([wEpicTicker]()
-							{
-								if (auto epicTicker = wEpicTicker.lock())
 								{
-									epicTicker->scheduleTick();
-								}
-							});
+									if (auto epicTicker = wEpicTicker.lock())
+									{
+										epicTicker->scheduleTick();
+									}
+								});
 						}
 					}
 				}
@@ -503,7 +516,7 @@ namespace Stormancer
 
 				void scheduleTick()
 				{
-					if (! _stopTicker && _platformHandle)
+					if (!_stopTicker && _platformHandle)
 					{
 						EOS_Platform_Tick(_platformHandle);
 					}
@@ -517,19 +530,19 @@ namespace Stormancer
 					{
 						auto wEpicTicker = STORM_WEAK_FROM_THIS();
 						actionDispatcher->post([wEpicTicker]()
-						{
-							if (auto epicTicker = wEpicTicker.lock())
 							{
-								if (epicTicker->_stopTicker)
+								if (auto epicTicker = wEpicTicker.lock())
 								{
-									epicTicker->_stoppedTicker = true;
+									if (epicTicker->_stopTicker)
+									{
+										epicTicker->_stoppedTicker = true;
+									}
+									else
+									{
+										epicTicker->scheduleTick();
+									}
 								}
-								else
-								{
-									epicTicker->scheduleTick();
-								}
-							}
-						});
+							});
 					}
 					else
 					{
@@ -595,14 +608,9 @@ namespace Stormancer
 					return pplx::task_from_result();
 				}
 
-				std::string getSenderId() override
+				Users::UserId getSenderId() override
 				{
-					return _senderId;
-				}
-
-				std::string getSenderPlatformId() override
-				{
-					return platformName;
+					return Users::UserId(platformName, _senderId);
 				}
 
 				Party::PartyId getPartyId()
@@ -949,7 +957,7 @@ namespace Stormancer
 
 #pragma endregion
 			};
-			
+
 			class EpicPartyEventHandler : public Party::IPartyEventHandler
 			{
 			public:
@@ -1034,238 +1042,282 @@ namespace Stormancer
 				std::shared_ptr<ILogger> _logger;
 				std::shared_ptr<EpicState> _epicState;
 			};
-		}
 
-		// https://dev.epicgames.com/docs/services/en-US/WebAPIRef/AuthWebAPI/index.html
 
-		class EpicAuthenticationEventHandler : public std::enable_shared_from_this<EpicAuthenticationEventHandler>, public Users::IAuthenticationProvider, public Users::IAuthenticationEventHandler
-		{
-		public:
+			// https://dev.epicgames.com/docs/services/en-US/WebAPIRef/AuthWebAPI/index.html
 
+			class EpicAuthenticationProvider : public std::enable_shared_from_this<EpicAuthenticationProvider>, public Users::IAuthenticationProvider
+			{
+			public:
 #pragma region public_methods
-
-			EpicAuthenticationEventHandler(std::shared_ptr<details::EpicState> epicState, std::shared_ptr<ILogger> logger)
-				: _epicState(epicState)
-				, _logger(logger)
-			{
-			}
-
-			pplx::task<void> retrieveCredentials(const Users::CredentialsContext& context) override
-			{
-				return getEpicCredentials([context](std::string type, std::string provider, std::string accessToken)
+				EpicAuthenticationProvider(std::shared_ptr<details::EpicState> epicState, std::shared_ptr<ILogger> logger)
+					: _epicState(epicState)
+					, _logger(logger)
 				{
-					context.authParameters->type = type;
-					context.authParameters->parameters["provider"] = provider;
-					context.authParameters->parameters["accessToken"] = accessToken;
-				});
-			}
-
-			pplx::task<void> renewCredentials(const Users::CredentialsRenewalContext& context) override
-			{
-				return getEpicCredentials([context](std::string type, std::string provider, std::string accessToken)
-				{
-					context.response->parameters["provider"] = provider;
-					context.response->parameters["accessToken"] = accessToken;
-				});
-			}
-
-			pplx::task<void> getEpicCredentials(std::function<void(std::string type, std::string provider, std::string accessToken)> fulfillCredentialsCallback)
-			{
-				if (!_epicState->getAuthenticationEnabled())
-				{
-					return pplx::task_from_result();
 				}
 
-				std::lock_guard<std::recursive_mutex> lg(_mutex);
-
-				if (_authTce)
+				std::string getProviderName() const override
 				{
-					_authTce->set_exception(pplx::task_canceled());
+					return platformName;
 				}
 
-				_authTce = std::make_shared<pplx::task_completion_event<std::string>>();
-
-				timeout(10s)
-					.register_callback([tce = _authTce]()
+				pplx::task<void> retrieveCredentials(const Users::CredentialsContext& context) override
 				{
-					tce->set_exception(pplx::task_canceled());
-				});
-
-				EOS_HPlatform platformHandle = _epicState->getPlatformHandle();
-				if (!platformHandle)
-				{
-					throw std::runtime_error("Epic platform handle is null");
-				}
-
-				EOS_HAuth authHandle = EOS_Platform_GetAuthInterface(platformHandle);
-				assert(authHandle != nullptr);
-
-				EOS_Auth_Credentials credentials = {};
-				credentials.ApiVersion = EOS_AUTH_CREDENTIALS_API_LATEST;
-
-				EOS_Auth_LoginOptions loginOptions;
-				memset(&loginOptions, 0, sizeof(loginOptions));
-				loginOptions.ApiVersion = EOS_AUTH_LOGIN_API_LATEST;
-
-				auto loginMode = _epicState->getLoginMode();
-
-				std::string id, token;
-
-				if (loginMode == "DevAuth") // Dev auth (DevAuth)
-				{
-					id = _epicState->getDevAuthHost();
-					token = _epicState->getDevAuthCredentialsName();
-
-					if (id.empty() || token.empty())
+					if (context.tryUseProvider(platformName))
 					{
-						STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error("Missing host or credentials name for DevAuth login mode"), void);
+						return getEpicCredentials([context](std::string type, std::string provider, std::string accessToken)
+							{
+								context.authParameters->type = type;
+								context.authParameters->parameters["provider"] = provider;
+								context.authParameters->parameters["accessToken"] = accessToken;
+							});
+					}
+					else
+					{
+						return pplx::task_from_result();
+					}
+				}
+
+				pplx::task<void> renewCredentials(const Users::CredentialsRenewalContext& context) override
+				{
+					if (context.tryUseProvider(platformName))
+					{
+						return getEpicCredentials([context](std::string type, std::string provider, std::string accessToken)
+							{
+								context.response->parameters["provider"] = provider;
+								context.response->parameters["accessToken"] = accessToken;
+							});
+					}
+					else
+					{
+						return pplx::task_from_result();
+					}
+				}
+
+				pplx::task<void> getEpicCredentials(std::function<void(std::string type, std::string provider, std::string accessToken)> fulfillCredentialsCallback)
+				{
+					if (!_epicState->getAuthenticationEnabled())
+					{
+						return pplx::task_from_result();
 					}
 
-					credentials.Id = id.c_str();
-					credentials.Token = token.c_str();
-					credentials.Type = EOS_ELoginCredentialType::EOS_LCT_Developer;
-				}
-				else // Default regular auth (ExchangeCode)
-				{
-					token = _epicState->getExchangeCode();
-
-					if (token.empty())
-					{
-						STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error("Missing exchange code for ExchangeCode login mode"), void);
-					}
-
-					credentials.Token = token.c_str();
-					credentials.Type = EOS_ELoginCredentialType::EOS_LCT_ExchangeCode;
-				}
-
-				loginOptions.ScopeFlags = EOS_EAuthScopeFlags::EOS_AS_BasicProfile | EOS_EAuthScopeFlags::EOS_AS_FriendsList | EOS_EAuthScopeFlags::EOS_AS_Presence;
-
-				loginOptions.Credentials = &credentials;
-
-				auto wEpicAuth = new std::weak_ptr<EpicAuthenticationEventHandler>(STORM_WEAK_FROM_THIS());
-
-				EOS_Auth_Login(authHandle, &loginOptions, wEpicAuth, loginCompleteCallbackFn);
-
-				auto wEpicAuthEvtHandler = STORM_WEAK_FROM_THIS();
-
-				return pplx::create_task(*_authTce)
-					.then([fulfillCredentialsCallback, authHandle, wEpicAuthEvtHandler](std::string accountIdStr)
-				{
-					assert(authHandle != nullptr);
-
-					EOS_Auth_CopyUserAuthTokenOptions authTokenOptions = { 0 };
-					authTokenOptions.ApiVersion = EOS_AUTH_COPYUSERAUTHTOKEN_API_LATEST;
-
-					EOS_EpicAccountId accountId = details::EpicPlatformUserId::toEpicAccountId(accountIdStr);
-
-					EOS_Auth_Token* authToken = nullptr;
-
-					EOS_EResult result = EOS_Auth_CopyUserAuthToken(authHandle, &authTokenOptions, accountId, &authToken);
-
-					if (result != EOS_EResult::EOS_Success)
-					{
-						throw std::runtime_error("EOS_Auth_CopyUserAuthToken failed with result " + std::to_string((int32_t)result));
-					}
-
-					std::string accessToken(authToken->AccessToken);
-
-					auto epicAuthEvtHandler = wEpicAuthEvtHandler.lock();
-					if (!epicAuthEvtHandler)
-					{
-						throw ObjectDeletedException("EpicAuthenticationEventHandler");
-					}
-
-					epicAuthEvtHandler->_epicState->setEpicAccountId(accountId);
-
-					fulfillCredentialsCallback(platformName, platformName, accessToken);
-				});
-			}
-
-			pplx::task<void> OnLoggingOut() override
-			{
-				_epicState->setEpicAccountId(nullptr);
-				return pplx::task_from_result();
-			}
-
-#pragma endregion
-
-		private:
-
-#pragma region private_methods
-
-			void loginCompleteCallback(const EOS_Auth_LoginCallbackInfo* data)
-			{
-				if (data->ResultCode != EOS_EResult::EOS_Success)
-				{
 					std::lock_guard<std::recursive_mutex> lg(_mutex);
 
-					_authTce->set_exception(std::runtime_error("Epic login failed : EOS_EResult = " + std::to_string((int32_t)data->ResultCode)));
-					
-					return;
+					if (_authTce)
+					{
+						_authTce->set_exception(pplx::task_canceled());
+					}
+
+					_authTce = std::make_shared<pplx::task_completion_event<std::string>>();
+
+					timeout(10s)
+						.register_callback([tce = _authTce]()
+							{
+								tce->set_exception(pplx::task_canceled());
+							});
+
+					EOS_HPlatform platformHandle = _epicState->getPlatformHandle();
+					if (!platformHandle)
+					{
+						throw std::runtime_error("Epic platform handle is null");
+					}
+
+					EOS_HAuth authHandle = EOS_Platform_GetAuthInterface(platformHandle);
+					assert(authHandle != nullptr);
+
+					EOS_Auth_Credentials credentials = {};
+					credentials.ApiVersion = EOS_AUTH_CREDENTIALS_API_LATEST;
+
+					EOS_Auth_LoginOptions loginOptions;
+					memset(&loginOptions, 0, sizeof(loginOptions));
+					loginOptions.ApiVersion = EOS_AUTH_LOGIN_API_LATEST;
+
+					auto loginMode = _epicState->getLoginMode();
+
+					std::string id, token;
+
+					if (loginMode == "DevAuth") // Dev auth (DevAuth)
+					{
+						id = _epicState->getDevAuthHost();
+						token = _epicState->getDevAuthCredentialsName();
+
+						if (id.empty() || token.empty())
+						{
+							STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error("Missing host or credentials name for DevAuth login mode"), void);
+						}
+
+						credentials.Id = id.c_str();
+						credentials.Token = token.c_str();
+						credentials.Type = EOS_ELoginCredentialType::EOS_LCT_Developer;
+					}
+					else // Default regular auth (ExchangeCode)
+					{
+						token = _epicState->getExchangeCode();
+
+						if (token.empty())
+						{
+							STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error("Missing exchange code for ExchangeCode login mode"), void);
+						}
+
+						credentials.Token = token.c_str();
+						credentials.Type = EOS_ELoginCredentialType::EOS_LCT_ExchangeCode;
+					}
+
+					loginOptions.ScopeFlags = EOS_EAuthScopeFlags::EOS_AS_BasicProfile | EOS_EAuthScopeFlags::EOS_AS_FriendsList | EOS_EAuthScopeFlags::EOS_AS_Presence;
+
+					loginOptions.Credentials = &credentials;
+
+					auto wEpicAuth = new std::weak_ptr<EpicAuthenticationProvider>(STORM_WEAK_FROM_THIS());
+
+					EOS_Auth_Login(authHandle, &loginOptions, wEpicAuth, loginCompleteCallbackFn);
+
+					auto wEpicAuthEvtHandler = STORM_WEAK_FROM_THIS();
+
+					return pplx::create_task(*_authTce)
+						.then([fulfillCredentialsCallback, authHandle, wEpicAuthEvtHandler](std::string accountIdStr)
+							{
+								assert(authHandle != nullptr);
+
+								EOS_Auth_CopyUserAuthTokenOptions authTokenOptions = { 0 };
+								authTokenOptions.ApiVersion = EOS_AUTH_COPYUSERAUTHTOKEN_API_LATEST;
+
+								EOS_EpicAccountId accountId = details::EpicPlatformUserId::toEpicAccountId(accountIdStr);
+
+								EOS_Auth_Token* authToken = nullptr;
+
+								EOS_EResult result = EOS_Auth_CopyUserAuthToken(authHandle, &authTokenOptions, accountId, &authToken);
+
+								if (result != EOS_EResult::EOS_Success)
+								{
+									throw std::runtime_error("EOS_Auth_CopyUserAuthToken failed with result " + std::to_string((int32_t)result));
+								}
+
+								std::string accessToken(authToken->AccessToken);
+
+								auto epicAuthEvtHandler = wEpicAuthEvtHandler.lock();
+								if (!epicAuthEvtHandler)
+								{
+									throw ObjectDeletedException("EpicAuthenticationEventHandler");
+								}
+
+								epicAuthEvtHandler->_epicState->setEpicAccountId(accountId);
+
+								fulfillCredentialsCallback(platformName, platformName, accessToken);
+							});
 				}
-
-				std::string accountIdStr = details::EpicPlatformUserId::toString(data->LocalUserId);
-
-				_logger->log(LogLevel::Trace, "EOS SDK", "Login Complete", "User ID: " + accountIdStr);
-
-				auto platformHandle = _epicState->getPlatformHandle();
-
-				if (platformHandle == nullptr)
+#pragma endregion
+			private:
+#pragma region private_methods
+				void loginCompleteCallback(const EOS_Auth_LoginCallbackInfo* data)
 				{
-					throw std::runtime_error("Epic platform handle not found");
+					if (data->ResultCode != EOS_EResult::EOS_Success)
+					{
+						std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+						_authTce->set_exception(std::runtime_error("Epic login failed : EOS_EResult = " + std::to_string((int32_t)data->ResultCode)));
+
+						return;
+					}
+
+					std::string accountIdStr = details::EpicPlatformUserId::toString(data->LocalUserId);
+
+					_logger->log(LogLevel::Trace, "EOS SDK", "Login Complete", "User ID: " + accountIdStr);
+
+					auto platformHandle = _epicState->getPlatformHandle();
+
+					if (platformHandle == nullptr)
+					{
+						throw std::runtime_error("Epic platform handle not found");
+					}
+
+					EOS_HAuth authHandle = EOS_Platform_GetAuthInterface(platformHandle);
+
+					if (authHandle == nullptr)
+					{
+						throw std::runtime_error("Epic auth handle not found");
+					}
+
+					const int32_t AccountsCount = EOS_Auth_GetLoggedInAccountsCount(authHandle);
+					for (int32_t AccountIdx = 0; AccountIdx < AccountsCount; ++AccountIdx)
+					{
+						auto accountId2 = EOS_Auth_GetLoggedInAccountByIndex(authHandle, AccountIdx);
+
+						EOS_ELoginStatus LoginStatus;
+						LoginStatus = EOS_Auth_GetLoginStatus(authHandle, accountId2);
+
+						std::string accountId2Str = details::EpicPlatformUserId::toString(accountId2);
+
+						_logger->log(LogLevel::Trace, "EOS SDK", "AccountId=" + accountId2Str + "; Status=" + std::to_string((int32_t)LoginStatus));
+					}
+
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
+
+					_authTce->set(accountIdStr);
 				}
 
-				EOS_HAuth authHandle = EOS_Platform_GetAuthInterface(platformHandle);
-
-				if (authHandle == nullptr)
+				static void EOS_CALL loginCompleteCallbackFn(const EOS_Auth_LoginCallbackInfo* data)
 				{
-					throw std::runtime_error("Epic auth handle not found");
+					assert(data != NULL && data->ClientData != NULL);
+
+					auto wEpicAuthPtr = static_cast<std::weak_ptr<EpicAuthenticationProvider>*>(data->ClientData);
+					auto wEpicAuth = *wEpicAuthPtr;
+
+					if (auto epicAuth = wEpicAuth.lock())
+					{
+						epicAuth->loginCompleteCallback(data);
+					}
+
+					delete wEpicAuthPtr;
 				}
-
-				const int32_t AccountsCount = EOS_Auth_GetLoggedInAccountsCount(authHandle);
-				for (int32_t AccountIdx = 0; AccountIdx < AccountsCount; ++AccountIdx)
-				{
-					auto accountId2 = EOS_Auth_GetLoggedInAccountByIndex(authHandle, AccountIdx);
-
-					EOS_ELoginStatus LoginStatus;
-					LoginStatus = EOS_Auth_GetLoginStatus(authHandle, accountId2);
-
-					std::string accountId2Str = details::EpicPlatformUserId::toString(accountId2);
-
-					_logger->log(LogLevel::Trace, "EOS SDK", "AccountId=" + accountId2Str + "; Status=" + std::to_string((int32_t)LoginStatus));
-				}
-
-				std::lock_guard<std::recursive_mutex> lg(_mutex);
-
-				_authTce->set(accountIdStr);
-			}
-
-			static void EOS_CALL loginCompleteCallbackFn(const EOS_Auth_LoginCallbackInfo* data)
-			{
-				assert(data != NULL && data->ClientData != NULL);
-
-				auto wEpicAuthPtr = static_cast<std::weak_ptr<EpicAuthenticationEventHandler>*>(data->ClientData);
-				auto wEpicAuth = *wEpicAuthPtr;
-
-				if (auto epicAuth = wEpicAuth.lock())
-				{
-					epicAuth->loginCompleteCallback(data);
-				}
-
-				delete wEpicAuthPtr;
-			}
-
 #pragma endregion
 
 #pragma region private_members
+				std::recursive_mutex _mutex;
+				std::shared_ptr<details::EpicState> _epicState;
+				std::shared_ptr<ILogger> _logger;
+				std::shared_ptr<pplx::task_completion_event<std::string>> _authTce; // shared_ptr used as an optional
+#pragma endregion
+			};
 
-			std::recursive_mutex _mutex;
-			std::shared_ptr<details::EpicState> _epicState;
-			std::shared_ptr<ILogger> _logger;
-			std::shared_ptr<pplx::task_completion_event<std::string>> _authTce; // shared_ptr used as an optional
+
+			class EpicAuthenticationEventHandler : public Users::IAuthenticationEventHandler
+			{
+			public:
+
+#pragma region public_methods
+
+				EpicAuthenticationEventHandler(std::shared_ptr<details::EpicState> epicState, std::shared_ptr<ILogger> logger)
+					: _epicState(epicState)
+					, _logger(logger)
+				{
+				}
+
+				pplx::task<void> OnLoggedIn(Users::OnLoggedInContext context) override
+				{
+					if (context.authParameters.type == platformName)
+					{
+						_epicState->setLoggedIn(true);
+					}
+
+					return pplx::task_from_result();
+				}
+
+				pplx::task<void> OnLoggingOut() override
+				{
+					_epicState->setEpicAccountId(nullptr);
+					_epicState->setLoggedIn(false);
+					return pplx::task_from_result();
+				}
 
 #pragma endregion
-		};
+
+			private:
+#pragma region private_members
+				std::shared_ptr<details::EpicState> _epicState;
+				std::shared_ptr<ILogger> _logger;
+#pragma endregion
+			};
+		}
 
 		class EpicPlugin : public IPlugin
 		{
@@ -1289,8 +1341,8 @@ namespace Stormancer
 				builder.registerDependency<details::EpicApi, Users::UsersApi, details::EpicState, Configuration, IScheduler, ILogger, Party::PartyApi>().asSelf().as<IEpicApi>();
 				builder.registerDependency<details::EpicPartyProvider, Party::Platform::InvitationMessenger, Users::UsersApi, details::EpicState, details::EpicApi, ILogger, Party::PartyApi, IActionDispatcher>().as<Party::Platform::IPlatformSupportProvider>();
 				builder.registerDependency<details::EpicPartyEventHandler, ILogger, details::EpicState>().as<Party::IPartyEventHandler>();
-				builder.registerDependency<EpicAuthenticationEventHandler, details::EpicState, ILogger>().as<Users::IAuthenticationEventHandler>();
-				builder.registerDependency<EpicAuthenticationEventHandler, details::EpicState, ILogger>().as<Users::IAuthenticationProvider>();
+				builder.registerDependency<details::EpicAuthenticationEventHandler, details::EpicState, ILogger>().as<Users::IAuthenticationEventHandler>();
+				builder.registerDependency<details::EpicAuthenticationProvider, details::EpicState, ILogger>().as<Users::IAuthenticationProvider>();
 			}
 
 			void clientCreated(std::shared_ptr<IClient> client) override

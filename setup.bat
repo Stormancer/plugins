@@ -28,3 +28,9 @@ mklink /J output\cpp\regions src\Stormancer.Plugins\Regions\cpp
 
 rmdir output\cpp\friends
 mklink /J output\cpp\friends src\Stormancer.Plugins\Friends\cpp
+
+rmdir output\cpp\GameVersion
+mklink /J output\cpp\GameVersion src\Stormancer.Plugins\GameVersion\cpp
+
+rmdir output\cpp\Epic
+mklink /J output\cpp\Epic src\Stormancer.Plugins\Epic\cpp

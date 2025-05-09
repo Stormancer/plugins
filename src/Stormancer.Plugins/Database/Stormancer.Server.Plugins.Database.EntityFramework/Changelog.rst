@@ -15,6 +15,10 @@ Fixed
 *****
 - Fixed an issue that prevented DbContextAccessor instances from being created by the dependency container.
 
+Added
+*****
+- Adds a IsValid property to DbContextAccessor to indicate if a DbContext is actually available
+
 0.1.0.15
 ----------
 Changed

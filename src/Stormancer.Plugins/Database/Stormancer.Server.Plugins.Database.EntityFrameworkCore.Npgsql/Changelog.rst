@@ -15,6 +15,10 @@ Fixed
 *****
 - Update Npgsql data source on config update.
 
+Added
+*****
+- Adds an implementation of IDbContextLifecycleHandler.IsConfigured
+
 0.1.1.5
 ----------
 Changed

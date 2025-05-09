@@ -381,6 +381,18 @@ namespace Stormancer
 			std::shared_ptr<RenewCredentialsParameters> response;
 
 			std::shared_ptr<UsersApi> usersApi;
+
+			bool tryUseProvider(std::string platformName) const
+			{
+				if (this->authProviderType == platformName)
+				{
+					return true;
+				}
+				else
+				{
+					return false;
+				}
+			}
 		};
 
 		struct OnLoggedInContext

@@ -9,7 +9,7 @@
 	<ItemGroup>
 		<PackageReference Include="Stormancer.Server.Hosting" Version="2.0.1.1" />
 		<PackageReference Include="Stormancer.Server.Hosting.SourceGenerator" Version="0.1.0.4" />
-		<PackageReference Include="Stormancer.Server.Plugins.SampleApp" Version="1.0.2.2-pre" />
+		<PackageReference Include="Stormancer.Server.Plugins.SampleApp" Version="1.0.2.9-pre" />
 
 	</ItemGroup>
 </Project>

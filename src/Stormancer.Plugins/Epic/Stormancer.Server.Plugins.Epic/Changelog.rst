@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+
+Changed
+*******
+- Updated dependency to Users to support unconfigured storage
 
 1.2.0.5
 ----------

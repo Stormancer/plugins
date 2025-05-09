@@ -11,7 +11,7 @@
         <EmbedAllSources>true</EmbedAllSources>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>1.2.0.5</Version>
+        <Version>1.2.0.9</Version>
         <Description>Provides Epic Games integration to Stormancer server applications.</Description>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
         <Deterministic>true</Deterministic>
@@ -62,7 +62,6 @@
 
 	<Target Name="PostPack" AfterTargets="Pack">
         <Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
-		<Copy SourceFiles="@(cpp)" DestinationFolder="$(ProjectDir)../../../../output/cpp/Epic" />
     </Target>
 
 </Project>

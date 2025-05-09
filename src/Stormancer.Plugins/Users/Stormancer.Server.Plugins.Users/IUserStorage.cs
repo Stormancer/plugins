@@ -12,6 +12,9 @@ namespace Stormancer.Server.Plugins.Users
     /// </summary>
     public interface IUserStorage
     {
+
+        bool Enabled { get; }
+
         /// <summary>
         /// Creates an use in the storage system.
         /// </summary>

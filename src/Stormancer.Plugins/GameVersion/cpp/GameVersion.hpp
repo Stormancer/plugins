@@ -99,7 +99,7 @@ namespace Stormancer
 				std::function<void(std::string)> _onServerVersionUpdate;
 			};
 
-			class AuthEventHandler : public Users::IAuthenticationEventHandler
+			class AuthEventHandler : public Users::IAuthenticationEventHandler, public Users::IAuthenticationProvider
 			{
 			public:
 
@@ -109,6 +109,11 @@ namespace Stormancer
 				}
 
 			private:
+
+				std::string getProviderName() const override
+				{
+					return "gameversion";
+				}
 
 				pplx::task<void> retrieveCredentials(const Users::CredentialsContext& context) override
 				{
@@ -286,6 +291,7 @@ namespace Stormancer
 			{
 				builder.registerDependency<GameVersionApi, ILogger>().singleInstance();
 				builder.registerDependency<detail::AuthEventHandler, Configuration>().instancePerRequest().as<Users::IAuthenticationEventHandler>();
+				builder.registerDependency<detail::AuthEventHandler, Configuration>().instancePerRequest().as<Users::IAuthenticationProvider>();
 			}
 		};
 	}

@@ -535,7 +535,7 @@ namespace Stormancer
 			class SteamImpl;
 			class SteamApiCallbacks
 			{
-				
+
 			public:
 				SteamApiCallbacks(SteamImpl* impl)
 					:_impl(impl)
@@ -549,7 +549,7 @@ namespace Stormancer
 
 				STEAM_CALLBACK(SteamApiCallbacks, onGameLobbyJoinRequestedCallback, GameLobbyJoinRequested_t);
 
-			
+
 				STEAM_CALLBACK(SteamApiCallbacks, onLobbyEnterCallback, LobbyEnter_t);
 
 				STEAM_CALLBACK(SteamApiCallbacks, onLobbyChatUpdateCallback, LobbyChatUpdate_t);
@@ -577,7 +577,7 @@ namespace Stormancer
 					, _wSteamConfig(steamConfig)
 					, _wScheduler(scheduler)
 					, _wActionDispatcher(config->actionDispatcher)
-					
+
 					, _wUsersApi(usersApi)
 					, _wPartyApi(partyApi)
 					, _wInvitationMessenger(invitationMessenger)
@@ -784,7 +784,7 @@ namespace Stormancer
 				std::shared_ptr<SteamApiCallbacks> _callbackRegistrations;
 				void initialize() override
 				{
-					
+
 
 					if (auto steamConfig = _wSteamConfig.lock())
 					{
@@ -798,8 +798,8 @@ namespace Stormancer
 							SteamErrMsg error;
 							if (SteamAPI_InitEx(&error) != ESteamAPIInitResult::k_ESteamAPIInitResult_OK)
 							{
-								_logger->log(LogLevel::Error, "Steam", std::string("SteamAPI_Init failed : ")+error);
-								
+								_logger->log(LogLevel::Error, "Steam", std::string("SteamAPI_Init failed : ") + error);
+
 								throw std::runtime_error(error);
 							}
 							else
@@ -817,7 +817,7 @@ namespace Stormancer
 						{
 							scheduleRunSteamAPiCallbacks();
 						}
-						
+
 
 						auto connectLobbyArgument = steamConfig->getConnectLobby();
 
@@ -1707,14 +1707,14 @@ namespace Stormancer
 					invitationMessenger->notifyInvitationReceived(steamPartyInvitation);
 				}
 
-				
+
 
 				void onLobbyEnterCallback(LobbyEnter_t* callback)
 				{
 					onLobbyEnterCallResult(callback, false);
 				}
 
-				
+
 
 				void onLobbyChatUpdateCallback(LobbyChatUpdate_t* /*callback*/)
 				{
@@ -1802,7 +1802,7 @@ namespace Stormancer
 #pragma region private_members
 
 
-				
+
 				Friends::FriendStatus getFriendStatusFromSteam(EPersonaState state)
 				{
 					switch (state)
@@ -1842,7 +1842,7 @@ namespace Stormancer
 				std::weak_ptr<Users::UsersApi> _wUsersApi;
 				std::weak_ptr<Party::PartyApi> _wPartyApi;
 				std::weak_ptr<Party::Platform::InvitationMessenger> _wInvitationMessenger;
-				
+
 
 #pragma endregion
 
@@ -1889,7 +1889,7 @@ namespace Stormancer
 				void onGetMetadata(std::unordered_map<std::string, std::string>& metadata) override
 				{
 					metadata["steam.appBuildId"] = std::to_string(_steamApi->getAppBuildId());
-					
+
 				}
 
 				virtual ~SteamProjectEnvironmentEventHandler() = default;
@@ -1941,7 +1941,7 @@ namespace Stormancer
 				_requestLobbyListTce->set(lobbies);
 			}
 
-			
+
 
 
 
@@ -2363,138 +2363,138 @@ namespace Stormancer
 
 #pragma endregion
 			};
-		}
 
 
 
-		// https://partner.steamgames.com/doc/features/auth#client_to_backend_webapi
-		// https://partner.steamgames.com/doc/api/ISteamUser#GetAuthSessionTicket
 
-		class SteamAuthenticationEventHandler : public std::enable_shared_from_this<SteamAuthenticationEventHandler>, public Users::IAuthenticationProvider
-		{
-		public:
+			// https://partner.steamgames.com/doc/features/auth#client_to_backend_webapi
+			// https://partner.steamgames.com/doc/api/ISteamUser#GetAuthSessionTicket
+
+			class SteamAuthenticationEventHandler : public std::enable_shared_from_this<SteamAuthenticationEventHandler>, public Users::IAuthenticationProvider
+			{
+			public:
 
 #pragma region public_methods
 
-			SteamAuthenticationEventHandler(std::shared_ptr<details::SteamState> steamConfig)
-				: _steamState(steamConfig)
-			{
-			}
-
-			virtual ~SteamAuthenticationEventHandler() {}
-
-			virtual std::string getProviderName() const override
-			{
-				return platformName;
-			}
-
-			pplx::task<void> retrieveCredentials(const Users::CredentialsContext& context) override
-			{
-				if (context.tryUseProvider(platformName))
+				SteamAuthenticationEventHandler(std::shared_ptr<details::SteamState> steamConfig)
+					: _steamState(steamConfig)
 				{
-					return getSteamCredentials([context](const std::string& type, const std::string& provider, const std::string& steamTicketHex)
-						{
-
-							context.authParameters->parameters["provider"] = provider;
-							context.authParameters->parameters["ticket"] = steamTicketHex;
-							context.authParameters->parameters["version"] = "v1";
-							context.authParameters->parameters["appId"] = std::to_string(SteamUtils()->GetAppID());
-						});
-				}
-				else
-				{
-					return pplx::task_from_result();
-				}
-			}
-
-			virtual pplx::task<void> renewCredentials(const Users::CredentialsRenewalContext& context) override
-			{
-				if (context.authProviderType == platformName)
-				{
-					return getSteamCredentials([context](const std::string& /*type*/, const std::string& provider, const std::string& steamTicketHex)
-						{
-							context.response->parameters["provider"] = provider;
-							context.response->parameters["ticket"] = steamTicketHex;
-							context.response->parameters["version"] = "v1";
-							context.response->parameters["appId"] = std::to_string(SteamUtils()->GetAppID());
-
-						});
-				}
-				else
-				{
-					return pplx::task_from_result();
-				}
-			}
-
-
-			pplx::task<void> getSteamCredentials(std::function<void(const std::string& type, const std::string& provider, const std::string& steamTicketHex)> fulfillCredentialsCallback)
-			{
-				this->_steamState->steamImpl.lock()->initialize();
-				if (!_steamState->getAuthenticationEnabled())
-				{
-					return pplx::task_from_result();
 				}
 
-				/*if (!SteamAPI_IsSteamRunning())
+				virtual ~SteamAuthenticationEventHandler() {}
+
+				std::string getProviderName() const override
 				{
-					throw std::runtime_error("Steam is not running");
-				}*/
-
-				std::lock_guard<std::recursive_mutex> lg(_mutex);
-
-
-
-
-				std::string steamTicketHex;
-
-				std::shared_ptr<std::vector<byte>> steamTicket;
-
-				auto steamUser = SteamUser();
-				if (!steamUser)
-				{
-					return pplx::task_from_exception<void>(Stormancer::ObjectDeletedException("ISteamUser null"));
+					return platformName;
 				}
 
-				if (_steamState->getBackendIdentity().empty())
+				pplx::task<void> retrieveCredentials(const Users::CredentialsContext& context) override
 				{
-					return pplx::task_from_exception<void>(std::runtime_error("config->additionalParameters[\"steam.backendIdentity\"] must be set to a non empty value."));
+					if (context.tryUseProvider(platformName))
+					{
+						return getSteamCredentials([context](const std::string& type, const std::string& provider, const std::string& steamTicketHex)
+							{
+
+								context.authParameters->parameters["provider"] = provider;
+								context.authParameters->parameters["ticket"] = steamTicketHex;
+								context.authParameters->parameters["version"] = "v1";
+								context.authParameters->parameters["appId"] = std::to_string(SteamUtils()->GetAppID());
+							});
+					}
+					else
+					{
+						return pplx::task_from_result();
+					}
 				}
 
-				auto hAuthTicket = steamUser->GetAuthTicketForWebApi(_steamState->getBackendIdentity().c_str());
-
-				auto ctx = std::make_shared<details::GetAuthSessionTokenForWebApiContext>(hAuthTicket);
-
-
-				if (hAuthTicket == k_HAuthTicketInvalid)
+				virtual pplx::task<void> renewCredentials(const Users::CredentialsRenewalContext& context) override
 				{
-					throw std::runtime_error("Steam : invalid user authentication ticket");
+					if (context.authProviderType == platformName)
+					{
+						return getSteamCredentials([context](const std::string& /*type*/, const std::string& provider, const std::string& steamTicketHex)
+							{
+								context.response->parameters["provider"] = provider;
+								context.response->parameters["ticket"] = steamTicketHex;
+								context.response->parameters["version"] = "v1";
+								context.response->parameters["appId"] = std::to_string(SteamUtils()->GetAppID());
+
+							});
+					}
+					else
+					{
+						return pplx::task_from_result();
+					}
 				}
 
 
+				pplx::task<void> getSteamCredentials(std::function<void(const std::string& type, const std::string& provider, const std::string& steamTicketHex)> fulfillCredentialsCallback)
+				{
+					this->_steamState->steamImpl.lock()->initialize();
+					if (!_steamState->getAuthenticationEnabled())
+					{
+						return pplx::task_from_result();
+					}
+
+					/*if (!SteamAPI_IsSteamRunning())
+					{
+						throw std::runtime_error("Steam is not running");
+					}*/
+
+					std::lock_guard<std::recursive_mutex> lg(_mutex);
 
 
 
-				return pplx::create_task(ctx->tce)
-					.then([fulfillCredentialsCallback, ctx](std::string steamTicketHex)
-						{
-							fulfillCredentialsCallback(platformName, platformName, steamTicketHex);
-						});
-			}
+
+					std::string steamTicketHex;
+
+					std::shared_ptr<std::vector<byte>> steamTicket;
+
+					auto steamUser = SteamUser();
+					if (!steamUser)
+					{
+						return pplx::task_from_exception<void>(Stormancer::ObjectDeletedException("ISteamUser null"));
+					}
+
+					if (_steamState->getBackendIdentity().empty())
+					{
+						return pplx::task_from_exception<void>(std::runtime_error("config->additionalParameters[\"steam.backendIdentity\"] must be set to a non empty value."));
+					}
+
+					auto hAuthTicket = steamUser->GetAuthTicketForWebApi(_steamState->getBackendIdentity().c_str());
+
+					auto ctx = std::make_shared<details::GetAuthSessionTokenForWebApiContext>(hAuthTicket);
+
+
+					if (hAuthTicket == k_HAuthTicketInvalid)
+					{
+						throw std::runtime_error("Steam : invalid user authentication ticket");
+					}
+
+
+
+
+
+					return pplx::create_task(ctx->tce)
+						.then([fulfillCredentialsCallback, ctx](std::string steamTicketHex)
+							{
+								fulfillCredentialsCallback(platformName, platformName, steamTicketHex);
+							});
+				}
 
 #pragma endregion
 
-		private:
+			private:
 
 #pragma region private_members
 
-			std::recursive_mutex _mutex;
-			std::shared_ptr<details::SteamState> _steamState;
-			
+				std::recursive_mutex _mutex;
+				std::shared_ptr<details::SteamState> _steamState;
+
 
 #pragma endregion
-		};
+			};
+		}
 
-		
 
 		class SteamPlugin : public IPlugin
 		{
@@ -2515,7 +2515,7 @@ namespace Stormancer
 				builder.registerDependency<details::SteamState, Configuration, ILogger>().singleInstance();
 				builder.registerDependency<details::SteamImpl, Users::UsersApi, details::SteamState, Configuration, IScheduler, ILogger, Party::PartyApi, Party::Platform::InvitationMessenger>().asSelf().as<SteamApi>().as<Friends::IFriendsEventHandler>().singleInstance();
 				builder.registerDependency<details::SteamPartyProvider, Party::Platform::InvitationMessenger, Users::UsersApi, details::SteamImpl, ILogger, Party::PartyApi, IActionDispatcher>().as<Party::Platform::IPlatformSupportProvider>();
-				builder.registerDependency < SteamAuthenticationEventHandler, details::SteamState > ().as<Users::IAuthenticationProvider>();
+				builder.registerDependency < SteamAuthenticationEventHandler, details::SteamState >().as<Users::IAuthenticationProvider>();
 				builder.registerDependency<details::SteamProjectEnvironmentEventHandler, SteamApi>().as<IProjectEnvironmentEventsHandler>();
 			}
 
@@ -2523,7 +2523,7 @@ namespace Stormancer
 			{
 				auto steamApi = std::static_pointer_cast<details::SteamImpl>(client->dependencyResolver().resolve<SteamApi>());
 				auto steamState = client->dependencyResolver().resolve<details::SteamState>();
-				
+
 				steamState->steamImpl = steamApi;
 			}
 

@@ -1,3 +1,4 @@
+using MessagePack;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
@@ -37,71 +38,85 @@ namespace Stormancer.Server.Plugins.Epic
     /// <summary>
     /// Represents the payload of an access token.
     /// </summary>
+    [MessagePackObject]
     public class EpicTokenPlayload
     {
         /// <summary>
         /// The base URI of the Epic Games authentication server that issued the token.
         /// </summary>
+        [Key(0)]
         public string iss { get; set; } = null!;
 
         /// <summary>
         /// This claim will not be present when using the client_credentials grant type.
         /// </summary>
+        [Key(1)]
         public string? sub { get; set; }
 
         /// <summary>
         /// The client ID specified in the authorization request.
         /// </summary>
+        [Key(2)]
         public string aud { get; set; } = null!;
 
         /// <summary>
         /// The time the token was issued as a UNIX timestamp.
         /// </summary>
+        [Key(3)]
         public int iat { get; set; }
 
         /// <summary>
         /// Expiration time of the token as a UNIX timestamp.
         /// </summary>
+        [Key(4)]
         public int exp { get; set; }
 
         /// <summary>
         /// The unique identifier for this token.
         /// </summary>
+        [Key(5)]
         public string jti { get; set; } = null!;
 
         /// <summary>
         /// The type of token. This should always be epic_id. This replaces the version prefix that we have with EG1 tokens.
         /// </summary>
+        [Key(6)]
         public string t { get; set; } = null!;
 
         /// <summary>
         /// Space delimited list of scopes that were authorized by the user.
         /// </summary>
+        [Key(7)]
         public string scope { get; set; } = null!;
 
         /// <summary>
         /// The user's display name.
         /// </summary>
+        [Key(8)]
         public string dn { get; set; } = null!;
 
         /// <summary>
         /// The application ID specified in the authorization request.
         /// </summary>
+        [Key(9)]
         public string appid { get; set; } = null!;
 
         /// <summary>
         /// The product ID for the deployment that was specified in the token request.
         /// </summary>
+        [Key(10)]
         public string? pfpid { get; set; }
 
         /// <summary>
         /// The sandbox ID for the deployment that was specified in the token request.
         /// </summary>
+        [Key(11)]
         public string? pfsid { get; set; }
 
         /// <summary>
         /// The deployment ID that was specified in the token request.
         /// </summary>
+        [Key(12)]
         public string? pfdid { get; set; }
     }
 

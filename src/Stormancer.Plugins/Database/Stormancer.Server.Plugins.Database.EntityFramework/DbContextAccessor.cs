@@ -32,6 +32,11 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore
         private readonly ILogger _logger;
 
         /// <summary>
+        /// Gets a value indicating whether the <see cref="DbContextAccessor"/> has a properly configured provider.
+        /// </summary>
+        public bool IsValid => _handlers.LifecycleHandlers.Any(h => h.IsConfigured);
+
+        /// <summary>
         /// Creates a new instance of <see cref="DbContextAccessor"/>
         /// </summary>
         /// <param name="handlers"></param>
@@ -110,6 +115,11 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore
     /// </summary>
     public interface IDbContextLifecycleHandler
     {
+        /// <summary>
+        /// Gets a value indicating whether proper configuration exists for this provider.
+        /// </summary>
+        bool IsConfigured { get; }
+
         /// <summary>
         /// Called before the db context is initialized.
         /// </summary>

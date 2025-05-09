@@ -44,7 +44,7 @@
 	<Target Name="PostPack" AfterTargets="Pack">
 		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
 
-		<Copy SourceFiles="@(cpp)" DestinationFolder="$(ProjectDir)../../../../output/cpp/GameVersion" />
+		<!--<Copy SourceFiles="@(cpp)" DestinationFolder="$(ProjectDir)../../../../output/cpp/GameVersion" />-->
 	</Target>
 
 </Project>
