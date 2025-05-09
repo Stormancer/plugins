@@ -547,6 +547,11 @@ namespace Stormancer
 				return pplx::task_from_result();
 			}
 
+			virtual pplx::task<void> OnLoggedOut()
+			{
+				return pplx::task_from_result();
+			}
+
 			/// <summary>
 			/// Function called when a login attempt is denied by the server.
 			/// </summary>
@@ -783,7 +788,7 @@ namespace Stormancer
 						{
 						});
 			}
-
+			
 			/// <summary>
 			/// Log out of Stormancer.
 			/// </summary>
@@ -798,11 +803,25 @@ namespace Stormancer
 				if (_currentConnectionState != GameConnectionState::Disconnected && _currentConnectionState != GameConnectionState::Disconnecting)
 				{
 					this->setConnectionState(GameConnectionState::Disconnecting);
-
-					return getAuthenticationScene(ct)
-						.then([ct](std::shared_ptr<Scene> scene)
+					auto wThat = this->weak_from_this();
+					return runEventHandlers(_authenticationEventHandlers, [](auto h) {h->OnLoggingOut(); }, [](auto e){})
+						.then([wThat,ct]() 
+							{
+								if (auto that = wThat.lock())
+								{
+									return that->getAuthenticationScene(ct);
+								}
+								else
+								{
+									throw Stormancer::ObjectDeletedException("usersApi");
+								}
+							}).then([ct](std::shared_ptr<Scene> scene)
 							{
 								return scene->disconnect(ct);
+							})
+						.then([handlers=  _authenticationEventHandlers] 
+							{
+								return runEventHandlers(handlers, [](auto h) {h->OnLoggedOut(); }, [](auto e) {});
 							})
 						.then([](auto t)
 							{
@@ -1594,34 +1613,17 @@ namespace Stormancer
 				credentialsContext.authParameters = std::make_shared<AuthParameters>();
 				credentialsContext.authParameters->type = authProvider;
 				credentialsContext.platformUserId = _currentLocalUser;
-				pplx::task<void> eventHandlersTask = pplx::task_from_result();
-
-				for (auto handler : _authenticationEventHandlers)
-				{
-					eventHandlersTask = eventHandlersTask.then([handler, credentialsContext]()
-						{
-							return handler->OnRetrievingCredentials(credentialsContext);
-						}, _userDispatcher);
-				}
-
-				for (auto evHandler : _authenticationProviders)
-				{
-					eventHandlersTask = eventHandlersTask.then([evHandler, credentialsContext]()
-						{
-							return evHandler->retrieveCredentials(credentialsContext);
-						}, _userDispatcher);
-				}
-				for (auto handler : _authenticationEventHandlers)
-				{
-					eventHandlersTask = eventHandlersTask.then([handler, credentialsContext]()
-						{
-							return handler->OnRetrievedCredentials(credentialsContext);
-						}, _userDispatcher);
-				}
-
-				return eventHandlersTask.then([credentialsContext]()
+				return runEventHandlers(_authenticationEventHandlers, [credentialsContext](auto h) { h->OnRetrievingCredentials(credentialsContext); }, [](auto e) {})
+				.then([credentialsContext,handlers = _authenticationProviders]()
 					{
-
+						return runEventHandlers(handlers, [credentialsContext](auto h) {h->retrieveCredentials(credentialsContext); }, [](auto e) {});
+					})
+				.then([credentialsContext, handlers = _authenticationEventHandlers]()
+					{
+						return runEventHandlers(handlers, [credentialsContext](auto h) { h->OnRetrievedCredentials(credentialsContext); }, [](auto e) {});
+					})
+				.then([credentialsContext]()
+					{
 						return *credentialsContext.authParameters;
 					}, _userDispatcher);
 			}
@@ -1632,21 +1634,21 @@ namespace Stormancer
 				context.authProviderType = providerType;
 				context.response = std::make_shared<RenewCredentialsParameters>();
 				context.usersApi = this->shared_from_this();
-
-				pplx::task<void> handlersTask = pplx::task_from_result();
-				for (const auto& provider : _authenticationProviders)
+				
+				return runEventHandlers(_authenticationProviders, [context](auto h) 
 				{
-					handlersTask = handlersTask.then([provider, context]
-						{
-							return provider->renewCredentials(context);
-						}, _userDispatcher);
-				}
-
-				return handlersTask.then([context]
+					return h->renewCredentials(context);
+				}, [logger=_logger](auto error)
 					{
-						return *context.response;
-					});
+						logger->log(Stormancer::LogLevel::Error, "users", "An error occurred while running IAuthenticationProvider.renewCredentials", error);
+					})
+				.then([context]
+				{
+					return *context.response;
+				});
 			}
+
+			
 
 #pragma endregion
 

@@ -172,6 +172,7 @@
     <Natvis Include="imgui.natvis" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\output\cpp\gamesession\GameSession.hpp" />
     <ClInclude Include="..\..\output\cpp\party\Party.hpp" />
     <ClInclude Include="..\..\output\cpp\party\PartyMerging.hpp" />
     <ClInclude Include="..\..\output\cpp\steam\Steam.hpp" />

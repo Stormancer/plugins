@@ -101,7 +101,7 @@ namespace Stormancer.Server.Plugins.Replication
             }
             if (player != null)
             {
-                _scene.Send(_scene.MatchAllFilter, "lockstep.playersUpdate", static (s, state) =>
+                _scene.Send(_scene.MatchAllFilter, "lockstepPlayers.update", static (s, state) =>
                 {
                     var (serializer, player, updateId) = state;
                     serializer.Serialize(new PlayersUpdateCommand
