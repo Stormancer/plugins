@@ -19,7 +19,7 @@ Added
 Changed
 *******
 - Adds a cache to GetUser in the UserSession Service
-- Adds a direct reference to Stormancer.Server.Plugins.Database.Elasticsearch
+- Removes obsolete dependance to Elasticsearch plugin in UserSessions
 
 10.0.2.46
 ----------

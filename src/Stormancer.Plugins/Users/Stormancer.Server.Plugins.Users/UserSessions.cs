@@ -398,7 +398,6 @@ namespace Stormancer.Server.Plugins.Users
         private readonly SessionsRepository repository;
         private readonly RecyclableMemoryStreamProvider _memoryStreamProvider;
         private readonly Func<IEnumerable<IUserSessionEventHandler>> _eventHandlers;
-        private readonly IESClientFactory _esClientFactory;
         private readonly IClusterSerializer clusterSerializer;
         private readonly ISerializer _clientSerializer;
         private readonly IEnvironment env;
@@ -415,13 +414,11 @@ namespace Stormancer.Server.Plugins.Users
             Func<IEnumerable<IUserSessionEventHandler>> eventHandlers,
             IClusterSerializer serializer,
             ISerializer clientSerializer,
-            IESClientFactory eSClientFactory,
             IEnvironment env,
             ISceneHost scene,
             IConfiguration configuration,
             ILogger logger)
         {
-            _esClientFactory = eSClientFactory;
             _userService = userService;
             this.repository = repository;
             _memoryStreamProvider = memoryStreamProvider;
@@ -737,45 +734,6 @@ namespace Stormancer.Server.Plugins.Users
         {
             return _userService.Query(query, take, skip, cancellationToken);
         }
-
-        private static int _randomTracker = 0;
-
-        private static ThreadLocal<Random> _random = new ThreadLocal<Random>(() =>
-        {
-            var seed = (int)(Environment.TickCount & 0xFFFFFF00 | (byte)(Interlocked.Increment(ref _randomTracker) % 255));
-            var random = new Random(seed);
-            return random;
-        });
-
-        private static bool _handleUserMappingCreated = false;
-        private static AsyncLock _mappingLock = new AsyncLock();
-
-
-        private int _handleSuffixUpperBound = 10000;
-        private int _handleMaxNumCharacters = 32;
-
-        private async Task EnsureHandleUserMappingCreated()
-        {
-            if (!_handleUserMappingCreated)
-            {
-                using (await _mappingLock.LockAsync())
-                {
-                    if (!_handleUserMappingCreated)
-                    {
-                        _handleUserMappingCreated = true;
-                        await _esClientFactory.EnsureMappingCreated<HandleUserRelation>("handleUserMapping", m => m
-                            .Properties(pd => pd
-                                .Keyword(kpd => kpd.Name(record => record.Id).Index())
-                                .Keyword(kpd => kpd.Name(record => record.HandleWithoutNum).Index())
-                                .Number(npd => npd.Name(record => record.HandleNum).Type(Nest.NumberType.Integer).Index())
-                                .Keyword(kpd => kpd.Name(record => record.UserId).Index(false))
-                                ));
-                    }
-                }
-            }
-        }
-
-
 
         private class PeerRequest : IRemotePipe
         {

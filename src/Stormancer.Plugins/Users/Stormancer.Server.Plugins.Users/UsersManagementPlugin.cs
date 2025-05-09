@@ -126,7 +126,6 @@ namespace Stormancer.Server.Plugins.Users
                     dr.Resolve<Func<IEnumerable<IUserSessionEventHandler>>>(),
                     dr.Resolve<IClusterSerializer>(),
                     dr.Resolve<ISerializer>(),
-                    dr.Resolve<Database.IESClientFactory>(),
                     dr.Resolve<IEnvironment>(), scene,
                     dr.Resolve<IConfiguration>(),
                     dr.Resolve<ILogger>())
