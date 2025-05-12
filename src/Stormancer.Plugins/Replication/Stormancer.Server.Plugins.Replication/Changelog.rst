@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Fixed
+*****
+- Fixed an issue that prevented disconnection from being notified to peers.
+
 0.3.0.3
 ----------
 Changed
