@@ -47,7 +47,7 @@ namespace Stormancer
 			FrameDuration MinDelaySeconds = 0.05f;
 			FrameDuration MaxDelaySeconds = 0.6f;
 			FrameDuration FixedDeltaTimeSeconds = 1.f / 30.f;
-			FrameDuration DelayMarginSeconds = 0.066666f;
+			FrameDuration DelayMarginSeconds = 1.f / 30.f *2.4f;
 
 			/// <summary>
 			/// How much time the system needs to wait between pauses when needing to adjust the synchronized time between clients when preventing slowly going out of sync.
@@ -434,7 +434,7 @@ namespace Stormancer
 				class ReplayReader
 				{
 				public:
-					ReplayReader(byte* buffer, int length)
+					ReplayReader(byte* buffer, size_t length)
 					{
 						_buffer.resize(length);
 						std::memcpy(_buffer.data(), buffer, length);
@@ -1662,7 +1662,7 @@ namespace Stormancer
 
 				FrameDuration _latency = 0;
 
-				void updateLatency(Time delta)
+				void updateLatency(bool isPaused)
 				{
 					unsigned int l = 0;
 					Time highestGameplayTime = _currentFrame.currentTimeSeconds;
@@ -1686,12 +1686,14 @@ namespace Stormancer
 						}
 
 					}
-					_latency = (Time)l / 1000.0f;
+					_latency = (FrameDuration)(l / 1000.0f);
 
 					
 
 
-					auto candidateCommandTime = highestGameplayTime + 2.0 * _latency;
+					auto candidateCommandTime = highestGameplayTime + _latency + _options->DelayMarginSeconds;
+
+
 					if (candidateCommandTime > getCurrentTime() + _options->MaxDelaySeconds)
 					{
 						candidateCommandTime = getCurrentTime() + _options->MaxDelaySeconds;
@@ -1702,7 +1704,7 @@ namespace Stormancer
 					}
 
 
-					if (this->_commandPushedThisFrame && delta > 0) //If a command was pushed last frame, we must always increment the command type by a single frame to maintain separation.
+					if (this->_commandPushedThisFrame && !isPaused) //If a command was pushed last frame, we must always increment the command type by a single frame to maintain separation.
 					{
 						this->_commandPushedThisFrame = false;
 						_currentCommandTime += _options->FixedDeltaTimeSeconds;
@@ -1866,7 +1868,7 @@ namespace Stormancer
 
 					_timeSinceLastGameplayProgress += realDeltaSeconds;
 
-					Time deltaSeconds;
+					FrameDuration deltaSeconds;
 
 
 
@@ -1910,7 +1912,7 @@ namespace Stormancer
 						nextTime = _currentFrame.currentTimeSeconds;
 					}
 
-					updateLatency(deltaSeconds);
+					
 
 					//_logger->log(LogLevel::Debug, "lockstep", std::to_string(_currentFrame.currentTimeSeconds) + "|" + std::to_string(_currentPlayerId) + " target time : " + std::to_string(targetTime)+" nextTime="+std::to_string(nextTime)+" deltaSeconds="+std::to_string(deltaSeconds));
 					return deltaSeconds;
@@ -1934,6 +1936,7 @@ namespace Stormancer
 					}
 					if (!_initialized)
 					{
+						updateLatency(true);
 						return;
 					}
 
@@ -1943,6 +1946,7 @@ namespace Stormancer
 					if (deltaSeconds == 0)
 					{
 						_lastPausedOn = currentTime;
+						updateLatency(true);
 						return;
 					}
 
@@ -1968,6 +1972,9 @@ namespace Stormancer
 					_currentFrame.currentTimeSeconds = currentTime;
 					_currentFrame.validatedTimeSeconds = oldValidatedTime;
 					_currentFrame.frameDurationSeconds = deltaSeconds;
+
+					//Updated time. Update command latency.
+					updateLatency(false);
 					bool gameplayProgress = deltaSeconds != 0;
 
 
@@ -2170,7 +2177,7 @@ namespace Stormancer
 				void synchronizeState(PlayerState* currentPlayerState)
 				{
 					//We won't ever send new commands before _currentCommandTime - epsilon because _currentCommandTime can only increase.
-					_currentFrame.validatedTimeSeconds = _currentCommandTime - 0.01;
+					_currentFrame.validatedTimeSeconds = _currentCommandTime - 0.001;
 					currentPlayerState->validatedGamePlayTimeSeconds = _currentFrame.validatedTimeSeconds;
 					for (auto& playerState : _playerStates)
 					{
@@ -2736,7 +2743,7 @@ namespace Stormancer
 
 			private:
 				Time _timeSinceLastGameplayProgress = 0;
-				Time _lastDeltaTimePerFrameSeconds = 0;
+				FrameDuration _lastDeltaTimePerFrameSeconds = 0;
 				bool _isPaused = true;
 				bool _currentGameplayProgress = false;
 
