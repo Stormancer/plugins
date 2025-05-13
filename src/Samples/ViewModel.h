@@ -11,6 +11,24 @@
 
 class AppViewModel;
 
+#if defined(ENABLE_EPIC)
+class EpicSettingsviewModel
+{
+public:
+	bool enabled = false;
+	std::string productName = "Sample-cpp-Epic";
+	std::string productVersion = "0.1";
+	std::string loginMode = "DevAuth";
+	std::string devAuthHost = "localhost:8888";
+	std::string devAuthCredentialsName = "MyName";
+	std::string productId = "0123456789abcdef0123456789abcdef";
+	std::string sandboxId = "0123456789abcdef0123456789abcdef";
+	std::string deploymentId = "0123456789abcdef0123456789abcdef";
+	std::string clientId = "ZWirRLAaSjGsO3aCNbokY05JgPou53fO";
+	std::string clientSecret = "NXtiEGDaQY769e9Ms5uF1X8s/TN6IEWn0fhsETfUEx0";
+};
+#endif
+
 class SettingsViewModel
 {
 public:
@@ -23,13 +41,16 @@ public:
 	std::string gameVersion;
 
 	std::string gameFinderName;
-	
+
+#if defined(ENABLE_EPIC)
+	EpicSettingsviewModel epicSettings;
+#endif
+
 	void load();
 	void save();
 
 	AppViewModel* parent;
 };
-
 
 class ClientViewModel
 {
@@ -88,6 +109,7 @@ public:
 	bool showSettingsWindow = false;
 	bool showDemoWindow = false;
 	SettingsViewModel settings;
+	std::shared_ptr<Stormancer::MainThreadActionDispatcher> actionDispatcher = std::make_shared<Stormancer::MainThreadActionDispatcher>();
 
 
 	int nextClientId = 0;
@@ -97,7 +119,7 @@ public:
 	bool addClientCmd = false;
 
 
-	void process();
+	void tick();
 
 	
 

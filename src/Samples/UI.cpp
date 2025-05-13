@@ -59,6 +59,23 @@ void ShowSettings(SettingsViewModel& vm)
 	ImGui::InputTextWithHint("Application", "Application's name.", &vm.application);
 	ImGui::InputTextWithHint("Game version", "game version.", &vm.gameVersion);
 
+#if defined(ENABLE_EPIC)
+	if (ImGui::CollapsingHeader("Epic Online Services", ImGuiTreeNodeFlags_None))
+	{
+		ImGui::Checkbox("Enabled", &vm.epicSettings.enabled);
+		ImGui::InputTextWithHint("Product name", "Product name", &vm.epicSettings.productName);
+		ImGui::InputTextWithHint("Product version", "Product version", &vm.epicSettings.productVersion);
+		ImGui::InputTextWithHint("Login mode", "Login mode", &vm.epicSettings.loginMode);
+		ImGui::InputTextWithHint("DevAuth host", "DevAuth host", &vm.epicSettings.devAuthHost);
+		ImGui::InputTextWithHint("DevAuth credentials name", "DevAuth credentials name", &vm.epicSettings.devAuthCredentialsName);
+		ImGui::InputTextWithHint("Product Id", "Product Id", &vm.epicSettings.productId);
+		ImGui::InputTextWithHint("Sandbox Id", "Sandbox Id", &vm.epicSettings.sandboxId);
+		ImGui::InputTextWithHint("Deployment Id", "Deployment Id", &vm.epicSettings.deploymentId);
+		ImGui::InputTextWithHint("Client Id", "Client Id", &vm.epicSettings.clientId);
+		ImGui::InputTextWithHint("Client Secret", "Client Secret", &vm.epicSettings.clientSecret);
+	}
+#endif
+
 	ImGui::End();
 }
 

@@ -1065,11 +1065,13 @@ namespace Stormancer
 				{
 					if (context.tryUseProvider(platformName))
 					{
-						return getEpicCredentials([context](std::string type, std::string provider, std::string accessToken)
+						return getEpicCredentials([context, logger = _logger](std::string type, std::string provider, std::string accessToken)
 							{
 								context.authParameters->type = type;
 								context.authParameters->parameters["provider"] = provider;
 								context.authParameters->parameters["accessToken"] = accessToken;
+
+								logger->log(LogLevel::Trace, "Epic", "Epic credentials retrieved");
 							});
 					}
 					else

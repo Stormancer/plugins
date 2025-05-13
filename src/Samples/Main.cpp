@@ -167,7 +167,7 @@ int main(int, char**)
             // Rendering
             ImGui::Render();
 
-            vm.process();
+            vm.tick();
 
             FrameContext* frameCtx = WaitForNextFrameResources();
             UINT backBufferIdx = g_pSwapChain->GetCurrentBackBufferIndex();
