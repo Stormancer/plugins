@@ -26,7 +26,10 @@
 	
 	<ItemGroup>
 		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
+		<None Include="..\cpp\auth_deviceIdentifier.hpp" Link="cpp\auth_deviceIdentifier.hpp" />
+		<None Include="..\cpp\auth_ephemeral.hpp" Link="cpp\auth_ephemeral.hpp" />
 		<None Include="..\cpp\ClientAPI.hpp" Link="cpp\ClientAPI.hpp" />
+		<None Include="..\cpp\Environment.hpp" Link="cpp\Environment.hpp" />
 		<None Include="..\cpp\Users.hpp" Link="cpp\Users.hpp" />
 	</ItemGroup>
 	

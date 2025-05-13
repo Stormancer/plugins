@@ -45,7 +45,7 @@ namespace Stormancer.Server.Plugins.Users
             _sessions = sessions;
             _environment = environment;
         }
-        public async Task GetToken(RequestContext<IScenePeerClient> ctx)
+        public Task GetToken(RequestContext<IScenePeerClient> ctx)
         {
 
             throw new NotSupportedException();

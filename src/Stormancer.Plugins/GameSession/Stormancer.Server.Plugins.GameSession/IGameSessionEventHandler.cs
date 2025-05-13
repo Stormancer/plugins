@@ -110,7 +110,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Event fired when the game session is shutting down.
         /// </summary>
         /// <remarks>
-        /// Call <see cref="ShuttingDownContext.KeepAlive(TimeSpan)"/> during this event to cancel shutdown. 
+        /// Call <see cref="ShuttingDownContext.KeepAlive"/> during this event to cancel shutdown. 
         /// </remarks>
         /// <param name="ctx"></param>
         /// <returns></returns>
