@@ -2722,7 +2722,7 @@ namespace Stormancer
 
 				bool isLeader() const
 				{
-					return (_partyService->leaderId() == _partyScene->dependencyResolver().resolve<Stormancer::Users::UsersApi>()->userId());
+					return (_partyService && _partyService->leaderId() == _partyScene->dependencyResolver().resolve<Stormancer::Users::UsersApi>()->userId());
 				}
 
 				std::string leaderId() const

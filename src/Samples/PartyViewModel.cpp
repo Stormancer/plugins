@@ -1,3 +1,24 @@
+// Stormancer client sample app
+// Copyright (C) 2025 Stormancer
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+// SOFTWARE.
+
 #include "ViewModel.h"
 #include "Party/Party.hpp"
 #include "Party/PartyMerging.hpp"
@@ -61,6 +82,58 @@ void PartyViewModel::joinByInvitationCode()
 	auto client = Stormancer::IClientFactory::GetClient(this->parent->id);
 	auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
 	party->joinPartyByInvitationCode(invitationCode).then([this](pplx::task<void> t)
+	{
+
+		this->parent->isProcessing = false;
+		try
+		{
+			t.get();
+		}
+		catch (std::exception&)
+		{
+
+		}
+
+	});
+}
+
+void PartyViewModel::updatePartySettings()
+{
+	auto client = Stormancer::IClientFactory::GetClient(this->parent->id);
+	auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
+
+	auto partySettings = party->getPartySettings();
+	partySettings.customData.resize(partySettingsCustomData.length());
+	std::memcpy(partySettings.customData.data(), this->partySettingsCustomData.c_str(), this->partySettingsCustomData.length());
+	party->updatePartySettings(partySettings).then([this](pplx::task<void> t)
+		{
+
+			this->parent->isProcessing = false;
+			try
+			{
+				t.get();
+			}
+			catch (std::exception&)
+			{
+
+			}
+
+		});
+}
+
+void PartyViewModel::updateMemberData()
+{
+	auto client = Stormancer::IClientFactory::GetClient(this->parent->id);
+	auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
+
+	
+	std::vector<byte> bytes;
+
+	bytes.resize(memberCustomData.length());
+
+	std::memcpy(bytes.data(), memberCustomData.c_str(), memberCustomData.length());
+
+	party->updatePlayerData(bytes).then([this](pplx::task<void> t)
 	{
 
 		this->parent->isProcessing = false;

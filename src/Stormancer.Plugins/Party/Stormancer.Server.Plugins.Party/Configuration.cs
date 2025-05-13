@@ -208,6 +208,7 @@ namespace Stormancer.Server.Plugins.Party
         {
             ResetPlayerReadyStateOn(ctx =>
             {
+                ctx.ShouldReset = false;
                 switch (ctx.EventType)
                 {
                     case PartyMemberReadyStateResetEventType.PartySettingsUpdated:

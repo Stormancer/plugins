@@ -16,6 +16,10 @@ Changed
 *******
 - Move PARTY_SCENE_ID to PartyConstants to enable other plugins to extend parties without hardcoding the party template id.
 
+Fixed
+*****
+- Fixed an issue that would prevent `ResetPlayerReadyStateOn(ResetPlayerReadyStateMode.None)` from being applied correctly. 
+
 5.2.0.87
 ----------
 Changed

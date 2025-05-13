@@ -1,3 +1,24 @@
+// Stormancer client sample app
+// Copyright (C) 2025 Stormancer
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+// SOFTWARE.
+
 #include "PartyUI.h"
 #include "imgui.h"
 #include "imgui_stdlib.h"
@@ -165,6 +186,30 @@ void ShowUI(PartyViewModel& vm)
 				}
 
 			}
+		}
+		ImGui::SeparatorText("PARTY CUSTOM DATA");
+		if (ImGui::BeginTable("party.settings", 2))
+		{
+			if (party->isLeader())
+			{
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+				ImGui::InputText("party data",&vm.partySettingsCustomData);
+				ImGui::TableNextColumn();
+				if (ImGui::Button("Update party data"))
+				{
+					vm.updatePartySettings();
+				}
+			}
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::InputText("member data", &vm.memberCustomData);
+			ImGui::TableNextColumn();
+			if (ImGui::Button("Update member data"))
+			{
+				vm.updateMemberData();
+			}
+			ImGui::EndTable();
 		}
 
 		ImGui::SeparatorText("PARTY MERGING");
