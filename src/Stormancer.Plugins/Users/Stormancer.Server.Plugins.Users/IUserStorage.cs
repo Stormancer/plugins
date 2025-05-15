@@ -12,7 +12,9 @@ namespace Stormancer.Server.Plugins.Users
     /// </summary>
     public interface IUserStorage
     {
-
+        /// <summary>
+        /// Gets a <see cref="bool"/> indicating if storage is enabled.
+        /// </summary>
         bool Enabled { get; }
 
         /// <summary>

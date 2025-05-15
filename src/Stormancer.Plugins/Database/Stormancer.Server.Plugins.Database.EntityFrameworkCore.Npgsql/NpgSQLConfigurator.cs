@@ -55,7 +55,7 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
         [MemberNotNullWhen(true, nameof(Password))]
         [MemberNotNullWhen(true, nameof(Database))]
         [MemberNotNullWhen(true, nameof(Host))]
-        internal bool IsValid => !string.IsNullOrEmpty(Host) && !string.IsNullOrEmpty(Username) && !string.IsNullOrEmpty(Password) && !string.IsNullOrEmpty(Database);
+        internal bool IsValid => !string.IsNullOrEmpty(Host) && !string.IsNullOrEmpty(Username) && !string.IsNullOrEmpty(PasswordPath) && !string.IsNullOrEmpty(Database);
 
         /// <summary>
         /// Gets or sets the max connection pool size for postgresql
@@ -73,7 +73,15 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
         {
             _store = store;
             _configuration = configuration;
+           
             _host = host;
+
+            IsConfigured = TryGetConfigurationSection(out var section) && section.IsValid;
+        }
+
+        private bool TryGetConfigurationSection([NotNullWhen(true)] out NpgSQLConfigurationSection? section)
+        {
+            return _configuration.TryGetValue(NpgSQLConfigurationSection.SectionPath, out section)&& section != null;
         }
         private readonly object _lock = new object();
         private readonly ISecretsStore _store;
@@ -89,7 +97,7 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
                 {
                     async Task<NpgsqlDataSource?> CreateDataSource()
                     {
-                        if (!_configuration.TryGetValue(NpgSQLConfigurationSection.SectionPath, out NpgSQLConfigurationSection? section) || section == null)
+                        if (!TryGetConfigurationSection(out var section))
                         {
                             return null;
                         }
@@ -161,7 +169,7 @@ namespace Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql
             }
             lock (_lock)
             {
-                if(_configuration.TryGetValue(NpgSQLConfigurationSection.SectionPath, out NpgSQLConfigurationSection? section) && section != null)
+                if(TryGetConfigurationSection(out var section))
                 {
                     if (section.PasswordPath != null)
                     {
