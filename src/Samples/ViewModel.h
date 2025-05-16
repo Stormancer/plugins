@@ -9,9 +9,9 @@
 
 #include "LogsUI.h"
 
-class AppViewModel;
-
 #if defined(ENABLE_EPIC)
+#include "eos_init.h"
+
 class EpicSettingsviewModel
 {
 public:
@@ -28,6 +28,9 @@ public:
 	std::string clientSecret = "NXtiEGDaQY769e9Ms5uF1X8s/TN6IEWn0fhsETfUEx0";
 };
 #endif
+
+class AppViewModel;
+
 
 class SettingsViewModel
 {
@@ -104,10 +107,22 @@ public:
 		:settings(SettingsViewModel(this))
 	{}
 
-	
+#if defined(ENABLE_EPIC)
+	~AppViewModel()
+	{
+		if (this->epicPlatformHandle)
+		{
+			EOS_Platform_Release(this->epicPlatformHandle);
+		}
+	}
+#endif
 
 	bool showSettingsWindow = false;
 	bool showDemoWindow = false;
+#if defined(ENABLE_EPIC)
+	char* epicDevAuthCredentialsName = nullptr;
+	EOS_HPlatform epicPlatformHandle = nullptr;
+#endif
 	SettingsViewModel settings;
 	std::shared_ptr<Stormancer::MainThreadActionDispatcher> actionDispatcher = std::make_shared<Stormancer::MainThreadActionDispatcher>();
 
@@ -121,7 +136,7 @@ public:
 
 	void tick();
 
-	
+
 
 private:
 	

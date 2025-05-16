@@ -265,6 +265,13 @@ void AppViewModel::tick()
 	}
 
 	actionDispatcher->update(std::chrono::milliseconds(10));
+	
+#if defined(ENABLE_EPIC)
+	if (epicPlatformHandle != nullptr)
+	{
+		EOS_Platform_Tick(epicPlatformHandle);
+	}
+#endif
 }
 
 void AppViewModel::addClient()
@@ -304,21 +311,32 @@ ClientViewModel::ClientViewModel(int id, AppViewModel* parent)
 #endif
 
 #if defined(ENABLE_EPIC)
+			bool epicAlreadyInitialized = this->parent->epicPlatformHandle != nullptr;
+
 			auto epicSettings = this->parent->settings.epicSettings;
 			config->addPlugin(new Stormancer::Epic::EpicPlugin());
-			config->additionalParameters[Stormancer::Epic::ConfigurationKeys::InitPlatform] = epicSettings.enabled ? "true" : "false";
+			config->additionalParameters[Stormancer::Epic::ConfigurationKeys::InitPlatform] = !epicAlreadyInitialized && epicSettings.enabled ? "true" : "false";
 			config->additionalParameters[Stormancer::Epic::ConfigurationKeys::AuthenticationEnabled] = epicSettings.enabled ? "true" : "false";
 			config->additionalParameters[Stormancer::Epic::ConfigurationKeys::ProductName] = epicSettings.productName;
 			config->additionalParameters[Stormancer::Epic::ConfigurationKeys::ProductVersion] = epicSettings.productVersion;
 			config->additionalParameters[Stormancer::Epic::ConfigurationKeys::LoginMode] = epicSettings.loginMode;
 			config->additionalParameters[Stormancer::Epic::ConfigurationKeys::DevAuthHost] = epicSettings.devAuthHost;
-			config->additionalParameters[Stormancer::Epic::ConfigurationKeys::DevAuthCredentialsName] = epicSettings.devAuthCredentialsName;
 			config->additionalParameters[Stormancer::Epic::ConfigurationKeys::ProductId] = epicSettings.productId;
 			config->additionalParameters[Stormancer::Epic::ConfigurationKeys::SandboxId] = epicSettings.sandboxId;
 			config->additionalParameters[Stormancer::Epic::ConfigurationKeys::DeploymentId] = epicSettings.deploymentId;
 			config->additionalParameters[Stormancer::Epic::ConfigurationKeys::ClientId] = epicSettings.clientId;
 			config->additionalParameters[Stormancer::Epic::ConfigurationKeys::ClientSecret] = epicSettings.clientSecret;
 			config->additionalParameters[Stormancer::Epic::ConfigurationKeys::Diagnostics] = "true";
+
+			if (epicAlreadyInitialized)
+			{
+				config->additionalParameters[Stormancer::Epic::ConfigurationKeys::DevAuthCredentialsName] = this->parent->epicDevAuthCredentialsName;
+			}
+			else
+			{
+				config->additionalParameters[Stormancer::Epic::ConfigurationKeys::DevAuthCredentialsName] = epicSettings.devAuthCredentialsName;
+			}			
+
 #endif
 
 			config->additionalParameters[Stormancer::GameVersion::ConfigurationKeys::ClientVersion] = this->parent->settings.gameVersion;
@@ -342,6 +360,14 @@ ClientViewModel::ClientViewModel(int id, AppViewModel* parent)
 
 	gameFinder.initialize();
 	gameSession.initialize();
+
+#if defined(ENABLE_EPIC)
+	if (this->parent->epicPlatformHandle)
+	{
+		auto epic = client->dependencyResolver().resolve<Stormancer::Epic::IEpicApi>();
+		epic->setPlatformHandle(this->parent->epicPlatformHandle);
+	}
+#endif
 }
 
 ClientViewModel::~ClientViewModel()
