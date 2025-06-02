@@ -210,11 +210,14 @@ namespace Stormancer
 				const AccountId _accountId;
 			};
 
+			class EpicEventsManager;
 			class EpicState
 			{
 			public:
 
-				EpicState(std::shared_ptr<Configuration> config, std::shared_ptr<ILogger> logger)
+				EpicState(std::shared_ptr<IClient> client, std::shared_ptr<Configuration> config, std::shared_ptr<ILogger> logger)
+					: _wClient(client),
+					_logger(logger)
 				{
 					std::lock_guard<std::recursive_mutex> lg(_mutex);
 
@@ -377,6 +380,17 @@ namespace Stormancer
 					}
 
 					_platformHandle = platformHandle;
+
+					if (!_eventsRegistered)
+					{
+						// Register Epic events here if needed.
+						auto client = _wClient.lock();
+						if (client)
+						{
+							client->dependencyResolver().resolve<EpicEventsManager>();
+						}
+						_eventsRegistered = true;
+					}
 				}
 
 				EOS_HPlatform getPlatformHandle() const
@@ -466,6 +480,9 @@ namespace Stormancer
 				bool _diagnostics = false;
 				EOS_HPlatform _platformHandle = nullptr;
 				std::shared_ptr<ILogger> _logger;
+				std::weak_ptr<IClient> _wClient;
+				bool _eventsRegistered = false;
+
 				EOS_EpicAccountId _epicAccountId;
 				EOS_ProductUserId _productUserId;
 				bool _loggedIn = false;
@@ -1007,11 +1024,20 @@ namespace Stormancer
 					setCustomInviteOptions.ApiVersion = EOS_CUSTOMINVITES_SETCUSTOMINVITE_API_LATEST;
 					setCustomInviteOptions.LocalUserId = productUserId;
 					setCustomInviteOptions.Payload = invidationDataJsonString.c_str();
-					EOS_CustomInvites_SetCustomInvite(customInvitesHandle, &setCustomInviteOptions);
+					auto result = EOS_CustomInvites_SetCustomInvite(customInvitesHandle, &setCustomInviteOptions);
 					// Whenever a Custom Invite Payload has been set, the Social Overlay will allow the local player to use the "Invite" button to send an invite with the currently set Custom Invite Payload to their friends.
 
-					_logger->log(LogLevel::Info, "Epic", "Custom invite payload has been set");
-					return;
+					if (result != EOS_EResult::EOS_Success)
+					{
+						_logger->log(LogLevel::Error, "Epic", "SetCustomInvite failed", std::to_string((int)result));
+						return;
+					}
+					else
+					{
+
+						_logger->log(LogLevel::Info, "Epic", "Custom invite payload has been set");
+						return;
+					}
 				}
 
 				pplx::task<void> onLeavingParty(std::shared_ptr<Party::PartyApi>, std::string)
@@ -1045,6 +1071,57 @@ namespace Stormancer
 
 
 			// https://dev.epicgames.com/docs/services/en-US/WebAPIRef/AuthWebAPI/index.html
+
+			class EpicAuthenticationProvider;
+
+			class loginCompleteCallbackData
+			{
+			public:
+				loginCompleteCallbackData(std::weak_ptr<EpicAuthenticationProvider> epicAuthProvider)
+					: epicAuthProvider(epicAuthProvider)
+				{
+				}
+
+				std::weak_ptr<EpicAuthenticationProvider> epicAuthProvider;
+			};
+
+			class connectLoginCompleteCallbackData
+			{
+			public:
+				connectLoginCompleteCallbackData(std::weak_ptr<EpicAuthenticationProvider> epicAuthProvider,
+					std::string accessToken,
+					std::function<void(std::string type, std::string provider, std::string accessToken)> fulfillCredentialsCallback)
+					: epicAuthProvider(epicAuthProvider),
+					accessToken(accessToken),
+					fulfillCredentialsCallback(fulfillCredentialsCallback)
+				{
+				}
+
+				std::weak_ptr<EpicAuthenticationProvider> epicAuthProvider;
+				std::string accessToken;
+				std::function<void(std::string type, std::string provider, std::string accessToken)> fulfillCredentialsCallback;
+				pplx::task_completion_event<void> tce;
+			};
+
+			class createUserCallbackData
+			{
+			public:
+				createUserCallbackData(std::weak_ptr<EpicAuthenticationProvider> epicAuthProvider,
+					std::string accessToken,
+					pplx::task_completion_event<void> tce,
+					std::function<void(std::string type, std::string provider, std::string accessToken)> fulfillCredentialsCallback)
+					: epicAuthProvider(epicAuthProvider),
+					tce(tce),
+					accessToken(accessToken),
+					fulfillCredentialsCallback(fulfillCredentialsCallback)
+				{
+				}
+
+				std::weak_ptr<EpicAuthenticationProvider> epicAuthProvider;
+				std::string accessToken;
+				pplx::task_completion_event<void> tce;
+				std::function<void(std::string type, std::string provider, std::string accessToken)> fulfillCredentialsCallback;
+			};
 
 			class EpicAuthenticationProvider : public std::enable_shared_from_this<EpicAuthenticationProvider>, public Users::IAuthenticationProvider
 			{
@@ -1169,9 +1246,9 @@ namespace Stormancer
 
 					loginOptions.Credentials = &credentials;
 
-					auto wEpicAuth = new std::weak_ptr<EpicAuthenticationProvider>(STORM_WEAK_FROM_THIS());
+					auto loginCallbackData = new loginCompleteCallbackData(STORM_WEAK_FROM_THIS());
 
-					EOS_Auth_Login(authHandle, &loginOptions, wEpicAuth, loginCompleteCallbackFn);
+					EOS_Auth_Login(authHandle, &loginOptions, loginCallbackData, loginCompleteCallbackFn);
 
 					auto wEpicAuthEvtHandler = STORM_WEAK_FROM_THIS();
 
@@ -1202,26 +1279,47 @@ namespace Stormancer
 									throw ObjectDeletedException("EpicAuthenticationEventHandler");
 								}
 
+								EOS_Connect_LoginOptions connectLoginOptions = {};
+
+								connectLoginOptions.ApiVersion = EOS_CONNECT_LOGIN_API_LATEST;
+								EOS_Connect_Credentials credentials;
+								credentials.ApiVersion = EOS_CONNECT_CREDENTIALS_API_LATEST;
+								credentials.Token = authToken->AccessToken;
+								connectLoginOptions.Credentials = &credentials;
+								credentials.Type = EOS_EExternalCredentialType::EOS_ECT_EPIC;
+
+								EOS_HConnect connectHandle = EOS_Platform_GetConnectInterface(epicAuthEvtHandler->_epicState->getPlatformHandle());
+
 								epicAuthEvtHandler->_epicState->setEpicAccountId(accountId);
 
-								fulfillCredentialsCallback(platformName, platformName, accessToken);
+								if (connectHandle != nullptr)
+								{
+									auto connectLoginCallBackData = new connectLoginCompleteCallbackData(wEpicAuthEvtHandler, accessToken, fulfillCredentialsCallback);
+									EOS_Connect_Login(connectHandle, &connectLoginOptions, connectLoginCallBackData, connectLoginCompleteCallbackFn);
+									return pplx::create_task(connectLoginCallBackData->tce);
+								}
+								else
+								{
+									fulfillCredentialsCallback(platformName, platformName, accessToken);
+									return pplx::task_from_result();
+								}
 							});
 				}
 #pragma endregion
 			private:
 #pragma region private_methods
-				void loginCompleteCallback(const EOS_Auth_LoginCallbackInfo* data)
+				void loginCompleteCallback(const EOS_Auth_LoginCallbackInfo* info)
 				{
-					if (data->ResultCode != EOS_EResult::EOS_Success)
+					if (info->ResultCode != EOS_EResult::EOS_Success)
 					{
 						std::lock_guard<std::recursive_mutex> lg(_mutex);
 
-						_authTce->set_exception(std::runtime_error("Epic login failed : EOS_EResult = " + std::to_string((int32_t)data->ResultCode)));
+						_authTce->set_exception(std::runtime_error("Epic login failed : EOS_EResult = " + std::to_string((int32_t)info->ResultCode)));
 
 						return;
 					}
 
-					std::string accountIdStr = details::EpicPlatformUserId::toString(data->LocalUserId);
+					std::string accountIdStr = details::EpicPlatformUserId::toString(info->LocalUserId);
 
 					_logger->log(LogLevel::Trace, "EOS SDK", "Login Complete", "User ID: " + accountIdStr);
 
@@ -1257,19 +1355,89 @@ namespace Stormancer
 					_authTce->set(accountIdStr);
 				}
 
-				static void EOS_CALL loginCompleteCallbackFn(const EOS_Auth_LoginCallbackInfo* data)
+				static void EOS_CALL loginCompleteCallbackFn(const EOS_Auth_LoginCallbackInfo* info)
 				{
-					assert(data != NULL && data->ClientData != NULL);
+					assert(info != NULL && info->ClientData != NULL);
 
-					auto wEpicAuthPtr = static_cast<std::weak_ptr<EpicAuthenticationProvider>*>(data->ClientData);
-					auto wEpicAuth = *wEpicAuthPtr;
+					auto data = static_cast<loginCompleteCallbackData*>(info->ClientData);
 
-					if (auto epicAuth = wEpicAuth.lock())
+					if (auto epicAuth = data->epicAuthProvider.lock())
 					{
-						epicAuth->loginCompleteCallback(data);
+						epicAuth->loginCompleteCallback(info);
 					}
 
-					delete wEpicAuthPtr;
+					delete data;
+				}
+
+				void connectLoginCompleteCallback(const EOS_Connect_LoginCallbackInfo* info,
+					std::string accessToken,					
+					pplx::task_completion_event<void> tce,
+					std::function<void(std::string type, std::string provider, std::string accessToken)> fulfillCredentialsCallback)
+				{
+					if (info->ResultCode == EOS_EResult::EOS_InvalidUser)
+					{
+						EOS_Connect_CreateUserOptions createUserOptions = {};
+						createUserOptions.ApiVersion = EOS_CONNECT_CREATEUSER_API_LATEST;
+						createUserOptions.ContinuanceToken = info->ContinuanceToken;
+						EOS_HConnect connectHandle = EOS_Platform_GetConnectInterface(_epicState->getPlatformHandle());
+						if (connectHandle != nullptr)
+						{
+							auto callbackData = new createUserCallbackData(STORM_WEAK_FROM_THIS(), accessToken, tce, fulfillCredentialsCallback);
+							EOS_Connect_CreateUser(connectHandle, &createUserOptions, callbackData, createUserCallbackFn);
+						}
+						return;
+					}
+					if (info->ResultCode != EOS_EResult::EOS_Success)
+					{
+						_logger->log(LogLevel::Error, "Epic", "Connect login failed", std::to_string((int)info->ResultCode));
+					}
+					else
+					{
+						_epicState->setEpicProductUserId(info->LocalUserId);
+					}
+					tce.set();
+					fulfillCredentialsCallback(platformName, platformName, accessToken);
+				}
+
+				static void EOS_CALL connectLoginCompleteCallbackFn(const EOS_Connect_LoginCallbackInfo* info)
+				{
+					assert(info != nullptr && info->ClientData != nullptr);
+					auto data = static_cast<connectLoginCompleteCallbackData*>(info->ClientData);
+
+					if (auto epicAuth = data->epicAuthProvider.lock())
+					{
+						epicAuth->connectLoginCompleteCallback(info, data->accessToken, data->tce, data->fulfillCredentialsCallback);
+					}
+					delete data;
+				}
+
+				void createUserCallback(const EOS_Connect_CreateUserCallbackInfo* info,
+					std::string accessToken,
+					pplx::task_completion_event<void> tce,
+					std::function<void(std::string type, std::string provider, std::string accessToken)> fulfillCredentialsCallback)
+				{
+					if (info->ResultCode == EOS_EResult::EOS_Success)
+					{
+						_epicState->setEpicProductUserId(info->LocalUserId);
+					}
+					else
+					{
+						_logger->log(LogLevel::Error, "Epic", "Create user failed", std::to_string((int)info->ResultCode));
+					}
+
+					fulfillCredentialsCallback(platformName, platformName, accessToken);
+					tce.set();
+				}
+
+				static void EOS_CALL createUserCallbackFn(const EOS_Connect_CreateUserCallbackInfo* info)
+				{
+					assert(info != nullptr && info->ClientData != nullptr);
+					auto data = static_cast<createUserCallbackData*>(info->ClientData);
+					if (auto epicAuth = data->epicAuthProvider.lock())
+					{
+						epicAuth->createUserCallback(info, data->accessToken, data->tce, data->fulfillCredentialsCallback);
+					}
+					delete data;
 				}
 #pragma endregion
 
@@ -1280,7 +1448,6 @@ namespace Stormancer
 				std::shared_ptr<pplx::task_completion_event<std::string>> _authTce; // shared_ptr used as an optional
 #pragma endregion
 			};
-
 
 			class EpicAuthenticationEventHandler : public Users::IAuthenticationEventHandler
 			{
@@ -1337,7 +1504,7 @@ namespace Stormancer
 
 			void registerClientDependencies(ContainerBuilder& builder) override
 			{
-				builder.registerDependency<details::EpicState, Configuration, ILogger>().singleInstance();
+				builder.registerDependency<details::EpicState, IClient, Configuration, ILogger>().singleInstance();
 				builder.registerDependency<details::EpicTicker, Configuration, details::EpicState, ILogger>().asSelf().singleInstance();
 				builder.registerDependency<details::EpicEventsManager, IClient, details::EpicState, ILogger>().asSelf().singleInstance();
 				builder.registerDependency<details::EpicApi, Users::UsersApi, details::EpicState, Configuration, IScheduler, ILogger, Party::PartyApi>().asSelf().as<IEpicApi>();
@@ -1351,8 +1518,6 @@ namespace Stormancer
 			{
 				auto epicApi = client->dependencyResolver().resolve<IEpicApi>();
 				epicApi->initialize();
-
-				auto epicEventsManager = client->dependencyResolver().resolve<details::EpicEventsManager>();
 
 				auto epicState = client->dependencyResolver().resolve<details::EpicState>();
 				if (epicState->getInitPlatform())

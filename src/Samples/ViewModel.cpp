@@ -265,7 +265,7 @@ void AppViewModel::tick()
 	}
 
 	actionDispatcher->update(std::chrono::milliseconds(10));
-	
+
 #if defined(ENABLE_EPIC)
 	if (epicPlatformHandle != nullptr)
 	{
@@ -335,7 +335,7 @@ ClientViewModel::ClientViewModel(int id, AppViewModel* parent)
 			else
 			{
 				config->additionalParameters[Stormancer::Epic::ConfigurationKeys::DevAuthCredentialsName] = epicSettings.devAuthCredentialsName;
-			}			
+			}
 
 #endif
 
@@ -368,6 +368,15 @@ ClientViewModel::ClientViewModel(int id, AppViewModel* parent)
 		epic->setPlatformHandle(this->parent->epicPlatformHandle);
 	}
 #endif
+
+	auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
+	_partyInvitationSubscription = party->subscribeOnInvitationReceived([](Stormancer::Party::PartyInvitation partyInvitation)
+		{
+			if (partyInvitation.isValid())
+			{
+				partyInvitation.acceptAndJoinParty();
+			}
+		});
 }
 
 ClientViewModel::~ClientViewModel()

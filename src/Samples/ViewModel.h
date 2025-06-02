@@ -96,8 +96,7 @@ public:
 	
 private:
 	std::shared_ptr<Logger> _logger;
-
-	
+	Stormancer::Subscription _partyInvitationSubscription;
 };
 
 class AppViewModel

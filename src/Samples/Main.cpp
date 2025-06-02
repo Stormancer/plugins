@@ -85,6 +85,8 @@ int main(int argc, char** args)
 
 		auto argsEnd = args + argc;
 		char** itr = std::find(args, argsEnd, std::string("--epicDevAuthCredentialsName"));
+#ifdef ENABLE_EPIC
+		// to support EOS overlay we need to initialize the EOS platform before initalizing Direct3D
 		if (itr != argsEnd && ++itr != argsEnd)
 		{
 			vm.epicDevAuthCredentialsName = *itr;
@@ -117,6 +119,7 @@ int main(int argc, char** args)
 			EOS_HPlatform platformHandle = EOS_Platform_Create(&platformOptions);
 			vm.epicPlatformHandle = platformHandle;
 		}
+#endif // ENABLE_EPIC
 
 		// Initialize Direct3D
 		if (!CreateDeviceD3D(hwnd))
