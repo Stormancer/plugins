@@ -887,7 +887,27 @@ namespace Stormancer
 							partyId.platform = platformName;
 							auto epicPartyInvitation = std::make_shared<EpicPartyInvitation>(senderId, partyId);
 							invitationMessenger->notifyInvitationReceived(epicPartyInvitation);
-							//FGame::Get().GetCustomInvites()->HandleCustomInviteAccepted(Data->Payload, Data->CustomInviteId, Data->TargetUserId);
+
+							auto epicState = client->dependencyResolver().resolve<EpicState>();
+							if(!epicState)
+							{
+								return;
+							}
+							EOS_HCustomInvites customInvitesHandle = EOS_Platform_GetCustomInvitesInterface(epicState->getPlatformHandle());
+							if (customInvitesHandle)
+							{
+								EOS_CustomInvites_FinalizeInviteOptions finalizeInviteOptions = {};
+								finalizeInviteOptions.ApiVersion = EOS_CUSTOMINVITES_FINALIZEINVITE_API_LATEST;
+								finalizeInviteOptions.CustomInviteId = data->CustomInviteId;
+								finalizeInviteOptions.TargetUserId = data->TargetUserId;
+								finalizeInviteOptions.LocalUserId = epicState->getProductUserId();								
+								EOS_EResult result = EOS_CustomInvites_FinalizeInvite(customInvitesHandle, &finalizeInviteOptions);
+
+								if (result != EOS_EResult::EOS_Success)
+								{
+									logger->log(LogLevel::Error, "onNotifyCustomInviteAccepted", "Finalize invite failed", std::to_string((int)result));
+								}
+							};							
 						}
 					}
 					else

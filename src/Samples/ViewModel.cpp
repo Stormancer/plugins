@@ -370,11 +370,22 @@ ClientViewModel::ClientViewModel(int id, AppViewModel* parent)
 #endif
 
 	auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
-	_partyInvitationSubscription = party->subscribeOnInvitationReceived([](Stormancer::Party::PartyInvitation partyInvitation)
+	_partyInvitationSubscription = party->subscribeOnInvitationReceived([logger = _logger](Stormancer::Party::PartyInvitation partyInvitation)
 		{
 			if (partyInvitation.isValid())
 			{
-				partyInvitation.acceptAndJoinParty();
+				partyInvitation.acceptAndJoinParty()
+					.then([logger](pplx::task<void> task)
+						{
+							try
+							{
+								task.get();
+							}
+							catch (std::exception& ex)
+							{
+								logger->log(Stormancer::LogLevel::Error, "AcceptAndJoinParty", "Fail to join a party after accepting the invitation", ex.what());
+							}
+						});
 			}
 		});
 }
