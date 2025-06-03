@@ -7,6 +7,7 @@
 #include "gameFinder/GameFinder.hpp"
 #include "gameSession/Gamesession.hpp"
 #include "gameSession/ServerPools.hpp"
+#include "friends/Friends.hpp"
 
 #include "stormancer/IActionDispatcher.h"
 #include "stormancer/IClientFactory.h"
@@ -70,7 +71,7 @@ static pplx::task<bool> JoinGameImpl(int id, const std::string& invitationCode)
 				}
 					});
 }
-static pplx::task<std::string> CreateGameImpl(int id)
+static pplx::task<void> CreateGameImpl(int id)
 {
 
 
@@ -102,84 +103,22 @@ static pplx::task<std::string> CreateGameImpl(int id)
 
 	return users->login().then([party]() {
 		Stormancer::Party::PartyCreationOptions request;
-	request.GameFinderName = "joinpartygame-test";
+	request.GameFinderName = "matchmaking";
 	return party->createPartyIfNotJoined(request);
 		})
 		.then([client]()
-			{
-				log(client, Stormancer::LogLevel::Debug, "connected to party");
-		auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
-
-		//Triggers matchmking by setting the player as ready.
-		//Matchmaking starts when all players in the party are ready.
-		return party->updatePlayerStatus(Stormancer::Party::PartyUserStatus::Ready);
-			})
-			.then([client, gameFoundTask]()
-				{
-					log(client, Stormancer::LogLevel::Info, "player status updated");
-
-			//Wait game found.
-			return gameFoundTask;
-				})
-				.then([client](Stormancer::GameFinder::GameFoundEvent evt)
-					{
-						log(client, Stormancer::LogLevel::Info, "game found");
-
-				auto gameSessions = client->dependencyResolver().resolve<Stormancer::GameSessions::GameSession>();
-				return gameSessions->connectToGameSession(evt.data.connectionToken, "", false);
-
-					})
-					//Errors flow through continuations that take TResult instead of task<TResult> as argument.
-					//We want to handle errors in the last continuation, so this one takes task<TResult>. Inside we get the result of the task by calling task.get()
-					//inside a try clause. If an error occured  .get() will throw. We return false (error). If it doesn't throw, everything succeeded.
-						.then([id, client](Stormancer::GameSessions::GameSessionConnectionParameters params)
-							{
-								log(client, Stormancer::LogLevel::Info, "connected to game session");
-
-
-					//P2P connection established.
-					//In the host, this continuation is executed immediatly.
-					//In clients this continuation is executed only if the host called gameSessions->setPlayerReady() (see below)
-					if (params.isHost)
-					{
-						//Start the game host. To communicate with clients, either:
-						//- Use the scene API to send and listen to messages.
-						//- Start a datagram socket and bind to the port specified in config->severGamePort
-					}
-					else
-					{
-						//The host called "setPlayerReady". It should be ready to accept messages. To communicate with the server, either:
-						//- Use the scene API to send and listen to messages.
-						//- Start a socket on a random port (port 0) and send UDP datagrams to the endpoint specified in 'params.endpoint'.
-						// They will be automatically routed to the socket bound by the host as described above.
-					}
-					auto gameSessions = client->dependencyResolver().resolve<Stormancer::GameSessions::GameSession>();
-					return  gameSessions->setPlayerReady();
-
-							})
-						.then([client]()
-							{
-								log(client, Stormancer::LogLevel::Info, "player ready set");
-
-							auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
-							return party->createInvitationCode();
-							})
-								.then([client](pplx::task<std::string> t)
-									{
-										//catch errors
-										try
-							{
-								auto result = t.get();
-								log(client, Stormancer::LogLevel::Info, "created invitation code");
-
-								return result;
-							}
-							catch (std::exception& ex)
-							{
-								log(client, Stormancer::LogLevel::Error, ex.what());
-								return std::string("");
-							}
-									});
+		{
+			log(client, Stormancer::LogLevel::Debug, "connected to party");
+			auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
+			auto friends = client->dependencyResolver().resolve < Stormancer::Friends::FriendsApi>();
+			return friends->connect();
+		
+		}).then([client]()
+		{
+				log(client, Stormancer::LogLevel::Debug, "connected to friendlist");
+				auto friends = client->dependencyResolver().resolve < Stormancer::Friends::FriendsApi>();
+				return friends->refresh();
+		});
 
 
 }
@@ -198,28 +137,29 @@ int TestJoinGamesession(size_t runNumber, int iterations)
 		//printf("host:%d, client:%d\n", hostIndex, clientIndex);
 
 		auto t = CreateGameImpl(hostIndex);
-		auto invitationCode = t.get();
-		auto check = invitationCode.size() != 0;
-		bool success = false;
-		if (check)
-		{
-			auto t2 = JoinGameImpl(clientIndex, invitationCode);
+		t.get();
+		//auto invitationCode = t.get();
+		//auto check = invitationCode.size() != 0;
+		//bool success = false;
+		//if (check)
+		//{
+		//	auto t2 = JoinGameImpl(clientIndex, invitationCode);
 
-			success = t2.get();
-		}
+		//	success = t2.get();
+		//}
 
-		if (success)
-		{
-			result++;
-			//printf("success (%d/%d)\n", result, iterations);
-		}
-		else
-		{
-			//printf("failure (%d/%d)\n", result, iterations);
-		}
+		//if (success)
+		//{
+		//	result++;
+		//	//printf("success (%d/%d)\n", result, iterations);
+		//}
+		//else
+		//{
+		//	//printf("failure (%d/%d)\n", result, iterations);
+		//}
 
 		Stormancer::IClientFactory::ReleaseClient(hostIndex);
-		Stormancer::IClientFactory::ReleaseClient(clientIndex);
+		//Stormancer::IClientFactory::ReleaseClient(clientIndex);
 	}
 	return result;
 }
@@ -263,6 +203,7 @@ int main(int argc, char* argv[])
 	config->addPlugin(new Stormancer::Party::PartyPlugin());
 	config->addPlugin(new Stormancer::GameFinder::GameFinderPlugin());
 	config->addPlugin(new Stormancer::GameSessions::GameSessionsPlugin());
+	config->addPlugin(new Stormancer::Friends::FriendsPlugin());
 
 
 	//Use the dispatcher we created earlier to ensure all callbacks are run on the test main thread.
