@@ -175,6 +175,7 @@
     <ClInclude Include="..\..\output\cpp\gamesession\GameSession.hpp" />
     <ClInclude Include="..\..\output\cpp\party\Party.hpp" />
     <ClInclude Include="..\..\output\cpp\party\PartyMerging.hpp" />
+    <ClInclude Include="..\..\output\cpp\Profile\Profile.hpp" />
     <ClInclude Include="..\..\output\cpp\steam\Steam.hpp" />
     <ClInclude Include="..\..\output\cpp\users\auth_deviceIdentifier.hpp" />
     <ClInclude Include="..\..\output\cpp\users\auth_ephemeral.hpp" />
