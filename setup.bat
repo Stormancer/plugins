@@ -34,3 +34,6 @@ mklink /J output\cpp\GameVersion src\Stormancer.Plugins\GameVersion\cpp
 
 rmdir output\cpp\Epic
 mklink /J output\cpp\Epic src\Stormancer.Plugins\Epic\cpp
+
+rmdir output\cpp\Profile
+mklink /J output\cpp\Profile src\Stormancer.Plugins\Profile\cpp
