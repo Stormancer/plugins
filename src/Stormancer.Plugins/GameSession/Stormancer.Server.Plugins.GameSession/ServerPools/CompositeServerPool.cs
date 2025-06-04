@@ -101,7 +101,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration config, CancellationToken cancellationToken)
         {
-
+            string details = "";
             foreach (var subPool in _subPools)
             {
                 if (pools().TryGetPool(subPool, out var pool))
@@ -111,10 +111,20 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                     {
                         return result;
                     }
+                    else
+                    {
+                        details += $"{subPool}: {result.Details}|";
+                    }
                 }
             }
-
-            return new WaitGameServerResult { Success = false };
+            if (_subPools.Count == 0)
+            {
+                return WaitGameServerResult.Failed("No serverPool available.");
+            }
+            else
+            {
+                return WaitGameServerResult.Failed(details);
+            }
 
         }
 

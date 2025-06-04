@@ -240,7 +240,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
             record.CustomData["pool"] = this.Id;
             record.CustomData["poolType"] = provider.Type;
-            _events.PostEventAsync(record);
+            _events.PostEvent(record);
             var result = await provider.TryStartServer(gameSessionId, authToken, this.config, gsConfig.PreferredRegions, cancellationToken);
 
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
@@ -266,7 +266,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
                 using var registration = cts2.Token.Register(() =>
                 {
-                    if (tcs.TrySetResult(new WaitGameServerResult { Success = false }))
+                    if (tcs.TrySetResult( WaitGameServerResult.Failed("startupCancelled")))
                     {
                         server.GameServer.OnClosed();
                     }
@@ -276,14 +276,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                 
                 record.CustomData["region"] = server.Region;
                 record.CustomData["success"] = true;
-                _events.PostEventAsync(record);
+                _events.PostEvent(record);
                 return waitGameServerResult;
 
             }
             else
             {
                 record.CustomData["success"] = false;
-                return new WaitGameServerResult { Success = false };
+                return WaitGameServerResult.Failed(result.ErrorDetails);
             }
 
 
@@ -322,15 +322,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                     Config = server.GameSessionConfiguration,
                     GameSessionId = server.Id
                 };
-                server.RequestCompletedCompletionSource.SetResult(new WaitGameServerResult
-                {
-                    Success = true,
-                    Value = new GameServer
+                server.RequestCompletedCompletionSource.SetResult( WaitGameServerResult.Successful( new GameServer
                     {
                         GameServerId = new GameServerId { Id = server.Id, PoolId = this.Id },
                         GameServerSessionId = client.SessionId
                     }
-                });
+                ));
                 return startupParameters;
             }
             else

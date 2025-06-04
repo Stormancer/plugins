@@ -83,7 +83,7 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
         public IEnumerable<string> Faults { get; set; } = Enumerable.Empty<string>();
 
         /// <summary>
-        /// Gets informations about the agent.
+        /// Gets information about the agent.
         /// </summary>
         public AgentDescription Description { get; set; } = default!;
 
@@ -111,6 +111,11 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
         /// Gets the max number of CPU cores that can be reserved on the agent.
         /// </summary>
         public float TotalCpu { get; set; }
+
+        /// <summary>
+        /// Last date agent status was updated.
+        /// </summary>
+        public DateTime LastUpdated { get; init; }
     }
 
     /// <summary>

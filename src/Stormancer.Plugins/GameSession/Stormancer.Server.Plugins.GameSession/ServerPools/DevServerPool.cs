@@ -108,7 +108,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             public async Task<WaitGameServerResult> WaitForServerAsync()
             {
                 var s = await tcs.Task;
-                return new WaitGameServerResult { Value = s, Success = true };
+                return WaitGameServerResult.Successful(s);
             }
 
             internal void Cancel()
@@ -164,17 +164,20 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gameSessionConfig, CancellationToken cancellationToken)
         {
-            var record = new GameSessionEvent() { GameSessionId = gameSessionId, Type = "gameserver.starting" };
-            record.CustomData["pool"] = this.Id;
-            record.CustomData["PoolType"] = "dev";
-            _events.PostEventAsync(record);
-
-            record = new GameSessionEvent() { GameSessionId = gameSessionId, Type = "gameserver.started" };
-            record.CustomData["pool"] = this.Id;
             bool success = true;
+
+            var request = new GetServerPendingRequest(gameSessionId, gameSessionConfig);
+            var startedRecord = new GameSessionEvent() { GameSessionId = gameSessionId, Type = "gameserver.started" };
+            startedRecord.CustomData["pool"] = this.Id;
             try
             {
-                var request = new GetServerPendingRequest(gameSessionId, gameSessionConfig);
+                var record = new GameSessionEvent() { GameSessionId = gameSessionId, Type = "gameserver.starting" };
+                record.CustomData["pool"] = this.Id;
+                record.CustomData["PoolType"] = "dev";
+                _events.PostEvent(record);
+
+               
+               
                 if (cancellationToken.IsCancellationRequested)
                 {
                     throw new TaskCanceledException();
@@ -189,7 +192,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                             gameServer.SetGameFound(gameSessionId, gameSessionConfig);
                             gameServer.CancellationTokenRegistration.Unregister();
 
-                            return new WaitGameServerResult { Success = true, Value = new GameServer { GameServerId = new GameServerId { PoolId = this.Id, Id = gameSessionId }, GameServerSessionId = gameServer.Session.SessionId } };
+                            return WaitGameServerResult.Successful(new GameServer { GameServerId = new GameServerId { PoolId = this.Id, Id = gameSessionId }, GameServerSessionId = gameServer.Session.SessionId });
 
                         }
                     }
@@ -220,16 +223,16 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             catch (Exception ex)
             {
                 success = false;
-                record.CustomData["error"] = ex.ToString();
-                return new WaitGameServerResult { Success = false };
-               
+                startedRecord.CustomData["error"] = ex.ToString();
+                return WaitGameServerResult.Failed(ex.ToString());
+
 
             }
             finally
             {
 
-                record.CustomData["success"] = success;
-                _events.PostEventAsync(record);
+                startedRecord.CustomData["success"] = success;
+                _events.PostEvent(startedRecord);
             }
 
         }
@@ -331,7 +334,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         /// <param name="follow"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public IAsyncEnumerable<string> QueryLogsAsync(string gameSessionId, DateTime? since, DateTime? until, uint size, bool follow,CancellationToken cancellationToken)
+        public IAsyncEnumerable<string> QueryLogsAsync(string gameSessionId, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken)
         {
             return AsyncEnumerable.Empty<string>();
         }

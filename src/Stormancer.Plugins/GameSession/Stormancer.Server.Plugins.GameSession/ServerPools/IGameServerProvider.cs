@@ -57,18 +57,25 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <param name="success"></param>
         /// <param name="instance"></param>
         /// <param name="context"></param>
-        public StartGameServerResult(bool success, GameServerInstance? instance, object? context )
+        public StartGameServerResult(bool success, GameServerInstance? instance, object? context, string? errorDetails )
         {
             Success = success;
             Instance = instance;
             Context = context;
+            ErrorDetails = errorDetails;
         }
 
         /// <summary>
         /// Gets a boolean indicating whether  the request was successful.
         /// </summary>
         [MemberNotNullWhen(true,"Instance")]
+        [MemberNotNullWhen(false,"ErrorDetails")]
         public bool Success { get; }
+
+        /// <summary>
+        /// Gets a string containing error details if the operation failed.
+        /// </summary>
+        public string? ErrorDetails { get; }
 
         /// <summary>
         /// Gets the <see cref="GameServerInstance"/> object that contains details about the started game server.
