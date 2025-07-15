@@ -50,6 +50,8 @@ public:
 	void joinCurrentGameSession();
 	bool isInGameSession();
 
+	void InvitePlayerToParty(const Stormancer::Users::UserId& userId);
+
 	std::string mergerId;
 	int currentMergerPartiesCount;
 	int currentMergerPlayersCount;

@@ -286,6 +286,7 @@ ClientViewModel::ClientViewModel(int id, AppViewModel* parent)
 	, party(this)
 	, gameSession(this)
 	, gameFinder(this)
+	, friends(this)
 {
 	Stormancer::IClientFactory::SetConfig(id, [this](size_t configId)
 		{
@@ -304,6 +305,7 @@ ClientViewModel::ClientViewModel(int id, AppViewModel* parent)
 			config->addPlugin(new Stormancer::P2PMeshPlugin());
 			config->addPlugin(new Stormancer::Users::Auth::EphemeralPlugin());
 			config->addPlugin(new Stormancer::Users::Auth::AuthDeviceIdentifierPlugin());
+			config->addPlugin(new Stormancer::Friends::FriendsPlugin());
 			config->addPlugin< SamplePlugin>();
 
 #if defined(ENABLE_STEAM)
@@ -360,6 +362,7 @@ ClientViewModel::ClientViewModel(int id, AppViewModel* parent)
 
 	gameFinder.initialize();
 	gameSession.initialize();
+	friends.initialize();
 
 #if defined(ENABLE_EPIC)
 	if (this->parent->epicPlatformHandle)

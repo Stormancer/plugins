@@ -6,6 +6,7 @@
 #include "PartyUI.h"
 #include "GameFinderUI.h"
 #include "GameSessionUI.h"
+#include "FriendsUI.h"
 
 void ShowUI(AppViewModel& vm)
 {
@@ -149,6 +150,13 @@ void ShowClient(ClientViewModel& vm)
 		ShowUI(vm.gameSession,deltaTime);
 		
 	}
+
+	if (ImGui::CollapsingHeader("Friends", ImGuiTreeNodeFlags_None))
+	{
+		float deltaTime = vm.deltaTime;
+		ShowUI(vm.friends);
+	}
+
 	if (processing)
 	{
 		ImGui::EndDisabled();

@@ -6,6 +6,7 @@
 #include "PartyViewModel.h"
 #include "GameSessionViewModel.h"
 #include "GameFinderViewModel.h"
+#include "FriendsViewModel.h"
 
 #include "LogsUI.h"
 
@@ -86,6 +87,7 @@ public:
 	PartyViewModel party;
 	GameSessionViewModel gameSession;
 	GameFinderViewModel gameFinder;
+	FriendsViewModel friends;
 
 	bool showLogsWindow = false;
 	LogsComponent logs;

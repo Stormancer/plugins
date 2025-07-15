@@ -41,19 +41,19 @@ void PartyViewModel::createParty()
 	options.GameFinderName = gameFinderName;
 
 	party->createParty(options).then([this](pplx::task<void> t)
-	{
-
-		this->parent->isProcessing = false;
-		try
-		{
-			t.get();
-		}
-		catch (std::exception&)
 		{
 
-		}
+			this->parent->isProcessing = false;
+			try
+			{
+				t.get();
+			}
+			catch (std::exception&)
+			{
 
-	});
+			}
+
+		});
 }
 
 void PartyViewModel::createInvitationCode()
@@ -62,19 +62,19 @@ void PartyViewModel::createInvitationCode()
 	auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
 
 	party->createInvitationCode().then([this](pplx::task<std::string> t)
-	{
-
-		this->parent->isProcessing = false;
-		try
-		{
-			this->invitationCode =t.get();
-		}
-		catch (std::exception&)
 		{
 
-		}
+			this->parent->isProcessing = false;
+			try
+			{
+				this->invitationCode = t.get();
+			}
+			catch (std::exception&)
+			{
 
-	});
+			}
+
+		});
 }
 
 void PartyViewModel::joinByInvitationCode()
@@ -82,19 +82,19 @@ void PartyViewModel::joinByInvitationCode()
 	auto client = Stormancer::IClientFactory::GetClient(this->parent->id);
 	auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
 	party->joinPartyByInvitationCode(invitationCode).then([this](pplx::task<void> t)
-	{
-
-		this->parent->isProcessing = false;
-		try
-		{
-			t.get();
-		}
-		catch (std::exception&)
 		{
 
-		}
+			this->parent->isProcessing = false;
+			try
+			{
+				t.get();
+			}
+			catch (std::exception&)
+			{
 
-	});
+			}
+
+		});
 }
 
 void PartyViewModel::updatePartySettings()
@@ -126,7 +126,7 @@ void PartyViewModel::updateMemberData()
 	auto client = Stormancer::IClientFactory::GetClient(this->parent->id);
 	auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
 
-	
+
 	std::vector<byte> bytes;
 
 	bytes.resize(memberCustomData.length());
@@ -134,19 +134,19 @@ void PartyViewModel::updateMemberData()
 	std::memcpy(bytes.data(), memberCustomData.c_str(), memberCustomData.length());
 
 	party->updatePlayerData(bytes).then([this](pplx::task<void> t)
-	{
-
-		this->parent->isProcessing = false;
-		try
-		{
-			t.get();
-		}
-		catch (std::exception&)
 		{
 
-		}
+			this->parent->isProcessing = false;
+			try
+			{
+				t.get();
+			}
+			catch (std::exception&)
+			{
 
-	});
+			}
+
+		});
 }
 
 void PartyViewModel::updatePartyState(Stormancer::Party::PartyUserStatus newStatus)
@@ -155,19 +155,19 @@ void PartyViewModel::updatePartyState(Stormancer::Party::PartyUserStatus newStat
 	auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
 	parent->isProcessing = true;
 	party->updatePlayerStatus(newStatus).then([this](pplx::task<void> t)
-	{
-
-		this->parent->isProcessing = false;
-		try
-		{
-			t.get();
-		}
-		catch (std::exception&)
 		{
 
-		}
+			this->parent->isProcessing = false;
+			try
+			{
+				t.get();
+			}
+			catch (std::exception&)
+			{
 
-	});
+			}
+
+		});
 }
 
 void PartyViewModel::joinCurrentGameSession()
@@ -179,24 +179,24 @@ void PartyViewModel::joinCurrentGameSession()
 	parent->isProcessing = true;
 	party->getCurrentGameSessionConnectionToken()
 		.then([client](std::string connectionToken)
-	{
-		auto gs = client->dependencyResolver().resolve<Stormancer::GameSessions::GameSession>();
-		return gs->connectToGameSession(connectionToken,"",false);
-	})
+			{
+				auto gs = client->dependencyResolver().resolve<Stormancer::GameSessions::GameSession>();
+				return gs->connectToGameSession(connectionToken, "", false);
+			})
 		.then([this](pplx::task<Stormancer::GameSessions::GameSessionConnectionParameters> t)
-	{
+			{
 
-		this->parent->isProcessing = false;
-		try
-		{
-			t.get();
-		}
-		catch (std::exception& ex)
-		{
-			this->parent->lastError = ex.what();
-		}
+				this->parent->isProcessing = false;
+				try
+				{
+					t.get();
+				}
+				catch (std::exception& ex)
+				{
+					this->parent->lastError = ex.what();
+				}
 
-	});
+			});
 }
 
 bool PartyViewModel::isInGameSession()
@@ -206,25 +206,47 @@ bool PartyViewModel::isInGameSession()
 	return party->isInGameSession();
 }
 
+void PartyViewModel::InvitePlayerToParty(const Stormancer::Users::UserId& userId)
+{
+	auto client = Stormancer::IClientFactory::GetClient(this->parent->id);
+	auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
+	if (party->isInParty())
+	{
+		parent->isProcessing = true;
+		party->sendInvitation(userId, true).then([this](pplx::task<void> t)
+			{
+				this->parent->isProcessing = false;
+				try
+				{
+					t.get();
+				}
+				catch (std::exception& ex)
+				{
+					this->parent->lastError = ex.what();
+				}
+			});
+	}
+}
+
 void PartyViewModel::startMerging()
 {
 	auto client = Stormancer::IClientFactory::GetClient(this->parent->id);
 	auto merging = client->dependencyResolver().resolve<Stormancer::Party::PartyMergingApi>();
 	parent->isProcessing = true;
 	merging->start(mergerId).then([this](pplx::task<void> t)
-	{
-
-		this->parent->isProcessing = false;
-		try
 		{
-			t.get();
-		}
-		catch (std::exception& ex)
-		{
-			this->parent->lastError = ex.what();
-		}
 
-	});
+			this->parent->isProcessing = false;
+			try
+			{
+				t.get();
+			}
+			catch (std::exception& ex)
+			{
+				this->parent->lastError = ex.what();
+			}
+
+		});
 }
 
 void PartyViewModel::stopMerging()
@@ -233,19 +255,19 @@ void PartyViewModel::stopMerging()
 	auto merging = client->dependencyResolver().resolve<Stormancer::Party::PartyMergingApi>();
 	parent->isProcessing = true;
 	merging->stop(mergerId).then([this](pplx::task<void> t)
-	{
-
-		this->parent->isProcessing = false;
-		try
 		{
-			t.get();
-		}
-		catch (std::exception& ex)
-		{
-			this->parent->lastError = ex.what();
-		}
 
-	});
+			this->parent->isProcessing = false;
+			try
+			{
+				t.get();
+			}
+			catch (std::exception& ex)
+			{
+				this->parent->lastError = ex.what();
+			}
+
+		});
 }
 
 void PartyViewModel::getMergerStatus()
@@ -259,7 +281,7 @@ void PartyViewModel::getMergerStatus()
 			this->parent->isProcessing = false;
 			try
 			{
-				
+
 				auto r = t.get();
 				this->currentMergerAlgorithmId = r.data.algorithm;
 				this->currentMergerPartiesCount = r.data.partiesCount;
@@ -279,17 +301,17 @@ void PartyViewModel::leaveParty()
 	auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
 	parent->isProcessing = true;
 	party->leaveParty().then([this](pplx::task<void> t)
-	{
-
-		this->parent->isProcessing = false;
-		try
 		{
-			t.get();
-		}
-		catch (std::exception& ex)
-		{
-			this->parent->lastError = ex.what();
-		}
 
-	});
+			this->parent->isProcessing = false;
+			try
+			{
+				t.get();
+			}
+			catch (std::exception& ex)
+			{
+				this->parent->lastError = ex.what();
+			}
+
+		});
 }
