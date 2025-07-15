@@ -357,3 +357,4 @@ src/Stormancer.Plugins/GameSession/Stormancer.GameServers.Agent/appsettings.Deve
 .stormancer
 tests/server-profile/.config
 src/Samples/identifiers
+src/Samples/settings.json

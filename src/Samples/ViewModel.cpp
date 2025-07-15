@@ -309,10 +309,6 @@ ClientViewModel::ClientViewModel(int id, AppViewModel* parent)
 			config->addPlugin< SamplePlugin>();
 
 #if defined(ENABLE_EPIC)
-			config->addPlugin(new Stormancer::Epic::EpicPlugin());
-#endif
-
-#if defined(ENABLE_EPIC)
 			bool epicAlreadyInitialized = this->parent->epicPlatformHandle != nullptr;
 
 			auto epicSettings = this->parent->settings.epicSettings;

@@ -240,7 +240,7 @@
       <AdditionalIncludeDirectories>$(Stormancer-Epic-SdkPath)\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>EOSSDK-$(PlatformArchitecture)-Shipping.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>EOSSDK-Win$(PlatformArchitecture)-Shipping.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(Stormancer-Epic-SdkPath)\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
