@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+	
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{7f488d8d-5570-4878-b229-8cd5ce522b49}</ProjectGuid>
@@ -78,6 +79,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Program Files (x86)\Visual Leak Detector\include;imgui;backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+		<LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -95,6 +97,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Program Files (x86)\Visual Leak Detector\include;imgui;backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+		<LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -113,12 +116,13 @@
       <AdditionalIncludeDirectories>$(Stormancer-Epic-SdkPath)\Include;$(Stormancer-Steam-SdkPath)\public\steam;$(Stormancer-Cpp-LibPath)\include;..\..\output\cpp;C:\Program Files (x86)\Visual Leak Detector\include;imgui;backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
+		<LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d12.lib;d3dcompiler.lib;dxgi.lib;libStormancer_$(Configuration)_Windows.lib;steam_api$(PlatformArchitecture).lib;EOSSDK-Win64-Shipping.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\Program Files (x86)\Visual Leak Detector\lib\Win64;$(Stormancer-Cpp-LibPath)\libs\Windows\;$(Stormancer-Epic-SdkPath)\Lib;$(Stormancer-Steam-SdkPath)\redistributable_bin\win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d12.lib;d3dcompiler.lib;dxgi.lib;libStormancer_$(Configuration)_Windows.lib;steam_api$(PlatformArchitecture).lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Program Files (x86)\Visual Leak Detector\lib\Win64;$(Stormancer-Cpp-LibPath)\libs\Windows\;$(Stormancer-Steam-SdkPath)\redistributable_bin\win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -132,6 +136,7 @@
       <AdditionalIncludeDirectories>$(Stormancer-Cpp-LibPath)\include;..\..\output\cpp;C:\Program Files (x86)\Visual Leak Detector\include;imgui;backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
+		<LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -210,9 +215,9 @@
   <!--Steam Support-->
   <ItemDefinitionGroup Condition="'$(Stormancer-Steam-SdkPath)' != ''">
     <ClCompile>
-      <PreprocessorDefinitions>ENABLE_EPIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>ENABLE_STEAM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(Stormancer-Steam-SdkPath)\public\steam;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdcpp17</LanguageStandard>
+    
     </ClCompile>
     <Link>
       <AdditionalDependencies>steam_api$(PlatformArchitecture).lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -227,5 +232,22 @@
   </Target>
   <Target BeforeTargets="Build" Name="CheckSteamLib" Condition="'$(Stormancer-Steam-SdkPath)' != '' AND !Exists('$(Stormancer-Steam-SdkPath)\public\steam\steam_api.h')">
     <Error Text="Failed to find $(Stormancer-Steam-SdkPath)\public\steam\steam_api.h. $(Stormancer-Steam-SdkPath) should point to the root of the Steam SDK." />
+  </Target>
+  <!--Epic Support-->
+  <ItemDefinitionGroup Condition="'$(Stormancer-Epic-SdkPath)' != ''">
+    <ClCompile>
+      <PreprocessorDefinitions>ENABLE_EPIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(Stormancer-Epic-SdkPath)\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>EOSSDK-$(PlatformArchitecture)-Shipping.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(Stormancer-Epic-SdkPath)\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <Target BeforeTargets="Build" Name="CheckEpic" Condition="'$(Stormancer-Epic-SdkPath)' == ''">
+    <Warning Text="Environment variable Stormancer-Epic-SdkPath not set. Epic is disabled in the sample" />
+  </Target>
+  <Target BeforeTargets="Build" Name="CheckEpicSdk" Condition="'$(Stormancer-Epic-SdkPath)' != '' AND !Exists('$(Stormancer-Epic-SdkPath)\Include\eos_sdk.h')">
+    <Error Text="Failed to find $(Stormancer-Epic-SdkPath)\Include\eos_sdk.h. $(Stormancer-Epic-SdkPath) should point to the root of the EOS SDK." />
   </Target>
 </Project>

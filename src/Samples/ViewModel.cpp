@@ -308,7 +308,7 @@ ClientViewModel::ClientViewModel(int id, AppViewModel* parent)
 			config->addPlugin(new Stormancer::Friends::FriendsPlugin());
 			config->addPlugin< SamplePlugin>();
 
-#if defined(ENABLE_STEAM)
+#if defined(ENABLE_EPIC)
 			config->addPlugin(new Stormancer::Epic::EpicPlugin());
 #endif
 
