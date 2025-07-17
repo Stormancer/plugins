@@ -304,19 +304,25 @@ namespace Stormancer.Server.Plugins.Party
     public class QuitPartyContext
     {
         /// <summary>
-        /// Gets or sets the party that triggered the event.
+        /// Gets the party that triggered the event.
         /// </summary>
         public IPartyService Party { get; }
 
         /// <summary>
-        /// Gets or sets the disconnection info.
+        /// Gets the disconnection info.
         /// </summary>
         public DisconnectedArgs Args { get; }
 
-        internal QuitPartyContext(IPartyService party, DisconnectedArgs args)
+        /// <summary>
+        /// Gets the member quitting the party.
+        /// </summary>
+        public PartyMember Member { get; }
+
+        internal QuitPartyContext(IPartyService party, DisconnectedArgs args, PartyMember member)
         {
             Party = party;
             Args = args;
+            Member = member;
         }
     }
 

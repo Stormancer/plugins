@@ -19,6 +19,9 @@ Changed
 Fixed
 *****
 - Fixed an issue that would prevent `ResetPlayerReadyStateOn(ResetPlayerReadyStateMode.None)` from being applied correctly. 
+Added
+*****
+- Added PartyMember to OnQuit context.
 
 5.2.0.87
 ----------

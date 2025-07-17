@@ -421,10 +421,11 @@ namespace Stormancer.Server.Plugins.Party
         {
             await _partyState.TaskQueue.PushWork(async () =>
             {
+                PartyMember? partyUser = null;
                 try
                 {
-
-                    if (_partyState.PartyMembers.TryRemove(args.Peer.SessionId, out var partyUser))
+                   
+                    if (_partyState.PartyMembers.TryRemove(args.Peer.SessionId, out partyUser))
                     {
                         Log(LogLevel.Trace, "OnDisconnected", $"Member left the party, reason: {args.Reason}", args.Peer.SessionId, partyUser.UserId);
 
@@ -457,24 +458,26 @@ namespace Stormancer.Server.Plugins.Party
                 {
 
                 }
-
-                _ = RunInRequestScope(async (service, handlers, scope) =>
+                if (partyUser != null)
                 {
-                    try
+                    _ = RunInRequestScope(async (service, handlers, scope) =>
                     {
-                        var ctx = new QuitPartyContext(service, args);
-                        await handlers.RunEventHandler(handler => handler.OnQuit(ctx), exception => service.Log(LogLevel.Error, "OnDisconnected", "An exception was thrown by an OnQuit event handler", new { exception }, args.Peer.SessionId.ToString()));
-                    }
-                    finally
-                    {
-                        if (_partyState.PartyMembers.IsEmpty && _partyState.HasIndexedDocument)
+                        try
                         {
-                            scope.Resolve<PartyLuceneDocumentStore>().DeleteDocument(_partyState.Settings.PartyId);
-                            CancelInvitationCode();
-                            _ = _scene.KeepAlive(TimeSpan.Zero);
+                            var ctx = new QuitPartyContext(service, args, partyUser);
+                            await handlers.RunEventHandler(handler => handler.OnQuit(ctx), exception => service.Log(LogLevel.Error, "OnDisconnected", "An exception was thrown by an OnQuit event handler", new { exception }, args.Peer.SessionId.ToString()));
                         }
-                    }
-                });
+                        finally
+                        {
+                            if (_partyState.PartyMembers.IsEmpty && _partyState.HasIndexedDocument)
+                            {
+                                scope.Resolve<PartyLuceneDocumentStore>().DeleteDocument(_partyState.Settings.PartyId);
+                                CancelInvitationCode();
+                                _ = _scene.KeepAlive(TimeSpan.Zero);
+                            }
+                        }
+                    });
+                }
             });
         }
 
