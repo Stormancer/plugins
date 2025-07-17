@@ -710,8 +710,18 @@ namespace Stormancer
 			{
 				auto name = scene->getHostMetadata(METADATA_KEY);
 				if (name.length() > 0)
-				{
-					scene->dependencyResolver().resolve<details::FriendsService>()->subscribe();
+				{					
+					scene->dependencyResolver().resolve<details::FriendsService>()->subscribe().then([scene](pplx::task<void> task)
+						{
+							try
+							{
+								task.get();
+							}
+							catch (const std::exception& ex)
+							{
+								scene->dependencyResolver().resolve<ILogger>()->log(LogLevel::Error, "friends", "An error occurred when subscribing the the friend list changes", ex.what());
+							}
+						});;
 				}
 			}
 		};
