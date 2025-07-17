@@ -282,6 +282,12 @@ namespace Stormancer.Server.Plugins.Friends
                         dto.Data.Status = f.Status;
                     }
                     break;
+                case FriendListUpdateDtoOperation.UpdateCustomData:
+                    if(f!=null)
+                    {
+                        f.Status = dto.Data.Status;
+                    }
+                    break;
             }
         }
 

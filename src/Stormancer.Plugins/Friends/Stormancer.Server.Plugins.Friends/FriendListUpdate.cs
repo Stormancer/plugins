@@ -48,7 +48,14 @@ namespace Stormancer.Server.Plugins.Friends
         /// </summary>
         UpdateStatus = 2,
 
-     
+        /// <summary>
+        /// Updates custom data associated with the record.
+        /// </summary>
+        UpdateCustomData = 3
+
+
+
+
     }
 
     /// <summary>

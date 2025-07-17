@@ -122,5 +122,10 @@ namespace Stormancer.Server.Plugins.Friends
         {
             throw new NotSupportedException();
         }
+
+        public Task UpdateFriendsCustomData(PlatformId userId, string customData)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

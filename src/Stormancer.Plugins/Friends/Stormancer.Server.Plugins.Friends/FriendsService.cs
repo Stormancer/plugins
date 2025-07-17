@@ -656,7 +656,7 @@ namespace Stormancer.Server.Plugins.Friends
                     {
                         friend.Status["stormancer"] = FriendConnectionStatus.Disconnected;
                     }
-                    _channel.ApplyFriendListUpdate(ownerId, new FriendListUpdateDto { Data = friend, Operation = customData != friend.CustomData ? FriendListUpdateDtoOperation.AddOrUpdate : FriendListUpdateDtoOperation.UpdateStatus });
+                    _channel.ApplyFriendListUpdate(ownerId, new FriendListUpdateDto { Data = friend, Operation = customData != friend.CustomData ? FriendListUpdateDtoOperation.UpdateCustomData : FriendListUpdateDtoOperation.UpdateStatus });
                 }
 
             }
@@ -1062,6 +1062,14 @@ namespace Stormancer.Server.Plugins.Friends
                 return ComputeStatus(friendConfig, true);
             }
 
+        }
+
+        public async Task UpdateFriendsCustomData(PlatformId userId, string customData)
+        {
+            await foreach(var (ownerId, owner,friend) in _channel.GetListsContainingMemberAsync(userId))
+            {
+                _channel.ApplyFriendListUpdate(ownerId, new FriendListUpdateDto { Data = new Friend { UserIds = friend.UserIds, CustomData = customData, Status = friend.Status }, Operation = FriendListUpdateDtoOperation.UpdateCustomData });
+            }
         }
     }
 }

@@ -70,6 +70,15 @@ namespace Stormancer.Server.Plugins.Friends
         Task<MemberDto?> GetRelationship(string userId, string targetUserId, CancellationToken cancellationToken);
 
         /// <summary>
+        /// Updates custom data associated with a friend record.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="customData"></param>
+        /// <returns></returns>
+        Task UpdateFriendsCustomData(PlatformId userId, string customData);
+
+
+        /// <summary>
         /// Blocks an user.
         /// </summary>
         /// <param name="user"></param>

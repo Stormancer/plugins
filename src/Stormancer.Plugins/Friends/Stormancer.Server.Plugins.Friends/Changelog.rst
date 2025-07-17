@@ -14,6 +14,9 @@ Unreleased
 Changed
 *******
 - Updated dependency to Users to support unconfigured storage
+Added
+*****
+- Added `IFriendsService.UpdateFriendsCustomData` .
 
 5.0.1.82
 ----------
