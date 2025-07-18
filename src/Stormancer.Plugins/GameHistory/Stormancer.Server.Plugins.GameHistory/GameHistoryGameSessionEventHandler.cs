@@ -118,40 +118,49 @@ namespace Stormancer.Server.Plugins.GameHistory
         }
         async Task IGameSessionEventHandler.GameSessionStarting(Stormancer.Server.Plugins.GameSession.GameSessionContext ctx)
         {
-            var dbCtx = await _dbAccessor.GetDbContextAsync();
-            var onAddingToHistoryContext = new OnAddingToHistoryContext(ctx.Scene, Enumerable.Empty<UserRecord>());
+            if (Guid.TryParse(ctx.Service.GameSessionId, out var guid))
+            {
+                var dbCtx = await _dbAccessor.GetDbContextAsync();
+                var onAddingToHistoryContext = new OnAddingToHistoryContext(ctx.Scene, Enumerable.Empty<UserRecord>());
 
-            await using var scope = _scene.CreateRequestScope();
-            var eventHandlers = scope.ResolveAll<IGameHistoryEventHandler>();
-            await eventHandlers.RunEventHandler(h => h.OnAddingToHistory(onAddingToHistoryContext), ex => { _logger.Log(LogLevel.Error, "gameHistory", $"An error occurred while executing {nameof(IGameHistoryEventHandler.OnAddingToHistory)}", ex); });
+                await using var scope = _scene.CreateRequestScope();
+                var eventHandlers = scope.ResolveAll<IGameHistoryEventHandler>();
+                await eventHandlers.RunEventHandler(h => h.OnAddingToHistory(onAddingToHistoryContext), ex => { _logger.Log(LogLevel.Error, "gameHistory", $"An error occurred while executing {nameof(IGameHistoryEventHandler.OnAddingToHistory)}", ex); });
 
-            await _service.AddToHistoryAsync(
-                Guid.Parse(ctx.Service.GameSessionId),
-                onAddingToHistoryContext.Participants,
-                onAddingToHistoryContext.CustomData.Deserialize<JsonDocument>()!,
-                DateTime.UtcNow,DateTime.MaxValue);
+                await _service.AddToHistoryAsync(
+                    guid,
+                    onAddingToHistoryContext.Participants,
+                    onAddingToHistoryContext.CustomData.Deserialize<JsonDocument>()!,
+                    DateTime.UtcNow, DateTime.MaxValue);
+            }
         }
 
         async Task IGameSessionEventHandler.OnClientConnected(Stormancer.Server.Plugins.GameSession.ClientConnectedContext ctx)
         {
-            var dbCtx = await _dbAccessor.GetDbContextAsync();
-            var user = await dbCtx.Set<UserRecord>().FindAsync(Guid.Parse(ctx.Player.Player.UserId));
-
-            var historyRecord = await _service.GetGameHistory(Guid.Parse(ctx.GameSession.GameSessionId));
-
-            if (user != null && historyRecord != null)
+            if (Guid.TryParse(ctx.GameSession.GameSessionId, out var guid))
             {
-                await using var scope = _scene.CreateRequestScope();
-                var eventHandlers = scope.ResolveAll<IGameHistoryEventHandler>();
-                var onAddingToHistoryContext = new OnAddingParticipantToGameContext(_scene, historyRecord, user);
-                await eventHandlers.RunEventHandler(h => h.OnAddingParticipantToGame(onAddingToHistoryContext), ex => { _logger.Log(LogLevel.Error, "gameHistory", $"An error occurred while executing {nameof(IGameHistoryEventHandler.OnAddingToHistory)}", ex); });
+                var dbCtx = await _dbAccessor.GetDbContextAsync();
+                var user = await dbCtx.Set<UserRecord>().FindAsync(Guid.Parse(ctx.Player.Player.UserId));
 
-                historyRecord.Participants.Add(user);
+                var historyRecord = await _service.GetGameHistory(guid);
 
-                await _service.UpdateGameHistoryRecordAsync(historyRecord);
+                if (user != null && historyRecord != null)
+                {
+                    await using var scope = _scene.CreateRequestScope();
+                    var eventHandlers = scope.ResolveAll<IGameHistoryEventHandler>();
+                    var onAddingToHistoryContext = new OnAddingParticipantToGameContext(_scene, historyRecord, user);
+                    await eventHandlers.RunEventHandler(h => h.OnAddingParticipantToGame(onAddingToHistoryContext), ex => { _logger.Log(LogLevel.Error, "gameHistory", $"An error occurred while executing {nameof(IGameHistoryEventHandler.OnAddingToHistory)}", ex); });
+
+                    historyRecord.Participants.Add(user);
+
+                    await _service.UpdateGameHistoryRecordAsync(historyRecord);
+                }
+
             }
-
-
+            else
+            {
+                _logger.Log(LogLevel.Debug, "gameHistory", $"Ignored gamesession '{ctx.GameSession.GameSessionId}' because its id is not a guid.", new { ctx.GameSession.GameSessionId }, ctx.GameSession.GameSessionId);
+            }
         }
 
         public async Task GameSessionCompleted(GameSessionCompleteCtx ctx)

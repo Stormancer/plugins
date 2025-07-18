@@ -14,6 +14,10 @@ Unreleased
 Added
 *****
 - Added admin API.
+Fixed
+*****
+- Ignore gamesession when their id is not a valid guid.
+
 2.0.3.17
 ----------
 Changed
