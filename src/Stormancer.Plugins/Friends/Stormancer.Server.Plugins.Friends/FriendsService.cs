@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Humanizer;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
 using Microsoft.AspNetCore.Builder;
@@ -1065,6 +1066,7 @@ namespace Stormancer.Server.Plugins.Friends
 
         public async Task UpdateFriendsCustomData(PlatformId userId, string customData)
         {
+            _logger.Log(LogLevel.Info, "friends", "Try updating custom data.", new { userId, customData });
             await foreach(var (ownerId, owner,friend) in _channel.GetListsContainingMemberAsync(userId))
             {
                 var dto = new FriendListUpdateDto { Data = new Friend { UserIds = friend.UserIds, CustomData = customData, Status = friend.Status }, Operation = FriendListUpdateDtoOperation.UpdateCustomData };
