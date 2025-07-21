@@ -1066,7 +1066,7 @@ namespace Stormancer.Server.Plugins.Friends
 
         public async Task UpdateFriendsCustomData(PlatformId userId, string customData)
         {
-            _logger.Log(LogLevel.Info, "friends", "Try updating custom data.", new { userId, customData });
+            _logger.Log(LogLevel.Info, "friends", "Trying to update custom data.", new { userId, customData });
             await foreach(var (ownerId, owner,friend) in _channel.GetListsContainingMemberAsync(userId))
             {
                 var dto = new FriendListUpdateDto { Data = new Friend { UserIds = friend.UserIds, CustomData = customData, Status = friend.Status }, Operation = FriendListUpdateDtoOperation.UpdateCustomData };

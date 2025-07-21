@@ -22,6 +22,7 @@
 
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
+using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Friends.Data;
 using Stormancer.Server.Plugins.Friends.Models;
 using Stormancer.Server.Plugins.Users;
@@ -120,13 +121,14 @@ namespace Stormancer.Server.Plugins.Friends
         private readonly ConcurrentDictionary<SessionId, UserContainer> _peers = new();
         private readonly ISceneHost _scene;
         private readonly ISerializer _serializer;
-
+        private readonly ILogger _logger;
         private readonly Index<PlatformId, Guid> _index = new();
 
-        public FriendsRepository(ISceneHost scene, ISerializer serializer)
+        public FriendsRepository(ISceneHost scene, ISerializer serializer, ILogger logger)
         {
             _scene = scene;
             _serializer = serializer;
+            _logger = logger;
         }
         public Task AddPeer(Guid key, IScenePeerClient peer, User user, UserFriendListConfig statusConfig)
         {
@@ -447,8 +449,8 @@ namespace Stormancer.Server.Plugins.Friends
         /// <returns></returns>
         internal async IAsyncEnumerable<(Guid ownerId, User owner, Friend friend)> GetListsContainingMemberAsync(PlatformId userId)
         {
-            var list = new List<(Guid ownerId, User owner, Friend friend)>();
 
+            bool found = false;
             if(_index.TryGet(userId,out var ids))
             {
                 foreach(var id in ids)
@@ -458,11 +460,17 @@ namespace Stormancer.Server.Plugins.Friends
                         var friend = container.Friends.FirstOrDefault(f => f.TryGetIdForPlatform(userId.Platform, out var i) && i == userId.PlatformUserId);
                         if (friend != null)
                         {
+                            found = true;
                             yield return (id, container.User, friend);
                         }
                     }
 
                 }
+            }
+
+            if(!found)
+            {
+                _logger.Log(LogLevel.Info, "friends", "friend lists.", new { _platformIds.Keys, userId });
             }
         }
     }
