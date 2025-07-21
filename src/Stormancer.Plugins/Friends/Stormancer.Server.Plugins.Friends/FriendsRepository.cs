@@ -49,6 +49,7 @@ namespace Stormancer.Server.Plugins.Friends
         }
         private ConcurrentDictionary<TKey, Container> _index = new ConcurrentDictionary<TKey, Container>();
 
+        public IEnumerable<TKey> Keys => _index.Keys;
         public void Add(TKey key, TValue value)
         {
             var c = _index.GetOrAdd(key, (_) => new Container());
@@ -470,7 +471,7 @@ namespace Stormancer.Server.Plugins.Friends
 
             if(!found)
             {
-                _logger.Log(LogLevel.Info, "friends", "friend lists.", new { _platformIds.Keys, userId });
+                _logger.Log(LogLevel.Info, "friends", "friend lists.", new { index= _index.Keys,platformIds= _platformIds.Keys, userId });
             }
         }
     }
