@@ -257,6 +257,10 @@ namespace Stormancer.Server.Plugins.Friends
                     else
                     {
                         container.Friends.Add(dto.Data);
+                        foreach(var userId in dto.Data.UserIds)
+                        {
+                            _index.Add(userId, container.Key);
+                        }
                     }
                     break;
 
