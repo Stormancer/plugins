@@ -23,7 +23,6 @@
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
 using Microsoft.AspNetCore.Builder;
-using Nest;
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Core.Helpers;
@@ -1068,7 +1067,9 @@ namespace Stormancer.Server.Plugins.Friends
         {
             await foreach(var (ownerId, owner,friend) in _channel.GetListsContainingMemberAsync(userId))
             {
-                _channel.ApplyFriendListUpdate(ownerId, new FriendListUpdateDto { Data = new Friend { UserIds = friend.UserIds, CustomData = customData, Status = friend.Status }, Operation = FriendListUpdateDtoOperation.UpdateCustomData });
+                var dto = new FriendListUpdateDto { Data = new Friend { UserIds = friend.UserIds, CustomData = customData, Status = friend.Status }, Operation = FriendListUpdateDtoOperation.UpdateCustomData };
+                _logger.Log(LogLevel.Info, "friends", "Updating custom data.", new { ownerId,dto });
+                _channel.ApplyFriendListUpdate(ownerId, dto);
             }
         }
     }
