@@ -165,12 +165,15 @@ namespace Stormancer.Server.Plugins.GameHistory
 
         public async Task GameSessionCompleted(GameSessionCompleteCtx ctx)
         {
-            var historyRecord = await _service.GetGameHistory(Guid.Parse(ctx.Service.GameSessionId));
-            if (historyRecord != null)
+            if (Guid.TryParse(ctx.Service.GameSessionId, out var guid))
             {
+                var historyRecord = await _service.GetGameHistory(guid);
+                if (historyRecord != null)
+                {
 
-                historyRecord.CompletedOn = DateTime.UtcNow;
-                await _service.UpdateGameHistoryRecordAsync(historyRecord);
+                    historyRecord.CompletedOn = DateTime.UtcNow;
+                    await _service.UpdateGameHistoryRecordAsync(historyRecord);
+                }
             }
 
         }
