@@ -356,5 +356,6 @@ tests/server-profile/data
 src/Stormancer.Plugins/GameSession/Stormancer.GameServers.Agent/appsettings.Development.json
 .stormancer
 tests/server-profile/.config
+tests/server-profile/secrets
 src/Samples/identifiers
 src/Samples/settings.json

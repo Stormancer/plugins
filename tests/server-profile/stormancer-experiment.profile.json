@@ -1,0 +1,1 @@
+{"Cluster":"stormancer-experiment","Account":"tests","App":"test-app","Config":{"Type":"file","Value":".\\config-experiment.json"},"Deployment":{"Type":"directory","Value":"..\\Stormancer.Server.Plugins.Tests.Sample\\"}}

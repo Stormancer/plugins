@@ -1,0 +1,5 @@
+{
+  "npgsql": {
+    "host": "localhost:5432"
+  }
+}

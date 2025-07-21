@@ -1,0 +1,15 @@
+{
+	"dataProtection":{
+		"gameServer":{
+			"provider":"aes-gcm",
+			"key":"tests/test-secrets/gameServer",
+			"createKeyIfNotExists":true
+		},
+		  "postgresql":{
+			  "host":"localhost:5432",
+			  "username":"stormancer_experiment",
+			  "passwordPath":"tests/tests_secrets/pqPassword",
+			  "database":"sample_experiment"
+  }
+	}
+}

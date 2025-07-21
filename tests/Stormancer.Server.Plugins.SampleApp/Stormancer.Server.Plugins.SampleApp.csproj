@@ -4,7 +4,7 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>1.0.2.9</Version>
+		<Version>1.0.3.1</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -30,6 +30,7 @@
 		<NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
 	</ItemGroup>
 	<ItemGroup>
+		<ProjectReference Include="..\..\src\Stormancer.Plugins\Database\Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql\Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql.csproj" />
 		<ProjectReference Include="..\..\src\Stormancer.Plugins\Epic\Stormancer.Server.Plugins.Epic\Stormancer.Server.Plugins.Epic.csproj" />
 		<ProjectReference Include="..\..\src\Stormancer.Plugins\Friends\Stormancer.Server.Plugins.Friends.RecentlyMet\Stormancer.Server.Plugins.Friends.RecentlyMet.csproj" />
 		<ProjectReference Include="..\..\src\Stormancer.Plugins\Friends\Stormancer.Server.Plugins.Friends\Stormancer.Server.Plugins.Friends.csproj" />
