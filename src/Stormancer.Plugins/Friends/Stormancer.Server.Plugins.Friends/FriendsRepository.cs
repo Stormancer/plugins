@@ -473,10 +473,7 @@ namespace Stormancer.Server.Plugins.Friends
                 }
             }
 
-            if(!found)
-            {
-                _logger.Log(LogLevel.Info, "friends", "friend lists.", new { index= _index.Keys,platformIds= _platformIds.Keys, userId });
-            }
+           
         }
     }
 
