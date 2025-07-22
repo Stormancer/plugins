@@ -51,7 +51,7 @@ namespace Stormancer
 			std::vector<std::string> tags;
 			std::string customData;
 
-			FriendStatus getStatusForPlatform(std::string platform) const
+			FriendStatus getStatusForPlatform(const std::string& platform) const
 			{
 				auto it = status.find(platform);
 				if (it != status.end())
@@ -62,6 +62,20 @@ namespace Stormancer
 				{
 					return FriendStatus::Disconnected;
 				}
+			}
+
+			bool tryGetIdForPlatform(const std::string& platform, Stormancer::Users::UserId& id) const
+			{
+				for (auto& userId : userIds)
+				{
+					if (userId.platform == platform)
+					{
+						id = userId;
+						return true;
+					}
+				}
+
+				return false;
 			}
 
 			FriendStatus getStatus() const
@@ -78,15 +92,8 @@ namespace Stormancer
 
 			bool isOnPlatform(const std::string& platform) const
 			{
-				for (auto& userId : userIds)
-				{
-					if (userId.platform == platform)
-					{
-						return true;
-					}
-				}
-
-				return false;
+				Stormancer::Users::UserId pUserId;
+				return tryGetIdForPlatform(platform, pUserId);
 			}
 
 			MSGPACK_DEFINE(userIds, status, tags, customData)
@@ -96,7 +103,8 @@ namespace Stormancer
 		{
 			AddOrUpdate = 0,
 			Remove = 1,
-			UpdateStatus = 2
+			UpdateStatus = 2,
+			UpdateCustomData = 3
 		};
 
 		struct FriendListUpdateDto
@@ -246,6 +254,8 @@ namespace Stormancer
 			virtual pplx::task<void> unblock(const Stormancer::Users::UserId& userIdToUnblock, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
 
 			virtual pplx::task<std::vector<std::string>> getBlockedList(pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
+
+			virtual bool tryGetFriend(const Stormancer::Users::UserId& userId, Stormancer::Friends::Friend& f) = 0;
 		};
 
 		namespace details
@@ -431,6 +441,9 @@ namespace Stormancer
 					case FriendListUpdateOperationInternal::UpdateStatus:
 						onFriendUpdateStatus(update);
 						break;
+					case FriendListUpdateOperationInternal::UpdateCustomData:
+						onFriendUpdateCustomData(update);
+						break;
 					default:
 						_logger->log(LogLevel::Error, "friends", "Unknown friends operation: " + std::to_string((int)update.operation));
 						break;
@@ -468,6 +481,19 @@ namespace Stormancer
 						if (fr)
 						{
 							fr->status = update.data.status;
+							friendListChanged(FriendListUpdatedEvent{ FriendListUpdateOperation::AddOrUpdate, fr });
+						}
+					}
+				}
+
+				void onFriendUpdateCustomData(const FriendListUpdateDto& update)
+				{
+					std::shared_ptr<Friend> fr;
+					if (tryGet(friends, update.data.userIds, fr))
+					{
+						if (fr)
+						{
+							fr->customData = update.data.customData;
 							friendListChanged(FriendListUpdatedEvent{ FriendListUpdateOperation::AddOrUpdate, fr });
 						}
 					}
@@ -565,6 +591,30 @@ namespace Stormancer
 					{
 						return false;
 					}
+
+				}
+
+				bool tryGetFriend(const Stormancer::Users::UserId& userId, Stormancer::Friends::Friend& f) override
+				{
+					auto result = friends();
+					if (!result.isReady)
+					{
+						return false;
+					}
+
+					for (auto& fr : result.friends)
+					{
+						for (auto& id : fr.userIds)
+						{
+							if (id == userId)
+							{
+								f = fr;
+								return true;
+							}
+						}
+					}
+
+					return false;
 
 				}
 
