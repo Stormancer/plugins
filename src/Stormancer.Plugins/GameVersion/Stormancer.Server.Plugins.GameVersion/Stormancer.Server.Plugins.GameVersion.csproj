@@ -5,7 +5,7 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>2.3.0</Version>
+		<Version>2.3.0.1</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -23,6 +23,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
+		<EmbeddedResource Include="..\cpp\GameVersion.hpp" Link="cpp\GameVersion.hpp" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -40,6 +41,10 @@
 	<ItemGroup>
 		<NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
 		<cpp Include="$(ProjectDir)../cpp/*" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="cpp\" />
 	</ItemGroup>
 	<Target Name="PostPack" AfterTargets="Pack">
 		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />

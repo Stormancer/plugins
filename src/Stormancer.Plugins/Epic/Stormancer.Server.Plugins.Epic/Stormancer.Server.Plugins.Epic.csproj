@@ -27,6 +27,7 @@
 	
 	<ItemGroup>
 		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
+		<EmbeddedResource Include="..\cpp\Epic.hpp" Link="cpp\Epic.hpp" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -58,6 +59,10 @@
 		<ProjectReference Include="..\..\Profile\Stormancer.Server.Plugins.Profile\Stormancer.Server.Plugins.Profile.csproj" />
 		<ProjectReference Include="..\..\Users\Stormancer.Server.Plugins.Users\Stormancer.Server.Plugins.Users.csproj" />
 		<ProjectReference Include="..\..\Utilities\Stormancer.Server.Plugins.Utilities\Stormancer.Server.Plugins.Utilities.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="cpp\" />
 	</ItemGroup>
 
 	<Target Name="PostPack" AfterTargets="Pack">
