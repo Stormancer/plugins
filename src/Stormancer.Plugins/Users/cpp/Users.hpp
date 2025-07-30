@@ -777,7 +777,7 @@ namespace Stormancer
 			/// <returns>
 			/// A <c>pplx::task</c> that completes when the authentication is done.
 			/// If the authentication fails, the task will be faulted.
-			/// In case the authentication process fails when retrieving local credentals, the type of the exception embedded in the task will be <c>CredentialsException</c>.
+			/// In case the authentication process fails when retrieving local credentials, the type of the exception embedded in the task will be <c>CredentialsException</c>.
 			/// </returns>
 			pplx::task<void> login(pplx::cancellation_token ct = pplx::cancellation_token::none())
 			{
@@ -789,6 +789,17 @@ namespace Stormancer
 						});
 			}
 
+			Stormancer::SessionId getUserSessionId()
+			{
+				if (auto client = this->_wClient.lock())
+				{
+					return client->sessionId();
+				}
+				else
+				{
+					return Stormancer::SessionId();
+				}
+			}
 			/// <summary>
 			/// Log out of Stormancer.
 			/// </summary>
