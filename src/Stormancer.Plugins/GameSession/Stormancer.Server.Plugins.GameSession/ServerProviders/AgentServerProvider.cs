@@ -489,7 +489,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
             TotalCpu = float.Parse(Description.Claims["quotas.maxCpu"]);
             TotalMemory = long.Parse(Description.Claims["quotas.maxMemory"]);
-
+            LastStatusUpdate = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -719,7 +719,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         {
             if (ShuttingDown)
             {
-                peer.DisconnectFromServer("shuttingDown");
+                peer.DisconnectFromServer("managerShuttingDown");
                 return;
             }
             lock (_syncRoot)
@@ -761,14 +761,27 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         private async Task SubscribeContainerStatusUpdate(DockerAgent agent, CancellationToken cancellationToken)
         {
-            _ = UpdateAgentStatus(agent, cancellationToken);
-            await foreach (var update in GetContainerStatusUpdates(agent.Id, cancellationToken))
+            while (!cancellationToken.IsCancellationRequested)
             {
-                agent.TotalCpu = update.TotalCpu;
-                agent.ReservedCpu = update.ReservedCpu;
-                agent.TotalMemory = update.TotalMemory;
-                agent.ReservedMemory = update.ReservedMemory;
-                agent.LastStatusUpdate = DateTime.UtcNow;
+                try
+                {
+                    _ = UpdateAgentStatus(agent, cancellationToken);
+                    await foreach (var update in GetContainerStatusUpdates(agent.Id, cancellationToken))
+                    {
+                        
+                        agent.TotalCpu = update.TotalCpu;
+                        agent.ReservedCpu = update.ReservedCpu;
+                        agent.TotalMemory = update.TotalMemory;
+                        agent.ReservedMemory = update.ReservedMemory;
+                        agent.LastStatusUpdate = DateTime.UtcNow;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Log(LogLevel.Error, "gameservers.agent", $"An error occured while updating state of agent {agent.Id}", ex);
+                }
+
+                await Task.Delay(1000);
             }
         }
 
@@ -991,11 +1004,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                     }
                     _logger.Log(LogLevel.Info, "docker.start", $"Sent start container command to agent {agent.Id} for gamesession '{id}'", new { agentConfig, agentId = agent.Id, gameSession = id, response }, id, agent.Id);
                     tryResults.Add(response);
-                    agent.TotalCpu = response.TotalCpuQuotaAvailable;
-                    agent.TotalMemory = response.TotalMemoryQuotaAvailable;
+                    //TODO: Investigate
+                    //agent.TotalCpu = response.TotalCpuQuotaAvailable;
+                    //agent.TotalMemory = response.TotalMemoryQuotaAvailable;
                     agent.ReservedCpu = response.CurrentCpuQuotaUsed;
                     agent.ReservedMemory = response.CurrentMemoryQuotaUsed;
-
+                    agent.LastStatusUpdate = DateTime.UtcNow;
                     if (response.Success)
                     {
                         var record = new GameSessionEvent { GameSessionId = id, Type = "dockerAgent" };
