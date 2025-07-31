@@ -1,14 +1,14 @@
-namespace Stormancer.Server.Plugins.Epic
+namespace Stormancer.Server.Plugins.Eos
 {
     /// <summary>
-    /// Constants for the Epic plugin.
+    /// Constants for the Eos plugin.
     /// </summary>
-    public static class EpicConstants
+    public static class Eos
     {
         /// <summary>
         /// Platform name.
         /// </summary>
-        public const string PLATFORM_NAME = "epic";
+        public const string PLATFORM_NAME = "eos";
 
         /// <summary>
         /// JWT issuer.
@@ -26,12 +26,12 @@ namespace Stormancer.Server.Plugins.Epic
         public const string ACCOUNTID_CLAIMPATH = "accountId";
 
         /// <summary>
-        /// Epic account display name.
+        /// EOS account display name.
         /// </summary>
         public const string DISPLAYNAME = "displayName";
 
         /// <summary>
-        /// Epic account display name.
+        /// EOS product user id.
         /// </summary>
         public const string PRODUCTUSERID = "productUserId";
     }

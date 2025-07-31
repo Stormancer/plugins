@@ -643,7 +643,7 @@ namespace Stormancer
 
 			class EpicPartyProvider;
 
-			class EpicApi : public ClientAPI<EpicApi, EpicService>, public IEpicApi
+			class EpicApi : public ClientAPI<EpicApi, EpicService>, public IEpicApi, public Friends::IFriendsEventHandler
 			{
 				friend class EpicPartyProvider;
 
@@ -735,6 +735,12 @@ namespace Stormancer
 				EOS_EpicAccountId getEpicAccountId()
 				{
 					return _epicState->getEpicAccountId();
+				}
+
+				Subscription subscribeFriendsChanged(std::function<void(std::vector<Friends::FriendListUpdateDto>)> callback) override
+				{
+					//TODO
+					return Subscription();
 				}
 
 #pragma endregion
@@ -1025,9 +1031,9 @@ namespace Stormancer
 						return;
 					}
 
-					auto invidationDataJsonObject = web::json::value::object();
-					invidationDataJsonObject[utility::conversions::to_string_t(EpicPartyInvitation::invitationDataPartyIdField)] = web::json::value(utility::conversions::to_string_t(ctx->partyId.id));
-					auto invidationDataJsonString = utility::conversions::to_utf8string(invidationDataJsonObject.serialize());
+					auto invitationDataJsonObject = web::json::value::object();
+					invitationDataJsonObject[utility::conversions::to_string_t(EpicPartyInvitation::invitationDataPartyIdField)] = web::json::value(utility::conversions::to_string_t(ctx->partyId.id));
+					auto invidationDataJsonString = utility::conversions::to_utf8string(invitationDataJsonObject.serialize());
 
 					EOS_HPlatform platformHandle = _epicState->getPlatformHandle();
 					if (!platformHandle)
@@ -1527,7 +1533,7 @@ namespace Stormancer
 				builder.registerDependency<details::EpicState, IClient, Configuration, ILogger>().singleInstance();
 				builder.registerDependency<details::EpicTicker, Configuration, details::EpicState, ILogger>().asSelf().singleInstance();
 				builder.registerDependency<details::EpicEventsManager, IClient, details::EpicState, ILogger>().asSelf().singleInstance();
-				builder.registerDependency<details::EpicApi, Users::UsersApi, details::EpicState, Configuration, IScheduler, ILogger, Party::PartyApi>().asSelf().as<IEpicApi>();
+				builder.registerDependency<details::EpicApi, Users::UsersApi, details::EpicState, Configuration, IScheduler, ILogger, Party::PartyApi>().asSelf().as<IEpicApi>().as<Friends::IFriendsEventHandler>();
 				builder.registerDependency<details::EpicPartyProvider, Party::Platform::InvitationMessenger, Users::UsersApi, details::EpicState, details::EpicApi, ILogger, Party::PartyApi, IActionDispatcher>().as<Party::Platform::IPlatformSupportProvider>();
 				builder.registerDependency<details::EpicPartyEventHandler, ILogger, details::EpicState>().as<Party::IPartyEventHandler>();
 				builder.registerDependency<details::EpicAuthenticationEventHandler, details::EpicState, ILogger>().as<Users::IAuthenticationEventHandler>();

@@ -3,16 +3,16 @@ using Stormancer.Server.Plugins.Users;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.Epic
+namespace Stormancer.Server.Plugins.Eos
 {
     /// <summary>
     /// Epic controller
     /// </summary>
-    public class EpicController : ControllerBase
+    public class EosController : ControllerBase
     {
         private readonly IUserSessions _userSessions;
         private readonly ISerializer _serializer;
-        private readonly IEpicService _epicService;
+        private readonly IEosService _epicService;
 
         /// <summary>
         /// Epic controller constructor
@@ -20,7 +20,7 @@ namespace Stormancer.Server.Plugins.Epic
         /// <param name="userSessions"></param>
         /// <param name="serializer"></param>
         /// <param name="epicService"></param>
-        public EpicController(IUserSessions userSessions, ISerializer serializer, IEpicService epicService)
+        public EosController(IUserSessions userSessions, ISerializer serializer, IEosService epicService)
         {
             _userSessions = userSessions;
             _serializer = serializer;

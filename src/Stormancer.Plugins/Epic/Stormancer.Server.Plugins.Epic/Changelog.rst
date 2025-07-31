@@ -14,6 +14,7 @@ Unreleased
 
 Changed
 *******
+- Renamed plugin to EOS
 - Updated dependency to Users to support unconfigured storage
 
 1.2.0.5

@@ -27,25 +27,25 @@ Format : `-AUTH_LOGIN=unused -AUTH_PASSWORD=<password> -AUTH_TYPE=exchangecode -
 ```cpp
 	auto configuration = Stormancer::Configuration::create(STORMANCER_ENDPOINT, STORMANCER_ACCOUNT, STORMANCER_APPLICATION);
 	configuration->additionalParameters["platform"] = "epic";
-	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::ProductName] = "PRODUCT_NAME";
-	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::ProductVersion] = "PRODUCT_VERSION";
-	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::InitPlatform] = "true";
-	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::AuthenticationEnabled] = "true";
+	configuration->additionalParameters[Stormancer::Eos::ConfigurationKeys::ProductName] = "PRODUCT_NAME";
+	configuration->additionalParameters[Stormancer::Eos::ConfigurationKeys::ProductVersion] = "PRODUCT_VERSION";
+	configuration->additionalParameters[Stormancer::Eos::ConfigurationKeys::InitPlatform] = "true";
+	configuration->additionalParameters[Stormancer::Eos::ConfigurationKeys::AuthenticationEnabled] = "true";
 #if defined(_DEBUG)
-	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::Diagnostics] = "true";
-	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::LoginMode] = "DevAuth";
-	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::DevAuthHost] = "localhost:4567";
-	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::DevAuthCredentialsName] = "dev1";
+	configuration->additionalParameters[Stormancer::Eos::ConfigurationKeys::Diagnostics] = "true";
+	configuration->additionalParameters[Stormancer::Eos::ConfigurationKeys::LoginMode] = "DevAuth";
+	configuration->additionalParameters[Stormancer::Eos::ConfigurationKeys::DevAuthHost] = "localhost:4567";
+	configuration->additionalParameters[Stormancer::Eos::ConfigurationKeys::DevAuthCredentialsName] = "dev1";
 #else
-	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::LoginMode] = "ExchangeCode";
-	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::ExchangeCode] = exchangeCode;
+	configuration->additionalParameters[Stormancer::Eos::ConfigurationKeys::LoginMode] = "ExchangeCode";
+	configuration->additionalParameters[Stormancer::Eos::ConfigurationKeys::ExchangeCode] = exchangeCode;
 #endif
-	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::ProductId] = "UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU";
-	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::SandboxId] = "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW";
-	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::DeploymentId] = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
-	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::ClientId] = "YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY";
-	configuration->additionalParameters[Stormancer::Epic::ConfigurationKeys::ClientSecret] = "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ";
-	configuration->addPlugin(new Stormancer::Epic::EpicPlugin());
+	configuration->additionalParameters[Stormancer::Eos::ConfigurationKeys::ProductId] = "UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU";
+	configuration->additionalParameters[Stormancer::Eos::ConfigurationKeys::SandboxId] = "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW";
+	configuration->additionalParameters[Stormancer::Eos::ConfigurationKeys::DeploymentId] = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+	configuration->additionalParameters[Stormancer::Eos::ConfigurationKeys::ClientId] = "YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY";
+	configuration->additionalParameters[Stormancer::Eos::ConfigurationKeys::ClientSecret] = "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ";
+	configuration->addPlugin(new Stormancer::Eos::EosPlugin());
 ```
 
 ## ProductUserId

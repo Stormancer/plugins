@@ -1,4 +1,4 @@
-﻿namespace Stormancer.Server.Plugins.Epic
+﻿namespace Stormancer.Server.Plugins.Eos
 {
     /// <summary>
     /// App
@@ -11,7 +11,7 @@
         /// <param name="builder"></param>
         public void Run(IAppBuilder builder)
         {
-            builder.AddPlugin(new EpicPlugin());
+            builder.AddPlugin(new EosPlugin());
         }
     }
 }

@@ -13,7 +13,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.Epic
+namespace Stormancer.Server.Plugins.Eos
 {
     /// <summary>
     /// Auth result
@@ -156,7 +156,7 @@ namespace Stormancer.Server.Plugins.Epic
     /// <summary>
     /// Epic Platform service
     /// </summary>
-    public class EpicService : IEpicService
+    public class EosService : IEosService
     {
         private readonly IConfiguration _configuration;
         private readonly IHttpClientFactory _httpClientFactory;
@@ -177,7 +177,7 @@ namespace Stormancer.Server.Plugins.Epic
         /// <param name="serializer"></param>
         /// <param name="logger"></param>
         /// <param name="secretsStore"></param>
-        public EpicService(IConfiguration configuration, IHttpClientFactory httpClientFactory, IUserSessions userSessions, ISerializer serializer, ILogger logger, ISecretsStore secretsStore)
+        public EosService(IConfiguration configuration, IHttpClientFactory httpClientFactory, IUserSessions userSessions, ISerializer serializer, ILogger logger, ISecretsStore secretsStore)
         {
             _configuration = configuration;
             _httpClientFactory = httpClientFactory;
@@ -192,14 +192,14 @@ namespace Stormancer.Server.Plugins.Epic
         /// </summary>
         /// <param name="session"></param>
         /// <returns>bool</returns>
-        public bool IsEpicAccount(Session session)
+        public bool IsEosAccount(Session session)
         {
-            return (session.platformId.Platform == EpicConstants.PLATFORM_NAME);
+            return (session.platformId.Platform == Eos.PLATFORM_NAME);
         }
 
-        private EpicConfigurationSection GetConfig()
+        private EosConfigurationSection GetConfig()
         {
-            return _configuration.GetValue<EpicConfigurationSection>(EpicConstants.PLATFORM_NAME);
+            return _configuration.GetValue<EosConfigurationSection>(Eos.PLATFORM_NAME);
         }
 
         /// <summary>

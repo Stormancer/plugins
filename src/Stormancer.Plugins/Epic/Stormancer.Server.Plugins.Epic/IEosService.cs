@@ -2,19 +2,19 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.Epic
+namespace Stormancer.Server.Plugins.Eos
 {
     /// <summary>
     /// Epic Platform service
     /// </summary>
-    public interface IEpicService
+    public interface IEosService
     {
         /// <summary>
         /// Is Epic the main auth of this session?
         /// </summary>
         /// <param name="session"></param>
         /// <returns></returns>
-        public bool IsEpicAccount(Session session);
+        public bool IsEosAccount(Session session);
 
         /// <summary>
         /// Get Epic accounts.

@@ -1,4 +1,4 @@
-﻿using Stormancer.Server.Plugins.Epic;
+﻿using Stormancer.Server.Plugins.Eos;
 using Stormancer.Server.Plugins.Users;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
@@ -17,9 +17,9 @@ namespace Stormancer
         /// <returns></returns>
         public static string? GetAccountId(this User user)
         {
-            if (user.UserData.ContainsKey(EpicConstants.PLATFORM_NAME))
+            if (user.UserData.ContainsKey(Eos.PLATFORM_NAME))
             {
-                return user.UserData[EpicConstants.PLATFORM_NAME]?[EpicConstants.ACCOUNTID_CLAIMPATH]?.ToString();
+                return user.UserData[Eos.PLATFORM_NAME]?[Eos.ACCOUNTID_CLAIMPATH]?.ToString();
             }
 
             return null;
@@ -34,9 +34,9 @@ namespace Stormancer
         public static bool TryGetEpicAccountId(this User user,[NotNullWhen(true)] out string? accountId)
         {
             accountId = null;
-            if (user.UserData.ContainsKey(EpicConstants.PLATFORM_NAME))
+            if (user.UserData.ContainsKey(Eos.PLATFORM_NAME))
             {
-                accountId = user.UserData[EpicConstants.PLATFORM_NAME]?[EpicConstants.ACCOUNTID_CLAIMPATH]?.ToString();
+                accountId = user.UserData[Eos.PLATFORM_NAME]?[Eos.ACCOUNTID_CLAIMPATH]?.ToString();
             }
 
             return accountId != null;
@@ -50,9 +50,9 @@ namespace Stormancer
         /// <returns></returns>
         public static string? GetDisplayName(this User user)
         {
-            if (user.UserData.ContainsKey(EpicConstants.PLATFORM_NAME))
+            if (user.UserData.ContainsKey(Eos.PLATFORM_NAME))
             {
-                return user.UserData[EpicConstants.PLATFORM_NAME]?[EpicConstants.DISPLAYNAME]?.ToString();
+                return user.UserData[Eos.PLATFORM_NAME]?[Eos.DISPLAYNAME]?.ToString();
             }
 
             return null;

@@ -1,18 +1,18 @@
 ﻿using Stormancer.Core;
 using Stormancer.Plugins;
-using Stormancer.Server.Plugins.Epic;
+using Stormancer.Server.Plugins.Eos;
 using Stormancer.Server.Plugins.Friends;
 using Stormancer.Server.Plugins.Profile;
 using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Users;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.Epic
+namespace Stormancer.Server.Plugins.Eos
 {
     /// <summary>
     /// Epic Plugin
     /// </summary>
-    public class EpicPlugin : IHostPlugin
+    public class EosPlugin : IHostPlugin
     {
         internal const string METADATA_KEY = "stormancer.plugins.epic";
 
@@ -24,12 +24,12 @@ namespace Stormancer.Server.Plugins.Epic
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
-                builder.Register<EpicController>().InstancePerRequest();
-                builder.Register<EpicProfilePartBuilder>().As<IProfilePartBuilder>();
-                builder.Register<EpicService>().As<IEpicService>();
+                builder.Register<EosController>().InstancePerRequest();
+                builder.Register<EosProfilePartBuilder>().As<IProfilePartBuilder>();
+                builder.Register<EosService>().As<IEosService>();
                 builder.Register(static r=>EpicServiceLocator.Instance).As<IServiceLocatorProvider>();
-                builder.Register<EpicFriendsEventHandler>().As<IFriendsEventHandler>().InstancePerRequest(); 
-                builder.Register<EpicAuthenticationProvider>().As<IAuthenticationProvider>();
+                builder.Register<EosFriendsEventHandler>().As<IFriendsEventHandler>().InstancePerRequest(); 
+                builder.Register<EosAuthenticationProvider>().As<IAuthenticationProvider>();
             };
 
           
@@ -46,7 +46,7 @@ namespace Stormancer.Server.Plugins.Epic
             {
                 if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
                 {
-                    scene.AddController<EpicController>();
+                    scene.AddController<EosController>();
                 }
             };
         }
@@ -80,7 +80,7 @@ namespace Stormancer
         /// <returns></returns>
         public static ISceneHost AddEpic(this ISceneHost scene)
         {
-            scene.TemplateMetadata[EpicPlugin.METADATA_KEY] = "enabled";
+            scene.TemplateMetadata[EosPlugin.METADATA_KEY] = "enabled";
             return scene;
         }
     }

@@ -15,7 +15,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.Epic
+namespace Stormancer.Server.Plugins.Eos
 {
 #pragma warning disable IDE1006 // Naming Styles
 
@@ -39,7 +39,7 @@ namespace Stormancer.Server.Plugins.Epic
     /// Represents the payload of an access token.
     /// </summary>
     [MessagePackObject]
-    public class EpicTokenPlayload
+    public class EosTokenPlayload
     {
         /// <summary>
         /// The base URI of the Epic Games authentication server that issued the token.
@@ -121,9 +121,9 @@ namespace Stormancer.Server.Plugins.Epic
     }
 
     /// <summary>
-    /// Epic configuration class
+    /// Eos configuration class
     /// </summary>
-    public class EpicConfigurationSection
+    public class EosConfigurationSection
     {
         /// <summary>
         /// Allowed Product ids.
@@ -215,7 +215,7 @@ namespace Stormancer.Server.Plugins.Epic
 
 #pragma warning restore IDE1006 // Naming Styles
 
-    class EpicAuthenticationProvider : IAuthenticationProvider
+    class EosAuthenticationProvider : IAuthenticationProvider
     {
         private readonly IUserService _users;
         private readonly ILogger _logger;
@@ -223,10 +223,10 @@ namespace Stormancer.Server.Plugins.Epic
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IUserSessions _userSessions;
         private readonly ISerializer _serializer;
-        private readonly IEpicService _epicService;
+        private readonly IEosService _eoscService;
         private static MemoryCache<string,KeyCollectionResponse> _keysCache = new MemoryCache<string,KeyCollectionResponse>();
 
-        public EpicAuthenticationProvider(IUserService users, ILogger logger, IConfiguration configuration, IHttpClientFactory httpClientFactory, IEpicService epicService, IUserSessions userSessions, ISerializer serializer)
+        public EosAuthenticationProvider(IUserService users, ILogger logger, IConfiguration configuration, IHttpClientFactory httpClientFactory, IEosService eosService, IUserSessions userSessions, ISerializer serializer)
         {
             _users = users;
             _logger = logger;
@@ -234,19 +234,19 @@ namespace Stormancer.Server.Plugins.Epic
             _httpClientFactory = httpClientFactory;
             _userSessions = userSessions;
             _serializer = serializer;
-            _epicService = epicService;
+            _eoscService = eosService;
         }
 
-        public string Type => EpicConstants.PLATFORM_NAME;
+        public string Type => Eos.PLATFORM_NAME;
 
         public void AddMetadata(Dictionary<string, string> result)
         {
-            result.Add("provider.epic", "enabled");
+            result.Add("provider.eos", "enabled");
         }
 
-        private EpicConfigurationSection GetConfig()
+        private EosConfigurationSection GetConfig()
         {
-            return _configuration.GetValue<EpicConfigurationSection>("epic");
+            return _configuration.GetValue<EosConfigurationSection>("eos");
         }
 
         private async Task<JwtKey> GetKey(AccessTokenHeader headers)
@@ -287,11 +287,11 @@ namespace Stormancer.Server.Plugins.Epic
         {
             var authParams = authenticationCtx.Parameters;
 
-            var pId = new PlatformId { Platform = EpicConstants.PLATFORM_NAME };
+            var pId = new PlatformId { Platform = Eos.PLATFORM_NAME };
 
             var config = GetConfig();
 
-            _logger.Log(LogLevel.Trace, "authenticator.epic", "Epic auth request received", authParams);
+            _logger.Log(LogLevel.Trace, "authenticator.eos", "EOS auth request received", authParams);
 
             if (config.productIds == null || !config.productIds.Any())
             {
@@ -313,10 +313,10 @@ namespace Stormancer.Server.Plugins.Epic
                 return AuthenticationResult.CreateFailure($"Missing DeploymentIds in server config.", pId, authParams);
             }
 
-            if (!authParams.TryGetValue(EpicConstants.ACCESSTOKEN_CLAIMPATH, out var accessToken) || string.IsNullOrWhiteSpace(accessToken))
+            if (!authParams.TryGetValue(Eos.ACCESSTOKEN_CLAIMPATH, out var accessToken) || string.IsNullOrWhiteSpace(accessToken))
             {
-                _logger.Log(LogLevel.Trace, "authenticator.epic", "Epic auth request failed : accessToken is empty", authParams);
-                return AuthenticationResult.CreateFailure($"{EpicConstants.ACCESSTOKEN_CLAIMPATH} must not be empty.", pId, authParams);
+                _logger.Log(LogLevel.Trace, "authenticator.eos", "EOS auth request failed : accessToken is empty", authParams);
+                return AuthenticationResult.CreateFailure($"{Eos.ACCESSTOKEN_CLAIMPATH} must not be empty.", pId, authParams);
             }
 
             var headers = Jose.JWT.Headers<AccessTokenHeader>(accessToken);
@@ -338,83 +338,83 @@ namespace Stormancer.Server.Plugins.Epic
                         Exponent = Jose.Base64Url.Decode(key.e)
                     });
 
-                    var payload = Jose.JWT.Decode<EpicTokenPlayload>(accessToken, rsa);
+                    var payload = Jose.JWT.Decode<EosTokenPlayload>(accessToken, rsa);
 
                     if (payload == null)
                     {
-                        _logger.Log(LogLevel.Error, "EpicAuthenticationProvider.Authenticate", "Can't decode payload.", new { });
+                        _logger.Log(LogLevel.Error, $"{nameof(EosAuthenticationProvider)}.{nameof(Authenticate)}", "Can't decode payload.", new { });
                         return AuthenticationResult.CreateFailure($"Invalid token (2).", pId, authParams);
                     }
 
                     if (string.IsNullOrWhiteSpace(payload.pfpid) || !config.productIds.Contains(payload.pfpid))
                     {
-                        _logger.Log(LogLevel.Error, "EpicAuthenticationProvider.Authenticate", "Invalid product id", new { TokenApplicationId = payload.appid, ConfigProductIds = config.productIds });
+                        _logger.Log(LogLevel.Error, $"{nameof(EosAuthenticationProvider)}.{nameof(Authenticate)}", "Invalid product id", new { TokenApplicationId = payload.appid, ConfigProductIds = config.productIds });
                         return AuthenticationResult.CreateFailure($"Invalid token (3).", pId, authParams);
                     }
 
                     if (string.IsNullOrWhiteSpace(payload.appid) || !config.applicationIds.Contains(payload.appid))
                     {
-                        _logger.Log(LogLevel.Error, "EpicAuthenticationProvider.Authenticate", "Invalid application id", new { TokenApplicationId = payload.appid, ConfigApplicationIds = config.applicationIds });
+                        _logger.Log(LogLevel.Error, $"{nameof(EosAuthenticationProvider)}.{nameof(Authenticate)}", "Invalid application id", new { TokenApplicationId = payload.appid, ConfigApplicationIds = config.applicationIds });
                         return AuthenticationResult.CreateFailure($"Invalid token (4).", pId, authParams);
                     }
 
                     if (string.IsNullOrWhiteSpace(payload.pfsid) || !config.sandboxIds.Contains(payload.pfsid))
                     {
-                        _logger.Log(LogLevel.Error, "EpicAuthenticationProvider.Authenticate", "Invalid sandbox id", new { TokenApplicationId = payload.appid, TokenSandboxId = payload.pfsid, ConfigSandboxIds = config.sandboxIds });
+                        _logger.Log(LogLevel.Error, $"{nameof(EosAuthenticationProvider)}.{nameof(Authenticate)}", "Invalid sandbox id", new { TokenApplicationId = payload.appid, TokenSandboxId = payload.pfsid, ConfigSandboxIds = config.sandboxIds });
                         return AuthenticationResult.CreateFailure($"Invalid token (5).", pId, authParams);
                     }
 
                     if (string.IsNullOrWhiteSpace(payload.pfdid) || !config.deploymentIds.Contains(payload.pfdid))
                     {
-                        _logger.Log(LogLevel.Error, "EpicAuthenticationProvider.Authenticate", "Invalid deployment id", new { TokenApplicationId = payload.appid, ConfigDeploymentIds = config.deploymentIds });
+                        _logger.Log(LogLevel.Error, $"{nameof(EosAuthenticationProvider)}.{nameof(Authenticate)}", "Invalid deployment id", new { TokenApplicationId = payload.appid, ConfigDeploymentIds = config.deploymentIds });
                         return AuthenticationResult.CreateFailure($"Invalid token (6).", pId, authParams);
                     }
 
                     if (payload.sub == null)
                     {
-                        _logger.Log(LogLevel.Error, "EpicAuthenticationProvider.Authenticate", "Invalid Epic account id", new { AccountId = payload.sub });
+                        _logger.Log(LogLevel.Error, $"{nameof(EosAuthenticationProvider)}.{nameof(Authenticate)}", "Invalid Epic account id", new { AccountId = payload.sub });
                         return AuthenticationResult.CreateFailure($"Invalid token (7).", pId, authParams);
                     }
 
                     var accountId = payload.sub;
                     pId.PlatformUserId = accountId;
 
-                    var user = await _users.GetUserByIdentity(EpicConstants.PLATFORM_NAME, accountId);
+                    var user = await _users.GetUserByIdentity(Eos.PLATFORM_NAME, accountId);
                     if (user == null)
                     {
                         var userId = Guid.NewGuid().ToString("N");
 
                         var epicUserData = new JObject();
-                        epicUserData[EpicConstants.ACCOUNTID_CLAIMPATH] = accountId;
+                        epicUserData[Eos.ACCOUNTID_CLAIMPATH] = accountId;
 
                         var userData = new JObject();
-                        userData[EpicConstants.PLATFORM_NAME] = epicUserData;
+                        userData[Eos.PLATFORM_NAME] = epicUserData;
 
-                        user = await _users.CreateUser(userId, userData, EpicConstants.PLATFORM_NAME);
-                        user = await _users.AddAuthentication(user, EpicConstants.PLATFORM_NAME, accountId,claim => claim[EpicConstants.ACCOUNTID_CLAIMPATH] = accountId);
+                        user = await _users.CreateUser(userId, userData, Eos.PLATFORM_NAME);
+                        user = await _users.AddAuthentication(user, Eos.PLATFORM_NAME, accountId,claim => claim[Eos.ACCOUNTID_CLAIMPATH] = accountId);
                     }
                     else
                     {
-                        if (user.LastPlatform != EpicConstants.PLATFORM_NAME)
+                        if (user.LastPlatform != Eos.PLATFORM_NAME)
                         {
-                            user.LastPlatform = EpicConstants.PLATFORM_NAME;
-                            await _users.UpdateLastPlatform(user.Id, EpicConstants.PLATFORM_NAME);
+                            user.LastPlatform = Eos.PLATFORM_NAME;
+                            await _users.UpdateLastPlatform(user.Id, Eos.PLATFORM_NAME);
                         }
 
                         bool updateUserData = false;
 
-                        var epicUserData = user.UserData[EpicConstants.PLATFORM_NAME] ?? new JObject();
+                        var epicUserData = user.UserData[Eos.PLATFORM_NAME] ?? new JObject();
 
-                        var userDataAccountId = epicUserData[EpicConstants.ACCOUNTID_CLAIMPATH];
+                        var userDataAccountId = epicUserData[Eos.ACCOUNTID_CLAIMPATH];
                         if (userDataAccountId == null || userDataAccountId.ToString() != accountId)
                         {
-                            epicUserData[EpicConstants.ACCOUNTID_CLAIMPATH] = accountId;
+                            epicUserData[Eos.ACCOUNTID_CLAIMPATH] = accountId;
                             updateUserData = true;
                         }
 
                         if (updateUserData)
                         {
-                            user.UserData[EpicConstants.PLATFORM_NAME] = epicUserData;
+                            user.UserData[Eos.PLATFORM_NAME] = epicUserData;
                             await _users.UpdateUserData(user.Id, user.UserData);
                         }
                     }
@@ -456,12 +456,12 @@ namespace Stormancer.Server.Plugins.Epic
         {
             if (user != null)
             {
-                var onlineId = (string?)user.Auth[EpicConstants.PLATFORM_NAME]?[EpicConstants.ACCOUNTID_CLAIMPATH];
+                var onlineId = (string?)user.Auth[Eos.PLATFORM_NAME]?[Eos.ACCOUNTID_CLAIMPATH];
                 if (onlineId == null)
                 {
-                    throw new ClientException($"authentication.unlink_failed?reason=not_linked&provider={EpicConstants.PLATFORM_NAME}");
+                    throw new ClientException($"authentication.unlink_failed?reason=not_linked&provider={Eos.PLATFORM_NAME}");
                 }
-                await _users.RemoveAuthentication(user, EpicConstants.PLATFORM_NAME);
+                await _users.RemoveAuthentication(user, Eos.PLATFORM_NAME);
             }
         }
     }

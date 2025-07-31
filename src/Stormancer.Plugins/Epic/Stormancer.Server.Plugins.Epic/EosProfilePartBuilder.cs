@@ -29,16 +29,16 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.Epic
+namespace Stormancer.Server.Plugins.Eos
 {
-    class EpicProfilePartBuilder : IProfilePartBuilder
+    class EosProfilePartBuilder : IProfilePartBuilder
     {
         private const string LOG_CATEGORY = "EpicProfilePartBuilder";
         private readonly IUserService _users;
-        private readonly IEpicService _epicService;
+        private readonly IEosService _epicService;
         private readonly ILogger _logger;
 
-        public EpicProfilePartBuilder(IUserService users, IEpicService epicService, ILogger logger)
+        public EosProfilePartBuilder(IUserService users, IEosService epicService, ILogger logger)
         {
             _users = users;
             _epicService = epicService;
@@ -47,7 +47,7 @@ namespace Stormancer.Server.Plugins.Epic
 
         public async Task GetProfiles(ProfileCtx ctx, CancellationToken ct)
         {
-            var hasProfilePartEpic = ctx.DisplayOptions.ContainsKey(EpicConstants.PLATFORM_NAME);
+            var hasProfilePartEpic = ctx.DisplayOptions.ContainsKey(Eos.PLATFORM_NAME);
             var hasProfilePartUser = ctx.DisplayOptions.ContainsKey("user");
 
             if (!hasProfilePartEpic && !hasProfilePartUser)
@@ -62,7 +62,7 @@ namespace Stormancer.Server.Plugins.Epic
 
             var allUsers = await _users.GetUsers(ctx.Users.ToArray(), ct);
             var users = allUsers
-                .Where(kvp => kvp.Value != null && kvp.Value.UserData.ContainsKey(EpicConstants.PLATFORM_NAME))
+                .Where(kvp => kvp.Value != null && kvp.Value.UserData.ContainsKey(Eos.PLATFORM_NAME))
                 .Select(kvp => kvp.Value)
                 .ToList();
 
@@ -106,18 +106,18 @@ namespace Stormancer.Server.Plugins.Epic
 
                         if (!string.IsNullOrWhiteSpace(accountId))
                         {
-                            ctx.UpdateProfileData(user.Id, EpicConstants.PLATFORM_NAME, data =>
+                            ctx.UpdateProfileData(user.Id, Eos.PLATFORM_NAME, data =>
                             {
-                                data[EpicConstants.ACCOUNTID_CLAIMPATH] = accountId;
+                                data[Eos.ACCOUNTID_CLAIMPATH] = accountId;
 
                                 if (productUserIds.TryGetValue(accountId, out var productUserId) && !string.IsNullOrWhiteSpace(productUserId))
                                 {
-                                    data[EpicConstants.PRODUCTUSERID] = productUserId;
+                                    data[Eos.PRODUCTUSERID] = productUserId;
                                 }
 
                                 if (accounts.TryGetValue(accountId, out var account) && account != null && !string.IsNullOrWhiteSpace(account.DisplayName))
                                 {
-                                    data[EpicConstants.DISPLAYNAME] = account.DisplayName;
+                                    data[Eos.DISPLAYNAME] = account.DisplayName;
                                 }
 
                                 return data;
@@ -142,15 +142,15 @@ namespace Stormancer.Server.Plugins.Epic
                                 {
                                     data["platforms"] = new JObject();
                                 }
-                                data["platforms"]![EpicConstants.PLATFORM_NAME] = new JObject();
-                                data["platforms"]![EpicConstants.PLATFORM_NAME]![EpicConstants.ACCOUNTID_CLAIMPATH] = accountId;
+                                data["platforms"]![Eos.PLATFORM_NAME] = new JObject();
+                                data["platforms"]![Eos.PLATFORM_NAME]![Eos.ACCOUNTID_CLAIMPATH] = accountId;
 
                                 if (productUserIds.TryGetValue(accountId, out var productUserId) && !string.IsNullOrWhiteSpace(productUserId))
                                 {
-                                    data["platforms"]![EpicConstants.PLATFORM_NAME]![EpicConstants.PRODUCTUSERID] = productUserId;
+                                    data["platforms"]![Eos.PLATFORM_NAME]![Eos.PRODUCTUSERID] = productUserId;
                                 }
 
-                                if (user.GetSelectedPlatformForPseudo() == EpicConstants.PLATFORM_NAME)
+                                if (user.GetSelectedPlatformForPseudo() == Eos.PLATFORM_NAME)
                                 {
                                     if (accounts.TryGetValue(accountId, out var account) && account != null && !string.IsNullOrWhiteSpace(account.DisplayName))
                                     {
