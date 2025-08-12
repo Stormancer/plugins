@@ -181,7 +181,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Posts a game session monitoring event.
         /// </summary>
         /// <param name="evt"></param>
-        public void PostEventAsync(GameSessionEvent evt)
+        public void PostEvent(GameSessionEvent evt)
         {
 
             _events.Enqueue(evt);

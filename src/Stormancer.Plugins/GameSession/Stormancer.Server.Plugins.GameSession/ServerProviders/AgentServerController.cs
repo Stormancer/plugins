@@ -42,7 +42,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 ReservedCpu = a.ReservedCpu,
                 ReservedMemory = a.ReservedMemory,
                 TotalCpu = a.TotalCpu,
-                TotalMemory = a.TotalMemory
+                TotalMemory = a.TotalMemory,
+                LastUpdated = a.LastStatusUpdate
+                
             }));
         }
 

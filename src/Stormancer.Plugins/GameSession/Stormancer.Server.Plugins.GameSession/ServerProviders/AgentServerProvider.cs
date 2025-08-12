@@ -1,5 +1,6 @@
 ﻿using MessagePack;
 using Newtonsoft.Json.Linq;
+using SmartFormat.Utilities;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Configuration;
@@ -485,7 +486,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
             TotalCpu = float.Parse(Description.Claims["quotas.maxCpu"]);
             TotalMemory = long.Parse(Description.Claims["quotas.maxMemory"]);
-
+            LastStatusUpdate = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -551,6 +552,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// Gets or sets a boolean indicating whether the agent should be considered to start game servers.
         /// </summary>
         public bool IsActive { get; set; } = true;
+        public DateTime LastStatusUpdate { get; internal set; }
     }
 
     /// <summary>
@@ -714,7 +716,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         {
             if (ShuttingDown)
             {
-                peer.DisconnectFromServer("shuttingDown");
+                peer.DisconnectFromServer("managerShuttingDown");
                 return;
             }
             lock (_syncRoot)
@@ -756,13 +758,27 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         private async Task SubscribeContainerStatusUpdate(DockerAgent agent, CancellationToken cancellationToken)
         {
-            _ = UpdateAgentStatus(agent, cancellationToken);
-            await foreach (var update in GetContainerStatusUpdates(agent.Id, cancellationToken))
+            while (!cancellationToken.IsCancellationRequested)
             {
-                agent.TotalCpu = update.TotalCpu;
-                agent.ReservedCpu = update.ReservedCpu;
-                agent.TotalMemory = update.TotalMemory;
-                agent.ReservedMemory = update.ReservedMemory;
+                try
+                {
+                    _ = UpdateAgentStatus(agent, cancellationToken);
+                    await foreach (var update in GetContainerStatusUpdates(agent.Id, cancellationToken))
+                    {
+                        
+                        agent.TotalCpu = update.TotalCpu;
+                        agent.ReservedCpu = update.ReservedCpu;
+                        agent.TotalMemory = update.TotalMemory;
+                        agent.ReservedMemory = update.ReservedMemory;
+                        agent.LastStatusUpdate = DateTime.UtcNow;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Log(LogLevel.Error, "gameservers.agent", $"An error occured while updating state of agent {agent.Id}", ex);
+                }
+
+                await Task.Delay(1000);
             }
         }
 
@@ -777,6 +793,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 agent.ReservedCpu = status.ReservedCpu;
                 agent.TotalMemory = status.TotalMemory;
                 agent.ReservedMemory = status.ReservedMemory;
+                agent.LastStatusUpdate = DateTime.UtcNow;
 
                 await timer.WaitForNextTickAsync();
             }
@@ -954,6 +971,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
             var tries = 0;
             var tryResults = new List<ContainerStartResponse>();
+            string? errorDetails = null;
             while (tries < 4)
             {
                 tries++;
@@ -983,20 +1001,21 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                     }
                     _logger.Log(LogLevel.Info, "docker.start", $"Sent start container command to agent {agent.Id} for gamesession '{id}'", new { agentConfig, agentId = agent.Id, gameSession = id, response }, id, agent.Id);
                     tryResults.Add(response);
-                    agent.TotalCpu = response.TotalCpuQuotaAvailable;
-                    agent.TotalMemory = response.TotalMemoryQuotaAvailable;
+                    //TODO: Investigate
+                    //agent.TotalCpu = response.TotalCpuQuotaAvailable;
+                    //agent.TotalMemory = response.TotalMemoryQuotaAvailable;
                     agent.ReservedCpu = response.CurrentCpuQuotaUsed;
                     agent.ReservedMemory = response.CurrentMemoryQuotaUsed;
-
+                    agent.LastStatusUpdate = DateTime.UtcNow;
                     if (response.Success)
                     {
                         var record = new GameSessionEvent { GameSessionId = id, Type = "dockerAgent" };
                         record.CustomData["agent"] = agent.Id;
                         record.CustomData["containerId"] = response.Container.ContainerId;
-                        _events.PostEventAsync(record);
+                        _events.PostEvent(record);
 
                         return new StartGameServerResult(true,
-                            new GameServerInstance { Id = agent.Id + "/" + response.Container.ContainerId }, (agent.Id, response.Container.ContainerId))
+                            new GameServerInstance { Id = agent.Id + "/" + response.Container.ContainerId }, (agent.Id, response.Container.ContainerId), null)
                         {
                             Region = agent.Description.Region
                         };
@@ -1009,12 +1028,17 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                             _logger.Log(LogLevel.Warn, "docker", $"Failed to Start container : '{response.Error}'", new { tries, tryResults });
 
                         }
+                        errorDetails = response.Error;
                     }
                 }
-                await Task.Delay(500);
+                else
+                {
+                    errorDetails = $"noAgentFound&req={string.Join(',',regions)}&avail={string.Join(',',_agents.Select(kvp=>$"{kvp.Key}:{kvp.Value.Description.Region}") )}";
+                }
+                    await Task.Delay(500);
             }
 
-            return new StartGameServerResult(false, null, null);
+            return new StartGameServerResult(false, null, null, errorDetails);
 
         }
 
@@ -1036,6 +1060,15 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                         {
                             return agent;
                         }
+                        else
+                        {
+                            _logger.Log(LogLevel.Info, "serverpools", $"Did not select agent {id} because", new
+                            {
+                                agent = new { agent.Faulted, agent.FaultExpiration, agent.IsActive, agent.TotalCpu, agent.ReservedCpu, agent.TotalMemory, agent.ReservedMemory, agent.Description.Region },
+                                requirements = new { cpuRequirement, memoryRequirement, region }
+                            });
+                        }
+
                     }
                 }
 
@@ -1051,6 +1084,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                             agent.TotalMemory - agent.ReservedMemory >= memoryRequirement)
                         {
                             return agent;
+                        }
+                        else
+                        {
+                            _logger.Log(LogLevel.Info, "serverpools", $"Did not select agent {id} because", new
+                            {
+                                agent = new { agent.Faulted, agent.FaultExpiration, agent.IsActive, agent.TotalCpu, agent.ReservedCpu, agent.TotalMemory, agent.ReservedMemory, agent.Description.Region },
+                                requirements = new { cpuRequirement, memoryRequirement }
+                            });
                         }
                     }
 
@@ -1136,7 +1177,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                     return Task.FromResult(false);
                 }
             }
-                 
+
         }
     }
 

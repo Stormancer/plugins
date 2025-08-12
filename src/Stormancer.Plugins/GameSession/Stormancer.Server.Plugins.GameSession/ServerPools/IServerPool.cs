@@ -83,9 +83,26 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
     public class WaitGameServerResult
     {
+        public static WaitGameServerResult Successful(GameServer server)
+        {
+            return new WaitGameServerResult { Value = server, Success = true }; 
+
+        }
+        public static WaitGameServerResult Failed(string details)
+        {
+            return new WaitGameServerResult { Success = false, Details = details };
+        }
+
+        private WaitGameServerResult() { }
+        /// <summary>
+        /// Gets a value indicating whether the operation was a success
+        /// </summary>
         [MemberNotNullWhen(true,"Value")]
+        [MemberNotNullWhen(false, "Details")]
         public bool Success { get; set; }
 
+        
+        public string? Details { get; set; }
       
         public GameServer? Value { get; set; }
     }

@@ -298,11 +298,11 @@ namespace Stormancer.Server.Plugins.GameSession
             _jsonSerializer = jsonSerializer;
             ApplySettings();
 
-            events.PostEventAsync(new GameSessionEvent() { GameSessionId = scene.Id, Type = "gamesessionCreated" });
+            events.PostEvent(new GameSessionEvent() { GameSessionId = scene.Id, Type = "gamesessionCreated" });
             analyticsWorker.AddGameSession(this);
             scene.Shuttingdown.Add(async args =>
             {
-                events.PostEventAsync(new GameSessionEvent() { GameSessionId = scene.Id, Type = "gamesessionShutdown" });
+                events.PostEvent(new GameSessionEvent() { GameSessionId = scene.Id, Type = "gamesessionShutdown" });
                 await this.EvaluateGameComplete(true);
                 analyticsWorker.RemoveGameSession(this);
                 _repository.RemoveGameSession(this);

@@ -183,7 +183,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             {
                 var evt = new GameSessionEvent { GameSessionId = serverId, Type = "gameserver.disconnected" };
 
-                _events.PostEventAsync(evt);
+                _events.PostEvent(evt);
                 await pool.OnGameServerDisconnected(serverId);
                
             }
@@ -230,7 +230,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                 }
                 else
                 {
-                    throw new InvalidOperationException("Failed to start server.");
+                    throw new InvalidOperationException($"gameserverpool.startFailed?details={result.Details}");
                 }
             }
             else
