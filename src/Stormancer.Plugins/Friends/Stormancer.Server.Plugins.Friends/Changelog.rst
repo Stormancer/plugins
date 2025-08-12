@@ -16,7 +16,8 @@ Changed
 - Updated dependency to Users to support unconfigured storage
 Added
 *****
-- Added `IFriendsService.UpdateFriendsCustomData` .
+- Added method `IFriendsService.UpdateFriendsCustomData`.
+- Added tag `platform:stormancer` to all social records in the internal friend list.
 
 5.0.1.82
 ----------

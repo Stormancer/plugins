@@ -346,6 +346,7 @@ namespace Stormancer.Server.Plugins.Friends
                     break;
             }
 
+            friend.Tags.Add("platform:stormancer");
             return friend;
         }
         private async Task<Friend> CreateFriendDtoDetailed(MemberRecord record)
