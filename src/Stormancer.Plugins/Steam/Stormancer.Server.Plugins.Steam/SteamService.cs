@@ -278,7 +278,7 @@ namespace Stormancer.Server.Plugins.Steam
             {
                 if (!_configSection.Value.appIds.Contains(actualAppId))
                 {
-                    throw new InvalidOperationException($"'{actualAppId}' is not an authorized Steam AppId. Authorized AppIds are '{string.Join(',',_configSection.appIds)}'");
+                    throw new InvalidOperationException($"'{actualAppId}' is not an authorized Steam AppId. Authorized AppIds are '{string.Join(',',_configSection.Value.appIds)}'");
                 }
             }
             else

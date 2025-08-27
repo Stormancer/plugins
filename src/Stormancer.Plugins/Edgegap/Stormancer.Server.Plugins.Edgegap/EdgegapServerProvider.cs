@@ -48,7 +48,7 @@ namespace Stormancer.Server.Plugins.Edgegap
             var agentConfig = config.ToObject<EdgegapPoolConfigurationSection>();
             if (agentConfig == null || agentConfig.AppName == null)
             {
-                return new GameSession.StartGameServerResult(false, null, null);
+                return new GameSession.StartGameServerResult(false, null, null,"Missing edgegap pool configuration for pool.");
             }
             IEnumerable<Filter>? edgegapCountries = null;
 
@@ -101,12 +101,12 @@ namespace Stormancer.Server.Plugins.Edgegap
             {
                 evt.CustomData["edgegap-requestId"] = r.Value.request_id;
                 evt.CustomData["edgegap-success"] = true;
-                return new GameSession.StartGameServerResult(true, new GameServerInstance { Id = id }, r.Value.request_id);
+                return new GameSession.StartGameServerResult(true, new GameServerInstance { Id = id }, r.Value.request_id,null);
             }
             else
             {
                 evt.CustomData["edgegap-success"] = false;
-                return new GameSession.StartGameServerResult(false, null, null);
+                return new GameSession.StartGameServerResult(false, null, null,$"{r.Error.HttpError} : {r.Error?.Exception?.ToString()}");
             }
         }
 

@@ -48,7 +48,7 @@ namespace Stormancer.Server.Plugins.Gameye
             var agentConfig = config.ToObject<GameyePoolConfigurationSection>();
             if (agentConfig == null || agentConfig.Image == null)
             {
-                return new GameSession.StartGameServerResult(false, null, null);
+                return new GameSession.StartGameServerResult(false, null, null, "Missing Gameye pool configuration for pool.");
             }
             string? gameyeLocation = null;
 
@@ -98,11 +98,11 @@ namespace Stormancer.Server.Plugins.Gameye
           
             if (r.Success)
             {
-                return new GameSession.StartGameServerResult(true, new GameServerInstance { Id = id }, null);
+                return new GameSession.StartGameServerResult(true, new GameServerInstance { Id = id }, null,null);
             }
             else
             {
-                return new GameSession.StartGameServerResult(false, null, null);
+                return new GameSession.StartGameServerResult(false, null, null,r.Error.ToString());
             }
         }
 

@@ -32,6 +32,12 @@ namespace Stormancer.Server.Plugins.Gameye
     {
         public HttpStatusCode HttpError { get; set; }
         public Exception? Exception { get; set; }
+
+        ///<inheritdoc/>
+        public override string ToString()
+        {
+            return $"{HttpError}:{Exception}";
+        }
     }
 
 
