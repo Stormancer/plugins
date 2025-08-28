@@ -647,6 +647,20 @@ namespace Stormancer
 			class EpicPartyProvider;
 			class EpicApi;
 
+			class FriendsSubscriber;
+			
+			struct QueryFriendsCapture
+			{
+				QueryFriendsCapture(std::weak_ptr<FriendsSubscriber> subscriber) : subscriber(subscriber) {};
+				std::weak_ptr<FriendsSubscriber> subscriber;
+			};
+
+			struct QueryPresenceCapture
+			{
+				QueryPresenceCapture(std::weak_ptr<FriendsSubscriber> subscriber) : subscriber(subscriber) {};
+				std::weak_ptr<FriendsSubscriber> subscriber;
+			};
+
 			class FriendsSubscriber : public std::enable_shared_from_this<FriendsSubscriber>
 			{
 			public:
@@ -674,10 +688,10 @@ namespace Stormancer
 						queryFriendsOptions.LocalUserId = epicState->getEpicAccountId();
 
 						auto wThat = STORM_WEAK_FROM_THIS();
-						_weakCapture = new std::weak_ptr<FriendsSubscriber>(wThat);
+						QueryFriendsCapture* capture = new QueryFriendsCapture(wThat);
 
 
-						EOS_Friends_QueryFriends(friendsHandle, &queryFriendsOptions, _weakCapture, QueryFriendsCompleteCallbackFn);
+						EOS_Friends_QueryFriends(friendsHandle, &queryFriendsOptions, capture, QueryFriendsCompleteCallbackFn);
 						_isSubscribed = true;
 					}
 				};
@@ -713,12 +727,6 @@ namespace Stormancer
 							}
 							_presenceChangeNotificationId = 0;
 						}
-
-						if (_weakCapture)
-						{
-							delete _weakCapture;
-							_weakCapture = nullptr;
-						}
 					}
 				};
 
@@ -727,9 +735,9 @@ namespace Stormancer
 #pragma region private_methods
 				static void EOS_CALL QueryFriendsCompleteCallbackFn(const EOS_Friends_QueryFriendsCallbackInfo* friendsData)
 				{
-					auto callbackData = static_cast<std::weak_ptr<FriendsSubscriber>*>(friendsData->ClientData);
+					auto* callbackData = static_cast<QueryFriendsCapture*>(friendsData->ClientData);
 
-					std::shared_ptr<FriendsSubscriber> that = callbackData->lock();
+					std::shared_ptr<FriendsSubscriber> that = callbackData->subscriber.lock();
 					if (that && that->_isSubscribed)
 					{
 						that->OnQueryFrienComplete();
@@ -826,28 +834,24 @@ namespace Stormancer
 
 					_callback(results);
 
-					auto wThis = STORM_WEAK_FROM_THIS();
-					_weakCapture = new std::weak_ptr<FriendsSubscriber>(wThis);
-
 					EOS_Friends_AddNotifyFriendsUpdateOptions notifyFriendsUpdateOptions = {};
 					notifyFriendsUpdateOptions.ApiVersion = EOS_FRIENDS_ADDNOTIFYFRIENDSUPDATE_API_LATEST;
-					_friendsChangeNotificationId = EOS_Friends_AddNotifyFriendsUpdate(friendsHandle, &notifyFriendsUpdateOptions, _weakCapture, FriendsUpdateCallbackFn);
+					_friendsChangeNotificationId = EOS_Friends_AddNotifyFriendsUpdate(friendsHandle, &notifyFriendsUpdateOptions, this, FriendsUpdateCallbackFn);
 
 					EOS_Friends_AddNotifyBlockedUsersUpdateOptions notifyBlockedUsersUpdateOptions = {};
 					notifyBlockedUsersUpdateOptions.ApiVersion = EOS_FRIENDS_ADDNOTIFYBLOCKEDUSERSUPDATE_API_LATEST;
-					_blockListChangeNotificationId = EOS_Friends_AddNotifyBlockedUsersUpdate(friendsHandle, &notifyBlockedUsersUpdateOptions, _weakCapture, BlockedUsersUpdateCallbackFn);
+					_blockListChangeNotificationId = EOS_Friends_AddNotifyBlockedUsersUpdate(friendsHandle, &notifyBlockedUsersUpdateOptions, this, BlockedUsersUpdateCallbackFn);
 
 					EOS_HPresence presenceHandle = EOS_Platform_GetPresenceInterface(epicState->getPlatformHandle());
 					EOS_Presence_AddNotifyOnPresenceChangedOptions notifyOnPresenceChangedOptions = {};
 					notifyOnPresenceChangedOptions.ApiVersion = EOS_PRESENCE_ADDNOTIFYONPRESENCECHANGED_API_LATEST;
-					_presenceChangeNotificationId = EOS_Presence_AddNotifyOnPresenceChanged(presenceHandle, &notifyOnPresenceChangedOptions, _weakCapture, PresenceChangedCallbackFn);
+					_presenceChangeNotificationId = EOS_Presence_AddNotifyOnPresenceChanged(presenceHandle, &notifyOnPresenceChangedOptions, this, PresenceChangedCallbackFn);
 				};
 
 				static void EOS_CALL FriendsUpdateCallbackFn(const EOS_Friends_OnFriendsUpdateInfo* friendsData)
 				{
-					auto callbackData = static_cast<std::weak_ptr<FriendsSubscriber>*>(friendsData->ClientData);
-					std::shared_ptr<FriendsSubscriber> that = callbackData->lock();
-					if (that && that->_isSubscribed)
+					auto that = static_cast<FriendsSubscriber*>(friendsData->ClientData);
+					if (that)
 					{
 						that->OnFriendsUpdate(friendsData);
 					}
@@ -911,9 +915,8 @@ namespace Stormancer
 
 				static void EOS_CALL BlockedUsersUpdateCallbackFn(const EOS_Friends_OnBlockedUsersUpdateInfo* blockedUserData)
 				{
-					auto callbackData = static_cast<std::weak_ptr<FriendsSubscriber>*>(blockedUserData->ClientData);
-					std::shared_ptr<FriendsSubscriber> that = callbackData->lock();
-					if (that && that->_isSubscribed)
+					auto that =  static_cast<FriendsSubscriber*>(blockedUserData->ClientData);
+					if (that)
 					{
 						that->OnBlockedUsersUpdate(blockedUserData);
 					}
@@ -1000,8 +1003,8 @@ namespace Stormancer
 						queryPresenceOptions.LocalUserId = epicState->getEpicAccountId();
 						queryPresenceOptions.TargetUserId = friendId;
 						auto wThat = STORM_WEAK_FROM_THIS();
-						std::weak_ptr<FriendsSubscriber>* weakCapture = new std::weak_ptr<FriendsSubscriber>(wThat);
-						EOS_Presence_QueryPresence(presenceHandle, &queryPresenceOptions, weakCapture, QueryPresenceCompleteCallbackFn);
+						auto capture = new QueryPresenceCapture(wThat);
+						EOS_Presence_QueryPresence(presenceHandle, &queryPresenceOptions, capture, QueryPresenceCompleteCallbackFn);
 					}
 				}
 
@@ -1037,8 +1040,8 @@ namespace Stormancer
 
 				static void EOS_CALL QueryPresenceCompleteCallbackFn(const EOS_Presence_QueryPresenceCallbackInfo* presenceData)
 				{
-					auto capture = static_cast<std::weak_ptr<FriendsSubscriber>*>(presenceData->ClientData);
-					std::shared_ptr<FriendsSubscriber> that = capture->lock();
+					auto* capture = static_cast<QueryPresenceCapture*>(presenceData->ClientData);
+					std::shared_ptr<FriendsSubscriber> that = capture->subscriber.lock();
 					if (that)
 					{
 						that->OnQueryPresenceComplete(presenceData);
@@ -1071,9 +1074,8 @@ namespace Stormancer
 
 				static void EOS_CALL PresenceChangedCallbackFn(const EOS_Presence_PresenceChangedCallbackInfo* presenceData)
 				{
-					auto callbackData = static_cast<std::weak_ptr<FriendsSubscriber>*>(presenceData->ClientData);
-					std::shared_ptr<FriendsSubscriber> that = callbackData->lock();
-					if (that && that->_isSubscribed)
+					FriendsSubscriber* that = static_cast<FriendsSubscriber*>(presenceData->ClientData);
+					if (that)
 					{
 						that->OnPresenceChanged(presenceData);
 					}
@@ -1110,7 +1112,6 @@ namespace Stormancer
 				EOS_NotificationId _friendsChangeNotificationId = 0;
 				EOS_NotificationId _blockListChangeNotificationId = 0;
 				EOS_NotificationId _presenceChangeNotificationId = 0;
-				std::weak_ptr<FriendsSubscriber>* _weakCapture = nullptr;
 				std::map<EOS_EpicAccountId, bool> _friendsList;
 				std::vector<EOS_EpicAccountId> _blockList;
 #pragma endregion
