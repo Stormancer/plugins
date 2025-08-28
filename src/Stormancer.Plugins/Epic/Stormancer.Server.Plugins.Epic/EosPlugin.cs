@@ -14,7 +14,7 @@ namespace Stormancer.Server.Plugins.Eos
     /// </summary>
     public class EosPlugin : IHostPlugin
     {
-        internal const string METADATA_KEY = "stormancer.plugins.epic";
+        internal const string METADATA_KEY = "stormancer.plugins.eos";
 
         /// <summary>
         /// IoC Registrations
@@ -38,7 +38,7 @@ namespace Stormancer.Server.Plugins.Eos
             {
                 if (scene.Template == Constants.SCENE_TEMPLATE)
                 {
-                    scene.AddEpic();
+                    scene.AddEos();
                 }
             };
 
@@ -78,7 +78,7 @@ namespace Stormancer
         /// </summary>
         /// <param name="scene"></param>
         /// <returns></returns>
-        public static ISceneHost AddEpic(this ISceneHost scene)
+        public static ISceneHost AddEos(this ISceneHost scene)
         {
             scene.TemplateMetadata[EosPlugin.METADATA_KEY] = "enabled";
             return scene;

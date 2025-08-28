@@ -39,7 +39,7 @@ namespace Stormancer.Server.Plugins.Eos
     /// Represents the payload of an access token.
     /// </summary>
     [MessagePackObject]
-    public class EosTokenPlayload
+    public class EosTokenPayload
     {
         /// <summary>
         /// The base URI of the Epic Games authentication server that issued the token.
@@ -338,7 +338,7 @@ namespace Stormancer.Server.Plugins.Eos
                         Exponent = Jose.Base64Url.Decode(key.e)
                     });
 
-                    var payload = Jose.JWT.Decode<EosTokenPlayload>(accessToken, rsa);
+                    var payload = Jose.JWT.Decode<EosTokenPayload>(accessToken, rsa);
 
                     if (payload == null)
                     {
