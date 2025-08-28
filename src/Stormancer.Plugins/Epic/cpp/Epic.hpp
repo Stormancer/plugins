@@ -18,6 +18,8 @@
 #include "eos_sdk.h"
 #include "eos_types.h"
 #include "eos_custominvites.h"
+#include "eos_friends.h"
+#include "eos_presence.h"
 
 // https://dev.epicgames.com/docs/services/en-US/index.html
 
@@ -26,6 +28,7 @@ namespace Stormancer
 	namespace Epic
 	{
 		static constexpr const char* platformName = "epic";
+		static constexpr const char* platformTag = "platform:eos";
 
 		/// <summary>
 		/// Keys to use in Configuration::additionalParameters map to customize the Epic plugin behavior.
@@ -642,8 +645,480 @@ namespace Stormancer
 			};
 
 			class EpicPartyProvider;
+			class EpicApi;
 
-			class EpicApi : public ClientAPI<EpicApi, EpicService>, public IEpicApi
+			class FriendsSubscriber : public std::enable_shared_from_this<FriendsSubscriber>
+			{
+			public:
+				FriendsSubscriber(std::function<void(std::vector<Friends::FriendListUpdateDto>)> callback,
+					std::shared_ptr<EpicState> _epicState)
+					: _callback(callback),
+					_wEpicState(_epicState)
+				{
+				};
+
+				~FriendsSubscriber()
+				{
+					Unsubscribe();
+				};
+
+				void Subscribe() {
+
+					if (auto epicState = _wEpicState.lock())
+					{
+
+						EOS_HFriends friendsHandle = EOS_Platform_GetFriendsInterface(epicState->getPlatformHandle());
+
+						EOS_Friends_QueryFriendsOptions queryFriendsOptions = {};
+						queryFriendsOptions.ApiVersion = EOS_FRIENDS_QUERYFRIENDS_API_LATEST;
+						queryFriendsOptions.LocalUserId = epicState->getEpicAccountId();
+
+						auto wThat = STORM_WEAK_FROM_THIS();
+						_weakCapture = new std::weak_ptr<FriendsSubscriber>(wThat);
+
+
+						EOS_Friends_QueryFriends(friendsHandle, &queryFriendsOptions, _weakCapture, QueryFriendsCompleteCallbackFn);
+						_isSubscribed = true;
+					}
+				};
+
+				void Unsubscribe()
+				{
+					if (_isSubscribed)
+					{
+						_isSubscribed = false;
+
+						if (auto epicState = _wEpicState.lock())
+						{
+							if (_friendsChangeNotificationId)
+							{
+								EOS_HFriends friendsHandle = EOS_Platform_GetFriendsInterface(epicState->getPlatformHandle());
+								EOS_Friends_RemoveNotifyFriendsUpdate(friendsHandle, _friendsChangeNotificationId);
+							}
+							_friendsChangeNotificationId = 0;
+
+
+							if (_blockListChangeNotificationId)
+							{
+								EOS_HFriends friendsHandle = EOS_Platform_GetFriendsInterface(epicState->getPlatformHandle());
+								EOS_Friends_RemoveNotifyBlockedUsersUpdate(friendsHandle, _blockListChangeNotificationId);
+							}
+							_blockListChangeNotificationId = 0;
+
+
+							if (_presenceChangeNotificationId)
+							{
+								EOS_HPresence presenceHandle = EOS_Platform_GetPresenceInterface(epicState->getPlatformHandle());
+								EOS_Presence_RemoveNotifyOnPresenceChanged(presenceHandle, _presenceChangeNotificationId);
+							}
+							_presenceChangeNotificationId = 0;
+						}
+
+						if (_weakCapture)
+						{
+							delete _weakCapture;
+							_weakCapture = nullptr;
+						}
+					}
+				};
+
+			private:
+
+#pragma region private_methods
+				static void EOS_CALL QueryFriendsCompleteCallbackFn(const EOS_Friends_QueryFriendsCallbackInfo* friendsData)
+				{
+					auto callbackData = static_cast<std::weak_ptr<FriendsSubscriber>*>(friendsData->ClientData);
+
+					std::shared_ptr<FriendsSubscriber> that = callbackData->lock();
+					if (that && that->_isSubscribed)
+					{
+						that->OnQueryFrienComplete();
+					}
+					delete callbackData;
+				};
+
+				void OnQueryFrienComplete()
+				{
+					auto epicState = _wEpicState.lock();
+					if (!epicState)
+					{
+						return;
+					}
+
+					std::vector<Friends::FriendListUpdateDto> results;
+
+					EOS_HFriends friendsHandle = EOS_Platform_GetFriendsInterface(epicState->getPlatformHandle());
+					EOS_Friends_GetFriendsCountOptions getFriendsCountOptions = {};
+					getFriendsCountOptions.ApiVersion = EOS_FRIENDS_GETFRIENDSCOUNT_API_LATEST;
+					getFriendsCountOptions.LocalUserId = epicState->getEpicAccountId();
+					int32_t friendsCount = EOS_Friends_GetFriendsCount(friendsHandle, &getFriendsCountOptions);
+
+					EOS_Friends_GetFriendAtIndexOptions getFriendAtIndexOptions = {};
+					getFriendAtIndexOptions.ApiVersion = EOS_FRIENDS_GETFRIENDATINDEX_API_LATEST;
+					getFriendAtIndexOptions.LocalUserId = epicState->getEpicAccountId();
+					for (int32_t i = 0; i < friendsCount; i++)
+					{
+						getFriendAtIndexOptions.Index = i;
+						EOS_EpicAccountId friendEpicAccountId = EOS_Friends_GetFriendAtIndex(friendsHandle, &getFriendAtIndexOptions);
+						if (EOS_EpicAccountId_IsValid(friendEpicAccountId))
+						{
+							EOS_Friends_GetStatusOptions StatusOptions = {};
+							StatusOptions.ApiVersion = EOS_FRIENDS_GETSTATUS_API_LATEST;
+							StatusOptions.LocalUserId = epicState->getEpicAccountId();
+							StatusOptions.TargetUserId = friendEpicAccountId;
+							EOS_EFriendsStatus friendStatus = EOS_Friends_GetStatus(friendsHandle, &StatusOptions);
+
+							if (friendStatus == EOS_EFriendsStatus::EOS_FS_Friends)
+							{
+								Friends::FriendListUpdateDto dto;
+								Friends::Friend fr;
+
+
+								Users::UserId userId;
+								userId.platform = platformName;
+								userId.userId = EpicPlatformUserId::toString(friendEpicAccountId);
+
+								fr.userIds.push_back(userId);
+
+								fr.tags.push_back(platformTag);
+
+								dto.operation = Friends::FriendListUpdateOperationInternal::AddOrUpdate;
+								dto.data = fr;
+								results.push_back(dto);
+
+								_friendsList[friendEpicAccountId] = false;
+								GetOnlineStatus(friendEpicAccountId);
+
+								fr.status[platformName] = _friendsList[friendEpicAccountId] ? Friends::FriendStatus::Connected : Friends::FriendStatus::Disconnected;
+							}
+						}
+					};
+
+
+					EOS_Friends_GetBlockedUsersCountOptions getBlockedUsersCountOptions = {};
+					getBlockedUsersCountOptions.ApiVersion = EOS_FRIENDS_GETBLOCKEDUSERSCOUNT_API_LATEST;
+					getBlockedUsersCountOptions.LocalUserId = epicState->getEpicAccountId();
+					int32_t blockedUsersCount = EOS_Friends_GetBlockedUsersCount(friendsHandle, &getBlockedUsersCountOptions);
+					EOS_Friends_GetBlockedUserAtIndexOptions getBlockedUserAtIndexOptions = {};
+					getBlockedUserAtIndexOptions.ApiVersion = EOS_FRIENDS_GETBLOCKEDUSERATINDEX_API_LATEST;
+					getBlockedUserAtIndexOptions.LocalUserId = epicState->getEpicAccountId();
+					for (int32_t i = 0; i < blockedUsersCount; i++)
+					{
+						getBlockedUserAtIndexOptions.Index = i;
+						EOS_EpicAccountId blockedEpicAccountId = EOS_Friends_GetBlockedUserAtIndex(friendsHandle, &getBlockedUserAtIndexOptions);
+						if (EOS_EpicAccountId_IsValid(blockedEpicAccountId))
+						{
+							Friends::FriendListUpdateDto dto;
+							Friends::Friend fr;
+							Users::UserId userId;
+							userId.platform = platformName;
+							userId.userId = EpicPlatformUserId::toString(blockedEpicAccountId);
+							fr.userIds.push_back(userId);
+							fr.tags.push_back(platformTag);
+							fr.tags.push_back("friends.blocked");
+							dto.operation = Friends::FriendListUpdateOperationInternal::AddOrUpdate;
+							dto.data = fr;
+							results.push_back(dto);
+
+							_blockList.push_back(blockedEpicAccountId);
+						}
+					}
+
+					_callback(results);
+
+					auto wThis = STORM_WEAK_FROM_THIS();
+					_weakCapture = new std::weak_ptr<FriendsSubscriber>(wThis);
+
+					EOS_Friends_AddNotifyFriendsUpdateOptions notifyFriendsUpdateOptions = {};
+					notifyFriendsUpdateOptions.ApiVersion = EOS_FRIENDS_ADDNOTIFYFRIENDSUPDATE_API_LATEST;
+					_friendsChangeNotificationId = EOS_Friends_AddNotifyFriendsUpdate(friendsHandle, &notifyFriendsUpdateOptions, _weakCapture, FriendsUpdateCallbackFn);
+
+					EOS_Friends_AddNotifyBlockedUsersUpdateOptions notifyBlockedUsersUpdateOptions = {};
+					notifyBlockedUsersUpdateOptions.ApiVersion = EOS_FRIENDS_ADDNOTIFYBLOCKEDUSERSUPDATE_API_LATEST;
+					_blockListChangeNotificationId = EOS_Friends_AddNotifyBlockedUsersUpdate(friendsHandle, &notifyBlockedUsersUpdateOptions, _weakCapture, BlockedUsersUpdateCallbackFn);
+
+					EOS_HPresence presenceHandle = EOS_Platform_GetPresenceInterface(epicState->getPlatformHandle());
+					EOS_Presence_AddNotifyOnPresenceChangedOptions notifyOnPresenceChangedOptions = {};
+					notifyOnPresenceChangedOptions.ApiVersion = EOS_PRESENCE_ADDNOTIFYONPRESENCECHANGED_API_LATEST;
+					_presenceChangeNotificationId = EOS_Presence_AddNotifyOnPresenceChanged(presenceHandle, &notifyOnPresenceChangedOptions, _weakCapture, PresenceChangedCallbackFn);
+				};
+
+				static void EOS_CALL FriendsUpdateCallbackFn(const EOS_Friends_OnFriendsUpdateInfo* friendsData)
+				{
+					auto callbackData = static_cast<std::weak_ptr<FriendsSubscriber>*>(friendsData->ClientData);
+					std::shared_ptr<FriendsSubscriber> that = callbackData->lock();
+					if (that && that->_isSubscribed)
+					{
+						that->OnFriendsUpdate(friendsData);
+					}
+				};
+
+				void OnFriendsUpdate(const EOS_Friends_OnFriendsUpdateInfo* friendsData)
+				{
+					if (_isSubscribed)
+					{
+						if (friendsData->CurrentStatus == EOS_EFriendsStatus::EOS_FS_Friends)
+						{
+							if (_friendsList.find(friendsData->TargetUserId) != _friendsList.end())
+							{
+								// Already friends
+								return;
+							}
+							std::vector<Friends::FriendListUpdateDto> results;
+							Friends::FriendListUpdateDto dto;
+							Friends::Friend fr;
+
+							Users::UserId userId;
+							userId.platform = platformName;
+							userId.userId = EpicPlatformUserId::toString(friendsData->TargetUserId);
+							fr.userIds.push_back(userId);
+							fr.tags.push_back(platformTag);
+							dto.operation = Friends::FriendListUpdateOperationInternal::AddOrUpdate;
+							dto.data = fr;
+							results.push_back(dto);
+
+							_friendsList[friendsData->TargetUserId] = false;
+							GetOnlineStatus(friendsData->TargetUserId);
+
+							fr.status[platformName] = _friendsList[friendsData->TargetUserId] ? Friends::FriendStatus::Connected : Friends::FriendStatus::Disconnected;
+
+							_callback(results);
+						}
+						else if (friendsData->CurrentStatus != EOS_EFriendsStatus::EOS_FS_Friends)
+						{
+							if (_friendsList.find(friendsData->TargetUserId) == _friendsList.end())
+							{
+								// Not friends
+								return;
+							}
+							std::vector<Friends::FriendListUpdateDto> results;
+							Friends::FriendListUpdateDto dto;
+							Friends::Friend fr;
+							Users::UserId userId;
+							userId.platform = platformName;
+							userId.userId = EpicPlatformUserId::toString(friendsData->TargetUserId);
+							fr.userIds.push_back(userId);
+							fr.tags.push_back(platformTag);
+							dto.operation = Friends::FriendListUpdateOperationInternal::Remove;
+							dto.data = fr;
+							results.push_back(dto);
+							_callback(results);
+
+							_friendsList.erase(friendsData->TargetUserId);
+						}
+					}
+				};
+
+				static void EOS_CALL BlockedUsersUpdateCallbackFn(const EOS_Friends_OnBlockedUsersUpdateInfo* blockedUserData)
+				{
+					auto callbackData = static_cast<std::weak_ptr<FriendsSubscriber>*>(blockedUserData->ClientData);
+					std::shared_ptr<FriendsSubscriber> that = callbackData->lock();
+					if (that && that->_isSubscribed)
+					{
+						that->OnBlockedUsersUpdate(blockedUserData);
+					}
+				};
+
+				void OnBlockedUsersUpdate(const EOS_Friends_OnBlockedUsersUpdateInfo* blockedUserData)
+				{
+					if (_isSubscribed)
+					{
+						if (blockedUserData->bBlocked)
+						{
+							if (std::find(_blockList.begin(), _blockList.end(), blockedUserData->TargetUserId) != _blockList.end())
+							{
+								// Already blocked
+								return;
+							}
+
+							std::vector<Friends::FriendListUpdateDto> results;
+							Friends::FriendListUpdateDto dto;
+							Friends::Friend fr;
+							Users::UserId userId;
+							userId.platform = platformName;
+							userId.userId = EpicPlatformUserId::toString(blockedUserData->TargetUserId);
+							fr.userIds.push_back(userId);
+							fr.tags.push_back(platformTag);
+							fr.tags.push_back("friends.blocked");
+							dto.operation = Friends::FriendListUpdateOperationInternal::AddOrUpdate;
+							dto.data = fr;
+							results.push_back(dto);
+							_callback(results);
+
+							_blockList.push_back(blockedUserData->TargetUserId);
+						}
+						else
+						{
+							if (std::find(_blockList.begin(), _blockList.end(), blockedUserData->TargetUserId) == _blockList.end())
+							{
+								// Not blocked
+								return;
+							}
+
+							std::vector<Friends::FriendListUpdateDto> results;
+							Friends::FriendListUpdateDto dto;
+							Friends::Friend fr;
+							Users::UserId userId;
+							userId.platform = platformName;
+							userId.userId = EpicPlatformUserId::toString(blockedUserData->TargetUserId);
+							fr.userIds.push_back(userId);
+							fr.tags.push_back(platformTag);
+							fr.tags.push_back("friends.blocked");
+							dto.operation = Friends::FriendListUpdateOperationInternal::Remove;
+							dto.data = fr;
+							results.push_back(dto);
+							_callback(results);
+
+							_blockList.erase(std::remove(_blockList.begin(), _blockList.end(), blockedUserData->TargetUserId), _blockList.end());
+						}
+					}
+				};
+
+				void GetOnlineStatus(EOS_EpicAccountId friendId)
+				{
+					auto epicState = _wEpicState.lock();
+					if (!epicState)
+					{
+						return;
+					}
+
+					EOS_Presence_HasPresenceOptions hasPresenceOptions = {};
+					hasPresenceOptions.ApiVersion = EOS_PRESENCE_HASPRESENCE_API_LATEST;
+					hasPresenceOptions.LocalUserId = epicState->getEpicAccountId();
+					hasPresenceOptions.TargetUserId = friendId;
+
+					auto presenceHandle = EOS_Platform_GetPresenceInterface(epicState->getPlatformHandle());
+
+					if (EOS_Presence_HasPresence(presenceHandle, &hasPresenceOptions))
+					{
+						CheckPresenceChanged(friendId);
+					}
+					else
+					{
+						EOS_Presence_QueryPresenceOptions queryPresenceOptions = {};
+						queryPresenceOptions.ApiVersion = EOS_PRESENCE_QUERYPRESENCE_API_LATEST;
+						queryPresenceOptions.LocalUserId = epicState->getEpicAccountId();
+						queryPresenceOptions.TargetUserId = friendId;
+						auto wThat = STORM_WEAK_FROM_THIS();
+						std::weak_ptr<FriendsSubscriber>* weakCapture = new std::weak_ptr<FriendsSubscriber>(wThat);
+						EOS_Presence_QueryPresence(presenceHandle, &queryPresenceOptions, weakCapture, QueryPresenceCompleteCallbackFn);
+					}
+				}
+
+				bool CheckPresenceChanged(EOS_EpicAccountId friendId)
+				{
+					auto epicState = _wEpicState.lock();
+					if (!epicState)
+					{
+						return false;
+					}
+
+					bool result = false;
+					auto presenceHandle = EOS_Platform_GetPresenceInterface(epicState->getPlatformHandle());
+					EOS_Presence_CopyPresenceOptions copyPresenceOptions = {};
+					copyPresenceOptions.ApiVersion = EOS_PRESENCE_COPYPRESENCE_API_LATEST;
+					copyPresenceOptions.LocalUserId = epicState->getEpicAccountId();
+					copyPresenceOptions.TargetUserId = friendId;
+					EOS_Presence_Info* presenceInfo = nullptr;
+					if (EOS_Presence_CopyPresence(presenceHandle, &copyPresenceOptions, &presenceInfo) == EOS_EResult::EOS_Success)
+					{
+						auto friendIt = _friendsList.find(friendId);
+						if (friendIt != _friendsList.end())
+						{
+							bool newStatus = presenceInfo->Status != EOS_Presence_EStatus::EOS_PS_Offline;
+							result = newStatus != friendIt->second;
+
+							friendIt->second = newStatus;
+						}
+						EOS_Presence_Info_Release(presenceInfo);
+					}
+					return result;
+				}
+
+				static void EOS_CALL QueryPresenceCompleteCallbackFn(const EOS_Presence_QueryPresenceCallbackInfo* presenceData)
+				{
+					auto capture = static_cast<std::weak_ptr<FriendsSubscriber>*>(presenceData->ClientData);
+					std::shared_ptr<FriendsSubscriber> that = capture->lock();
+					if (that)
+					{
+						that->OnQueryPresenceComplete(presenceData);
+					}
+					delete capture;
+				};
+
+				void OnQueryPresenceComplete(const EOS_Presence_QueryPresenceCallbackInfo* presenceData)
+				{
+					if (presenceData->ResultCode == EOS_EResult::EOS_Success)
+					{
+						if (CheckPresenceChanged(presenceData->TargetUserId))
+						{
+							std::vector<Friends::FriendListUpdateDto> results;
+							Friends::FriendListUpdateDto dto;
+							Friends::Friend fr;
+							Users::UserId userId;
+							userId.platform = platformName;
+							userId.userId = EpicPlatformUserId::toString(presenceData->TargetUserId);
+							fr.userIds.push_back(userId);
+							fr.tags.push_back(platformTag);
+							dto.operation = Friends::FriendListUpdateOperationInternal::UpdateStatus;
+							dto.data = fr;
+							results.push_back(dto);
+							fr.status[platformName] = _friendsList[presenceData->TargetUserId] ? Friends::FriendStatus::Connected : Friends::FriendStatus::Disconnected;
+							_callback(results);
+						}
+					}
+				};
+
+				static void EOS_CALL PresenceChangedCallbackFn(const EOS_Presence_PresenceChangedCallbackInfo* presenceData)
+				{
+					auto callbackData = static_cast<std::weak_ptr<FriendsSubscriber>*>(presenceData->ClientData);
+					std::shared_ptr<FriendsSubscriber> that = callbackData->lock();
+					if (that && that->_isSubscribed)
+					{
+						that->OnPresenceChanged(presenceData);
+					}
+				};
+
+				void OnPresenceChanged(const EOS_Presence_PresenceChangedCallbackInfo* presenceData)
+				{
+					if (_isSubscribed)
+					{
+						if (CheckPresenceChanged(presenceData->PresenceUserId))
+						{
+							std::vector<Friends::FriendListUpdateDto> results;
+							Friends::FriendListUpdateDto dto;
+							Friends::Friend fr;
+							Users::UserId userId;
+							userId.platform = platformName;
+							userId.userId = EpicPlatformUserId::toString(presenceData->PresenceUserId);
+							fr.userIds.push_back(userId);
+							fr.tags.push_back(platformTag);
+							dto.operation = Friends::FriendListUpdateOperationInternal::UpdateStatus;
+							dto.data = fr;
+							results.push_back(dto);
+							fr.status[platformName] = _friendsList[presenceData->PresenceUserId] ? Friends::FriendStatus::Connected : Friends::FriendStatus::Disconnected;
+							_callback(results);
+						}
+					}
+				};
+#pragma endregion
+
+#pragma region private_members
+				bool _isSubscribed = false;
+				std::function<void(std::vector<Friends::FriendListUpdateDto>)> _callback;
+				std::weak_ptr<EpicState> _wEpicState;
+				EOS_NotificationId _friendsChangeNotificationId = 0;
+				EOS_NotificationId _blockListChangeNotificationId = 0;
+				EOS_NotificationId _presenceChangeNotificationId = 0;
+				std::weak_ptr<FriendsSubscriber>* _weakCapture = nullptr;
+				std::map<EOS_EpicAccountId, bool> _friendsList;
+				std::vector<EOS_EpicAccountId> _blockList;
+#pragma endregion
+			};
+
+
+
+			class EpicApi : public ClientAPI<EpicApi, EpicService>, public IEpicApi, public Friends::IFriendsEventHandler
 			{
 				friend class EpicPartyProvider;
 
@@ -737,14 +1212,20 @@ namespace Stormancer
 					return _epicState->getEpicAccountId();
 				}
 
+				Subscription subscribeFriendsChanged(std::function<void(std::vector<Friends::FriendListUpdateDto>)> callback) override
+				{
+					std::shared_ptr<FriendsSubscriber> subscriber = std::make_shared<FriendsSubscriber>(callback, _epicState);
+					subscriber->Subscribe();
+
+					return std::make_shared<Subscription_impl>([subscriber]()
+						{
+							subscriber->Unsubscribe();
+						});
+				}
+
 #pragma endregion
 
 			private:
-
-#pragma region private_methods
-
-#pragma endregion
-
 #pragma region private_members
 
 				std::shared_ptr<ILogger> _logger;
@@ -889,7 +1370,7 @@ namespace Stormancer
 							invitationMessenger->notifyInvitationReceived(epicPartyInvitation);
 
 							auto epicState = client->dependencyResolver().resolve<EpicState>();
-							if(!epicState)
+							if (!epicState)
 							{
 								return;
 							}
@@ -900,14 +1381,14 @@ namespace Stormancer
 								finalizeInviteOptions.ApiVersion = EOS_CUSTOMINVITES_FINALIZEINVITE_API_LATEST;
 								finalizeInviteOptions.CustomInviteId = data->CustomInviteId;
 								finalizeInviteOptions.TargetUserId = data->TargetUserId;
-								finalizeInviteOptions.LocalUserId = epicState->getProductUserId();								
+								finalizeInviteOptions.LocalUserId = epicState->getProductUserId();
 								EOS_EResult result = EOS_CustomInvites_FinalizeInvite(customInvitesHandle, &finalizeInviteOptions);
 
 								if (result != EOS_EResult::EOS_Success)
 								{
 									logger->log(LogLevel::Error, "onNotifyCustomInviteAccepted", "Finalize invite failed", std::to_string((int)result));
 								}
-							};							
+							};
 						}
 					}
 					else
@@ -1025,9 +1506,9 @@ namespace Stormancer
 						return;
 					}
 
-					auto invidationDataJsonObject = web::json::value::object();
-					invidationDataJsonObject[utility::conversions::to_string_t(EpicPartyInvitation::invitationDataPartyIdField)] = web::json::value(utility::conversions::to_string_t(ctx->partyId.id));
-					auto invidationDataJsonString = utility::conversions::to_utf8string(invidationDataJsonObject.serialize());
+					auto invitationDataJsonObject = web::json::value::object();
+					invitationDataJsonObject[utility::conversions::to_string_t(EpicPartyInvitation::invitationDataPartyIdField)] = web::json::value(utility::conversions::to_string_t(ctx->partyId.id));
+					auto invitationDataJsonString = utility::conversions::to_utf8string(invitationDataJsonObject.serialize());
 
 					EOS_HPlatform platformHandle = _epicState->getPlatformHandle();
 					if (!platformHandle)
@@ -1043,7 +1524,7 @@ namespace Stormancer
 					EOS_CustomInvites_SetCustomInviteOptions setCustomInviteOptions;
 					setCustomInviteOptions.ApiVersion = EOS_CUSTOMINVITES_SETCUSTOMINVITE_API_LATEST;
 					setCustomInviteOptions.LocalUserId = productUserId;
-					setCustomInviteOptions.Payload = invidationDataJsonString.c_str();
+					setCustomInviteOptions.Payload = invitationDataJsonString.c_str();
 					auto result = EOS_CustomInvites_SetCustomInvite(customInvitesHandle, &setCustomInviteOptions);
 					// Whenever a Custom Invite Payload has been set, the Social Overlay will allow the local player to use the "Invite" button to send an invite with the currently set Custom Invite Payload to their friends.
 
@@ -1390,7 +1871,7 @@ namespace Stormancer
 				}
 
 				void connectLoginCompleteCallback(const EOS_Connect_LoginCallbackInfo* info,
-					std::string accessToken,					
+					std::string accessToken,
 					pplx::task_completion_event<void> tce,
 					std::function<void(std::string type, std::string provider, std::string accessToken)> fulfillCredentialsCallback)
 				{
@@ -1527,7 +2008,7 @@ namespace Stormancer
 				builder.registerDependency<details::EpicState, IClient, Configuration, ILogger>().singleInstance();
 				builder.registerDependency<details::EpicTicker, Configuration, details::EpicState, ILogger>().asSelf().singleInstance();
 				builder.registerDependency<details::EpicEventsManager, IClient, details::EpicState, ILogger>().asSelf().singleInstance();
-				builder.registerDependency<details::EpicApi, Users::UsersApi, details::EpicState, Configuration, IScheduler, ILogger, Party::PartyApi>().asSelf().as<IEpicApi>();
+				builder.registerDependency<details::EpicApi, Users::UsersApi, details::EpicState, Configuration, IScheduler, ILogger, Party::PartyApi>().asSelf().as<IEpicApi>().as<Friends::IFriendsEventHandler>();
 				builder.registerDependency<details::EpicPartyProvider, Party::Platform::InvitationMessenger, Users::UsersApi, details::EpicState, details::EpicApi, ILogger, Party::PartyApi, IActionDispatcher>().as<Party::Platform::IPlatformSupportProvider>();
 				builder.registerDependency<details::EpicPartyEventHandler, ILogger, details::EpicState>().as<Party::IPartyEventHandler>();
 				builder.registerDependency<details::EpicAuthenticationEventHandler, details::EpicState, ILogger>().as<Users::IAuthenticationEventHandler>();
