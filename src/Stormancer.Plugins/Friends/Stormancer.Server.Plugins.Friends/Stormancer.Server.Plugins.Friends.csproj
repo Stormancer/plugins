@@ -5,9 +5,10 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>5.1.0.7</Version>
+		<Version>5.1.0.8</Version>
 		<IncludeSymbols>true</IncludeSymbols>
-		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<DebugType>embedded</DebugType>
+		<EmbedAllSources>true</EmbedAllSources>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
@@ -53,8 +54,8 @@
 	<ItemGroup>
 	  <Folder Include="cpp\" />
 	</ItemGroup>
-	<Target Name="PostPack" AfterTargets="Pack">
+	<!--<Target Name="PostPack" AfterTargets="Pack">
 		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
-	</Target>
+	</Target>-->
 
 </Project>
