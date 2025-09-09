@@ -116,7 +116,8 @@ namespace Stormancer.Server.Plugins.Replication
         public Task EntityUpdate(Packet<IScenePeerClient> packet)
         {
             var recipients = packet.ReadObject<IEnumerable<SessionId>>();
-            var reliability = packet.ReadObject<PacketReliability>();
+            var reliabilityString = packet.ReadObject<string>();
+            var reliability = Enum.Parse<PacketReliability>(reliabilityString, true);
             return scene.Send(new MatchArrayFilter(recipients), "Replication.EntityUpdate", s =>
             {
                 packet.Serializer().Serialize(packet.Connection.SessionId, s);

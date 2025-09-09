@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using MessagePack;
+using MessagePack.Formatters;
 using Stormancer.Server.Plugins.Party.Model;
 
 namespace Stormancer.Server.Plugins.Party.Dto
@@ -29,7 +30,9 @@ namespace Stormancer.Server.Plugins.Party.Dto
     public class PartyMemberStatusUpdateRequest
     {
         [Key(0)]
+        [MessagePackFormatter(typeof(EnumAsStringFormatter<PartyMemberStatus>))]
         public PartyMemberStatus DesiredStatus { get; set; }
+
         [Key(1)]
         public int ClientSettingsVersion { get; set; }
     }
