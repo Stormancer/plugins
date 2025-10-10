@@ -6,6 +6,7 @@
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
 		<Version>5.1.0.8</Version>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<IncludeSymbols>true</IncludeSymbols>
 		<DebugType>embedded</DebugType>
 		<EmbedAllSources>true</EmbedAllSources>
