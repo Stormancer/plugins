@@ -50,62 +50,59 @@
 
 #include "gamesession/P2PMesh.hpp"
 #include "replication/Lockstep.hpp"
-#include <filesystem>
-
+#include "stormancer/FileSystem.h"
 
 class DeviceIdentifier : public Stormancer::Users::Auth::IDeviceIdentifier
 {
 public:
-
-	DeviceIdentifier(std::filesystem::path path)
+	DeviceIdentifier(Stormancer::File file, std::shared_ptr<Stormancer::IFileSystem> fileSystem) : _file(file), _fileSystem(fileSystem) {}
+	~DeviceIdentifier()
 	{
-		wchar_t buffer[1024];
-		wchar_t* filenamePart;
-		GetFullPathName(path.wstring().c_str(), 1024, buffer, &filenamePart);
-		_handle = CreateFile(path.wstring().c_str(), GENERIC_WRITE, 0, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		auto path = _file.getPath();
+		
+		// Release the file
+		_file = Stormancer::File();
 
-		_path = path;
-	}
-	bool isValid()
-	{
-		return _handle != INVALID_HANDLE_VALUE;
-	}
-	std::string get() override
-	{
-
-		return _path.filename().string();
-	}
-
-	virtual ~DeviceIdentifier()
-	{
-		if (_handle)
+		auto fs = _fileSystem.lock();
+		if(fs)
 		{
-			CloseHandle(_handle);
-			std::filesystem::remove(_path);
-			_handle = nullptr;
+			fs->remove(path);
 		}
 	}
+
+
+	std::string get() override
+	{
+		return _file.getFileName();
+	}
 private:
-	std::filesystem::path _path;
-	HANDLE  _handle = 0;
+	Stormancer::File _file;
+	std::weak_ptr<Stormancer::IFileSystem> _fileSystem;
 };
+
 class DeviceIdentifierProvider : public Stormancer::Users::Auth::IDeviceIdentifierProvider
 {
+public:
+	DeviceIdentifierProvider(std::shared_ptr<Stormancer::IFileSystem> fileSystem) : _fileSystem(fileSystem) {}
+
 	Stormancer::Users::Auth::IDeviceIdentifier* capture() override
 	{
-		auto path = std::filesystem::path("identifiers");
-		std::filesystem::create_directory(path);
+		_fileSystem->createDirectory("identifiers");
 		for (int i = 0; i < 1000; i++)
 		{
-			auto identifier = new DeviceIdentifier(path / std::to_string(i));
-			if (identifier->isValid())
+			Stormancer::File file;
+			if (_fileSystem->tryCreateFile("identifiers/" + std::to_string(i), file, true))
 			{
+				auto identifier = new DeviceIdentifier(file, _fileSystem);
 				return identifier;
 			}
 		}
 
 		throw std::runtime_error("failed to create identifier.");
 	}
+
+private:
+	std::shared_ptr<Stormancer::IFileSystem> _fileSystem;
 };
 
 /// <summary>
@@ -124,7 +121,7 @@ public:
 	}
 	void registerClientDependencies(Stormancer::ContainerBuilder& clientBuilder)
 	{
-		clientBuilder.registerDependency<DeviceIdentifierProvider>().as<Stormancer::Users::Auth::IDeviceIdentifierProvider>();
+		clientBuilder.registerDependency<DeviceIdentifierProvider, Stormancer::IFileSystem>().as<Stormancer::Users::Auth::IDeviceIdentifierProvider>();
 	}
 };
 
