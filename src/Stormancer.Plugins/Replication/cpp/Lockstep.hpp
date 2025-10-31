@@ -47,7 +47,7 @@ namespace Stormancer
 			FrameDuration MinDelaySeconds = 0.05f;
 			FrameDuration MaxDelaySeconds = 0.6f;
 			FrameDuration FixedDeltaTimeSeconds = 1.f / 30.f;
-			FrameDuration DelayMarginSeconds = 1.f / 30.f *2.4f;
+			FrameDuration DelayMarginSeconds = 1.f / 30.f * 2.4f;
 
 			/// <summary>
 			/// How much time the system needs to wait between pauses when needing to adjust the synchronized time between clients when preventing slowly going out of sync.
@@ -942,10 +942,10 @@ namespace Stormancer
 				}
 			};
 
-			_NODISCARD bool operator==(const PlayerState& left, const PlayerState& right) {
+			STORM_NODISCARD bool operator==(const PlayerState& left, const PlayerState& right) {
 				return left.sessionId == right.sessionId;
 			}
-			_NODISCARD bool operator<(const PlayerState& left, const PlayerState& right) {
+			STORM_NODISCARD bool operator<(const PlayerState& left, const PlayerState& right) {
 				return left.playerId < right.playerId;
 			}
 
@@ -1688,7 +1688,7 @@ namespace Stormancer
 					}
 					_latency = (FrameDuration)(l / 1000.0f);
 
-					
+
 
 
 					auto candidateCommandTime = highestGameplayTime + _latency + _options->DelayMarginSeconds;
@@ -1903,7 +1903,7 @@ namespace Stormancer
 						nextTime = _currentFrame.currentTimeSeconds;
 
 					}
-					else if ((nextTime > targetTime + _options->FixedDeltaTimeSeconds && (getCurrentTime() - _lastPausedOn) > _options->MinPauseDelayOnSlowAdjust) || (nextTime > targetTime && nextTime - targetTime > 2*_options->FixedDeltaTimeSeconds))
+					else if ((nextTime > targetTime + _options->FixedDeltaTimeSeconds && (getCurrentTime() - _lastPausedOn) > _options->MinPauseDelayOnSlowAdjust) || (nextTime > targetTime && nextTime - targetTime > 2 * _options->FixedDeltaTimeSeconds))
 					{
 						_logger->log(LogLevel::Info, "lockstep", std::to_string(this->_currentPlayerId) + " nextTime > targetTime", std::to_string(nextTime) + ">" + std::to_string(targetTime));
 
@@ -1912,7 +1912,7 @@ namespace Stormancer
 						nextTime = _currentFrame.currentTimeSeconds;
 					}
 
-					
+
 
 					//_logger->log(LogLevel::Debug, "lockstep", std::to_string(_currentFrame.currentTimeSeconds) + "|" + std::to_string(_currentPlayerId) + " target time : " + std::to_string(targetTime)+" nextTime="+std::to_string(nextTime)+" deltaSeconds="+std::to_string(deltaSeconds));
 					return deltaSeconds;

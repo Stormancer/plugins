@@ -792,7 +792,7 @@ namespace Stormancer
 			/// </remarks>
 			/// <param name="callback">Callable object taking a <c>PartyInvitation</c> parameter.</param>
 			/// <returns>A <c>Subscription</c> object to track the lifetime of the subscription.</returns>
-			virtual [[nodiscard("Store the subscription to not unsubscribe immediately from the event.")]] Event<PartyInvitation>::Subscription subscribeOnInvitationReceived(std::function<void(PartyInvitation)> callback) = 0;
+			STORM_NODISCARD_MSG("Store the subscription to not unsubscribe immediately from the event.") virtual Event<PartyInvitation>::Subscription subscribeOnInvitationReceived(std::function<void(PartyInvitation)> callback) = 0;
 
 			/// <summary>
 			/// Register a callback to be run when an invitation sent to the local player was canceled by the sender.
