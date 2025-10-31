@@ -127,7 +127,7 @@ void PartyViewModel::updateMemberData()
 	auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
 
 
-	std::vector<byte> bytes;
+	std::vector<Stormancer::byte> bytes;
 
 	bytes.resize(memberCustomData.length());
 

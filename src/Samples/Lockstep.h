@@ -21,7 +21,7 @@ public:
 	bool isEnabled();
 	void Reset();
 
-	void addCommand(byte cmd);
+	void addCommand(Stormancer::byte cmd);
 
 	void tick(float delta);
 

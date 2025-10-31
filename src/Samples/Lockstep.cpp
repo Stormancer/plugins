@@ -93,7 +93,7 @@ std::vector<::Stormancer::Gameplay::LockstepPlayer> LockstepViewModel::getPlayer
 	return api->getPlayers();
 }
 
-void LockstepViewModel::addCommand(byte cmd)
+void LockstepViewModel::addCommand(Stormancer::byte cmd)
 {
 	auto client = Stormancer::IClientFactory::GetClient(_clientId);
 
