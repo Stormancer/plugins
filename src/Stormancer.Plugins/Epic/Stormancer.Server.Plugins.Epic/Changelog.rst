@@ -11,6 +11,9 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Added
+*****
+- Added Extension method to configure Epic from app.cs
 
 Changed
 *******

@@ -15,8 +15,43 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+namespace Stormancer
+{
+    /// <summary>
+    /// Extension methods for DeviceIdentifier auth provider.
+    /// </summary>
+    public static class EpicAuthenticationConfigurationExtensions
+    {
+        /// <summary>
+        /// Configures steam authentication.
+        /// </summary>
+        /// <param name="config"></param>
+        /// <param name="builder"></param>
+        /// <remarks></remarks>
+        /// <returns></returns>
+        public static UsersConfigurationBuilder ConfigureEpic(this UsersConfigurationBuilder config, Func<Server.Plugins.Epic.EpicAuthConfigurationBuilder, Server.Plugins.Epic.EpicAuthConfigurationBuilder> builder)
+        {
+            var b = new Server.Plugins.Epic.EpicAuthConfigurationBuilder();
+
+            b = builder(b);
+            config.Settings[Server.Plugins.Epic.EpicConstants.PLATFORM_NAME] = JObject.FromObject(b);
+            return config;
+        }
+
+    }
+}
 namespace Stormancer.Server.Plugins.Epic
 {
+ 
+
+    /// <summary>
+    /// Configures the steam authentication provider.
+    /// </summary>
+    public class EpicAuthConfigurationBuilder : AuthProviderConfigurationBuilderBase<EpicAuthConfigurationBuilder>
+    {
+
+    }
+
 #pragma warning disable IDE1006 // Naming Styles
 
     /// <summary>
