@@ -1289,7 +1289,7 @@ namespace Stormancer.Server.Plugins.Party
             {
                 ThrowNoSuchUserError(recipientUserId.PlatformUserId);
             }
-            var result = await _userSessions.Value.SendRequest<bool, string>("party.invite", senderMember.UserId, recipientUserId.PlatformUserId, PartyId, cancellationToken);
+            var result = await _userSessions.Value.SendRequest<bool, string>("party.invite", senderMember.UserId,ctx.RecipientUser.Id , PartyId, cancellationToken);
 
             if (!result.Success)
             {

@@ -19,6 +19,8 @@ Changed
 Fixed
 *****
 - Fixed an issue that would prevent `ResetPlayerReadyStateOn(ResetPlayerReadyStateMode.None)` from being applied correctly. 
+- Ensure that the stormancer user id is always used when sending a party invitation through Stormancer.
+
 Added
 *****
 - Added PartyMember to OnQuit context.
