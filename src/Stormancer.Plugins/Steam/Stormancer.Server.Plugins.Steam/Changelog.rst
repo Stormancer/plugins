@@ -11,6 +11,9 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Added
+*****
+- Added IP2PEventHandler implementation to support SteamNetworking
 
 4.2.1.42
 ----------

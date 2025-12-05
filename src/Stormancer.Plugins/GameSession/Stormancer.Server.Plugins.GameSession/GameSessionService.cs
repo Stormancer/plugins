@@ -53,6 +53,7 @@ using Autofac.Core;
 using MessagePack;
 using Stormancer.Abstractions.Server.Components;
 using System.Collections.Frozen;
+using Stormancer.Server.Plugins.Utilities;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
@@ -315,6 +316,22 @@ namespace Stormancer.Server.Plugins.GameSession
                     _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running gameSession.OnGameSessionShutdown event handlers", ex);
                 });
 
+            });
+            scene.AuthorizeP2P.Add(async args =>
+            {
+                args.Accept = true;
+                await using var scope = _scene.CreateRequestScope();
+                var handlers = scope.ResolveAll<IP2pEventHandler>();
+
+                var ctx = new OnGetP2PMetadataContext(new Dictionary<string, string>(), _scene,args.Origin, args.Target);
+                await handlers.RunEventHandler(async h => await h.OnGetP2PMetadata(ctx),ex=> {
+                    _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running IP2pEventHandler.OnGetP2PMetadata event handlers", ex);
+                });
+
+                foreach(var (key,value) in ctx.Metadata)
+                {
+                    args.SetMetadata(key, value);
+                }
             });
 
             _scene.RunTask(async cancellationToken =>

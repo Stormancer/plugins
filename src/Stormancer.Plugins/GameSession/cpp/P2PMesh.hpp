@@ -179,7 +179,7 @@ namespace Stormancer
 					{
 						byte buffer[16];
 						localSessionId.tryWrite(buffer, 16);
-						int length = localSessionId.getLength();
+						size_t length = localSessionId.getLength();
 
 						stream.write(buffer, length);
 
@@ -195,7 +195,7 @@ namespace Stormancer
 							{
 								byte buffer[17];
 								sessionId.tryWrite(buffer, 17);
-								int length = sessionId.getLength();
+								size_t length = sessionId.getLength();
 								buffer[length] = reliability;
 
 								stream.write(buffer, length + 1);
