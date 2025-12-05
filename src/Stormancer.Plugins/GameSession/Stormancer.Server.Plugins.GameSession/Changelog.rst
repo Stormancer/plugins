@@ -14,6 +14,9 @@ Unreleased
 Changed
 *******
 - Don't try creating Game session monitoring events if Elasticsearch is disabled.
+Added
+*****
+- Added support for modular P2P.
 
 6.2.1.86
 ----------
