@@ -9,6 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Added
+*****
+- Added IP2pEventHandler interface to enable plugins to provide P2P metadata during a P2P connectivity establishment process.
 3.2.0.15
 ----------
 Changed
