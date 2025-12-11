@@ -94,13 +94,16 @@ namespace Stormancer.Server.Plugins.PlayerReports
             var config = _configuration.Value;
             if (config.Backend == null)
             {
+                _logger.Log(LogLevel.Error, "bugReports", "No bug report handler configured in the configuration.", new { Config = config });
                 return;
             }
 
+            bool found = false;
             foreach (var backend in _backends)
             {
                 if (backend.Type == config.Backend)
                 {
+                    found = true;
                     try
                     {
                         await backend.ProcessBugReportAsync(reporterId, message, customData, attachments, cancellationToken);
@@ -110,6 +113,12 @@ namespace Stormancer.Server.Plugins.PlayerReports
                         _logger.Log(LogLevel.Error, "bugReports", "An error occurred while reporting a bug.", ex);
                     }
                 }
+            }
+
+            if(!found)
+            {
+                _logger.Log(LogLevel.Error, "bugReports", $"Backend '{config.Backend}' not found.", new { Config = config, AvailableBackends = _backends.Select(b=>b.Type) });
+
             }
         }
 
