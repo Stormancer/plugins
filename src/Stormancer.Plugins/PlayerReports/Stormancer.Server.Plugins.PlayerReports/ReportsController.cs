@@ -32,16 +32,19 @@ namespace Stormancer.Server.Plugins.PlayerReports
             string message = ctx.ReadObject<string>();
             JObject customData = ctx.ReadObject<JObject>();
 
+            if (session == null || session.User == null)
+            {
+                throw new ClientException("notAuthenticated");
+            }
+
+
             await _reports.CreatePlayerReportAsync(session.User.Id, targetUserId, message, customData, ctx.CancellationToken);
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task CreateBugReport(string message, JObject customData, string contentType, int length, RequestContext<IScenePeerClient> ctx)
+        public async Task CreateBugReport(string message, JObject customData, RequestContext<IScenePeerClient> ctx)
         {
-            if (length > 50 * 1024)
-            {
-                throw new ClientException($"contentToBig?maxSize=5120050&actualSize={length}");
-            }
+
 
             var session = await _sessions.GetSession(ctx.RemotePeer, ctx.CancellationToken);
             if (session == null || session.User == null)
@@ -49,11 +52,10 @@ namespace Stormancer.Server.Plugins.PlayerReports
                 throw new ClientException("notAuthenticated");
             }
 
-            using var owner = MemoryPool<byte>.Shared.Rent(length);
-            var mem = owner.Memory.Slice(0, length);
-            ctx.InputStream.Read(mem.Span);
-            var list = new List<BugReportAttachmentContent> { new BugReportAttachmentContent(contentType, "log", mem) };
+
+            var list = new List<BugReportAttachmentContent> { };
             await _reports.SaveBugReportAsync(session.User.Id, message, customData, list, ctx.CancellationToken);
+
         }
 
     }

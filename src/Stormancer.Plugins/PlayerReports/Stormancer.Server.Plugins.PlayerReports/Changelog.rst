@@ -15,6 +15,10 @@ Added
 *****
 - Added Admin web apis to retrieve bug reports and bug reports attachments.
 
+Changed
+*******
+- Removed argument to send custom attachments from the bug report API. It should be handled through the independant blob upload API.
+
 0.1.0.33
 ----------
 Added
