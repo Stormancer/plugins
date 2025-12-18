@@ -59,10 +59,13 @@ namespace Stormancer
 					auto rpc = _rpc.lock();
 					auto serializer = _serializer;
 					return rpc->rpc("Reports.CreateBugReport", [serializer, message, customContext, data, length](obytestream& stream)
-					{
-						serializer->serialize(stream, message, customContext, length);
-						stream.write(data, length);
-					});
+						{
+							serializer->serialize(stream, message, customContext, length);
+							if (data != nullptr)
+							{
+								stream.write(data, length);
+							}
+						});
 				}
 
 
@@ -90,9 +93,9 @@ namespace Stormancer
 			pplx::task<void> createPlayerReport(std::string targetUserId, std::string message, T& customContext)
 			{
 				return getService().then([targetUserId, message, customContext](std::shared_ptr<details::ReportsService> service)
-				{
-					return service->createPlayerReport(targetUserId, message, customContext);
-				});
+					{
+						return service->createPlayerReport(targetUserId, message, customContext);
+					});
 			}
 
 			template<class T>
@@ -103,9 +106,9 @@ namespace Stormancer
 					return pplx::task_from_exception<void>(std::runtime_error("data connot be more than 500kb"));
 				}
 				return getService().then([message, customContext, data, length](std::shared_ptr<details::ReportsService> service)
-				{
-					return service->createBugReport(message, customContext, data, length);
-				});
+					{
+						return service->createBugReport(message, customContext, data, length);
+					});
 			}
 
 

@@ -90,8 +90,8 @@ std::vector<P2PRemotePeerViewModel> GameSessionViewModel::getP2PRemotePeers()
 
 
 
-			vm.isRelay = p.second->useRelay();
-			vm.sessionId = p.second->sessionId();
+			vm.isRelay = p->useRelay();
+			vm.sessionId = p->sessionId().toString();
 			results.push_back(vm);
 
 		}
