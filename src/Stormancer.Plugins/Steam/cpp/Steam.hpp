@@ -37,6 +37,8 @@
 #include "stormancer/IConnectionManager.h"
 #include "stormancer/DependencyInjection.h"
 #include "stormancer/IPacketDispatcher.h"
+#include "stormancer/SceneImpl.h"
+#include "stormancer/ChannelUidStore.h"
 
 #pragma warning(disable: 4265) // Disable virtual destructor requirement warnings
 
@@ -234,12 +236,19 @@ namespace Stormancer
 		{
 			class SteamNetworkingConnection : public IConnection
 			{
+				friend class SteamP2PConnectivityProvider;
 			public:
-				SteamNetworkingConnection(const std::string& account,const std::string& app,const SteamNetworkingIdentity& id,const SessionId& sessionId, DependencyScope& currentScope)
-					: _steamIdentity(id)
-					, _sessionId(sessionId)
+				SteamNetworkingConnection(const std::string& account, const std::string& app, const SteamNetworkingIdentity& id, const SessionId& sessionId, DependencyScope& currentScope)
+					: _sessionId(sessionId)
+					, _steamIdentity(id)
 				{
-					_dependencyResolver = currentScope.beginLifetimeScope();
+					_dependencyResolver = currentScope.beginLifetimeScope("connection", [](ContainerBuilder& builder)
+						{
+							builder.registerDependency<ChannelUidStore>().singleInstance();
+							builder.registerDependency<std::vector<std::weak_ptr<Scene_Impl>>>([](const DependencyScope&) {
+								return std::make_shared<std::vector< std::weak_ptr<Scene_Impl>>>(150);
+								}).singleInstance();
+						});
 				}
 
 				void send(const StreamWriter& streamWriter, int channelUid, PacketPriority priority = PacketPriority::MEDIUM_PRIORITY, PacketReliability reliability = PacketReliability::RELIABLE_ORDERED, const TransformMetadata& transformMetadata = TransformMetadata()) override
@@ -248,8 +257,8 @@ namespace Stormancer
 					streamWriter(s);
 					size_t length = s.tellp();
 					s.seekp(0);
-					
-					SteamNetworkingMessages()->SendMessageToUser(_steamIdentity, s.currentPtr(), length,getSendFlags(priority,reliability),1);
+
+					SteamNetworkingMessages()->SendMessageToUser(_steamIdentity, s.currentPtr(), length, getSendFlags(priority, reliability), 1);
 				}
 				void setApplication(const std::string& account, const std::string& application) override
 				{
@@ -274,7 +283,7 @@ namespace Stormancer
 					SteamNetConnectionInfo_t connectionInfo;
 					SteamNetConnectionRealTimeStatus_t realTimeStatus;
 					SteamNetworkingMessages()->GetSessionConnectionInfo(_steamIdentity, &connectionInfo, &realTimeStatus);
-				
+
 					char  buf[connectionInfo.m_addrRemote.k_cchMaxString];
 					connectionInfo.m_addrRemote.ToString(buf, connectionInfo.m_addrRemote.k_cchMaxString, true);
 
@@ -300,7 +309,7 @@ namespace Stormancer
 					_steamIdentity.ToString(buf, _steamIdentity.k_cchMaxGenericString);
 
 					return buf;
-					
+
 				}
 
 				time_t connectionDate() const override
@@ -346,7 +355,7 @@ namespace Stormancer
 					_metadata[key] = value;
 				}
 
-				
+
 				const DependencyScope& dependencyResolver() const override
 				{
 					return _dependencyResolver;
@@ -363,7 +372,7 @@ namespace Stormancer
 					return _connectionStateObservable.get_observable();
 				}
 
-				
+
 				const SessionId& sessionId() const override { return _sessionId; }
 
 				/// <summary>
@@ -379,7 +388,7 @@ namespace Stormancer
 					return _isConnectedToAScene.compare_exchange_strong(expected, true);
 				}
 
-			
+
 				uint64 getTypeHash() const override
 				{
 					return Stormancer::getTypeHash<SteamNetworkingConnection>();
@@ -389,8 +398,8 @@ namespace Stormancer
 
 				int getSendFlags(PacketPriority priority, PacketReliability reliability)
 				{
-					
-					int flag = 0; 
+
+					int flag = 0;
 					if (priority == PacketPriority::IMMEDIATE_PRIORITY)
 					{
 						flag |= k_nSteamNetworkingSend_NoNagle;
@@ -438,16 +447,16 @@ namespace Stormancer
 
 				rxcpp::subjects::subject<ConnectionState> _connectionStateObservable;
 
-				ConnectionState _connectionState = ConnectionState::Disconnected;
+				ConnectionState _connectionState = ConnectionState::Connecting;
 			};
 			class SteamP2PConnectivityProvider : public IP2PConnectivityProvider, public ISteamTickEventHandler
 			{
 			public:
 
-				SteamP2PConnectivityProvider(std::shared_ptr<IConnectionManager> connections,std::shared_ptr<IClient> client, std::shared_ptr<ILogger> logger)
+				SteamP2PConnectivityProvider(std::shared_ptr<IConnectionManager> connections, std::shared_ptr<IClient> client, std::shared_ptr<ILogger> logger)
 					:_connections(connections)
 					, _client(client)
-					,_logger(logger)
+					, _logger(logger)
 				{
 
 				}
@@ -461,8 +470,17 @@ namespace Stormancer
 					SessionId sessionId = serializer.deserializeOne<SessionId>(stream);
 
 					auto c = std::make_shared<SteamNetworkingConnection>(std::string(), std::string(), origin, sessionId, _client.lock()->dependencyResolver());
-					_connections->newConnection(c);
-					sendSessionIdtoPeer(origin);
+					if (!_connections->getConnection(sessionId))
+					{
+						_connections->newConnection(c);
+						sendSessionIdtoPeer(origin);
+
+						auto it = _steamConnections.find(origin.GetSteamID64());
+						if (it != _steamConnections.end())
+						{
+							it->second.tce.set(c);
+						}
+					}
 
 				}
 
@@ -473,7 +491,7 @@ namespace Stormancer
 					{
 						auto connection = it->second.connection.get();
 
-						
+
 						byte* data = new byte[length];
 						std::memcpy(data, buffer, length);
 
@@ -496,9 +514,47 @@ namespace Stormancer
 
 				void tick() override
 				{
+					for (auto& kvp : _steamConnections)
+					{
+						if (kvp.second.connection.is_done())
+						{
+							SteamNetConnectionInfo_t connectionInfo;
+							SteamNetConnectionRealTimeStatus_t realTimeStatus;
+							SteamNetworkingIdentity identity;
+							CSteamID steamId;
+							steamId.SetFromUint64(kvp.first);
+							identity.SetSteamID(steamId);
+							SteamNetworkingMessages()->GetSessionConnectionInfo(identity, &connectionInfo, &realTimeStatus);
+
+							auto c = kvp.second.connection.get();
+
+							switch (connectionInfo.m_eState)
+							{
+							case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_Connected:
+								c->setConnectionState(ConnectionState::Connected);
+								break;
+							case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_Connecting:
+							case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_FindingRoute:
+								c->setConnectionState(ConnectionState::Connecting);
+								break;
+							case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_ClosedByPeer:
+							case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_Dead:
+							case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_FinWait:
+							case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_Linger:
+							case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_ProblemDetectedLocally:
+								c->setConnectionState(ConnectionState::Disconnected);
+								break;
+							default:
+								c->setConnectionState(ConnectionState::Disconnected);
+								break;
+							}
+
+						}
+
+					}
 					// system messages related to the SteamNetworkingTransport are sent through the 
 					SteamNetworkingMessage_t* messagePtr[8];
-					auto messageReceivedCount = SteamNetworkingMessages()->ReceiveMessagesOnChannel(0, messagePtr, 16);
+					auto messageReceivedCount = SteamNetworkingMessages()->ReceiveMessagesOnChannel(0, messagePtr, 8);
 					while (messageReceivedCount > 0)
 					{
 						for (int i = 0; i < messageReceivedCount; i++)
@@ -509,10 +565,10 @@ namespace Stormancer
 							processSystemMessage(msg->m_identityPeer, buffer, length);
 							msg->Release();
 						}
-						messageReceivedCount = SteamNetworkingMessages()->ReceiveMessagesOnChannel(0, messagePtr, 16);
+						messageReceivedCount = SteamNetworkingMessages()->ReceiveMessagesOnChannel(0, messagePtr, 8);
 					}
 
-					messageReceivedCount = SteamNetworkingMessages()->ReceiveMessagesOnChannel(1, messagePtr, 16);
+					messageReceivedCount = SteamNetworkingMessages()->ReceiveMessagesOnChannel(1, messagePtr, 8);
 					while (messageReceivedCount > 0)
 					{
 						for (int i = 0; i < messageReceivedCount; i++)
@@ -520,12 +576,13 @@ namespace Stormancer
 							auto msg = messagePtr[i];
 							const void* buffer = msg->GetData();
 							const int length = msg->GetSize();
-							processMessage(msg->m_identityPeer,buffer, length);
+							processMessage(msg->m_identityPeer, buffer, length);
 							msg->Release();
 						}
-						messageReceivedCount = SteamNetworkingMessages()->ReceiveMessagesOnChannel(1, messagePtr, 16);
+						messageReceivedCount = SteamNetworkingMessages()->ReceiveMessagesOnChannel(1, messagePtr, 8);
 					}
 
+					uint64 toBeDeleted = 0;
 					for (auto& kvp : _steamConnections)
 					{
 						if (kvp.second.connection.is_done())
@@ -536,13 +593,14 @@ namespace Stormancer
 
 								if (c->getConnectionState() == Stormancer::ConnectionState::Disconnected)
 								{
-									_steamConnections.erase(kvp.first);
+									toBeDeleted = kvp.first;
 									_connections->closeConnection(c, "disconnected");
 								}
-								
+
 							}
-							catch(std::exception&)
-							{ }
+							catch (std::exception&)
+							{
+							}
 						}
 						else
 						{
@@ -550,11 +608,15 @@ namespace Stormancer
 							if (kvp.second.createdOn < std::chrono::system_clock::now() - 30s)
 							{
 								kvp.second.tce.set_exception(std::runtime_error("connectionTimeout"));
-								_steamConnections.erase(kvp.first);
+								toBeDeleted = kvp.first;
 							}
 						}
 					}
-					
+					if (toBeDeleted != 0)
+					{
+						_steamConnections.erase(toBeDeleted);
+					}
+
 				}
 				void sendSessionIdtoPeer(const SteamNetworkingIdentity& target)
 				{
@@ -577,30 +639,34 @@ namespace Stormancer
 					SteamNetworkingMessages()->AcceptSessionWithUser(identity);
 				}
 
-				pplx::task<std::shared_ptr<IConnection>> openP2PConnectionAsync(const SceneAddress& sceneAddress,std::unordered_map<std::string, std::string>& metadata, pplx::cancellation_token ct) override
+				pplx::task<std::shared_ptr<IConnection>> openP2PConnectionAsync(const SceneAddress& sceneAddress, std::unordered_map<std::string, std::string>& metadata, pplx::cancellation_token ct) override
 				{
-					auto it = metadata.find("steam");
-					if (it != metadata.end())
+					auto idIt = metadata.find("steam");
+					if (idIt != metadata.end())
 					{
-					
+
 						SteamNetworkingIdentity identity;
 						CSteamID steamId;
-						steamId.SetFromString(it->second.c_str(), EUniverse::k_EUniversePublic);
+						steamId.SetFromUint64(std::stoull(idIt->second.c_str()));
 						identity.SetSteamID(steamId);
 
-						
+
 						auto id = steamId.ConvertToUint64();
 						auto it = _steamConnections.find(id);
 						if (it != _steamConnections.end())
 						{
 							return it->second.connection.then([](std::shared_ptr<SteamNetworkingConnection> c) {return std::static_pointer_cast<IConnection>(c); });
 						}
-						
+
 						SteamNetworkingConnectionContainer container(id);
 						_steamConnections.emplace(id, container);
 						sendSessionIdtoPeer(identity);
 
 						return container.connection.then([](std::shared_ptr<SteamNetworkingConnection> c) {return std::static_pointer_cast<IConnection>(c); });
+					}
+					else
+					{
+						return pplx::task_from_exception<std::shared_ptr<IConnection>>(std::runtime_error("steam metadata not found."));
 					}
 				}
 
@@ -622,18 +688,18 @@ namespace Stormancer
 				std::shared_ptr<IConnectionManager> _connections;
 				std::weak_ptr< IClient> _client;
 				std::shared_ptr<ILogger> _logger;
-				std::unordered_map<uint64,SteamNetworkingConnectionContainer> _steamConnections;
+				std::unordered_map<uint64, SteamNetworkingConnectionContainer> _steamConnections;
 			};
 			class SteamP2PConnectivityEventHandler : public IP2PConnectivityEventHandler
 			{
 			public:
-				SteamP2PConnectivityEventHandler(std::weak_ptr< IP2PConnectivityProvider> provider)
+				SteamP2PConnectivityEventHandler(std::weak_ptr<SteamP2PConnectivityProvider> provider)
 					:_provider(provider)
 				{
 
 				}
 
-				virtual ~SteamP2PConnectivityEventHandler(){}
+				virtual ~SteamP2PConnectivityEventHandler() {}
 
 				void onConnecting(P2POnConnectingContext& ctx) override
 				{
@@ -645,11 +711,11 @@ namespace Stormancer
 				}
 
 			private:
-				std::weak_ptr< IP2PConnectivityProvider> _provider;
-				
+				std::weak_ptr<SteamP2PConnectivityProvider> _provider;
+
 			};
 
-		
+
 
 			class SteamPlatformUserId : public Users::PlatformUserId
 			{
@@ -1033,8 +1099,11 @@ namespace Stormancer
 					, _wUsersApi(usersApi)
 					, _wPartyApi(partyApi)
 					, _wInvitationMessenger(invitationMessenger)
-					, _tickers(tickers)
 				{
+					for (auto ticker : tickers)
+					{
+						_tickers.push_back(ticker);
+					}
 				}
 
 				~SteamImpl()
@@ -1300,9 +1369,12 @@ namespace Stormancer
 					if (!_cts.get_token().is_canceled())
 					{
 						SteamAPI_RunCallbacks();
-						for (auto& ticker : _tickers)
+						for (auto& wTicker : _tickers)
 						{
-							ticker->tick();
+							if (auto ticker = wTicker.lock())
+							{
+								ticker->tick();
+							}
 						}
 						if (auto actionDispatcher = _wActionDispatcher.lock())
 						{
@@ -2178,10 +2250,13 @@ namespace Stormancer
 
 				void onSteamNetworkingMessagesSessionRequestCallback(SteamNetworkingMessagesSessionRequest_t* ctx)
 				{
-					for (auto& ticker : _tickers)
+					for (auto& wTicker : _tickers)
 					{
-						auto steamId= ctx->m_identityRemote.GetSteamID().ConvertToUint64();
-						ticker->onSteamNetworkingMessagesSessionRequestCallback(steamId);
+						if (auto ticker = wTicker.lock())
+						{
+							auto steamId = ctx->m_identityRemote.GetSteamID().ConvertToUint64();
+							ticker->onSteamNetworkingMessagesSessionRequestCallback(steamId);
+						}
 					}
 				}
 
@@ -2306,7 +2381,7 @@ namespace Stormancer
 				std::weak_ptr<Users::UsersApi> _wUsersApi;
 				std::weak_ptr<Party::PartyApi> _wPartyApi;
 				std::weak_ptr<Party::Platform::InvitationMessenger> _wInvitationMessenger;
-				std::vector<std::shared_ptr<ISteamTickEventHandler>> _tickers;
+				std::vector<std::weak_ptr<ISteamTickEventHandler>> _tickers;
 
 
 #pragma endregion
@@ -2988,7 +3063,7 @@ namespace Stormancer
 				builder.registerDependency<details::SteamAuthenticationEventHandler, details::SteamState >().as<Users::IAuthenticationProvider>();
 				builder.registerDependency<details::SteamProjectEnvironmentEventHandler, SteamApi>().as<IProjectEnvironmentEventsHandler>();
 				builder.registerDependency<details::SteamP2PConnectivityEventHandler, details::SteamP2PConnectivityProvider>().as<IP2PConnectivityEventHandler>();
-				builder.registerDependency<details::SteamP2PConnectivityProvider, IConnectionManager,IClient,ILogger>().as<IP2PConnectivityProvider>().as<ISteamTickEventHandler>().singleInstance();
+				builder.registerDependency<details::SteamP2PConnectivityProvider, IConnectionManager, IClient, ILogger>().as<IP2PConnectivityProvider>().asSelf().as<ISteamTickEventHandler>().singleInstance();
 			}
 
 			void clientCreated(std::shared_ptr<IClient> client)
