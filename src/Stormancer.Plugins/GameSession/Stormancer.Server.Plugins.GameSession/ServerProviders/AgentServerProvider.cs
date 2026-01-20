@@ -530,7 +530,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// <summary>
         /// Total CPU available on the agent.
         /// </summary>
-        public float TotalCpu { get; set; }
+        public float TotalCpu { get;  }
 
         /// <summary>
         /// Cpu currently reserved on the agent.
@@ -540,7 +540,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// <summary>
         /// Total available memory on the agent.
         /// </summary>
-        public long TotalMemory { get; set; }
+        public long TotalMemory { get;  }
 
 
         /// <summary>
@@ -766,9 +766,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                     await foreach (var update in GetContainerStatusUpdates(agent.Id, cancellationToken))
                     {
                         
-                        agent.TotalCpu = update.TotalCpu;
+                        //agent.TotalCpu = update.TotalCpu;
                         agent.ReservedCpu = update.ReservedCpu;
-                        agent.TotalMemory = update.TotalMemory;
+                        //agent.TotalMemory = update.TotalMemory;
                         agent.ReservedMemory = update.ReservedMemory;
                         agent.LastStatusUpdate = DateTime.UtcNow;
                     }
@@ -788,13 +788,21 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1000));
             while (!cancellationToken.IsCancellationRequested)
             {
-                var status = await agent.Peer.RpcTask<bool, AgentStatusDto>("agent.getStatus", true, cancellationToken);
-                agent.TotalCpu = status.TotalCpu;
-                agent.ReservedCpu = status.ReservedCpu;
-                agent.TotalMemory = status.TotalMemory;
-                agent.ReservedMemory = status.ReservedMemory;
-                agent.LastStatusUpdate = DateTime.UtcNow;
+                try
+                {
+                    var status = await agent.Peer.RpcTask<bool, AgentStatusDto>("agent.getStatus", true, cancellationToken);
+                    //agent.TotalCpu = status.TotalCpu;
+                    agent.ReservedCpu = status.ReservedCpu;
+                    //agent.TotalMemory = status.TotalMemory;
+                    agent.ReservedMemory = status.ReservedMemory;
+                    agent.LastStatusUpdate = DateTime.UtcNow;
 
+                   
+                }
+                catch(Exception ex)
+                {
+                    _logger.Log(LogLevel.Error, "gameservers.agent", "An error occured while retrieving the status of an agent.", ex);
+                }
                 await timer.WaitForNextTickAsync();
             }
         }
