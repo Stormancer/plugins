@@ -1,4 +1,6 @@
-﻿namespace Stormancer.Server.Plugins.Party
+﻿using System;
+
+namespace Stormancer.Server.Plugins.Party
 {
     /// <summary>
     /// Party settings constants.
@@ -59,13 +61,13 @@
         {
             return settings.TryGetValue(SettingsConstants.MaxMembers, out var maxMembers) ? (int?)int.Parse(maxMembers) : null;
         }
-
         /// <summary>
         /// Sets the maximum number of members in the party.
         /// </summary>
         /// <param name="settings"></param>
         /// <param name="maxMembers"></param>
         /// <returns></returns>
+        [Obsolete("Use extension method on PartyCreationContext")]
         public static ServerPartySettings MaxMembers(this ServerPartySettings settings, int? maxMembers)
         {
             if (maxMembers != null)
@@ -77,6 +79,28 @@
                 settings.Remove(SettingsConstants.MaxMembers);
             }
             return settings;
+        }
+
+        /// <summary>
+        /// Sets the maximum number of members in the party.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <param name="maxMembers"></param>
+        /// <returns></returns>
+        public static PartyCreationContext MaxMembers(this PartyCreationContext ctx, int? maxMembers)
+        {
+            if (maxMembers != null)
+            {
+                ctx.PartyConfiguration.ServerSettings[SettingsConstants.MaxMembers] = maxMembers.ToString()!;
+                ctx.PartyConfiguration.PublicServerData[SettingsConstants.MaxMembers] = maxMembers.ToString()!;
+       
+            }
+            else
+            {
+                ctx.PartyConfiguration.ServerSettings.Remove(SettingsConstants.MaxMembers);
+                ctx.PartyConfiguration.PublicServerData.Remove(SettingsConstants.MaxMembers);
+            }
+            return ctx;
         }
     }
 }

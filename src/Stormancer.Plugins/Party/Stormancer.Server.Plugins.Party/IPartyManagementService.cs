@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Stormancer.Server.Plugins.Party.Model;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -34,10 +35,9 @@ namespace Stormancer.Server.Plugins.Party
         /// <summary>
         /// Creates a party.
         /// </summary>
-        /// <param name="partyRequest"></param>
-        /// <param name="leaderUserId"></param>
+        /// <param name="config"></param>
         /// <returns></returns>
-        Task<string> CreateParty(PartyRequestDto partyRequest, string leaderUserId);
+        Task<string> CreateParty(PartyConfiguration config);
 
         /// <summary>
         /// Creates a connection token to a party using an invitation code.

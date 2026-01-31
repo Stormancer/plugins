@@ -41,6 +41,11 @@ namespace Stormancer.Server.Plugins.Party
         public PartyRequestDto PartyRequest { get; }
 
         /// <summary>
+        /// Gets the party configuration created from the request.
+        /// </summary>
+        public PartyConfiguration PartyConfiguration { get; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether party creation must succeed or fail.
         /// </summary>
         public bool Accept { get; set; }
@@ -50,9 +55,10 @@ namespace Stormancer.Server.Plugins.Party
         /// </summary>
         public string? ErrorMessage { get; set; }
 
-        internal PartyCreationContext(PartyRequestDto partyRequest)
+        internal PartyCreationContext(PartyConfiguration config,  PartyRequestDto partyRequest)
         {
             PartyRequest = partyRequest;
+            PartyConfiguration = config;
             Accept = true;
         }
     }

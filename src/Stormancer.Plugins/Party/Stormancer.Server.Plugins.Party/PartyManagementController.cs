@@ -25,9 +25,12 @@ using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.API;
+using Stormancer.Server.Plugins.Models;
 using Stormancer.Server.Plugins.Party;
+using Stormancer.Server.Plugins.Party.Model;
 using Stormancer.Server.Plugins.Queries;
 using Stormancer.Server.Plugins.Users;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -73,7 +76,21 @@ namespace Stormancer.Server.PartyManagement
             {
                 throw new ClientException("notAuthenticated");
             }
-            var eventCtx = new PartyCreationContext(partyArgs);
+            var partyId = string.IsNullOrWhiteSpace(partyArgs.PlatformSessionId) ? Guid.NewGuid().ToString() : partyArgs.PlatformSessionId;
+
+            var config = new PartyConfiguration()
+            {
+                PartyId = partyId,
+                PartyLeaderId = user.Id,
+                CustomData = partyArgs.CustomData,
+                GameFinderName = partyArgs.GameFinderName,
+                ServerSettings = partyArgs.ServerSettings,
+                IsPublic = partyArgs.IsPublic,
+                OnlyLeaderCanInvite = partyArgs.OnlyLeaderCanInvite,
+                IsJoinable = partyArgs.IsJoinable
+
+            };
+            var eventCtx = new PartyCreationContext(config, partyArgs);
 
             configuration.OnPartyCreating(eventCtx);
             await _handlers.RunEventHandler(handler => handler.OnCreatingParty(eventCtx), ex =>
@@ -93,7 +110,7 @@ namespace Stormancer.Server.PartyManagement
                 throw new ClientException(eventCtx.ErrorMessage ?? "Bad request");
             }
 
-            var token = await _partyService.CreateParty(partyArgs, user.Id);
+            var token = await _partyService.CreateParty(config);
 
             await ctx.SendValue(token);
         }
@@ -107,7 +124,7 @@ namespace Stormancer.Server.PartyManagement
                 throw new ClientException("notAuthenticated");
             }
 
-            var token = await _partyService.CreateConnectionTokenFromInvitationCodeAsync(invitationCode,userData, ctx.CancellationToken);
+            var token = await _partyService.CreateConnectionTokenFromInvitationCodeAsync(invitationCode, userData, ctx.CancellationToken);
             if (token == null)
             {
                 throw new ClientException("codeNotFound");
@@ -120,7 +137,7 @@ namespace Stormancer.Server.PartyManagement
         public async Task<string?> CreateConnectionTokenFromPartyId(string partyId, byte[] userData, RequestContext<IScenePeerClient> ctx)
         {
             var result = await _partyService.CreateConnectionTokenFromPartyId(partyId, userData, ctx.CancellationToken);
-            if(result.Success)
+            if (result.Success)
             {
                 return result.Value;
             }

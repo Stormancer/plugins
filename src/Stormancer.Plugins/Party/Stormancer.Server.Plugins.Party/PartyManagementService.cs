@@ -24,6 +24,7 @@ using Stormancer.Abstractions.Server.Components;
 using Stormancer.Core;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Party;
+using Stormancer.Server.Plugins.Party.Model;
 using Stormancer.Server.Plugins.ServiceLocator;
 using System;
 using System.Threading;
@@ -59,15 +60,14 @@ namespace Stormancer.Server.PartyManagement
             _scene = scene;
         }
 
-        public async Task<string> CreateParty(PartyRequestDto partyRequest, string leaderUserId)
+        public async Task<string> CreateParty(PartyConfiguration config)
         {
-            if (string.IsNullOrEmpty(partyRequest.GameFinderName))
+            if (string.IsNullOrEmpty(config.GameFinderName))
             {
                 throw new ArgumentException("partyRequest.GameFinderName", "GameFinderName cannot be empty");
             }
 
-            var partyId = string.IsNullOrWhiteSpace(partyRequest.PlatformSessionId) ? Guid.NewGuid().ToString() : partyRequest.PlatformSessionId;
-            var sceneUri = await _serviceLocator.GetSceneId(PartyPlugin.PARTY_SERVICEID, partyId);
+            var sceneUri = await _serviceLocator.GetSceneId(PartyPlugin.PARTY_SERVICEID, config.PartyId);
             if (string.IsNullOrEmpty(sceneUri))
             {
                 throw new InvalidOperationException("Failed to generate scene id for party.");
@@ -76,18 +76,9 @@ namespace Stormancer.Server.PartyManagement
 
             var metadata = Newtonsoft.Json.Linq.JObject.FromObject(new
             {
-                party = new
-                {
-                    PartyId = partyId,
-                    PartyLeaderId = leaderUserId,
-                    partyRequest.CustomData,
-                    partyRequest.GameFinderName,
-                    partyRequest.ServerSettings,
-                    partyRequest.IsPublic,
-                    partyRequest.OnlyLeaderCanInvite,
-                    partyRequest.IsJoinable
-                }
+                party = config
             });
+
             var appInfos = await _env.GetApplicationInfos();
             await _management.CreateOrUpdateSceneAsync(new Platform.Core.Models.SceneDefinition
             {
@@ -101,7 +92,7 @@ namespace Stormancer.Server.PartyManagement
 
             });
 
-            return await _management.CreateConnectionTokenAsync(sceneUri, partyRequest.UserData, "party/userdata");
+            return await _management.CreateConnectionTokenAsync(sceneUri,ReadOnlySpan<byte>.Empty, "party/userdata");
         }
 
 

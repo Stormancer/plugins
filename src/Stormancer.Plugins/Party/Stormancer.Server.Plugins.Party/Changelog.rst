@@ -24,6 +24,7 @@ Fixed
 Added
 *****
 - Added PartyMember to OnQuit context.
+- Allow OnCreatingParty to modify the party configuration.
 
 5.2.0.87
 ----------
