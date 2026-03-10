@@ -278,8 +278,12 @@ namespace Stormancer.GameServers.Agent
                     }
                 }
 
-
                 var publicIp = _options.PublicIp;
+                if(publicIp == null)
+                {
+                    throw new InvalidOperationException("'PublicIp' not set in the configuration.");
+                }
+
                 var portReservation = _portsManager.AcquirePort();
                 environmentVariables["Stormancer_Server_Port"] = portReservation.Port.ToString();
                 /*
@@ -455,7 +459,7 @@ namespace Stormancer.GameServers.Agent
 
 
         }
-        public async IAsyncEnumerable<ContainerStatsResponse> GetContainerStatsAsync(int agentId, string name, bool stream, bool oneShot, CancellationToken cancellationToken)
+        public async IAsyncEnumerable<ContainerStatsResponse> GetContainerStatsAsync(int agentId, string name, bool stream, bool oneShot,[EnumeratorCancellation] CancellationToken cancellationToken)
         {
             var containerId = GetContainerIdByName(agentId, name);
             if (containerId == null)
@@ -500,7 +504,7 @@ namespace Stormancer.GameServers.Agent
             return null;
         }
 
-        internal async IAsyncEnumerable<IEnumerable<string>> GetContainerLogsAsync(int agentId, string name, DateTime? since, DateTime? until, uint size, bool follow, CancellationToken cancellationToken)
+        internal async IAsyncEnumerable<IEnumerable<string>> GetContainerLogsAsync(int agentId, string name, DateTime? since, DateTime? until, uint size, bool follow,[EnumeratorCancellation] CancellationToken cancellationToken)
         {
             var containerId = await GetContainerIdByNameFromDocker(agentId, name);
             if (containerId == null)
@@ -625,6 +629,18 @@ namespace Stormancer.GameServers.Agent
                 Directory.CreateDirectory("reports");
                 using var archive = new ZipArchive(File.Create($"reports/{server.Name}.zip"));
 
+                var metadataJson = JsonConvert.SerializeObject(new
+                {
+                    image = server.Image,
+                    name = server.Name,
+                    containerId = server.DockerContainerId,
+                  
+                });
+                {
+                    var entry = archive.CreateEntry("metadata.json", CompressionLevel.SmallestSize);
+                    using var writer = new StreamWriter(entry.Open());
+                    writer.Write(metadataJson);
+                }
                 if (server.CrashReportConfiguration.IncludeOutput)
                 {
 
@@ -647,7 +663,7 @@ namespace Stormancer.GameServers.Agent
                         var containerFile = await GetContainerFile(server.DockerContainerId, file, cancellationToken);
                         if (containerFile != null)
                         {
-                            var entry = archive.CreateEntry($"container{file}.tar", CompressionLevel.SmallestSize);
+                            var entry = archive.CreateEntry($"container-{file}.tar", CompressionLevel.SmallestSize);
 
                             await containerFile.Stream.CopyToAsync(entry.Open(), cancellationToken);
                         }
@@ -723,11 +739,20 @@ namespace Stormancer.GameServers.Agent
         }
     }
 
+    /// <summary>
+    /// Status of an agent.
+    /// </summary>
     public class AgentStatus
     {
-        public Dictionary<string, string> Claims { get; set; }
+        /// <summary>
+        /// Gets or sets claims associated with the agent.
+        /// </summary>
+        public required Dictionary<string, string> Claims { get; set; }
 
-        public string DockerVersion { get; set; }
+        /// <summary>
+        /// Gets or sets the version of docker run by the agent.
+        /// </summary>
+        public required string DockerVersion { get; set; }
 
         public string AgentVersion { get; set; }
         public string Error { get; set; }

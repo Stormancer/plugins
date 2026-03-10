@@ -42,7 +42,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        Task GameSessionStarting(GameSessionContext ctx) => Task.CompletedTask;
+        Task GameSessionStarting(GameSessionStartingContext ctx) => Task.CompletedTask;
 
         /// <summary>
         /// Event executed when the game session is started.
@@ -151,7 +151,10 @@ namespace Stormancer.Server.Plugins.GameSession
         Task OnInspectingGameSession(InspectLiveGameSessionResult result) => Task.CompletedTask;
 
 
+       
     }
+
+   
 
     /// <summary>
     /// Context object passed to <see cref="IGameSessionEventHandler.OnShuttingDown"/>.
@@ -438,6 +441,24 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Game session service class associated with the current gamesession.
         /// </summary>
         public IGameSessionService Service { get; }
+      
+
+       
+    }
+
+    /// <summary>
+    /// Context passed to <see cref="IGameSessionEventHandler.GameSessionStarting(GameSessionStartingContext)"/>
+    /// </summary>
+    public class GameSessionStartingContext: GameSessionContext
+    {
+        internal GameSessionStartingContext(IGameSessionService service, ISceneHost scene, GameSessionConfiguration config, Dictionary<string, string> arguments) : base(scene, config, service)
+        {
+            Arguments = arguments;  
+        }
+        /// <summary>
+        /// Gets game session arguments passed to peers.
+        /// </summary>
+        public Dictionary<string, string> Arguments { get; }
     }
 
     /// <summary>

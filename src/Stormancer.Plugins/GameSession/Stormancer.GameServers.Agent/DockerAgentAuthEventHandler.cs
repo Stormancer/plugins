@@ -33,6 +33,7 @@ namespace Stormancer.GameServers.Agent
             if (_agentOptions.Region != null)
             {
                 claims.Add("agent.region", _agentOptions.Region);
+
                 claims.Add("agent.webApi", $"http://{_agentOptions.PublicIp}:{_agentOptions.HttpPort}");
             }
            

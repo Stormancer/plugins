@@ -14,6 +14,7 @@ Unreleased
 Changed
 *******
 - Don't try creating Game session monitoring events if Elasticsearch is disabled.
+- BREAKING: Use SessionId objects instead of strings for host sessionIds.
 Added
 *****
 - Added support for modular P2P.
