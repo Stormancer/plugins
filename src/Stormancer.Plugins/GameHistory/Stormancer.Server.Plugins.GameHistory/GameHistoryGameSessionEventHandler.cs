@@ -116,7 +116,7 @@ namespace Stormancer.Server.Plugins.GameHistory
             _scene = scene;
             _logger = logger;
         }
-        async Task IGameSessionEventHandler.GameSessionStarting(Stormancer.Server.Plugins.GameSession.GameSessionContext ctx)
+        async Task IGameSessionEventHandler.GameSessionStarting(GameSessionStartingContext ctx)
         {
             if (Guid.TryParse(ctx.Service.GameSessionId, out var guid))
             {
