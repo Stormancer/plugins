@@ -14,6 +14,7 @@ Unreleased
 Changed
 *******
 - Improve crash info package creation.
+- Update Raknet version
 
 0.5.1.2
 ----------
