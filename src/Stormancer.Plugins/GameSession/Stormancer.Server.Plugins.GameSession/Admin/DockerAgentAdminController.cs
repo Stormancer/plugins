@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using MessagePack;
+using Microsoft.AspNetCore.Mvc;
 using Nest;
 using Stormancer.Core;
 using Stormancer.Server.Plugins.GameSession.ServerProviders;
@@ -70,51 +71,61 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
     /// <summary>
     /// A game server hosting agent.
     /// </summary>
+    [MessagePackObject]
     public class AgentDocument
     {
         /// <summary>
         /// Gets a boolean indicating whether the agent is in a faulted state.
         /// </summary>
+        [Key(0)]
         public bool Faulted { get; set; }
 
         /// <summary>
         /// Gets the agent's faults.
         /// </summary>
+        [Key(1)]
         public IEnumerable<string> Faults { get; set; } = Enumerable.Empty<string>();
 
         /// <summary>
         /// Gets information about the agent.
         /// </summary>
+        [Key(2)]
         public AgentDescription Description { get; set; } = default!;
 
         /// <summary>
         /// Gets a boolean indicating if the agent is considered for new game servers.
         /// </summary>
+        [Key(3)]
         public bool Active { get; set; }
 
         /// <summary>
         /// Gets the number of CPU cores reserved on the agent.
         /// </summary>
+        [Key(4)]
         public float ReservedCpu { get; set; }
 
         /// <summary>
         /// Gets the amount of RAM reserved on the agent.
         /// </summary>
+        [Key(5)]
         public long ReservedMemory { get; set; }
 
         /// <summary>
         /// Gets the max amount of RAM that can be reserved on the agent.
         /// </summary>
+        [Key(6)]
         public long TotalMemory { get; set; }
 
         /// <summary>
         /// Gets the max number of CPU cores that can be reserved on the agent.
         /// </summary>
+        [Key(7)]
         public float TotalCpu { get; set; }
 
         /// <summary>
         /// Last date agent status was updated.
         /// </summary>
+        [Key(8)]
         public DateTime LastUpdated { get; init; }
     }
 
