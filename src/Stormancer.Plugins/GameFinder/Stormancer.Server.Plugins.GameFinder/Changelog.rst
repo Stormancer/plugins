@@ -9,6 +9,16 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Changed
+*******
+- Remove allocations when notifying players.
+- Update state to match new client code.
+Removed
+*******
+- Removed support for ready confirmation in gamefinder, for now, because nobody used it.
+
 8.1.1.23
 ----------
 Changed

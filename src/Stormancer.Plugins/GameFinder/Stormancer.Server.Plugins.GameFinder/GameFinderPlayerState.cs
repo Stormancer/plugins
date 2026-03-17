@@ -22,13 +22,46 @@
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
-      public enum GameFinderStatusUpdate
+    /// <summary>
+    /// Represents the game finder state for a player.
+    /// </summary>
+    public enum GameFinderPlayerState
     {
-        SearchStart = 0,
-        CandidateFound = 1,
-        WaitingPlayersReady = 2,
-        Success = 3,
+        /// <summary>
+        /// The player is not currently in the game finder.
+        /// </summary>
+        Idle = 0,
+        /// <summary>
+        /// The player is currently searching for a game.
+        /// </summary>
+        Searching = 1,
+
+        /// <summary>
+        /// The player is connecting to a found game session.
+        /// </summary>
+        Connecting = 2,
+
+        /// <summary>
+        /// The player is connected to the found game session.
+        /// </summary>
+        Found = 3,
+
+        /// <summary>
+        /// The gamefinding process failed.
+        /// </summary>
         Failed = 4,
-        Cancelled = 5
+
+        /// <summary>
+        /// The game finding process was cancelled.
+        /// </summary>
+        Canceled = 5,
+
+        /// <summary>
+        /// The game finder is initializing.
+        /// </summary>
+        /// <remarks>
+        /// The player is connecting to the game finder
+        /// </remarks>
+        Initializing = 6,
     }
 }
