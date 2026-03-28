@@ -22,6 +22,7 @@
 
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.GameSession.Models;
+using Stormancer.Server.Plugins.GameSession.ServerPool;
 using Stormancer.Server.Plugins.Models;
 using Stormancer.Server.Plugins.Users;
 using System;
@@ -205,5 +206,21 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         Task<InspectLiveGameSessionResult> InspectAsync(CancellationToken cancellationToken);
+
+
+        /// <summary>
+        /// Wait for the gamesession to start a server.
+        /// </summary>
+        /// <remarks>If the gamesession did not already try starting a server, calling this function will start the process.</remarks>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        Task<GameServer?> WaitServerStartAsync(CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Checks if a session is a server.
+        /// </summary>
+        /// <param name="session"></param>
+        /// <returns></returns>
+        bool IsDedicatedServer(Session session);
     }
 }

@@ -141,7 +141,7 @@ namespace Stormancer
 			std::string leaderUserId;
 			SteamID leaderSteamId = 0;
 
-			MSGPACK_DEFINE(partyId, leaderUserId, leaderSteamId);
+			STRM_MSGPACK_DEFINE(partyId, leaderUserId, leaderSteamId);
 		};
 
 		struct SteamFriend
@@ -152,7 +152,7 @@ namespace Stormancer
 			bool online;
 			std::string personaName;
 
-			MSGPACK_DEFINE(steamId, relationship, friend_since, online, personaName);
+			STRM_MSGPACK_DEFINE(steamId, relationship, friend_since, online, personaName);
 		};
 
 		class SteamApi
@@ -167,6 +167,7 @@ namespace Stormancer
 
 			// Stormancer Api
 
+
 			virtual pplx::task<std::unordered_map<std::string, PartyDataDto>> decodePartyDataBearerTokens(const std::unordered_map<std::string, std::string>& partyDataBearerToken, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
 
 			virtual pplx::task<std::unordered_map<SteamID, std::string>> queryUserIds(const std::vector<SteamID>& steamIDs, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
@@ -178,6 +179,7 @@ namespace Stormancer
 			virtual pplx::task<std::vector<SteamFriend>> getFriends(int friendsFlag = k_EFriendFlagImmediate, uint32 maxFriendsCount = UINT32_MAX, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
 
 			// Steam Api
+			virtual bool isConnected() = 0;
 
 			virtual SteamID getSteamID() = 0;
 			virtual SteamID getLobbyLeader(SteamIDLobby lobbyId) = 0;
@@ -236,7 +238,10 @@ namespace Stormancer
 		{
 			class SteamNetworkingConnection : public IConnection
 			{
+
 				friend class SteamP2PConnectivityProvider;
+			private:
+				std::string _type = "steam";
 			public:
 				SteamNetworkingConnection(const std::string& account, const std::string& app, const SteamNetworkingIdentity& id, const SessionId& sessionId, DependencyScope& currentScope)
 					: _sessionId(sessionId)
@@ -249,6 +254,11 @@ namespace Stormancer
 								return std::make_shared<std::vector< std::weak_ptr<Scene_Impl>>>(150);
 								}).singleInstance();
 						});
+				}
+
+				const std::string& type() const override
+				{
+					return _type;
 				}
 
 				void send(const StreamWriter& streamWriter, int channelUid, PacketPriority priority = PacketPriority::MEDIUM_PRIORITY, PacketReliability reliability = PacketReliability::RELIABLE_ORDERED, const TransformMetadata& transformMetadata = TransformMetadata()) override
@@ -693,8 +703,10 @@ namespace Stormancer
 			class SteamP2PConnectivityEventHandler : public IP2PConnectivityEventHandler
 			{
 			public:
-				SteamP2PConnectivityEventHandler(std::weak_ptr<SteamP2PConnectivityProvider> provider)
-					:_provider(provider)
+				SteamP2PConnectivityEventHandler(std::weak_ptr<SteamP2PConnectivityProvider> provider, std::weak_ptr<SteamApi> steamApi)
+					:_steamApi(steamApi)
+					, _provider(provider)
+
 				{
 
 				}
@@ -703,14 +715,18 @@ namespace Stormancer
 
 				void onConnecting(P2POnConnectingContext& ctx) override
 				{
-					auto it = ctx.metadata.find("steam");
-					if (it != ctx.metadata.end())
+					if (auto api = _steamApi.lock())
 					{
-						ctx.candidates[10000] = _provider;
+						auto it = ctx.metadata.find("steam");
+						if (it != ctx.metadata.end() && SteamNetworkingMessages() && api->isConnected())
+						{
+							ctx.candidates[10000] = _provider;
+						}
 					}
 				}
 
 			private:
+				std::weak_ptr<SteamApi> _steamApi;
 				std::weak_ptr<SteamP2PConnectivityProvider> _provider;
 
 			};
@@ -761,8 +777,7 @@ namespace Stormancer
 				SteamPlatformUserId(SteamID steamID)
 					: PlatformUserId(std::to_string(steamID))
 					, _steamID(steamID)
-				{
-				}
+				{}
 
 				const SteamID _steamID;
 			};
@@ -903,7 +918,7 @@ namespace Stormancer
 
 
 
-				MSGPACK_DEFINE(lobbyType, maxMembers, joinable, metadata)
+				STRM_MSGPACK_DEFINE(lobbyType, maxMembers, joinable, metadata)
 			};
 			struct CreateLobbyResult
 			{
@@ -912,7 +927,7 @@ namespace Stormancer
 				std::string errorDetails;
 				unsigned long long steamLobbyId;
 
-				MSGPACK_DEFINE(success, errorId, errorDetails, steamLobbyId)
+				STRM_MSGPACK_DEFINE(success, errorId, errorDetails, steamLobbyId)
 			};
 
 			struct VoidSteamOperationResult
@@ -920,7 +935,7 @@ namespace Stormancer
 				bool success;
 				std::string errorId;
 				std::string errorDetails;
-				MSGPACK_DEFINE(success, errorId, errorDetails)
+				STRM_MSGPACK_DEFINE(success, errorId, errorDetails)
 			};
 
 			struct GetSteamFriendsOperationResult
@@ -930,7 +945,7 @@ namespace Stormancer
 				std::string errorDetails;
 				std::vector<SteamFriend> friends;
 
-				MSGPACK_DEFINE(success, errorId, errorDetails, friends)
+				STRM_MSGPACK_DEFINE(success, errorId, errorDetails, friends)
 
 			};
 
@@ -940,20 +955,20 @@ namespace Stormancer
 				std::string errorId;
 				std::string errorDetails;
 				SteamID owner;
-				MSGPACK_DEFINE(success, errorId, errorDetails, owner)
+				STRM_MSGPACK_DEFINE(success, errorId, errorDetails, owner)
 			};
 
 			struct JoinLobbyDto
 			{
 				SteamIDLobby steamIDLobby;
 
-				MSGPACK_DEFINE(steamIDLobby)
+				STRM_MSGPACK_DEFINE(steamIDLobby)
 			};
 			struct UpdateLobbyJoinableArgs
 			{
 				SteamIDLobby steamIDLobby;
 				bool joinable;
-				MSGPACK_DEFINE(steamIDLobby, joinable)
+				STRM_MSGPACK_DEFINE(steamIDLobby, joinable)
 			};
 
 			using GetLobbyOwnerArgs = JoinLobbyDto;
@@ -963,7 +978,7 @@ namespace Stormancer
 				SteamID steamId;
 				SteamIDLobby steamLobbyId;
 
-				MSGPACK_DEFINE(steamId, steamLobbyId)
+				STRM_MSGPACK_DEFINE(steamId, steamLobbyId)
 			};
 
 
@@ -973,8 +988,7 @@ namespace Stormancer
 
 				SteamService(std::shared_ptr<Scene> scene)
 					: _rpcService(scene->dependencyResolver().resolve<RpcService>())
-				{
-				}
+				{}
 
 				pplx::task<std::unordered_map<std::string, PartyDataDto>> decodePartyDataBearerTokens(const std::unordered_map<std::string, std::string>& partyDataBearerTokens, pplx::cancellation_token ct = pplx::cancellation_token::none())
 				{
@@ -997,8 +1011,7 @@ namespace Stormancer
 
 				SteamPartyService(std::shared_ptr<Scene> scene)
 					: _rpcService(scene->dependencyResolver().resolve<RpcService>())
-				{
-				}
+				{}
 
 				pplx::task<std::string> createPartyDataBearerToken(pplx::cancellation_token ct = pplx::cancellation_token::none())
 				{
@@ -1019,8 +1032,7 @@ namespace Stormancer
 				SteamPartyInvitation(const Party::PartyId& partyId, const std::string& senderSteamID = "")
 					: _partyId(partyId)
 					, _senderSteamID(senderSteamID)
-				{
-				}
+				{}
 
 				pplx::task<Party::PartyId> accept(std::shared_ptr<Party::PartyApi> partyApi) override
 				{
@@ -1056,8 +1068,7 @@ namespace Stormancer
 			public:
 				SteamApiCallbacks(SteamImpl* impl)
 					:_impl(impl)
-				{
-				}
+				{}
 
 			private:
 				STEAM_CALLBACK(SteamApiCallbacks, onLobbyDataUpdateCallback, LobbyDataUpdate_t);
@@ -1132,7 +1143,7 @@ namespace Stormancer
 									fr.userIds.push_back(userId);
 
 									fr.customData = "{ \"steam\":{ \"personaName\":\"" + f.personaName + "\"},\"pseudo\":\"" + f.personaName + "\"}";
-									fr.tags.push_back("steam");
+									fr.tags.push_back("platform:steam");
 									if (f.relationship == EFriendRelationship::k_EFriendRelationshipBlocked)
 									{
 										fr.tags.push_back("friends.blocked");
@@ -1151,6 +1162,11 @@ namespace Stormancer
 							list.push_back(dto);
 							callback(list);
 						});
+				}
+
+				bool isConnected() override
+				{
+					return isInitialized() && SteamUser()->BLoggedOn();
 				}
 
 				void initializePartyScene(std::shared_ptr<Scene> scene)
@@ -2245,8 +2261,7 @@ namespace Stormancer
 
 
 				void onLobbyChatUpdateCallback(LobbyChatUpdate_t* /*callback*/)
-				{
-				}
+				{}
 
 				void onSteamNetworkingMessagesSessionRequestCallback(SteamNetworkingMessagesSessionRequest_t* ctx)
 				{
@@ -2280,7 +2295,7 @@ namespace Stormancer
 							dto.operation = Friends::FriendListUpdateOperationInternal::AddOrUpdate;
 							dto.data.status["steam"] = getFriendStatusFromSteam(SteamFriends()->GetFriendPersonaState(callback->m_ulSteamID));
 							dto.data.userIds.push_back(Users::UserId("steam", std::to_string(callback->m_ulSteamID)));
-							dto.data.tags.push_back("steam");
+							dto.data.tags.push_back("platform:steam");
 							dto.data.customData = "{ \"steam\":{ \"personaName\":\"" + personaName + "\"},\"pseudo\":\"" + personaName + "\"}";
 							this->friendListUpdateEvent(dto);
 							break;
@@ -2288,7 +2303,7 @@ namespace Stormancer
 							dto.operation = Friends::FriendListUpdateOperationInternal::AddOrUpdate;
 							dto.data.userIds.push_back(Users::UserId("steam", std::to_string(callback->m_ulSteamID)));
 							dto.data.tags.push_back("friends.blocked");
-							dto.data.tags.push_back("steam");
+							dto.data.tags.push_back("platform:steam");
 							dto.data.customData = "{ \"steam\":{ \"personaName\":\"" + personaName + "\"},\"pseudo\":\"" + personaName + "\"}";
 							this->friendListUpdateEvent(dto);
 							break;
@@ -2300,8 +2315,7 @@ namespace Stormancer
 
 
 				void onLobbyInviteCallback(LobbyInvite_t* /*callback*/)
-				{
-				}
+				{}
 
 				std::string convertEChatRoomEnterResponseToString(uint32 chatRoomEnterResponse)
 				{
@@ -2512,8 +2526,7 @@ namespace Stormancer
 
 					, _wPartyApi(partyApi)
 					, _wActionDispatcher(actionDispatcher)
-				{
-				}
+				{}
 
 				std::string getPlatformName() override
 				{
@@ -2923,8 +2936,7 @@ namespace Stormancer
 
 				SteamAuthenticationEventHandler(std::shared_ptr<details::SteamState> steamConfig)
 					: _steamState(steamConfig)
-				{
-				}
+				{}
 
 				virtual ~SteamAuthenticationEventHandler() {}
 
@@ -3062,7 +3074,7 @@ namespace Stormancer
 				builder.registerDependency<details::SteamPartyProvider, Party::Platform::InvitationMessenger, Users::UsersApi, details::SteamImpl, ILogger, Party::PartyApi, IActionDispatcher>().as<Party::Platform::IPlatformSupportProvider>();
 				builder.registerDependency<details::SteamAuthenticationEventHandler, details::SteamState >().as<Users::IAuthenticationProvider>();
 				builder.registerDependency<details::SteamProjectEnvironmentEventHandler, SteamApi>().as<IProjectEnvironmentEventsHandler>();
-				builder.registerDependency<details::SteamP2PConnectivityEventHandler, details::SteamP2PConnectivityProvider>().as<IP2PConnectivityEventHandler>();
+				builder.registerDependency<details::SteamP2PConnectivityEventHandler, details::SteamP2PConnectivityProvider, SteamApi>().as<IP2PConnectivityEventHandler>();
 				builder.registerDependency<details::SteamP2PConnectivityProvider, IConnectionManager, IClient, ILogger>().as<IP2PConnectivityProvider>().asSelf().as<ISteamTickEventHandler>().singleInstance();
 			}
 
@@ -3104,4 +3116,4 @@ namespace Stormancer
 	}
 }
 
-MSGPACK_ADD_ENUM(ELobbyType);
+STRM_MSGPACK_ADD_ENUM(ELobbyType);

@@ -22,3 +22,8 @@ Client configuration
 
 - Add the GameVersion plugin to the client.
 - Set the game version in additional client configuration.
+
+Server Apis
+-----------
+
+The client version is saved as a string in the user session under the key `gameVersion.clientVersion`

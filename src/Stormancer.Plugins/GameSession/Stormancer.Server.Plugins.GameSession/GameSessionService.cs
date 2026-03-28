@@ -865,6 +865,16 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private Task<bool>? _serverStartTask = null;
 
+        public Task<GameServer?> WaitServerStartAsync(CancellationToken cancellationToken)
+        {
+            async Task<GameServer?> TrySartImpl()
+            {
+                await TryStart();
+                return _server;
+            }
+            return TrySartImpl().WaitAsync(cancellationToken);
+        }
+
         public Task<bool> TryStart()
         {
             lock (this._lock)
@@ -877,7 +887,7 @@ namespace Stormancer.Server.Plugins.GameSession
             }
             return _serverStartTask;
         }
-
+       
         private async Task<bool> Start()
         {
             try
