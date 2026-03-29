@@ -2,6 +2,7 @@
 using Stormancer.Cluster;
 using Stormancer.Core;
 using Stormancer.Server.Plugins.API;
+using Stormancer.Server.Plugins.GameSession;
 using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
@@ -9,9 +10,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Stormancer.Server.Plugins.GameSession
+namespace Stormancer
 {
-
     /// <summary>
     /// Extension methods for host based topology.
     /// </summary>
@@ -28,6 +28,12 @@ namespace Stormancer.Server.Plugins.GameSession
             return scene;
         }
     }
+}
+
+namespace Stormancer.Server.Plugins.GameSession
+{
+
+    
 
     /// <summary>
     /// Stores the state of the host elector.
@@ -55,7 +61,7 @@ namespace Stormancer.Server.Plugins.GameSession
         public HashSet<SessionId> Candidates { get; } = new();
 
 
-        internal int nextMessageId = 0;
+        internal int nextMessageId = 1;
 
 
         /// <summary>
