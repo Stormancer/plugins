@@ -18,6 +18,9 @@ Changed
 Removed
 *******
 - Removed support for ready confirmation in gamefinder, for now, because nobody used it.
+Fixed
+*****
+- Fixed an issue that caused gamefinders to send far too much data on game resolution.
 
 8.1.1.23
 ----------

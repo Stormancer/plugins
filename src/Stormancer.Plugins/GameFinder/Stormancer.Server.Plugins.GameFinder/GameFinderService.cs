@@ -610,7 +610,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
                                     stream.Seek(0, SeekOrigin.Begin);
                                     stream.Read(span.Slice(1));
-                                    s.Advance(span.Length);
+                                    s.Advance(1 + (int)stream.Length);
                                 }
                                 , PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE, stream);
                             }
