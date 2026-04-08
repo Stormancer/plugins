@@ -101,7 +101,12 @@ namespace Stormancer.Server.Plugins.GameVersion
         {
             var config = configuration.GetValue<GameVersionConfigurationSection>(GameVersionConfigurationSection.SectionPath);
 
+            if(config == null)
+            {
+                config = new GameVersionConfigurationSection();
+            }
             var oldVersionString = GetRecommendedVersionString();
+            
             CurrentConfiguration = config;
             var newVersionString = GetRecommendedVersionString();
 
