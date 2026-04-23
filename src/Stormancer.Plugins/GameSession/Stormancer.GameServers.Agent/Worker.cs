@@ -23,7 +23,7 @@ namespace Stormancer.GameServers.Agent
             {
                 var config = ClientConfiguration.Create("", "","");
                 config.Logger = new Logger(logger);
-                config.Plugins.Add(new GameServerAgentPlugin(_options, controller, dockerService, _clientsManager));
+                config.Plugins.Add(new GameServerAgentPlugin(_options, controller, dockerService, _clientsManager,logger));
                 config.Plugins.Add(new AuthenticationPlugin());
                 return config;
             });

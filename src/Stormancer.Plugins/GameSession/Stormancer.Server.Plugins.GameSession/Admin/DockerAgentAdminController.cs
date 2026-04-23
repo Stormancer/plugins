@@ -20,7 +20,7 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
     [Route("_hostingAgents")]
     public class DockerAgentAdminController : ControllerBase
     {
-      
+
         private readonly ISceneHost _scene;
 
         /// <summary>
@@ -29,7 +29,7 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
         /// <param name="scene"></param>
         public DockerAgentAdminController(ISceneHost scene)
         {
-         
+
             _scene = scene;
         }
 
@@ -48,14 +48,23 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
 
             return Ok(new GetAgentsResponse
             {
-                Agents = await scope.Resolve<AgentServerProxy>().GetAgents(false,cancellationToken)
+                Agents = await scope.Resolve<AgentServerProxy>().GetAgents(false, cancellationToken)
             });
         }
 
+        [HttpPost]
+        [Route("agents/{agentId}/images/pull")]
+        public async Task<IActionResult> PullImage(string agentId, [FromBody] DownloadImageArguments args, CancellationToken cancellationToken)
+        {
+            await using var scope = _scene.CreateRequestScope();
 
+            DownloadImageResponse response = await scope.Resolve<AgentServerProxy>().DownloadImage(agentId, args, cancellationToken);
+            return Ok(response);
+        }
 
-     
     }
+
+
 
     /// <summary>
     /// Response to a Get agent request.

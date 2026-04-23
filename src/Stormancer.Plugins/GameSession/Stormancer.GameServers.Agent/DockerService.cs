@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using MsgPack.Serialization;
 using Newtonsoft.Json;
 using RakNet;
+using Stormancer.Server.Plugins.GameSession.ServerProviders;
 using System;
 using System.CodeDom;
 using System.Collections.Generic;
@@ -223,7 +224,38 @@ namespace Stormancer.GameServers.Agent
             }
 
         }
+
         public Action<ServerContainerStateChange>? OnContainerStateChanged { get; set; }
+
+        public async Task DownloadImageAsync(string image, DockerCredentials? credentials, CancellationToken cancellationToken)
+        {
+
+            var images = await _docker.Images.ListImagesAsync(new ImagesListParameters { All = true });
+            if (!images.Any(i => i.RepoTags?.Contains(image) ?? false))
+            {
+                _logger.Log(LogLevel.Information, "Downloading image {name}...", image);
+                await _docker.Images.CreateImageAsync(
+                    new ImagesCreateParameters { FromImage = image }, 
+                    credentials != null ? new AuthConfig
+                    {
+                        Username = credentials.Login,
+                        Password = credentials.Password
+                    } : new AuthConfig { }
+                , NullDockerJsonMessageProgress.Instance);
+
+                images = await _docker.Images.ListImagesAsync(new ImagesListParameters { All = true });
+
+                if (!images.Any(i => i.RepoTags?.Contains(image) ?? false))
+                {
+                    _logger.Log(LogLevel.Error, "Image {name} not found.", image);
+                    throw new InvalidOperationException($"Image {image} not found.");
+                }
+                else
+                {
+                    _logger.Log(LogLevel.Information, "Image {name} downloaded.", image);
+                }
+            }
+        }
 
         public async Task<StartContainerResult> StartContainer(
             int agentId,
@@ -236,8 +268,9 @@ namespace Stormancer.GameServers.Agent
             float cpuLimit,
             long reservedMemory,
             float reservedCpu,
-            DateTime expiresOn,
-            Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration crashReportConfiguration,
+            DateTime? expiresOn,
+            DockerCredentials? credentials,
+            CrashReportConfiguration crashReportConfiguration,
             CancellationToken cancellationToken)
         {
             _logger.Log(LogLevel.Information, "Starting docker container {name} from image '{image}'.", name, image);
@@ -260,12 +293,13 @@ namespace Stormancer.GameServers.Agent
             try
             {
 
-               
+                await DownloadImageAsync(image, credentials, cancellationToken);
+
                 var images = await _docker.Images.ListImagesAsync(new ImagesListParameters { All = true });
                 if (!images.Any(i => i.RepoTags?.Contains(image) ?? false))
                 {
                     _logger.Log(LogLevel.Information, "Downloading image {name}...", image);
-                    await _docker.Images.CreateImageAsync(new ImagesCreateParameters { FromImage = image }, new AuthConfig { }, NullDockerJsonMessageProgress.Instance);
+                    await _docker.Images.CreateImageAsync(new ImagesCreateParameters { FromImage = image }, credentials != null ? new AuthConfig { Username = credentials.Login, Password = credentials.Password } : new AuthConfig { }, NullDockerJsonMessageProgress.Instance);
                     images = await _docker.Images.ListImagesAsync(new ImagesListParameters { All = true });
 
                     if (!images.Any(i => i.RepoTags?.Contains(image) ?? false))
@@ -280,7 +314,7 @@ namespace Stormancer.GameServers.Agent
                 }
 
                 var publicIp = _options.PublicIp;
-                if(publicIp == null)
+                if (publicIp == null)
                 {
                     throw new InvalidOperationException("'PublicIp' not set in the configuration.");
                 }
@@ -354,7 +388,7 @@ namespace Stormancer.GameServers.Agent
                 serverContainer.DockerContainerId = response.ID;
                 serverContainer.AddResource(portReservation);
 
-                var startResponse = await _docker.Containers.StartContainerAsync(response.ID, new ContainerStartParameters { });
+                var startResponse = await _docker.Containers.StartContainerAsync(response.ID, new Docker.DotNet.Models.ContainerStartParameters { });
 
                 if (startResponse == false)
                 {
@@ -460,7 +494,7 @@ namespace Stormancer.GameServers.Agent
 
 
         }
-        public async IAsyncEnumerable<ContainerStatsResponse> GetContainerStatsAsync(int agentId, string name, bool stream, bool oneShot,[EnumeratorCancellation] CancellationToken cancellationToken)
+        public async IAsyncEnumerable<ContainerStatsResponse> GetContainerStatsAsync(int agentId, string name, bool stream, bool oneShot, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             var containerId = GetContainerIdByName(agentId, name);
             if (containerId == null)
@@ -505,7 +539,7 @@ namespace Stormancer.GameServers.Agent
             return null;
         }
 
-        internal async IAsyncEnumerable<IEnumerable<string>> GetContainerLogsAsync(int agentId, string name, DateTime? since, DateTime? until, uint size, bool follow,[EnumeratorCancellation] CancellationToken cancellationToken)
+        internal async IAsyncEnumerable<IEnumerable<string>> GetContainerLogsAsync(int agentId, string name, DateTime? since, DateTime? until, uint size, bool follow, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             var containerId = await GetContainerIdByNameFromDocker(agentId, name);
             if (containerId == null)
@@ -635,7 +669,7 @@ namespace Stormancer.GameServers.Agent
                     image = server.Image,
                     name = server.Name,
                     containerId = server.DockerContainerId,
-                  
+
                 });
                 {
                     var entry = archive.CreateEntry("metadata.json", CompressionLevel.SmallestSize);
@@ -772,7 +806,7 @@ namespace Stormancer.GameServers.Agent
 
     public class ServerContainer : IDisposable
     {
-        internal ServerContainer(int agentId, string name, string image, DateTime created, long memory, float cpuCount, Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration crashReportConfiguration, DateTime expiresOn)
+        internal ServerContainer(int agentId, string name, string image, DateTime created, long memory, float cpuCount, Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration crashReportConfiguration, DateTime? expiresOn)
         {
             AgentId = agentId;
             Name = name;
@@ -796,7 +830,7 @@ namespace Stormancer.GameServers.Agent
         /// <summary>
         /// Gets or sets the time the container expires on.
         /// </summary>
-        public DateTime ExpiresOn { get; set; }
+        public DateTime? ExpiresOn { get; set; }
 
         public void AddResource(IDisposable resource)
         {

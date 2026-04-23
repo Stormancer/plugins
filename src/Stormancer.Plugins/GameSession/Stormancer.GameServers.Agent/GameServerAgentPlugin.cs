@@ -19,13 +19,15 @@ namespace Stormancer.GameServers.Agent
         private readonly AgentController _controller;
         private readonly DockerService _docker;
         private readonly ClientsManager _clientsManager;
+        private readonly ILogger<Worker> _logger;
 
-        public GameServerAgentPlugin(DockerAgentConfigurationOptions options, AgentController controller, DockerService docker, ClientsManager clientsManager)
+        public GameServerAgentPlugin(DockerAgentConfigurationOptions options, AgentController controller, DockerService docker, ClientsManager clientsManager,ILogger<Worker> logger)
         {
             _options = options;
             _controller = controller;
             this._docker = docker;
             _clientsManager = clientsManager;
+            _logger = logger;
         }
         public void Build(PluginBuildContext ctx)
         {
@@ -70,12 +72,21 @@ namespace Stormancer.GameServers.Agent
                         ctx.SendValue(await controller.KeepAlive(api.Id, args));
                     });
 
+                    scene.AddProcedure("agent.downloadImage", async ctx =>
+                    {
+                        _logger.LogInformation("Executing 'agent.downloadImage'..");
+                        var args = ctx.ReadObject<DownloadImageArguments>();
+                        ctx.SendValue(await controller.DownloadImage(args, ctx.CancellationToken));
+                        _logger.LogInformation("Executed 'agent.downloadImage'..");
+                    });
+
                     scene.AddProcedure("agent.tryStartContainer", async ctx =>
                     {
-                       
+                        _logger.LogInformation("Executing 'agent.tryStartContainer'..");
                         var args = ctx.ReadObject<ContainerStartParameters>();
 
                         ctx.SendValue(await controller.TryStartContainer(api.Id, args, ctx.CancellationToken));
+                        _logger.LogInformation("Executed 'agent.tryStartContainer'..");
                     });
 
                     scene.AddProcedure("agent.stopContainer", async ctx =>

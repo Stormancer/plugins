@@ -177,6 +177,16 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// </summary>
         public CrashReportConfiguration CrashReportConfiguration { get; set; } = new CrashReportConfiguration();
 
+        /// <summary>
+        /// Optional docker repository password. 
+        /// </summary>
+        public string? username { get; set; }
+
+        /// <summary>
+        /// Optional path to the secret storing the docker repository password.
+        /// </summary>
+        public string? password { get; set; }
+
     }
 
     /// <summary>
@@ -564,6 +574,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         private Dictionary<string, DockerAgent> _agents = new();
         private readonly IEnvironment _environment;
         private readonly IDataProtector _dataProtector;
+        private readonly ISecretsStore _secrets;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger _logger;
         private readonly GameSessionEventsRepository _events;
@@ -575,6 +586,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// </summary>
         /// <param name="environment"></param>
         /// <param name="dataProtector"></param>
+        /// <param name="secrets"></param>
         /// <param name="httpClientFactory"></param>
         /// <param name="logger"></param>
         /// <param name="events"></param>
@@ -582,6 +594,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public AgentBasedGameServerProvider(
             IEnvironment environment,
             IDataProtector dataProtector,
+            ISecretsStore secrets,
             IHttpClientFactory httpClientFactory,
             ILogger logger,
             GameSessionEventsRepository events,
@@ -589,6 +602,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         {
             _environment = environment;
             _dataProtector = dataProtector;
+            _secrets = secrets;
             _httpClientFactory = httpClientFactory;
             _logger = logger;
             _events = events;
@@ -872,7 +886,29 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             return peer.RpcTask<bool, IEnumerable<ContainerDescription>>("agent.getRunningContainers", true);
         }
 
-        public async Task<ContainerStartResponse> StartContainerAsync(string agentId, string image, string name, float reservedCpu, long reservedMemory, float cpuLimit, long memoryLimit, Dictionary<string, string> environmentVariables, CrashReportConfiguration crashReportConfiguration, CancellationToken cancellationToken)
+        /// <summary>
+        /// Pulls an image in the selected agent.
+        /// </summary>
+        /// <param name="agentId"></param>
+        /// <param name="args"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        public async Task<DownloadImageResponse> DownloadImageAsync(string agentId, DownloadImageArguments args,CancellationToken cancellationToken)
+        {
+            DockerAgent? agent;
+            lock (_syncRoot)
+            {
+                if (!_agents.TryGetValue(agentId, out agent))
+                {
+                    throw new InvalidOperationException("Agent not found");
+                }
+            }
+           
+            return await agent.Peer.RpcTask<DownloadImageArguments, DownloadImageResponse>("agent.downloadImage", args, cancellationToken);
+        }
+
+        public async Task<ContainerStartResponse> StartContainerAsync(string agentId, string image, string name, float reservedCpu, long reservedMemory, float cpuLimit, long memoryLimit, Dictionary<string, string> environmentVariables,int maxDurationSeconds, CrashReportConfiguration crashReportConfiguration,DockerCredentials? credentials, CancellationToken cancellationToken)
         {
             DockerAgent? agent;
             lock (_syncRoot)
@@ -895,7 +931,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 cpuLimit = cpuLimit,
                 memoryLimit = memoryLimit,
                 CrashReportConfiguration = crashReportConfiguration,
-                KeepAliveSeconds = GameSessionPlugin.SERVER_KEEPALIVE_SECONDS,
+                KeepAliveSeconds = maxDurationSeconds,
+                Credentials = credentials,
+                
 
             }, cancellationToken);
         }
@@ -969,11 +1007,20 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                     { "Stormancer_Server_Application", applicationInfo.ApplicationName },
                     { "Stormancer_Server_TransportEndpoint", udpTransports.Item2.First().Replace(":","|") }
              };
-            if (agentConfig != null && agentConfig.EnvironmentVariables != null)
+            if (agentConfig.EnvironmentVariables != null)
             {
                 foreach (var (key, value) in agentConfig.EnvironmentVariables)
                 {
                     environmentVariables[key] = value;
+                }
+            }
+            DockerCredentials? credentials = null;
+            if(agentConfig.username != null && agentConfig.password != null)
+            {
+                var secret = await _secrets.GetSecret(agentConfig.password);
+                if (secret.Value != null)
+                {
+                    credentials = new DockerCredentials { Login = agentConfig.username, Password = Encoding.UTF8.GetString(secret.Value) };
                 }
             }
 
@@ -991,7 +1038,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                     ContainerStartResponse response;
                     try
                     {
-                        response = await StartContainerAsync(agent.Id, agentConfig.Image, id, agentConfig.reservedCpu, agentConfig.reservedMemory, agentConfig.cpuLimit, agentConfig.memoryLimit, environmentVariables, agentConfig.CrashReportConfiguration, cts.Token);
+                        response = await StartContainerAsync(agent.Id, agentConfig.Image, id, agentConfig.reservedCpu, agentConfig.reservedMemory, agentConfig.cpuLimit, agentConfig.memoryLimit, environmentVariables, (int)agentConfig.MaxDuration, agentConfig.CrashReportConfiguration,credentials, cts.Token);
 
                         agent.Faults.Clear();
                         agent.FaultExpiration = null;

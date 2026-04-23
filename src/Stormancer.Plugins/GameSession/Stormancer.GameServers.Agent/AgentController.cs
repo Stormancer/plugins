@@ -39,7 +39,7 @@ namespace Stormancer.GameServers.Agent
 
         internal Task<KeepAliveContainerResponse> KeepAlive(int agentId, KeepAliveContainerParameters args)
         {
-            var result =  _docker.KeepAlive(agentId, args.ContainerId, DateTime.UtcNow + TimeSpan.FromSeconds(args.KeepAliveSeconds));
+            var result = _docker.KeepAlive(agentId, args.ContainerId, DateTime.UtcNow + TimeSpan.FromSeconds(args.KeepAliveSeconds));
 
             return Task.FromResult(new KeepAliveContainerResponse { Success = result });
         }
@@ -82,18 +82,19 @@ namespace Stormancer.GameServers.Agent
         internal async Task<ContainerStartResponse> TryStartContainer(int agentId, ContainerStartParameters args, CancellationToken cancellationToken)
         {
             var result = await _docker.StartContainer(
-                agentId, 
-                args.Image, 
-                args.name, 
-                UserApi.UserId, 
+                agentId,
+                args.Image,
+                args.name,
+                UserApi.UserId,
                 new Dictionary<string, string>(),
-                args.EnvironmentVariables, 
+                args.EnvironmentVariables,
                 args.memoryLimit,
                 args.cpuLimit,
                 args.reservedMemory,
                 args.reservedCpu,
-                DateTime.UtcNow + TimeSpan.FromSeconds(args.KeepAliveSeconds),
-                args.CrashReportConfiguration?? new(),
+                args.KeepAliveSeconds > 0 ? DateTime.UtcNow + TimeSpan.FromSeconds(args.KeepAliveSeconds) : null,
+                args.Credentials,
+                args.CrashReportConfiguration ?? new(),
                 cancellationToken);
 
 
@@ -109,7 +110,21 @@ namespace Stormancer.GameServers.Agent
             };
         }
 
-        internal async IAsyncEnumerable<GetContainerStatsResponse> GetContainerStats(int agentId, GetContainerStatsParameters args,[EnumeratorCancellation] CancellationToken cancellationToken)
+        internal async Task<DownloadImageResponse> DownloadImage(DownloadImageArguments args, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _docker.DownloadImageAsync(args.Image, args.Credentials, cancellationToken);
+                return new DownloadImageResponse { Success = true };
+            }
+            catch (Exception ex)
+            {
+                return new DownloadImageResponse { Success = false, Error = ex.ToString() };
+            }
+           
+        }
+
+        internal async IAsyncEnumerable<GetContainerStatsResponse> GetContainerStats(int agentId, GetContainerStatsParameters args, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await foreach (var item in _docker.GetContainerStatsAsync(agentId, args.ContainerId, args.Stream, args.OneShot, cancellationToken))
             {

@@ -189,6 +189,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// </summary>
         [Key(9)]
         public int KeepAliveSeconds { get;  set; }
+
+        /// <summary>
+        /// Optional credentials.
+        /// </summary>
+        [Key(10)]
+        public DockerCredentials? Credentials { get; set; }
     }
 
     /// <summary>
@@ -429,6 +435,70 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public long TotalMemory { get; set; }
 
 
+    }
+
+#if !MSGPACK_CLI
+    [MessagePackObject]
+#endif
+    public class DockerCredentials
+    {
+        /// <summary>
+        /// Gets or sets the docker repository login
+        /// </summary>
+        [Key(0)]
+        public required string Login { get; set; }
+
+        /// <summary>
+        /// Gets or sets the docker repository password
+        /// </summary>
+        [Key(1)]
+        public required string Password { get; set; }
+    }
+
+
+
+    /// <summary>
+    /// Contains arguments to pull an image in the agent.
+    /// </summary>
+#if !MSGPACK_CLI
+    [MessagePackObject]
+#endif
+    public class DownloadImageArguments
+    {
+        /// <summary>
+        /// Image id to download.
+        /// </summary>
+        [Key(0)]
+        public required string Image { get; set; }
+
+
+        /// <summary>
+        /// Optional docker credentials
+        /// </summary>
+        [Key(1)]
+        public DockerCredentials? Credentials { get; set; }
+    }
+
+
+    /// <summary>
+    /// Response to a download image operation.
+    /// </summary>
+#if !MSGPACK_CLI
+    [MessagePackObject]
+#endif
+    public class DownloadImageResponse
+    {
+        /// <summary>
+        /// Was the operation successful.
+        /// </summary>
+        [Key(0)]
+        public bool Success { get; set; }
+
+        /// <summary>
+        /// Error message.
+        /// </summary>
+        [Key(1)]
+        public string? Error { get; set; }
     }
 
 

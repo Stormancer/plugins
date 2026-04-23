@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession.ServerProviders
@@ -46,6 +47,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 LastUpdated = a.LastStatusUpdate
                 
             }));
+        }
+
+        [S2SApi]
+        public Task<DownloadImageResponse> DownloadImage(string agentId, DownloadImageArguments args,CancellationToken cancellationToken)
+        {
+            return _gameServerProvider.DownloadImageAsync(agentId, args,cancellationToken);
         }
 
         [S2SApi]
