@@ -8,6 +8,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Stormancer.GameServers.Agent
 {
@@ -70,6 +72,7 @@ namespace Stormancer.GameServers.Agent
 
                     scene.AddProcedure("agent.tryStartContainer", async ctx =>
                     {
+                       
                         var args = ctx.ReadObject<ContainerStartParameters>();
 
                         ctx.SendValue(await controller.TryStartContainer(api.Id, args, ctx.CancellationToken));

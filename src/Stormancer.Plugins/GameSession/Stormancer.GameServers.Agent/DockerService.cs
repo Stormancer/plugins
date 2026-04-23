@@ -240,6 +240,7 @@ namespace Stormancer.GameServers.Agent
             Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration crashReportConfiguration,
             CancellationToken cancellationToken)
         {
+            _logger.Log(LogLevel.Information, "Starting docker container {name} from image '{image}'.", name, image);
             ServerContainer serverContainer;
             lock (_lock)
             {
@@ -259,7 +260,7 @@ namespace Stormancer.GameServers.Agent
             try
             {
 
-                _logger.Log(LogLevel.Information, "Starting docker container {name} from image '{image}'.", name, image);
+               
                 var images = await _docker.Images.ListImagesAsync(new ImagesListParameters { All = true });
                 if (!images.Any(i => i.RepoTags?.Contains(image) ?? false))
                 {
