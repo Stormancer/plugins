@@ -111,7 +111,7 @@ namespace Stormancer.GameServers.Agent
 
                 try
                 {
-                    if (container.State.Contains("running", StringComparison.InvariantCultureIgnoreCase))
+                    if (container.State.Contains("running", StringComparison.InvariantCultureIgnoreCase) && container.Labels.TryGetValue("stormancer.agent.owner", out var ownerName) && ownerName == _options.Name)
                     {
                         //labels["stormancer.agent.clientId"] = agentId.ToString();
                         //labels["stormancer.reservedMemory"] = reservedMemory.ToString();
@@ -122,7 +122,7 @@ namespace Stormancer.GameServers.Agent
                         var reservedCpu = container.Labels.TryGetValue("stormancer.reservedCpu", out str) ? float.TryParse(str, out var cpu) ? cpu : 0 : 0;
                         var expiresOn = container.Labels.TryGetValue("stormancer.expiresOn", out str) ? DateTime.TryParse(str, out var date) ? date : DateTime.UtcNow : DateTime.UtcNow;
                         var reservedPorts = container.Labels.TryGetValue("stormancer.reservedPorts", out var reservedPortsStr) ? reservedPortsStr.Split(',').Select(s => ushort.Parse(s)) : Enumerable.Empty<ushort>();
-
+                        ;
                         _logger.Log(LogLevel.Information, "Loading running container {name}, expiresOn={expiresOn}, reservedPorts={reservedPorts}", name, expiresOn, reservedPortsStr);
                         Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration? crashReportConfiguration = null;
                         try
@@ -333,8 +333,15 @@ namespace Stormancer.GameServers.Agent
                 labels["stormancer.reservedMemory"] = reservedMemory.ToString();
                 labels["stormancer.reservedCpu"] = reservedCpu.ToString();
                 labels["stormancer.crashReportConfig"] = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(crashReportConfiguration)));
-                labels["stormancer.expiresOn"] = expiresOn.ToString();
+                
+
+                if (expiresOn.HasValue)
+                {
+                    labels["stormancer.expiresOn"] = expiresOn.Value.ToString();
+                }
+
                 labels["stormancer.reservedPorts"] = portReservation.Port.ToString();
+                labels["stormancer.agent.owner"] = _options.Name;
 
                 CreateContainerParameters parameters = new CreateContainerParameters()
                 {
