@@ -312,18 +312,26 @@ namespace Stormancer.Server.Plugins.GameSession
             analyticsWorker.AddGameSession(this);
             scene.Shuttingdown.Add(async args =>
             {
-                events.PostEvent(new GameSessionEvent() { GameSessionId = scene.Id, Type = "gamesessionShutdown" });
-                await this.EvaluateGameComplete(true);
-                analyticsWorker.RemoveGameSession(this);
-                _repository.RemoveGameSession(this);
-                _sceneCts.Cancel();
-
-                await using var scope = _scene.CreateRequestScope();
-                var ctx = new GameSessionShutdownContext(this);
-                await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.OnGameSessionShutdown(ctx), ex =>
+                try
                 {
-                    _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running gameSession.OnGameSessionShutdown event handlers", ex);
-                });
+                    events.PostEvent(new GameSessionEvent() { GameSessionId = scene.Id, Type = "gamesessionShutdown" });
+                    await this.EvaluateGameComplete(true);
+                    analyticsWorker.RemoveGameSession(this);
+                    _repository.RemoveGameSession(this);
+                    _sceneCts.Cancel();
+
+                    await using var scope = _scene.CreateRequestScope();
+                    var ctx = new GameSessionShutdownContext(this);
+                    await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(eh => eh.OnGameSessionShutdown(ctx), ex =>
+                    {
+                        _logger.Log(LogLevel.Error, "gameSession", "An error occurred while running gameSession.OnGameSessionShutdown event handlers", ex);
+                    });
+                    GetServerTcs().TrySetCanceled();
+                }
+                finally
+                {
+                    await CloseGameServer();
+                }
 
             });
             scene.AuthorizeP2P.Add(async args =>
@@ -1362,8 +1370,7 @@ namespace Stormancer.Server.Plugins.GameSession
             _gameCompleteCts = null;
 
 
-            GetServerTcs().TrySetCanceled();
-            await CloseGameServer();
+           
         }
 
         public GameSessionConfigurationDto? GetGameSessionConfig()

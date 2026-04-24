@@ -15,15 +15,22 @@ Changed
 *******
 - Don't try creating Game session monitoring events if Elasticsearch is disabled.
 - BREAKING: Use SessionId objects instead of strings for host sessionIds.
+
 Added
 *****
 - Added support for modular P2P.
+Fixed
+
+*****
+- Call CloseServer when the scene is shutting down and not on Dispose to make sure the call is successful even if the scene is on another node than the Server pool scene.
 
 6.2.1.86
 ----------
 Changed
 *******
-- Update dependencies to release version
+- Update dependencies to release version.
+
+
 
 6.2.1.85
 ----------
