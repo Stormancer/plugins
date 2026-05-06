@@ -169,7 +169,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// Reserved memory should be lower or equal to memoryLimit.
         /// Default value : 300MB
         /// </remarks>
-        public int reservedMemory { get; set; } = 300 * 1024 * 1024;
+        public long reservedMemory { get; set; } = 300 * 1024 * 1024;
 
 
         /// <summary>
