@@ -62,7 +62,7 @@ namespace Stormancer.Server.Plugins.Party.Model
         /// <summary>
         /// Game-specific data
         /// </summary>
-        public string? CustomData { get; set; }
+        public required byte[] CustomData { get; set; }
 
         /// <summary>
         /// Client-specified settings that can be used by other server components

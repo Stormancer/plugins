@@ -45,7 +45,7 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// Gets or sets customData
         /// </summary>
         [Key(1)]
-        public string? CustomData { get; set; }
+        public byte[] CustomData { get; set; }
 
         /// <summary>
         /// Gets or sets a <see cref="bool"/> indicating if only the leader can invite players in the group.
@@ -162,7 +162,7 @@ namespace Stormancer.Server.Plugins.Party.Dto
         /// Gets or sets custom data associated with the party.
         /// </summary>
         [Key(1)]
-        public string? CustomData { get; set; }
+        public byte[] CustomData { get; set; }
 
         /// <summary>
         /// Gets the settings version.

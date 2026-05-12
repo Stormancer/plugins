@@ -11,6 +11,9 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Changed
+******
+- Use byte[] for party custom data.
 
 4.0.0.9
 ----------

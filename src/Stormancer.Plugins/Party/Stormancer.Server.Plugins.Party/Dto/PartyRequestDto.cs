@@ -49,7 +49,7 @@ namespace Stormancer.Server.Plugins.Party
         /// Custom Data.
         /// </summary>
         [Key(2)]
-        public string? CustomData { get; set; }
+        public required byte[] CustomData { get; set; }
 
         /// <summary>
         /// Server settings set by client.

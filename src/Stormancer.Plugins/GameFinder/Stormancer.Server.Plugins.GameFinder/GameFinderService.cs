@@ -51,11 +51,17 @@ namespace Stormancer.Server.Plugins.GameFinder
     public class GameFinderContext
     {
         private readonly IGameFinderService service;
-
-        internal GameFinderContext(IGameFinderService service)
+        private readonly IDependencyResolver _scope;
+        internal GameFinderContext(IGameFinderService service, IDependencyResolver scope)
         {
             this.service = service;
+            this._scope = scope;
         }
+
+        /// <summary>
+        /// Gets scope
+        /// </summary>
+        public IDependencyResolver Scope => _scope;
 
         /// <summary>
         /// Parties in the queue.
@@ -322,17 +328,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                         }
                     }
 
-                    if (_data.waitingParties.TryRemove(party, out var group) && group.Candidate != null)
-                    {
-                        if (_pendingReadyChecks.TryGetValue(group.Candidate.Id, out var rc))
-                        {
-                            if (!rc.RanToCompletion)
-                            {
-                                // Todo jojo What can i do with this ?
-                                //rc.Cancel(currentUser.Id);
-                            }
-                        }
-                    }
+                    
                 }
                 return new FindGameResult { Success = true };
             }
@@ -391,7 +387,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                         value.Candidate = null;
                     }
 
-                    GameFinderContext mmCtx = new GameFinderContext(this);
+                    GameFinderContext mmCtx = new GameFinderContext(this,scope);
                     mmCtx.WaitingParties.AddRange(waitingParties.Keys);
                     mmCtx.OpenGameSessions.AddRange(_data.openGameSessions.Values.Where(ogs => ogs.IsOpen));
 
@@ -666,78 +662,11 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
         }
 
-        private ConcurrentDictionary<string, GameReadyCheck> _pendingReadyChecks = new ConcurrentDictionary<string, GameReadyCheck>();
+        
         private JObject? gameFinderConfigs;
 
-        private GameReadyCheck CreateReadyCheck(IGameCandidate game)
-        {
-            var readyCheck = new GameReadyCheck(_data.readyCheckTimeout, () => CloseReadyCheck(game.Id), game);
 
-            _pendingReadyChecks.TryAdd(game.Id, readyCheck);
-            return readyCheck;
-        }
 
-        private void CloseReadyCheck(string id)
-        {
-            _pendingReadyChecks.TryRemove(id, out _);
-        }
-
-        private GameReadyCheck? GetReadyCheck(IScenePeerClient peer)
-        {
-            if (_data.peersToGroup.TryGetValue(peer.SessionId, out var g))
-            {
-                var gameFinderRq = _data.waitingParties[g];
-                var gameCandidate = _data.waitingParties[g].Candidate;
-                if (gameCandidate == null)
-                {
-                    return null;
-                }
-                return GetReadyCheck(gameCandidate.Id);
-            }
-            return null;
-        }
-
-        private GameReadyCheck? GetReadyCheck(string gameId)
-        {
-
-            if (_pendingReadyChecks.TryGetValue(gameId, out var check))
-            {
-                return check;
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        public async Task ResolveReadyRequest(Packet<IScenePeerClient> packet)
-        {
-            User? user = null;
-            await using (var scope = _scene.DependencyResolver.CreateChild(global::Stormancer.Server.Plugins.API.Constants.ApiRequestTag))
-            {
-                var sessions = scope.Resolve<IUserSessions>();
-                user = await sessions.GetUser(packet.Connection, CancellationToken.None);
-            }
-
-            if (user == null)//User not authenticated
-            {
-                return;
-            }
-
-            var accepts = packet.Stream.ReadByte() > 0;
-
-            var check = GetReadyCheck(packet.Connection);
-            if (check == null)
-            {
-                return;
-            }
-            if (!check.ContainsPlayer(user.Id))
-            {
-                return;
-            }
-
-            check.ResolvePlayer(user.Id, accepts);
-        }
 
 
         public async Task CancelGame(IScenePeerClient peer, bool requestedByPlayer)

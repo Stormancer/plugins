@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Stormancer.Server.Plugins.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -67,9 +68,30 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         public bool partyLeaderIsHost { get; set; } = false;
 
+        /// <summary>
+        /// Action executed when creating a game.
+        /// </summary>
+        public Action<IDependencyResolver,PartyGameSessionConfig, NewGame> onCreatingGame { get; set; } = (_,_,_) => { };
+
+        /// <summary>
+        /// If true, the host of a P2P game session must be the aprty leader. If not, the game session is free to choose 
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
         public PartyGameFinderOptions PartyLeaderIsHost(bool value)
         {
             partyLeaderIsHost = value;
+            return this;
+        }
+
+        /// <summary>
+        /// Set a method called to customize the newly created game.
+        /// </summary>
+        /// <param name="func"></param>
+        /// <returns></returns>
+        public PartyGameFinderOptions OnCreatingGame(Action<IDependencyResolver,PartyGameSessionConfig,NewGame> func)
+        {
+            onCreatingGame = func;
             return this;
         }
 

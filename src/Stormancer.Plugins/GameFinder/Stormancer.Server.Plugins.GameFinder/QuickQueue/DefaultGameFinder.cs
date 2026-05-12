@@ -23,6 +23,7 @@
 using Nest;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Stormancer.Core;
 using Stormancer.Server.Plugins.GameSession;
 using Stormancer.Server.Plugins.Models;
 using Stormancer.Server.Plugins.Queries;
@@ -40,11 +41,39 @@ namespace Stormancer.Server.Plugins.GameFinder
         public const string QUICKQUEUE_GAMESESSIONS_INDEX = "gamesessions.quickQueue";
         public const string GAMESESSION_CONFIG_PATH = "quickqueue";
     }
-    public class QuickQueueGameSessionConfig
+
+    /// <summary>
+    /// Base configuration of game sessions created by finders.
+    /// </summary>
+    public class BaseGameSessionConfig
     {
+        /// <summary>
+        /// Game launch arguments, passed to the game session.
+        /// </summary>
+        public Dictionary<string, string> Args { get; } = new Dictionary<string, string>();
+    }
+
+    /// <summary>
+    /// Configuration of a game session created by the finder.
+    /// </summary>
+    public class QuickQueueGameSessionConfig : BaseGameSessionConfig
+    {
+        /// <summary>
+        /// Gets or sets the size of teams in the session.
+        /// </summary>
         public int TeamSize { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of teams in the session.
+        /// </summary>
         public int TeamCount { get; set; }
+
+        /// <summary>
+        /// Does the session allows for joining during gameplay ?
+        /// </summary>
         public bool AllowJoinExistingGame { get; set; }
+
+
     }
 
 
@@ -61,7 +90,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         internal async Task<IEnumerable<Document<QuickQueueGameSessionData>>> QueryGameSessions(ParametersGroup parameters)
         {
-            var docs =  (await search.QueryAsync<QuickQueueGameSessionData>("gamesessions.quickQueue", JObject.FromObject(new
+            var docs = (await search.QueryAsync<QuickQueueGameSessionData>("gamesessions.quickQueue", JObject.FromObject(new
             {
                 @bool = new
                 {
@@ -91,8 +120,16 @@ namespace Stormancer.Server.Plugins.GameFinder
             return docs;
         }
 
-        abstract internal Task<IEnumerable<IGrouping<ParametersGroup, Party>>> GetGroups(IEnumerable<Party> parties);
-        abstract protected Task<bool> CanPlayTogether(Party p, Party pivot);
+        abstract internal Task<IEnumerable<IGrouping<ParametersGroup, Party>>> GetGroups(IDependencyResolver resolver, IEnumerable<Party> parties);
+
+        /// <summary>
+        /// Override to customize if 2 parties can play together in the same game.
+        /// </summary>
+        /// <param name="resolver"></param>
+        /// <param name="p"></param>
+        /// <param name="pivot"></param>
+        /// <returns></returns>
+        abstract protected Task<bool> CanPlayTogether(IDependencyResolver resolver, Party p, Party pivot);
 
         /// <summary>
         /// 
@@ -109,9 +146,9 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
 
             var changeOccured = false;
-           
 
-            var partyGroups = await GetGroups(gameFinderContext.WaitingParties);
+
+            var partyGroups = await GetGroups(gameFinderContext.Scope, gameFinderContext.WaitingParties);
 
 
             foreach (var group in partyGroups)
@@ -122,7 +159,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
                 if (group.Key.AllowJoinGameInProgress)
                 {
-                    var sessions = (await QueryGameSessions(group.Key)).OrderBy(session => session.Source.CreatedOn).ToList();
+                    var sessions = (await QueryGameSessions(group.Key)).OrderBy(session => session.Source?.CreatedOn).ToList();
 
 
 
@@ -137,7 +174,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                             {
                                 foreach (var session in sessions)
                                 {
-                                    foreach (var team in session.Source.Teams)
+                                    foreach (var team in (IEnumerable<QuickQueueGameSessionTeamData>?)(session.Source?.Teams) ?? Array.Empty<QuickQueueGameSessionTeamData>())
                                     {
                                         if (team.PlayerCount + party.Players.Count <= teamSize)
                                         {
@@ -180,15 +217,15 @@ namespace Stormancer.Server.Plugins.GameFinder
                                     }
 
                                     //can I create new team ?
-                                    if(party.Players.Count <= teamSize && session.Source.TargetTeamCount > session.Source.Teams.Count)
+                                    if (party.Players.Count <= teamSize && session.Source.TargetTeamCount > session.Source.Teams.Count)
                                     {
-                                        var team = new Team(party,null);
-                                        var reservation = await gameSessions.CreateReservation(session.Id,team  , new JObject(), CancellationToken.None);
+                                        var team = new Team(party, null);
+                                        var reservation = await gameSessions.CreateReservation(session.Id, team, new JObject(), CancellationToken.None);
 
                                         if (reservation != null)
                                         {
                                             session.Source.Teams.Add(new QuickQueueGameSessionTeamData { PlayerCount = party.Players.Count, TeamId = team.TeamId });
-                                            
+
                                             //Add game to result
                                             var game = results.Games.FirstOrDefault(g => g.Id == session.Id);
                                             if (game != null)
@@ -223,13 +260,19 @@ namespace Stormancer.Server.Plugins.GameFinder
                                 {
                                     //No session found that can contain the party. Create a new one.
                                     var game = new NewGame();
-                                    game.PrivateCustomData = JObject.FromObject(new QuickQueueGameSessionConfig { AllowJoinExistingGame = true, TeamCount = (int)teamCount, TeamSize = (int)teamSize });
+                                    var config = new QuickQueueGameSessionConfig { AllowJoinExistingGame = true, TeamCount = (int)teamCount, TeamSize = (int)teamSize };
+
                                     var team = new Team(party);
                                     game.Teams.Add(team);
+
+                                    OnCreatingGameSession(gameFinderContext.Scope, config, game);
+
+                                    game.PrivateCustomData.Merge(JObject.FromObject(config));
+
                                     results.Games.Add(game);
                                     var data = new QuickQueueGameSessionData { CreatedOn = DateTime.UtcNow, TargetTeamSize = (int)teamSize, TargetTeamCount = (int)teamCount };
                                     data.Teams = new List<QuickQueueGameSessionTeamData> { new QuickQueueGameSessionTeamData { PlayerCount = party.Players.Count, TeamId = team.TeamId } };
-                                    sessions.Add(new Document<QuickQueueGameSessionData>(game.Id,  data ) { Version = 1 });
+                                    sessions.Add(new Document<QuickQueueGameSessionData>(game.Id, data) { Version = 1 });
                                     p.Remove(party);
                                     return sessions;
                                 }
@@ -267,7 +310,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                                 }
                                 foreach (var p in game.AllParties)
                                 {
-                                    if (!await CanPlayTogether(p, pivot))
+                                    if (!await CanPlayTogether(gameFinderContext.Scope, p, pivot))
                                     {
                                         continue;
                                     }
@@ -344,6 +387,14 @@ namespace Stormancer.Server.Plugins.GameFinder
 
             return results;
         }
+
+        /// <summary>
+        /// Called whenever a new game is created.
+        /// </summary>
+        /// <param name="scope"></param>
+        /// <param name="config"></param>
+        /// <param name="game"></param>
+        protected abstract void OnCreatingGameSession(IDependencyResolver scope, QuickQueueGameSessionConfig config, NewGame game);
     }
 
     /// <summary>
@@ -351,11 +402,11 @@ namespace Stormancer.Server.Plugins.GameFinder
     /// </summary>
     public class QuickQueueGameFinder : QuickQueueGameFinderBase, IGameFinderAlgorithm
     {
-        private Func<dynamic?, uint> teamSize = default!;
-        private Func<dynamic?, uint> teamCount = default!;
-        private Func<dynamic?, dynamic?, bool> canMatch = default!;
-        private Func<Party, Task<dynamic?>> getSettings = default!;
-        private Func<dynamic?, bool> allowJoinGameInProgress = default!;
+        private Func<IDependencyResolver, Party, uint> teamSize = default!;
+        private Func<IDependencyResolver, Party, uint> teamCount = default!;
+        private Func<IDependencyResolver, Party, Party, bool> canMatch = default!;
+        private Func<IDependencyResolver, Party, bool> allowJoinGameInProgress = default!;
+        private Action<IDependencyResolver, QuickQueueGameSessionConfig, NewGame> onCreatingGame = default!;
 
 
         /// <summary>
@@ -378,14 +429,14 @@ namespace Stormancer.Server.Plugins.GameFinder
             return new JObject();
         }
 
-        internal override async Task<IEnumerable<IGrouping<ParametersGroup, Party>>> GetGroups(IEnumerable<Party> parties)
+        internal override async Task<IEnumerable<IGrouping<ParametersGroup, Party>>> GetGroups(IDependencyResolver resolver, IEnumerable<Party> parties)
         {
-            await Task.WhenAll(parties.Select(async p => new { party = p, settings = await GetOrCreateSettings(p) }));
+            await Task.WhenAll(parties.Select(async p => new { party = p }));
             return parties.OrderByDescending(p => p.Players.Count).GroupBy(p =>
             {
-                dynamic? settings = GetOrCreateSettings(p).Result;
 
-                return new ParametersGroup { TeamCount = teamCount(settings), TeamSize = teamSize(settings), AllowJoinGameInProgress = allowJoinGameInProgress(settings) };
+
+                return new ParametersGroup { TeamCount = teamCount(resolver, p), TeamSize = teamSize(resolver, p), AllowJoinGameInProgress = allowJoinGameInProgress(resolver, p) };
 
             });
         }
@@ -400,23 +451,14 @@ namespace Stormancer.Server.Plugins.GameFinder
             return FindGamesImpl(gameFinderContext);
         }
 
-        override protected async Task<bool> CanPlayTogether(Party p, Party pivot)
+        ///<inheritdoc/>
+        override protected async Task<bool> CanPlayTogether(IDependencyResolver resolver, Party p, Party pivot)
         {
 
-            return canMatch(await GetOrCreateSettings(p), await GetOrCreateSettings(pivot));
+            return canMatch(resolver, p, pivot);
         }
 
-        private async Task<dynamic?> GetOrCreateSettings(Party p)
-        {
-            dynamic? settings;
-            if (!p.CacheStorage.TryGetValue("matchmaking.settings", out settings))
-            {
 
-                settings = await getSettings(p);
-                p.CacheStorage.Add("matchmaking.settings", settings);
-            }
-            return settings;
-        }
 
         /// <summary>
         /// 
@@ -427,11 +469,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             return new Dictionary<string, int>();
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="id"></param>
-        /// <param name="config"></param>
+        ///<inheritdoc/>
         public void RefreshConfig(string id, dynamic config)
         {
             var options = QuickQueueExtensions.GetOptions<QuickQueueOptions>(id);
@@ -439,8 +477,14 @@ namespace Stormancer.Server.Plugins.GameFinder
             teamSize = options.teamSize;
             teamCount = options.teamCount;
             canMatch = options.CanPlayTogether;
-            getSettings = options.getSettings;
+            onCreatingGame = options.onCreatingGame;
             allowJoinGameInProgress = options.allowJoinExistingGame;
+        }
+
+        ///<inheritdoc/>
+        protected override void OnCreatingGameSession(IDependencyResolver scope, QuickQueueGameSessionConfig config, NewGame game)
+        {
+            onCreatingGame(scope, config, game);
         }
     }
 
@@ -461,12 +505,12 @@ namespace Stormancer.Server.Plugins.GameFinder
     /// </summary>
     public class QuickQueueGameFinder<TPartySettings> : QuickQueueGameFinderBase, IGameFinderAlgorithm
     {
-        private Func<TPartySettings?, uint> teamSize = default!;
-        private Func<TPartySettings?, uint> teamCount = default!;
-        private Func<TPartySettings?, TPartySettings?, bool> canPlayTogether = default!;
-        Func<Party, Task<TPartySettings?>> getSettings = default!;
-        private Func<TPartySettings?, bool> allowJoinGameInProgress = default!;
-
+        private Func<IDependencyResolver, Party, TPartySettings?, uint> teamSize = default!;
+        private Func<IDependencyResolver, Party, TPartySettings?, uint> teamCount = default!;
+        private Func<IDependencyResolver, Party, TPartySettings?, Party, TPartySettings?, bool> canPlayTogether = default!;
+        Func<IDependencyResolver, Party, Task<TPartySettings?>> getSettings = default!;
+        private Func<IDependencyResolver, Party, TPartySettings?, bool> allowJoinGameInProgress = default!;
+        private Action<IDependencyResolver, QuickQueueGameSessionConfig, NewGame> onCreatingGame = default!;
 
         /// <summary>
         /// Creates a new QuickQueueGameFinder instance
@@ -501,13 +545,13 @@ namespace Stormancer.Server.Plugins.GameFinder
         }
 
 
-        private async Task<TPartySettings?> GetOrCreateSettings(Party p)
+        private async Task<TPartySettings?> GetOrCreateSettings(IDependencyResolver scope, Party p)
         {
             TPartySettings? settings = default;
             if (!p.CacheStorage.TryGetValue("matchmaking.settings", out var obj))
             {
 
-                settings = await getSettings(p);
+                settings = await getSettings(scope, p);
                 p.CacheStorage.Add("matchmaking.settings", settings!);
             }
             else
@@ -518,9 +562,9 @@ namespace Stormancer.Server.Plugins.GameFinder
             return settings;
         }
 
-        override protected async Task<bool> CanPlayTogether(Party p, Party pivot)
+        override protected async Task<bool> CanPlayTogether(IDependencyResolver scope, Party p, Party pivot)
         {
-            return canPlayTogether(await GetOrCreateSettings(p), await GetOrCreateSettings(pivot));
+            return canPlayTogether(scope, p, await GetOrCreateSettings(scope, p), p, await GetOrCreateSettings(scope, pivot));
         }
 
         /// <summary>
@@ -546,20 +590,28 @@ namespace Stormancer.Server.Plugins.GameFinder
             canPlayTogether = options.canPlayTogether;
             getSettings = options.GetSettings;
             allowJoinGameInProgress = options.allowJoinExistingGame;
+            onCreatingGame = options.onCreatingGame;
         }
 
-        internal override async Task<IEnumerable<IGrouping<ParametersGroup, Party>>> GetGroups(IEnumerable<Party> parties)
+        internal override async Task<IEnumerable<IGrouping<ParametersGroup, Party>>> GetGroups(IDependencyResolver scope, IEnumerable<Party> parties)
         {
-            await Task.WhenAll(parties.Select(async p => new { party = p, settings = await GetOrCreateSettings(p) }));
+            var p2 = await Task.WhenAll(parties.Select(async p => new { party = p, settings = await GetOrCreateSettings(scope, p) }));
 
 
-            return parties.OrderByDescending(p => p.Players.Count).GroupBy(p =>
+            return p2.OrderByDescending(p => p.party.Players.Count).GroupBy(p =>
             {
-                TPartySettings? settings = GetOrCreateSettings(p).Result;
 
-                var group = new ParametersGroup { TeamCount = teamCount(settings), TeamSize = teamSize(settings), AllowJoinGameInProgress = allowJoinGameInProgress(settings) };
+                TPartySettings? settings = p.settings;
+
+                var group = new ParametersGroup { TeamCount = teamCount(scope, p.party, settings), TeamSize = teamSize(scope, p.party, settings), AllowJoinGameInProgress = allowJoinGameInProgress(scope, p.party, settings) };
                 return group;
-            });
+            }, p => p.party);
+        }
+
+        ///<inheritdoc/>
+        protected override void OnCreatingGameSession(IDependencyResolver scope, QuickQueueGameSessionConfig config, NewGame game)
+        {
+            onCreatingGame(scope, config, game);
         }
     }
 

@@ -66,7 +66,7 @@ namespace Stormancer.Server.Plugins.Models
         /// Party custom data.
         /// </summary>
         [Key(2)]
-        public string? CustomData { get; set; }
+        public required byte[] CustomData { get; set; }
 
 
         /// <summary>

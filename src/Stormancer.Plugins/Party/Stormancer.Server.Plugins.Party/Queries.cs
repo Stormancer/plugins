@@ -71,7 +71,7 @@ namespace Stormancer.Server.Plugins.Party
         public const string PARTY_LUCENE_INDEX = "stormancer.party";
 
         private readonly ILucene lucene;
-        private Dictionary<string, (JObject, string)> _data = new Dictionary<string, (JObject, string)>();
+        private Dictionary<string, (JObject, byte[])> _data = new Dictionary<string, (JObject, byte[])>();
         private object syncRoot = new object();
         public PartyLuceneDocumentStore(ILucene lucene)
         {
@@ -107,7 +107,7 @@ namespace Stormancer.Server.Plugins.Party
             lucene.TryCreateIndex(PARTY_LUCENE_INDEX, DefaultMapper.JsonMapper);
         }
 
-        public void UpdateDocument(string id, JObject? document, string? customData)
+        public void UpdateDocument(string id, JObject? document, byte[] customData)
         {
             if (document != null)
             {
@@ -119,7 +119,7 @@ namespace Stormancer.Server.Plugins.Party
 
                         lucene.IndexDocument(PARTY_LUCENE_INDEX, id, document);
                     }
-                    _data[id] = (document, customData ?? string.Empty);
+                    _data[id] = (document, customData );
                 }
             }
             else

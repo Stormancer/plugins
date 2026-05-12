@@ -4,6 +4,7 @@ using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Models;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -103,12 +104,12 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// Size of the teams.
         /// </summary>
-        public Func<TPartySettings?, uint> teamSize { get; set; } = _ => 1;
+        public Func<IDependencyResolver, Party, TPartySettings?, uint> teamSize { get; set; } = (_, _, _) => 1;
 
         /// <summary>
         /// Number of teams in a game.
         /// </summary>
-        public Func<TPartySettings?, uint> teamCount { get; set; } = _ => 2;
+        public Func<IDependencyResolver, Party, TPartySettings?, uint> teamCount { get; set; } = (_, _, _) => 2;
 
         /// <summary>
         /// Allows joining a game already in progress.
@@ -116,23 +117,29 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <remarks>
         /// If true, the game is created when the first player enters gamefinding, then new players are added until the game is full.
         /// </remarks>
-        public Func<TPartySettings?, bool> allowJoinExistingGame = _ => false;
+        public Func<IDependencyResolver, Party, TPartySettings?, bool> allowJoinExistingGame = (_, _, _) => false;
 
         /// <summary>
         /// Returns true if 2 party can play together.
         /// </summary>
-        public Func<TPartySettings?, TPartySettings?, bool> canPlayTogether { get; set; } = (_, _) => true;
+        public Func<IDependencyResolver, Party, TPartySettings?, Party, TPartySettings?, bool> canPlayTogether { get; set; } = (_, _, _, _, _) => true;
+
+        /// <summary>
+        /// Customizes the games created by the game finder.
+        /// </summary>
+        public Action<IDependencyResolver, QuickQueueGameSessionConfig, NewGame> onCreatingGame { get; set; } = (_, _, _) => { };
 
         /// <summary>
         /// party parameters factory method.
         /// </summary>
-        public Func<Party, Task<TPartySettings?>> GetSettings { get; set; } = p =>
+        public Func<IDependencyResolver, Party, Task<TPartySettings?>> GetSettings { get; set; } = (dr, p) =>
         {
-            if (p.CustomData != null)
+            if (p.CustomData.Length > 0)
             {
                 try
                 {
-                    return Task.FromResult<TPartySettings?>(JsonConvert.DeserializeObject<TPartySettings>(p.CustomData));
+
+                    return Task.FromResult(dr.Resolve<ISerializer>().Deserialize<TPartySettings?>(new MemoryStream(p.CustomData)));
                 }
                 catch (Exception)
                 {
@@ -149,7 +156,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </remarks>
         public QuickQueueOptions<TPartySettings> AllowJoinExistingGame(bool allow)
         {
-            return AllowJoinExistingGame(_ => allow);
+            return AllowJoinExistingGame((_, _, _) => allow);
         }
 
         /// <summary>
@@ -158,7 +165,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <remarks>
         /// If true, the game is created when the first player enters gamefinding, then new players are added until the game is full.
         /// </remarks>
-        public QuickQueueOptions<TPartySettings> AllowJoinExistingGame(Func<TPartySettings?, bool> func)
+        public QuickQueueOptions<TPartySettings> AllowJoinExistingGame(Func<IDependencyResolver, Party, TPartySettings?, bool> func)
         {
             allowJoinExistingGame = func;
             return this;
@@ -172,7 +179,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         public QuickQueueOptions<TPartySettings> TeamSize(uint size)
         {
 
-            return TeamSize(_ => size);
+            return TeamSize((_, _, _) => size);
         }
 
         /// <summary>
@@ -182,7 +189,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <returns></returns>
         public QuickQueueOptions<TPartySettings> TeamCount(uint teams)
         {
-            return TeamCount(_ => teams);
+            return TeamCount((_, _, _) => teams);
         }
 
         /// <summary>
@@ -190,7 +197,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="getTeamSize"></param>
         /// <returns></returns>
-        public QuickQueueOptions<TPartySettings> TeamSize(Func<TPartySettings?, uint> getTeamSize)
+        public QuickQueueOptions<TPartySettings> TeamSize(Func<IDependencyResolver, Party, TPartySettings?, uint> getTeamSize)
         {
             teamSize = getTeamSize;
             return this;
@@ -201,7 +208,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="getTeams"></param>
         /// <returns></returns>
-        public QuickQueueOptions<TPartySettings> TeamCount(Func<TPartySettings?, uint> getTeams)
+        public QuickQueueOptions<TPartySettings> TeamCount(Func<IDependencyResolver, Party, TPartySettings?, uint> getTeams)
         {
             teamCount = getTeams;
             return this;
@@ -212,7 +219,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="canPlay"></param>
         /// <returns></returns>
-        public QuickQueueOptions<TPartySettings> CanPlay(Func<TPartySettings?, TPartySettings?, bool> canPlay)
+        public QuickQueueOptions<TPartySettings> CanPlay(Func<IDependencyResolver, Party, TPartySettings?, Party, TPartySettings?, bool> canPlay)
         {
             canPlayTogether = canPlay;
             return this;
@@ -223,7 +230,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="value"></param>
         /// <returns></returns>
-        public QuickQueueOptions<TPartySettings> SettingsGetter(Func<Party, Task<TPartySettings?>> value)
+        public QuickQueueOptions<TPartySettings> SettingsGetter(Func<IDependencyResolver, Party, Task<TPartySettings?>> value)
         {
             GetSettings = value;
             return this;
@@ -239,6 +246,17 @@ namespace Stormancer.Server.Plugins.GameFinder
             gameSessionTemplate = template;
             return this;
         }
+
+        /// <summary>
+        /// Customize game sessions created by the quick queue matchmaker.
+        /// </summary>
+        /// <param name="action"></param>
+        /// <returns></returns>
+        public QuickQueueOptions<TPartySettings> OnCreatingGame(Action<IDependencyResolver, QuickQueueGameSessionConfig, NewGame> action)
+        {
+            onCreatingGame = action;
+            return this;
+        }
     }
 
 
@@ -250,12 +268,12 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// Size of the teams.
         /// </summary>
-        public Func<dynamic?, uint> teamSize { get; set; } = _ => 1;
+        public Func<IDependencyResolver, Party, uint> teamSize { get; set; } = (_, _) => 1;
 
         /// <summary>
         /// Number of teams in a game.
         /// </summary>
-        public Func<dynamic?, uint> teamCount { get; set; } = _ => 2;
+        public Func<IDependencyResolver, Party, uint> teamCount { get; set; } = (_, _) => 2;
 
         /// <summary>
         /// Allows joining a game already in progress.
@@ -263,30 +281,17 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <remarks>
         /// If true, the game is created when the first player enters gamefinding, then new players are added until the game is full.
         /// </remarks>
-        public Func<dynamic?, bool> allowJoinExistingGame = _ => false;
+        public Func<IDependencyResolver, Party, bool> allowJoinExistingGame = (_, _) => false;
 
         /// <summary>
         /// Can parties play together method.
         /// </summary>
-        public Func<dynamic?, dynamic?, bool> CanPlayTogether { get; set; } = (_, _) => true;
+        public Func<IDependencyResolver, Party, Party, bool> CanPlayTogether { get; set; } = (_, _, _) => true;
 
         /// <summary>
-        /// party parameters factory method.
+        /// Triggered when a game is created by the quick queue.
         /// </summary>
-        public Func<Party, Task<dynamic?>> getSettings { get; set; } = p =>
-        {
-            if (p.CustomData != null)
-            {
-                try
-                {
-                    return Task.FromResult<dynamic?>(JsonConvert.DeserializeObject<JObject>(p.CustomData));
-                }
-                catch (Exception)
-                {
-                }
-            }
-            return Task.FromResult<dynamic?>(null);
-        };
+        public Action<IDependencyResolver, QuickQueueGameSessionConfig, NewGame> onCreatingGame { get; set; } = (_, _, _) => { };
 
         /// <summary>
         /// Allows joining a game already in progress.
@@ -296,7 +301,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </remarks>
         public QuickQueueOptions AllowJoinExistingGame(bool allow)
         {
-            return AllowJoinExistingGame(_ => allow);
+            return AllowJoinExistingGame((_, _) => allow);
         }
 
         /// <summary>
@@ -305,7 +310,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <remarks>
         /// If true, the game is created when the first player enters gamefinding, then new players are added until the game is full.
         /// </remarks>
-        public QuickQueueOptions AllowJoinExistingGame(Func<dynamic?, bool> func)
+        public QuickQueueOptions AllowJoinExistingGame(Func<IDependencyResolver, Party, bool> func)
         {
             allowJoinExistingGame = func;
             return this;
@@ -319,7 +324,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         public QuickQueueOptions TeamSize(uint size)
         {
 
-            return TeamSize(_ => size);
+            return TeamSize((_, _) => size);
         }
 
         /// <summary>
@@ -329,7 +334,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <returns></returns>
         public QuickQueueOptions TeamCount(uint teams)
         {
-            return TeamCount(_ => teams);
+            return TeamCount((_, _) => teams);
         }
 
         /// <summary>
@@ -337,7 +342,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="getTeamSize"></param>
         /// <returns></returns>
-        public QuickQueueOptions TeamSize(Func<dynamic?, uint> getTeamSize)
+        public QuickQueueOptions TeamSize(Func<IDependencyResolver, Party, uint> getTeamSize)
         {
             teamSize = getTeamSize;
             return this;
@@ -348,7 +353,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="getTeams"></param>
         /// <returns></returns>
-        public QuickQueueOptions TeamCount(Func<dynamic?, uint> getTeams)
+        public QuickQueueOptions TeamCount(Func<IDependencyResolver, Party, uint> getTeams)
         {
             teamCount = getTeams;
             return this;
@@ -359,22 +364,13 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="canPlay"></param>
         /// <returns></returns>
-        public QuickQueueOptions CanPlay(Func<dynamic?, dynamic?, bool> canPlay)
+        public QuickQueueOptions CanPlay(Func<IDependencyResolver, Party, Party, bool> canPlay)
         {
             CanPlayTogether = canPlay;
             return this;
         }
 
-        /// <summary>
-        /// Sets a function creating settings from a party.
-        /// </summary>
-        /// <param name="value"></param>>
-        /// <returns></returns>
-        public QuickQueueOptions SettingsGetter(Func<Party, Task<dynamic?>> value)
-        {
-            getSettings = value;
-            return this;
-        }
+
 
         /// <summary>
         /// Sets the template to use to create gamesessions.

@@ -11,13 +11,20 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Added
+*****
+- Modified party gamefinder and quick queue gamefinder to enable consumers to easily customize created games.
+
 Changed
 *******
 - Remove allocations when notifying players.
 - Update state to match new client code.
+
 Removed
 *******
 - Removed support for ready confirmation in gamefinder, for now, because nobody used it.
+- Removed dynamic support for QuickQueue.
+
 Fixed
 *****
 - Fixed an issue that caused gamefinders to send far too much data on game resolution.

@@ -424,7 +424,7 @@ namespace Stormancer.Server.Plugins.Party
                 PartyMember? partyUser = null;
                 try
                 {
-                   
+
                     if (_partyState.PartyMembers.TryRemove(args.Peer.SessionId, out partyUser))
                     {
                         Log(LogLevel.Trace, "OnDisconnected", $"Member left the party, reason: {args.Reason}", args.Peer.SessionId, partyUser.UserId);
@@ -982,10 +982,14 @@ namespace Stormancer.Server.Plugins.Party
                     throw new InvalidOperationException("noGameFinderSelected.");
                 }
                 //Construct gameFinder request
-                var gameFinderRequest = new Models.Party() { Players = new Dictionary<string, Models.Player>() };
-                gameFinderRequest.CustomData = _partyState.Settings.CustomData;
-                gameFinderRequest.PartyId = _partyState.Settings.PartyId;
-                gameFinderRequest.PartyLeaderId = _partyState.Settings.PartyLeaderId;
+                var gameFinderRequest = new Models.Party()
+                {
+                    Players = new Dictionary<string, Models.Player>(),
+                    CustomData = _partyState.Settings.CustomData,
+                    PartyId = _partyState.Settings.PartyId,
+                    PartyLeaderId = _partyState.Settings.PartyLeaderId
+                };
+              
                 foreach (var partyUser in _partyState.PartyMembers.Values)
                 {
                     gameFinderRequest.Players.Add(partyUser.UserId, new Models.Player(partyUser.SessionId, partyUser.UserId, partyUser.UserData));
@@ -1222,7 +1226,7 @@ namespace Stormancer.Server.Plugins.Party
         {
             var dto = new PartyStateDto
             {
-                LeaderId = _partyState.Settings.PartyLeaderId ??string.Empty,
+                LeaderId = _partyState.Settings.PartyLeaderId ?? string.Empty,
                 Settings = new PartySettingsUpdateDto(_partyState),
                 PartyMembers = _partyState.PartyMembers.Values.Select(member =>
                     new PartyMemberDto { PartyUserStatus = member.StatusInParty, UserData = member.UserData, UserId = member.UserId, SessionId = member.SessionId, LocalPlayers = member.LocalPlayers, ConnectionStatus = member.ConnectionStatus }).ToList(),
@@ -1289,7 +1293,7 @@ namespace Stormancer.Server.Plugins.Party
             {
                 ThrowNoSuchUserError(recipientUserId.PlatformUserId);
             }
-            var result = await _userSessions.Value.SendRequest<bool, string>("party.invite", senderMember.UserId,ctx.RecipientUser.Id , PartyId, cancellationToken);
+            var result = await _userSessions.Value.SendRequest<bool, string>("party.invite", senderMember.UserId, ctx.RecipientUser.Id, PartyId, cancellationToken);
 
             if (!result.Success)
             {
@@ -1440,7 +1444,7 @@ namespace Stormancer.Server.Plugins.Party
             {
                 PartyId = this.PartyId,
                 CreationTimeUtc = this.State.CreatedOnUtc,
-                PartyLeaderId = this.Settings.PartyLeaderId??string.Empty,
+                PartyLeaderId = this.Settings.PartyLeaderId ?? string.Empty,
                 CustomData = this.Settings.CustomData,
                 Players = new Dictionary<string, Models.Player>(),
                 Platform = _partyState.Platform
