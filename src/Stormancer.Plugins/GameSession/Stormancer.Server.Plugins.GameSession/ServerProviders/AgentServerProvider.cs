@@ -1,29 +1,55 @@
 ﻿using MessagePack;
 using Newtonsoft.Json.Linq;
-using SmartFormat.Utilities;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.DataProtection;
-using Stormancer.Server.Plugins.GameSession.ServerPool;
 using Stormancer.Server.Plugins.Users;
 using Stormancer.Server.Secrets;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
-using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 {
+    /// <summary>
+    /// Context used to select a docker image for a game session.
+    /// </summary>
+    public class ImageSelectionContext
+    {
+        /// <summary>
+        /// The template of the game session requesting the image start.
+        /// </summary>
+        public required string GameSessionTemplate { get; init; }
+
+        /// <summary>
+        /// Account of the application.
+        /// </summary>
+        public required string Account { get; init; }
+
+        /// <summary>
+        /// Id of the application
+        /// </summary>
+        public required string Application { get; init; }
+
+        /// <summary>
+        /// Game arguments.
+        /// </summary>
+        /// <remarks>
+        /// Arguments can be customized by the game session.
+        /// </remarks>
+        public required Dictionary<string, string> Args { get; init; }
+
+    }
     /// <summary>
     /// Configuration section for game server agents.
     /// </summary>
@@ -138,54 +164,13 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         ///<inheritdoc/>
         public string provider { get; set; } = GameServerAgentConstants.TYPE;
 
-        /// <summary>
-        /// The maximum CPU time ratio a game server in the pool can use.
-        /// </summary>
-        /// <remarks>
-        /// Default value : 0.5
-        /// </remarks>
-        public float cpuLimit { get; set; } = 0.5f;
-
-        /// <summary>
-        /// The maximum physical memory a game server in the pool can use.
-        /// </summary>
-        /// <remarks>
-        /// Default value : 300MB
-        /// </remarks>
-        public long memoryLimit { get; set; } = 300 * 1024 * 1024;
-
-        /// <summary>
-        /// The CPU time ratio reserved for a game server.
-        /// </summary>
-        /// <remarks>
-        /// Default value : 0.5
-        /// </remarks>
-        public float reservedCpu { get; set; } = 0.5f;
-
-        /// <summary>
-        /// The physical memory reserved for a game server.
-        /// </summary>
-        /// <remarks>
-        /// Reserved memory should be lower or equal to memoryLimit.
-        /// Default value : 300MB
-        /// </remarks>
-        public long reservedMemory { get; set; } = 300 * 1024 * 1024;
-
 
         /// <summary>
         /// Configuration of the game server crash report system.
         /// </summary>
         public CrashReportConfiguration CrashReportConfiguration { get; set; } = new CrashReportConfiguration();
 
-        /// <summary>
-        /// Optional docker repository password. 
-        /// </summary>
-        public string? username { get; set; }
-
-        /// <summary>
-        /// Optional path to the secret storing the docker repository password.
-        /// </summary>
-        public string? password { get; set; }
+    
 
     }
 
@@ -227,6 +212,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             _secretsStore = secretsStore;
             _httpClientFactory = httpClientFactory;
             _section = _configuration.GetValue<GameServerAgentsConfigurationSection>("gameservers.agents") ?? new GameServerAgentsConfigurationSection();
+            DockerConfiguration = _configuration.GetValue<DockerConfigurationSection>(DockerConfigurationSection.SectionPath) ?? DockerConfigurationSection.Default;
             _certificates = LoadSigningCertificates();
             _currentClientCredentials = _section.ClientCredentials;
 
@@ -252,7 +238,8 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         void IConfigurationChangedEventHandler.OnConfigurationChanged()
         {
-            _section = _configuration.GetValue<GameServerAgentsConfigurationSection>("gameservers.agents", new GameServerAgentsConfigurationSection());
+            _section = _configuration.GetValue<GameServerAgentsConfigurationSection>("gameservers.agents") ?? new GameServerAgentsConfigurationSection();
+            DockerConfiguration = _configuration.GetValue<DockerConfigurationSection>(DockerConfigurationSection.SectionPath) ?? DockerConfigurationSection.Default;
             _certificates = LoadSigningCertificates();
 
             if (_currentClientCredentials != _section.ClientCredentials)
@@ -260,6 +247,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 _accessToken = null;
                 _currentClientCredentials = _section.ClientCredentials;
             }
+            _cachedDockerCredentials.Clear();
         }
 
         /// <summary>
@@ -374,6 +362,75 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 return Task.FromResult<string?>(null);
             }
         }
+
+        /// <summary>
+        /// The Docker configuration section.
+        /// </summary>
+        public DockerConfigurationSection DockerConfiguration { get; private set; }
+
+
+        /// <summary>
+        /// Get the credentials for a docker repository
+        /// </summary>
+        /// <param name="dockerRepository"></param>
+        /// <returns></returns>
+        public async Task<DockerCredentials?> GetDockerCredentialsAsync(string dockerRepository)
+        {
+
+            if (_cachedDockerCredentials.TryGetValue(dockerRepository, out var credentials))
+            {
+                return credentials;
+            }
+            else if (DockerConfiguration.Auth.TryGetValue(dockerRepository, out var config))
+            {
+
+                if (config.Login != null && config.Password != null)
+                {
+                    var secret = await _secretsStore.GetSecret(config.Password);
+                    if (secret.Value != null)
+                    {
+                        credentials = new DockerCredentials { Login = config.Login, Password = Encoding.UTF8.GetString(secret.Value) };
+                        _cachedDockerCredentials.Add(dockerRepository, credentials);
+                    }
+                }
+                return credentials;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Tries getting docker credentials without waiting for 
+        /// </summary>
+        /// <param name="dockerRepository"></param>
+        /// <param name="dockerCredentials"></param>
+        /// <returns></returns>
+        public bool TryGetDockerCredentials(string dockerRepository, [NotNullWhen(true)] out DockerCredentials? dockerCredentials)
+        {
+            return _cachedDockerCredentials.TryGetValue(dockerRepository, out dockerCredentials);
+        }
+        /// <summary>
+        /// Fills the docker credentials Cache.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<Dictionary<string, DockerCredentials>> FillDockerCredentialsCache()
+        {
+            var result = new Dictionary<string, DockerCredentials>();
+            foreach (var repository in DockerConfiguration.Auth.Keys)
+            {
+                var creds= await GetDockerCredentialsAsync(repository);
+                if(creds!=null)
+                {
+                    result.Add(repository, creds);
+                }
+            }
+            return result;
+        }
+
+        private Dictionary<string, DockerCredentials> _cachedDockerCredentials = new Dictionary<string, DockerCredentials>();
+
     }
     internal class GameServerAgentAuthenticationProvider : IAuthenticationProvider
     {
@@ -540,7 +597,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// <summary>
         /// Total CPU available on the agent.
         /// </summary>
-        public float TotalCpu { get;  }
+        public float TotalCpu { get; }
 
         /// <summary>
         /// Cpu currently reserved on the agent.
@@ -550,7 +607,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// <summary>
         /// Total available memory on the agent.
         /// </summary>
-        public long TotalMemory { get;  }
+        public long TotalMemory { get; }
 
 
         /// <summary>
@@ -600,6 +657,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             GameSessionEventsRepository events,
             GameServerAgentConfiguration configuration)
         {
+
             _environment = environment;
             _dataProtector = dataProtector;
             _secrets = secrets;
@@ -617,6 +675,11 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         private CancellationTokenSource _disposedCts;
         private CancellationToken _disposedCancellationToken;
 
+        /// <summary>
+        /// Gets or sets the id of the pool.
+        /// </summary>
+        public string Id { get; set; }
+
         /// <inheritdoc/>
         public void Dispose()
         {
@@ -626,7 +689,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         {
 
             var fed = await _environment.GetFederation();
-            while (!_disposedCancellationToken.IsCancellationRequested && !ShuttingDown)
+            var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+            var preloadedImages = new List<string>();
+            while (!_disposedCancellationToken.IsCancellationRequested && !ShuttingDown && await timer.WaitForNextTickAsync(_disposedCancellationToken))
             {
                 try
                 {
@@ -634,9 +699,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
                     var token = await _configuration.GetAccessToken();
 
-                    var client = _httpClientFactory.CreateClient();
+
                     if (token != null)
                     {
+                        var client = _httpClientFactory.CreateClient();
                         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
 
@@ -674,15 +740,52 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                         await Task.WhenAll();
                     }
 
-                    await Task.Delay(10000);
 
                 }
                 catch (Exception ex)
                 {
                     _logger.Log(LogLevel.Error, "gameServers.agent", "An error occurred while trying to connect an agent to the application", ex);
                 }
+
+                if (_configuration.DockerConfiguration.PreloadedImages.Any())
+                {
+                    var creds = await _configuration.FillDockerCredentialsCache();
+                    lock (_syncRoot)
+                    {
+
+                      
+                        foreach (var (id, agent) in _agents)
+                        {
+                            async Task UpdateImageList(string id,Dictionary<string,DockerCredentials> credentials,CancellationToken cancellationToken)
+                            {
+                                try
+                                {
+                                    await UpdatePreloadedImageList(id, new UpdatePreloadedImageListArguments
+                                    {
+                                        Images = _configuration.DockerConfiguration.PreloadedImages.Keys,
+                                        Credentials = credentials
+                                    },cancellationToken);
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.Log(LogLevel.Error, "gameServers.agent", $"An error occurred while trying to update preloaded images on '{id}'", ex);
+                                }
+                            }
+
+                            _ = UpdateImageList(id, creds, _disposedCancellationToken);
+
+
+
+                        }
+                    }
+                }
+
+
             }
         }
+
+
+
 
         private bool IsConnected(string url)
         {
@@ -779,7 +882,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                     _ = UpdateAgentStatus(agent, cancellationToken);
                     await foreach (var update in GetContainerStatusUpdates(agent.Id, cancellationToken))
                     {
-                        
+
                         //agent.TotalCpu = update.TotalCpu;
                         agent.ReservedCpu = update.ReservedCpu;
                         //agent.TotalMemory = update.TotalMemory;
@@ -811,9 +914,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                     agent.ReservedMemory = status.ReservedMemory;
                     agent.LastStatusUpdate = DateTime.UtcNow;
 
-                   
+
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     _logger.Log(LogLevel.Error, "gameservers.agent", "An error occured while retrieving the status of an agent.", ex);
                 }
@@ -881,7 +984,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             }
         }
 
-        public Task<IEnumerable<ContainerDescription>> GetRunningContainers(IScenePeerClient peer)
+        private Task<IEnumerable<ContainerDescription>> GetRunningContainers(IScenePeerClient peer)
         {
             return peer.RpcTask<bool, IEnumerable<ContainerDescription>>("agent.getRunningContainers", true);
         }
@@ -894,7 +997,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public async Task<DownloadImageResponse> DownloadImageAsync(string agentId, DownloadImageArguments args,CancellationToken cancellationToken)
+        public async Task<VoidResponse> DownloadImageAsync(string agentId, DownloadImageArguments args, CancellationToken cancellationToken)
         {
             DockerAgent? agent;
             lock (_syncRoot)
@@ -904,11 +1007,51 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                     throw new InvalidOperationException("Agent not found");
                 }
             }
-           
-            return await agent.Peer.RpcTask<DownloadImageArguments, DownloadImageResponse>("agent.downloadImage", args, cancellationToken);
+
+            return await agent.Peer.RpcTask<DownloadImageArguments, VoidResponse>("agent.downloadImage", args, cancellationToken);
         }
 
-        public async Task<ContainerStartResponse> StartContainerAsync(string agentId, string image, string name, float reservedCpu, long reservedMemory, float cpuLimit, long memoryLimit, Dictionary<string, string> environmentVariables,int maxDurationSeconds, CrashReportConfiguration crashReportConfiguration,DockerCredentials? credentials, CancellationToken cancellationToken)
+
+        /// <summary>
+        /// Update the list of images the agent must keep available.
+        /// </summary>
+        /// <param name="agentId"></param>
+        /// <param name="args"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        public async Task<VoidResponse> UpdatePreloadedImageList(string agentId, UpdatePreloadedImageListArguments args, CancellationToken cancellationToken)
+        {
+            DockerAgent? agent;
+            lock (_syncRoot)
+            {
+                if (!_agents.TryGetValue(agentId, out agent))
+                {
+                    throw new InvalidOperationException("Agent not found");
+                }
+            }
+
+            return await agent.Peer.RpcTask<UpdatePreloadedImageListArguments, VoidResponse>("agent.updatePreloadedImageList", args, cancellationToken);
+        }
+
+        /// <summary>
+        /// Starts a container on an agent.
+        /// </summary>
+        /// <param name="agentId"></param>
+        /// <param name="image"></param>
+        /// <param name="name"></param>
+        /// <param name="reservedCpu"></param>
+        /// <param name="reservedMemory"></param>
+        /// <param name="cpuLimit"></param>
+        /// <param name="memoryLimit"></param>
+        /// <param name="environmentVariables"></param>
+        /// <param name="maxDurationSeconds"></param>
+        /// <param name="crashReportConfiguration"></param>
+        /// <param name="credentials"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        public async Task<ContainerStartResponse> StartContainerAsync(string agentId, string image, string name, float reservedCpu, long reservedMemory, float cpuLimit, long memoryLimit, Dictionary<string, string> environmentVariables, int maxDurationSeconds, CrashReportConfiguration crashReportConfiguration, DockerCredentials? credentials, CancellationToken cancellationToken)
         {
             DockerAgent? agent;
             lock (_syncRoot)
@@ -933,7 +1076,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 CrashReportConfiguration = crashReportConfiguration,
                 KeepAliveSeconds = maxDurationSeconds,
                 Credentials = credentials,
-                
+
 
             }, cancellationToken);
         }
@@ -976,12 +1119,40 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             return result.Success;
         }
 
+        private DockerContainerRequirements GetResourceRequirements(string image,string imageTemplate)
+        {
+            if(_configuration.DockerConfiguration.PreloadedImages.TryGetValue(image,out var imageConfiguration) && imageConfiguration.Requirements!=null)
+            {
+                return imageConfiguration.Requirements;
+            }
+            else if(_configuration.DockerConfiguration.Templates.TryGetValue(imageTemplate,out var config) && config.Requirements !=null)
+            {
+                return config.Requirements;
+            }
+            else
+            {
+                return new DockerContainerRequirements();
+            }
+        }
+        private async Task<DockerCredentials?> GetCredentials(string image)
+        {
+            var index = image.IndexOf('/');
+            if(index <=0)
+            {
+                return null;
+            }
+            var repository = image.Substring(0,index);
+            return await _configuration.GetDockerCredentialsAsync(repository);
+        }
 
+        /// <inheritdoc/>
         public string Type => GameServerAgentConstants.TYPE;
 
+        /// <inheritdoc/>
         public bool ShuttingDown { get; private set; }
 
-        public async Task<StartGameServerResult> TryStartServer(string id, string authenticationToken, JObject config, IEnumerable<string> regions, CancellationToken ct)
+        /// <inheritdoc/>
+        public async Task<StartGameServerResult> TryStartServer(string id, string authenticationToken, JObject config, IEnumerable<string> regions, string gameSessionTemplate, Dictionary<string,string> gameSessionArgs ,CancellationToken ct)
         {
 
             var agentConfig = config.ToObject<AgentPoolConfigurationSection>() ?? new AgentPoolConfigurationSection();
@@ -997,15 +1168,11 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
             var environmentVariables = new Dictionary<string, string>
             {
-               
-                //    { "Stormancer_Server_Port", server.ServerPort.ToString() },
-                    { "Stormancer_Server_ClusterEndpoints", endpoints },
-                    //{ "Stormancer_Server_PublishedAddresses", server.PublicIp },
-                    //{ "Stormancer_Server_PublishedPort", server.ServerPort.ToString() },
-                    { "Stormancer_Server_AuthenticationToken", authenticationToken },
-                    { "Stormancer_Server_Account", applicationInfo.AccountId },
-                    { "Stormancer_Server_Application", applicationInfo.ApplicationName },
-                    { "Stormancer_Server_TransportEndpoint", udpTransports.Item2.First().Replace(":","|") }
+                { "Stormancer_Server_ClusterEndpoints", endpoints },
+                { "Stormancer_Server_AuthenticationToken", authenticationToken },
+                { "Stormancer_Server_Account", applicationInfo.AccountId },
+                { "Stormancer_Server_Application", applicationInfo.ApplicationName },
+                { "Stormancer_Server_TransportEndpoint", udpTransports.Item2.First().Replace(":","|") }
              };
             if (agentConfig.EnvironmentVariables != null)
             {
@@ -1014,23 +1181,26 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                     environmentVariables[key] = value;
                 }
             }
-            DockerCredentials? credentials = null;
-            if(agentConfig.username != null && agentConfig.password != null)
+            var imageTemplate = agentConfig.Image;
+           
+            if(imageTemplate == null)
             {
-                var secret = await _secrets.GetSecret(agentConfig.password);
-                if (secret.Value != null)
-                {
-                    credentials = new DockerCredentials { Login = agentConfig.username, Password = Encoding.UTF8.GetString(secret.Value) };
-                }
+                return new StartGameServerResult(false, null, null, $"'image' property not set in the configuration of pool '{this.Id}'.");
             }
+            var imageSelectCtx = new ImageSelectionContext { Account = applicationInfo.AccountId, Application = applicationInfo.ApplicationName, GameSessionTemplate = gameSessionTemplate, Args = gameSessionArgs };
 
+            var image = SmartFormat.Smart.Format(imageTemplate, imageSelectCtx);
+
+
+            var resourceRequirements = GetResourceRequirements(image, imageTemplate);
+            var credentials = GetCredentials(image);
             var tries = 0;
             var tryResults = new List<ContainerStartResponse>();
             string? errorDetails = null;
             while (tries < 4)
             {
                 tries++;
-                var agent = FindAgent(agentConfig.reservedCpu, agentConfig.reservedMemory, regions);
+                var agent = FindAgent(resourceRequirements.reservedCpu, resourceRequirements.reservedMemory, regions);
 
                 if (agent != null)
                 {
@@ -1038,7 +1208,19 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                     ContainerStartResponse response;
                     try
                     {
-                        response = await StartContainerAsync(agent.Id, agentConfig.Image, id, agentConfig.reservedCpu, agentConfig.reservedMemory, agentConfig.cpuLimit, agentConfig.memoryLimit, environmentVariables, (int)agentConfig.MaxDuration, agentConfig.CrashReportConfiguration,credentials, cts.Token);
+                        response = await StartContainerAsync(
+                            agent.Id,
+                            image,
+                            id,
+                            resourceRequirements.reservedCpu,
+                            resourceRequirements.reservedMemory,
+                            resourceRequirements.cpuLimit,
+                            resourceRequirements.memoryLimit,
+                            environmentVariables,
+                            (int)agentConfig.MaxDuration,
+                            agentConfig.CrashReportConfiguration,
+                            await GetCredentials(image),
+                            cts.Token);
 
                         agent.Faults.Clear();
                         agent.FaultExpiration = null;
@@ -1088,9 +1270,9 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 }
                 else
                 {
-                    errorDetails = $"noAgentFound&req={string.Join(',',regions)}&avail={string.Join(',',_agents.Select(kvp=>$"{kvp.Key}:{kvp.Value.Description.Region}") )}";
+                    errorDetails = $"noAgentFound&req={string.Join(',', regions)}&avail={string.Join(',', _agents.Select(kvp => $"{kvp.Key}:{kvp.Value.Description.Region}"))}";
                 }
-                    await Task.Delay(500);
+                await Task.Delay(500);
             }
 
             return new StartGameServerResult(false, null, null, errorDetails);

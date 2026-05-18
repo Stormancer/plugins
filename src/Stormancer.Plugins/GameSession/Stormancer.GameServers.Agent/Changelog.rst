@@ -15,6 +15,9 @@ Changed
 *******
 - Improve crash info package creation.
 - Update Raknet version
+Added
+*****
+- Enables preloading docker images according to the app configuration.
 
 0.5.1.2
 ----------

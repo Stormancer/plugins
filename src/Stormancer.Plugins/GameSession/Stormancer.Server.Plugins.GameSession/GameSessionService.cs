@@ -926,7 +926,7 @@ namespace Stormancer.Server.Plugins.GameSession
                         {
                             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                             using var cts2 = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, _gameCompleteCts.Token);
-                            _server = await pools.TryStartGameServer(poolId, GameSessionId, _config, cts2.Token);
+                            _server = await pools.TryStartGameServer(poolId, GameSessionId,_scene.Template, _config, _arguments, cts2.Token);
                             _serverRequestedOn = DateTime.UtcNow;
 
 

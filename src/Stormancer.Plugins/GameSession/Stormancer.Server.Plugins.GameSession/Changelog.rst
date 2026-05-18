@@ -19,8 +19,10 @@ Changed
 Added
 *****
 - Added support for modular P2P.
-Fixed
+- Improved Game server system to enable sending custom arguments set during OnGameSessionStarting 
+- Enables complex game server image selection mechanisms through improved configuration and custom arguments.
 
+Fixed
 *****
 - Call CloseServer when the scene is shutting down and not on Dispose to make sure the call is successful even if the scene is on another node than the Server pool scene.
 

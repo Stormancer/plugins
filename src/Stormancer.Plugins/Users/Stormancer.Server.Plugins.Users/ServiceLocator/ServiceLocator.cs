@@ -156,14 +156,10 @@ namespace Stormancer.Server.Plugins.ServiceLocator
                     return token;
                 }
             }
-            catch (InvalidOperationException ex) when (ex.InnerException is HttpRequestException hre)
+            catch (Exception)
             {
-                if (hre.StatusCode == HttpStatusCode.NotFound)
-                {
-                    _logger.Log(LogLevel.Warn, "serviceLocator", $"Scene {sceneUri} not found.", new { service = serviceType, name = serviceName });
-                }
-
-                throw;
+                
+                throw new ClientException($"notFound?uri={sceneUri}");
 
             }
         }

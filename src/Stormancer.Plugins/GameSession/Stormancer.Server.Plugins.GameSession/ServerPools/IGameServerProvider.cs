@@ -105,15 +105,22 @@ namespace Stormancer.Server.Plugins.GameSession
         string Type { get; }
 
         /// <summary>
+        /// Sets the id of the pool.
+        /// </summary>
+        
+        string Id {set; }
+        /// <summary>
         /// Tries to start a server on a region.
         /// </summary>
         /// <param name="id"></param>
-        /// <param name="authToken"></param>
+        /// <param name="authenticationToken"></param>
         /// <param name="config"></param>
-        /// <param name="preferredRegions"></param>
+        /// <param name="regions"></param>
+        /// <param name="gameSessionTemplate"></param>
+        /// <param name="gameSessionArgs"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        Task<StartGameServerResult> TryStartServer(string id,string authToken, JObject config,IEnumerable<string> preferredRegions, CancellationToken ct);
+        Task<StartGameServerResult> TryStartServer(string id, string authenticationToken, JObject config, IEnumerable<string> regions, string gameSessionTemplate, Dictionary<string, string> gameSessionArgs, CancellationToken ct);
 
         /// <summary>
         /// Stops a server.

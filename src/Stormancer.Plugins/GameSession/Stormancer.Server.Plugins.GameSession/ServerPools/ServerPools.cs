@@ -214,12 +214,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         {
             ApplySettings();
         }
-        public async Task<GameServer?> TryStartGameServer(string poolId, string gameSessionId, GameSessionConfiguration config, CancellationToken cancellationToken)
+        public async Task<GameServer?> TryStartGameServer(string poolId, string gameSessionId,string gameSessionTemplate, GameSessionConfiguration config,Dictionary<string,string> gsArgs, CancellationToken cancellationToken)
         {
             if (TryGetPool(poolId, out var pool))
             {
                
-                var result = await pool.TryWaitGameServerAsync(gameSessionId, config, cancellationToken);
+                var result = await pool.TryWaitGameServerAsync(gameSessionId, gameSessionTemplate, config,gsArgs, cancellationToken);
                 
 
 

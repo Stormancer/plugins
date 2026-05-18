@@ -455,7 +455,24 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public required string Password { get; set; }
     }
 
+    /// <summary>
+    /// Arguments to update the list of images
+    /// </summary>
+#if !MSGPACK_CLI
+    [MessagePackObject]
+#endif
+    public class UpdatePreloadedImageListArguments
+    {
+        /// <summary>
+        /// List of images to preload.
+        /// </summary>
+        public IEnumerable<string> Images { get; set; } = Enumerable.Empty<string>();
 
+        /// <summary>
+        /// Credentials used to pull images.
+        /// </summary>
+        public Dictionary<string, DockerCredentials> Credentials { get; set; } = new Dictionary<string, DockerCredentials>();
+    }
 
     /// <summary>
     /// Contains arguments to pull an image in the agent.
@@ -486,7 +503,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 #if !MSGPACK_CLI
     [MessagePackObject]
 #endif
-    public class DownloadImageResponse
+    public class VoidResponse
     {
         /// <summary>
         /// Was the operation successful.

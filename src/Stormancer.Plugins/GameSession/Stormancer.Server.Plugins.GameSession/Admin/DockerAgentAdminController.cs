@@ -58,7 +58,7 @@ namespace Stormancer.Server.Plugins.GameSession.Admin
         {
             await using var scope = _scene.CreateRequestScope();
 
-            DownloadImageResponse response = await scope.Resolve<AgentServerProxy>().DownloadImage(agentId, args, cancellationToken);
+            VoidResponse response = await scope.Resolve<AgentServerProxy>().DownloadImage(agentId, args, cancellationToken);
             return Ok(response);
         }
 

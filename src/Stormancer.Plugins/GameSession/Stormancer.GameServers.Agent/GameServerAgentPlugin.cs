@@ -74,10 +74,17 @@ namespace Stormancer.GameServers.Agent
 
                     scene.AddProcedure("agent.downloadImage", async ctx =>
                     {
-                        _logger.LogInformation("Executing 'agent.downloadImage'..");
+                        _logger.LogInformation("Executing 'agent.downloadImage'...");
                         var args = ctx.ReadObject<DownloadImageArguments>();
                         ctx.SendValue(await controller.DownloadImage(args, ctx.CancellationToken));
-                        _logger.LogInformation("Executed 'agent.downloadImage'..");
+                        _logger.LogInformation("Executed 'agent.downloadImage'.");
+                    });
+                    scene.AddProcedure("agent.updatePreloadedImageList", async ctx =>
+                    {
+                        _logger.LogInformation("Executing 'agent.updatePreloadedImageList'...");
+                        var args = ctx.ReadObject<UpdatePreloadedImageListArguments>();
+                        ctx.SendValue(await controller.UpdatePreloadedImageList(args, ctx.CancellationToken));
+                        _logger.LogInformation("Executed 'agent.updatePreloadedImageList'.");
                     });
 
                     scene.AddProcedure("agent.tryStartContainer", async ctx =>

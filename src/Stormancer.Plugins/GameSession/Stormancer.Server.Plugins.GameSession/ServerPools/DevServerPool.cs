@@ -162,11 +162,11 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         private Dictionary<string, IScenePeerClient> _connectedServers = new Dictionary<string, IScenePeerClient>();
         private readonly GameSessionEventsRepository _events;
 
-        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gameSessionConfig, CancellationToken cancellationToken)
+        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, string gameSessionTemplate, GameSessionConfiguration gsConfig, Dictionary<string, string> gsArgs, CancellationToken cancellationToken)
         {
             bool success = true;
 
-            var request = new GetServerPendingRequest(gameSessionId, gameSessionConfig);
+            var request = new GetServerPendingRequest(gameSessionId, gsConfig);
             var startedRecord = new GameSessionEvent() { GameSessionId = gameSessionId, Type = "gameserver.started" };
             startedRecord.CustomData["pool"] = this.Id;
             try
@@ -189,7 +189,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
                     {
                         if (gameServer.Session is not null)
                         {
-                            gameServer.SetGameFound(gameSessionId, gameSessionConfig);
+                            gameServer.SetGameFound(gameSessionId, gsConfig);
                             gameServer.CancellationTokenRegistration.Unregister();
 
                             return WaitGameServerResult.Successful(new GameServer { GameServerId = new GameServerId { PoolId = this.Id, Id = gameSessionId }, GameServerSessionId = gameServer.Session.SessionId });

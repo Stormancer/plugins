@@ -257,6 +257,30 @@ namespace Stormancer.GameServers.Agent
             }
         }
 
+        public async Task UpdatePreloadedImageList(IEnumerable<string> images, Dictionary<string, DockerCredentials> credentials, CancellationToken cancellationToken)
+        {
+            bool TryGetCredentials(string image, Dictionary<string, DockerCredentials> credentials,[NotNullWhen(true)] out DockerCredentials? dockerCredentials)
+            {
+                var index = image.IndexOf('/');
+                if (index <= 0)
+                {
+                    dockerCredentials = null;
+                    return false;
+                }
+                var repository = image.Substring(0, index);
+                return credentials.TryGetValue(repository, out dockerCredentials);
+
+            }
+            
+            foreach (var image in images)
+            {
+                if (TryGetCredentials(image, credentials,out var creds))
+                {
+                    await DownloadImageAsync(image, creds,cancellationToken);
+                }
+            }
+        }
+
         public async Task<StartContainerResult> StartContainer(
             int agentId,
             string image,
@@ -621,6 +645,7 @@ namespace Stormancer.GameServers.Agent
 
         public void Report(Message value)
         {
+
             _monitorSince = DateTime.UtcNow;
             if (value.Status == "die" || value.Status == "stop")
             {
@@ -639,7 +664,7 @@ namespace Stormancer.GameServers.Agent
                     using (server)
                     {
 
-                        _logger.Log(LogLevel.Information, "Docker container {id} stopped.", value.ID);
+                        _logger.Log(LogLevel.Information, "Docker container {id} stopped: {status}.", value.ID,value.Status);
 
 
                         _ = CreateCrashReportIfNecessary(server, CancellationToken.None);
@@ -779,6 +804,8 @@ namespace Stormancer.GameServers.Agent
                 return false;
             }
         }
+
+       
     }
 
     /// <summary>

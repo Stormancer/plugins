@@ -99,14 +99,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
 
         }
 
-        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration config, CancellationToken cancellationToken)
+        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, string gameSessionTemplate, GameSessionConfiguration gsConfig, Dictionary<string, string> gsArgs, CancellationToken cancellationToken)
         {
             string details = "";
             foreach (var subPool in _subPools)
             {
                 if (pools().TryGetPool(subPool, out var pool))
                 {
-                    var result = await pool.TryWaitGameServerAsync(gameSessionId, config, cancellationToken);
+                    var result = await pool.TryWaitGameServerAsync(gameSessionId, gameSessionTemplate, gsConfig,gsArgs, cancellationToken);
                     if (result.Success)
                     {
                         return result;

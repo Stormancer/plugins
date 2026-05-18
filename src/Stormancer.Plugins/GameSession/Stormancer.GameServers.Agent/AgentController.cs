@@ -110,18 +110,31 @@ namespace Stormancer.GameServers.Agent
             };
         }
 
-        internal async Task<DownloadImageResponse> DownloadImage(DownloadImageArguments args, CancellationToken cancellationToken)
+        internal async Task<VoidResponse> DownloadImage(DownloadImageArguments args, CancellationToken cancellationToken)
         {
             try
             {
                 await _docker.DownloadImageAsync(args.Image, args.Credentials, cancellationToken);
-                return new DownloadImageResponse { Success = true };
+                return new VoidResponse { Success = true };
             }
             catch (Exception ex)
             {
-                return new DownloadImageResponse { Success = false, Error = ex.ToString() };
+                return new VoidResponse { Success = false, Error = ex.ToString() };
             }
            
+        }
+
+        internal async Task<VoidResponse> UpdatePreloadedImageList(UpdatePreloadedImageListArguments args, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _docker.UpdatePreloadedImageList(args.Images, args.Credentials, cancellationToken);
+                return new VoidResponse { Success = true };
+            }
+            catch (Exception ex)
+            {
+                return new VoidResponse { Success = false, Error = ex.ToString() };
+            }
         }
 
         internal async IAsyncEnumerable<GetContainerStatsResponse> GetContainerStats(int agentId, GetContainerStatsParameters args, [EnumeratorCancellation] CancellationToken cancellationToken)
@@ -184,5 +197,7 @@ namespace Stormancer.GameServers.Agent
                 ReservedCpu = status.ReservedCpu
             };
         }
+
+       
     }
 }

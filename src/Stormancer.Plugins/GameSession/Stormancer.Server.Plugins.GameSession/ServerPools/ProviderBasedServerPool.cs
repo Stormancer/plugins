@@ -223,7 +223,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             isRunning = false;
         }
 
-        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gsConfig, CancellationToken cancellationToken)
+        public async Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, string gameSessionTemplate, GameSessionConfiguration gsConfig,Dictionary<string,string> gsArgs, CancellationToken cancellationToken)
         {
             if (!isRunning)
             {
@@ -240,7 +240,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             record.CustomData["pool"] = this.Id;
             record.CustomData["poolType"] = provider.Type;
             _events.PostEvent(record);
-            var result = await provider.TryStartServer(gameSessionId, authToken, this.config, gsConfig.PreferredRegions, cancellationToken);
+            var result = await provider.TryStartServer(gameSessionId, authToken, this.config, gsConfig.PreferredRegions,gameSessionTemplate, gsArgs, cancellationToken);
 
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
             using var cts2 = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, cancellationToken);

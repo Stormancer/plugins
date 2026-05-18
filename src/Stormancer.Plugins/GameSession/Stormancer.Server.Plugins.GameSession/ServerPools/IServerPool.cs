@@ -140,10 +140,12 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
         /// Waits for a server to be available, then re
         /// </summary>
         /// <param name="gameSessionId"></param>
-        /// <param name="gameSessionConfig"></param>
+        /// <param name="gameSessionTemplate"></param>
+        /// <param name="gsConfig"></param>
+        /// <param name="gsArgs"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, GameSessionConfiguration gameSessionConfig, CancellationToken cancellationToken);
+        Task<WaitGameServerResult> TryWaitGameServerAsync(string gameSessionId, string gameSessionTemplate, GameSessionConfiguration gsConfig, Dictionary<string, string> gsArgs, CancellationToken cancellationToken);
 
         void UpdateConfiguration(JObject config);
 

@@ -50,7 +50,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         }
 
         [S2SApi]
-        public Task<DownloadImageResponse> DownloadImage(string agentId, DownloadImageArguments args,CancellationToken cancellationToken)
+        public Task<VoidResponse> DownloadImage(string agentId, DownloadImageArguments args,CancellationToken cancellationToken)
         {
             return _gameServerProvider.DownloadImageAsync(agentId, args,cancellationToken);
         }
