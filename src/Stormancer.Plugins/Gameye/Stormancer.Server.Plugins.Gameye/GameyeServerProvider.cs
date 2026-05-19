@@ -29,6 +29,7 @@ namespace Stormancer.Server.Plugins.Gameye
 
         public string Type => "gameye";
 
+        public string Id { get; set; } = string.Empty;
 
         public GameyeServerProvider(GameyeClient client, IEnvironment environment, GameSessionEventsRepository events)
         {
@@ -43,7 +44,7 @@ namespace Stormancer.Server.Plugins.Gameye
 
 
 
-        public async Task<GameSession.StartGameServerResult> TryStartServer(string id, string authToken, JObject config, IEnumerable<string> regions, CancellationToken cancellationToken)
+        public async Task<GameSession.StartGameServerResult> TryStartServer(string id, string authenticationToken, JObject config, IEnumerable<string> regions, string gameSessionTemplate, Dictionary<string, string> gameSessionArgs, CancellationToken cancellationToken)
         {
             var agentConfig = config.ToObject<GameyePoolConfigurationSection>();
             if (agentConfig == null || agentConfig.Image == null)
@@ -78,7 +79,7 @@ namespace Stormancer.Server.Plugins.Gameye
                 Env = new Dictionary<string, string> {
 
                     { "Stormancer_Server_ClusterEndpoints", endpoints },
-                    { "Stormancer_Server_AuthenticationToken", authToken },
+                    { "Stormancer_Server_AuthenticationToken", authenticationToken },
                     { "Stormancer_Server_Account", appInfos.AccountId },
                     { "Stormancer_Server_Application", appInfos.ApplicationName },
 

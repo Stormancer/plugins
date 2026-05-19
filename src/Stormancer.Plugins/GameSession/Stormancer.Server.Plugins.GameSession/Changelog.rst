@@ -32,8 +32,6 @@ Changed
 *******
 - Update dependencies to release version.
 
-
-
 6.2.1.85
 ----------
 Added

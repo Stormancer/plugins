@@ -29,6 +29,7 @@ namespace Stormancer.Server.Plugins.Edgegap
 
         public string Type => "edgegap";
 
+        public string Id { get; set; } = string.Empty;
 
         public EdgegapServerProvider(EdgegapClient client, IEnvironment environment, GameSessionEventsRepository events)
         {
@@ -38,12 +39,16 @@ namespace Stormancer.Server.Plugins.Edgegap
         }
         public async Task StopServer(string id, object? context)
         {
+            if(context == null)
+            {
+                throw new ArgumentNullException(nameof(context));
+            }
             await _client.StopGameServerAsync((string)context, CancellationToken.None);
         }
 
 
 
-        public async Task<GameSession.StartGameServerResult> TryStartServer(string id, string authToken, JObject config, IEnumerable<string> regions, CancellationToken cancellationToken)
+        public async Task<GameSession.StartGameServerResult> TryStartServer(string id, string authenticationToken, JObject config, IEnumerable<string> regions, string gameSessionTemplate, Dictionary<string, string> gameSessionArgs, CancellationToken cancellationToken)
         {
             var agentConfig = config.ToObject<EdgegapPoolConfigurationSection>();
             if (agentConfig == null || agentConfig.AppName == null)
@@ -74,7 +79,7 @@ namespace Stormancer.Server.Plugins.Edgegap
 
                 env_vars = new List<EnvironmentVariable>{
                      new EnvironmentVariable{ key= "Stormancer_Server_ClusterEndpoints", value= endpoints },
-                     new EnvironmentVariable{ key=  "Stormancer_Server_AuthenticationToken", value= authToken },
+                     new EnvironmentVariable{ key=  "Stormancer_Server_AuthenticationToken", value= authenticationToken },
                      new EnvironmentVariable{ key=  "Stormancer_Server_Account",  value=appInfos.AccountId },
                      new EnvironmentVariable{ key=  "Stormancer_Server_Application", value= appInfos.ApplicationName },
 
