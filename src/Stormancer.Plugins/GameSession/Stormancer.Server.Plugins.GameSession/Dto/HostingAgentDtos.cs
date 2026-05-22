@@ -466,11 +466,13 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// <summary>
         /// List of images to preload.
         /// </summary>
+        [Key(0)]
         public IEnumerable<string> Images { get; set; } = Enumerable.Empty<string>();
 
         /// <summary>
         /// Credentials used to pull images.
         /// </summary>
+        [Key(1)]
         public Dictionary<string, DockerCredentials> Credentials { get; set; } = new Dictionary<string, DockerCredentials>();
     }
 

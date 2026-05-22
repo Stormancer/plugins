@@ -689,7 +689,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         {
 
             var fed = await _environment.GetFederation();
-            var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+            var timer = new PeriodicTimer(TimeSpan.FromSeconds(60));
             var preloadedImages = new List<string>();
             while (!_disposedCancellationToken.IsCancellationRequested && !ShuttingDown && await timer.WaitForNextTickAsync(_disposedCancellationToken))
             {

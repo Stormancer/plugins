@@ -24,13 +24,13 @@ namespace Stormancer.GameServers.Agent
                 Index = index;
                 Client = client;
                 Configuration = configuration;
-
+                AutoUpdate = autoUpdate;
             }
 
             public int Index { get; }
             public Stormancer.Client Client { get; }
             public ApplicationConfigurationOptions Configuration { get; }
-            public bool AutoUpdate { get; set; }
+            public bool AutoUpdate { get; }
         }
 
 

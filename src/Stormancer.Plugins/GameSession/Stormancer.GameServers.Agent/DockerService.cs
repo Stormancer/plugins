@@ -274,9 +274,16 @@ namespace Stormancer.GameServers.Agent
             
             foreach (var image in images)
             {
-                if (TryGetCredentials(image, credentials,out var creds))
+                try
                 {
-                    await DownloadImageAsync(image, creds,cancellationToken);
+                    if (TryGetCredentials(image, credentials, out var creds))
+                    {
+                        await DownloadImageAsync(image, creds, cancellationToken);
+                    }
+                }
+                catch (DockerApiException ex) {
+
+                    _logger.LogError(ex,"Failed to download image {image}.",image);
                 }
             }
         }
