@@ -227,39 +227,68 @@ namespace Stormancer.GameServers.Agent
 
         public Action<ServerContainerStateChange>? OnContainerStateChanged { get; set; }
 
-        public async Task DownloadImageAsync(string image, DockerCredentials? credentials, CancellationToken cancellationToken)
+        private Dictionary<string, Task> _pendingDownloads = new Dictionary<string, Task>();
+        private object _syncRoot = new object();
+
+        public Task DownloadImageAsync(string image, DockerCredentials? credentials, CancellationToken cancellationToken)
         {
-
-            var images = await _docker.Images.ListImagesAsync(new ImagesListParameters { All = true });
-            if (!images.Any(i => i.RepoTags?.Contains(image) ?? false))
+            lock (_syncRoot)
             {
-                _logger.Log(LogLevel.Information, "Downloading image {name}...", image);
-                await _docker.Images.CreateImageAsync(
-                    new ImagesCreateParameters { FromImage = image }, 
-                    credentials != null ? new AuthConfig
+
+                if (!_pendingDownloads.TryGetValue(image, out var task))
+                {
+
+                    async Task DownloadImageImpl(string image, DockerCredentials? credentials, CancellationToken cancellationToken)
                     {
-                        Username = credentials.Login,
-                        Password = credentials.Password
-                    } : new AuthConfig { }
-                , NullDockerJsonMessageProgress.Instance);
+                        try
+                        {
+                            var images = await _docker.Images.ListImagesAsync(new ImagesListParameters { All = true });
+                            if (!images.Any(i => i.RepoTags?.Contains(image) ?? false))
+                            {
 
-                images = await _docker.Images.ListImagesAsync(new ImagesListParameters { All = true });
+                                _logger.Log(LogLevel.Information, "Downloading image {name}...", image);
+                                await _docker.Images.CreateImageAsync(
+                                    new ImagesCreateParameters { FromImage = image, },
+                                    credentials != null ? new AuthConfig
+                                    {
+                                        Username = credentials.Login,
+                                        Password = credentials.Password
 
-                if (!images.Any(i => i.RepoTags?.Contains(image) ?? false))
-                {
-                    _logger.Log(LogLevel.Error, "Image {name} not found.", image);
-                    throw new InvalidOperationException($"Image {image} not found.");
+                                    } : new AuthConfig { }
+                                , NullDockerJsonMessageProgress.Instance);
+
+                                images = await _docker.Images.ListImagesAsync(new ImagesListParameters { All = true });
+
+                                if (!images.Any(i => i.RepoTags?.Contains(image) ?? false))
+                                {
+                                    _logger.Log(LogLevel.Error, "Image {name} not found.", image);
+                                    throw new InvalidOperationException($"Image {image} not found.");
+                                }
+                                else
+                                {
+                                    _logger.Log(LogLevel.Information, "Image {name} downloaded.", image);
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            _pendingDownloads.Remove(image);
+                        }
+                    }
+                    task = DownloadImageImpl(image, credentials, cancellationToken);
+                    _pendingDownloads.Add(image, task);
+
+
                 }
-                else
-                {
-                    _logger.Log(LogLevel.Information, "Image {name} downloaded.", image);
-                }
+                return task;
             }
+
+        
         }
 
         public async Task UpdatePreloadedImageList(IEnumerable<string> images, Dictionary<string, DockerCredentials> credentials, CancellationToken cancellationToken)
         {
-            bool TryGetCredentials(string image, Dictionary<string, DockerCredentials> credentials,[NotNullWhen(true)] out DockerCredentials? dockerCredentials)
+            bool TryGetCredentials(string image, Dictionary<string, DockerCredentials> credentials, [NotNullWhen(true)] out DockerCredentials? dockerCredentials)
             {
                 var index = image.IndexOf('/');
                 if (index <= 0)
@@ -271,7 +300,7 @@ namespace Stormancer.GameServers.Agent
                 return credentials.TryGetValue(repository, out dockerCredentials);
 
             }
-            
+
             foreach (var image in images)
             {
                 try
@@ -281,9 +310,10 @@ namespace Stormancer.GameServers.Agent
                         await DownloadImageAsync(image, creds, cancellationToken);
                     }
                 }
-                catch (DockerApiException ex) {
+                catch (DockerApiException ex)
+                {
 
-                    _logger.LogError(ex,"Failed to download image {image}.",image);
+                    _logger.LogError(ex, "Failed to download image {image}.", image);
                 }
             }
         }
@@ -364,7 +394,7 @@ namespace Stormancer.GameServers.Agent
                 labels["stormancer.reservedMemory"] = reservedMemory.ToString();
                 labels["stormancer.reservedCpu"] = reservedCpu.ToString();
                 labels["stormancer.crashReportConfig"] = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(crashReportConfiguration)));
-                
+
 
                 if (expiresOn.HasValue)
                 {
@@ -671,7 +701,7 @@ namespace Stormancer.GameServers.Agent
                     using (server)
                     {
 
-                        _logger.Log(LogLevel.Information, "Docker container {id} stopped: {status}.", value.ID,value.Status);
+                        _logger.Log(LogLevel.Information, "Docker container {id} stopped: {status}.", value.ID, value.Status);
 
 
                         _ = CreateCrashReportIfNecessary(server, CancellationToken.None);
@@ -812,7 +842,7 @@ namespace Stormancer.GameServers.Agent
             }
         }
 
-       
+
     }
 
     /// <summary>
