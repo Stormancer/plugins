@@ -20,8 +20,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Microsoft.AspNetCore.Http;
 using Stormancer.Core;
 using Stormancer.Server.Plugins.GameVersion;
+using Stormancer.Server.Plugins.Users;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace Stormancer
 {
@@ -41,6 +45,18 @@ namespace Stormancer
         public static void AddGameVersion(this ISceneHost builder, string? prefix = null)
         {
             builder.TemplateMetadata[GameVersionPlugin.METADATA_KEY] = prefix ?? "default";
+        }
+
+        /// <summary>
+        /// Tries getting the version field in a session.
+        /// </summary>
+        /// <param name="session"></param>
+        /// <param name="version"></param>
+        /// <returns></returns>
+        public static bool TryGetVersion(this Session session, [NotNullWhen(true)] out byte[]? version)
+        {
+            return session.SessionData.TryGetValue("gameVersion.clientVersion", out version);
+           
         }
     }
 }

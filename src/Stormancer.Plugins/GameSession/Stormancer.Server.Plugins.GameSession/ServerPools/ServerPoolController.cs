@@ -134,7 +134,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             }
             if (parameters == null)
             {
-                throw new ClientException("serverPool.notAuthorized");
+                throw new ClientException("serverPool.gamesessionDestroyed");
             }
             return parameters;
         }

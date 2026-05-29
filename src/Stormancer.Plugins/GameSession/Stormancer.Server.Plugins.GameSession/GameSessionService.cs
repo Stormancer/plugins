@@ -612,6 +612,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             if (IsDedicatedServer(session))
             {
+                _isDedicatedServer = true;
                 return;
             }
 
@@ -1030,9 +1031,13 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 throw new ArgumentNullException(nameof(peer));
             }
+            var sessions = _scene.DependencyResolver.Resolve<IUserSessions>();
 
-            _analytics.PlayerLeft(peer.SessionId.ToString(), this._scene.Id);
-
+            var session = await sessions.GetSessionById(peer.SessionId, CancellationToken.None);
+            if (session != null && IsDedicatedServer(session))
+            {
+                _analytics.PlayerLeft(peer.SessionId.ToString(), this._scene.Id);
+            }
 
             Client? client = null;
             string? userId = null;
@@ -1080,13 +1085,31 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 await EvaluateGameComplete();
 
-                if (HostSessionId == peer.SessionId)
+                //if (HostSessionId == peer.SessionId)
+                //{
+                //    await RequestShutdown("gamesession.gameServerLeft", TimeSpan.Zero, false);
+                //}
+            }
+
+            if(ShouldClose())
+            {
+                foreach (var c in _clients.Values)
                 {
-                    await RequestShutdown("gamesession.gameServerLeft", TimeSpan.Zero, false);
+                    if (c.Peer != null)
+                    {
+                        await c.Peer.Disconnect("gamesession.closed");
+                    }
                 }
+                _scene.Shutdown("gamesession.closed");
+                
             }
 
 
+        }
+        private bool ShouldClose()
+        {
+            return _isDedicatedServer && _scene.RemotePeers.Count() == 1;
+            
         }
 
         private async ValueTask CloseGameServer()
@@ -1682,6 +1705,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private GameServer? _server;
         private DateTime _serverRequestedOn;
+        private bool _isDedicatedServer;
 
         private Team? FindPlayerTeam(string userId)
         {
