@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 #pragma once
-#include "Users/ClientAPI.hpp"
+#include "users/ClientAPI.hpp"
 #include "stormancer/IPlugin.h"
 
 namespace Stormancer
@@ -35,7 +35,7 @@ namespace Stormancer
 				std::string token;
 				std::string blockId;
 
-				MSGPACK_DEFINE(token, blockId)
+				STRM_MSGPACK_DEFINE(token, blockId)
 			};
 
 			struct CommitBlocksArgs
@@ -43,7 +43,7 @@ namespace Stormancer
 				std::string token;
 				std::vector<std::string> blockIds;
 
-				MSGPACK_DEFINE(token,blockIds)
+				STRM_MSGPACK_DEFINE(token, blockIds)
 			};
 
 			class BlobStorageService
@@ -53,33 +53,32 @@ namespace Stormancer
 				BlobStorageService(std::weak_ptr<RpcService> rpc, std::shared_ptr<Serializer> serializer)
 					: _serializer(serializer)
 					, _rpc(rpc)
-				{
-				}
+				{}
 
-			
+
 				pplx::task<void> stageBlock(std::string uploadToken, std::string blockId, const byte* buffer, const size_t length)
 				{
 					auto rpc = _rpc.lock();
 					auto serializer = _serializer;
 					return rpc->rpc("Blob.StageBlock", [serializer, uploadToken, blockId, buffer, length](obytestream& stream)
-					{
-						StageBlockArgs args;
-						args.token = uploadToken;
-						args.blockId = blockId;
-						serializer->serialize(stream, args);
-						stream.write(buffer, length);
-					});
+						{
+							StageBlockArgs args;
+							args.token = uploadToken;
+							args.blockId = blockId;
+							serializer->serialize(stream, args);
+							stream.write(buffer, length);
+						});
 				}
 
 
-			
+
 				pplx::task<void> commitBlocks(std::string uploadToken, std::vector<std::string> blockIds)
 				{
 					auto rpc = _rpc.lock();
 					CommitBlocksArgs args;
 					args.token = uploadToken;
 					args.blockIds = blockIds;
-					return rpc->rpc("Blob.CommitBlocks",args);
+					return rpc->rpc("Blob.CommitBlocks", args);
 				}
 
 
@@ -97,13 +96,13 @@ namespace Stormancer
 		public:
 
 			BlobStorageApi(std::weak_ptr<Users::UsersApi> users)
-				: ClientAPI(users, "stormancer.blobstorage")
+				: ClientAPI(users, "stormancer.blobStorage")
 			{
 
 			}
 
 
-		
+
 			pplx::task<void> stageBlock(std::string uploadToken, std::string blockId, const byte* buffer, const size_t length)
 			{
 				if (length > 4 * 1024 * 1024)
@@ -112,19 +111,19 @@ namespace Stormancer
 				}
 
 				return getService().then([uploadToken, blockId, buffer, length](std::shared_ptr<details::BlobStorageService> service)
-				{
-					return service->stageBlock(uploadToken,blockId,buffer,length);
-				});
+					{
+						return service->stageBlock(uploadToken, blockId, buffer, length);
+					});
 			}
 
-		
+
 			pplx::task<void> commitBlocks(std::string uploadToken, std::vector<std::string> blockIds)
 			{
-				
+
 				return getService().then([uploadToken, blockIds](std::shared_ptr<details::BlobStorageService> service)
-				{
-					return service->commitBlocks(uploadToken, blockIds);
-				});
+					{
+						return service->commitBlocks(uploadToken, blockIds);
+					});
 			}
 
 
@@ -137,6 +136,7 @@ namespace Stormancer
 		{
 			static constexpr const char* PLUGIN_NAME = "BlobStorage";
 			static constexpr const char* PLUGIN_VERSION = "1.0.0";
+			static constexpr const char* METADATA_KEY = "stormancer.blobStorage";
 			PluginDescription getDescription() override
 			{
 				return PluginDescription(PLUGIN_NAME, PLUGIN_VERSION);
@@ -147,7 +147,7 @@ namespace Stormancer
 
 				if (scene)
 				{
-					auto name = scene->getHostMetadata("stormancer.blobStorage");
+					auto name = scene->getHostMetadata(METADATA_KEY);
 
 					if (!name.empty())
 					{
@@ -158,7 +158,7 @@ namespace Stormancer
 			}
 			void registerClientDependencies(Stormancer::ContainerBuilder& builder) override
 			{
-				builder.registerDependency<Stormancer::BlobStorage::BlobStorageApi, Stormancer::Users::UsersApi>().as<Stormancer::Reports::ReportsApi>().singleInstance();
+				builder.registerDependency<Stormancer::BlobStorage::BlobStorageApi, Stormancer::Users::UsersApi>().as<Stormancer::BlobStorage::BlobStorageApi>().singleInstance();
 			}
 		};
 	}
