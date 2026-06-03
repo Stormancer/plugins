@@ -16,6 +16,7 @@ Changed
 - Improve crash info package creation.
 - Update Raknet version
 - Do not try downloading an image if the same image is already currently being downloaded.
+- Automatically delete latest tag when downloading a new image.
 
 Added
 *****

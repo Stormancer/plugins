@@ -261,14 +261,31 @@ namespace Stormancer.GameServers.Agent
 
                                 if (!images.Any(i => i.RepoTags?.Contains(image) ?? false))
                                 {
-                                    _logger.Log(LogLevel.Error, "Image {name} not found.", image);
+                                    _logger.Log(LogLevel.Error, "Image {image} not found.", image);
                                     throw new InvalidOperationException($"Image {image} not found.");
                                 }
                                 else
                                 {
-                                    _logger.Log(LogLevel.Information, "Image {name} downloaded.", image);
+                                    _logger.Log(LogLevel.Information, "Image {image} downloaded.", image);
+                                    var latest = image.Substring(0, image.IndexOf(":")) + ":latest";
+                                    try
+                                    {
+
+                                        await _docker.Images.DeleteImageAsync(latest, new ImageDeleteParameters { }, cancellationToken);
+
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.Log(LogLevel.Error, ex, "An error occured while trying to delete '{image}'.", latest);
+                                    }
+
                                 }
+
                             }
+                        }
+                        catch(Exception ex)
+                        {
+                            _logger.Log(LogLevel.Error, ex, "An error occured while trying to download {image}.", image);
                         }
                         finally
                         {
@@ -283,7 +300,7 @@ namespace Stormancer.GameServers.Agent
                 return task;
             }
 
-        
+
         }
 
         public async Task UpdatePreloadedImageList(IEnumerable<string> images, Dictionary<string, DockerCredentials> credentials, CancellationToken cancellationToken)
