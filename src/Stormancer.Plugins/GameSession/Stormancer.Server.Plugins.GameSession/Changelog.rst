@@ -21,6 +21,7 @@ Added
 - Added support for modular P2P.
 - Improved Game server system to enable sending custom arguments set during OnGameSessionStarting 
 - Enables complex game server image selection mechanisms through improved configuration and custom arguments.
+- Added IsDedicatedServer extension method to Session.
 
 Fixed
 *****

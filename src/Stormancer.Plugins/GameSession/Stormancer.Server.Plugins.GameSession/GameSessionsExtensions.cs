@@ -23,6 +23,8 @@
 using Stormancer.Core;
 using Stormancer.Server;
 using Stormancer.Server.Plugins.GameSession;
+using Stormancer.Server.Plugins.GameSession.ServerPool;
+using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
 
@@ -33,6 +35,16 @@ namespace Stormancer
     /// </summary>
     public static class GameSessionsExtensions
     {
+        /// <summary>
+        /// Returns a boolean indicating if the session belongs to a dedicated server.
+        /// </summary>
+        /// <param name="session"></param>
+        /// <returns></returns>
+        public static bool IsDedicatedServer(this Session session)
+        {
+            return session.platformId.Platform.StartsWith(DedicatedServerAuthProvider.PROVIDER_NAME);
+        }
+
         /// <summary>
         /// Adds game session capabilities to a scene.
         /// </summary>

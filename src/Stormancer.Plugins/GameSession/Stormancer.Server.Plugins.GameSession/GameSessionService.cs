@@ -701,7 +701,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public bool IsDedicatedServer(Session session)
         {
-
+            
             return session.platformId.Platform.StartsWith(DedicatedServerAuthProvider.PROVIDER_NAME);
         }
 
