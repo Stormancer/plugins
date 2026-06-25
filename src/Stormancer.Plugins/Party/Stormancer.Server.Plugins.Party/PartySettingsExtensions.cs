@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Stormancer.Server.Plugins.Party.Model;
+using System;
 
 namespace Stormancer.Server.Plugins.Party
 {
@@ -102,5 +103,38 @@ namespace Stormancer.Server.Plugins.Party
             }
             return ctx;
         }
+
+        /// <summary>
+        /// Should the party share invitation codes .
+        /// </summary>
+        /// <remarks>
+        /// If false, once an invitation code is generated, it needs to be stored manually by the game client.
+        /// </remarks>
+        /// <param name="ctx"></param>
+        /// <param name="shareInvitationCode"></param>
+        /// <returns></returns>
+        public static PartyCreationContext ShareInvitationCode(this PartyCreationContext ctx,bool shareInvitationCode)
+        {
+            if (shareInvitationCode)
+            {
+                ctx.PartyConfiguration.ServerSettings["invitationCode.share"] = "true";
+            }
+            else
+            {
+                ctx.PartyConfiguration.ServerSettings.Remove("invitationCode.share");
+            }
+            return ctx;
+        }
+
+        /// <summary>
+        /// Gets a value indicating if the party shares invitation codes.
+        /// </summary>
+        /// <param name="party"></param>
+        /// <returns></returns>
+        public static bool ShareInvitationCode(this PartyConfiguration party)
+        {
+            return party.ServerSettings.ContainsKey("invitationCode.share");
+        }
     }
+   
 }

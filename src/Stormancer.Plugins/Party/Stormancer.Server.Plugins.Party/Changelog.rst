@@ -25,6 +25,7 @@ Added
 *****
 - Added PartyMember to OnQuit context.
 - Allow OnCreatingParty to modify the party configuration.
+- Added ShareInvitationCode configuration to add invitation codes to the public server data.
 
 5.2.0.87
 ----------

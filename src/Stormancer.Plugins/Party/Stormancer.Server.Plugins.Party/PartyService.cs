@@ -40,6 +40,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Reactive.Threading.Tasks;
 using System.Reflection.Metadata.Ecma335;
 using System.Threading;
@@ -472,7 +473,7 @@ namespace Stormancer.Server.Plugins.Party
                             if (_partyState.PartyMembers.IsEmpty && _partyState.HasIndexedDocument)
                             {
                                 scope.Resolve<PartyLuceneDocumentStore>().DeleteDocument(_partyState.Settings.PartyId);
-                                CancelInvitationCode();
+                                _ = CancelInvitationCode(CancellationToken.None);
                                 _ = _scene.KeepAlive(TimeSpan.Zero);
                             }
                         }
@@ -989,7 +990,7 @@ namespace Stormancer.Server.Plugins.Party
                     PartyId = _partyState.Settings.PartyId,
                     PartyLeaderId = _partyState.Settings.PartyLeaderId
                 };
-              
+
                 foreach (var partyUser in _partyState.PartyMembers.Values)
                 {
                     gameFinderRequest.Players.Add(partyUser.UserId, new Models.Player(partyUser.SessionId, partyUser.UserId, partyUser.UserData));
@@ -1428,14 +1429,44 @@ namespace Stormancer.Server.Plugins.Party
             return false;
         }
 
-        public Task<string> CreateInvitationCodeAsync(CancellationToken cancellationToken)
+        public async Task<string> CreateInvitationCodeAsync(CancellationToken cancellationToken)
         {
-            return invitationCodes.Value.CreateCode(this._scene, cancellationToken);
+            var code = await invitationCodes.Value.CreateCode(this._scene, cancellationToken);
+            if (this.State.Settings.ShareInvitationCode())
+            {
+                await UpdateSettings(state =>
+                {
+                    var newState = new PartySettingsDto(state);
+
+                    if (newState.PublicServerData == null)
+                    {
+                        newState.PublicServerData = new Dictionary<string, string>();
+                        newState.PublicServerData["invitationCode"] = code;
+                    }
+                    return newState;
+                }, cancellationToken);
+            }
+            return code;
         }
 
-        public void CancelInvitationCode()
+        public async Task CancelInvitationCode(CancellationToken cancellationToken)
         {
+            if (this.State.Settings.ShareInvitationCode())
+            {
+                await UpdateSettings(state =>
+                {
+                    var newState = new PartySettingsDto(state);
+
+                    if (newState.PublicServerData == null)
+                    {
+                        newState.PublicServerData = new Dictionary<string, string>();
+                        newState.PublicServerData.Remove("invitationCode");
+                    }
+                    return newState;
+                }, cancellationToken);
+            }
             invitationCodes.Value.CancelCode(this._scene);
+
         }
 
         public Task<Models.Party> GetModel()

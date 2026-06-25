@@ -214,7 +214,7 @@ namespace Stormancer.Server.Plugins.Party
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public void CancelInvitationCode(RequestContext<IScenePeerClient> ctx)
+        public async Task CancelInvitationCode(RequestContext<IScenePeerClient> ctx)
         {
 
             if (!_partyService.PartyMembers.TryGetValue(ctx.RemotePeer.SessionId, out var member))
@@ -226,7 +226,7 @@ namespace Stormancer.Server.Plugins.Party
                 throw new ClientException("unauthorized");
             }
 
-            _partyService.CancelInvitationCode();
+            await _partyService.CancelInvitationCode(ctx.CancellationToken);
         }
 
         [S2SApi]

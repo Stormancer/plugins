@@ -186,7 +186,7 @@ namespace Stormancer.Server.Plugins.Party
         /// <summary>
         /// Cancels an active invitation code.
         /// </summary>
-        void CancelInvitationCode();
+        Task CancelInvitationCode(CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets a representation of the party.
