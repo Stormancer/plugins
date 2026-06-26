@@ -289,12 +289,14 @@ namespace Stormancer.GameServers.Agent
                         }
                         finally
                         {
-                            _pendingDownloads.Remove(image);
+                            lock (_syncRoot)
+                            {
+                                _pendingDownloads.Remove(image);
+                            }
                         }
                     }
                     task = DownloadImageImpl(image, credentials, cancellationToken);
 
-                    //Make it concurrency safe.
                     if (!task.IsCompleted)
                     {
                         _pendingDownloads.Add(image, task);
