@@ -248,7 +248,7 @@ namespace Stormancer.GameServers.Agent
 
                                 _logger.Log(LogLevel.Information, "Downloading image {name}...", image);
                                 await _docker.Images.CreateImageAsync(
-                                    new ImagesCreateParameters { FromImage = image, },
+                                    new ImagesCreateParameters { FromImage = image },
                                     credentials != null ? new AuthConfig
                                     {
                                         Username = credentials.Login,
@@ -270,9 +270,11 @@ namespace Stormancer.GameServers.Agent
                                     var latest = image.Substring(0, image.IndexOf(":")) + ":latest";
                                     try
                                     {
-
                                         await _docker.Images.DeleteImageAsync(latest, new ImageDeleteParameters { }, cancellationToken);
-
+                                    }
+                                    catch(DockerImageNotFoundException)
+                                    {
+                                        // The image didn't exist already, we can ignore this error.
                                     }
                                     catch (Exception ex)
                                     {
