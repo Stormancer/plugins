@@ -1441,8 +1441,9 @@ namespace Stormancer.Server.Plugins.Party
                     if (newState.PublicServerData == null)
                     {
                         newState.PublicServerData = new Dictionary<string, string>();
-                        newState.PublicServerData["invitationCode"] = code;
+                      
                     }
+                    newState.PublicServerData["invitationCode"] = code;
                     return newState;
                 }, cancellationToken);
             }
