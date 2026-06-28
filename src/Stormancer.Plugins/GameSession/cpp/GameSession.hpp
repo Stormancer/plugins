@@ -1202,6 +1202,7 @@ namespace Stormancer
 #pragma endregion
 			};
 		}
+		
 
 		class GameSessionsPlugin : public Stormancer::IPlugin
 		{
@@ -1209,6 +1210,7 @@ namespace Stormancer
 
 			static constexpr const char* PLUGIN_NAME = "GameSession";
 			static constexpr const char* PLUGIN_VERSION = "1.0.0";
+			static constexpr const char* TOPOLOGY_HOST_METADATA_KEY = "stormancer.topology.host";
 
 			PluginDescription getDescription() override
 			{
@@ -1223,6 +1225,12 @@ namespace Stormancer
 				if (name.length() > 0)
 				{
 					builder.registerDependency<details::GameSessionService, Scene>().singleInstance();
+				}
+
+				name = scene->getHostMetadata(TOPOLOGY_HOST_METADATA_KEY);
+				if (name.length() > 0)
+				{
+					builder.registerDependency<details::GameSessionHostTopologyService, Scene>().singleInstance();
 				}
 			}
 
