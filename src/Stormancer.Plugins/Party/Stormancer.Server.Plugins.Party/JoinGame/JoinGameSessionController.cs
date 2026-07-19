@@ -95,11 +95,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                 return null;
             }
             var tuple = config.Teams.SelectMany(t => t.Parties.Select(party => new { party, team = t })).FirstOrDefault(p => p.party.PartyId == partyId);
-            if (tuple == null)
-            {
-                return null;
-            }
-
+           
             var session = await userSessions.GetSessionById(sessionId, cancellationToken);
             if (session == null)
             {
@@ -111,7 +107,7 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
                 return null;
             }
 
-            if (!tuple.party.Players.ContainsKey(session.User.Id))
+            if (tuple != null && !tuple.party.Players.ContainsKey(session.User.Id))
             {
                 var team = new Team { TeamId = tuple.team.TeamId };
                 var partyArg = new Models.Party { PartyId = partyId, Players = new Dictionary<string, Player>(), CustomData = Array.Empty<byte>() };
