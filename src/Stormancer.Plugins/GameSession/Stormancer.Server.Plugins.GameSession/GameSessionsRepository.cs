@@ -12,8 +12,8 @@ namespace Stormancer.Server.Plugins.GameSession
     public class GameSessionsRepository
     {
         private object _syncRoot = new object();
-        private List<IGameSessionService> _gameSessionServices = new List<IGameSessionService>();
-        
+        private HashSet<IGameSessionService> _gameSessionServices = new HashSet<IGameSessionService>();
+
         internal void AddGameSession(IGameSessionService gameSession)
         {
             lock (_syncRoot)
@@ -29,8 +29,9 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             get
             {
-                lock(_syncRoot) { 
-                return _gameSessionServices.ToArray();
+                lock (_syncRoot)
+                {
+                    return _gameSessionServices.ToArray();
                 }
             }
         }

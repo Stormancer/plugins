@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using Newtonsoft.Json.Linq;
+using Stormancer.Core;
 using Stormancer.Server.Plugins.GameSession.Models;
 using Stormancer.Server.Plugins.GameSession.ServerPool;
 using Stormancer.Server.Plugins.Models;
@@ -222,5 +223,10 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <param name="session"></param>
         /// <returns></returns>
         bool IsDedicatedServer(Session session);
+
+        /// <summary>
+        /// Gets the scene of the game session.
+        /// </summary>
+        ISceneHost Scene { get; }
     }
 }

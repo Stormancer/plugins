@@ -1243,6 +1243,8 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public DateTime OnCreated { get; } = DateTime.UtcNow;
 
+        public ISceneHost Scene => _scene;
+
         public void SetDimension(string dimension, string value)
         {
             lock (_syncRoot)

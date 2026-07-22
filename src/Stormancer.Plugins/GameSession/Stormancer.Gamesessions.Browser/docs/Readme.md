@@ -1,0 +1,1 @@
+This plugin enable apps to make game sessions searchable by clients 

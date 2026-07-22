@@ -48,9 +48,20 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
+    /// <summary>
+    /// Game session constants.
+    /// </summary>
+    public class GameSessionConstants
+    {
+        /// <summary>
+        /// Gamesession service metadata key.
+        /// </summary>
+        public const string METADATA_KEY = "stormancer.gamesession";
+    }
+
     class GameSessionPlugin : IHostPlugin
     {
-        public const string METADATA_KEY = "stormancer.gamesession";
+        
         public const string P2PMESH_METADATA_KEY = "stormancer.p2pmesh";
         public const string TOPOLOGY_HOST_METADATA_KEY = "stormancer.topology.host";
 
@@ -133,7 +144,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             ctx.SceneCreated += (ISceneHost scene) =>
             {
-                if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
+                if (scene.TemplateMetadata.ContainsKey(GameSessionConstants.METADATA_KEY))
                 {
                     scene.AddController<GameSessionController>();
 
