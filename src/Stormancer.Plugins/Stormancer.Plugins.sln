@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.9.12009.208 insiders
+VisualStudioVersion = 18.9.12009.208
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Management", "Management", "{65550213-0737-4F41-83F4-DC2EB84415AB}"
 EndProject
@@ -255,6 +255,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Database.EntityFrameworkCore.Generator", "Database\Stormancer.Server.Plugins.Database.EntityFrameworkCore.Generator\Stormancer.Server.Plugins.Database.EntityFrameworkCore.Generator.csproj", "{AC1D618E-FD56-4FDB-A514-BD2603F593EE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Gamesessions.Browser", "GameSession\Stormancer.Gamesessions.Browser\Stormancer.Gamesessions.Browser.csproj", "{AEA39F6B-E224-4053-A18F-696B50B375D4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AWS", "AWS", "{F7EBECAA-0E7C-4840-A480-E10790A2A274}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Aws", "Aws\Stormancer.Server.Plugins.Aws\Stormancer.Server.Plugins.Aws.csproj", "{A3518C8A-3A96-0FCD-DA72-F3AF38DD2264}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1015,6 +1019,18 @@ Global
 		{AEA39F6B-E224-4053-A18F-696B50B375D4}.Release|x64.Build.0 = Release|Any CPU
 		{AEA39F6B-E224-4053-A18F-696B50B375D4}.Release|x86.ActiveCfg = Release|Any CPU
 		{AEA39F6B-E224-4053-A18F-696B50B375D4}.Release|x86.Build.0 = Release|Any CPU
+		{A3518C8A-3A96-0FCD-DA72-F3AF38DD2264}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3518C8A-3A96-0FCD-DA72-F3AF38DD2264}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A3518C8A-3A96-0FCD-DA72-F3AF38DD2264}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A3518C8A-3A96-0FCD-DA72-F3AF38DD2264}.Debug|x64.Build.0 = Debug|Any CPU
+		{A3518C8A-3A96-0FCD-DA72-F3AF38DD2264}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A3518C8A-3A96-0FCD-DA72-F3AF38DD2264}.Debug|x86.Build.0 = Debug|Any CPU
+		{A3518C8A-3A96-0FCD-DA72-F3AF38DD2264}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A3518C8A-3A96-0FCD-DA72-F3AF38DD2264}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A3518C8A-3A96-0FCD-DA72-F3AF38DD2264}.Release|x64.ActiveCfg = Release|Any CPU
+		{A3518C8A-3A96-0FCD-DA72-F3AF38DD2264}.Release|x64.Build.0 = Release|Any CPU
+		{A3518C8A-3A96-0FCD-DA72-F3AF38DD2264}.Release|x86.ActiveCfg = Release|Any CPU
+		{A3518C8A-3A96-0FCD-DA72-F3AF38DD2264}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1125,6 +1141,8 @@ Global
 		{3CA5F90B-639F-4769-9007-72F92ACC28B0} = {859E7CD1-B3D2-40CD-A1BE-A6472AA24A2B}
 		{AC1D618E-FD56-4FDB-A514-BD2603F593EE} = {402B76D2-4FBE-4B23-BF8C-19DE49E9D06E}
 		{AEA39F6B-E224-4053-A18F-696B50B375D4} = {27B34EA5-8608-49FA-96F0-DEC4C3A5A7B3}
+		{F7EBECAA-0E7C-4840-A480-E10790A2A274} = {FD264C24-4E01-4B1E-B5A1-489EC1C376E4}
+		{A3518C8A-3A96-0FCD-DA72-F3AF38DD2264} = {F7EBECAA-0E7C-4840-A480-E10790A2A274}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}
