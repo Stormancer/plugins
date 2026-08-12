@@ -33,13 +33,13 @@ namespace Stormancer.Server.Plugins.BlobStorage
         /// <param name="request"></param>
         /// <returns></returns>
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task StageBlock(StageBlockArgs args, RequestContext<IScenePeerClient> request)
+        public async Task<StageBlockResult> StageBlock(StageBlockArgs args, RequestContext<IScenePeerClient> request)
         {
             int length = (int)(request.InputStream.Length - request.InputStream.Position);
             using var  owner = MemoryPool<byte>.Shared.Rent(length);
             var buffer = owner.Memory.Slice(0, length);
             request.InputStream.Read(buffer.Span);
-            await _blobStorage.StageBlockAsync(request.RemotePeer.SessionId,args.Token, args.BlockId, buffer,request.CancellationToken);
+            return await _blobStorage.StageBlockAsync(request.RemotePeer.SessionId,args.Token, args.BlockId, buffer,request.CancellationToken);
         }
 
         /// <summary>
@@ -49,9 +49,9 @@ namespace Stormancer.Server.Plugins.BlobStorage
         /// <param name="request"></param>
         /// <returns></returns>
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task CommitBlocks(CommitBlobArgs args,RequestContext<IScenePeerClient> request)
+        public async Task<CommitBlockListResult> CommitBlocks(CommitBlobArgs args,RequestContext<IScenePeerClient> request)
         {
-            await _blobStorage.CommitBlockListAsync(request.RemotePeer.SessionId,args.Token, args.BlockIds,request.CancellationToken);
+            return await _blobStorage.CommitBlockListAsync(request.RemotePeer.SessionId,args.Token, args.BlockIds,request.CancellationToken);
         }
     }
 

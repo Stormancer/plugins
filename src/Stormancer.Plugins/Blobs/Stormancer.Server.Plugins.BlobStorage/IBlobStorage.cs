@@ -293,32 +293,38 @@ namespace Stormancer.Server.Plugins.BlobStorage
     /// <summary>
     /// Result of a Stage block operation.
     /// </summary>
+    [MessagePackObject]
     public class StageBlockResult
     {
         /// <summary>
         /// Gets or sets a value indicating if the operation was successful.
         /// </summary>
+        [Key(0)]
         public bool Success { get; set; }
 
         /// <summary>
         /// Gets a string representing the reason why the operation failed.
         /// </summary>
+        [Key(1)]
         public string? Reason { get; init; }
     }
 
     /// <summary>
     /// Result of a Stage block operation.
     /// </summary>
+    [MessagePackObject]
     public class CommitBlockListResult
     {
         /// <summary>
         /// Gets or sets a value indicating if the operation was successful.
         /// </summary>
+        [Key(0)]
         public bool Success { get; set; }
 
         /// <summary>
         /// Gets a string representing the reason why the operation failed.
         /// </summary>
+        [Key(1)]
         public string? Reason { get; init; }
     }
 
