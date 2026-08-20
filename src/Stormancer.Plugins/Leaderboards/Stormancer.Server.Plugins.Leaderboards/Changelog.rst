@@ -18,6 +18,7 @@ Unreleased
 Changed
 *******
 - Updated dependency to Users to support new abstraction lib.
+- adds a direct reference to Stormancer.NewtonsoftJson since we are using new APIs from it
 
 
 5.0.2.4
