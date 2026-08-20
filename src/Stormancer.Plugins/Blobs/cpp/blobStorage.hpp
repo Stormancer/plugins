@@ -28,8 +28,18 @@ namespace Stormancer
 {
 	namespace BlobStorage
 	{
+		const static size_t MAX_BLOCK_SIZE = 4 * 1024 * 1024; // 4MB
+
 		namespace details
 		{
+			struct Result
+			{
+				bool success;
+				std::string reason;
+
+				STRM_MSGPACK_DEFINE(success, reason)
+			};
+
 			struct StageBlockArgs
 			{
 				std::string token;
@@ -56,29 +66,31 @@ namespace Stormancer
 				{}
 
 
-				pplx::task<void> stageBlock(std::string uploadToken, std::string blockId, const byte* buffer, const size_t length)
+				pplx::task<Result> stageBlock(std::string uploadToken, std::string blockId, const byte* buffer, const size_t length)
 				{
 					auto rpc = _rpc.lock();
 					auto serializer = _serializer;
-					return rpc->rpc("Blob.StageBlock", [serializer, uploadToken, blockId, buffer, length](obytestream& stream)
+					return rpc->rpc<Result>("Blob.StageBlock", [serializer, uploadToken, blockId, buffer, length](BufferWriter& stream)
 						{
 							StageBlockArgs args;
 							args.token = uploadToken;
 							args.blockId = blockId;
 							serializer->serialize(stream, args);
-							stream.write(buffer, length);
+							auto span = stream.getSpan(length);
+							std::memcpy(span.data(), buffer, length);
+							stream.advance(length);
 						});
 				}
 
 
 
-				pplx::task<void> commitBlocks(std::string uploadToken, std::vector<std::string> blockIds)
+				pplx::task<Result> commitBlocks(std::string uploadToken, std::vector<std::string> blockIds)
 				{
 					auto rpc = _rpc.lock();
 					CommitBlocksArgs args;
 					args.token = uploadToken;
 					args.blockIds = blockIds;
-					return rpc->rpc("Blob.CommitBlocks", args);
+					return rpc->rpc<Result>("Blob.CommitBlocks", args);
 				}
 
 
@@ -93,19 +105,63 @@ namespace Stormancer
 		class BlobStorageApi : public  ClientAPI<BlobStorageApi, details::BlobStorageService>
 		{
 			friend class ReportsPlugin;
-		public:
-
-			BlobStorageApi(std::weak_ptr<Users::UsersApi> users)
-				: ClientAPI(users, "stormancer.blobStorage")
+		private:
+			static pplx::task<void> uploadFileRecursive(
+				std::weak_ptr<BlobStorageApi> wThis,
+				std::string uploadToken,
+				int blockId,
+				const byte* bufferPosition,
+				const size_t length,
+				const size_t blockSize)
 			{
-
+				auto that = wThis.lock();
+				if (!that)
+				{
+					//stop uploading if the BlobStorageApi is destroyed
+				}
+				if (length < blockSize)
+				{
+					return that->stageBlock(uploadToken, std::to_string(blockId), bufferPosition, length);
+				}
+				else
+				{
+					return that->stageBlock(uploadToken, std::to_string(blockId), bufferPosition, blockSize)
+						.then([wThis, uploadToken, blockId, bufferPosition, length, blockSize]()
+							{
+								return uploadFileRecursive(wThis, uploadToken, blockId + 1, bufferPosition + blockSize, length - blockSize, blockSize);
+							});
+				}
 			}
 
+		public:
+			BlobStorageApi(std::weak_ptr<Users::UsersApi> users)
+				: ClientAPI(users, "stormancer.blobStorage")
+			{}
 
+			pplx::task<void> uploadFile(std::string uploadToken, const byte* buffer, const size_t length, const size_t blockSize = MAX_BLOCK_SIZE)
+			{
+				if (length > MAX_BLOCK_SIZE && blockSize > MAX_BLOCK_SIZE)
+				{
+					return pplx::task_from_exception<void>(std::runtime_error("data block size cannot be more than 4MB"));
+				}
+
+				std::weak_ptr<BlobStorageApi> wThis = this->shared_from_this();
+
+				return uploadFileRecursive(wThis, uploadToken, 0, buffer, length, blockSize)
+					.then([this, uploadToken, length, blockSize]()
+						{
+							std::vector<std::string> blockIds;
+							for (int i = 0; i < (length + blockSize - 1) / blockSize; i++)
+							{
+								blockIds.push_back(std::to_string(i));
+							}
+							return commitBlocks(uploadToken, blockIds);
+						});
+			}
 
 			pplx::task<void> stageBlock(std::string uploadToken, std::string blockId, const byte* buffer, const size_t length)
 			{
-				if (length > 4 * 1024 * 1024)
+				if (length > MAX_BLOCK_SIZE)
 				{
 					return pplx::task_from_exception<void>(std::runtime_error("data cannot be more than 4MB"));
 				}
@@ -113,7 +169,14 @@ namespace Stormancer
 				return getService().then([uploadToken, blockId, buffer, length](std::shared_ptr<details::BlobStorageService> service)
 					{
 						return service->stageBlock(uploadToken, blockId, buffer, length);
-					});
+					})
+					.then([](details::Result result)
+						{
+							if (!result.success)
+							{
+								throw std::runtime_error(result.reason);
+							}
+						});
 			}
 
 
@@ -123,11 +186,15 @@ namespace Stormancer
 				return getService().then([uploadToken, blockIds](std::shared_ptr<details::BlobStorageService> service)
 					{
 						return service->commitBlocks(uploadToken, blockIds);
-					});
+					})
+					.then([](details::Result result)
+						{
+							if (!result.success)
+							{
+								throw std::runtime_error(result.reason);
+							}
+						});
 			}
-
-
-		private:
 
 		};
 

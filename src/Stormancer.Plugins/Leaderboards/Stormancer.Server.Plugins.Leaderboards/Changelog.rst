@@ -9,6 +9,9 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+- Removed dependency to Elasticsearch
 
 5.0.2.6
 ----------

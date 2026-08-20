@@ -50,9 +50,20 @@ namespace Stormancer.Server.Plugins.Leaderboards
 
     public class ScoreRecord : ScoreRecordBase
     {
-      
-
         public JObject Document { get; set; } = new JObject();
+
+        public double GetValue(string scorePath)
+        {
+            double result;
+            if(!Scores.TryGetChildByPath<double>(scorePath, out result))
+            {
+                throw new ArgumentException($"Path {scorePath} does not exist in score.");
+            }
+            else
+            {
+                return result;
+            }
+        }
     }
 
     [MessagePackObject]

@@ -89,6 +89,35 @@ namespace Stormancer
             return result != null;
         }
 
+        /// <summary>
+        /// Gets the property value of the given path and tries to convert it to the specified type.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="obj"></param>
+        /// <param name="path"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static bool TryGetChildByPath<T>(this JObject obj, string path, out T? value)
+        {
+            if (obj.TryGetChildByPath(path, out var token))
+            {
+                try
+                {
+                    value = token.ToObject<T>();
+                    return true;
+                }
+                catch (Exception)
+                {
+                    value = default;
+                    return false;
+                }
+            }
+            else
+            {
+                value = default;
+                return false;
+            }
+        }
 
         public static bool TryGetChildByPath<T>(this Dictionary<string, object?> objectTree, string path,  out T? value)
         {

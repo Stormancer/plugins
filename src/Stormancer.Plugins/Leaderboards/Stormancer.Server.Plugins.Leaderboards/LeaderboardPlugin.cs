@@ -21,8 +21,14 @@
 // SOFTWARE.
 
 using Stormancer.Core;
+using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.AdminApi;
+using Stormancer.Server.Plugins.Configuration;
+using Stormancer.Server.Plugins.Friends;
+using Stormancer.Server.Plugins.Users;
+using System;
+using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.Leaderboards
 {
@@ -34,10 +40,20 @@ namespace Stormancer.Server.Plugins.Leaderboards
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
-                builder.Register<LeaderboardService>().As<ILeaderboardService>().InstancePerRequest();
-                builder.Register<LeaderboardController>().InstancePerRequest();
-                builder.Register<LeaderboardsWebApiConfig>().As<IAdminWebApiConfig>();
-                builder.Register<LeaderboardsAdminController>();
+                builder.Register(dr => new LeaderboardService(
+                    dr.Resolve<ILogger>(),
+                    dr.Resolve<Func<IEnumerable<ILeaderboardEventHandler>>>(),
+                    dr.Resolve<IFriendsService>(),
+                    dr.Resolve<IConfiguration>(),
+                    dr.Resolve<IUserService>(),
+                    dr.Resolve<ILeaderboardStorage>()
+                    )).As<ILeaderboardService>().InstancePerRequest();
+                builder.Register(dr => new LeaderboardController(
+                    dr.Resolve<ILeaderboardService>(),
+                    dr.Resolve<IUserSessions>()
+                    )).InstancePerRequest();
+                builder.Register(_ => new LeaderboardsWebApiConfig()).As<IAdminWebApiConfig>();
+                builder.Register(dr => new LeaderboardsAdminController(dr.Resolve<ILeaderboardService>()));
             };
 
             ctx.HostStarting += (IHost host) =>
@@ -52,7 +68,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 }
             };
 
-           
+
         }
     }
 }

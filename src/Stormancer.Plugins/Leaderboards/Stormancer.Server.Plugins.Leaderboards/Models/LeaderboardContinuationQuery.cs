@@ -20,6 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json;
+using System;
+using System.Diagnostics;
+
 namespace Stormancer.Server.Plugins.Leaderboards
 {
     /// <summary>
@@ -27,6 +31,9 @@ namespace Stormancer.Server.Plugins.Leaderboards
     /// </summary>
     public class LeaderboardContinuationQuery : LeaderboardQuery
     {
+        internal static Lazy<byte[]>? Key;
+
+
         /// <summary>
         /// Creates a new <see cref="LeaderboardContinuationQuery"/> object with default values.
         /// </summary>
@@ -34,7 +41,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
         {
         }
 
-        internal LeaderboardContinuationQuery(LeaderboardQuery parent)
+        public LeaderboardContinuationQuery(LeaderboardQuery parent)
         {
             StartId = parent.StartId;
             ScoreFilters = parent.ScoreFilters;
@@ -55,5 +62,19 @@ namespace Stormancer.Server.Plugins.Leaderboards
         /// The coninuation leads to the next page if false.
         /// </remarks>
         public bool IsPrevious { get; set; }
+
+        public string SerializeContinuationQuery()
+        {
+            Debug.Assert(Key != null);
+            return System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(this)));
+            //return JWT.Encode(query, _key.Value, JwsAlgorithm.HS256);
+        }
+
+        public static LeaderboardContinuationQuery DeserializeContinuationQuery(string continuation)
+        {
+            Debug.Assert(Key != null);
+            return JsonConvert.DeserializeObject<LeaderboardContinuationQuery>(System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(continuation)));
+            //return JWT.Decode<LeaderboardContinuationQuery>(continuation, _key.Value);
+        }
     }
 }

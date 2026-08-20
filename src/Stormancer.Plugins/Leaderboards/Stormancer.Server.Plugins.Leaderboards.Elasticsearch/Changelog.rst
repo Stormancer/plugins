@@ -9,20 +9,9 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-unreleased
+
+Unreleased
 ----------
 Added
 *****
-- Added an overload to TryGetChildByPath for JObject that handles the conversion
-
-0.1.1.2
-----------
-Changed
-*******
-- Update dependencies to release version
-
-0.1.1.1
-----------
-Added
-*****
-- Added Add SessionIdJsonConverter type to serialize Session ids.
+- Elasticsearch provider for Leaderboards

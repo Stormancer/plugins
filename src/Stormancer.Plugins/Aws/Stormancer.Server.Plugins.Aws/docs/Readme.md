@@ -14,7 +14,7 @@ Configuration:
                 "my-s3-storage":{
                     
                     //must be set to "s3" to use the Azure plugin.
-                    "type":"azureBlob",
+                    "type":"s3",
                     
                     //The S3 bucket to use for blob storage.
                     "bucket":"my-bucket",
