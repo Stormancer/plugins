@@ -17,10 +17,15 @@ Changed
 - Update Raknet version
 - Do not try downloading an image if the same image is already currently being downloaded.
 - Automatically delete latest tag when downloading a new image.
+- Logs locally when a container fails to start
 
 Added
 *****
 - Enables preloading docker images according to the app configuration.
+
+Fixed
+*****
+- Do not dispose the DockerService when we lose connection to Stormancer
 
 0.5.1.2
 ----------

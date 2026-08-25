@@ -38,7 +38,7 @@ namespace Stormancer.GameServers.Agent
         public ServerContainer? Container { get; set; }
         public string? Error { get; set; }
     }
-    internal class DockerService : IDisposable, IProgress<Message>
+    internal class DockerService : IProgress<Message>
     {
         private object _lock = new object();
 
@@ -104,7 +104,7 @@ namespace Stormancer.GameServers.Agent
                 return;
             }
 
-            var containers = await _docker.Containers.ListContainersAsync(new ContainersListParameters { All = true });
+            var containers = await _docker.Containers.ListContainersAsync(new ContainersListParameters { All = true });            
             foreach (var container in containers)
             {
 
@@ -491,12 +491,14 @@ namespace Stormancer.GameServers.Agent
                 return new StartContainerResult { Success = true, Container = serverContainer };
 
             }
+
             catch (Exception ex)
             {
                 lock (_lock)
                 {
                     _trackedContainers.Remove(name);
                 }
+                _logger.Log(LogLevel.Error, ex, "An error occurred while trying to start container '{name}' from image '{image}'", name, image);
                 return new StartContainerResult { Success = false, Error = ex.ToString() };
             }
 
@@ -697,14 +699,7 @@ namespace Stormancer.GameServers.Agent
 
                 }
             }
-        }
-
-
-        public void Dispose()
-        {
-            _shouldMonitorDocker = false;
-            _docker?.Dispose();
-        }
+        }        
 
         public void Report(Message value)
         {
