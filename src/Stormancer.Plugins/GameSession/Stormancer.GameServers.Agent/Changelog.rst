@@ -9,6 +9,15 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+0.5.1.3-hot
+-----------
+Added
+*****
+- Logs locally when a container fails to start
+
+Fixed
+*****
+- Do not dispose the DockerService when we lose connection to Stormancer
 
 0.5.1.2
 ----------
