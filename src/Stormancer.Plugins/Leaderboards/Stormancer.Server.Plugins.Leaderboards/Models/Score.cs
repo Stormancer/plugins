@@ -52,10 +52,10 @@ namespace Stormancer.Server.Plugins.Leaderboards
     {
         public JObject Document { get; set; } = new JObject();
 
-        public double GetValue(string scorePath)
+        public long GetValue(string scorePath)
         {
-            double result;
-            if(!Scores.TryGetChildByPath<double>(scorePath, out result))
+            long result;
+            if(!Scores.TryGetChildByPath(scorePath, out result))
             {
                 throw new ArgumentException($"Path {scorePath} does not exist in score.");
             }

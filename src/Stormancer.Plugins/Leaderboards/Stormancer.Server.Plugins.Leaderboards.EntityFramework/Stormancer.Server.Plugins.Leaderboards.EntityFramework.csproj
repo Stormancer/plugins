@@ -4,13 +4,13 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>0.1.1</Version>
+		<Version>0.1.0</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
-		<Description>Elasticsearch storage for Stormancer leaderboard system.</Description>
+		<Description>Entity Framework storage for Stormancer leaderboard system.</Description>
 		<Deterministic>true</Deterministic>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
@@ -29,7 +29,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Stormancer.Server.Plugins.Leaderboards\Stormancer.Server.Plugins.Leaderboards.csproj" />
+	  <ProjectReference Include="..\..\Database\Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql\Stormancer.Server.Plugins.Database.EntityFrameworkCore.Npgsql.csproj" />
+	  <ProjectReference Include="..\Stormancer.Server.Plugins.Leaderboards\Stormancer.Server.Plugins.Leaderboards.csproj" />
 	</ItemGroup>
 
 	<Target Name="PostPack" AfterTargets="Pack">

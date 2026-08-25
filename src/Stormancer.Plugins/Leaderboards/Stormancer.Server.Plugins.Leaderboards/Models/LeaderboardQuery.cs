@@ -31,12 +31,12 @@ namespace Stormancer.Server.Plugins.Leaderboards
     public enum LeaderboardOrdering
     {
         /// <summary>
-        /// The leaderboard orders results by score ascending (higher is better).
+        /// The leaderboard orders results by score ascending (lower is better).
         /// </summary>
         Ascending = 0,
 
         /// <summary>
-        /// The leaderboard orders results by scores descending (lower is better).
+        /// The leaderboard orders results by scores descending (higher is better).
         /// </summary>
         Descending = 1
     }

@@ -24,7 +24,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
 {
     public class QuickAccessLeaderboard
     {
-        QuickAccessLeaderboard()
+        public QuickAccessLeaderboard()
         {
         }
 

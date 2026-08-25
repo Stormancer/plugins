@@ -269,22 +269,22 @@ namespace Stormancer.Server.Plugins.Leaderboards.Elasticsearch
         {
             var pivotScore = pivot.GetValue(path);
             var fullScorePath = "scores." + path;
-            // descending : ( score > pivot.score) OR (score == pivot.score AND createdOn < pivot.createdOn) OR (score == pivot.score AND createdOn == pivot.Id AND Id < pivot.Id) 
-            // ascending :  ( score < pivot.score) OR (score == pivot.score AND createdOn > pivot.createdOn) OR (score == pivot.score AND createdOn == pivot.Id AND Id > pivot.Id) 
+            // descending : ( score > pivot.score) OR (score == pivot.score AND createdOn < pivot.createdOn) OR (score == pivot.score AND createdOn == pivot.CreatedOn AND Id < pivot.Id) 
+            // ascending :  ( score < pivot.score) OR (score == pivot.score AND createdOn < pivot.createdOn) OR (score == pivot.score AND createdOn == pivot.CreatedOn AND Id < pivot.Id) 
             return q.Bool(
                 b1 => b1.Should(
                     q1 => q1.Range(r => leaderboardOrdering == LeaderboardOrdering.Descending ? r.Field(fullScorePath).GreaterThan(pivotScore) : r.Field(fullScorePath).LessThan(pivotScore)),
                     q1 => q1.Bool(
                         b2 => b2.Must(
                             q2 => q2.Term(t => t.Field(fullScorePath).Value(pivotScore)),
-                            q2 => q2.DateRange(r => leaderboardOrdering == LeaderboardOrdering.Descending ? r.Field(record => record.CreatedOn).LessThan(pivot.CreatedOn) : r.Field(record => record.CreatedOn).GreaterThan(pivot.CreatedOn))
+                            q2 => q2.DateRange(r => r.Field(record => record.CreatedOn).LessThan(pivot.CreatedOn))
                         )
                     ),
                     q1 => q1.Bool(
                         b2 => b2.Must(
                             q2 => q2.Term(t => t.Field(fullScorePath).Value(pivotScore)),
                             q2 => q2.DateRange(r => r.Field(record => record.CreatedOn).LessThanOrEquals(pivot.CreatedOn).GreaterThanOrEquals(pivot.CreatedOn)),
-                            q2 => q2.TermRange(r => leaderboardOrdering == LeaderboardOrdering.Descending ? r.Field(record => record.Id).LessThan(pivot.Id) : r.Field(record => record.Id).GreaterThan(pivot.Id))
+                            q2 => q2.TermRange(r => r.Field(record => record.Id).LessThan(pivot.Id))
                         )
                     )
                 )
@@ -296,22 +296,22 @@ namespace Stormancer.Server.Plugins.Leaderboards.Elasticsearch
             var pivotScore = pivot.GetValue(path);
             var fullScorePath = "scores." + path;
 
-            // descending : ( score < pivot.score) OR (score == pivot.score AND createdOn > pivot.createdOn) OR (score == pivot.score AND createdOn == pivot.Id AND Id > pivot.Id) 
-            // ascending :  ( score > pivot.score) OR (score == pivot.score AND createdOn < pivot.createdOn) OR (score == pivot.score AND createdOn == pivot.Id AND Id < pivot.Id) 
+            // descending : ( score < pivot.score) OR (score == pivot.score AND createdOn > pivot.createdOn) OR (score == pivot.score AND createdOn == pivot.createdOn AND Id > pivot.Id) 
+            // ascending :  ( score > pivot.score) OR (score == pivot.score AND createdOn > pivot.createdOn) OR (score == pivot.score AND createdOn == pivot.createdOn AND Id > pivot.Id) 
             return q.Bool(
                 b1 => b1.Should(
                     q1 => q1.Range(r => leaderboardOrdering == LeaderboardOrdering.Descending ? r.Field(fullScorePath).LessThan(pivotScore) : r.Field(fullScorePath).GreaterThan(pivotScore)),
                     q1 => q1.Bool(
                         b2 => b2.Must(
                             q2 => q2.Term(t => t.Field(fullScorePath).Value(pivotScore)),
-                            q2 => q2.DateRange(r => leaderboardOrdering == LeaderboardOrdering.Descending ? r.Field(record => record.CreatedOn).GreaterThan(pivot.CreatedOn) : r.Field(record => record.CreatedOn).LessThan(pivot.CreatedOn))
+                            q2 => q2.DateRange(r => r.Field(record => record.CreatedOn).GreaterThan(pivot.CreatedOn))
                         )
                     ),
                     q1 => q1.Bool(
                         b2 => b2.Must(
                             q2 => q2.Term(t => t.Field(fullScorePath).Value(pivotScore)),
                             q2 => q2.DateRange(r => r.Field(record => record.CreatedOn).LessThanOrEquals(pivot.CreatedOn).GreaterThanOrEquals(pivot.CreatedOn)),
-                            q2 => q2.TermRange(r => leaderboardOrdering == LeaderboardOrdering.Descending ? r.Field(record => record.Id).GreaterThan(pivot.Id) : r.Field(record => record.Id).LessThan(pivot.Id))
+                            q2 => q2.TermRange(r => r.Field(record => record.Id).GreaterThan(pivot.Id))
                         )
                     )
                 )
