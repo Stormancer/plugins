@@ -16,7 +16,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
         Task<List<QuickAccessLeaderboard>> GetQuickAccessLeaderboards();
         Task<long> GetRanking(ScoreRecord score, LeaderboardQuery filters, string leaderboardName, bool enableExaequo, CancellationToken cancellationToken);
         Task<ScoreRecord?> GetScore(string leaderboardName, string playerId);
-        Task<Dictionary<string, ScoreRecord?>> GetScores(string leaderboardNames, IEnumerable<string> playerIds);
+        Task<Dictionary<string, ScoreRecord?>> GetScores(string leaderboardName, IEnumerable<string> playerIds);
         Task<long> GetTotal(string leaderboardName, LeaderboardQuery filters, CancellationToken cancellationToken);
         Task<LeaderboardResult<ScoreRecord>> Query(LeaderboardQuery leaderboardQuery, bool enableExaequo, CancellationToken cancellationToken);
         Task RemoveEntry(string leaderboardName, string entryId);

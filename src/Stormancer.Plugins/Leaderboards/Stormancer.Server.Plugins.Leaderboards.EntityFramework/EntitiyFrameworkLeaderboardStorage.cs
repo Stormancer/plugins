@@ -48,19 +48,24 @@ namespace Stormancer.Server.Plugins.Leaderboards.EntityFramework
                     switch (fieldFilter.Value.Type)
                     {
                         case Newtonsoft.Json.Linq.JTokenType.String:
-                            query = query.Where(s => s.Document.RootElement.GetProperty(fieldFilter.Field).GetString() == fieldFilter.Value.ToString());
+                            var filterString = fieldFilter.Value.ToString();
+                            query = query.Where(s => s.Document.RootElement.GetProperty(fieldFilter.Field).GetString() == filterString);
                             break;
                         case Newtonsoft.Json.Linq.JTokenType.Integer:
-                            query = query.Where(s => s.Document.RootElement.GetProperty(fieldFilter.Field).GetInt32() == fieldFilter.Value.ToObject<int>());
+                            var filterInt = fieldFilter.Value.ToObject<int>();
+                            query = query.Where(s => s.Document.RootElement.GetProperty(fieldFilter.Field).GetInt32() == filterInt);
                             break;
                         case Newtonsoft.Json.Linq.JTokenType.Float:
-                            query = query.Where(s => s.Document.RootElement.GetProperty(fieldFilter.Field).GetDouble() == fieldFilter.Value.ToObject<double>());
+                            var filterDouble = fieldFilter.Value.ToObject<double>();
+                            query = query.Where(s => s.Document.RootElement.GetProperty(fieldFilter.Field).GetDouble() == filterDouble);
                             break;
                         case Newtonsoft.Json.Linq.JTokenType.Boolean:
-                            query = query.Where(s => s.Document.RootElement.GetProperty(fieldFilter.Field).GetBoolean() == fieldFilter.Value.ToObject<bool>());
+                            var filterBool = fieldFilter.Value.ToObject<bool>();
+                            query = query.Where(s => s.Document.RootElement.GetProperty(fieldFilter.Field).GetBoolean() == filterBool);
                             break;
                         case Newtonsoft.Json.Linq.JTokenType.Date:
-                            query = query.Where(s => s.Document.RootElement.GetProperty(fieldFilter.Field).GetDateTime() == fieldFilter.Value.ToObject<DateTime>());
+                            var filterdDate = fieldFilter.Value.ToObject<DateTime>();
+                            query = query.Where(s => s.Document.RootElement.GetProperty(fieldFilter.Field).GetDateTime() == filterdDate);
                             break;
                         default:
                             throw new NotSupportedException($"Field filter of type {fieldFilter.Value.Type} is not supported.");
@@ -158,10 +163,10 @@ namespace Stormancer.Server.Plugins.Leaderboards.EntityFramework
             return ScoreEntity.CreateScoreFromEntity(await dbContext.Set<ScoreEntity>().FirstOrDefaultAsync(s => s.LeaderboardName == leaderboardName && s.Id == playerId));
         }
 
-        public async Task<Dictionary<string, ScoreRecord?>> GetScores(string leaderboardNames, IEnumerable<string> playerIds)
+        public async Task<Dictionary<string, ScoreRecord?>> GetScores(string leaderboardName, IEnumerable<string> playerIds)
         {
             var dbContext = await _dbContext.GetDbContextAsync();
-            var entities = await dbContext.Set<ScoreEntity>().Where(s => s.LeaderboardName == leaderboardNames && playerIds.Contains(s.Id)).ToListAsync();
+            var entities = await dbContext.Set<ScoreEntity>().Where(s => s.LeaderboardName == leaderboardName && playerIds.Contains(s.Id)).ToListAsync();
             var result = new Dictionary<string, ScoreRecord?>();
             foreach (var playerId in playerIds)
             {
@@ -191,7 +196,7 @@ namespace Stormancer.Server.Plugins.Leaderboards.EntityFramework
             ScoreRecord? start = null;
             if (!string.IsNullOrEmpty(leaderboardQuery.StartId))
             {
-                start = await GetScore(leaderboardQuery.StartId, leaderboardQuery.Name);
+                start = await GetScore(leaderboardQuery.Name, leaderboardQuery.StartId);
                 if (start == null)
                 {
                     return new LeaderboardResult<ScoreRecord>() { LeaderboardName = leaderboardQuery.Name, Total = 0 };
@@ -253,11 +258,11 @@ namespace Stormancer.Server.Plugins.Leaderboards.EntityFramework
 
             if ((isContinuation && !isPreviousContinuation) || start == null)
             {
-                query.Take(leaderboardQuery.Size + 1).Skip(leaderboardQuery.Skip);
+                query = query.Skip(leaderboardQuery.Skip).Take(leaderboardQuery.Size + 1);
             }
             else
             {
-                query.Take(leaderboardQuery.Size).Skip(leaderboardQuery.Skip);
+                query = query.Skip(leaderboardQuery.Skip).Take(leaderboardQuery.Size);
             }
 
             var scoreEntities = await query.ToListAsync(cancellationToken);
@@ -372,9 +377,14 @@ namespace Stormancer.Server.Plugins.Leaderboards.EntityFramework
             {
                 var idsToUpdate = results.Where(kvp => !kvp.Value).ToList();
                 var entitySet = dbContext.Set<ScoreEntity>();
-                var existingScores = await entitySet
-                    .Where(s => idsToUpdate.Select(kvp => kvp.Key).Contains(new LeaderboardEntryId { LeaderboardName = s.LeaderboardName, Id = s.Id }))
-                    .ToListAsync();
+
+                List<ScoreEntity> existingScores = new List<ScoreEntity>();
+                    foreach(var group in idsToUpdate.GroupBy(kvp => kvp.Key.LeaderboardName))
+                {
+                    var leaderboardName = group.Key;
+                    var ids = group.Select(kvp => kvp.Key.Id).ToList();
+                    existingScores.AddRange(await entitySet.Where(s => s.LeaderboardName == leaderboardName && ids.Contains(s.Id)).ToListAsync());
+                }
 
                 var existingScoresDictionary = existingScores.ToDictionary(s => new LeaderboardEntryId { LeaderboardName = s.LeaderboardName, Id = s.Id }, ScoreEntity.CreateScoreFromEntity);
                 foreach (var kvp in idsToUpdate)

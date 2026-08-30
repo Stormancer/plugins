@@ -18,10 +18,10 @@ namespace Stormancer.Server.Plugins.Leaderboards.EntityFramework.Storage
                 b.HasIndex(s => s.CreatedOn);
                 b.HasIndex(s => s.Scores)
                 .HasMethod("gin")
-                .HasOperators("gin_trgm_ops");
+                .HasOperators("jsonb_ops");
                 b.HasIndex(s => s.Document)
                 .HasMethod("gin")
-                .HasOperators("gin_trgm_ops");
+                .HasOperators("jsonb_ops");
             });
             modelBuilder.Entity<QuickAccessLeaderboardEntity>();
         }
