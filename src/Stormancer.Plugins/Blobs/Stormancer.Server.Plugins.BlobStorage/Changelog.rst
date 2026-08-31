@@ -16,7 +16,7 @@ Added
 - Added get blob content API.
 - Added Staging & commit blocks API to upload big blobs.
 - Added IBlobStorageEventHandler extensibility point.
-- stageBlock and commitBlocks now return their success status
+- stageBlock and CommitBlocks now return their success status
 
 
 0.1.0.6

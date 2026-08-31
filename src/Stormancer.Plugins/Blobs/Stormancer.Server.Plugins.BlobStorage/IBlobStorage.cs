@@ -415,12 +415,16 @@ namespace Stormancer.Server.Plugins.BlobStorage
         {
             if(Key == null)
             {
-                Key = new byte[32];
-                using var generator = RandomNumberGenerator.Create();
+                lock (Key)
+                {
+                    if (Key == null)
+                    {
+                        Key = new byte[32];
+                        using var generator = RandomNumberGenerator.Create();
 
-                generator.GetBytes(Key);
-
-
+                        generator.GetBytes(Key);
+                    }
+                }
             }
 
             return Key;
