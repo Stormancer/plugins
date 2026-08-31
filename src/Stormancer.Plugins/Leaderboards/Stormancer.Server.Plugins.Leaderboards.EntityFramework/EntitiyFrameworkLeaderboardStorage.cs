@@ -400,7 +400,12 @@ namespace Stormancer.Server.Plugins.Leaderboards.EntityFramework
                 {
                     if(score.NewValue != null && score.OldValue != null)
                     {
-                        entitySet.Update(ScoreEntity.CreateEntityFromScore(score.NewValue));                        
+                        var existingEntity = await entitySet.FirstAsync(s => s.LeaderboardName == id.LeaderboardName && s.Id == id.Id);
+                        var newEntity = ScoreEntity.CreateEntityFromScore(score.NewValue);
+
+                        existingEntity.CreatedOn = newEntity.CreatedOn;
+                        existingEntity.Scores = newEntity.Scores;
+                        existingEntity.Document = newEntity.Document;
                     }
                     else if (score.NewValue != null && score.OldValue == null)
                     {
