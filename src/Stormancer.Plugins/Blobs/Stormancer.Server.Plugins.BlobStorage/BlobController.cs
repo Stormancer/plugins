@@ -1,4 +1,5 @@
-﻿using MessagePack;
+﻿
+using MessagePack;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.API;
 using System.Buffers;
@@ -13,6 +14,7 @@ namespace Stormancer.Server.Plugins.BlobStorage
     /// <summary>
     /// Provides API to upload block blobs.
     /// </summary>
+    [Service(Named=false,ServiceType = BlobStorageConstants.METADATA_KEY)]
     public class BlobController : ControllerBase
     {
         private readonly IBlobStorage _blobStorage;
@@ -52,6 +54,12 @@ namespace Stormancer.Server.Plugins.BlobStorage
         public async Task<CommitBlockListResult> CommitBlocks(CommitBlobArgs args,RequestContext<IScenePeerClient> request)
         {
             return await _blobStorage.CommitBlockListAsync(request.RemotePeer.SessionId,args.Token, args.BlockIds,request.CancellationToken);
+        }
+
+        [S2SApi]
+        public async Task<string> CreateUploadToken(string blobStoreId, string path, Dictionary<string, string> metadata, ulong maxBlobSize)
+        {
+            return await _blobStorage.CreateBlobUploadTokenAsync(blobStoreId, path, metadata, maxBlobSize);
         }
     }
 
