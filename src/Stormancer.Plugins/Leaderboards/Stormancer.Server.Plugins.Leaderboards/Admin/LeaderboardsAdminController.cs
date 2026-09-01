@@ -50,18 +50,19 @@ namespace Stormancer.Server.Plugins.Leaderboards
         /// Queries a leaderboard.
         /// </summary>
         /// <param name="boardName"></param>
+        /// <param name="scorePath"></param>
         /// <param name="cursor"></param>
         /// <param name="count"></param>
         /// <param name="ordering"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        [HttpGet("{boardName}")]
-        public async Task<LeaderboardResult<ScoreRecord>> Get(string boardName, string? cursor = null, int count = 50, string ordering = "desc", CancellationToken cancellationToken = default)
+        [HttpGet("{boardName}/{scorePath}")]
+        public async Task<LeaderboardResult<ScoreRecord>> Get(string boardName, string scorePath, string? cursor = null, int count = 50, string ordering = "desc", CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(cursor))
             {
                 var leaderboardOrdering = (ordering == "desc" ? LeaderboardOrdering.Descending : LeaderboardOrdering.Ascending);
-                var result = await _leaderboards.Query(new LeaderboardQuery { Name = boardName, Size = count, Order = leaderboardOrdering },cancellationToken);
+                var result = await _leaderboards.Query(new LeaderboardQuery { Name = boardName, Size = count, Order = leaderboardOrdering, ScorePath = scorePath  }, cancellationToken); 
                 var total = await _leaderboards.GetTotal(new LeaderboardQuery { Name = boardName }, boardName,cancellationToken);
                 result.Total = total;
                 return result;
