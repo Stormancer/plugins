@@ -47,7 +47,7 @@ namespace Stormancer.Server.Plugins.PlayerReports.Admin
     /// <summary>
     /// Provides Admin API to manage player reports.
     /// </summary>
-    [Route("_playerReports")]
+    [Route("_reports/players")]
     public class PlayerReportsAdminController : ControllerBase
     {
 
@@ -71,6 +71,7 @@ namespace Stormancer.Server.Plugins.PlayerReports.Admin
         /// <param name="sortedBy"></param>
         /// <returns></returns>
         [HttpGet]
+        [Route("/")]
         public async Task<GetPlayerReportsResult> Index(int skip = 0, int size = 50, PlayerReportSortedByValues sortedBy = PlayerReportSortedByValues.LastReportedOn)
         {
             var context = await _contextAccessor.GetDbContextAsync();

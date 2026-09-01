@@ -16,7 +16,7 @@ namespace Stormancer.Server.Plugins.PlayerReports.Admin
     /// <summary>
     /// Provides Admin API to manage player reports.
     /// </summary>
-    [Route("_playerReports")]
+    [Route("_reports/bugs")]
     public class BugReportsAdminController : ControllerBase
     {
 
