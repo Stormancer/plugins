@@ -45,7 +45,7 @@ namespace Stormancer.Server.Plugins.BlobStorage
         /// </summary>
         public required SessionId Peer { get; init; }
 
-    
+
     }
 
     /// <summary>
@@ -251,7 +251,7 @@ namespace Stormancer.Server.Plugins.BlobStorage
         /// <param name="blockIds"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        ValueTask<CommitBlockListResult> CommitBlockListAsync(SessionId origin,string blobUploadToken, IEnumerable<string> blockIds, CancellationToken cancellationToken);
+        ValueTask<CommitBlockListResult> CommitBlockListAsync(SessionId origin, string blobUploadToken, IEnumerable<string> blockIds, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the list of blocks in a block blob.
@@ -409,13 +409,14 @@ namespace Stormancer.Server.Plugins.BlobStorage
 
     internal class BlobStorageKeyStore
     {
+        private readonly object _keyLock = new();
         private byte[]? Key { get; set; }
 
         public byte[] GetKey()
         {
-            if(Key == null)
+            if (Key == null)
             {
-                lock (Key)
+                lock (_keyLock)
                 {
                     if (Key == null)
                     {
@@ -439,8 +440,8 @@ namespace Stormancer.Server.Plugins.BlobStorage
         private readonly BlobStorageKeyStore _keyStore;
 
         public BlobStorage(
-            IEnumerable<IBlobStorageBackend> backends, 
-            Lazy<IEnumerable<IBlobStorageEventHandler>> eventHandlers,  
+            IEnumerable<IBlobStorageBackend> backends,
+            Lazy<IEnumerable<IBlobStorageEventHandler>> eventHandlers,
             IConfiguration configuration,
             ILogger logger,
             BlobStorageKeyStore keyStore)
@@ -552,11 +553,11 @@ namespace Stormancer.Server.Plugins.BlobStorage
 
         public ValueTask<UploadTokenPayload> DecodeBlobUploadTokenAsync(string token, CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(JWT.Decode<UploadTokenPayload>(token,_keyStore.GetKey(), JwsAlgorithm.HS256));
+            return ValueTask.FromResult(JWT.Decode<UploadTokenPayload>(token, _keyStore.GetKey(), JwsAlgorithm.HS256));
         }
 
 
-        public async ValueTask<StageBlockResult> StageBlockAsync(SessionId origin,string blobUploadToken, string blockId, ReadOnlyMemory<byte> content, CancellationToken cancellationToken)
+        public async ValueTask<StageBlockResult> StageBlockAsync(SessionId origin, string blobUploadToken, string blockId, ReadOnlyMemory<byte> content, CancellationToken cancellationToken)
         {
             var tokenPayload = await DecodeBlobUploadTokenAsync(blobUploadToken, cancellationToken);
             var config = _configuration.GetValue<BlobStorageConfigurationSection>(BlobStorageConfigurationSection.PATH) ?? new BlobStorageConfigurationSection();
@@ -571,12 +572,12 @@ namespace Stormancer.Server.Plugins.BlobStorage
                 if (backend.CanHandle(storeConfiguration))
                 {
                     var onStagingBlockContext = new OnStagingBlockContext { Content = content, Peer = origin, UploadToken = tokenPayload };
-                    if(!onStagingBlockContext.IsValid)
+                    if (!onStagingBlockContext.IsValid)
                     {
                         return new StageBlockResult { Success = false, Reason = onStagingBlockContext.Error };
                     }
-                    await _eventHandlers.Value.RunEventHandler(async h => await h.OnStagingBlock(onStagingBlockContext),ex => _logger.Log(LogLevel.Error,"blobStorage","An error occurred while executing IBlobStorageEventHandler.OnStagingBlock",ex));
-                    var result = await backend.StageBlobBlockAsync(storeConfiguration, tokenPayload.Path,blockId,content);
+                    await _eventHandlers.Value.RunEventHandler(async h => await h.OnStagingBlock(onStagingBlockContext), ex => _logger.Log(LogLevel.Error, "blobStorage", "An error occurred while executing IBlobStorageEventHandler.OnStagingBlock", ex));
+                    var result = await backend.StageBlobBlockAsync(storeConfiguration, tokenPayload.Path, blockId, content);
 
                     var onStagedBlockContext = new OnStagedBlockContext { Result = result, Content = content, UploadToken = tokenPayload, Peer = origin };
                     await _eventHandlers.Value.RunEventHandler(async h => await h.OnStagedBlock(onStagedBlockContext), ex => _logger.Log(LogLevel.Error, "blobStorage", "An error occurred while executing IBlobStorageEventHandler.OnStagedBlock", ex));
@@ -588,7 +589,7 @@ namespace Stormancer.Server.Plugins.BlobStorage
             return new StageBlockResult { Success = false, Reason = $"blobStoreBackendNotFound?id={tokenPayload.BlobStoreId}" };
         }
 
-        public async ValueTask<CommitBlockListResult> CommitBlockListAsync(SessionId origin,string blobUploadToken, IEnumerable<string> blockIds, CancellationToken cancellationToken)
+        public async ValueTask<CommitBlockListResult> CommitBlockListAsync(SessionId origin, string blobUploadToken, IEnumerable<string> blockIds, CancellationToken cancellationToken)
         {
 
             var config = _configuration.GetValue<BlobStorageConfigurationSection>(BlobStorageConfigurationSection.PATH) ?? new BlobStorageConfigurationSection();
@@ -605,16 +606,16 @@ namespace Stormancer.Server.Plugins.BlobStorage
             {
                 if (backend.CanHandle(storeConfiguration))
                 {
-                    var onCommittingBlockContext = new OnCommittingBlocksContext {  BlockList = blockIds, Peer = origin, UploadToken = tokenPayload };
+                    var onCommittingBlockContext = new OnCommittingBlocksContext { BlockList = blockIds, Peer = origin, UploadToken = tokenPayload };
                     await _eventHandlers.Value.RunEventHandler(async h => await h.OnCommittingBlocks(onCommittingBlockContext), ex => _logger.Log(LogLevel.Error, "blobStorage", "An error occurred while executing IBlobStorageEventHandler.OnCommittingBlocks", ex));
                     if (!onCommittingBlockContext.IsValid)
                     {
                         return new CommitBlockListResult { Success = false, Reason = onCommittingBlockContext.Error };
                     }
 
-                    var result = await backend.CommitBlockListAsync(storeConfiguration,path, blockIds);
+                    var result = await backend.CommitBlockListAsync(storeConfiguration, path, blockIds);
 
-                    var onCommittedBlockContext = new OnCommittedBlocksContext { Result = result, BlockList = blockIds,Peer = origin, UploadToken = tokenPayload };
+                    var onCommittedBlockContext = new OnCommittedBlocksContext { Result = result, BlockList = blockIds, Peer = origin, UploadToken = tokenPayload };
                     await _eventHandlers.Value.RunEventHandler(async h => await h.OnCommittedBlocks(onCommittedBlockContext), ex => _logger.Log(LogLevel.Error, "blobStorage", "An error occurred while executing IBlobStorageEventHandler.OnCommittedBlocks", ex));
 
                     return result;
@@ -647,7 +648,7 @@ namespace Stormancer.Server.Plugins.BlobStorage
             return ValueTask.FromResult(new GetBlockListResult { Success = false, Reason = $"blobStoreBackendNotFound?id={blobStoreId}" });
         }
 
-      
+
     }
 
 
