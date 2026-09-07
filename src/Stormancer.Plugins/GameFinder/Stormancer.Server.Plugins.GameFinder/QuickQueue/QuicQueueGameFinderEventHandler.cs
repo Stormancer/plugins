@@ -1,10 +1,6 @@
-﻿using Lucene.Net.Documents;
-using Lucene.Net.Index;
-using Newtonsoft.Json.Linq;
+﻿using Stormancer.Gamesessions.Browser;
 using Stormancer.Server.Plugins.GameSession;
-using Stormancer.Server.Plugins.Queries;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -13,75 +9,14 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
-    internal class QuickQueueGameSessionsLuceneStore : ILuceneDocumentStore
-    {
-        private readonly ILucene lucene;
-        ConcurrentDictionary<string, JObject> _data = new ConcurrentDictionary<string, JObject>();
-
-        public QuickQueueGameSessionsLuceneStore(ILucene lucene)
-        {
-            this.lucene = lucene;
-        }
-
-        public void Initialize()
-        {
-            lucene.TryCreateIndex(QuickQueueConstants.QUICKQUEUE_GAMESESSIONS_INDEX, GameSessionMapper);
-        }
-
-        public void UpdateGameSession(string id, QuickQueueGameSessionData data)
-        {
-            var json = JObject.FromObject(data);
-            _data.AddOrUpdate(id, json, (_, _) => json);
-
-            lucene.IndexDocument(QuickQueueConstants.QUICKQUEUE_GAMESESSIONS_INDEX, id, json);
-        }
-
-
-        public void DeleteGameSession(string id)
-        {
-            if (_data.TryRemove(id, out _))
-            {
-                lucene.DeleteDocument(QuickQueueConstants.QUICKQUEUE_GAMESESSIONS_INDEX, id);
-            }
-        }
-
-        private IEnumerable<IIndexableField> GameSessionMapper(JObject doc)
-        {
-            yield return new Int64Field("targetTeamCount", doc["TargetTeamCount"]?.ToObject<int>() ?? 0, Field.Store.NO);
-            yield return new Int64Field("targetTeamSize", doc["TargetTeamSize"]?.ToObject<int>() ?? 0, Field.Store.NO);
-        }
-
-        public IEnumerable<Document<JObject>> GetDocuments(IEnumerable<string> ids)
-        {
-            foreach (var id in ids)
-            {
-                if (_data.TryGetValue(id, out var value))
-                {
-                    yield return new Document<JObject>(id, value) { Version = 1 };
-                }
-                else
-                {
-                    yield return new Document<JObject>(id, null) { Version = 1 };
-                }
-            }
-        }
-
-        public bool Handles(string type)
-        {
-            return type == QuickQueueConstants.QUICKQUEUE_GAMESESSIONS_INDEX;
-        }
-
-
-    }
-
     internal class QuickQueueGameSessionEventHandler : IGameSessionEventHandler, IDisposable
     {
-        private readonly QuickQueueGameSessionsLuceneStore repository;
+        GamesessionLuceneDocumentStore repository;
         private readonly IGameSessionService gs;
         private string? _id;
         private QuickQueueGameSessionData? _gameSessionData;
         private object _syncRoot = new object();
-        public QuickQueueGameSessionEventHandler(QuickQueueGameSessionsLuceneStore repository, IGameSessionService gs)
+        public QuickQueueGameSessionEventHandler(GamesessionLuceneDocumentStore repository, IGameSessionService gs)
         {
             this.repository = repository;
             this.gs = gs;
@@ -105,7 +40,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                         Teams = new List<QuickQueueGameSessionTeamData>()
                     };
 
-                    repository.UpdateGameSession(ctx.Id, _gameSessionData);
+                    repository.UpdateDocument(ctx.Id, _gameSessionData, Array.Empty<byte>());
                 }
             }
             return Task.CompletedTask;
@@ -120,7 +55,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 if (_id is not null)
                 {
 
-                    repository.DeleteGameSession(_id);
+                    repository.DeleteDocument(_id);
                     _id = null;
                     _gameSessionData = null;
                 }
@@ -144,7 +79,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             {
                 Debug.Assert(_id is not null);
                 _gameSessionData.Teams = this.gs.GetGameSessionConfig().Teams.Select(t => new QuickQueueGameSessionTeamData { TeamId = t.TeamId, PlayerCount = t.AllPlayers.Count() }).ToList();
-                repository.UpdateGameSession(_id, _gameSessionData);
+                repository.UpdateDocument(_id, _gameSessionData, Array.Empty<byte>());
             }
         }
         public Task OnCreatedReservation(CreatedReservationContext ctx)
@@ -183,7 +118,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             {
                 if (_id is not null)
                 {
-                    repository.DeleteGameSession(_id);
+                    repository.DeleteDocument(_id);
                     _id = null;
                     _gameSessionData = null;
                 }
@@ -191,5 +126,4 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         }
     }
-
 }

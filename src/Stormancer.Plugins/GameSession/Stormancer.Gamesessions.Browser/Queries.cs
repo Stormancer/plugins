@@ -56,16 +56,16 @@ namespace Stormancer.Gamesessions.Browser
         /// <param name="size"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public Task<SearchResult<JObject>> SearchGamesessions(JObject query, uint skip, uint size, CancellationToken cancellationToken = default)
+        public Task<SearchResult<T>> SearchGamesessions<T>(JObject query, uint skip, uint size, CancellationToken cancellationToken = default)
         {
-            return search.QueryAsync<JObject>(GamesessionLuceneDocumentStore.PARTY_LUCENE_INDEX, query, skip, size, cancellationToken);
+            return search.QueryAsync<T>(GamesessionLuceneDocumentStore.PARTY_LUCENE_INDEX, query, skip, size, cancellationToken);
         }
 
 
     }
 
 
-    internal class GamesessionLuceneDocumentStore : ILuceneDocumentStore
+    public class GamesessionLuceneDocumentStore : ILuceneDocumentStore
     {
         public const string PARTY_LUCENE_INDEX = "stormancer.gamesessions";
 
@@ -106,19 +106,20 @@ namespace Stormancer.Gamesessions.Browser
             lucene.TryCreateIndex(PARTY_LUCENE_INDEX, DefaultMapper.JsonMapper);
         }
 
-        public void UpdateDocument(string id, JObject? document, byte[] customData)
+        public void UpdateDocument<T>(string id, T? document, byte[] customData)
         {
             if (document != null)
             {
+                var json =JObject.FromObject(document);
                 lock (syncRoot)
                 {
 
-                    if (!_data.TryGetValue(id, out var current) || !JToken.DeepEquals(document, current.Item1))
+                    if (!_data.TryGetValue(id, out var current) || !JToken.DeepEquals(json, current.Item1))
                     {
 
-                        lucene.IndexDocument(PARTY_LUCENE_INDEX, id, document);
+                        lucene.IndexDocument(PARTY_LUCENE_INDEX, id, json);
                     }
-                    _data[id] = (document, customData);
+                    _data[id] = (json, customData);
                 }
             }
             else

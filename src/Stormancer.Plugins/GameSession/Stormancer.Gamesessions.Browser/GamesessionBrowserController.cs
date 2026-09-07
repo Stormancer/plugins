@@ -25,7 +25,7 @@ namespace Stormancer.Gamesessions.Browser
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task<GamesessionSearchResultDto> Search(string jsonQuery, uint skip, uint size, CancellationToken cancellationToken)
         {
-            var result = await _gamesessionSearchService.SearchGamesessions(JObject.Parse(jsonQuery), skip, size, cancellationToken);
+            var result = await _gamesessionSearchService.SearchGamesessions<JObject>(JObject.Parse(jsonQuery), skip, size, cancellationToken);
 
             return new GamesessionSearchResultDto { Total = result.Total, Hits = result.Hits.Select(d => new GamesessionSearchDocumentDto { Id = d.Id, Source = d.Source?.ToString(Newtonsoft.Json.Formatting.None) ?? "{}" }) };
         }

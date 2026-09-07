@@ -61,12 +61,12 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// How many game finder passes this game session has been open for.
         /// </summary>
-        public int NumGameFinderPasses { get; internal set; } = 0;
+        public int NumGameFinderPasses { get;  set; } = 0;
 
         /// <summary>
         /// The time at which this game session was opened.
         /// </summary>
-        public DateTime CreationTimeUtc { get; internal set; } = DateTime.UtcNow;
+        public DateTime CreationTimeUtc { get;  set; } = DateTime.UtcNow;
 
 
         private IObserver<IEnumerable<Team>> observer;
@@ -79,19 +79,19 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </remarks>
         /// <param name="teams">Teams that have been added to the game session by the GameFinder.</param>
         /// <returns></returns>
-        internal Task RegisterTeams(IEnumerable<Team> teams)
+        public Task RegisterTeams(IEnumerable<Team> teams)
         {
             observer.OnNext(teams);
             //await requestContext.SendValue(stream => requestContext.RemotePeer.Serializer().Serialize(teams, stream));
             return Task.CompletedTask;
         }
 
-        internal void Complete()
+        public void Complete()
         {
             observer.OnCompleted();
         }
 
-        internal OpenGameSession(string origin, JObject data, IObserver<IEnumerable<Team>> observer)
+        public OpenGameSession(string origin, JObject data, IObserver<IEnumerable<Team>> observer)
         {
             SceneId = origin;
             Data = data;

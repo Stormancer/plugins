@@ -24,6 +24,7 @@ using Nest;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
+using Stormancer.Gamesessions.Browser;
 using Stormancer.Server.Plugins.GameSession;
 using Stormancer.Server.Plugins.Models;
 using Stormancer.Server.Plugins.Queries;
@@ -73,16 +74,19 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         public bool AllowJoinExistingGame { get; set; }
 
-
+        /// <summary>
+        /// Custom data associated with the game session.
+        /// </summary>
+        public JObject?  CustomData { get; set; } 
     }
 
 
     public abstract class QuickQueueGameFinderBase
     {
-        protected readonly SearchEngine search;
+        protected readonly Stormancer.Gamesessions.Browser.GamesessionSearchService search;
         protected readonly IGameSessions gameSessions;
 
-        public QuickQueueGameFinderBase(SearchEngine search, IGameSessions gameSessions)
+        public QuickQueueGameFinderBase(Stormancer.Gamesessions.Browser.GamesessionSearchService search, IGameSessions gameSessions)
         {
             this.search = search;
             this.gameSessions = gameSessions;
@@ -90,7 +94,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         internal async Task<IEnumerable<Document<QuickQueueGameSessionData>>> QueryGameSessions(ParametersGroup parameters)
         {
-            var docs = (await search.QueryAsync<QuickQueueGameSessionData>("gamesessions.quickQueue", JObject.FromObject(new
+            var docs = (await search.SearchGamesessions<QuickQueueGameSessionData>(JObject.FromObject(new
             {
                 @bool = new
                 {
@@ -414,7 +418,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="search"></param>
         /// <param name="gameSessions"></param>
-        public QuickQueueGameFinder(SearchEngine search, IGameSessions gameSessions) : base(search, gameSessions)
+        public QuickQueueGameFinder(GamesessionSearchService search, IGameSessions gameSessions) : base(search, gameSessions)
         {
 
         }
@@ -517,7 +521,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="search"></param>
         /// <param name="gameSessions"></param>
-        public QuickQueueGameFinder(SearchEngine search, IGameSessions gameSessions) : base(search, gameSessions)
+        public QuickQueueGameFinder(GamesessionSearchService search, IGameSessions gameSessions) : base(search, gameSessions)
         {
 
         }
