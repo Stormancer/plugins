@@ -29,6 +29,9 @@ using Stormancer.Plugins;
 using System.Threading;
 using Newtonsoft.Json.Linq;
 using MessagePack;
+using System.IO;
+using Stormancer.Server.Plugins.Utilities;
+using System.Buffers;
 
 namespace Stormancer.Server.Plugins.Profile
 {
@@ -40,13 +43,15 @@ namespace Stormancer.Server.Plugins.Profile
         private readonly IProfileService _profiles;
         private readonly ISerializer _serializer;
         private readonly IUserService _users;
+        private readonly RecyclableMemoryStreamProvider _memStreamProvider;
 
-        public ProfileController(IProfileService profiles, ISerializer serializer, IUserSessions sessions, IUserService users)
+        public ProfileController(IProfileService profiles, ISerializer serializer, IUserSessions sessions, IUserService users, RecyclableMemoryStreamProvider memStreamProvider)
         {
             _sessions = sessions;
             _profiles = profiles;
             _serializer = serializer;
             _users = users;
+            _memStreamProvider = memStreamProvider;
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
@@ -97,7 +102,10 @@ namespace Stormancer.Server.Plugins.Profile
                             var result = new ProfileDto { Found = true };
                             foreach(var (key, value) in profile)
                             {
-                                result.Data.Add(key, value.ToString());
+                                using var stream = _memStreamProvider.GetStream();
+                                _serializer.Serialize(value, (IBufferWriter<byte>)stream);
+                                // TODO: Optimize
+                                result.Data.Add(key, stream.ToArray());
                             }
                             return result;
                         }
@@ -120,7 +128,10 @@ namespace Stormancer.Server.Plugins.Profile
                             var result = new ProfileDto { Found = true };
                             foreach (var (key, value) in profile)
                             {
-                                result.Data.Add(key, value.ToString());
+                                using var stream = _memStreamProvider.GetStream();
+                                _serializer.Serialize(value, (IBufferWriter<byte>)stream);
+                                // TODO: Optimize
+                                result.Data.Add(key,stream.ToArray());
                             }
                             return result;
                         }
@@ -173,7 +184,10 @@ namespace Stormancer.Server.Plugins.Profile
                             var result = new ProfileDto { Found = true };
                             foreach (var (key, value) in profile)
                             {
-                                result.Data.Add(key, value.ToString());
+                                using var stream = _memStreamProvider.GetStream();
+                                _serializer.Serialize(value, (IBufferWriter<byte>)stream);
+                                // TODO: Optimize
+                                result.Data.Add(key, stream.ToArray());
                             }
                             return result;
                         }
@@ -243,7 +257,7 @@ namespace Stormancer.Server.Plugins.Profile
         /// Gets the dictionary of parts in the profile, represented as json.
         /// </summary>
         [Key(0)]
-        public Dictionary<string, string> Data { get; } = new();
+        public Dictionary<string, byte[]> Data { get; } = new();
 
         /// <summary>
         /// Indicates whether the profile has been found
