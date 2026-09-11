@@ -9,6 +9,10 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+- Added more types to Abstraction library.
+
 1.0.0
 ----------
 - Added abstraction library for Game finder related features.
