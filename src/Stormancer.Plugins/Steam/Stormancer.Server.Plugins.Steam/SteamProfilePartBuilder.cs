@@ -126,13 +126,14 @@ namespace Stormancer.Server.Plugins.Steam
                                         data["platforms"] = new JObject();
                                     }
                                     data["platforms"]![SteamConstants.PLATFORM_NAME] = new JObject();
-                                    data["platforms"]![SteamConstants.PLATFORM_NAME]![SteamConstants.STEAM_ID] = steamId;
+                                    data["platforms"]![SteamConstants.PLATFORM_NAME]![SteamConstants.STEAM_ID] = steamId.ToString();
 
-                                    if(user.GetSelectedPlatformForPseudo() == "steam")
-                                    if (steamProfiles.TryGetValue(steamId.Value, out var steamProfile))
-                                    {
-                                        data["pseudo"] = steamProfile.personaname;
-                                    }
+                                    if (user.GetSelectedPlatformForPseudo() == "steam")
+                                        if (steamProfiles.TryGetValue(steamId.Value, out var steamProfile))
+                                        {
+                                            data["pseudo"] = steamProfile.personaname;
+                                            data["avatar"] = steamProfile.avatar;
+                                        }
                                     return data;
                                 });
                             }
