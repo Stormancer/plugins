@@ -35,60 +35,34 @@ namespace Stormancer.Server.Plugins.Queries
             {
                 if (field is not null)
                 {
-                    if (prefix != null)
-                    {
-                        switch (field.Type)
-                        {
-                            case JTokenType.String:
-                                yield return new StringField($"{prefix}.{fieldName}", field.ToObject<string>(), Field.Store.NO);
-                                break;
-                            case JTokenType.Boolean:
 
-                                yield return new Int32Field($"{prefix}.{fieldName}", field.ToObject<bool>() ? 1 : 0, Field.Store.NO);
-                                break;
-                            case JTokenType.Integer:
-                                yield return new Int64Field($"{prefix}.{fieldName}", field.ToObject<long>(), Field.Store.NO);
-                                break;
-                            case JTokenType.Float:
-                                yield return new DoubleField($"{prefix}.{fieldName}", field.ToObject<double>(), Field.Store.NO);
-                                break;
-                            case JTokenType.Object:
-                                foreach (var indexedField in JsonMapper($"{prefix}.{fieldName}", (JObject)field))
-                                {
-                                    yield return indexedField;
-                                }
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-                    else
+                    var luceneFieldId = prefix != null ? $"{prefix}.{fieldName}" : fieldName;
+                    switch (field.Type)
                     {
-                        switch (field.Type)
-                        {
-                            case JTokenType.String:
-                                yield return new StringField($"{fieldName}", field.ToObject<string>(), Field.Store.NO);
-                                break;
-                            case JTokenType.Boolean:
+                        case JTokenType.String:
 
-                                yield return new Int32Field($"{fieldName}", field.ToObject<bool>() ? 1 : 0, Field.Store.NO);
-                                break;
-                            case JTokenType.Integer:
-                                yield return new Int64Field($"{fieldName}", field.ToObject<long>(), Field.Store.NO);
-                                break;
-                            case JTokenType.Float:
-                                yield return new DoubleField($"{fieldName}", field.ToObject<double>(), Field.Store.NO);
-                                break;
-                            case JTokenType.Object:
-                                foreach (var indexedField in JsonMapper($"{prefix}.{fieldName}", (JObject)field))
-                                {
-                                    yield return indexedField;
-                                }
-                                break;
-                            default:
-                                break;
-                        }
+                            yield return new StringField(luceneFieldId, field.ToObject<string>(), Field.Store.NO);
+                            break;
+                        case JTokenType.Boolean:
+
+                            yield return new Int32Field(luceneFieldId, field.ToObject<bool>() ? 1 : 0, Field.Store.NO);
+                            break;
+                        case JTokenType.Integer:
+                            yield return new Int64Field(luceneFieldId, field.ToObject<long>(), Field.Store.NO);
+                            break;
+                        case JTokenType.Float:
+                            yield return new DoubleField(luceneFieldId, field.ToObject<double>(), Field.Store.NO);
+                            break;
+                        case JTokenType.Object:
+                            foreach (var indexedField in JsonMapper(luceneFieldId, (JObject)field))
+                            {
+                                yield return indexedField;
+                            }
+                            break;
+                        default:
+                            break;
                     }
+
                 }
             }
         }

@@ -9,7 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
-
+Unreleased
+----------
+Changed
+*******
+- Updated broken dependencies to Lucene & Stormancer.Server.Plugins.Queries.
 0.2.0.27
 ----------
 Changed

@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using MessagePack;
 using Nest;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -94,7 +95,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         internal async Task<IEnumerable<Document<QuickQueueGameSessionData>>> QueryGameSessions(ParametersGroup parameters)
         {
-            var docs = (await search.SearchGamesessions<QuickQueueGameSessionData>(JObject.FromObject(new
+            var docs = (await search.SearchGamesessions<JObject>(JObject.FromObject(new
             {
                 @bool = new
                 {
@@ -104,7 +105,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                                     {
                                         match = new
                                         {
-                                            field = "matchmaking.targetTeamCount",
+                                            field = "matchmaking.TargetTeamCount",
                                             value = parameters.TeamCount
                                         }
                                     },
@@ -112,7 +113,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                                     {
                                         match = new
                                         {
-                                            field = "matchmaking.targetTeamSize",
+                                            field = "matchmaking.TargetTeamSize",
                                             value = parameters.TeamSize
                                         }
                                     }
@@ -121,7 +122,11 @@ namespace Stormancer.Server.Plugins.GameFinder
 
             }), 0, 20, CancellationToken.None)).Hits;
 
-            return docs;
+
+            return docs.Select(d=> 
+            {
+                return new Document<QuickQueueGameSessionData>(d.Id, d?.Source?["matchmaking"]?.ToObject<QuickQueueGameSessionData>()) { Version = d.Version };
+            });
         }
 
         abstract internal Task<IEnumerable<IGrouping<ParametersGroup, Party>>> GetGroups(IDependencyResolver resolver, IEnumerable<Party> parties);
@@ -223,7 +228,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                                     //can I create new team ?
                                     if (party.Players.Count <= teamSize && session.Source.TargetTeamCount > session.Source.Teams.Count)
                                     {
-                                        var team = new Team(party, null);
+                                        var team = new Team(party);
                                         var reservation = await gameSessions.CreateReservation(session.Id, team, new JObject(), CancellationToken.None);
 
                                         if (reservation != null)
@@ -627,13 +632,18 @@ namespace Stormancer.Server.Plugins.GameFinder
     /// <summary>
     /// Data associated with a gameSession
     /// </summary>
+    [MessagePackObject]
     public class QuickQueueGameSessionData
     {
+        [Key(0)]
         public DateTime CreatedOn { get; set; }
 
+        [Key(1)]
         public List<QuickQueueGameSessionTeamData> Teams { get; set; }
 
+        [Key(2)]
         public int TargetTeamCount { get; set; }
+        [Key(3)]
         public int TargetTeamSize { get; set; }
     }
 }

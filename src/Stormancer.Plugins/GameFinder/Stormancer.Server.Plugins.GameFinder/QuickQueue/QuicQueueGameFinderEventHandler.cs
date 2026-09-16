@@ -23,7 +23,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         }
 
 
-        public Task GameSessionStarting(GameSessionContext ctx)
+        Task IGameSessionEventHandler.GameSessionStarting(GameSessionStartingContext ctx)
         {
             lock (_syncRoot)
             {
@@ -46,8 +46,6 @@ namespace Stormancer.Server.Plugins.GameFinder
             return Task.CompletedTask;
         }
 
-
-
         public Task GameSessionCompleted(GameSessionCompleteCtx ctx)
         {
             lock (_syncRoot)
@@ -62,55 +60,55 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
             return Task.CompletedTask;
         }
-        public Task OnClientConnected(ClientConnectedContext ctx)
-        {
-            lock (_syncRoot)
-            {
+        //public Task OnClientConnected(ClientConnectedContext ctx)
+        //{
+        //    lock (_syncRoot)
+        //    {
 
-                UpdateGameSessionData();
+        //        UpdateGameSessionData();
 
-            }
-            return Task.CompletedTask;
-        }
+        //    }
+        //    return Task.CompletedTask;
+        //}
 
-        void UpdateGameSessionData()
-        {
-            if (_gameSessionData is not null)
-            {
-                Debug.Assert(_id is not null);
-                _gameSessionData.Teams = this.gs.GetGameSessionConfig().Teams.Select(t => new QuickQueueGameSessionTeamData { TeamId = t.TeamId, PlayerCount = t.AllPlayers.Count() }).ToList();
-                repository.UpdateDocument(_id, _gameSessionData, Array.Empty<byte>());
-            }
-        }
-        public Task OnCreatedReservation(CreatedReservationContext ctx)
-        {
-            lock (_syncRoot)
-            {
-                UpdateGameSessionData();
+        //void UpdateGameSessionData()
+        //{
+        //    if (_gameSessionData is not null)
+        //    {
+        //        Debug.Assert(_id is not null);
+        //        _gameSessionData.Teams = this.gs.GetGameSessionConfig().Teams.Select(t => new QuickQueueGameSessionTeamData { TeamId = t.TeamId, PlayerCount = t.AllPlayers.Count() }).ToList();
+        //        repository.UpdateDocument(_id, _gameSessionData, Array.Empty<byte>());
+        //    }
+        //}
+        //public Task OnCreatedReservation(CreatedReservationContext ctx)
+        //{
+        //    lock (_syncRoot)
+        //    {
+        //        UpdateGameSessionData();
 
-            }
-            return Task.CompletedTask;
-        }
+        //    }
+        //    return Task.CompletedTask;
+        //}
 
-        public Task OnClientLeaving(ClientLeavingContext ctx)
-        {
-            lock (_syncRoot)
-            {
-                UpdateGameSessionData();
-            }
-            return Task.CompletedTask;
-        }
+        //public Task OnClientLeaving(ClientLeavingContext ctx)
+        //{
+        //    lock (_syncRoot)
+        //    {
+        //        UpdateGameSessionData();
+        //    }
+        //    return Task.CompletedTask;
+        //}
 
 
 
-        public Task OnReservationCancelled(ReservationCancelledContext ctx)
-        {
-            lock (_syncRoot)
-            {
-                UpdateGameSessionData();
-            }
-            return Task.CompletedTask;
-        }
+        //public Task OnReservationCancelled(ReservationCancelledContext ctx)
+        //{
+        //    lock (_syncRoot)
+        //    {
+        //        UpdateGameSessionData();
+        //    }
+        //    return Task.CompletedTask;
+        //}
 
         public void Dispose()
         {

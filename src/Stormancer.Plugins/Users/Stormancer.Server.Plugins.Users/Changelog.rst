@@ -21,6 +21,7 @@ Changed
 - Adds a cache to GetUser in the UserSession Service
 - Removes obsolete dependance to Elasticsearch plugin in UserSessions
 - When failing to create a connection token, return a notFound error instead of an unknown error.
+- Updated dependency to latest Queries plugin.
 
 10.0.2.46
 ----------

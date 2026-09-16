@@ -169,16 +169,19 @@ namespace Stormancer.Server.Plugins.Queries
         /// <summary>
         /// Gets or sets the id of the document.
         /// </summary>
+        [Key(0)]
         public string Id { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets the content of the document.
         /// </summary>
+        [Key(1)]
         public T? Source { get; set; }
 
         /// <summary>
         /// Gets or sets the version of the document.
         /// </summary>
+        [Key(2)]
         public required uint Version { get; init; }
     }
 

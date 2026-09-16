@@ -86,7 +86,7 @@ namespace Stormancer.Gamesessions.Browser
 
                     if (_data.TryGetValue(id, out var doc))
                     {
-                        yield return new Document<JObject>(id, JObject.FromObject(new { customData = doc.Item2, indexedData = doc.Item1 })) { Version = 1 };
+                        yield return new Document<JObject>(id, doc.Item1 ) { Version = 1 };
                     }
                     else
                     {

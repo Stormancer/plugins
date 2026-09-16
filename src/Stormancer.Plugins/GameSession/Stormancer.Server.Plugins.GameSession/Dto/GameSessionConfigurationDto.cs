@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using MessagePack;
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Models;
 using System.Collections.Generic;
@@ -27,38 +28,45 @@ using System.Linq;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
+    [MessagePackObject]
     public class GameSessionConfigurationDto
     {
         /// <summary>
         /// Group connected to gameSession
         /// </summary>
+        [Key(0)]
         public IEnumerable<Team> Teams { get; set; } = new List<Team>();
 
         /// <summary>
         /// Game session parameters like map to launch, gameType and everything can be useful to 
         /// dedicated server.
         /// </summary>
+        [Key(1)]
         public JObject Parameters { get; set; } = new JObject();
 
         /// <summary>
         /// List of players expected in the game session.
         /// </summary>
+        [Key(2)]
         public IEnumerable<string> UserIds { get; set; } = Enumerable.Empty<string>();
 
         /// <summary>
         /// User Id of the game session's P2P host, if it has one.
         /// </summary>
+        [Key(3)]
         public SessionId? HostSessionId { get; set; }
 
         /// <summary>
         /// GameFinder that created the game session.
         /// </summary>
+        [Key(4)]
         public string? GameFinder { get; set; }
 
 
         /// <summary>
         /// Gets the preferred regions for hosting this game session.
         /// </summary>
+        [Key(5)]
         public IEnumerable<string> PreferredRegions { get;  set; } = Enumerable.Empty<string>();
     }
 }

@@ -226,7 +226,7 @@ namespace Stormancer.Server.Plugins.RemoteControl
         private object _syncRoot = new object();
         public AgentRepository()
         {
-            _index = new IndexState(new RAMDirectory(), DefaultMapper.JsonMapper);
+            _index = new IndexState(new RAMDirectory(), DefaultMapper.JsonMapper,new Lucene.Net.Analysis.Standard.StandardAnalyzer(Lucene.Net.Util.LuceneVersion.LUCENE_48));
         }
 
         private Filters _filtersEngine = new Filters(new IFilterExpressionFactory[] { new CommonFiltersExpressionFactory() });

@@ -9,6 +9,12 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Fixed
+*****
+- Fixed a msgpack config issue that prevented documents from being serialized.
+
 0.5.0.6
 ----------
 Changed

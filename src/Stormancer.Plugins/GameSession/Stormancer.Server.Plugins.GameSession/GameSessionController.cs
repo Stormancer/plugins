@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using MessagePack;
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
@@ -183,58 +184,76 @@ namespace Stormancer.Server.Plugins.GameSession
     /// <summary>
     /// A reservation in the game session.
     /// </summary>
+    [MessagePackObject]
     public class GameSessionReservation
     {
         /// <summary>
         /// Gets or sets the date the reservation expires on.
         /// </summary>
+        [Key(0)]
         public DateTime ExpiresOn { get; set; }
 
         /// <summary>
         /// Gets the id of the reservation.
         /// </summary>
+        [Key(1)]
         public string ReservationId { get; set; } = default!;
     }
 
     /// <summary>
     /// Result of an inspect session request.
     /// </summary>
+    [MessagePackObject]
     public class InspectLiveGameSessionResult
     {
         /// <summary>
         /// Gets the id of the game session.
         /// </summary>
+        [Key(0)]
         public string GameSessionId { get; set; } = default!;
 
         /// <summary>
         /// Gets the date the game session was created.
         /// </summary>
+        [Key(1)]
         public DateTime CreatedOnUtc { get; set; }
 
 
         /// <summary>
         /// Gets the current player count in the game session.
         /// </summary>
+        [Key(2)]
         public int PlayersCount { get; set; }
 
 
         /// <summary>
         /// Gets the id of the host' session, if it exist.
         /// </summary>
+        [Key(3)]
         public SessionId? HostSessionId { get; set; }
 
+        /// <summary>
+        /// Is the session a P2P session (no server)
+        /// </summary>
+        [Key(4)]
         public bool IsP2P { get; set; }
 
-        public string ServerPool { get; set; }
+        /// <summary>
+        /// Gets the id of the pool used to manage the game session server, if it has one.
+        /// </summary>
+        [Key(5)]
+        public string? ServerPool { get; set; }
 
         /// <summary>
         /// Gets data about the game session.
         /// </summary>
+        [Key(6)]
         public JObject Data { get; set; } = default!;
 
         /// <summary>
         /// Gets the configuration of the game session.
         /// </summary>
+        [Key(7)]
         public GameSessionConfigurationDto? Configuration { get; set; }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Lucene.Net.Analysis.Standard;
+﻿using Lucene.Net.Analysis;
+using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
 using Lucene.Net.Search;
@@ -21,19 +22,27 @@ namespace Stormancer.Server.Plugins.Queries
     /// </summary>
     public class IndexState
     {
-        public IndexState(BaseDirectory luceneDirectory, Func<JObject, IEnumerable<IIndexableField>> mapper)
+     
+        public IndexState(BaseDirectory luceneDirectory, Func<JObject, IEnumerable<IIndexableField>> mapper, StandardAnalyzer analyzer)
         {
             LuceneDirectory = luceneDirectory;
             customMapper = mapper;
+            _analyzer = analyzer;
 
             // Ensures index backward compatibility
-            const LuceneVersion AppLuceneVersion = LuceneVersion.LUCENE_48;
-
-            //Create an analyzer to process the text
-            var analyzer = new StandardAnalyzer(AppLuceneVersion);
-
             // Create an index writer
-            var indexConfig = new IndexWriterConfig(AppLuceneVersion, analyzer);
+
+            ResetWriter();
+        }
+        public void ResetWriter()
+        {
+            if(Writer!=null)
+            {
+                Writer.Dispose();
+
+            }
+
+            var indexConfig = new IndexWriterConfig(LuceneVersion.LUCENE_48, _analyzer);
             Writer = new IndexWriter(LuceneDirectory, indexConfig);
         }
 
@@ -48,8 +57,11 @@ namespace Stormancer.Server.Plugins.Queries
         public BaseDirectory LuceneDirectory { get; }
 
         private readonly Func<JObject, IEnumerable<IIndexableField>> customMapper;
+        private readonly StandardAnalyzer _analyzer;
 
         public IndexWriter Writer { get; set; }
+
+        public bool IsDirty { get; set; } = false;
     }
 
     /// <summary>
@@ -85,22 +97,62 @@ namespace Stormancer.Server.Plugins.Queries
 
     internal class LuceneSearchProvider : IServiceSearchProvider, ILucene, IDisposable
     {
-
+        //Create an analyzer to process the text
+        StandardAnalyzer _analyzer = new StandardAnalyzer(LuceneVersion.LUCENE_48);
         private Dictionary<string, IndexState> _indices = new Dictionary<string, IndexState>();
         private Func<IEnumerable<ILuceneDocumentStore>> _documentStores;
         private Filters _filtersEngine = new Filters(new IFilterExpressionFactory[] { new CommonFiltersExpressionFactory() });
-
+        private PeriodicTimer _timer;
         public LuceneSearchProvider(Func<IEnumerable<ILuceneDocumentStore>> documentStores)
         {
             _documentStores = documentStores;
+           _timer= new PeriodicTimer(TimeSpan.FromSeconds(5));
+            _ = MaintenanceTimer();
         }
 
+        async Task MaintenanceTimer()
+        {
+            var dirtyIndices = new List<IndexState>();
+            while (await _timer.WaitForNextTickAsync())
+            {
+                dirtyIndices.Clear();
+                lock (_indices)
+                {
+                    foreach (var (type, index) in _indices)
+                    {
+                        if (index.IsDirty)
+                        {
+                            dirtyIndices.Add(index);
+                        }
+                    }
+                }
+
+                foreach (var index in dirtyIndices)
+                {
+
+                    try
+                    {
+                        index.IsDirty = false;
+                        index.Writer.Commit();
+                    }
+                    catch(OutOfMemoryException)
+                    {
+                        index.ResetWriter();
+                    }
+                    catch{ }
+                }
+
+
+            }
+
+
+        }
 
         public bool TryCreateIndex(string type, Func<JObject, IEnumerable<IIndexableField>> mapper)
         {
             lock (_indices)
             {
-                return _indices.TryAdd(type, new IndexState(new RAMDirectory(), mapper));
+                return _indices.TryAdd(type, new IndexState(new RAMDirectory(), mapper, _analyzer));
             }
         }
         public bool IndexDocument(string type, string id, JObject document)
@@ -110,9 +162,16 @@ namespace Stormancer.Server.Plugins.Queries
 
                 if (_indices.TryGetValue(type, out var index))
                 {
-                    index.Writer.UpdateDocument(new Term("_id", id), index.Mapper(id, document));
+                    try
+                    {
+                        index.Writer.UpdateDocument(new Term("_id", id), index.Mapper(id, document));
+                        index.IsDirty = true;
+                    }
+                    catch (OutOfMemoryException)
+                    {
+                        index.ResetWriter();
+                    }
 
-                    index.Writer.Commit();
                     return true;
                 }
                 else
@@ -128,9 +187,17 @@ namespace Stormancer.Server.Plugins.Queries
             {
                 if (_indices.TryGetValue(type, out var index))
                 {
-                    index.Writer.DeleteDocuments(new Term("_id", id));
-                    index.Writer.Commit();
-                    return true;
+                    try
+                    {
+                        index.Writer.DeleteDocuments(new Term("_id", id));
+                        index.IsDirty = true;
+                        return true;
+                    }
+                    catch (OutOfMemoryException)
+                    {
+                        index.ResetWriter();
+                        return true;
+                    }
                 }
                 else
                 {
@@ -174,13 +241,16 @@ namespace Stormancer.Server.Plugins.Queries
 
         public bool Handles(string type)
         {
-            return _indices.ContainsKey(type);
+            lock (_indices)
+            {
+                return _indices.ContainsKey(type);
+            }
         }
 
         public void Dispose()
         {
 
-
+            _timer.Dispose();
             lock (_indices)
             {
                 foreach (var index in _indices.Values)

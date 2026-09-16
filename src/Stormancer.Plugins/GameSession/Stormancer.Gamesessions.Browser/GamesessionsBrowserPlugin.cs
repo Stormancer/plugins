@@ -20,7 +20,7 @@ namespace Stormancer.Gamesessions.Browser
                 builder.Register(dr => new GamesessionBrowserDocumentController(dr.Resolve<GamesessionLuceneDocumentStore>(),dr.Resolve<IGameSessionService>(), dr.Resolve<IUserSessions>(), dr.Resolve<GamesessionSearchState>())).InstancePerRequest();
                 builder.Register(dr => LocatorProvider.Instance).As<IServiceLocatorProvider>();
                 builder.Register(dr => new GamesessionSearchService(dr.Resolve<SearchEngine>())).InstancePerRequest();
-                builder.Register(dr => new GamesessionLuceneDocumentStore(dr.Resolve<ILucene>())).SingleInstance();
+                builder.Register(dr => new GamesessionLuceneDocumentStore(dr.Resolve<ILucene>())).As<ILuceneDocumentStore>().AsSelf().SingleInstance();
                 builder.Register(dr => new GameSessionReservations(dr.Resolve<IHost>(), dr.Resolve<GameSessionsRepository>(), dr.Resolve<IClusterSerializer>())).SingleInstance();
             };
 
