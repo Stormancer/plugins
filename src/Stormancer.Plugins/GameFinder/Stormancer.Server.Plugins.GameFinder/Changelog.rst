@@ -19,6 +19,7 @@ Changed
 *******
 - Remove allocations when notifying players.
 - Update state to match new client code.
+- matchmaking related indexed fields in gamesessions moved to the 'matchmaking.' prefix to make it easier to use several sources of indexed fields.
 
 Removed
 *******

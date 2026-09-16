@@ -40,7 +40,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                         Teams = new List<QuickQueueGameSessionTeamData>()
                     };
 
-                    repository.UpdateDocument(ctx.Id, _gameSessionData, Array.Empty<byte>());
+                    repository.UpdateDocument(ctx.Id, new { matchmaking = _gameSessionData }, Array.Empty<byte>());
                 }
             }
             return Task.CompletedTask;

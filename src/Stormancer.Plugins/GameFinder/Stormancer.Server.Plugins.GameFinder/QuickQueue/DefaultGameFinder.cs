@@ -104,7 +104,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                                     {
                                         match = new
                                         {
-                                            field = "targetTeamCount",
+                                            field = "matchmaking.targetTeamCount",
                                             value = parameters.TeamCount
                                         }
                                     },
@@ -112,7 +112,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                                     {
                                         match = new
                                         {
-                                            field = "targetTeamSize",
+                                            field = "matchmaking.targetTeamSize",
                                             value = parameters.TeamSize
                                         }
                                     }
