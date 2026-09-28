@@ -117,8 +117,8 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
 
             }
 
-
-            return await gameSessions.CreateConnectionToken(gameSession.GameSessionId, sessionId, TokenVersion.V3, cancellationToken);
+            var data = System.Text.Encoding.UTF8.GetBytes(partyId);
+            return await gameSessions.CreateConnectionToken(gameSession.GameSessionId, sessionId, data, "stormancer/partyId", TokenVersion.V3,cancellationToken);
         }
     }
 }
