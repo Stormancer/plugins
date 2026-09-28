@@ -1,18 +1,20 @@
-﻿using Microsoft.AspNetCore.Mvc.ApplicationParts;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ApplicationParts;
+using Newtonsoft.Json.Linq;
+using Stormancer.Core;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.AdminApi;
 using Stormancer.Server.Plugins.Database;
+using Stormancer.Server.Plugins.Users;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Stormancer.Core;
-using System.Threading;
-using Newtonsoft.Json.Linq;
-using System.IO;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
+using System.Linq;
+using System.Reactive.Subjects;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Profile.Admin
 {
@@ -49,6 +51,18 @@ namespace Stormancer.Server.Plugins.Profile.Admin
             _serializer = serializer;
         }
 
+        [HttpPost]
+        [Route("search")]
+        public async Task<ActionResult<Dictionary<string,Dictionary<string,JObject>>>> GetBatch([FromBody] BatchGetProfilesRequest args, CancellationToken cancellationToken)
+        {
+            await using var scope = _scene.CreateRequestScope();
+
+            var profiles = scope.Resolve<IProfileService>();
+
+           
+            var result = await profiles.GetProfiles(args.UserIds,args.DisplayMode, null,cancellationToken);
+            return Ok(result);
+        }
 
         /// <summary>
         /// Gets profile parts for an user.
@@ -145,5 +159,18 @@ namespace Stormancer.Server.Plugins.Profile.Admin
         /// Indicates if profile 
         /// </summary>
         public bool Success { get; set; }
+    }
+
+    public class BatchGetProfilesRequest
+    {
+        /// <summary>
+        /// Gets or sets thee user ids to query.
+        /// </summary>
+        public IEnumerable<string> UserIds { get; set; } = Enumerable.Empty<string>();
+
+        /// <summary>
+        /// Gets or sets the dicplay modes to query.
+        /// </summary>
+        public Dictionary<string, string> DisplayMode { get; set; } = new Dictionary<string, string>();
     }
 }

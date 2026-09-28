@@ -11,7 +11,9 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
-
+Added
+*****
+- Added Get batch profiles in web API.
 
 4.1.2.4
 ----------
