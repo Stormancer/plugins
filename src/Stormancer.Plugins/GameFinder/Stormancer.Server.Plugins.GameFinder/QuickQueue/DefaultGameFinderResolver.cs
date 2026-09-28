@@ -88,6 +88,12 @@ namespace Stormancer.Server.Plugins.GameFinder
                 }
                 config.GameFinder = gameCtx.GameFinderName;
                 config.Parameters = gameCtx.Game.PrivateCustomData;
+                var gameFinderGameSessionConfig = config.Parameters.ToObject<BaseGameSessionConfig>();
+                if (gameFinderGameSessionConfig != null)
+                {
+                    config.Settings = gameFinderGameSessionConfig.Args;
+                    
+                }
 
                 await gameSessions.Create(template, gameCtx.GameSceneId, config);
 

@@ -696,7 +696,7 @@ namespace Stormancer.Server.Plugins.Users
             var session = await GetSessionById(sessionId, cancellationToken);
             if (session == null)
             {
-                throw new ClientException("NotFound");
+                return Array.Empty<byte>();
             }
             if (session.SessionData.TryGetValue(key, out var value))
             {
@@ -704,7 +704,7 @@ namespace Stormancer.Server.Plugins.Users
             }
             else
             {
-                return null;
+                return Array.Empty<byte>();
             }
         }
 

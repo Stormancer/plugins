@@ -34,7 +34,8 @@ namespace Stormancer.Server.Plugins.Analytics
     class ElasticsearchOutput : IAnalyticsOutput
     {
         private const string TABLE_NAME = "analytics";
-
+        private DateTime _nextTry = DateTime.UtcNow;
+        private int _consecutivesFailures = 0;
         private readonly IESClientFactory clientFactory;
         private readonly IConfiguration configuration;
         private readonly ILogger logger;
@@ -48,18 +49,37 @@ namespace Stormancer.Server.Plugins.Analytics
 
         public async Task Flush(string store, IEnumerable<AnalyticsDocument> docs)
         {
+            if(_nextTry > DateTime.UtcNow)
+            {
+                return;
+            }
             var client = await CreateESClient(store);
 
             if (docs.Count() > 0)
             {
-               
-                var r = await client.BulkAsync(bd => bd.IndexMany<AnalyticsDocument>(docs));
-                //logger.Log(LogLevel.Info, "analytics", "saved analytics", new { debug = r.DebugInformation });
-              
-                if (r.Errors)
+                try
                 {
-                    
-                    logger.Log(LogLevel.Error, "analytics", "Failed to index analytics", new { errors = r.ItemsWithErrors.Select(i => i.Error.ToString()) , r.ServerError });
+
+                    var r = await client.BulkAsync(bd => bd.IndexMany<AnalyticsDocument>(docs));
+                    //logger.Log(LogLevel.Info, "analytics", "saved analytics", new { debug = r.DebugInformation });
+
+                    if (r.Errors)
+                    {
+
+                        logger.Log(LogLevel.Error, "analytics", "Failed to index analytics", new { errors = r.ItemsWithErrors.Select(i => i.Error.ToString()), r.ServerError });
+                    }
+                    else
+                    {
+                        _consecutivesFailures = 0;
+                    }
+                }
+                catch (Exception) 
+                {
+                    if (_consecutivesFailures < 100)
+                    {
+                        _consecutivesFailures++;
+                    }
+                    _nextTry = DateTime.UtcNow + _consecutivesFailures * TimeSpan.FromSeconds(10);
                 }
             }
         }

@@ -51,8 +51,6 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         DateTime OnCreated { get; }
 
-      
-
         /// <summary>
         /// Posts game results.
         /// </summary>
@@ -61,7 +59,6 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <param name="session"></param>
         /// <returns></returns>
         Task<Action<Stream,ISerializer>> PostResults(Stream inputStream, IScenePeerClient remotePeer, Session session);
-
 
         /// <summary>
         /// Updates the policy used to decide when the session should be shutdown.
@@ -86,13 +83,6 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         /// <returns></returns>
         GameSessionConfigurationDto? GetGameSessionConfig();
-
-        /// <summary>
-        /// Create a P2P token to connect to the game session's host.
-        /// </summary>
-        /// <param name="sessionId"></param>
-        /// <returns></returns>
-        Task<HostInfosMessage> CreateP2PToken(SessionId sessionId);
 
         /// <summary>
         /// Performs an update action on the game session config.
@@ -156,6 +146,33 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <returns></returns>
         bool IsHost(SessionId sessionId);
 
+        /// <summary>
+        /// Update the settings of the game session.
+        /// </summary>
+        /// <param name="record"></param>
+        void UpdateSettings(GameSessionSettingsRecord record);
+
+        /// <summary>
+        /// Can this game session fit a new party?
+        /// </summary>
+        /// <param name="partySize"></param>
+        /// <param name="acceptSplit"></param>
+        /// <returns></returns>
+        bool CanFit(int partySize, bool acceptSplit = false);
+
+        IEnumerable<TeamConfigurationRecord> GetTeamsConfiguration();
+
+        IReadOnlyDictionary<string, string> GetSettings();
+
+        /// <summary>
+        /// Gets the time the session was created on.
+        /// </summary>
+        DateTime CreatedOn { get; }
+
+        /// <summary>
+        /// Gets the current player count in the session.
+        /// </summary>
+        int PlayerCount{ get; }
 
         /// <summary>
         /// Event fired when the game session completes or is destroyed.
@@ -179,14 +196,6 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         Task CancelReservationAsync(string id, CancellationToken cancellationToken);
-
-        /// <summary>
-        /// Creates a P2P token to connect 2 players of the game session together.
-        /// </summary>
-        /// <param name="callerSessionId"></param>
-        /// <param name="remotePeerSessionId"></param>
-        /// <returns></returns>
-        Task<string> CreateP2PToken(SessionId callerSessionId, SessionId remotePeerSessionId);
 
 
         /// <summary>

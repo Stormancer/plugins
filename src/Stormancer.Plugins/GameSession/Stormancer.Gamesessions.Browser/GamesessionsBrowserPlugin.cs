@@ -17,10 +17,9 @@ namespace Stormancer.Gamesessions.Browser
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
                 builder.Register(dr => new GamesessionBrowserController(dr.Resolve<GamesessionSearchService>())).InstancePerRequest();
-                builder.Register(dr => new GamesessionBrowserDocumentController(dr.Resolve<GamesessionLuceneDocumentStore>(),dr.Resolve<IGameSessionService>(), dr.Resolve<IUserSessions>(), dr.Resolve<GamesessionSearchState>())).InstancePerRequest();
                 builder.Register(dr => LocatorProvider.Instance).As<IServiceLocatorProvider>();
                 builder.Register(dr => new GamesessionSearchService(dr.Resolve<SearchEngine>())).InstancePerRequest();
-                builder.Register(dr => new GamesessionLuceneDocumentStore(dr.Resolve<ILucene>())).As<ILuceneDocumentStore>().AsSelf().SingleInstance();
+                builder.Register(dr => new GamesessionsDocumentStore()).As<IServiceSearchProvider>().AsSelf().SingleInstance();
                 builder.Register(dr => new GameSessionReservations(dr.Resolve<IHost>(), dr.Resolve<GameSessionsRepository>(), dr.Resolve<IClusterSerializer>())).SingleInstance();
             };
 
@@ -40,7 +39,6 @@ namespace Stormancer.Gamesessions.Browser
                 {
                     scene.TemplateMetadata[GamesessionBrowserConstants.METADATA_KEY] = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.1.0";
                 });
-                host.DependencyResolver.Resolve<GamesessionLuceneDocumentStore>().Initialize();
                 host.DependencyResolver.Resolve<GameSessionReservations>().Initialize();
             };
 
@@ -51,29 +49,13 @@ namespace Stormancer.Gamesessions.Browser
 
             ctx.SceneCreating += (ISceneHost scene) =>
             {
-                if (scene.TemplateMetadata.ContainsKey(GameSessionConstants.METADATA_KEY))
-                {
-                    scene.AddController<GamesessionBrowserDocumentController>();
-                }
-                else if(scene.TemplateMetadata.ContainsKey(GamesessionBrowserConstants.METADATA_KEY))
+                if(scene.TemplateMetadata.ContainsKey(GamesessionBrowserConstants.METADATA_KEY))
                 {
                     scene.AddController<GamesessionBrowserController>();
                 }
             };
 
-            ctx.SceneShuttingDown += (ISceneHost scene) =>
-            {
-
-                if (scene.TemplateMetadata.ContainsKey(GameSessionConstants.METADATA_KEY))
-                {
-                    var state = scene.DependencyResolver.Resolve<GamesessionSearchState>();
-                    if (state.Document != null)
-                    {
-                        scene.DependencyResolver.Resolve<GamesessionLuceneDocumentStore>().DeleteDocument(scene.Id);
-                    }
-                }
-                
-            };
+            
         }
     }
 

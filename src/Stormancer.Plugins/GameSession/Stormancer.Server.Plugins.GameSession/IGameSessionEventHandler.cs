@@ -37,6 +37,7 @@ namespace Stormancer.Server.Plugins.GameSession
     /// </summary>
     public interface IGameSessionEventHandler
     {
+
         /// <summary>
         /// Event executed when the game session is starting.
         /// </summary>
@@ -341,9 +342,9 @@ namespace Stormancer.Server.Plugins.GameSession
     /// <summary>
     /// Context passed to <see cref="IGameSessionEventHandler.OnCreatingReservation(CreatingReservationContext)"/>
     /// </summary>
-    public class CreatingReservationContext
+    public class CreatingReservationContext : GameSessionContext
     {
-        internal CreatingReservationContext(Team team, JObject customData, Guid reservationId)
+        internal CreatingReservationContext(IGameSessionService service, ISceneHost scene, GameSessionConfiguration config, Team team, JObject customData, Guid reservationId): base(scene,config,service)
         {
             Team = team;
             CustomData = customData;
@@ -451,14 +452,16 @@ namespace Stormancer.Server.Plugins.GameSession
     /// </summary>
     public class GameSessionStartingContext: GameSessionContext
     {
-        internal GameSessionStartingContext(IGameSessionService service, ISceneHost scene, GameSessionConfiguration config, Dictionary<string, string> arguments) : base(scene, config, service)
+        internal GameSessionStartingContext(IGameSessionService service, ISceneHost scene, GameSessionConfiguration config, Dictionary<string, string> arguments, List<TeamConfigurationRecord> teams) : base(scene, config, service)
         {
-            Arguments = arguments;  
+            Arguments = arguments;
+            Teams = teams;
         }
         /// <summary>
         /// Gets game session arguments passed to peers.
         /// </summary>
         public Dictionary<string, string> Arguments { get; }
+        public List<TeamConfigurationRecord> Teams { get; }
     }
 
     /// <summary>

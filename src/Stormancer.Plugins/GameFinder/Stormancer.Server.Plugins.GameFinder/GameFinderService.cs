@@ -328,7 +328,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                         }
                     }
 
-                    
+
                 }
                 return new FindGameResult { Success = true };
             }
@@ -387,7 +387,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                         value.Candidate = null;
                     }
 
-                    GameFinderContext mmCtx = new GameFinderContext(this,scope);
+                    GameFinderContext mmCtx = new GameFinderContext(this, scope);
                     mmCtx.WaitingParties.AddRange(waitingParties.Keys);
                     mmCtx.OpenGameSessions.AddRange(_data.openGameSessions.Values.Where(ogs => ogs.IsOpen));
 
@@ -566,72 +566,76 @@ namespace Stormancer.Server.Plugins.GameFinder
                 //    }
                 //}
 
-                foreach (var player in GetPlayers(gameCandidate.AllParties()))
+                foreach (var party in gameCandidate.AllParties())
                 {
-                    try
+                    foreach (var player in party.Players.Select(kvp => GetPlayer(kvp.Value)))
                     {
-                        var peer = _scene.RemotePeers.FirstOrDefault(p => p.SessionId == player);
-                        if (peer != null)
+                        try
                         {
-                            using (var stream = new MemoryStream())
+                            var peer = _scene.RemotePeers.FirstOrDefault(p => p.SessionId == player);
+                            if (peer != null)
                             {
-
-
-                                var writerContext = new GameFinderResolutionWriterContext(_serializer, stream, peer);
-                                // Write the connection token first, if a scene was created by the resolver, or if joining an existing session
-                                if (!string.IsNullOrEmpty(gameSceneId))
+                                using (var stream = new MemoryStream())
                                 {
-                                    await using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
+
+
+                                    var writerContext = new GameFinderResolutionWriterContext(_serializer, stream, peer);
+                                    // Write the connection token first, if a scene was created by the resolver, or if joining an existing session
+                                    if (!string.IsNullOrEmpty(gameSceneId))
                                     {
-                                        var gameSessions = scope.Resolve<IGameSessions>();
-                                        var token = await gameSessions.CreateConnectionToken(gameSceneId, player, TokenVersion.V3);
+                                        await using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
+                                        {
+                                            var gameSessions = scope.Resolve<IGameSessions>();
+                                            var pId = System.Text.Encoding.ASCII.GetBytes(party.PartyId);
+                                            var token = await gameSessions.CreateConnectionToken(gameSceneId, player, pId, "stormancer/partyId", TokenVersion.V3);
 
-                                        writerContext.WriteObjectToStream(token);
+                                            writerContext.WriteObjectToStream(token);
+                                        }
                                     }
-                                }
-                                else
-                                {
-                                    // Empty connection token, to avoid breaking deserialization client-side
-                                    writerContext.WriteObjectToStream("");
-                                }
-                                if (resolutionAction != null)
-                                {
-                                    await resolutionAction(writerContext);
-                                }
-                                _scene.Send(new MatchPeerFilter(player), UPDATE_NOTIFICATION_ROUTE, static (System.Buffers.IBufferWriter<byte> s, MemoryStream stream) =>
-                                {
-                                    var span = s.GetSpan(1 + (int)stream.Length);
-                                    span[0] = (byte)GameFinderPlayerState.Connecting;
+                                    else
+                                    {
+                                        // Empty connection token, to avoid breaking deserialization client-side
+                                        writerContext.WriteObjectToStream("");
+                                    }
+                                    if (resolutionAction != null)
+                                    {
+                                        await resolutionAction(writerContext);
+                                    }
+                                    _scene.Send(new MatchPeerFilter(player), UPDATE_NOTIFICATION_ROUTE, static (System.Buffers.IBufferWriter<byte> s, MemoryStream stream) =>
+                                    {
+                                        var span = s.GetSpan(1 + (int)stream.Length);
+                                        span[0] = (byte)GameFinderPlayerState.Connecting;
 
 
-                                    stream.Seek(0, SeekOrigin.Begin);
-                                    stream.Read(span.Slice(1));
-                                    s.Advance(1 + (int)stream.Length);
+                                        stream.Seek(0, SeekOrigin.Begin);
+                                        stream.Read(span.Slice(1));
+                                        s.Advance(1 + (int)stream.Length);
+                                    }
+                                    , PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE, stream);
                                 }
-                                , PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE, stream);
                             }
                         }
-                    }
-                    catch (ClientException ex)
-                    {
-                        _scene.Send(new MatchPeerFilter(player), UPDATE_NOTIFICATION_ROUTE, static (s, tuple) =>
+                        catch (ClientException ex)
                         {
-                            var (ex, serializer) = tuple;
-                            var span = s.GetSpan(1);
-                            span[0] = (byte)GameFinderPlayerState.Failed;
-                            s.Advance(1);
-                            serializer.Serialize(ex.Message, s);
-                        }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE, (ex, _serializer));
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Log(LogLevel.Error, "gamefinder", "An error occured while trying to resolve a game for a player", ex);
-                        _scene.Send(new MatchPeerFilter(player), UPDATE_NOTIFICATION_ROUTE, static (s, _) =>
+                            _scene.Send(new MatchPeerFilter(player), UPDATE_NOTIFICATION_ROUTE, static (s, tuple) =>
+                            {
+                                var (ex, serializer) = tuple;
+                                var span = s.GetSpan(1);
+                                span[0] = (byte)GameFinderPlayerState.Failed;
+                                s.Advance(1);
+                                serializer.Serialize(ex.Message, s);
+                            }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE, (ex, _serializer));
+                        }
+                        catch (Exception ex)
                         {
-                            var span = s.GetSpan(1);
-                            span[0] = (byte)GameFinderPlayerState.Failed;
-                            s.Advance(1);
-                        }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE, false);
+                            _logger.Log(LogLevel.Error, "gamefinder", "An error occured while trying to resolve a game for a player", ex);
+                            _scene.Send(new MatchPeerFilter(player), UPDATE_NOTIFICATION_ROUTE, static (s, _) =>
+                            {
+                                var span = s.GetSpan(1);
+                                span[0] = (byte)GameFinderPlayerState.Failed;
+                                s.Advance(1);
+                            }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE, false);
+                        }
                     }
                 }
 
@@ -662,7 +666,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             }
         }
 
-        
+
         private JObject? gameFinderConfigs;
 
 

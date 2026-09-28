@@ -53,6 +53,11 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// Game launch arguments, passed to the game session.
         /// </summary>
         public Dictionary<string, string> Args { get; } = new Dictionary<string, string>();
+
+        /// <summary>
+        /// Initial team configuration
+        /// </summary>
+        public List<TeamConfigurationRecord> TeamsConfiguration { get;  set; } = new List<TeamConfigurationRecord>();
     }
 
     /// <summary>
@@ -95,32 +100,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         internal async Task<IEnumerable<Document<QuickQueueGameSessionData>>> QueryGameSessions(ParametersGroup parameters)
         {
-            var docs = (await search.SearchGamesessions<JObject>(JObject.FromObject(new
-            {
-                @bool = new
-                {
-                    must = new[]
-                       {
-                                    new
-                                    {
-                                        match = new
-                                        {
-                                            field = "matchmaking.TargetTeamCount",
-                                            value = parameters.TeamCount
-                                        }
-                                    },
-                                    new
-                                    {
-                                        match = new
-                                        {
-                                            field = "matchmaking.TargetTeamSize",
-                                            value = parameters.TeamSize
-                                        }
-                                    }
-                                }
-                }
-
-            }), 0, 20, CancellationToken.None)).Hits;
+            var docs = (await search.SearchGamesessions<JObject>(JObject.FromObject(new GamesessionsDocumentStoreFilter { AcceptSplit = true, PartySize = 1 }), 0, 20, CancellationToken.None)).Hits;
 
 
             return docs.Select(d=> 

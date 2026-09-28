@@ -130,7 +130,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerPool
             var parameters = await pools.WaitGameAvailableAsync(session, ctx.RemotePeer, ctx.CancellationToken);
             if (parameters != null)
             {
-                parameters.GameSessionConnectionToken = await gamesessions.CreateConnectionToken(parameters.GameSessionId, session.SessionId);
+                parameters.GameSessionConnectionToken = await gamesessions.CreateConnectionToken(parameters.GameSessionId, session.SessionId,Memory<byte>.Empty,"");
             }
             if (parameters == null)
             {

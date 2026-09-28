@@ -11,7 +11,6 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
-
 Added
 *****
 -Adds a property IsEnabled to IUserStorage to indicate if the storage is ready to use or not

@@ -71,10 +71,12 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         /// <param name="id">Id of the game session's scene</param>
         /// <param name="userSessionId">Session Id of the target user</param>
+        /// <param name="userData"></param>
+        /// <param name="contentType"></param>
         /// <param name="version">Version of the resulting token payload</param>
         /// <param name="cancellationToken"></param>
         /// <returns>The new connection token</returns>
-        Task<string> CreateConnectionToken(string id, SessionId userSessionId, TokenVersion version = TokenVersion.V3, CancellationToken cancellationToken = default);
+        Task<string> CreateConnectionToken(string id, SessionId userSessionId, Memory<byte> userData, string contentType, TokenVersion version = TokenVersion.V3, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Crates a connection token for servers.
@@ -118,9 +120,9 @@ namespace Stormancer.Server.Plugins.GameSession
 
         public GameSessions(
             Lazy<IScenesManager> management,
-            RecyclableMemoryStreamProvider memoryStreamProvider, 
+            RecyclableMemoryStreamProvider memoryStreamProvider,
             IEnvironment env,
-            Lazy<GameSessionProxy> s2sProxy, 
+            Lazy<GameSessionProxy> s2sProxy,
             Lazy<IUserSessions> sessions,
             ISerializer serializer,
             JsonSerializer jsonSerializer)
@@ -137,7 +139,8 @@ namespace Stormancer.Server.Plugins.GameSession
         public async Task Create(string template, string id, GameSessionConfiguration config, CancellationToken cancellationToken)
         {
             var appInfos = await _env.GetApplicationInfos();
-            await management.Value.CreateOrUpdateSceneAsync(new Platform.Core.Models.SceneDefinition { 
+            await management.Value.CreateOrUpdateSceneAsync(new Platform.Core.Models.SceneDefinition
+            {
                 AccountId = appInfos.AccountId,
                 Application = appInfos.ApplicationName,
                 Id = id,
@@ -146,9 +149,9 @@ namespace Stormancer.Server.Plugins.GameSession
                 ShardGroup = Stormancer.Server.Cluster.Constants.SHARDGROUP_DEFAULT,
                 Public = false,
                 IsPersistent = false,
-                Metadata = JObject.FromObject(new { gameSession = config },_jsonSerializer ).ToDictionary()
+                Metadata = JObject.FromObject(new { gameSession = config }, _jsonSerializer).ToDictionary()
 
-            },false, cancellationToken);
+            }, false, cancellationToken);
         }
 
         public Task Create(string template, string id, GameSessionConfiguration config)
@@ -156,19 +159,19 @@ namespace Stormancer.Server.Plugins.GameSession
             return Create(template, id, config, CancellationToken.None);
         }
 
-        public async Task<string> CreateConnectionToken(string id, SessionId userSessionId, TokenVersion version, CancellationToken cancellationToken)
+        public async Task<string> CreateConnectionToken(string id, SessionId userSessionId, Memory<byte> userData, string contentType, TokenVersion version, CancellationToken cancellationToken)
         {
             using (var stream = _memoryStreamProvider.GetStream())
             {
                 var session = await sessions.Value.GetSessionById(userSessionId, cancellationToken);
-                serializer.Serialize(session,(IBufferWriter<byte>) stream);
+                serializer.Serialize(session, (IBufferWriter<byte>)stream);
                 return await TaskHelper.Retry(async (_, _) => version switch
                 {
-                    TokenVersion.V3 => await management.Value.CreateConnectionTokenAsync(id, stream.ToArray(), "stormancer/userSession",3),
-                    TokenVersion.V1 => await management.Value.CreateConnectionTokenAsync(id, stream.ToArray(), "stormancer/userSession",1),
+                    TokenVersion.V3 => await management.Value.CreateConnectionTokenAsync(id, userData.Span, contentType, 3),
+                    TokenVersion.V1 => await management.Value.CreateConnectionTokenAsync(id, userData.Span, contentType, 1),
                     _ => throw new InvalidOperationException("Unhandled TokenVersion value")
 
-                }, RetryPolicies.IncrementalDelay(4, TimeSpan.FromSeconds(200)), CancellationToken.None, ex => true,true) ;
+                }, RetryPolicies.IncrementalDelay(4, TimeSpan.FromSeconds(200)), CancellationToken.None, ex => true, true);
             }
         }
 

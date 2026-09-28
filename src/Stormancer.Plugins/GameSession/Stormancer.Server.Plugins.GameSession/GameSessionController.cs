@@ -31,6 +31,8 @@ using Stormancer.Server.Plugins.GameSession.Models;
 using Stormancer.Server.Plugins.Models;
 using Stormancer.Server.Plugins.Users;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -84,15 +86,16 @@ namespace Stormancer.Server.Plugins.GameSession
             }
         }
 
-        [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<HostInfosMessage> GetP2PToken(RequestContext<IScenePeerClient> ctx)
+        public async Task Reset(RequestContext<IScenePeerClient> ctx)
         {
-            return await _service.CreateP2PToken(ctx.RemotePeer.SessionId);
-        }
-
-        public Task Reset(RequestContext<IScenePeerClient> ctx)
-        {
-            return _service.Reset();
+            if (_service.IsHost(ctx.RemotePeer.SessionId))
+            {
+                await _service.Reset();
+            }
+            else
+            {
+                throw new ClientException("forbidden");
+            }
         }
 
         public async Task UpdateShutdownMode(RequestContext<IScenePeerClient> ctx)
@@ -120,27 +123,30 @@ namespace Stormancer.Server.Plugins.GameSession
             }
         }
 
-        [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<string> GetGameSessionConnectionUrl(RequestContext<IScenePeerClient> ctx)
-        {
-            var id = _service.HostSessionId;
-
-            if (!id.IsEmpty())
-            {
-                var session = await _sessions.GetSessionById(id, ctx.CancellationToken);
-                if (session != null)
-                {
-                    return "strm." + session.SessionId;
-                }
-            }
-
-            throw new ClientException("no host configured in gameSession.");
-        }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
         public System.Collections.Generic.IEnumerable<Team> GetTeams()
         {
             return _service.GetGameSessionConfig().Teams;
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public void UpdateSettings(GameSessionSettingsRecord newSettings, RequestContext<IScenePeerClient> ctx)
+        {
+            if (_service.IsHost(ctx.RemotePeer.SessionId))
+            {
+                _service.UpdateSettings(newSettings);
+            }
+            else
+            {
+                throw new ClientException("forbidden");
+            }
+            
+        }
+
+        public void UpdateHostCandidates(IEnumerable<SessionId> sessionIds)
+        {
+
         }
 
         [S2SApi]
@@ -172,12 +178,6 @@ namespace Stormancer.Server.Plugins.GameSession
         public Task SetFaulted(Packet<IScenePeerClient> packet)
         {
             return _service.SetPeerFaulted(packet.Connection);
-        }
-
-        [Api(ApiAccess.Public, ApiType.Rpc)]
-        public Task<string> CreateP2PToken(SessionId remotePeerSessionId)
-        {
-            return _service.CreateP2PToken(Request!.RemotePeer.SessionId, remotePeerSessionId);
         }
     }
 

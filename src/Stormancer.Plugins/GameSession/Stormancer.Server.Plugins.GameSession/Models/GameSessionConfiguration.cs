@@ -111,5 +111,17 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </remarks>
         [Key(8)]
         public IEnumerable<string> PreferredRegions { get; set; } = Enumerable.Empty<string>();
+
+        /// <summary>
+        /// Initial game session settings
+        /// </summary>
+        [Key(9)]
+        public Dictionary<string, string> Settings { get; set; } = new Dictionary<string, string>();
+
+        /// <summary>
+        /// Initial teams configuration.
+        /// </summary>
+        [Key(10)]
+        public List<TeamConfigurationRecord> TeamsConfiguration { get; set; } = new List<TeamConfigurationRecord>();
     }
 }

@@ -11,12 +11,12 @@ namespace Stormancer.Server.Plugins.GameFinder
 {
     internal class QuickQueueGameSessionEventHandler : IGameSessionEventHandler, IDisposable
     {
-        GamesessionLuceneDocumentStore repository;
+        GamesessionsDocumentStore repository;
         private readonly IGameSessionService gs;
         private string? _id;
         private QuickQueueGameSessionData? _gameSessionData;
         private object _syncRoot = new object();
-        public QuickQueueGameSessionEventHandler(GamesessionLuceneDocumentStore repository, IGameSessionService gs)
+        public QuickQueueGameSessionEventHandler(GamesessionsDocumentStore repository, IGameSessionService gs)
         {
             this.repository = repository;
             this.gs = gs;
@@ -40,7 +40,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                         Teams = new List<QuickQueueGameSessionTeamData>()
                     };
 
-                    repository.UpdateDocument(ctx.Id, new { matchmaking = _gameSessionData }, Array.Empty<byte>());
+                    repository.Add(ctx.Service);
                 }
             }
             return Task.CompletedTask;
@@ -53,7 +53,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 if (_id is not null)
                 {
 
-                    repository.DeleteDocument(_id);
+                    repository.Remove(ctx.Service);
                     _id = null;
                     _gameSessionData = null;
                 }
@@ -116,7 +116,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             {
                 if (_id is not null)
                 {
-                    repository.DeleteDocument(_id);
+                    repository.Remove(gs);
                     _id = null;
                     _gameSessionData = null;
                 }

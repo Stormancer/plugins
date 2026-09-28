@@ -20,7 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Nest;
 using Newtonsoft.Json.Linq;
+using Stormancer.Server.Plugins.GameSession;
 using Stormancer.Server.Plugins.Queries;
 using System;
 using System.Collections.Concurrent;
@@ -58,91 +60,166 @@ namespace Stormancer.Gamesessions.Browser
         /// <returns></returns>
         public Task<SearchResult<T>> SearchGamesessions<T>(JObject query, uint skip, uint size, CancellationToken cancellationToken = default)
         {
-            return search.QueryAsync<T>(GamesessionLuceneDocumentStore.PARTY_LUCENE_INDEX, query, skip, size, cancellationToken);
+            return search.QueryAsync<T>(GamesessionsDocumentStore.GAMESESSION_SEARCH_TYPE, query, skip, size, cancellationToken);
         }
 
 
     }
 
-
-    public class GamesessionLuceneDocumentStore : ILuceneDocumentStore
+    public class GamesessionsDocumentStoreFilter
     {
-        public const string PARTY_LUCENE_INDEX = "stormancer.gamesessions";
-
-        private readonly ILucene lucene;
-        private Dictionary<string, (JObject, byte[])> _data = new Dictionary<string, (JObject, byte[])>();
-        private object syncRoot = new object();
-        public GamesessionLuceneDocumentStore(ILucene lucene)
-        {
-            this.lucene = lucene;
-        }
-        public IEnumerable<Document<JObject>> GetDocuments(IEnumerable<string> ids)
-        {
-
-            foreach (var id in ids)
-            {
-                lock (syncRoot)
-                {
-
-                    if (_data.TryGetValue(id, out var doc))
-                    {
-                        yield return new Document<JObject>(id, doc.Item1 ) { Version = 1 };
-                    }
-                    else
-                    {
-                        yield return new Document<JObject>(id, default) { Version = 1 };
-                    }
-                }
-            }
-        }
-
-        public bool Handles(string type)
-        {
-            return type == PARTY_LUCENE_INDEX;
-        }
-
-        public void Initialize()
-        {
-            lucene.TryCreateIndex(PARTY_LUCENE_INDEX, DefaultMapper.JsonMapper);
-        }
-
-        public void UpdateDocument<T>(string id, T? document, byte[] customData)
-        {
-            if (document != null)
-            {
-                var json =JObject.FromObject(document);
-                lock (syncRoot)
-                {
-
-                    if (!_data.TryGetValue(id, out var current) || !JToken.DeepEquals(json, current.Item1))
-                    {
-
-                        lucene.IndexDocument(PARTY_LUCENE_INDEX, id, json);
-                    }
-                    _data[id] = (json, customData);
-                }
-            }
-            else
-            {
-                DeleteDocument(id);
-
-            }
-        }
-
-        public void DeleteDocument(string id)
-        {
-            var mustRemove = false;
-            lock (syncRoot)
-            {
-                mustRemove = _data.Remove(id);
-
-            }
-            if (mustRemove)
-            {
-                lucene.DeleteDocument(PARTY_LUCENE_INDEX, id);
-            }
-
-
-        }
+        public int PartySize { get; set; } = 1;
+        public bool AcceptSplit { get; set; } = false;
     }
+    public class GamesessionDocumentSource
+    {
+        public required IReadOnlyDictionary<string, string> Settings { get; init; }
+        public required IEnumerable<TeamConfigurationRecord> Teams { get; init; }
+
+        public required int PlayerCount { get; init; }
+        public required DateTime CreatedOn { get; init; }
+    }
+    public class GamesessionsDocumentStore : IServiceSearchProvider
+    {
+        private object _syncRoot = new object();
+        private readonly Dictionary<string, IGameSessionService> _store = [];
+        public const string GAMESESSION_SEARCH_TYPE = "stormancer.gamesessions";
+        SearchResult<JObject> IServiceSearchProvider.Filter(string type, JObject filter, uint size)
+        {
+            var result = new SearchResult<JObject>();
+            if (type != GAMESESSION_SEARCH_TYPE)
+            {
+                return result;
+            }
+            var gsFilter = filter.ToObject<GamesessionsDocumentStoreFilter>() ?? new GamesessionsDocumentStoreFilter();
+            var docs = new List<Document<JObject>>();
+            uint total = 0;
+            lock (_syncRoot)
+            {
+                foreach (var (id, gs) in _store)
+                {
+                    if (gs.CanFit(gsFilter.PartySize, gsFilter.AcceptSplit))
+                    {
+                        total++;
+                        if (docs.Count < size)
+                        {
+                            docs.Add(new Document<JObject>(id, JObject.FromObject(new GamesessionDocumentSource
+                            {
+                                Settings = gs.GetSettings(),
+                                Teams = gs.GetTeamsConfiguration(),
+                                CreatedOn = gs.CreatedOn,
+                                PlayerCount = gs.PlayerCount
+                            }))
+                            { Version = 1 });
+                        }
+                    }
+                }
+            }
+            result.Total = total;
+            result.Hits = docs;
+            return result;
+        }
+
+        bool IServiceSearchProvider.Handles(string type)
+        {
+            return type == GAMESESSION_SEARCH_TYPE;
+        }
+
+        public void Add(IGameSessionService gameSession)
+        {
+            lock (_syncRoot)
+            {
+                _store.Add(gameSession.GameSessionId, gameSession);
+            }
+        }
+        public void Remove(IGameSessionService gameSession)
+        {
+            lock (_syncRoot)
+            {
+                _store.Remove(gameSession.GameSessionId);
+            }
+        }
+
+    }
+
+    //internal class GamesessionLuceneDocumentStore : ILuceneDocumentStore
+    //{
+    //    public const string PARTY_LUCENE_INDEX = "stormancer.gamesessions";
+
+    //    private readonly ILucene lucene;
+    //    private Dictionary<string, (JObject, byte[])> _data = new Dictionary<string, (JObject, byte[])>();
+    //    private object syncRoot = new object();
+    //    public GamesessionLuceneDocumentStore(ILucene lucene)
+    //    {
+    //        this.lucene = lucene;
+    //    }
+    //    public IEnumerable<Document<JObject>> GetDocuments(IEnumerable<string> ids)
+    //    {
+
+    //        foreach (var id in ids)
+    //        {
+    //            lock (syncRoot)
+    //            {
+
+    //                if (_data.TryGetValue(id, out var doc))
+    //                {
+    //                    yield return new Document<JObject>(id, doc.Item1) { Version = 1 };
+    //                }
+    //                else
+    //                {
+    //                    yield return new Document<JObject>(id, default) { Version = 1 };
+    //                }
+    //            }
+    //        }
+    //    }
+
+    //    public bool Handles(string type)
+    //    {
+    //        return type == PARTY_LUCENE_INDEX;
+    //    }
+
+    //    public void Initialize()
+    //    {
+    //        lucene.TryCreateIndex(PARTY_LUCENE_INDEX, DefaultMapper.JsonMapper);
+    //    }
+
+    //    public void UpdateDocument<T>(string id, T? document, byte[] customData)
+    //    {
+    //        if (document != null)
+    //        {
+    //            var json = JObject.FromObject(document);
+    //            lock (syncRoot)
+    //            {
+
+    //                if (!_data.TryGetValue(id, out var current) || !JToken.DeepEquals(json, current.Item1))
+    //                {
+
+    //                    lucene.IndexDocument(PARTY_LUCENE_INDEX, id, json);
+    //                }
+    //                _data[id] = (json, customData);
+    //            }
+    //        }
+    //        else
+    //        {
+    //            DeleteDocument(id);
+
+    //        }
+    //    }
+
+    //    public void DeleteDocument(string id)
+    //    {
+    //        var mustRemove = false;
+    //        lock (syncRoot)
+    //        {
+    //            mustRemove = _data.Remove(id);
+
+    //        }
+    //        if (mustRemove)
+    //        {
+    //            lucene.DeleteDocument(PARTY_LUCENE_INDEX, id);
+    //        }
+
+
+    //    }
+    //}
 }
