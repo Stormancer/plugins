@@ -11,9 +11,9 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
-Added
-*****
-- Disable temporarily Elasticsearch analytics in case of errors.
+Removed
+*******
+- Moved Elasticsearch output to `Stormancer.Server.Plugins.Analytics.Outputs.Elasticsearch`. By default the analytics plugin do not stores the events.
 
 2.1.1.3
 -----------

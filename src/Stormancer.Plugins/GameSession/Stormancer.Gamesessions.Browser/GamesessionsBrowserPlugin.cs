@@ -28,26 +28,24 @@ namespace Stormancer.Gamesessions.Browser
                 if(scene.TemplateMetadata.ContainsKey(GameSessionConstants.METADATA_KEY))
                 {
                     builder.Register(dr => new ReservationsState()).SingleInstance();
-                    builder.Register(dr => new GamesessionSearchState()).SingleInstance();
-                   
                 }
             };
 
             ctx.HostStarting += (IHost host) =>
             {
-                host.AddSceneTemplate(GamesessionBrowserConstants.SCENE_TYPE, (ISceneHost scene) =>
+                host.AddSceneTemplate(GamesessionBrowserConstants.SCENE_ID, (ISceneHost scene) =>
                 {
-                    scene.TemplateMetadata[GamesessionBrowserConstants.METADATA_KEY] = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.1.0";
+                    scene.TemplateMetadata[GamesessionBrowserConstants.METADATA_KEY] = "1";
                 });
-                host.DependencyResolver.Resolve<GameSessionReservations>().Initialize();
+                //host.DependencyResolver.Resolve<GameSessionReservations>().Initialize();
             };
 
             ctx.HostStarted += (IHost host) =>
             {
-                host.EnsureSceneExists(GamesessionBrowserConstants.SCENE_ID, GamesessionBrowserConstants.SCENE_TYPE, false,true);
+                host.EnsureSceneExists(GamesessionBrowserConstants.SCENE_ID, GamesessionBrowserConstants.SCENE_ID, false,true);
             };
 
-            ctx.SceneCreating += (ISceneHost scene) =>
+            ctx.SceneCreated += (ISceneHost scene) =>
             {
                 if(scene.TemplateMetadata.ContainsKey(GamesessionBrowserConstants.METADATA_KEY))
                 {

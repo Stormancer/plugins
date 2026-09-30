@@ -19,11 +19,7 @@ namespace Stormancer.Gamesessions.Browser
         /// <summary>
         /// Id of the scene hosting the search service.
         /// </summary>
-        public const string SCENE_ID = "gamesession-search";
-
-        /// <summary>
-        /// Type of the scene hosting the search service.
-        /// </summary>
-        public const string SCENE_TYPE = "gamesessionsManager";
+        public const string SCENE_ID = "gamesessions-search";
+       
     }
 }

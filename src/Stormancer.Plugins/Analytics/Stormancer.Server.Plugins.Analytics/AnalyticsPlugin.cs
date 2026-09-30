@@ -47,7 +47,6 @@ namespace Stormancer.Server.Plugins.Analytics
                   builder.Register(static r=>new AnalyticsController(r.Resolve<IAnalyticsService>(),r.Resolve<ILogger>())).InstancePerRequest();
                   builder.Register(static r=>new AnalyticsService(r.Resolve<IEnvironment>(),r.Resolve<Lazy<IEnumerable<IAnalyticsOutput>>>())).As<IAnalyticsService>().SingleInstance();
                   builder.Register(static r=>new ApiAnalyticsEventHandler(r.Resolve<IAnalyticsService>(),r.Resolve<ConfigurationMonitor<InstrumentationConfig>>())).As<IApiHandler>().SingleInstance();
-                  builder.Register(static r=>new ElasticsearchOutput(r.Resolve<IESClientFactory>(),r.Resolve<IConfiguration>(),r.Resolve<ILogger>())).As<IAnalyticsOutput>();
                   builder.Register(static r=> LocatorProvider.Instance).As<IServiceLocatorProvider>();
                   builder.Register(static r => new ConfigurationMonitor<InstrumentationConfig>(r.Resolve<IConfiguration>())).AsSelf().As<IConfigurationChangedEventHandler>().SingleInstance();
               };

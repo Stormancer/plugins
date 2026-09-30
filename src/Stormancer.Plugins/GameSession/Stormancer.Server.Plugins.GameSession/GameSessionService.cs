@@ -1333,6 +1333,17 @@ namespace Stormancer.Server.Plugins.GameSession
             UpdateSettings(record.Settings, record.Teams);
         }
 
+        public void UpdateHostCandidates(IEnumerable<SessionId> sessionIds)
+        {
+            _hostCandidates.Clear();
+            foreach (var sessionId in sessionIds)
+            {
+                _hostCandidates.Add(sessionId);
+            }
+        }
+
+        private HashSet<SessionId> _hostCandidates;
+
         #region Reservations
         public IEnumerable<PartySummary> GetParties(bool includeReservations)
         {
@@ -1834,7 +1845,7 @@ namespace Stormancer.Server.Plugins.GameSession
             }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE, (_serializer, record, header));
         }
 
-
+       
     }
     public enum GameSessionRecordType
     {

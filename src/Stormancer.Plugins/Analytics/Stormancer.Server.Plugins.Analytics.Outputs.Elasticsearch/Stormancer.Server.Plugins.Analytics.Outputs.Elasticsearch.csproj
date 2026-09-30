@@ -5,14 +5,13 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>0.5.0.11</Version>
+    <Version>1.0.0</Version>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <Description>Provides an in memory distributed query system for Stormancer server applications.</Description>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Description>Stores analytics in elasticsearch.</Description>
     <Deterministic>true</Deterministic>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
@@ -24,42 +23,27 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
-
   </ItemGroup>
+
   <ItemGroup>
-    <PackageReference Include="jose-jwt" Version="4.1.0" />
-    <PackageReference Include="Lucene.Net" Version="4.8.0-beta00018" />
-    <PackageReference Include="Lucene.Net.Analysis.Common" Version="4.8.0-beta00018" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="10.1.1" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="Stormancer.Filters" Version="0.2.0.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Changelog.rst" />
-    <None Remove="Readme.md" />
+    <ProjectReference Include="..\..\Database\Stormancer.Server.Plugins.Database.Elasticsearch\Stormancer.Server.Plugins.Database.Elasticsearch.csproj" />
+    <ProjectReference Include="..\Stormancer.Server.Plugins.Analytics\Stormancer.Server.Plugins.Analytics.csproj" />
+
   </ItemGroup>
 
   <ItemGroup>
     <NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
-    <Pdbs Include="$(TargetDir)*.pdb" />
+	  <cpp Include="$(ProjectDir)../cpp/*" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="Changelog.rst" />
-    <Content Include="Readme.md" />
-  </ItemGroup>
-
   <Target Name="PostPack" AfterTargets="Pack">
     <Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
-    <Copy SourceFiles="@(Pdbs)" DestinationFolder="$(ProjectDir)../../../../output/symbols/$(ConfigurationName)" />
+	  <Copy SourceFiles="@(cpp)" DestinationFolder="$(ProjectDir)../../../../output/cpp/Analytics" />
   </Target>
-
 </Project>
-
-
-

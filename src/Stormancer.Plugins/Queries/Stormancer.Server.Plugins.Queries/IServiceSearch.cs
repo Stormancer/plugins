@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -54,6 +55,21 @@ namespace Stormancer.Server.Plugins.Queries
         /// </summary>
         [Key(1)]
         public IEnumerable<Document<T>> Hits { get; set; } = default!;
+
+        /// <summary>
+        /// Converts a search result into another by applying the provided selector to every
+        /// </summary>
+        /// <typeparam name="U"></typeparam>
+        /// <param name="selector"></param>
+        /// <returns></returns>
+        public SearchResult<U> Convert<U>(Func<T?, U?> selector)
+        {
+            return new SearchResult<U>
+            {
+                Total = Total,
+                Hits = Hits.Select(d => new Document<U>(d.Id, selector(d.Source)) { Version = d.Version })
+            };
+        }
     }
     /// <summary>
     /// Provides APIs to search and reserve connection slots to services.
@@ -161,7 +177,7 @@ namespace Stormancer.Server.Plugins.Queries
         /// </summary>
         /// <param name="id"></param>
         /// <param name="source"></param>
-        public Document(string  id, T? source)
+        public Document(string id, T? source)
         {
             Id = id;
             Source = source;

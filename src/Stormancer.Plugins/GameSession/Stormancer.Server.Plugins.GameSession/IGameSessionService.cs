@@ -234,6 +234,12 @@ namespace Stormancer.Server.Plugins.GameSession
         bool IsDedicatedServer(Session session);
 
         /// <summary>
+        /// Updates the list of peers that can host the game.
+        /// </summary>
+        /// <param name="sessionIds"></param>
+        void UpdateHostCandidates(IEnumerable<SessionId> sessionIds);
+
+        /// <summary>
         /// Gets the scene of the game session.
         /// </summary>
         ISceneHost Scene { get; }

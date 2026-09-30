@@ -144,9 +144,16 @@ namespace Stormancer.Server.Plugins.GameSession
             
         }
 
-        public void UpdateHostCandidates(IEnumerable<SessionId> sessionIds)
+        public void UpdateHostCandidates(IEnumerable<SessionId> sessionIds, RequestContext<IScenePeerClient> ctx)
         {
-
+            if (_service.IsHost(ctx.RemotePeer.SessionId))
+            {
+                _service.UpdateHostCandidates(sessionIds);
+            }
+            else
+            {
+                throw new ClientException("forbidden");
+            }
         }
 
         [S2SApi]

@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using MessagePack;
 using Nest;
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.GameSession;
@@ -66,17 +67,29 @@ namespace Stormancer.Gamesessions.Browser
 
     }
 
+    [MessagePackObject]
     public class GamesessionsDocumentStoreFilter
     {
         public int PartySize { get; set; } = 1;
         public bool AcceptSplit { get; set; } = false;
     }
+
+    [MessagePackObject]
     public class GamesessionDocumentSource
     {
+        [Key(0)]
         public required IReadOnlyDictionary<string, string> Settings { get; init; }
+
+
+        [Key(1)]
         public required IEnumerable<TeamConfigurationRecord> Teams { get; init; }
 
+
+        [Key(2)]
         public required int PlayerCount { get; init; }
+
+
+        [Key(3)]
         public required DateTime CreatedOn { get; init; }
     }
     public class GamesessionsDocumentStore : IServiceSearchProvider
