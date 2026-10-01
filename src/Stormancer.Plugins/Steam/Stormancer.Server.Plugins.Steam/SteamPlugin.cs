@@ -55,7 +55,7 @@ namespace Stormancer.Server.Plugins.Steam
                 builder.Register(static r=> SteamServiceLocator.Instance).As<IServiceLocatorProvider>();
                 builder.Register(static r=> new SteamPlatformInvitationsHandler(r.Resolve<ISceneHost>(),r.Resolve<IFriendsService>())).As<IPartyPlatformSupport>().InstancePerRequest();
                 builder.Register(static r=> new SteamAuthenticationProvider(r.Resolve<ConfigurationMonitor<SteamConfigurationSection>>(),r.Resolve<ILogger>(),r.Resolve<IUserService>(),r.Resolve<ISteamService>())).As<IAuthenticationProvider>();
-                builder.Register(static r => new SteamNetworkingEventHandler(r.Resolve<IUserSessions>())).As<IP2pEventHandler>().InstancePerRequest();
+                builder.Register(static r => new SteamNetworkingEventHandler(r.Resolve<IUserSessions>(), r.Resolve<ConfigurationMonitor<SteamConfigurationSection>>())).As<IP2pEventHandler>().InstancePerRequest();
             };
 
             ctx.SceneCreating += (ISceneHost scene) =>

@@ -211,6 +211,10 @@ namespace Stormancer.Server.Plugins.Steam
         /// </remarks>
         public string defaultAuthProtocol { get; set; } = "v0001";
 
+        /// <summary>
+        /// Is steam networking enabled in
+        /// </summary>
+        public bool SteamNetworkingEnabled { get; set; } = true;
     }
 
     /// <summary>
