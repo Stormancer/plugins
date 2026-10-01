@@ -425,8 +425,10 @@ namespace Stormancer.Server.Plugins.GameFinder
                         client.State = RequestState.Rejected;
                         // If this party is an S2S party, the exception will be forwarded to the S2S caller which is responsible for handling it
                         client.Tcs.TrySetException(new ClientException(reason));
+                        NotifyError(party, reason);
                         // Remove games that contain a rejected party
                         games.Games.RemoveAll(m => m.AllParties().Contains(party));
+                        
                     }
 
                     if (games.Games.Any() || games.GameSessionTickets.Any())
@@ -670,7 +672,17 @@ namespace Stormancer.Server.Plugins.GameFinder
         private JObject? gameFinderConfigs;
 
 
-
+        private void NotifyError(Party party, string error)
+        {
+            BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) =>
+            {
+                var span = s.GetSpan(1);
+                span[0] = (byte)GameFinderPlayerState.Failed;
+                s.Advance(1);
+                _serializer.Serialize(error, s);
+            });
+            
+        }
 
 
         public async Task CancelGame(IScenePeerClient peer, bool requestedByPlayer)

@@ -614,7 +614,7 @@ namespace Stormancer.Server.Plugins.Party
                         var partyResetCtx = new PartyMemberReadyStateResetContext(PartyMemberReadyStateResetEventType.PartySettingsUpdated, _scene, this);
 
 
-                        partyConfigurationService.Value.ShouldResetPartyMembersReadyState(partyResetCtx);
+                        scope.Resolve<PartyConfigurationService>().ShouldResetPartyMembersReadyState(partyResetCtx);
                         await handlers.RunEventHandler(h => h.OnPlayerReadyStateReset(partyResetCtx), ex => _logger.Log(LogLevel.Error, "party", $"An error occurred while processing an '{nameof(IPartyEventHandler.OnPlayerReadyStateReset)}' event.", ex));
 
                         if (partyResetCtx.ShouldReset)

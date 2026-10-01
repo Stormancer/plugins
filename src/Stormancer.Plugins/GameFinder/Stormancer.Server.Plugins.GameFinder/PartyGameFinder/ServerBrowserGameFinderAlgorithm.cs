@@ -68,11 +68,14 @@ namespace Stormancer.Server.Plugins.GameFinder
 
 				var reservation = await _gamesessions.CreateReservation(args.GamesessionId, new Models.Team(party), _default, default);
 
-				if(reservation is null)
+				if (reservation is null)
 				{
-                    gameFinderContext.SetFailed(party, "gameFull");
-                }
-				AddPartyToExistingGame(result, args.GamesessionId,party);
+					gameFinderContext.SetFailed(party, "gameFull");
+				}
+				else
+				{
+					AddPartyToExistingGame(result, args.GamesessionId, party);
+				}
             }
 
 			return result;
