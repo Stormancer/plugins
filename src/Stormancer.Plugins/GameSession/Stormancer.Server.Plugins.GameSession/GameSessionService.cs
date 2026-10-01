@@ -975,10 +975,10 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 throw new ArgumentNullException(nameof(peer));
             }
-           
-           
+
+
             _analytics.PlayerLeft(peer.SessionId.ToString(), this._scene.Id);
-            
+
 
             Client? client = null;
             string? userId = null;
@@ -1160,7 +1160,7 @@ namespace Stormancer.Server.Plugins.GameSession
         public string GameSessionId => _scene.Id;
 
         public DateTime CreatedOn { get; } = DateTime.UtcNow;
-        public int PlayerCount =>_clients.Count;
+        public int PlayerCount => _clients.Count + _reservationStates.Select(r => r.Value.UserIds).Count();
 
         private object _syncRoot = new object();
         private Dictionary<string, string> _dimensions = new Dictionary<string, string>();
@@ -1387,7 +1387,7 @@ namespace Stormancer.Server.Plugins.GameSession
         }
 
         private static Dictionary<string, string> _emptySettings = [];
-        public IReadOnlyDictionary<string,string> GetSettings()
+        public IReadOnlyDictionary<string, string> GetSettings()
         {
             return _currentGameSessionSettings?.Settings ?? _emptySettings;
         }
@@ -1398,7 +1398,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <param name="partySize">The party size we are trying to fit.</param>
         /// <param name="acceptSplit">Do we accept to split the parties between several teams</param>
         /// <returns></returns>
-        public bool CanFit(int partySize,bool acceptSplit=false)
+        public bool CanFit(int partySize, bool acceptSplit = false)
         {
             var parties = GetParties(true);
 
@@ -1411,21 +1411,21 @@ namespace Stormancer.Server.Plugins.GameSession
             var teamsConfig = _currentGameSessionSettings.Teams;
 
             //Unlimited
-            if(teamsConfig.Count == 0)
+            if (teamsConfig.Count == 0)
             {
                 return true;
             }
-            
+
             //If we accept splitting, it's simple, we just check that the party will fit in the max player count of the game.
-            if(acceptSplit)
+            if (acceptSplit)
             {
-                var currentCount = parties.Sum(p=>p.Players.Count);
+                var currentCount = parties.Sum(p => p.Players.Count);
                 var max = teamsConfig.Sum(t => t.Slots);
                 return currentCount + partySize <= max;
             }
 
             //Check that the party isn't too big for any team.
-            if(teamsConfig.Max(t=>t.AvailableSlots) < partySize)
+            if (teamsConfig.Max(t => t.AvailableSlots) < partySize)
             {
                 return false;
             }
@@ -1444,27 +1444,35 @@ namespace Stormancer.Server.Plugins.GameSession
                 return null;
             }
 
-            foreach(var party in team.Parties)
+            var pendingPlayers = new HashSet<string>(team.AllPlayers.Select(p => p.UserId));
+            foreach (var id in _clients.Values.Select(t => t.Session?.User?.Id ?? string.Empty))
             {
-                if(!CanFit(party.Players.Count, false))
+                if (pendingPlayers.Contains(id))
                 {
-                    return null;
+                    pendingPlayers.Remove(id);
                 }
+            }
+            foreach (var id in _reservationStates.Values.SelectMany(r => r.UserIds))
+            {
+                if (pendingPlayers.Contains(id))
+                {
+                    pendingPlayers.Remove(id);
+                }
+            }
 
+            if (!pendingPlayers.Any())
+            {
+                return new GameSessionReservation();
             }
 
             await using var scope = _scene.CreateRequestScope();
 
-
-            foreach (var player in team.AllPlayers)
+            if (!CanFit(pendingPlayers.Count, true))
             {
-                var playerTeam = FindPlayerTeam(player.UserId);
-                if (playerTeam != null && playerTeam.TeamId != team.TeamId)
-                {
-                    //Player already in another team, we can't make new reservation.
-                    return null;
-                }
+                return null;
             }
+
+
             var reservationState = new ReservationState();
             var ctx = new CreatingReservationContext(this, _scene, _config, team, args, reservationState.ReservationId);
 
@@ -1475,37 +1483,12 @@ namespace Stormancer.Server.Plugins.GameSession
 
             if (ctx.Accept)
             {
-               
+
                 lock (syncRoot)
                 {
-                    var currentTeam = _config.Teams.FirstOrDefault(t => t.TeamId == team.TeamId);
+                    reservationState.UserIds.AddRange(pendingPlayers);
+                    reservationState.Parties = team.Parties;
 
-                    if (currentTeam != null)
-                    {
-                        foreach (var party in team.Parties)
-                        {
-                            var currentParty = currentTeam.Parties.FirstOrDefault(p => p.PartyId == party.PartyId);
-                            if (currentParty != null)
-                            {
-                                foreach (var player in party.Players)
-                                {
-                                    currentParty.Players.TryAdd(player.Key, player.Value);
-                                    reservationState.UserIds.Add(player.Key);
-                                }
-                            }
-                            else
-                            {
-                                currentTeam.Parties.Add(party);
-                                reservationState.UserIds.AddRange(party.Players.Keys);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        _config.Teams.Add(team);
-                        reservationState.UserIds.AddRange(team.AllPlayers.Select(p => p.UserId));
-                        reservationState.Parties = team.Parties;
-                    }
                     _reservationStates.TryAdd(reservationState.ReservationId, reservationState);
                 }
                 var createdCtx = new CreatedReservationContext(team, args, reservationState.ReservationId);
@@ -1845,7 +1828,7 @@ namespace Stormancer.Server.Plugins.GameSession
             }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE, (_serializer, record, header));
         }
 
-       
+
     }
     public enum GameSessionRecordType
     {
