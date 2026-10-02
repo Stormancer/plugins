@@ -758,7 +758,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
                 //Check if the gameSession is Dedicated or listen-server            
                 // If the host is not defined a P2P was sent with "" to notify client is host.
-                if (state.DirectConnectionEnabled())
+                if (state.DirectConnectionEnabled() && state.GameServerPool() == null)
                 {
                     if (IsHostCandidate(peer.SessionId) && HostSessionId.IsEmpty())
                     {
@@ -887,7 +887,7 @@ namespace Stormancer.Server.Plugins.GameSession
                             {
                                 try
                                 {
-                                    await Task.Delay(1000 * 45, ct);
+                                    await Task.Delay(1000 * 60, ct);
                                     if (_server != null && _serverPeer == null) //Server requested but it didn't connect to the game session in 60 seconds.
                                     {
                                         await using (var scope = _scene.CreateRequestScope())
