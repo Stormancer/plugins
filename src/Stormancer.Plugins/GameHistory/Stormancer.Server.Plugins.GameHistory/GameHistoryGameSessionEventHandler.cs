@@ -151,9 +151,12 @@ namespace Stormancer.Server.Plugins.GameHistory
                     var onAddingToHistoryContext = new OnAddingParticipantToGameContext(_scene, historyRecord, user);
                     await eventHandlers.RunEventHandler(h => h.OnAddingParticipantToGame(onAddingToHistoryContext), ex => { _logger.Log(LogLevel.Error, "gameHistory", $"An error occurred while executing {nameof(IGameHistoryEventHandler.OnAddingToHistory)}", ex); });
 
-                    historyRecord.Participants.Add(user);
+                    if (!historyRecord.Participants.Any(u => u.Id == user.Id))
+                    {
+                        historyRecord.Participants.Add(user);
 
-                    await _service.UpdateGameHistoryRecordAsync(historyRecord);
+                        await _service.UpdateGameHistoryRecordAsync(historyRecord);
+                    }
                 }
 
             }

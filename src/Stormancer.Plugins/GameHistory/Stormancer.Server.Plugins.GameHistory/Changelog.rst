@@ -17,6 +17,7 @@ Added
 Fixed
 *****
 - Ignore gamesession when their id is not a valid guid.
+- Do not try adding again to a game in the history a player who is already there.
 
 2.0.3.17
 ----------
