@@ -14,6 +14,7 @@ Unreleased
 Added
 *****
 -Adds a property IsEnabled to IUserStorage to indicate if the storage is ready to use or not
+- Added OAuth identity provider capabilities.
 
 Changed
 *******

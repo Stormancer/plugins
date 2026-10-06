@@ -25,7 +25,7 @@ using Stormancer.Server.Plugins.AdminApi;
 
 namespace Stormancer.Server.Plugins.Users
 {
-    class AdminWebApiConfig : IAdminWebApiConfig
+    class AdminWebApiConfig : IAdminWebApiConfig, IPublicWebApiConfig
     {
         public void ConfigureApplicationParts(ApplicationPartManager apm)
         {

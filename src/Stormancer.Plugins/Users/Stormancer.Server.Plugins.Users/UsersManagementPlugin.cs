@@ -31,6 +31,8 @@ using Stormancer.Server.Plugins.Analytics;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Users.Analytics;
+using Stormancer.Server.Plugins.Users.OAuth;
+using Stormancer.Server.Plugins.Users.Web;
 using Stormancer.Server.Plugins.Utilities;
 using System;
 using System.Collections.Generic;
@@ -152,6 +154,8 @@ namespace Stormancer.Server.Plugins.Users
             {
                 b.Register(dr => new UserSessionImpl(dr.Resolve<UserSessionProxy>(), dr.Resolve<IClusterSerializer>(), dr.Resolve<ISerializer>(), dr.Resolve<ISceneHost>())).As<IUserSessions>().InstancePerRequest();
             }
+
+           
         }
 
         private void HostStarted(IHost host)
@@ -208,9 +212,11 @@ namespace Stormancer.Server.Plugins.Users
 
 
             b.Register<UsersAdminController>().InstancePerRequest();
-            b.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
+            b.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>().As<IPublicWebApiConfig>();
 
-
+            b.Register<OAuthService>().InstancePerRequest();
+            b.Register<OAuthMetadataController>().InstancePerRequest();
+            b.Register(static r => new ConfigurationMonitor<OAuthConfigurationSection>(r.Resolve<IConfiguration>())).AsSelf().As<IConfigurationChangedEventHandler>().SingleInstance();
 
             b.Register(dr => new Analytics.AnalyticsEventHandler(
                 dr.Resolve<IAnalyticsService>())

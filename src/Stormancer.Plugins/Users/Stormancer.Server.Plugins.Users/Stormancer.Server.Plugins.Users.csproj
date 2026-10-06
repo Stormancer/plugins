@@ -5,7 +5,7 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>10.0.3.8</Version>
+		<Version>10.0.3.11</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -35,6 +35,8 @@
 	
 	<ItemGroup>
 		<PackageReference Include="jose-jwt" Version="4.1.0" />
+		<PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="7.1.2" />
+		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="7.1.2" />
 		<PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.0" />
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
 			<PrivateAssets>all</PrivateAssets>

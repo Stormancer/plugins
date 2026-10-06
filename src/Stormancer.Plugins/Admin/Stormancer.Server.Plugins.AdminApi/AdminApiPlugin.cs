@@ -52,8 +52,8 @@ namespace Stormancer.Server.Plugins.AdminApi
                 host.AddAdminApiConfiguration((app, env, scene) =>
                 {
                     
-                    System.Diagnostics.Debug.WriteLine("start admin swagger");
-                   
+                    
+                    app.Use(AppWebApiMiddleware.AsAdminApi);
                     app.UseExceptionHandler(exceptionHandlerApp =>
                     {
                         exceptionHandlerApp.Run(context =>
@@ -67,12 +67,7 @@ namespace Stormancer.Server.Plugins.AdminApi
                             return Task.CompletedTask;
                         });
                     });
-                    app.UseSwagger();
-                    app.UseSwaggerUI(c =>
-                    {
-                        c.SwaggerEndpoint("v3/swagger.json", "Stormancer Admin Web API V3");
-                        
-                    });
+                   
 
                     
                     app.UseRouting();
@@ -85,20 +80,29 @@ namespace Stormancer.Server.Plugins.AdminApi
                     app.UseAuthentication();
                     app.UseAuthorization();
 
+                   
+
                     app.UseEndpoints(endpoints =>
                     {
                         endpoints.MapControllers();
                     });
 
-                   
+                    app.UseSwagger();
+                    app.UseSwaggerUI(c =>
+                    {
+                        c.SwaggerEndpoint("v3/swagger.json", "Stormancer Admin Web API V3");
+
+                    });
 
                 }, (services, scene) =>
                 {
+                    services.AddHttpContextAccessor();
                     services.AddLocalization();
                     var configs = scene.DependencyResolver.Resolve<IEnumerable<IAdminWebApiConfig>>();
                     var oDataModelConfigurators = scene.DependencyResolver.Resolve<IEnumerable<IODataModelConfigurator>>();
                     services.AddMvc(options =>
                     {
+                        options.Filters.Add<WebApiTypeFilter>();
                     })
                         .ConfigureApplicationPartManager(apm =>
                         {
@@ -107,8 +111,8 @@ namespace Stormancer.Server.Plugins.AdminApi
                                 config.ConfigureApplicationParts(apm);
                             }
                         })
-                        .AddNewtonsoftJson()
-                        .AddControllersAsServices().AddOData(options=>
+                       
+                        .AddControllersAsServices().AddOData(options =>
                         {
                             var modelBuilder = new ODataConventionModelBuilder();
                             foreach (var configurator in oDataModelConfigurators)
@@ -117,23 +121,22 @@ namespace Stormancer.Server.Plugins.AdminApi
                             }
                             options.EnableQueryFeatures(200).AddRouteComponents("odata", modelBuilder.GetEdmModel());
                         });
+                        
   
                     services.AddSwaggerGen(c =>
                     {
-                        
+                        c.DocumentFilter<WebApiDocumentFilter>();
                         c.SwaggerDoc("v3", new OpenApiInfo { Title = "Stormancer Admin web API", Version = "v3"    });
                     });
                     services.AddSwaggerGenNewtonsoftSupport();
                 });
 
+
+
                 host.AddWebApiConfiguration((app, env, scene) =>
                 {
-                    app.UseSwagger();
-                    app.UseSwaggerUI(c =>
-                    {
-                        c.SwaggerEndpoint("v3/swagger.json", "Stormancer public Web API V3");
-
-                    });
+                    app.Use(AppWebApiMiddleware.AsPublicApi);
+                   
                     app.UseRouting();
 
                     app.UseCors(option => option
@@ -144,17 +147,28 @@ namespace Stormancer.Server.Plugins.AdminApi
                     app.UseAuthentication();
                     app.UseAuthorization();
 
+                    app.UseSwagger();
+                    
                     app.UseEndpoints(endpoints =>
                     {
                         endpoints.MapControllers();
                     });
+
+                    app.UseSwaggerUI(c =>
+                    {
+                        c.SwaggerEndpoint("v3/swagger.json", "Stormancer public Web API V3");
+
+                    });
+
                 }, (services, scene) =>
                 {
+                    services.AddHttpContextAccessor();
                     services.AddLocalization();
                     var configs = scene.DependencyResolver.Resolve<IEnumerable<IPublicWebApiConfig>>();
 
                     services.AddMvc(options =>
                     {
+                        options.Filters.Add<WebApiTypeFilter>();
                     })
                         .ConfigureApplicationPartManager(apm =>
                         {
@@ -163,13 +177,13 @@ namespace Stormancer.Server.Plugins.AdminApi
                                 config.ConfigureApplicationParts(apm);
                             }
                         })
-                        .AddNewtonsoftJson()
+                       
                         .AddControllersAsServices();
 
 
                     services.AddSwaggerGen(c =>
                     {
-
+                        c.DocumentFilter<WebApiDocumentFilter>();
                         c.SwaggerDoc("v3", new OpenApiInfo { Title = "Application public web API", Version = "v3" });
                     });
 

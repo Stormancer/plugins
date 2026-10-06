@@ -23,6 +23,7 @@
 using Newtonsoft.Json;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
+using Stormancer.Server.Plugins.API;
 using Stormancer.Server.Plugins.Configuration;
 using System;
 using System.Collections.Generic;
@@ -198,6 +199,7 @@ namespace Stormancer.Server.Plugins.Users
 
         }
 
+        [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task<Dictionary<string, string>> GetStatus(IScenePeerClient peer, CancellationToken cancellationToken)
         {
             var session = await _sessions.GetSession(peer, cancellationToken);
@@ -340,6 +342,14 @@ namespace Stormancer.Server.Plugins.Users
 
             return closestExpirationDate;
         }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public class GetUserStatusResult
+    {
+
     }
 }
 
