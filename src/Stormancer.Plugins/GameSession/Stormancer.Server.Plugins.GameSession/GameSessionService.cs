@@ -189,7 +189,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Built from context by 
         /// </remarks>
         [Key(3)]
-        public Dictionary<string, string> Arguments { get; set; }
+        public Dictionary<string, string> Arguments { get; set; } = new Dictionary<string, string>();
     }
 
     /// <summary>
@@ -228,6 +228,10 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Gets or sets the client's session, if the client is connected to the game session.
         /// </summary>
         public Session Session { get; }
+
+        /// <summary>
+        /// Gets the id of the party this player was in when they connected to the game session.
+        /// </summary>
         public string PartyId { get; }
 
         /// <summary>
@@ -842,8 +846,8 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 Debug.Assert(_config != null);
                 _analytics.StartGamesession(this);
-                var settings = _currentGameSessionSettings.Settings;
-                var teams = _currentGameSessionSettings.Teams;
+                var settings = _currentGameSessionSettings?.Settings ?? new Dictionary<string, string>();
+                var teams = _currentGameSessionSettings?.Teams ?? new List<TeamConfigurationRecord>();
                 var ctx = new GameSessionStartingContext(this, this._scene, _config, settings, teams);
 
                 await using (var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag))
@@ -855,10 +859,18 @@ namespace Stormancer.Server.Plugins.GameSession
                 UpdateSettings(settings, teams);
 
                 var poolId = state.GameServerPool();
+                if(poolId !=null)
+                {
+                    _config.HostSelectionConfiguration = ServerHostSelectionPolicy.CreateConfiguration();
+                }
+                else if(_config.HostSelectionConfiguration is null)
+                {
 
+                }
 
                 if (poolId != null)
                 {
+                    
                     await using (var scope = _scene.CreateRequestScope())
                     {
                         var pools = scope.Resolve<ServerPoolProxy>();
@@ -1121,20 +1133,22 @@ namespace Stormancer.Server.Plugins.GameSession
                 }
                 memStream.Seek(0, SeekOrigin.Begin);
 
-
-                if (_clients.TryGetValue(session.User.Id, out var client))
+                if (session.User != null)
                 {
-                    client.ResultData = memStream;
-
-
-                    await EvaluateGameComplete();
-
-                    var tcs = client.GameCompleteTcs;
-                    if (tcs != null)
+                    if (_clients.TryGetValue(session.User.Id, out var client))
                     {
-                        return await tcs.Task;
-                    }
+                        client.ResultData = memStream;
 
+
+                        await EvaluateGameComplete();
+
+                        var tcs = client.GameCompleteTcs;
+                        if (tcs != null)
+                        {
+                            return await tcs.Task;
+                        }
+
+                    }
                 }
                 static void NoOp(Stream _, ISerializer _2) { }
                 ;
@@ -1345,7 +1359,7 @@ namespace Stormancer.Server.Plugins.GameSession
             return _hostCandidates;
         }
 
-        private HashSet<SessionId> _hostCandidates;
+        private HashSet<SessionId> _hostCandidates = new();
 
         #region Reservations
         public IEnumerable<PartySummary> GetParties(bool includeReservations)
@@ -1704,7 +1718,7 @@ namespace Stormancer.Server.Plugins.GameSession
             public Guid ReservationId { get; } = Guid.NewGuid();
             public DateTime ExpiresOn { get; set; } = DateTime.UtcNow + TimeSpan.FromMinutes(1);
             public List<string> UserIds { get; set; } = new List<string>();
-            public List<Party> Parties { get; internal set; }
+            public List<Party> Parties { get; internal set; } = new List<Party>();
         }
 
         private ConcurrentDictionary<Guid, ReservationState> _reservationStates = new ConcurrentDictionary<Guid, ReservationState>();
@@ -1833,30 +1847,65 @@ namespace Stormancer.Server.Plugins.GameSession
 
 
     }
+
+    /// <summary>
+    /// Game session synchronization record types.
+    /// </summary>
     public enum GameSessionRecordType
     {
+        /// <summary>
+        /// The network topology of the game session was updated.
+        /// </summary>
+        /// <remarks>Topology updates signal host connections, updates and disconnections.</remarks>
         TopologyUpdated,
+
+        /// <summary>
+        /// The public shared settings of the game session were updated.
+        /// </summary>
         Settings,
+
+        /// <summary>
+        /// A snapshot record contains all informations necessary to synchronize the public game session state from scratch.
+        /// </summary>
         Snapshot,
     }
 
+    /// <summary>
+    /// Header describing a following record.
+    /// </summary>
     [MessagePackObject]
     public class GameSessionRecordHeader
     {
+        /// <summary>
+        /// Version number of the record. Incremented each time the state is updated.
+        /// </summary>
         [Key(0)]
         public int Version { get; set; }
+
+        /// <summary>
+        /// Type of the record.
+        /// </summary>
         [Key(1)]
         public GameSessionRecordType Type { get; set; }
 
 
     }
 
+    /// <summary>
+    /// Game session snapshot record header.
+    /// </summary>
     [MessagePackObject]
     public class GameSessionSnapshot
     {
+        /// <summary>
+        /// true if the snapshot contains a topology record.
+        /// </summary>
         [Key(0)]
         public bool TopologySet { get; set; }
 
+        /// <summary>
+        /// true if the snapshot contains a settings record.
+        /// </summary>
         [Key(1)]
         public bool SettingsSet { get; set; }
 
@@ -1887,37 +1936,79 @@ namespace Stormancer.Server.Plugins.GameSession
         [IgnoreMember]
         public int AvailableSlots => Slots - FixedSlots.Count();
     }
-
+    /// <summary>
+    /// Public settings of the game session.
+    /// </summary>
     [MessagePackObject]
     public class GameSessionSettingsRecord
     {
+        /// <summary>
+        /// Public settings.
+        /// </summary>
         [Key(0)]
         public Dictionary<string, string> Settings { get; set; } = new Dictionary<string, string>();
 
+        /// <summary>
+        /// List of team configurations for this game session.
+        /// </summary>
+        /// <remarks>
+        /// Advertises available slots in the game session, per teams, used in the game UI or for instance to take matchmaking/server browsing filtering decision.
+        /// </remarks>
         [Key(1)]
         public List<TeamConfigurationRecord> Teams { get; set; } = new List<TeamConfigurationRecord>();
     }
 
+    /// <summary>
+    /// State of the host
+    /// </summary>
     public enum GameSessionHostState
     {
+        /// <summary>
+        /// Host disconnected
+        /// </summary>
         Disconnected,
+
+        /// <summary>
+        /// Host connected
+        /// </summary>
         Connected,
+
+        /// <summary>
+        /// Host ready
+        /// </summary>
         Ready,
 
     }
+
+    /// <summary>
+    /// Gamesession network topology update record.
+    /// </summary>
     [MessagePackObject]
     public class TopologyUpdateRecord : IEquatable<TopologyUpdateRecord>
     {
-
+        /// <summary>
+        /// Gets an optional error string.
+        /// </summary>
         [Key(0)]
         public string Error { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Gets the session id of the new/current host.
+        /// </summary>
         [Key(1)]
         public SessionId Host { get; init; }
 
+        /// <summary>
+        /// Gets the new state of the host.
+        /// </summary>
         [Key(2)]
         public GameSessionHostState State { get; init; }
 
+        /// <summary>
+        /// Determines if two topology update records are equal.
+        /// </summary>
+        /// <param name="other"></param>
+        /// <returns></returns>
         public bool Equals(TopologyUpdateRecord? other)
         {
             if (other == null)

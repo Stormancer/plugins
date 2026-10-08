@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+
+using Lucene.Net.Index;
 using MessagePack;
 using Nest;
 using Newtonsoft.Json;
@@ -57,7 +59,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// Initial team configuration
         /// </summary>
-        public List<TeamConfigurationRecord> TeamsConfiguration { get;  set; } = new List<TeamConfigurationRecord>();
+        public List<TeamConfigurationRecord> TeamsConfiguration { get; set; } = new List<TeamConfigurationRecord>();
     }
 
     /// <summary>
@@ -83,7 +85,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// Custom data associated with the game session.
         /// </summary>
-        public JObject?  CustomData { get; set; } 
+        public JObject? CustomData { get; set; }
     }
 
 
@@ -98,14 +100,14 @@ namespace Stormancer.Server.Plugins.GameFinder
             this.gameSessions = gameSessions;
         }
 
-        internal async Task<IEnumerable<Document<QuickQueueGameSessionData>>> QueryGameSessions(ParametersGroup parameters)
+        internal async Task<IEnumerable<Document<GamesessionDocumentSource>>> QueryGameSessions(ParametersGroup parameters)
         {
             var docs = (await search.SearchGamesessions<JObject>(JObject.FromObject(new GamesessionsDocumentStoreFilter { AcceptSplit = true, PartySize = 1 }), 0, 20, CancellationToken.None)).Hits;
 
 
-            return docs.Select(d=> 
+            return docs.Select(d =>
             {
-                return new Document<QuickQueueGameSessionData>(d.Id, d?.Source?["matchmaking"]?.ToObject<QuickQueueGameSessionData>()) { Version = d.Version };
+                return new Document<GamesessionDocumentSource>(d.Id, d?.Source?["matchmaking"]?.ToObject<GamesessionDocumentSource>()) { Version = d.Version };
             });
         }
 
@@ -159,90 +161,45 @@ namespace Stormancer.Server.Plugins.GameFinder
                         var party = p.FirstOrDefault();
                         if (party != null)
                         {
-                            async Task<List<Document<QuickQueueGameSessionData>>> ProcessParty(List<Document<QuickQueueGameSessionData>> sessions, Party party)
+                            async Task<List<Document<GamesessionDocumentSource>>> ProcessParty(List<Document<GamesessionDocumentSource>> sessions, Party party)
                             {
                                 foreach (var session in sessions)
                                 {
-                                    foreach (var team in (IEnumerable<QuickQueueGameSessionTeamData>?)(session.Source?.Teams) ?? Array.Empty<QuickQueueGameSessionTeamData>())
+                                    if (session.Source == null)
                                     {
-                                        if (team.PlayerCount + party.Players.Count <= teamSize)
-                                        {
-                                            var reservation = await gameSessions.CreateReservation(session.Id, new Team(party) { TeamId = team.TeamId }, new JObject(), CancellationToken.None);
-
-                                            if (reservation != null)
-                                            {
-                                                team.PlayerCount += party.Players.Count;
-
-                                                //Add game to result
-                                                var game = results.Games.FirstOrDefault(g => g.Id == session.Id);
-                                                if (game != null)
-                                                {
-                                                    var gameTeam = game.Teams.FirstOrDefault(t => t.TeamId == team.TeamId);
-                                                    if (gameTeam != null)
-                                                    {
-                                                        gameTeam.Parties.Add(party);
-                                                    }
-                                                    else
-                                                    {
-                                                        game.Teams.Add(new Team(party) { TeamId = team.TeamId });
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    game = new ExistingGame(session.Id);
-                                                    game.Teams.Add(new Team(party) { TeamId = team.TeamId });
-                                                    results.Games.Add(game);
-                                                }
-                                                p.Remove(party);
-                                                return sessions;
-                                            }
-                                            else
-                                            {
-                                                //We should have been able to do a reservation. As we didn't, we need to retry.
-                                                return (await QueryGameSessions(group.Key)).OrderBy(session => session.Source.CreatedOn).ToList();
-                                            }
-
-                                        }
+                                        continue;
                                     }
-
-                                    //can I create new team ?
-                                    if (party.Players.Count <= teamSize && session.Source.TargetTeamCount > session.Source.Teams.Count)
+                                    if (session.Source.PlayerCount + party.Players.Count < group.Key.TeamCount * group.Key.TeamSize)
                                     {
-                                        var team = new Team(party);
-                                        var reservation = await gameSessions.CreateReservation(session.Id, team, new JObject(), CancellationToken.None);
+                                        var reservation = await gameSessions.CreateReservation(session.Id, new Team(party), new JObject(), CancellationToken.None);
 
-                                        if (reservation != null)
+                                        if (reservation == null)
                                         {
-                                            session.Source.Teams.Add(new QuickQueueGameSessionTeamData { PlayerCount = party.Players.Count, TeamId = team.TeamId });
+                                            return (await QueryGameSessions(group.Key)).OrderBy(session => session?.Source?.CreatedOn).ToList();
+                                        }
 
-                                            //Add game to result
-                                            var game = results.Games.FirstOrDefault(g => g.Id == session.Id);
-                                            if (game != null)
+                                        session.Source.PlayerCount += party.Players.Count;
+
+                                        var game = results.Games.FirstOrDefault(g => g.Id == session.Id);
+                                        if (game != null)
+                                        {
+                                            var gameTeam = game.Teams.FirstOrDefault();
+                                            if (gameTeam != null)
                                             {
-                                                var gameTeam = game.Teams.FirstOrDefault(t => t.TeamId == team.TeamId);
-                                                if (gameTeam != null)
-                                                {
-                                                    gameTeam.Parties.Add(party);
-                                                }
-                                                else
-                                                {
-                                                    game.Teams.Add(new Team(party) { TeamId = team.TeamId });
-                                                }
+                                                gameTeam.Parties.Add(party);
                                             }
                                             else
                                             {
-                                                game = new ExistingGame(session.Id);
-                                                game.Teams.Add(new Team(party) { TeamId = team.TeamId });
-                                                results.Games.Add(game);
+                                                game.Teams.Add(new Team(party));
                                             }
-                                            p.Remove(party);
-                                            return sessions;
                                         }
                                         else
                                         {
-                                            //We should have been able to do a reservation. As we didn't, we need to retry.
-                                            return (await QueryGameSessions(group.Key)).OrderBy(session => session.Source.CreatedOn).ToList();
+                                            game = new ExistingGame(session.Id);
+                                            game.Teams.Add(new Team(party));
+                                            results.Games.Add(game);
                                         }
+
                                     }
 
                                 }
@@ -259,9 +216,21 @@ namespace Stormancer.Server.Plugins.GameFinder
                                     game.PrivateCustomData.Merge(JObject.FromObject(config));
 
                                     results.Games.Add(game);
-                                    var data = new QuickQueueGameSessionData { CreatedOn = DateTime.UtcNow, TargetTeamSize = (int)teamSize, TargetTeamCount = (int)teamCount };
-                                    data.Teams = new List<QuickQueueGameSessionTeamData> { new QuickQueueGameSessionTeamData { PlayerCount = party.Players.Count, TeamId = team.TeamId } };
-                                    sessions.Add(new Document<QuickQueueGameSessionData>(game.Id, data) { Version = 1 });
+                                    var data = new GamesessionDocumentSource
+                                    {
+                                        CreatedOn = DateTime.UtcNow,
+                                        PlayerCount = party.Players.Count,
+                                        Teams = new List<TeamConfigurationRecord> {
+                                            new TeamConfigurationRecord {
+                                                Slots = (int)(teamCount*teamSize),
+                                                FixedSlots = party.Players.Select(p=>p.Value.SessionId).ToList() 
+                                            }
+                                        },
+                                        Settings = config.Args
+
+                                    };
+                                    
+                                    sessions.Add(new Document<GamesessionDocumentSource>(game.Id, data) { Version = 1 });
                                     p.Remove(party);
                                     return sessions;
                                 }

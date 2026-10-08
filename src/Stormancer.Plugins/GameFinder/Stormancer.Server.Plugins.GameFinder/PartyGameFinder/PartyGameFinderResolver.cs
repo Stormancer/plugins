@@ -90,7 +90,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                     var party = gameCtx.Game.AllParties.First();
                     var leaderId = party.PartyLeaderId;
                     var leader = party.Players[leaderId];
-                    config.HostSessionId = leader.SessionId.ToString();
+                    config.HostSelectionConfiguration = FixedHostSelectionPolicy.CreateConfiguration(leaderId);
                 }
 
                 

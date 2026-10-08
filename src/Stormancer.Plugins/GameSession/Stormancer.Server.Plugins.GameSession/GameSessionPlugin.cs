@@ -122,6 +122,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 builder.Register<CandidatesHostSelectionPolicy>().As<IHostSelectionPolicy>();
                 builder.Register<ServerHostSelectionPolicy>().As<IHostSelectionPolicy>();
                 builder.Register<AnyHostSelectionPolicy>().As<IHostSelectionPolicy>();
+
             };
 
             ctx.HostStarting += (IHost host) =>

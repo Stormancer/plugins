@@ -86,7 +86,7 @@ namespace Stormancer.Gamesessions.Browser
 
 
         [Key(2)]
-        public required int PlayerCount { get; init; }
+        public required int PlayerCount { get; set; }
 
 
         [Key(3)]
