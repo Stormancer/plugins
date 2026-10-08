@@ -842,9 +842,11 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private async Task<bool> Start()
         {
+            Debug.Assert(_config != null);
+            bool result = false;
             try
             {
-                Debug.Assert(_config != null);
+                
                 _analytics.StartGamesession(this);
                 var settings = _currentGameSessionSettings?.Settings ?? new Dictionary<string, string>();
                 var teams = _currentGameSessionSettings?.Teams ?? new List<TeamConfigurationRecord>();
@@ -865,7 +867,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 }
                 else if(_config.HostSelectionConfiguration is null)
                 {
-
+                    _config.HostSelectionConfiguration = AnyHostSelectionPolicy.CreateConfiguration();
                 }
 
                 if (poolId != null)
@@ -949,13 +951,21 @@ namespace Stormancer.Server.Plugins.GameSession
                 SetDimension("template", _scene.Template);
                 _repository.AddGameSession(this);
 
-                return _server != null;
+                result = _server != null;
             }
             catch (Exception ex)
             {
                 _logger.Log(LogLevel.Error, "gamesession.gameserverFailure", "Failed to start game server", ex);
-                return false;
+                result = false;
             }
+            finally
+            {
+                if(_server == null && _config.AllowP2PHostFallback && _config.HostSelectionConfiguration?.Type == ServerHostSelectionPolicy.Type)
+                {
+                    _config.HostSelectionConfiguration = AnyHostSelectionPolicy.CreateConfiguration();
+                }
+            }
+            return result;
         }
 
         //private TaskCompletionSource<IScenePeerClient> GetHostTcs()

@@ -99,26 +99,17 @@ namespace Stormancer.Server.Plugins.GameSession
         [Key(4)]
         public JObject Parameters { get; set; } = new JObject();
 
-        /// <summary>
-        /// If true, the game session shouldn't choose a client as the host, but request a game server.
-        /// </summary>
-        /// <remarks>
-        /// If set, requires <see cref="GameServerPool"/> to be set.
-        /// </remarks>
-        [Key(5)]
-        public bool StartGameServer { get; set; }
-
 
         /// <summary>
         /// The game server pool from which the game server should be requested, if StartGameServer is true.
         /// </summary>
-        [Key(6)]
+        [Key(5)]
         public string? GameServerPool { get; set; }
 
         /// <summary>
         /// Name of the game finder creating the game session, if available.
         /// </summary>
-        [Key(7)]
+        [Key(6)]
         public string? GameFinder { get; set; }
 
 
@@ -128,19 +119,22 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <remarks>
         /// Empty for any region.
         /// </remarks>
-        [Key(8)]
+        [Key(7)]
         public IEnumerable<string> PreferredRegions { get; set; } = Enumerable.Empty<string>();
 
         /// <summary>
         /// Initial game session settings
         /// </summary>
-        [Key(9)]
+        [Key(8)]
         public Dictionary<string, string> Settings { get; set; } = new Dictionary<string, string>();
 
         /// <summary>
         /// Initial teams configuration.
         /// </summary>
-        [Key(10)]
+        [Key(9)]
         public List<TeamConfigurationRecord> TeamsConfiguration { get; set; } = new List<TeamConfigurationRecord>();
+
+        [Key(10)]
+        public bool AllowP2PHostFallback { get; set; } = true;
     }
 }
