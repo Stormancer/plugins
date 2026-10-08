@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Server.Plugins.GameSession.Models;
@@ -226,19 +227,19 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <returns></returns>
         Task<GameServer?> WaitServerStartAsync(CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Checks if a session is a server.
-        /// </summary>
-        /// <param name="session"></param>
-        /// <returns></returns>
-        bool IsDedicatedServer(Session session);
-
+       
         /// <summary>
         /// Updates the list of peers that can host the game.
         /// </summary>
         /// <param name="sessionIds"></param>
         void UpdateHostCandidates(IEnumerable<SessionId> sessionIds);
 
+
+        /// <summary>
+        /// Returns a list of host candidates.
+        /// </summary>
+        /// <returns></returns>
+        IEnumerable<SessionId> GetHostCandidates();
         /// <summary>
         /// Gets the scene of the game session.
         /// </summary>

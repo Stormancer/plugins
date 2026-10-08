@@ -63,7 +63,6 @@ namespace Stormancer.Server.Plugins.GameSession
     {
         
         public const string P2PMESH_METADATA_KEY = "stormancer.p2pmesh";
-        public const string TOPOLOGY_HOST_METADATA_KEY = "stormancer.topology.host";
 
         public const string POOL_SCENEID = "gamesession-serverpool";
 
@@ -100,10 +99,6 @@ namespace Stormancer.Server.Plugins.GameSession
                 builder.Register(static r => new GameSessionsMonitoringService(r.Resolve<GameSessionProxy>(), r.Resolve<ServerPoolProxy>(), r.Resolve<GameSessionEventsRepository>())).InstancePerRequest();
 
                 builder.Register(static d => new GameSessionState(d.Resolve<ISceneHost>()));
-
-                builder.Register(static d => new HostClientsTopologyState(d.Resolve<ISceneHost>())).InstancePerScene();
-                builder.Register(static d => new HostClientsTopologyController(d.Resolve<IGameSessionService>(), d.Resolve<IUserSessions>(),d.Resolve<HostClientsTopologyState>(), d.Resolve<ISerializer>(), d.Resolve<ISceneHost>())).InstancePerRequest();
-
                 builder.Register(d =>
                     new GameSessionService(
                         d.Resolve<GameSessionState>(),
@@ -116,12 +111,17 @@ namespace Stormancer.Server.Plugins.GameSession
                         d.Resolve<GameSessionsRepository>(),
                         d.Resolve<ISerializer>(),
                         d.Resolve<GameSessionEventsRepository>(),
-                        d.Resolve<JsonSerializer>())
+                        d.Resolve<JsonSerializer>(),
+                        d.ResolveAll<IHostSelectionPolicy>())
                 )
                 .As<IGameSessionService>()
                 .As<IConfigurationChangedEventHandler>()
                 .InstancePerScene();
 
+                builder.Register<FixedHostSelectionPolicy>().As<IHostSelectionPolicy>();
+                builder.Register<CandidatesHostSelectionPolicy>().As<IHostSelectionPolicy>();
+                builder.Register<ServerHostSelectionPolicy>().As<IHostSelectionPolicy>();
+                builder.Register<AnyHostSelectionPolicy>().As<IHostSelectionPolicy>();
             };
 
             ctx.HostStarting += (IHost host) =>
@@ -187,16 +187,8 @@ namespace Stormancer.Server.Plugins.GameSession
 
                         }
                     });
-                    if(scene.TemplateMetadata.ContainsKey(TOPOLOGY_HOST_METADATA_KEY))
-                    {
-                        scene.AddController<HostClientsTopologyController>();
-                    }
-                    scene.AddProcedure("p2pmesh.getP2PToken", async (rq) =>
-                    {
-                        var target = rq.ReadObject<SessionId>();
-                        var token = await scene.DependencyResolver.Resolve<Components.IPeerInfosService>().CreateP2pToken(target, scene.Id);
-                        await rq.SendValue(token);
-                    });
+                    
+                    
                 }
             };
             ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>

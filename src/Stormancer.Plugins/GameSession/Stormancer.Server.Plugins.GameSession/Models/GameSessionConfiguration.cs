@@ -31,6 +31,22 @@ using System.Linq;
 namespace Stormancer.Server.Plugins.GameSession
 {
     /// <summary>
+    /// Describes the 
+    /// </summary>
+    public class HostSelectionPolicyConfiguration
+    {
+        /// <summary>
+        /// Gets or sets the type of host selection policy to use.
+        /// </summary>
+        public required string Type { get; set; }
+
+        /// <summary>
+        /// Gets a map of arguments passed to the host selection policy.
+        /// </summary>
+        public Dictionary<string,string> Arguments { get; } = new Dictionary<string,string>();
+    }
+
+    /// <summary>
     /// Configuration of a game session
     /// </summary>
     [MessagePackObject]
@@ -49,10 +65,13 @@ namespace Stormancer.Server.Plugins.GameSession
         public bool canRestart { get; set; }
 
         /// <summary>
-        /// User id of the game host. In party the host user id value is the party leader.
+        /// Configuration of the host selection policy to use in the game session.
         /// </summary>
+        /// <remarks>
+        /// If null, no topology update events will be generated in the game session.
+        /// </remarks>
         [Key(2)]
-        public string? HostSessionId { get; set; }
+        public HostSelectionPolicyConfiguration? HostSelectionConfiguration { get; set; }
 
         /// <summary>
         /// Group connected to gameSession

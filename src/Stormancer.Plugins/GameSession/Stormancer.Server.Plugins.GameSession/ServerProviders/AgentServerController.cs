@@ -9,16 +9,24 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 {
+    /// <summary>
+    /// Provides services for Game server agents.
+    /// </summary>
     [Service(Named =false, ServiceType = "gameservers.agent")]
     public class AgentServerController :ControllerBase
     {
         private readonly AgentBasedGameServerProvider _gameServerProvider;
 
-        public AgentServerController(AgentBasedGameServerProvider gameServerProvider) : base()
+        internal AgentServerController(AgentBasedGameServerProvider gameServerProvider) : base()
         {
             _gameServerProvider = gameServerProvider;
         }
 
+        /// <summary>
+        /// Gets a list of agents currently connected to the application.
+        /// </summary>
+        /// <param name="onlyActive"></param>
+        /// <returns></returns>
         [S2SApi]
         public Task<IEnumerable<AgentDocument>> GetAgents(bool onlyActive)
         {
@@ -49,12 +57,25 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             }));
         }
 
+        /// <summary>
+        /// Direct a specific agent to download a docker image.
+        /// </summary>
+        /// <param name="agentId"></param>
+        /// <param name="args"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         [S2SApi]
         public Task<VoidResponse> DownloadImage(string agentId, DownloadImageArguments args,CancellationToken cancellationToken)
         {
             return _gameServerProvider.DownloadImageAsync(agentId, args,cancellationToken);
         }
 
+
+        /// <summary>
+        /// Gets a list of regions and an endpoint to ping.
+        /// </summary>
+        /// <param name="onlyActive"></param>
+        /// <returns></returns>
         [S2SApi]
         public Task<Dictionary<string,string>> GetRegions(bool onlyActive)
         {
