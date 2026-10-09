@@ -12,7 +12,7 @@ namespace Stormancer.Server.Plugins.Epic
     {
         private readonly IUserSessions _userSessions;
         private readonly ISerializer _serializer;
-        private readonly IEpicService _epicService;
+        private readonly IEOSService _epicService;
 
         /// <summary>
         /// Epic controller constructor
@@ -20,7 +20,7 @@ namespace Stormancer.Server.Plugins.Epic
         /// <param name="userSessions"></param>
         /// <param name="serializer"></param>
         /// <param name="epicService"></param>
-        public EpicController(IUserSessions userSessions, ISerializer serializer, IEpicService epicService)
+        public EpicController(IUserSessions userSessions, ISerializer serializer, IEOSService epicService)
         {
             _userSessions = userSessions;
             _serializer = serializer;

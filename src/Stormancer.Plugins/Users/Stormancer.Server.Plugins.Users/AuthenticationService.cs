@@ -116,7 +116,7 @@ namespace Stormancer.Server.Plugins.Users
 
                 var authResult = await provider.Authenticate(authenticationCtx, ct);
 
-                var authCompleteCtx = new AuthenticationCompleteContext(authResult, peer, session);
+                var authCompleteCtx = new AuthenticationCompleteContext(auth,authResult, peer, session);
                 await _handlers().RunEventHandler(h => h.OnAuthenticationComplete(authCompleteCtx, ct), ex => _logger.Log(LogLevel.Error, "user.login", $"An error occurred while running {nameof(IAuthenticationEventHandler.OnAuthenticationComplete)} event handler", ex));
 
                 if (authResult.Success)

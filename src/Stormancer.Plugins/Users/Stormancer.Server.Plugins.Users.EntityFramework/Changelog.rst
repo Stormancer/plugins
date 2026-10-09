@@ -14,6 +14,7 @@ Unreleased
 Added
 *****
 - Adds an implemenatation of IUserStorage.Enabled
+- Added Identities in factory code for User objects.
 
 1.0.0.6
 ----------

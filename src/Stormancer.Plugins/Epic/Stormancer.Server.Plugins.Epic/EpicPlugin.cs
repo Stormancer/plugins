@@ -26,7 +26,7 @@ namespace Stormancer.Server.Plugins.Epic
             {
                 builder.Register<EpicController>().InstancePerRequest();
                 builder.Register<EpicProfilePartBuilder>().As<IProfilePartBuilder>();
-                builder.Register<EpicService>().As<IEpicService>();
+                builder.Register<EOSService>().As<IEOSService>();
                 builder.Register(static r=>EpicServiceLocator.Instance).As<IServiceLocatorProvider>();
                 builder.Register<EpicFriendsEventHandler>().As<IFriendsEventHandler>().InstancePerRequest(); 
                 builder.Register<EpicAuthenticationProvider>().As<IAuthenticationProvider>();

@@ -63,12 +63,19 @@ namespace Stormancer.Server.Plugins.Users
     /// </summary>
     public class AuthenticationCompleteContext
     {
-        internal AuthenticationCompleteContext(AuthenticationResult result, IScenePeerClient peer, SessionRecord? session)
+        internal AuthenticationCompleteContext(AuthParameters authParameters,AuthenticationResult result, IScenePeerClient peer, SessionRecord? session)
         {
+            AuthParameters = authParameters;
             Result = result;
             Peer = peer;
             CurrentSession = session;
         }
+
+        /// <summary>
+        /// Gets the authentication parameters sent to the server as part of this auth request.
+        /// </summary>
+        public AuthParameters AuthParameters { get; }
+
         /// <summary>
         /// Result of the authentication phase.
         /// </summary>

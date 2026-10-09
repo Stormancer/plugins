@@ -37,7 +37,8 @@ namespace Stormancer.Server.Plugins.Users
                 UserData = JObject.Parse(record.UserData.RootElement.GetRawText()!),
                 CreatedOn = record.CreatedOn,
                 LastLogin = record.LastLogin,
-                LastPlatform = record.LastPlatform
+                LastPlatform = record.LastPlatform,
+                Identities = record.Identities.ToDictionary(identity=>identity.Provider,identity=>identity.Identity)
 
             };
         }

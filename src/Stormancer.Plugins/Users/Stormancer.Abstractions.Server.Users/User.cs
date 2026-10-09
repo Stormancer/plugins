@@ -98,6 +98,12 @@ namespace Stormancer.Server.Plugins.Users
         /// </summary>
         [Key(7)]
         public string? Pseudonym { get; set; }
+
+        /// <summary>
+        /// Gets all identities linked to the user.
+        /// </summary>
+        [Key(8)]
+        public Dictionary<string, string> Identities { get; set; }
     }
 
     /// <summary>

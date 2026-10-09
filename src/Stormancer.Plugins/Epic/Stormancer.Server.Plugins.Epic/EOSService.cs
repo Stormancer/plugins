@@ -1,4 +1,5 @@
-﻿using Stormancer.Diagnostics;
+﻿using Microsoft.VisualBasic;
+using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Users;
 using Stormancer.Server.Secrets;
@@ -156,9 +157,9 @@ namespace Stormancer.Server.Plugins.Epic
     /// <summary>
     /// Epic Platform service
     /// </summary>
-    public class EpicService : IEpicService
+    internal class EOSService : IEOSService
     {
-        private readonly IConfiguration _configuration;
+        private readonly ConfigurationMonitor<EOSConfigurationSection> _configuration;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IUserSessions _userSessions;
         private readonly ISerializer _serializer;
@@ -177,7 +178,7 @@ namespace Stormancer.Server.Plugins.Epic
         /// <param name="serializer"></param>
         /// <param name="logger"></param>
         /// <param name="secretsStore"></param>
-        public EpicService(IConfiguration configuration, IHttpClientFactory httpClientFactory, IUserSessions userSessions, ISerializer serializer, ILogger logger, ISecretsStore secretsStore)
+        public EOSService(ConfigurationMonitor<EOSConfigurationSection> configuration, IHttpClientFactory httpClientFactory, IUserSessions userSessions, ISerializer serializer, ILogger logger, ISecretsStore secretsStore)
         {
             _configuration = configuration;
             _httpClientFactory = httpClientFactory;
@@ -197,9 +198,9 @@ namespace Stormancer.Server.Plugins.Epic
             return (session.platformId.Platform == EpicConstants.PLATFORM_NAME);
         }
 
-        private EpicConfigurationSection GetConfig()
+        private EOSConfigurationSection GetConfig()
         {
-            return _configuration.GetValue<EpicConfigurationSection>(EpicConstants.PLATFORM_NAME);
+            return _configuration.Value;
         }
 
         /// <summary>
@@ -417,8 +418,8 @@ namespace Stormancer.Server.Plugins.Epic
         {
             var authResult = await _accessTokenCache.Get("accessToken", async (_) =>
             {
-                var deploymentIds = GetConfig().deploymentIds;
-                if (deploymentIds == null || !deploymentIds.Any())
+                var deploymentId = GetConfig().deploymentId;
+                if (deploymentId == null)
                 {
                     throw new InvalidOperationException("DeploymentId is not set in config.");
                 }
@@ -442,7 +443,7 @@ namespace Stormancer.Server.Plugins.Epic
                     Content = new FormUrlEncodedContent(new Dictionary<string, string>
                     {
                         { "grant_type", "client_credentials" },
-                        { "deployment_id", deploymentIds.First() },
+                        { "deployment_id", deploymentId },
                         { "scope", "basic_profile friends_list presence" },
                         { "client_id", clientId },
                         { "client_secret", clientSecret }
@@ -488,13 +489,13 @@ namespace Stormancer.Server.Plugins.Epic
         /// <summary>
         /// https://dev.epicgames.com/docs/web-api-ref/connect-web-api#request-an-eos-access-token
         /// </summary>
-        /// <param name="requestorUserId">For user access only.</param>
+        /// <param name="requestorSessionId">For user access only.</param>
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
         private async Task<string> GetEOSAccessToken(SessionId? requestorSessionId = null)
         {
-            var deploymentIds = GetConfig().deploymentIds;
-            if (deploymentIds == null || !deploymentIds.Any())
+            var deploymentId = GetConfig().deploymentId;
+            if (deploymentId == null)
             {
                 throw new InvalidOperationException("DeploymentId is not set in config.");
             }
@@ -537,7 +538,7 @@ namespace Stormancer.Server.Plugins.Epic
                 {
                     { "grant_type", "external_auth" },
                     { "nonce", nonce },
-                    { "deployment_id", deploymentIds.First() },
+                    { "deployment_id", deploymentId },
                     { "external_auth_token", epicgamesAccessToken },
                     { "external_auth_type", "epicgames_access_token" }
                 });
@@ -549,7 +550,7 @@ namespace Stormancer.Server.Plugins.Epic
                     { "grant_type", "client_credentials" },
                     { "client_id", clientId },
                     { "client_secret", clientSecret },
-                    { "deployment_id", deploymentIds.First() }
+                    { "deployment_id", deploymentId }
                 });
             }
 
@@ -619,26 +620,23 @@ namespace Stormancer.Server.Plugins.Epic
             return Encoding.UTF8.GetString(secret.Value) ?? "";
         }
 
-        private static IEnumerable<T> Segment<T>(IEnumerator<T> iter, int size, out bool cont)
+        private static IEnumerable<T> Segment<T>(IEnumerator<T> iter, int size)
         {
-            var ret = new List<T>();
-            cont = true;
-            bool hit = false;
+           
             for (var i = 0; i < size; i++)
             {
-                if (iter.MoveNext())
+                yield return iter.Current;
+                // Do not move next after the last item is returned, because the
+                // uper loop does that and we would skip items otherwise.
+                if(i == size - 1)
                 {
-                    hit = true;
-                    ret.Add(iter.Current);
+                    yield break;
                 }
-                else
+                else if (!iter.MoveNext()) // We reached the end of the iterator.
                 {
-                    cont = false;
-                    break;
+                    yield break;
                 }
             }
-
-            return hit ? ret : null;
         }
 
         /// <summary>
@@ -646,20 +644,100 @@ namespace Stormancer.Server.Plugins.Epic
         /// </summary>
         public static IEnumerable<IEnumerable<T>> Chunk<T>(IEnumerable<T> collection, int size)
         {
-            bool shouldContinue = collection != null && collection.Any();
+            ArgumentNullException.ThrowIfNull(collection);
+            bool shouldContinue = collection.Any();
 
             using (var iter = collection.GetEnumerator())
             {
-                while (shouldContinue)
+                while (iter.MoveNext())
                 {
-                    //iteration of the enumerable is done in segment
-                    var result = Segment(iter, size, out shouldContinue);
+                    //iteration of the enumerable is done in egment
+                    yield return Segment(iter, size);
 
-                    if (shouldContinue || result != null)
-                        yield return result;
-
-                    else yield break;
+                    
                 }
+            }
+        }
+
+        public async Task<EosVoiceRoomToken> CreateVoiceRoomToken(string voiceRoomId, IEnumerable<EosRoomParticipantRequest> participants)
+        {
+            var config = GetConfig();
+            var deploymentId = config.deploymentId;
+
+            ArgumentNullException.ThrowIfNull(deploymentId, nameof(deploymentId));
+
+            var eosAccessToken = await GetEOSAccessToken();
+
+            if (string.IsNullOrWhiteSpace(eosAccessToken))
+            {
+                throw new InvalidOperationException("EosEpicAccessToken is invalid");
+            }
+
+            var url = $"https://api.epicgames.dev/rtc/v1/{deploymentId}/room/{voiceRoomId}";
+
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = JsonContent.Create(participants),
+            };
+
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", eosAccessToken);
+
+            var httpClient = new HttpClient();
+
+            using var response = await httpClient.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<EosVoiceRoomToken>();
+
+                if(result is null)
+                {
+                    _logger.Log(LogLevel.Error, "EpicService.GetExternalAccountsImpl", "HTTP request failed.", new { StatusCode = response.StatusCode, ResponseContent = result });
+                    throw new InvalidOperationException("HTTP request failed.");
+                }
+
+                return result;
+            }
+            else
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+                _logger.Log(LogLevel.Error, "EpicService.GetExternalAccountsImpl", "HTTP request failed.", new { StatusCode = response.StatusCode, ResponseContent = responseContent });
+                throw new InvalidOperationException("HTTP request failed.");
+            }
+        }
+
+        public async Task RemoveVoiceRoomParticipant(string voiceRoomId, string productUserId)
+        {
+            var config = GetConfig();
+            var deploymentId = config.deploymentId;
+
+            ArgumentNullException.ThrowIfNull(deploymentId, nameof(deploymentId));
+
+            var eosAccessToken = await GetEOSAccessToken();
+
+            if (string.IsNullOrWhiteSpace(eosAccessToken))
+            {
+                throw new InvalidOperationException("EosEpicAccessToken is invalid");
+            }
+
+            var url = $"https://api.epicgames.dev/rtc/v1/{deploymentId}/room/{voiceRoomId}/participants/{productUserId}";
+
+
+            using var request = new HttpRequestMessage(HttpMethod.Delete, url);
+           
+
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", eosAccessToken);
+
+            var httpClient = new HttpClient();
+
+            using var response = await httpClient.SendAsync(request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+                _logger.Log(LogLevel.Error, "EpicService.GetExternalAccountsImpl", "HTTP request failed.", new { StatusCode = response.StatusCode, ResponseContent = responseContent });
+                throw new InvalidOperationException("HTTP request failed.");
             }
         }
     }

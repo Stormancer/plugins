@@ -8,7 +8,11 @@ The format is based on `Keep a Changelog <https://keepachangelog.com/en/1.0.0/>`
 Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
-
+Unreleased
+----------
+Added
+*****
+- Added identities to User.
 1.1.0.8
 ----------
 Changed

@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Users;
+using Stormancer.Server.Plugins.Users.OAuth;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -153,43 +154,16 @@ namespace Stormancer.Server.Plugins.Epic
         /// </summary>
         [Key(12)]
         public string? pfdid { get; set; }
+
+        /// <summary>
+        /// The product user id identifying the user.
+        /// </summary>
+        [Key(13)]
+        public string? product_user_id { get; set; }
     }
 
-    /// <summary>
-    /// Epic configuration class
-    /// </summary>
-    public class EpicConfigurationSection
-    {
-        /// <summary>
-        /// Allowed Product ids.
-        /// </summary>
-        public IEnumerable<string>? productIds { get; set; }
-
-        /// <summary>
-        /// Allowed Application ids.
-        /// </summary>
-        public IEnumerable<string>? applicationIds { get; set; }
-
-        /// <summary>
-        /// Allowed Deployment ids.
-        /// </summary>
-        public IEnumerable<string>? deploymentIds { get; set; }
-
-        /// <summary>
-        /// Allowed Sandbox ids.
-        /// </summary>
-        public IEnumerable<string>? sandboxIds { get; set; }
-
-        /// <summary>
-        /// Client id.
-        /// </summary>
-        public string? clientId { get; set; }
-
-        /// <summary>
-        /// Client secret.
-        /// </summary>
-        public string? clientSecret { get; set; }
-    }
+    
+    
 
     /// <summary>
     /// Json Web Token key
@@ -254,14 +228,14 @@ namespace Stormancer.Server.Plugins.Epic
     {
         private readonly IUserService _users;
         private readonly ILogger _logger;
-        private readonly IConfiguration _configuration;
+        private readonly ConfigurationMonitor<EOSConfigurationSection> _configuration;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IUserSessions _userSessions;
         private readonly ISerializer _serializer;
-        private readonly IEpicService _epicService;
+        private readonly IEOSService _epicService;
         private static MemoryCache<string,KeyCollectionResponse> _keysCache = new MemoryCache<string,KeyCollectionResponse>();
 
-        public EpicAuthenticationProvider(IUserService users, ILogger logger, IConfiguration configuration, IHttpClientFactory httpClientFactory, IEpicService epicService, IUserSessions userSessions, ISerializer serializer)
+        public EpicAuthenticationProvider(IUserService users, ILogger logger, ConfigurationMonitor<EOSConfigurationSection> configuration, IHttpClientFactory httpClientFactory, IEOSService epicService, IUserSessions userSessions, ISerializer serializer)
         {
             _users = users;
             _logger = logger;
@@ -279,9 +253,9 @@ namespace Stormancer.Server.Plugins.Epic
             result.Add("provider.epic", "enabled");
         }
 
-        private EpicConfigurationSection GetConfig()
+        private EOSConfigurationSection GetConfig()
         {
-            return _configuration.GetValue<EpicConfigurationSection>("epic");
+            return _configuration.Value;
         }
 
         private async Task<JwtKey> GetKey(AccessTokenHeader headers)
@@ -343,7 +317,7 @@ namespace Stormancer.Server.Plugins.Epic
                 return AuthenticationResult.CreateFailure($"Missing SandboxIds in server config.", pId, authParams);
             }
 
-            if (config.deploymentIds == null || !config.deploymentIds.Any())
+            if (config.deploymentId == null || !config.deploymentId.Any())
             {
                 return AuthenticationResult.CreateFailure($"Missing DeploymentIds in server config.", pId, authParams);
             }
@@ -399,9 +373,9 @@ namespace Stormancer.Server.Plugins.Epic
                         return AuthenticationResult.CreateFailure($"Invalid token (5).", pId, authParams);
                     }
 
-                    if (string.IsNullOrWhiteSpace(payload.pfdid) || !config.deploymentIds.Contains(payload.pfdid))
+                    if (string.IsNullOrWhiteSpace(payload.pfdid) || !config.deploymentId.Contains(payload.pfdid))
                     {
-                        _logger.Log(LogLevel.Error, "EpicAuthenticationProvider.Authenticate", "Invalid deployment id", new { TokenApplicationId = payload.appid, ConfigDeploymentIds = config.deploymentIds });
+                        _logger.Log(LogLevel.Error, "EpicAuthenticationProvider.Authenticate", "Invalid deployment id", new { TokenApplicationId = payload.appid, ConfigDeploymentIds = config.deploymentId });
                         return AuthenticationResult.CreateFailure($"Invalid token (6).", pId, authParams);
                     }
 
@@ -459,6 +433,10 @@ namespace Stormancer.Server.Plugins.Epic
                     _serializer.Serialize(payload, memStream);
                     authResult.OnSessionUpdated += (SessionRecord sessionRecord) =>
                     {
+                        if (payload.product_user_id != null)
+                        {
+                            sessionRecord.Identities["eos"] = payload.product_user_id;
+                        }
                         sessionRecord.SessionData["EpicAccessToken"] = Encoding.UTF8.GetBytes(accessToken);
                         sessionRecord.SessionData["EpicAccessTokenPayload"] = memStream.ToArray();
                     };

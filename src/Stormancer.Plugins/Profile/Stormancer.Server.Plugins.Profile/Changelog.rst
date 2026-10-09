@@ -14,7 +14,7 @@ Unreleased
 Added
 *****
 - Added Get batch profiles in web API.
-
+- Added user identities to user default profile part.
 4.1.2.4
 ----------
 Changed

@@ -35,10 +35,10 @@ namespace Stormancer.Server.Plugins.Epic
     {
         private const string LOG_CATEGORY = "EpicProfilePartBuilder";
         private readonly IUserService _users;
-        private readonly IEpicService _epicService;
+        private readonly IEOSService _epicService;
         private readonly ILogger _logger;
 
-        public EpicProfilePartBuilder(IUserService users, IEpicService epicService, ILogger logger)
+        public EpicProfilePartBuilder(IUserService users, IEOSService epicService, ILogger logger)
         {
             _users = users;
             _epicService = epicService;

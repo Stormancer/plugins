@@ -61,9 +61,9 @@ namespace Stormancer.Server.Plugins.Profile
                         j["userId"] = user.Id;
                         j["lastPlatform"] = user.LastPlatform ?? "";
 
-                        if (!j.ContainsKey("platforms"))
+                        if (!j.ContainsKey("identities"))
                         {
-                            j["platforms"] = new JObject();
+                            j["identities"] = JObject.FromObject(user.Identities);
                         }
                         if(!j.ContainsKey("crossplay"))
                         {
@@ -76,12 +76,7 @@ namespace Stormancer.Server.Plugins.Profile
                             {
                                 j["pseudo"] = user.Pseudonym;
                             }
-                            else if (user.UserData.ContainsKey("handle"))
-                            {
-                                j["pseudo"] = user.UserData["handle"];
-                                j["platforms"]![DeviceIdentifierConstants.PROVIDER_NAME] = new JObject();
-                                j["platforms"]![DeviceIdentifierConstants.PROVIDER_NAME]![DeviceIdentifierConstants.ClaimPath] = user.UserData["handle"];
-                            }
+                           
                         }
                     }
                     return j;

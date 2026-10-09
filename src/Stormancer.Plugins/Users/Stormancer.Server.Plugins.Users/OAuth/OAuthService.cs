@@ -36,8 +36,10 @@ namespace Stormancer.Server.Plugins.Users.OAuth
         /// Creates a JWK token signed with the active key.
         /// </summary>
         /// <param name="session"></param>
+        /// <param name="audience"></param>
+        /// <param name="claims"></param>
         /// <returns></returns>
-        public async Task<string> CreateToken(Session session, string audience)
+        public async Task<string> CreateToken(Session session, string audience, Dictionary<string,object> claims)
         {
             var config = _configuration.Value;
             if (config.ActiveKeyId == null || config.Issuer == null || !config.ValidAudiences.Any())
@@ -49,6 +51,10 @@ namespace Stormancer.Server.Plugins.Users.OAuth
             if(!config.ValidAudiences.Contains(audience))
             {
                 throw new InvalidOperationException($"Invalid audience '{audience}'.");
+            }
+            if(config.Issuer is null)
+            {
+                throw new InvalidOperationException($"`auth.oauth.issuer` is not defined.");
             }
 
             var jwk = keys.Keys.FirstOrDefault(k => k.KeyId == config.ActiveKeyId);
@@ -62,9 +68,9 @@ namespace Stormancer.Server.Plugins.Users.OAuth
 
             SecurityTokenDescriptor tokenDescriptor = new()
             {
-                Issuer = "mtg",
-                Audience = "eos",
-                Claims = new Dictionary<string, object> { { "stormancer:userId", "xxx" } },
+                Issuer = config.Issuer,
+                Audience = audience,
+                Claims = claims,
                 SigningCredentials = new SigningCredentials(new RsaSecurityKey(GetRSAParametersFromJWK(jwk)), SecurityAlgorithms.RsaSsaPssSha256)
 
             };
