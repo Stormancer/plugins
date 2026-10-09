@@ -17,7 +17,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
     {
         private readonly AgentBasedGameServerProvider _gameServerProvider;
 
-        internal AgentServerController(AgentBasedGameServerProvider gameServerProvider) : base()
+        public AgentServerController(AgentBasedGameServerProvider gameServerProvider) : base()
         {
             _gameServerProvider = gameServerProvider;
         }
