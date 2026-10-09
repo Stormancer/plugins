@@ -625,7 +625,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
     /// <summary>
     /// Provides integration with docker server hosting agents.
     /// </summary>
-    internal class AgentBasedGameServerProvider : IGameServerProvider, IDisposable
+    public class AgentBasedGameServerProvider : IGameServerProvider, IDisposable
     {
         private object _syncRoot = new object();
         private Dictionary<string, DockerAgent> _agents = new();
