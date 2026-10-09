@@ -963,6 +963,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 if(_server == null && _config.AllowP2PHostFallback && _config.HostSelectionConfiguration?.Type == ServerHostSelectionPolicy.Type)
                 {
                     _config.HostSelectionConfiguration = AnyHostSelectionPolicy.CreateConfiguration();
+                    SelectHost();
                 }
             }
             return result;
