@@ -64,7 +64,11 @@ namespace {{namespace}}
 	{
 		public AppDbContext CreateDbContext(string[] args)
 		{
-			var host = ServerApplication.CreateDesignTimeHost(builder => builder.AddAllStartupActions());
+			var host = ServerApplication.CreateDesignTimeHost(builder =>
+            {
+                builder.Configure(args);
+                builder.AddAllStartupActions();
+            });
 			var scope = host.DependencyResolver.CreateChild(Stormancer.Server.Plugins.API.Constants.ApiRequestTag);
 
 			// We can use .Result because in design time mode, every tasks are run synchronously.
