@@ -92,7 +92,7 @@ namespace Stormancer.Server.Plugins.Users.EntityFramework
             var dbContext = await _dbContext.GetDbContextAsync();
 
             var guid = Guid.Parse(uid);
-            return UserRecord.CreateUserFromRecord(await dbContext.Set<UserRecord>().SingleOrDefaultAsync(u => u.Id == guid));
+            return UserRecord.CreateUserFromRecord(await dbContext.Set<UserRecord>().Include((UserRecord u) => u.Identities).SingleOrDefaultAsync(u => u.Id == guid));
         }
 
         public async Task<Dictionary<string, User?>> GetUsers(IEnumerable<string> userIds, CancellationToken cancellationToken)
@@ -104,7 +104,7 @@ namespace Stormancer.Server.Plugins.Users.EntityFramework
             try
             {
                 var guids = userIds.Select(id => Guid.TryParse(id, out var guid) ? guid : default).Where(guid => guid != Guid.Empty).ToArray();
-                var records = await dbContext.Set<UserRecord>().Where(u => guids.Contains(u.Id)).ToListAsync();
+                var records = await dbContext.Set<UserRecord>().Include((UserRecord u) => u.Identities).Where(u => guids.Contains(u.Id)).ToListAsync();
                 var results = new Dictionary<string, User?>();
                 foreach (var id in userIds)
                 {
@@ -149,7 +149,7 @@ namespace Stormancer.Server.Plugins.Users.EntityFramework
                 mainQuery = mainQuery.Where(r => r.UserData.RootElement.GetProperty("{" + key.Replace('.', ',') + "}").ToString() == value);
             }
 
-            var results = await mainQuery.ToListAsync();
+            var results = await mainQuery.Include((UserRecord u) => u.Identities).ToListAsync();
 
             return results.Select(r => UserRecord.CreateUserFromRecord(r));
         }
@@ -158,7 +158,7 @@ namespace Stormancer.Server.Plugins.Users.EntityFramework
         {
             var dbContext = await _dbContext.GetDbContextAsync();
 
-            var records = await dbContext.Set<UserRecord>().Where(u => u.UserHandle != null && u.UserHandle.StartsWith(prefix)).Skip(skip).Take(take).ToListAsync();
+            var records = await dbContext.Set<UserRecord>().Where(u => u.UserHandle != null && u.UserHandle.StartsWith(prefix)).Include((UserRecord u) => u.Identities).Skip(skip).Take(take).ToListAsync();
 
             return records.Select(r => UserRecord.CreateUserFromRecord(r));
         }

@@ -121,7 +121,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Spectate", "Spectate", "{DD
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Spectate", "Spectate\Stormancer.Server.Plugins.Spectate\Stormancer.Server.Plugins.Spectate.csproj", "{A8EDE6F2-EFB1-4E22-A59D-C4DB8E0515DC}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AccessLimits", "AccessLimits", "{1279C477-CFC3-4D49-9A6C-649F7C652FD6}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Limits", "Limits", "{1279C477-CFC3-4D49-9A6C-649F7C652FD6}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stormancer.Server.Plugins.Limits", "Limits\Stormancer.Server.Plugins.Limits\Stormancer.Server.Plugins.Limits.csproj", "{EEA73710-A05B-4DFA-826B-CBDD2F5BBCD2}"
 EndProject
@@ -263,6 +263,16 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Leaderboards.Elasticsearch", "Leaderboards\Stormancer.Server.Plugins.Leaderboards.Elasticsearch\Stormancer.Server.Plugins.Leaderboards.Elasticsearch.csproj", "{2C8EC323-3359-4AB8-83A2-6A79963F3D1D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Leaderboards.EntityFramework", "Leaderboards\Stormancer.Server.Plugins.Leaderboards.EntityFramework\Stormancer.Server.Plugins.Leaderboards.EntityFramework.csproj", "{13108983-2716-E061-E5A3-20295082D992}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Voice", "Voice", "{2DA15FCB-6C23-4D11-AFA0-F2112574B6EE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Voice", "Voice\Stormancer.Server.Plugins.Voice\Stormancer.Server.Plugins.Voice.csproj", "{76A8F0DF-3D11-469E-A5AF-72CBD693CAAD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Xsolla", "Xsolla", "{10ED0D9F-4A8F-4461-9DD1-272C9E30AC1B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Xsolla", "Xsolla\Stormancer.Server.Plugins.Xsolla\Stormancer.Server.Plugins.Xsolla.csproj", "{25E97DE4-04F7-4621-8CFB-00817E43D891}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stormancer.Server.Plugins.Analytics.Outputs.Elasticsearch", "Analytics\Stormancer.Server.Plugins.Analytics.Outputs.Elasticsearch\Stormancer.Server.Plugins.Analytics.Outputs.Elasticsearch.csproj", "{3DDECF59-4A1E-433C-BBC6-B1C9C4F4128E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1059,6 +1069,42 @@ Global
 		{13108983-2716-E061-E5A3-20295082D992}.Release|x64.Build.0 = Release|Any CPU
 		{13108983-2716-E061-E5A3-20295082D992}.Release|x86.ActiveCfg = Release|Any CPU
 		{13108983-2716-E061-E5A3-20295082D992}.Release|x86.Build.0 = Release|Any CPU
+		{76A8F0DF-3D11-469E-A5AF-72CBD693CAAD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76A8F0DF-3D11-469E-A5AF-72CBD693CAAD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76A8F0DF-3D11-469E-A5AF-72CBD693CAAD}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{76A8F0DF-3D11-469E-A5AF-72CBD693CAAD}.Debug|x64.Build.0 = Debug|Any CPU
+		{76A8F0DF-3D11-469E-A5AF-72CBD693CAAD}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{76A8F0DF-3D11-469E-A5AF-72CBD693CAAD}.Debug|x86.Build.0 = Debug|Any CPU
+		{76A8F0DF-3D11-469E-A5AF-72CBD693CAAD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76A8F0DF-3D11-469E-A5AF-72CBD693CAAD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76A8F0DF-3D11-469E-A5AF-72CBD693CAAD}.Release|x64.ActiveCfg = Release|Any CPU
+		{76A8F0DF-3D11-469E-A5AF-72CBD693CAAD}.Release|x64.Build.0 = Release|Any CPU
+		{76A8F0DF-3D11-469E-A5AF-72CBD693CAAD}.Release|x86.ActiveCfg = Release|Any CPU
+		{76A8F0DF-3D11-469E-A5AF-72CBD693CAAD}.Release|x86.Build.0 = Release|Any CPU
+		{25E97DE4-04F7-4621-8CFB-00817E43D891}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{25E97DE4-04F7-4621-8CFB-00817E43D891}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{25E97DE4-04F7-4621-8CFB-00817E43D891}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{25E97DE4-04F7-4621-8CFB-00817E43D891}.Debug|x64.Build.0 = Debug|Any CPU
+		{25E97DE4-04F7-4621-8CFB-00817E43D891}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{25E97DE4-04F7-4621-8CFB-00817E43D891}.Debug|x86.Build.0 = Debug|Any CPU
+		{25E97DE4-04F7-4621-8CFB-00817E43D891}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{25E97DE4-04F7-4621-8CFB-00817E43D891}.Release|Any CPU.Build.0 = Release|Any CPU
+		{25E97DE4-04F7-4621-8CFB-00817E43D891}.Release|x64.ActiveCfg = Release|Any CPU
+		{25E97DE4-04F7-4621-8CFB-00817E43D891}.Release|x64.Build.0 = Release|Any CPU
+		{25E97DE4-04F7-4621-8CFB-00817E43D891}.Release|x86.ActiveCfg = Release|Any CPU
+		{25E97DE4-04F7-4621-8CFB-00817E43D891}.Release|x86.Build.0 = Release|Any CPU
+		{3DDECF59-4A1E-433C-BBC6-B1C9C4F4128E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3DDECF59-4A1E-433C-BBC6-B1C9C4F4128E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3DDECF59-4A1E-433C-BBC6-B1C9C4F4128E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3DDECF59-4A1E-433C-BBC6-B1C9C4F4128E}.Debug|x64.Build.0 = Debug|Any CPU
+		{3DDECF59-4A1E-433C-BBC6-B1C9C4F4128E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3DDECF59-4A1E-433C-BBC6-B1C9C4F4128E}.Debug|x86.Build.0 = Debug|Any CPU
+		{3DDECF59-4A1E-433C-BBC6-B1C9C4F4128E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3DDECF59-4A1E-433C-BBC6-B1C9C4F4128E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3DDECF59-4A1E-433C-BBC6-B1C9C4F4128E}.Release|x64.ActiveCfg = Release|Any CPU
+		{3DDECF59-4A1E-433C-BBC6-B1C9C4F4128E}.Release|x64.Build.0 = Release|Any CPU
+		{3DDECF59-4A1E-433C-BBC6-B1C9C4F4128E}.Release|x86.ActiveCfg = Release|Any CPU
+		{3DDECF59-4A1E-433C-BBC6-B1C9C4F4128E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1173,6 +1219,11 @@ Global
 		{A3518C8A-3A96-0FCD-DA72-F3AF38DD2264} = {F7EBECAA-0E7C-4840-A480-E10790A2A274}
 		{2C8EC323-3359-4AB8-83A2-6A79963F3D1D} = {FD4F5652-8F9E-458F-A054-5A576948B74E}
 		{13108983-2716-E061-E5A3-20295082D992} = {FD4F5652-8F9E-458F-A054-5A576948B74E}
+		{2DA15FCB-6C23-4D11-AFA0-F2112574B6EE} = {FD264C24-4E01-4B1E-B5A1-489EC1C376E4}
+		{76A8F0DF-3D11-469E-A5AF-72CBD693CAAD} = {2DA15FCB-6C23-4D11-AFA0-F2112574B6EE}
+		{10ED0D9F-4A8F-4461-9DD1-272C9E30AC1B} = {FD264C24-4E01-4B1E-B5A1-489EC1C376E4}
+		{25E97DE4-04F7-4621-8CFB-00817E43D891} = {10ED0D9F-4A8F-4461-9DD1-272C9E30AC1B}
+		{3DDECF59-4A1E-433C-BBC6-B1C9C4F4128E} = {275883BD-CC75-44F6-86BF-F867AE9E2A0C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {547397A9-A248-43C9-A03D-E7F3D465A7DF}

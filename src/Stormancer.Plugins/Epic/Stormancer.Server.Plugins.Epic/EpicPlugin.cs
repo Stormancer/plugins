@@ -1,4 +1,5 @@
 ﻿using Stormancer.Core;
+using Stormancer.Diagnostics;
 using Stormancer.Plugins;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Epic;
@@ -37,7 +38,8 @@ namespace Stormancer.Server.Plugins.Epic
                     dr.Resolve<ConfigurationMonitor<EOSConfigurationSection>>(),
                     dr.Resolve<OAuthService>(),
                     dr.Resolve<IProfileService>(),
-                    dr.Resolve<IEOSService>())).As<IAuthenticationEventHandler>().InstancePerRequest();
+                    dr.Resolve<IEOSService>(),
+                    dr.Resolve<ILogger>())).As<IAuthenticationEventHandler>().InstancePerRequest();
             };
 
           

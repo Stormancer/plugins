@@ -1072,21 +1072,12 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private async ValueTask CloseGameServer()
         {
-            if (!HostSessionId.IsEmpty())
+            if (!HostSessionId.IsEmpty() && state.UseGameServer() && _server?.GameServerId != null)
             {
-
-                var poolId = state.GameServerPool();
-                Debug.Assert(poolId != null);
-
-                if (state.UseGameServer())
-                {
-                    await using var scope = _scene.CreateRequestScope();
-                    var pools = scope.Resolve<ServerPoolProxy>();
-                    if (_server != null)
-                    {
-                        await pools.CloseServer(_server.GameServerId, CancellationToken.None);
-                    }
-                }
+                await using var scope = _scene.CreateRequestScope();
+                var pools = scope.Resolve<ServerPoolProxy>();
+                        
+                await pools.CloseServer(_server.GameServerId, CancellationToken.None);
             }
         }
 

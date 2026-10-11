@@ -307,8 +307,9 @@ namespace Stormancer.Server.Plugins.Epic
 
                 var batch = Chunk(externalAccountIds, 16).SelectMany(chunk =>
                 {
-                    var t = GetExternalAccountsImpl(chunk, identityProviderId, environment);
-                    return chunk.Select(id => (id, t));
+                    var list = chunk.ToList();
+                    var t = GetExternalAccountsImpl(list, identityProviderId, environment);
+                    return list.Select(id => (id, t));
                 });
 
                 foreach (var (id, task) in batch)

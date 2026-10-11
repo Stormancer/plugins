@@ -1,4 +1,5 @@
 ﻿using Microsoft.IdentityModel.Abstractions;
+using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Profile;
 using Stormancer.Server.Plugins.Users;
@@ -19,22 +20,25 @@ namespace Stormancer.Server.Plugins.Epic
         private readonly OAuthService _oAuth;
         private readonly IProfileService _profiles;
         private readonly IEOSService _eos;
+        private readonly ILogger _logger;
 
         public EOSAuthenticationEventHandler(
             ConfigurationMonitor<EOSConfigurationSection> configuration, 
             OAuthService oAuth, 
             IProfileService profiles,
-            IEOSService eos)
+            IEOSService eos,
+            ILogger logger)
         {
             _configuration = configuration;
             _oAuth = oAuth;
             _profiles = profiles;
             _eos = eos;
+            _logger = logger;
         }
 
         async Task IAuthenticationEventHandler.OnAuthenticationComplete(AuthenticationCompleteContext ctx, CancellationToken cancellationToken)
         {
-            if (ctx.CurrentSession is null)
+            if (ctx.Result.AuthenticatedUser is null)
             {
                 return;
             }
@@ -45,43 +49,37 @@ namespace Stormancer.Server.Plugins.Epic
                 return;
             }
 
-            string? userId = ctx.CurrentSession.User?.Id;
-            if(userId is null)
-            {
-                return;
-            }
-
+            string userId = ctx.Result.AuthenticatedUser.Id;
             
+         
 
             if (ctx.AuthParameters.Parameters.TryGetValue("eos.openID", out var value) && value == "true")
             {
                 // Try getting the EOS product user id.
-                if (!ctx.CurrentSession.Identities.ContainsKey("eos"))
+                if (!ctx.Result.AuthenticatedUser.Identities.ContainsKey("eos"))
                 {
                     var productIds = await _eos.GetExternalAccounts([userId], "openid");
 
                     if (productIds.TryGetValue(userId, out var eosProductUserId) && eosProductUserId is not null)
                     {
-                        ctx.CurrentSession.Identities.Add("eos", eosProductUserId);
+                        ctx.Result.AuthenticatedUser.Identities.Add("eos", eosProductUserId);
                         SetMetadata(ctx, "eos.productUserId", eosProductUserId);
                     }
                 }
 
 
-                var session = ctx.CurrentSession.CreateView();
 
                 string displayName = string.Empty;
-                if (ctx.CurrentSession.User is not null)
+                
+                  
+                var profile = await _profiles.GetProfile(userId, new() { ["user"] = "summary" }, null, CancellationToken.None);
+                if (profile is not null && profile.TryGetValue("user", out var json) && json.TryGetValue("pseudo", out var pseudoJson))
                 {
-                    userId = ctx.CurrentSession.User.Id;
-                    var profile = await _profiles.GetProfile(userId, new() { ["user"] = "summary" }, session, CancellationToken.None);
-                    if (profile is not null && profile.TryGetValue("user", out var json) && json.TryGetValue("pseudo", out var pseudoJson))
-                    {
-                        displayName = pseudoJson.ToObject<string>() ?? string.Empty;
-
-                    }
+                    displayName = pseudoJson.ToObject<string>() ?? string.Empty;
 
                 }
+
+                
 
 
                 var claims = new Dictionary<string, object>
@@ -89,11 +87,10 @@ namespace Stormancer.Server.Plugins.Epic
                     ["sub"] = userId,
                     ["displayName"] = displayName
                 };
-                var jwt = await _oAuth.CreateToken(ctx.CurrentSession.CreateView(), config.audience, claims);
+                var jwt = await _oAuth.CreateToken(config.audience, claims);
 
                
                 SetMetadata(ctx,"eos.jwt", jwt);
-
 
             }
 

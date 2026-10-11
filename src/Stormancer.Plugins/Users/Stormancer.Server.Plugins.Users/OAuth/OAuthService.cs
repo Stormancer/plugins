@@ -35,11 +35,10 @@ namespace Stormancer.Server.Plugins.Users.OAuth
         /// <summary>
         /// Creates a JWK token signed with the active key.
         /// </summary>
-        /// <param name="session"></param>
         /// <param name="audience"></param>
         /// <param name="claims"></param>
         /// <returns></returns>
-        public async Task<string> CreateToken(Session session, string audience, Dictionary<string,object> claims)
+        public async Task<string> CreateToken(string audience, Dictionary<string, object> claims)
         {
             var config = _configuration.Value;
             if (config.ActiveKeyId == null || config.Issuer == null || !config.ValidAudiences.Any())
@@ -48,22 +47,22 @@ namespace Stormancer.Server.Plugins.Users.OAuth
             }
             var keys = await GetPrivateKeys();
 
-            if(!config.ValidAudiences.Contains(audience))
+            if (!config.ValidAudiences.Contains(audience))
             {
                 throw new InvalidOperationException($"Invalid audience '{audience}'.");
             }
-            if(config.Issuer is null)
+            if (config.Issuer is null)
             {
                 throw new InvalidOperationException($"`auth.oauth.issuer` is not defined.");
             }
 
             var jwk = keys.Keys.FirstOrDefault(k => k.KeyId == config.ActiveKeyId);
 
-            if(jwk == null)
+            if (jwk == null)
             {
                 throw new InvalidOperationException($"Active OAuth key {config.ActiveKeyId} not found.");
             }
-            
+
             JsonWebTokenHandler tokenHandler = new();
 
             SecurityTokenDescriptor tokenDescriptor = new()
@@ -71,11 +70,11 @@ namespace Stormancer.Server.Plugins.Users.OAuth
                 Issuer = config.Issuer,
                 Audience = audience,
                 Claims = claims,
-                SigningCredentials = new SigningCredentials(new RsaSecurityKey(GetRSAParametersFromJWK(jwk)), SecurityAlgorithms.RsaSsaPssSha512)
+                SigningCredentials = new SigningCredentials(new RsaSecurityKey(GetRSAParametersFromJWK(jwk)) { KeyId = jwk.KeyId }, SecurityAlgorithms.RsaSsaPssSha512)
 
             };
             return tokenHandler.CreateToken(tokenDescriptor);
-            
+
         }
 
 
@@ -146,44 +145,53 @@ namespace Stormancer.Server.Plugins.Users.OAuth
             return new JsonWebKey { KeyId = jwk.KeyId, E = jwk.E, N = jwk.N, Alg = jwk.Alg, Kty = jwk.Kty, Use = jwk.Use };
         }
 
-        static (RSAParameters publicKey, RSAParameters privateKey) GetRSAParametersPairFromPrivateJWK(JsonWebKey jwk)
-        {
-            RSAParameters publicKey = new RSAParameters();
-            RSAParameters privateKey = new RSAParameters();
-
-
-            // PUBLIC KEY
-
-            publicKey.Exponent = Base64UrlEncoder.DecodeBytes(jwk.E);
-            publicKey.Modulus = Base64UrlEncoder.DecodeBytes(jwk.N);
-
-            // PRIVATE KEY
-
-            privateKey.Exponent = Base64UrlEncoder.DecodeBytes(jwk.E);
-            privateKey.Modulus = Base64UrlEncoder.DecodeBytes(jwk.N);
-            privateKey.D = Base64UrlEncoder.DecodeBytes(jwk.D);
-            privateKey.DP = Base64UrlEncoder.DecodeBytes(jwk.DP);
-            privateKey.DQ = Base64UrlEncoder.DecodeBytes(jwk.DQ);
-            privateKey.P = Base64UrlEncoder.DecodeBytes(jwk.P);
-            privateKey.Q = Base64UrlEncoder.DecodeBytes(jwk.Q);
-            privateKey.InverseQ = Base64UrlEncoder.DecodeBytes(jwk.QI);
-
-            return (publicKey, privateKey);
-        }
-
+       
         static RSAParameters GetRSAParametersFromJWK(JsonWebKey jwk)
         {
-            RSAParameters privateKey = new RSAParameters();
-            privateKey.Exponent = Base64UrlEncoder.DecodeBytes(jwk.E);
-            privateKey.Modulus = Base64UrlEncoder.DecodeBytes(jwk.N);
-            privateKey.D = Base64UrlEncoder.DecodeBytes(jwk.D);
-            privateKey.DP = Base64UrlEncoder.DecodeBytes(jwk.DP);
-            privateKey.DQ = Base64UrlEncoder.DecodeBytes(jwk.DQ);
-            privateKey.P = Base64UrlEncoder.DecodeBytes(jwk.P);
-            privateKey.Q = Base64UrlEncoder.DecodeBytes(jwk.Q);
-            privateKey.InverseQ = Base64UrlEncoder.DecodeBytes(jwk.QI);
+            RSAParameters key = new RSAParameters();
+            key.Exponent = Base64UrlEncoder.DecodeBytes(jwk.E);
+            key.Modulus = Base64UrlEncoder.DecodeBytes(jwk.N);
 
-            return privateKey;
+            if (!string.IsNullOrEmpty(jwk.D))
+            {
+                key.D = Base64UrlEncoder.DecodeBytes(jwk.D);
+                key.DP = Base64UrlEncoder.DecodeBytes(jwk.DP);
+                key.DQ = Base64UrlEncoder.DecodeBytes(jwk.DQ);
+                key.P = Base64UrlEncoder.DecodeBytes(jwk.P);
+                key.Q = Base64UrlEncoder.DecodeBytes(jwk.Q);
+                key.InverseQ = Base64UrlEncoder.DecodeBytes(jwk.QI);
+            }
+
+            return key;
+        }
+
+        public async Task<TokenValidationResult> ValidateToken(string jwt)
+        {
+            var config = _configuration.Value;
+            var keySet = await GetKeySet();
+            JsonWebTokenHandler tokenHandler = new();
+
+            var token = tokenHandler.ReadJsonWebToken(jwt);
+            var jwk = keySet.Keys.FirstOrDefault(jwk => jwk.KeyId == token.Kid);
+
+            if (jwk == null)
+            {
+                return new TokenValidationResult { IsValid = false, Exception = new Exception($"Unknown kid: {token.Kid}") };
+            }
+
+            TokenValidationParameters validationParameters = new()
+            {
+                ValidateIssuer = true,
+                ValidIssuer = config.Issuer,
+                ValidateAudience = true,
+                ValidAudiences = config.ValidAudiences,
+                IssuerSigningKey = new RsaSecurityKey(GetRSAParametersFromJWK(jwk)) { KeyId = jwk.KeyId }
+            };
+
+            
+            return await tokenHandler.ValidateTokenAsync(token, validationParameters);
+
+
         }
     }
 
