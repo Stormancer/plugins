@@ -14,6 +14,7 @@ Unreleased
 Added
 *****
 - Added Extension method to configure Epic from app.cs
+- Added support for OpenID authentication to EOS without Epic store authentication.
 
 Changed
 *******
