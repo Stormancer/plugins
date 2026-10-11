@@ -199,7 +199,6 @@ namespace Stormancer.Server.Plugins.Users
 
         }
 
-        [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task<Dictionary<string, string>> GetStatus(IScenePeerClient peer, CancellationToken cancellationToken)
         {
             var session = await _sessions.GetSession(peer, cancellationToken);

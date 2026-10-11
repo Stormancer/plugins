@@ -71,7 +71,7 @@ namespace Stormancer.Server.Plugins.Users.OAuth
                 Issuer = config.Issuer,
                 Audience = audience,
                 Claims = claims,
-                SigningCredentials = new SigningCredentials(new RsaSecurityKey(GetRSAParametersFromJWK(jwk)), SecurityAlgorithms.RsaSsaPssSha256)
+                SigningCredentials = new SigningCredentials(new RsaSecurityKey(GetRSAParametersFromJWK(jwk)), SecurityAlgorithms.RsaSsaPssSha512)
 
             };
             return tokenHandler.CreateToken(tokenDescriptor);
@@ -89,7 +89,7 @@ namespace Stormancer.Server.Plugins.Users.OAuth
             RSA rsa = RSA.Create(2048);
             var p = rsa.ExportParameters(true);
 
-            var kid = "2026-10-06-rsa";
+            var kid = id;
 
             RsaSecurityKey publicAndPrivateKey1 = new(rsa.ExportParameters(true))
             {
@@ -143,7 +143,7 @@ namespace Stormancer.Server.Plugins.Users.OAuth
 
         static JsonWebKey GetPublicFromPrivateKey(JsonWebKey jwk)
         {
-            return new JsonWebKey { KeyId = jwk.KeyId, E = jwk.E, N = jwk.N };
+            return new JsonWebKey { KeyId = jwk.KeyId, E = jwk.E, N = jwk.N, Alg = jwk.Alg, Kty = jwk.Kty, Use = jwk.Use };
         }
 
         static (RSAParameters publicKey, RSAParameters privateKey) GetRSAParametersPairFromPrivateJWK(JsonWebKey jwk)
