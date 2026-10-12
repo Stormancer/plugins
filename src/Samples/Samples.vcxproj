@@ -214,9 +214,9 @@
   <!--Steam Support-->
   <ItemDefinitionGroup Condition="'$(Stormancer-Steam-SdkPath)' != ''">
     <ClCompile>
-      <PreprocessorDefinitions>ENABLE_STEAM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(Stormancer-Steam-SdkPath)\public\steam;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <ShowIncludes Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ShowIncludes>
+      <ShowIncludes Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ShowIncludes>
     </ClCompile>
     <Link>
       <AdditionalDependencies>steam_api$(PlatformArchitecture).lib;%(AdditionalDependencies)</AdditionalDependencies>

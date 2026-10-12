@@ -52,6 +52,8 @@ public:
 
 	void InvitePlayerToParty(const Stormancer::Users::UserId& userId);
 
+	void kickPlayer(const std::string& userId);
+
 	std::string mergerId;
 	int currentMergerPartiesCount;
 	int currentMergerPlayersCount;

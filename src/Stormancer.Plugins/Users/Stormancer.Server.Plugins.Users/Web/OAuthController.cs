@@ -89,7 +89,7 @@ namespace Stormancer.Server.Plugins.Users.Web
                          *   ["sub"] = userId,
                             ["displayName"] = displayName
                          */
-                        return new ValidateJwtResponse { DisplayName = (string)(validationResult.Claims["displayName"]), UserId = (string)(validationResult.Claims["sub"]) };
+                        return new ValidateJwtResponse { UserId = (string)(validationResult.Claims["sub"]) };
                     }
                     else
                     {
@@ -108,13 +108,16 @@ namespace Stormancer.Server.Plugins.Users.Web
         }
     }
 
+    /// <summary>
+    /// Response to a validate jwt request.
+    /// </summary>
     public class ValidateJwtResponse
     {
+        /// <summary>
+        /// User id.
+        /// </summary>
         [DataMember(Name = "userId")]
         public required string UserId { get; init; }
-
-        [DataMember(Name = "displayName")]
-        public required string DisplayName { get; init; }
     }
 
     /// <summary>

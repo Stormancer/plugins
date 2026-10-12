@@ -228,6 +228,28 @@ void PartyViewModel::InvitePlayerToParty(const Stormancer::Users::UserId& userId
 	}
 }
 
+void PartyViewModel::kickPlayer(const std::string& userId)
+{
+	auto client = Stormancer::IClientFactory::GetClient(this->parent->id);
+	auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
+	if (party->isInParty() && party->isLeader())
+	{
+		parent->isProcessing = true;
+		party->kickPlayer(userId).then([this](pplx::task<void> t)
+			{
+				this->parent->isProcessing = false;
+				try
+				{
+					t.get();
+				}
+				catch (std::exception& ex)
+				{
+					this->parent->lastError = ex.what();
+				}
+			});
+	}
+}
+
 void PartyViewModel::startMerging()
 {
 	auto client = Stormancer::IClientFactory::GetClient(this->parent->id);
