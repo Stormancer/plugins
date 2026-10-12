@@ -74,24 +74,31 @@ namespace Stormancer.Server.Plugins.Users.Web
                 {
                     return Unauthorized("Authorization scheme must be bearer token.");
                 }
-                if(string.IsNullOrEmpty(authorization.Parameter))
+                if (string.IsNullOrEmpty(authorization.Parameter))
                 {
                     return Unauthorized("Token null or empty.");
                 }
-
-                var validationResult = await _service.ValidateToken(authorization.Parameter);
-
-                if(validationResult.IsValid)
+                try
                 {
-                    /*
-                     *   ["sub"] = userId,
-                        ["displayName"] = displayName
-                     */
-                    return new ValidateJwtResponse { DisplayName= (string)(validationResult.Claims["displayName"]), UserId = (string)(validationResult.Claims["sub"]) };
+                    var validationResult = await _service.ValidateToken(authorization.Parameter);
+
+
+                    if (validationResult.IsValid)
+                    {
+                        /*
+                         *   ["sub"] = userId,
+                            ["displayName"] = displayName
+                         */
+                        return new ValidateJwtResponse { DisplayName = (string)(validationResult.Claims["displayName"]), UserId = (string)(validationResult.Claims["sub"]) };
+                    }
+                    else
+                    {
+                        return Unauthorized(validationResult.Exception.Message);
+                    }
                 }
-                else
+                catch (Microsoft.IdentityModel.Tokens.SecurityTokenMalformedException ex)
                 {
-                    return Unauthorized(validationResult.Exception.Message);
+                    return Unauthorized(ex.Message);
                 }
             }
             else
@@ -103,11 +110,11 @@ namespace Stormancer.Server.Plugins.Users.Web
 
     public class ValidateJwtResponse
     {
-        [DataMember(Name ="userId")]
+        [DataMember(Name = "userId")]
         public required string UserId { get; init; }
 
         [DataMember(Name = "displayName")]
-        public required string DisplayName { get;init;  }
+        public required string DisplayName { get; init; }
     }
 
     /// <summary>
