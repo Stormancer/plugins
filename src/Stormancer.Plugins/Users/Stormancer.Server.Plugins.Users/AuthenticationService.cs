@@ -127,7 +127,15 @@ namespace Stormancer.Server.Plugins.Users
 
                     await sessions.CreateSessionForPeer(peer, authResult.AuthenticatedUser, authResult.PlatformId, authResult.initialSessionData, s =>
                     {
-                        s.Identities[provider.Type] = authResult.PlatformId.ToString();
+                        if (authResult.AuthenticatedUser != null)
+                        {
+                            s.Identities = authResult.AuthenticatedUser.Identities;
+                        }
+                        else
+                        {
+                            s.Identities[provider.Type] = authResult.PlatformId.PlatformUserId;
+                        }
+                       
                         if (authResult.ExpirationDate.HasValue)
                         {
                             s.AuthenticationExpirationDates[provider.Type] = authResult.ExpirationDate.Value;
