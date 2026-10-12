@@ -50,9 +50,9 @@ namespace Stormancer.Server.Plugins.Epic
             }
 
             string userId = ctx.Result.AuthenticatedUser.Id;
-            
-         
 
+
+            _logger.Log(LogLevel.Info, "eos", "running EOS authentication event handler", new { });
             if (ctx.AuthParameters.Parameters.TryGetValue("eos.openID", out var value) && value == "true")
             {
                 // Try getting the EOS product user id.
