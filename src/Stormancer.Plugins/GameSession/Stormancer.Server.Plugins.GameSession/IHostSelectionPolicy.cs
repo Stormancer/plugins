@@ -127,9 +127,11 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Creates a policy configuration that activates the <see cref="CandidatesHostSelectionPolicy"/> host selection policy.
         /// </summary>
         /// <returns></returns>
-        public static HostSelectionPolicyConfiguration CreateConfiguration()
+        public static HostSelectionPolicyConfiguration CreateConfiguration(IEnumerable<SessionId> initialCandidates)
         {
-            return new HostSelectionPolicyConfiguration { Type  = Type };
+            var config = new HostSelectionPolicyConfiguration { Type = Type };
+            config.Arguments.Add("candidates", string.Join(',', initialCandidates.Select(s => s.ToString())));
+            return config;
         }
 
         ///<inheritdoc/>
@@ -149,7 +151,15 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             if (configuration?.Type == Type)
             {
-                _candidates = gameSession.GetHostCandidates();
+                var dynamicCandidates = gameSession.GetHostCandidates();
+                if(dynamicCandidates.Any())
+                {
+                    _candidates = dynamicCandidates;
+                }
+                else if (configuration.Arguments.TryGetValue("candidates",out var candidatesStr))
+                {
+                    _candidates = candidatesStr.Split(',').Select(t=>SessionId.From(t));
+                }
                 return true;
             }
             else
