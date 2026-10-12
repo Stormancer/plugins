@@ -52,34 +52,46 @@ namespace Stormancer.Server.Plugins.Epic
             string userId = ctx.Result.AuthenticatedUser.Id;
 
 
-            _logger.Log(LogLevel.Info, "eos", "running EOS authentication event handler", new { });
+            
             if (ctx.AuthParameters.Parameters.TryGetValue("eos.openID", out var value) && value == "true")
             {
-                // Try getting the EOS product user id.
-                if (!ctx.Result.AuthenticatedUser.Identities.ContainsKey("eos"))
+                try
                 {
-                    var productIds = await _eos.GetExternalAccounts([userId], "openid");
-
-                    if (productIds.TryGetValue(userId, out var eosProductUserId) && eosProductUserId is not null)
+                    // Try getting the EOS product user id.
+                    if (!ctx.Result.AuthenticatedUser.Identities.ContainsKey("eos"))
                     {
-                        ctx.Result.AuthenticatedUser.Identities.Add("eos", eosProductUserId);
-                        SetMetadata(ctx, "eos.productUserId", eosProductUserId);
+                        var productIds = await _eos.GetExternalAccounts([userId], "openid");
+
+                        if (productIds.TryGetValue(userId, out var eosProductUserId) && eosProductUserId is not null)
+                        {
+                            ctx.Result.AuthenticatedUser.Identities.Add("eos", eosProductUserId);
+                            SetMetadata(ctx, "eos.productUserId", eosProductUserId);
+                        }
                     }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Log(LogLevel.Info, "eos", "Failed getting the current product user id", ex);
                 }
 
 
 
                 string displayName = string.Empty;
-                
-                  
-                var profile = await _profiles.GetProfile(userId, new() { ["user"] = "summary" }, null, CancellationToken.None);
-                if (profile is not null && profile.TryGetValue("user", out var json) && json.TryGetValue("pseudo", out var pseudoJson))
-                {
-                    displayName = pseudoJson.ToObject<string>() ?? string.Empty;
 
+                try
+                {
+                    var profile = await _profiles.GetProfile(userId, new() { ["user"] = "summary" }, null, CancellationToken.None);
+                    if (profile is not null && profile.TryGetValue("user", out var json) && json.TryGetValue("pseudo", out var pseudoJson) && pseudoJson is not null)
+                    {
+                        displayName = pseudoJson.ToObject<string>() ?? string.Empty;
+
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Log(LogLevel.Info, "eos", "Failed getting the current display name.", ex);
                 }
 
-                
 
 
                 var claims = new Dictionary<string, object>
