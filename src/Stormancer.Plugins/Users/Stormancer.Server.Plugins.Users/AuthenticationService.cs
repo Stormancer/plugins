@@ -177,7 +177,7 @@ namespace Stormancer.Server.Plugins.Users
                 //return result;
             }
 
-            result.Authentications = session?.Identities.ToDictionary(entry => entry.Key, entry => entry.Value) ?? _emptyDictionary;
+            result.Authentications = session?.Identities?.ToDictionary(entry => entry.Key, entry => entry.Value) ?? _emptyDictionary;
             if (result.Metadata == null)
             {
                 result.Metadata = _emptyDictionary;
