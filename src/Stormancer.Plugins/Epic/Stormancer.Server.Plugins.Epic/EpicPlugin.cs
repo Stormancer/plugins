@@ -39,6 +39,7 @@ namespace Stormancer.Server.Plugins.Epic
                     dr.Resolve<OAuthService>(),
                     dr.Resolve<IProfileService>(),
                     dr.Resolve<IEOSService>(),
+                    dr.Resolve<IUserService>(),
                     dr.Resolve<ILogger>())).As<IAuthenticationEventHandler>().InstancePerRequest();
             };
 

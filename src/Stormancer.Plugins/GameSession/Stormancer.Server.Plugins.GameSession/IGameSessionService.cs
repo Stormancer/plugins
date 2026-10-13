@@ -244,5 +244,10 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Gets the scene of the game session.
         /// </summary>
         ISceneHost Scene { get; }
+
+        /// <summary>
+        /// Gets the name of the game session.
+        /// </summary>
+        string Name { get; }
     }
 }

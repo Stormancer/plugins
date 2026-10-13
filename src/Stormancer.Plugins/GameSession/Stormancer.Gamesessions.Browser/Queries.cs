@@ -91,6 +91,9 @@ namespace Stormancer.Gamesessions.Browser
 
         [Key(3)]
         public required DateTime CreatedOn { get; init; }
+
+        [Key(4)]
+        public required string Name { get; init; }
     }
     public class GamesessionsDocumentStore : IServiceSearchProvider
     {
@@ -121,7 +124,8 @@ namespace Stormancer.Gamesessions.Browser
                                 Settings = gs.GetSettings(),
                                 Teams = gs.GetTeamsConfiguration(),
                                 CreatedOn = gs.CreatedOn,
-                                PlayerCount = gs.PlayerCount
+                                PlayerCount = gs.PlayerCount,
+                                Name = gs.Name
                             }))
                             { Version = 1 });
                         }

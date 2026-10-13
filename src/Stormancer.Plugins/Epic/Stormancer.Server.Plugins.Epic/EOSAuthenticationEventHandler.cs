@@ -20,6 +20,7 @@ namespace Stormancer.Server.Plugins.Epic
         private readonly OAuthService _oAuth;
         private readonly IProfileService _profiles;
         private readonly IEOSService _eos;
+        private readonly IUserService _users;
         private readonly ILogger _logger;
 
         public EOSAuthenticationEventHandler(
@@ -27,12 +28,14 @@ namespace Stormancer.Server.Plugins.Epic
             OAuthService oAuth, 
             IProfileService profiles,
             IEOSService eos,
+            IUserService users,
             ILogger logger)
         {
             _configuration = configuration;
             _oAuth = oAuth;
             _profiles = profiles;
             _eos = eos;
+            _users = users;
             _logger = logger;
         }
 
@@ -48,7 +51,7 @@ namespace Stormancer.Server.Plugins.Epic
             {
                 return;
             }
-
+            var user = ctx.Result.AuthenticatedUser;
             string userId = ctx.Result.AuthenticatedUser.Id;
 
 
@@ -64,10 +67,18 @@ namespace Stormancer.Server.Plugins.Epic
 
                         if (productIds.TryGetValue(userId, out var eosProductUserId) && eosProductUserId is not null)
                         {
-                            ctx.Result.AuthenticatedUser.Identities.Add("eos", eosProductUserId);
-                            SetMetadata(ctx, "eos.productUserId", eosProductUserId);
+                            
+                                ctx.Result.AuthenticatedUser.Identities.Add("eos", eosProductUserId);
+                                await _users.AddAuthentication(user, "eos", eosProductUserId, claim => claim["eos"] = eosProductUserId);
+                            
+                           
                         }
                     }
+                    if(ctx.Result.AuthenticatedUser.Identities.TryGetValue("eos",out var id))
+                    {
+                        SetMetadata(ctx, "eos.productUserId", id);
+                    }
+                   
                 }
                 catch (Exception ex)
                 {
@@ -75,29 +86,9 @@ namespace Stormancer.Server.Plugins.Epic
                 }
 
 
-
-                string displayName = string.Empty;
-
-                try
-                {
-                    var profile = await _profiles.GetProfile(userId, new() { ["user"] = "summary" }, null, CancellationToken.None);
-                    if (profile is not null && profile.TryGetValue("user", out var json) && json.TryGetValue("pseudo", out var pseudoJson) && pseudoJson is not null)
-                    {
-                        displayName = pseudoJson.ToObject<string>() ?? string.Empty;
-
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.Log(LogLevel.Info, "eos", "Failed getting the current display name.", ex);
-                }
-
-
-
                 var claims = new Dictionary<string, object>
                 {
-                    ["sub"] = userId,
-                    ["displayName"] = displayName
+                    ["sub"] = userId
                 };
                 var jwt = await _oAuth.CreateToken(config.audience, claims);
 

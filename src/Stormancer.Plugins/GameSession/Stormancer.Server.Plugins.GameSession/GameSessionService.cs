@@ -1164,9 +1164,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         }
 
-
-
-
+        public string Name => _config?.Name ?? $"Game {Scene.Id}";
 
 
         public string GameSessionId => _scene.Id;

@@ -1230,7 +1230,7 @@ namespace Stormancer
 				name = scene->getHostMetadata(TOPOLOGY_HOST_METADATA_KEY);
 				if (name.length() > 0)
 				{
-					builder.registerDependency<details::GameSessionHostTopologyService, Scene>().singleInstance();
+					//builder.registerDependency<details::GameSessionHostTopologyService, Scene>().singleInstance();
 				}
 			}
 
