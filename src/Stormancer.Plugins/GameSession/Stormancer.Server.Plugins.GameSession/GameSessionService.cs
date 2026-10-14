@@ -846,7 +846,7 @@ namespace Stormancer.Server.Plugins.GameSession
             bool result = false;
             try
             {
-                
+
                 _analytics.StartGamesession(this);
                 var settings = _currentGameSessionSettings?.Settings ?? new Dictionary<string, string>();
                 var teams = _currentGameSessionSettings?.Teams ?? new List<TeamConfigurationRecord>();
@@ -861,18 +861,18 @@ namespace Stormancer.Server.Plugins.GameSession
                 UpdateSettings(settings, teams);
 
                 var poolId = state.GameServerPool();
-                if(poolId !=null)
+                if (poolId != null)
                 {
                     _config.HostSelectionConfiguration = ServerHostSelectionPolicy.CreateConfiguration();
                 }
-                else if(_config.HostSelectionConfiguration is null)
+                else if (_config.HostSelectionConfiguration is null)
                 {
                     _config.HostSelectionConfiguration = AnyHostSelectionPolicy.CreateConfiguration();
                 }
 
                 if (poolId != null)
                 {
-                    
+
                     await using (var scope = _scene.CreateRequestScope())
                     {
                         var pools = scope.Resolve<ServerPoolProxy>();
@@ -960,7 +960,7 @@ namespace Stormancer.Server.Plugins.GameSession
             }
             finally
             {
-                if(_server == null && _config.AllowP2PHostFallback && _config.HostSelectionConfiguration?.Type == ServerHostSelectionPolicy.Type)
+                if (_server == null && _config.AllowP2PHostFallback && _config.HostSelectionConfiguration?.Type == ServerHostSelectionPolicy.Type)
                 {
                     _config.HostSelectionConfiguration = AnyHostSelectionPolicy.CreateConfiguration();
                     SelectHost();
@@ -1076,7 +1076,7 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 await using var scope = _scene.CreateRequestScope();
                 var pools = scope.Resolve<ServerPoolProxy>();
-                        
+
                 await pools.CloseServer(_server.GameServerId, CancellationToken.None);
             }
         }
@@ -1401,6 +1401,27 @@ namespace Stormancer.Server.Plugins.GameSession
         public IEnumerable<TeamConfigurationRecord> GetTeamsConfiguration()
         {
             return _currentGameSessionSettings?.Teams ?? Enumerable.Empty<TeamConfigurationRecord>();
+        }
+
+        public IEnumerable<Party> GetParties()
+        {
+            lock (_syncRoot)
+            {
+                var list = new List<Party>();
+                foreach (var reservation in _reservationStates.Values)
+                {
+                    list.AddRange(reservation.Parties);
+                }
+
+                list.AddRange(_clients.Values.GroupBy(c => c.PartyId).Select(group => new Party()
+                {
+                    PartyId = group.Key,
+                    Players = group.ToDictionary(c => c.Session.User!.Id, c => new Player(c.SessionId, c.Session.User!.Id)),
+                    CustomData = Array.Empty<byte>()
+                }));
+
+                return list;
+            }
         }
 
         private static Dictionary<string, string> _emptySettings = [];
