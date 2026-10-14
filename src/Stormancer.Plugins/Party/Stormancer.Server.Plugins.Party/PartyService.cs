@@ -68,7 +68,7 @@ namespace Stormancer.Server.Plugins.Party
         private readonly Lazy<IEnumerable<IPartyPlatformSupport>> _platformSupports;
         private readonly Lazy<InvitationCodeService> invitationCodes;
         private readonly Lazy<PartyConfigurationService> partyConfigurationService;
-        private readonly Lazy<ISerializer> _serializer;
+        private readonly ISerializer _serializer;
         private readonly Lazy<CrossplayService> _crossplayService;
 
         public IReadOnlyDictionary<SessionId, PartyMember> PartyMembers => _partyState.PartyMembers;
@@ -86,7 +86,7 @@ namespace Stormancer.Server.Plugins.Party
             Lazy<IEnumerable<IPartyPlatformSupport>> platformSupports,
             Lazy<InvitationCodeService> invitationCodes,
             Lazy<PartyConfigurationService> partyConfigurationService,
-            Lazy<ISerializer> serializer,
+            ISerializer serializer,
             Lazy<CrossplayService> crossplayService
         )
         {
@@ -1159,7 +1159,7 @@ namespace Stormancer.Server.Plugins.Party
             _scene.Send(filter, route, static (s, t) =>
             {
                 var (serializer, data) = t;
-                serializer.Value.Serialize(data, s);
+                serializer.Serialize(data, s);
             }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE, (_serializer, data));
         }
 
