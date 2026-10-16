@@ -104,7 +104,7 @@ namespace Stormancer.GameServers.Agent
                 return;
             }
 
-            var containers = await _docker.Containers.ListContainersAsync(new ContainersListParameters { All = true });            
+            var containers = await _docker.Containers.ListContainersAsync(new ContainersListParameters { All = true });
             foreach (var container in containers)
             {
 
@@ -272,22 +272,22 @@ namespace Stormancer.GameServers.Agent
                                     {
                                         await _docker.Images.DeleteImageAsync(latest, new ImageDeleteParameters { }, cancellationToken);
                                     }
-                                    catch(DockerImageNotFoundException)
+                                    catch (DockerImageNotFoundException)
                                     {
                                         // The image didn't exist already, we can ignore this error.
                                     }
                                     catch (Exception ex)
                                     {
-                                        _logger.Log(LogLevel.Error, ex, "An error occured while trying to delete '{image}'.", latest);
+                                        _logger.Log(LogLevel.Error, ex, "An error occured while trying to delete '{image}'. Credentials={login}. passwordSet={passwordSet}", latest, credentials?.Login, !string.IsNullOrEmpty(credentials?.Password));
                                     }
 
                                 }
 
                             }
                         }
-                        catch(Exception ex)
+                        catch (Exception ex)
                         {
-                            _logger.Log(LogLevel.Error, ex, "An error occured while trying to download {image}.", image);
+                            _logger.Log(LogLevel.Error, ex, "An error occured while trying to downlad '{image}' : {ex}. Credentials={login}. passwordSet={passwordSet}", image,ex, credentials?.Login, !string.IsNullOrEmpty(credentials?.Password));
                         }
                         finally
                         {
@@ -699,7 +699,7 @@ namespace Stormancer.GameServers.Agent
 
                 }
             }
-        }        
+        }
 
         public void Report(Message value)
         {
