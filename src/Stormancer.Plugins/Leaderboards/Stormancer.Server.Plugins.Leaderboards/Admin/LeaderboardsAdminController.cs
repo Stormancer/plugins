@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using Microsoft.AspNetCore.Mvc;
+using Stormancer.Server.Plugins.Leaderboards.Admin.DTO;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -57,7 +58,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet("{boardName}/{scorePath}")]
-        public async Task<LeaderboardResult<ScoreRecord>> Get(string boardName, string scorePath, string? cursor = null, int count = 50, string ordering = "desc", CancellationToken cancellationToken = default)
+        public async Task<LeaderboardResultDTO> Get(string boardName, string scorePath, string? cursor = null, int count = 50, string ordering = "desc", CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(cursor))
             {
@@ -65,12 +66,12 @@ namespace Stormancer.Server.Plugins.Leaderboards
                 var result = await _leaderboards.Query(new LeaderboardQuery { Name = boardName, Size = count, Order = leaderboardOrdering, ScorePath = scorePath  }, cancellationToken); 
                 var total = await _leaderboards.GetTotal(new LeaderboardQuery { Name = boardName }, boardName,cancellationToken);
                 result.Total = total;
-                return result;
+                return LeaderboardResultDTO.FromLeaderboardResult(result);
             }
             else
             {
                 var result = await _leaderboards.QueryCursor(cursor,cancellationToken);
-                return result;
+                return LeaderboardResultDTO.FromLeaderboardResult(result);
             }
         }
 
