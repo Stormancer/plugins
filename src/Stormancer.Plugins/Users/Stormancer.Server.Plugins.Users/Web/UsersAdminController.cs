@@ -23,6 +23,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
+using Stormancer.Server.Plugins.Users.Web.DTO;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -66,11 +67,13 @@ namespace Stormancer.Server.Plugins.Users
         /// <returns></returns>
         [HttpGet]
         [Route("getByClaim")]
-        public async Task<User?> GetByClaim(string provider, string identifier, CancellationToken cancellationToken)
+        public async Task<UserDTO?> GetByClaim(string provider, string identifier, CancellationToken cancellationToken)
         {
             await using var scope = scene.CreateRequestScope();
             var users = scope.Resolve<IUserService>();
-            return await users.GetUserByIdentity(provider, identifier);
+            var result = await users.GetUserByIdentity(provider, identifier);
+
+            return UserDTO.FromUser(result);
         }
 
         /// <summary>
@@ -89,7 +92,7 @@ namespace Stormancer.Server.Plugins.Users
             var query = Request.Query.Where(s => s.Key != "take" && s.Key != "skip").Where(s => s.Value.Any()).ToDictionary(s => s.Key, s => s.Value.First() ?? string.Empty);
             var users = await _users.Query(query, take, skip, cancellationToken);
 
-            return users.Select(user => new UserViewModel { id = user.Id, user = user });
+            return users.Select(user => new UserViewModel { id = user.Id, user = UserDTO.FromUser(user) });
         }
 
         /// <summary>
@@ -99,11 +102,12 @@ namespace Stormancer.Server.Plugins.Users
         /// <returns></returns>
         [HttpGet]
         [Route("{id}")]
-        public async Task<User?> Get(string id)
+        public async Task<UserDTO?> Get(string id)
         {
             await using var scope = scene.CreateRequestScope();
             var _users = scope.Resolve<IUserService>();
-            return await _users.GetUser(id);
+            var result = await _users.GetUser(id);
+            return UserDTO.FromUser(result);
         }
 
         /// <summary>
@@ -199,6 +203,6 @@ namespace Stormancer.Server.Plugins.Users
         /// <summary>
         /// Gets the user.
         /// </summary>
-        public User user { get; internal set; } = default!;
+        public UserDTO user { get; internal set; } = default!;
     }
 }
