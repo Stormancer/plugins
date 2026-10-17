@@ -53,7 +53,7 @@ namespace Stormancer.Server.Plugins.Profile.Admin
 
         [HttpPost]
         [Route("search")]
-        public async Task<ActionResult<Dictionary<string,Dictionary<string,JObject>>>> GetBatch([FromBody] BatchGetProfilesRequest args, CancellationToken cancellationToken)
+        public async Task<ActionResult<Dictionary<string,Dictionary<string,object>>>> GetBatch([FromBody] BatchGetProfilesRequest args, CancellationToken cancellationToken)
         {
             await using var scope = _scene.CreateRequestScope();
 
@@ -61,7 +61,7 @@ namespace Stormancer.Server.Plugins.Profile.Admin
 
            
             var result = await profiles.GetProfiles(args.UserIds,args.DisplayMode, null,cancellationToken);
-            return Ok(result);
+            return Ok(result.ToDictionary(kvp => kvp.Key, kvp => kvp.Value. ToDictionary(innerKvp => innerKvp.Key, innerKvp => innerKvp.Value.ToObject())));
         }
 
         /// <summary>
@@ -72,7 +72,7 @@ namespace Stormancer.Server.Plugins.Profile.Admin
         /// <returns></returns>
         [HttpGet]
         [Route("{userId}")]
-        public async Task<ActionResult<Dictionary<string, JObject>>> Get(string userId, CancellationToken cancellationToken)
+        public async Task<ActionResult<Dictionary<string, object>>> Get(string userId, CancellationToken cancellationToken)
         {
             await using var scope = _scene.CreateRequestScope();
 
@@ -80,7 +80,7 @@ namespace Stormancer.Server.Plugins.Profile.Admin
 
             var displayMode = this.Request.Query.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.FirstOrDefault() ?? string.Empty);
             var profile = await profiles.GetProfile(userId, displayMode, null, cancellationToken);
-            return Ok(profile);
+            return Ok(profile.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToObject()));
         }
 
 
