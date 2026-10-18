@@ -64,10 +64,14 @@ namespace Stormancer.Server.Plugins.Users.EntityFramework
             authDataModifier?.Invoke(auth);
 
             var userId = Guid.Parse(user.Id);
-            var record = c.Set<UserRecord>().Include(u => u.Identities.Where(i => i.Provider == provider && i.Identity == identifier)).SingleOrDefault(u => u.Id == userId);
+            var record = c.Set<UserRecord>().Include(u => u.Identities).SingleOrDefault(u => u.Id == userId);
 
+            if(record == null)
+            {
+                return (user, false);
+            }
 
-            var identity = record.Identities.FirstOrDefault();
+            var identity = record.Identities.FirstOrDefault(i=>i.Provider == provider);
             var added = identity == null;
             if (identity == null)
             {

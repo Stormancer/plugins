@@ -34,7 +34,7 @@ namespace Stormancer.Server.Plugins.Configuration
         /// Gets the current value of the configuration section.
         /// </summary>
         public T Value { get; private set; }
-    
+
         /// <summary>
         /// Creates a new instance of <see cref="ConfigurationMonitor{T}"/>
         /// </summary>
@@ -49,6 +49,12 @@ namespace Stormancer.Server.Plugins.Configuration
         void IConfigurationChangedEventHandler.OnConfigurationChanged()
         {
             Value = _configuration.GetValue<T>(T.SectionPath) ?? T.Default;
+            OnConfigurationChanged(Value);
         }
+
+        /// <summary>
+        /// Event fired whenever the configuration changes.
+        /// </summary>
+        public Action<T> OnConfigurationChanged { get; }
     }
 }

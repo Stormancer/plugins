@@ -11,6 +11,10 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Added
+*****
+- Added event OnConfigurationChanged to ConfigurationMonitor<T> to be notified when the configuration changes without having to listen to the main IConfiguration object.
+
 Changed
 *******
 - Updated dependencies.
