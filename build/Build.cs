@@ -248,7 +248,6 @@ class Build : NukeBuild
                             .SetApiKey(NugetSecretKey)
                             .SetTargetPath(packagePath)
                             .SetSource(ReleaseNugetSource)
-                            .EnableNoSymbols()
                             );
 
                         var sourceBranch = Environment.GetEnvironmentVariable("BUILD_SOURCEBRANCH")?.Substring("refs/heads/".Length);

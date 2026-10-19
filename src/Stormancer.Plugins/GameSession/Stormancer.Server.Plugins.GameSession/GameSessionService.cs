@@ -667,7 +667,10 @@ namespace Stormancer.Server.Plugins.GameSession
             //await SendP2PToken(Enumerable.Repeat(sessionId, 1), true, "", default);
             if (state.DirectConnectionEnabled())
             {
-                UpdateTopology(sessionId, GameSessionHostState.Ready);
+                if (sessionId == HostSessionId)
+                {
+                    UpdateTopology(sessionId, GameSessionHostState.Ready);
+                }
             }
 
 
@@ -789,9 +792,17 @@ namespace Stormancer.Server.Plugins.GameSession
         {
             lock (_hostSelectionSyncRoot)
             {
+                
                 if (_currentTopology != null && _currentTopology.State != GameSessionHostState.Disconnected)
                 {
-                    return;
+                    if(_scene.TryGetPeer(_currentTopology.Host, out _))// The current host is connected.Do nothing
+                    {
+                        return;
+                    }
+                    else // The current host is disconnected. First, send a disconnected event, then start the host selection process.
+                    {
+                        UpdateTopology(_currentTopology.Host, GameSessionHostState.Disconnected);
+                    }
                 }
                 List<Session> candidates = new();
                 foreach (var (sessionId, session) in _connectedSessions)
@@ -808,10 +819,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
                     }
                 }
-                if (candidates.Count == 0 && _currentTopology != null && !_currentTopology.Host.IsEmpty())
-                {
-                    UpdateTopology(_currentTopology.Host, GameSessionHostState.Disconnected);
-                }
+
                 if (candidates.Count > 0)
                 {
                     var host = candidates.First();
