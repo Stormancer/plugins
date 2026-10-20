@@ -49,7 +49,9 @@ namespace Stormancer.Server.Plugins.Configuration
         void IConfigurationChangedEventHandler.OnConfigurationChanged()
         {
             Value = _configuration.GetValue<T>(T.SectionPath) ?? T.Default;
-            OnConfigurationChanged(Value);
+           
+            OnConfigurationChanged?.Invoke(Value);
+            
         }
 
         /// <summary>
