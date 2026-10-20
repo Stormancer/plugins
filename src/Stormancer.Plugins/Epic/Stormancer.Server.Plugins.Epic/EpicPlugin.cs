@@ -8,6 +8,7 @@ using Stormancer.Server.Plugins.Profile;
 using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Users;
 using Stormancer.Server.Plugins.Users.OAuth;
+using Stormancer.Server.Plugins.Voice;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Epic
@@ -41,6 +42,7 @@ namespace Stormancer.Server.Plugins.Epic
                     dr.Resolve<IEOSService>(),
                     dr.Resolve<IUserService>(),
                     dr.Resolve<ILogger>())).As<IAuthenticationEventHandler>().InstancePerRequest();
+                builder.Register(dr => new EOSVoiceProvider()).As<IVoiceChatProvider>().InstancePerRequest();
             };
 
           

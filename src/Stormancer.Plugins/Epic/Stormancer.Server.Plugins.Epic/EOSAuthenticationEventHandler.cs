@@ -68,6 +68,7 @@ namespace Stormancer.Server.Plugins.Epic
                         if (productIds.TryGetValue(userId, out var eosProductUserId) && eosProductUserId is not null)
                         {
                             
+                                
                                 ctx.Result.AuthenticatedUser.Identities.Add("eos", eosProductUserId);
                                 await _users.AddAuthentication(user, "eos", eosProductUserId, claim => claim["eos"] = eosProductUserId);
                             

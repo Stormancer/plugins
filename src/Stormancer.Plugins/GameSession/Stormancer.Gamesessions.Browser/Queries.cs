@@ -74,24 +74,41 @@ namespace Stormancer.Gamesessions.Browser
         public bool AcceptSplit { get; set; } = false;
     }
 
+
+    /// <summary>
+    /// A game session on the backend.
+    /// </summary>
     [MessagePackObject]
     public class GamesessionDocumentSource
     {
+        /// <summary>
+        /// Game session settings.
+        /// </summary>
         [Key(0)]
         public required IReadOnlyDictionary<string, string> Settings { get; init; }
 
-
+        /// <summary>
+        /// Game session teams configuration.
+        /// </summary>
         [Key(1)]
         public required IEnumerable<TeamConfigurationRecord> Teams { get; init; }
 
 
+        /// <summary>
+        /// Current number of players in the game session.
+        /// </summary>
         [Key(2)]
         public required int PlayerCount { get; set; }
 
-
+        /// <summary>
+        /// Date the game session was created.
+        /// </summary>
         [Key(3)]
         public required DateTime CreatedOn { get; init; }
 
+        /// <summary>
+        /// Name of the game session.
+        /// </summary>
         [Key(4)]
         public required string Name { get; init; }
     }
