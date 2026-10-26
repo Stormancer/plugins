@@ -21,13 +21,13 @@ namespace Stormancer.Server.Plugins.Xsolla
 
         public XSollaAuthenticationEventHandler(
             ConfigurationMonitor<XsollaConfigurationSection> configuration,
-            XsollaService eos,
+            XsollaService xsolla,
             IUserService users,
             ILogger logger)
         {
             _configuration = configuration;
            
-            _xsolla = eos;
+            _xsolla = xsolla;
             _users = users;
             _logger = logger;
         }
@@ -75,12 +75,21 @@ namespace Stormancer.Server.Plugins.Xsolla
                
                 if(xsollaUser !=null)
                 {
+                    var externalId = xsollaUser.ExternalId;
                     if (xsollaUser.ExternalId == null)
                     {
                         await _xsolla.LinkUserWithExternalId(new XsollaUserId(xsollaUser.Id), user.Id);
+                        externalId = user.Id;
                     }
 
-                    await _users.AddAuthentication(user, $"xsolla.{config.ProjectId}", user.Id, claims => claims[$"xsolla.{config.ProjectId}"] = xsollaUser.ExternalId);
+                    if (externalId != userId)
+                    {                       
+                        ctx.Result.Success = false;
+                        ctx.Result.ReasonMsg = "xsolla.account_linked_to_another_user";
+                        return;
+                    }
+
+                    await _users.AddAuthentication(user, $"xsolla.{config.ProjectId}", user.Id, claims => claims[$"xsolla.{config.ProjectId}"] = externalId);
                 }
             }
 
