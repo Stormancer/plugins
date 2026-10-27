@@ -55,7 +55,7 @@ namespace Stormancer.Server.Plugins.Xsolla
 
             if (user.Identities.TryGetValue($"xsolla.{config.ProjectId}", out var serverCustomId)) //User linked to an XSolla account.
             {
-                var jwt = await _xsolla.AuthByCustomId(serverCustomId);
+                var jwt = await _xsolla.AuthByCustomId(userId);
                 if (jwt != null)
                 {
                     SetMetadata(ctx, "xsolla.jwt", jwt);
@@ -78,7 +78,7 @@ namespace Stormancer.Server.Plugins.Xsolla
                     var externalId = xsollaUser.ExternalId;
                     if (xsollaUser.ExternalId == null)
                     {
-                        await _xsolla.LinkUserWithExternalId(new XsollaUserId(xsollaUser.Id), user.Id);
+                        await _xsolla.LinkUserWithExternalId(new XsollaUserId(xsollaUser.Id), userId);
                         externalId = user.Id;
                     }
 

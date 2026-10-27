@@ -56,7 +56,7 @@ namespace Stormancer.Server.Plugins.Xsolla
     /// </summary>
     public struct XsollaUserId(string value)
     {
-      
+
         /// <summary>
         /// Gets the value
         /// </summary>
@@ -130,7 +130,7 @@ namespace Stormancer.Server.Plugins.Xsolla
         public XsollaService(ConfigurationMonitor<XsollaConfigurationSection> configuration, ISecretsStore secrets)
         {
             _configuration = configuration;
-           
+
             _secrets = secrets;
         }
 
@@ -207,12 +207,12 @@ namespace Stormancer.Server.Plugins.Xsolla
         //}
 
         /// <summary>
-        /// Authenticates an user using their custom id.
+        /// Authenticates an user using their Stormancer user id.
         /// </summary>
-        /// <param name="customId"></param>
+        /// <param name="userId"></param>
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public async Task<string?> AuthByCustomId(string customId)
+        public async Task<string?> AuthByCustomId(string userId)
         {
             var config = _configuration.Value;
             if (config.ProjectId == null)
@@ -223,10 +223,10 @@ namespace Stormancer.Server.Plugins.Xsolla
             var client = await CreateServerClient();
             var response = await client.PostAsJsonAsync(new Uri(LOGIN_API, $"api/users/login/server_custom_id?projectId={config.ProjectId}"), new
             {
-                server_custom_id = customId
+                server_custom_id = userId
             });
 
-            if(response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<XsollaAuthResponse>();
                 return result?.Token;
@@ -248,7 +248,7 @@ namespace Stormancer.Server.Plugins.Xsolla
             var client = new HttpClient();
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt);
             var httpResponse = await client.GetAsync(new Uri(LOGIN_API, "api/users/me"));
-           
+
             httpResponse.EnsureSuccessStatusCode();
             return await httpResponse.Content.ReadFromJsonAsync<XSollaUser>();
 
@@ -270,9 +270,14 @@ namespace Stormancer.Server.Plugins.Xsolla
             var client = await CreateServerClient();
 
             var httpResponse = await client.PostAsJsonAsync(new Uri(LOGIN_API, "api/users/account/link_external_id"), new { external_account_id = externalId, user_id = userId.Value });
+            httpResponse.EnsureSuccessStatusCode();
 
+
+            //TODO: handle the case where the linking succeeds but the server_custom_id update fails
+            httpResponse = await client.PutAsJsonAsync(new Uri(LOGIN_API, $"api/projects/{_configuration.Value.ProjectId}/users/{userId.Value}/server_custom_id"), new { server_custom_id = externalId });
             httpResponse.EnsureSuccessStatusCode();
         }
+
         void IConfigurationChangedEventHandler.OnConfigurationChanged()
         {
             if (_configuration.Value.ClientId != null)
@@ -281,6 +286,6 @@ namespace Stormancer.Server.Plugins.Xsolla
             }
         }
 
-        
+
     }
 }
