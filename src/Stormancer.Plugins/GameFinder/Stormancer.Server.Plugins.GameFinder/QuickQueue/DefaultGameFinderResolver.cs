@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using Stormancer.Server.Plugins.GameSession;
+using Stormancer.Server.Plugins.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -79,15 +80,15 @@ namespace Stormancer.Server.Plugins.GameFinder
         {
             if (gameCtx.Game != null)
             {
-                var config = new GameSessionConfiguration();
-                config.Public = false;
-
-                foreach (var team in gameCtx.Game.Teams)
+                var config = new GameSessionConfiguration
                 {
-                    config.Teams.Add(team);
-                }
-                config.GameFinder = gameCtx.GameFinderName;
-                config.Parameters = gameCtx.Game.PrivateCustomData;
+                    Public = false,
+
+                    InitialReservations = gameCtx.Game.Teams.SelectMany(t => t.Parties).Select(PartySummary.Create),
+
+                    GameFinder = gameCtx.GameFinderName,
+                    Parameters = gameCtx.Game.PrivateCustomData
+                };
                 var gameFinderGameSessionConfig = config.Parameters.ToObject<BaseGameSessionConfig>();
                 if (gameFinderGameSessionConfig != null)
                 {

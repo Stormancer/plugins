@@ -24,6 +24,7 @@ using MessagePack;
 using Nest;
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.GameSession;
+using Stormancer.Server.Plugins.Models;
 using Stormancer.Server.Plugins.Queries;
 using System;
 using System.Collections.Concurrent;
@@ -67,35 +68,67 @@ namespace Stormancer.Gamesessions.Browser
 
     }
 
+    /// <summary>
+    /// A filter for queries in the <see cref="GamesessionsDocumentStore"/>.
+    /// </summary>
     [MessagePackObject]
     public class GamesessionsDocumentStoreFilter
     {
-        public int PartySize { get; set; } = 1;
+        /// <summary>
+        /// Set of <see cref="PartySummary"/> objects representing the parties to try to fit in game sessions.
+        /// </summary>
+        [Key(0)]
+        public required IEnumerable<PartySummary> PartiesToFit{ get; init; }
+
+        /// <summary>
+        /// A boolean indicating if splitting parties is authorized to make them fit in the game session.
+        /// </summary>
+        [Key(1)]
         public bool AcceptSplit { get; set; } = false;
     }
 
+    /// <summary>
+    /// Document representing a game session in a query response.
+    /// </summary>
     [MessagePackObject]
     public class GamesessionDocumentSource
     {
+        /// <summary>
+        /// Settings of the game session.
+        /// </summary>
         [Key(0)]
         public required IReadOnlyDictionary<string, string> Settings { get; init; }
 
-
+        /// <summary>
+        /// Teams configuration of the game session.
+        /// </summary>
         [Key(1)]
         public required IEnumerable<TeamConfigurationRecord> Teams { get; init; }
 
-
+        /// <summary>
+        /// Number of players currently in the game session, including any reservations.
+        /// </summary>
         [Key(2)]
         public required int PlayerCount { get; set; }
 
-
+        /// <summary>
+        /// The date the game session was created on.
+        /// </summary>
         [Key(3)]
         public required DateTime CreatedOn { get; init; }
     }
+
+    /// <summary>
+    /// A queriable store containing <see cref="IGameSessionService"/> objects.
+    /// </summary>
     public class GamesessionsDocumentStore : IServiceSearchProvider
     {
         private object _syncRoot = new object();
         private readonly Dictionary<string, IGameSessionService> _store = [];
+
+        /// <summary>
+        /// Id of the store.
+        /// </summary>
         public const string GAMESESSION_SEARCH_TYPE = "stormancer.gamesessions";
         SearchResult<JObject> IServiceSearchProvider.Filter(string type, JObject filter, uint size)
         {
@@ -104,14 +137,20 @@ namespace Stormancer.Gamesessions.Browser
             {
                 return result;
             }
-            var gsFilter = filter.ToObject<GamesessionsDocumentStoreFilter>() ?? new GamesessionsDocumentStoreFilter();
+            
+            var gsFilter = filter.ToObject<GamesessionsDocumentStoreFilter>();
+            if(gsFilter == null)
+            {
+                return new SearchResult<JObject>();
+            }
+
             var docs = new List<Document<JObject>>();
             uint total = 0;
             lock (_syncRoot)
             {
                 foreach (var (id, gs) in _store)
                 {
-                    if (gs.CanFit(gsFilter.PartySize, gsFilter.AcceptSplit))
+                    if (gs.CanFit(gsFilter.PartiesToFit, gsFilter.AcceptSplit))
                     {
                         total++;
                         if (docs.Count < size)
@@ -138,6 +177,10 @@ namespace Stormancer.Gamesessions.Browser
             return type == GAMESESSION_SEARCH_TYPE;
         }
 
+        /// <summary>
+        /// Adds a <see cref="IGameSessionService"/> to the store.
+        /// </summary>
+        /// <param name="gameSession"></param>
         public void Add(IGameSessionService gameSession)
         {
             lock (_syncRoot)
@@ -145,6 +188,11 @@ namespace Stormancer.Gamesessions.Browser
                 _store.Add(gameSession.GameSessionId, gameSession);
             }
         }
+
+        /// <summary>
+        /// Removes a <see cref="IGameSessionService"/> from the store.
+        /// </summary>
+        /// <param name="gameSession"></param>
         public void Remove(IGameSessionService gameSession)
         {
             lock (_syncRoot)

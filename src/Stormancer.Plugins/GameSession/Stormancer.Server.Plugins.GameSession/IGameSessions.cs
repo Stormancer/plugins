@@ -29,6 +29,7 @@ using Stormancer.Server.Plugins.Users;
 using Stormancer.Server.Plugins.Utilities;
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -88,14 +89,14 @@ namespace Stormancer.Server.Plugins.GameSession
 
 
         /// <summary>
-        /// Tries to reserve a slot in a game session for a team.
+        /// Tries to reserve a slot in a game session for a set of parties.
         /// </summary>
         /// <param name="gameSessionId"></param>
-        /// <param name="team"></param>
+        /// <param name="parties"></param>
         /// <param name="args"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<GameSessionReservation?> CreateReservation(string gameSessionId, Plugins.Models.Team team, JObject args, CancellationToken cancellationToken);
+        Task<GameSessionReservation?> CreateReservation(string gameSessionId, IEnumerable<PartySummary> parties, JObject args, CancellationToken cancellationToken);
 
         /// <summary>
         /// Cancels a reservation from a game session.
@@ -175,9 +176,9 @@ namespace Stormancer.Server.Plugins.GameSession
             }
         }
 
-        public Task<GameSessionReservation?> CreateReservation(string gameSessionId, Team team, JObject args, CancellationToken cancellationToken)
+        public Task<GameSessionReservation?> CreateReservation(string gameSessionId, IEnumerable<PartySummary> parties, JObject args, CancellationToken cancellationToken)
         {
-            return s2SProxy.Value.CreateReservation(gameSessionId, team, args, cancellationToken);
+            return s2SProxy.Value.CreateReservation(gameSessionId, parties, args, cancellationToken);
         }
 
         public Task CancelReservation(string gameSessionId, string reservationId, CancellationToken cancellationToken)

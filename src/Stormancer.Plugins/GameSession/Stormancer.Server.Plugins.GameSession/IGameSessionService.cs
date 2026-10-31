@@ -156,13 +156,21 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <summary>
         /// Can this game session fit a new party?
         /// </summary>
-        /// <param name="partySize"></param>
-        /// <param name="acceptSplit"></param>
+        /// <param name="parties">A list of parties to create a reservation for.</param>
+        /// <param name="acceptSplit">A boolean indicating whether we accept splitting parties or not.</param>
         /// <returns></returns>
-        bool CanFit(int partySize, bool acceptSplit = false);
+        bool CanFit(IEnumerable<PartySummary> parties, bool acceptSplit = false);
 
+        /// <summary>
+        /// The configuration of teams in the game session.
+        /// </summary>
+        /// <returns></returns>
         IEnumerable<TeamConfigurationRecord> GetTeamsConfiguration();
 
+        /// <summary>
+        /// Gets the game session settings.
+        /// </summary>
+        /// <returns></returns>
         IReadOnlyDictionary<string, string> GetSettings();
 
         /// <summary>
@@ -183,12 +191,12 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <summary>
         /// Creates a reservation
         /// </summary>
-        /// <param name="team"></param>
+        /// <param name="parties"></param>
         /// <param name="args"></param>
         /// <param name="cancellationToken"></param>
         /// <remarks>Returns null if no reservation was done.</remarks>
         /// <returns></returns>
-        Task<GameSessionReservation?> CreateReservationAsync(Team team, JObject args, CancellationToken cancellationToken);
+        Task<GameSessionReservation?> CreateReservationAsync(IEnumerable<PartySummary> parties, JObject args, CancellationToken cancellationToken);
 
         /// <summary>
         /// Cancels a reservation using its id.

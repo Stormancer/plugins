@@ -23,11 +23,15 @@
 using MessagePack;
 using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
+    /// <summary>
+    /// Dto representing the configuration of a game session.
+    /// </summary>
     [MessagePackObject]
     public class GameSessionConfigurationDto
     {
@@ -35,6 +39,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Group connected to gameSession
         /// </summary>
         [Key(0)]
+        [Obsolete]
         public IEnumerable<Team> Teams { get; set; } = new List<Team>();
 
         /// <summary>

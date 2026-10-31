@@ -322,7 +322,7 @@ namespace Stormancer.Server.Plugins.GameSession
     /// </summary>
     public class ReservationCancelledContext
     {
-        internal ReservationCancelledContext(Guid reservationId, IEnumerable<(string TeamId, Player player)> playersReservationsCancelled)
+        internal ReservationCancelledContext(Guid reservationId, IEnumerable<PartySummary> playersReservationsCancelled)
         {
             ReservationId = reservationId;
             PlayersReservationsCancelled = playersReservationsCancelled;
@@ -336,7 +336,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <summary>
         /// List of (teamId,userId) tuple whose reservations where actually cancelled (ie if the user connected, they won't be in the list.)
         /// </summary>
-        public IEnumerable<(string TeamId, Player player)> PlayersReservationsCancelled { get; }
+        public IEnumerable<PartySummary> PlayersReservationsCancelled { get; }
     }
 
     /// <summary>
@@ -344,9 +344,9 @@ namespace Stormancer.Server.Plugins.GameSession
     /// </summary>
     public class CreatingReservationContext : GameSessionContext
     {
-        internal CreatingReservationContext(IGameSessionService service, ISceneHost scene, GameSessionConfiguration config, Team team, JObject customData, Guid reservationId): base(scene,config,service)
+        internal CreatingReservationContext(IGameSessionService service, ISceneHost scene, GameSessionConfiguration config, IEnumerable<PartySummary> parties, JObject customData, Guid reservationId): base(scene,config,service)
         {
-            Team = team;
+            Parties = parties;
             CustomData = customData;
             ReservationId = reservationId;
         }
@@ -356,7 +356,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <remarks>
         /// If the team already exists, content are automatically merged.
         /// </remarks>
-        public Team Team { get; }
+        public IEnumerable<PartySummary> Parties { get; }
 
         /// <summary>
         /// Reservation custom data.
@@ -383,19 +383,19 @@ namespace Stormancer.Server.Plugins.GameSession
     /// </summary>
     public class CreatedReservationContext
     {
-        internal CreatedReservationContext(Team team, JObject customData, Guid reservationId)
+        internal CreatedReservationContext(IEnumerable<PartySummary> parties, JObject customData, Guid reservationId)
         {
-            Team = team;
+            Parties = parties;
             CustomData = customData;
             ReservationId = reservationId;
         }
         /// <summary>
-        /// Team object created by the reservation.
+        /// Parties reservations were created for.
         /// </summary>
         /// <remarks>
         /// If the team already exists, content are automatically merged.
         /// </remarks>
-        public Team Team { get; }
+        public IEnumerable<PartySummary> Parties { get; }
 
         /// <summary>
         /// Reservation custom data.

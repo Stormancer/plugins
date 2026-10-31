@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using Stormancer.Server.Plugins.GameSession;
+using Stormancer.Server.Plugins.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -81,11 +82,15 @@ namespace Stormancer.Server.Plugins.GameFinder
         {
             if (gameCtx.Game != null)
             {
-                var config = new GameSessionConfiguration();
-                
-                config.Public = false;
-                
-                if(partyLeaderIsHost)
+                var config = new GameSessionConfiguration
+                {
+                    Public = false,
+                    InitialReservations = gameCtx.Game.Teams.SelectMany(t => t.Parties).Select(PartySummary.Create),
+                    Parameters = gameCtx.Game.PrivateCustomData,
+                    GameFinder = gameCtx.GameFinderName
+                };
+
+                if (partyLeaderIsHost)
                 {
                     var party = gameCtx.Game.AllParties.First();
                     var leaderId = party.PartyLeaderId;
@@ -93,13 +98,9 @@ namespace Stormancer.Server.Plugins.GameFinder
                     config.HostSelectionConfiguration = FixedHostSelectionPolicy.CreateConfiguration(leaderId);
                 }
 
-                
-                foreach (var team in gameCtx.Game.Teams)
-                {
-                    config.Teams.Add(team);
-                }
+               
 
-                config.Parameters = gameCtx.Game.PrivateCustomData;
+                
                 var gameFinderGameSessionConfig = config.Parameters.ToObject<BaseGameSessionConfig>();
                 if (gameFinderGameSessionConfig != null)
                 {
@@ -108,7 +109,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
                 }
 
-                config.GameFinder = gameCtx.GameFinderName;
+               
                 await gameSessions.Create(template, gameCtx.GameSceneId, config);
 
                 gameCtx.ResolutionAction = (writerCtx =>

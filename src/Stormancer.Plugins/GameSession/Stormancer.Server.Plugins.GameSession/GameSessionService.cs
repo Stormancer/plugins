@@ -23,7 +23,9 @@
 using Autofac.Core;
 using MessagePack;
 using Microsoft.AspNetCore;
+using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SmartFormat.Utilities;
@@ -59,21 +61,7 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
-    /// <summary>
-    /// Represents a party in a game session.
-    /// </summary>
-    public class PartySummary
-    {
-        /// <summary>
-        /// Gets the id of the party.
-        /// </summary>
-        public required string Id { get; init; }
-
-        /// <summary>
-        /// Gets the list of players in the party.
-        /// </summary>
-        public HashSet<SessionId> Players { get; } = new();
-    }
+    
     internal class GameSessionState
     {
         private readonly ISceneHost scene;
@@ -730,14 +718,10 @@ namespace Stormancer.Server.Plugins.GameSession
                 var userId = client.Key;
 
 
-                var (reservationId, reservation) = _reservationStates.FirstOrDefault(r => r.Value.UserIds.Contains(userId));
-                if (reservation != null)
+
+                if (_reservationStates.TryRemove(userId, out var reservation))
                 {
-                    reservation.UserIds.Remove(userId);
-                    if (reservation.UserIds.Count == 0)
-                    {
-                        _reservationStates.TryRemove(reservationId, out _);
-                    }
+                    _logger.Log(LogLevel.Debug, "gamesession", "Reservation fulfilled.", new { this.GameSessionId, userId });
                 }
 
 
@@ -846,7 +830,7 @@ namespace Stormancer.Server.Plugins.GameSession
             bool result = false;
             try
             {
-                
+
                 _analytics.StartGamesession(this);
                 var settings = _currentGameSessionSettings?.Settings ?? new Dictionary<string, string>();
                 var teams = _currentGameSessionSettings?.Teams ?? new List<TeamConfigurationRecord>();
@@ -861,18 +845,18 @@ namespace Stormancer.Server.Plugins.GameSession
                 UpdateSettings(settings, teams);
 
                 var poolId = state.GameServerPool();
-                if(poolId !=null)
+                if (poolId != null)
                 {
                     _config.HostSelectionConfiguration = ServerHostSelectionPolicy.CreateConfiguration();
                 }
-                else if(_config.HostSelectionConfiguration is null)
+                else if (_config.HostSelectionConfiguration is null)
                 {
                     _config.HostSelectionConfiguration = AnyHostSelectionPolicy.CreateConfiguration();
                 }
 
                 if (poolId != null)
                 {
-                    
+
                     await using (var scope = _scene.CreateRequestScope())
                     {
                         var pools = scope.Resolve<ServerPoolProxy>();
@@ -960,7 +944,7 @@ namespace Stormancer.Server.Plugins.GameSession
             }
             finally
             {
-                if(_server == null && _config.AllowP2PHostFallback && _config.HostSelectionConfiguration?.Type == ServerHostSelectionPolicy.Type)
+                if (_server == null && _config.AllowP2PHostFallback && _config.HostSelectionConfiguration?.Type == ServerHostSelectionPolicy.Type)
                 {
                     _config.HostSelectionConfiguration = AnyHostSelectionPolicy.CreateConfiguration();
                 }
@@ -1180,7 +1164,7 @@ namespace Stormancer.Server.Plugins.GameSession
         public string GameSessionId => _scene.Id;
 
         public DateTime CreatedOn { get; } = DateTime.UtcNow;
-        public int PlayerCount => _clients.Count + _reservationStates.Select(r => r.Value.UserIds).Count();
+        public int PlayerCount => _clients.Count + _reservationStates.Count();
 
         private object _syncRoot = new object();
         private Dictionary<string, string> _dimensions = new Dictionary<string, string>();
@@ -1319,7 +1303,7 @@ namespace Stormancer.Server.Plugins.GameSession
             }
             else
             {
-                return new GameSessionConfigurationDto { Teams = _config.TeamsList, Parameters = _config.Parameters, UserIds = _config.UserIds, HostSessionId = HostSessionId, GameFinder = _config.GameFinder, PreferredRegions = _config.PreferredRegions };
+                return new GameSessionConfigurationDto {  Parameters = _config.Parameters, UserIds = _clients.Keys, HostSessionId = HostSessionId, GameFinder = _config.GameFinder, PreferredRegions = _config.PreferredRegions };
             }
 
         }
@@ -1378,31 +1362,30 @@ namespace Stormancer.Server.Plugins.GameSession
 
             foreach (var (userId, client) in _clients)
             {
-
-                if (!result.TryGetValue(client.PartyId, out var party))
+                var user = client.Session.User;
+                if (user != null)
                 {
-                    party = new PartySummary { Id = client.PartyId };
-                    result.Add(client.PartyId, party);
+                    if (!result.TryGetValue(client.PartyId, out var party))
+                    {
+                        party = new PartySummary { Id = client.PartyId, LeaderId = string.Empty };
+                        result.Add(client.PartyId, party);
+                    }
+                    party.Members.Add(user.Id);
                 }
-                party.Players.Add(client.SessionId);
             }
             if (includeReservations)
             {
 
-                foreach (var (id, reservation) in _reservationStates)
+                foreach (var (userId, reservation) in _reservationStates)
                 {
-                    foreach (var pa in reservation.Parties)
+
+                    if (!result.TryGetValue(reservation.PartyId, out var party))
                     {
-                        foreach (var (_, player) in pa.Players)
-                        {
-                            if (!result.TryGetValue(pa.PartyId, out var party))
-                            {
-                                party = new PartySummary { Id = pa.PartyId };
-                                result.Add(pa.PartyId, party);
-                            }
-                            party.Players.Add(player.SessionId);
-                        }
+                        party = new PartySummary { Id = reservation.PartyId, LeaderId = string.Empty };
+                        result.Add(reservation.PartyId, party);
                     }
+                    party.Members.Add(reservation.UserId);
+
                 }
             }
             return result.Values;
@@ -1422,12 +1405,13 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <summary>
         /// Can a proposed party size fit into the game session.
         /// </summary>
-        /// <param name="partySize">The party size we are trying to fit.</param>
-        /// <param name="acceptSplit">Do we accept to split the parties between several teams</param>
+        /// <param name="parties">parties to fit.</param>
+        /// <param name="acceptSplit">Do we accept to split the parties between several teams ?</param>
         /// <returns></returns>
-        public bool CanFit(int partySize, bool acceptSplit = false)
+        public bool CanFit(IEnumerable<PartySummary> parties, bool acceptSplit = false)
         {
-            var parties = GetParties(true);
+            //Get current parties in the game.
+            var currentParties = GetParties(true);
 
             //Game session settings not yet initialized.
             if (_currentGameSessionSettings == null)
@@ -1437,33 +1421,82 @@ namespace Stormancer.Server.Plugins.GameSession
 
             var teamsConfig = _currentGameSessionSettings.Teams;
 
-            //Unlimited
+            //no team config: the game session always accepts new players.
             if (teamsConfig.Count == 0)
             {
                 return true;
             }
 
-            //If we accept splitting, it's simple, we just check that the party will fit in the max player count of the game.
+            //if there are fixed slots in teamsConfig, remove the corresponding players from current players in the game.
+            foreach (var team in teamsConfig)
+            {
+                foreach (var sessionId in team.FixedSlots)
+                {
+                    var (userId, client) = _clients.FirstOrDefault(c => c.Value.SessionId == sessionId);
+                    if (userId != null)
+                    {
+                        foreach (var party in currentParties)
+                        {
+                            if (party.Members.Remove(userId))
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            var teams = new (int index, List<PartySummary> parties)[teamsConfig.Count];
+            for (int i = 0; i < teams.Length; i++)
+            {
+                teams[i] = (i, new List<PartySummary>());
+            }
+
+            //Fit in the teams the parties already in the game session.
+            foreach (var party in currentParties.OrderByDescending(p => p.Members.Count))
+            {
+                if (party.Members.Any())
+                {
+                    var (index, bestTeam) = teams.OrderBy(l => l.parties.Sum(p => p.Members.Count)).First();
+                    if (bestTeam.Sum(p => p.Members.Count) + party.Members.Count <= teamsConfig[index].AvailableSlots)
+                    {
+                        bestTeam.Add(party);
+                    }
+                }
+            }
+
             if (acceptSplit)
             {
-                var currentCount = parties.Sum(p => p.Players.Count);
-                var max = teamsConfig.Sum(t => t.Slots);
-                return currentCount + partySize <= max;
+                var availableSlots = 0;
+                for (int i = 0; i < teams.Length; i++)
+                {
+                    availableSlots += teamsConfig[i].AvailableSlots - teams[i].parties.Sum(p => p.Members.Count);
+                }
+
+                return availableSlots >= parties.Sum(p => p.Members.Count);
             }
 
-            //Check that the party isn't too big for any team.
-            if (teamsConfig.Max(t => t.AvailableSlots) < partySize)
+
+            foreach (var party in parties.OrderByDescending(p=>p.Members.Count))
             {
-                return false;
+                var (index, bestTeam) = teams.OrderBy(l => l.parties.Sum(p => p.Members.Count)).First();
+                if (bestTeam.Sum(p => p.Members.Count) + party.Members.Count <= teamsConfig[index].AvailableSlots)
+                {
+                    bestTeam.Add(party);
+                }
+                else
+                {
+                    return false;
+                }
             }
 
-            //TODO: we should remove players in fixed slots and then check if we can fit the others.
             return true;
+      
 
 
         }
 
-        public async Task<GameSessionReservation?> CreateReservationAsync(Team team, JObject args, CancellationToken cancellationToken)
+        public async Task<GameSessionReservation?> CreateReservationAsync(IEnumerable<PartySummary> parties, JObject args, CancellationToken cancellationToken)
         {
             //TODO refactor the team system...
             if (_config == null)
@@ -1471,37 +1504,14 @@ namespace Stormancer.Server.Plugins.GameSession
                 return null;
             }
 
-            var pendingPlayers = new HashSet<string>(team.AllPlayers.Select(p => p.UserId));
-            foreach (var id in _clients.Values.Select(t => t.Session?.User?.Id ?? string.Empty))
-            {
-                if (pendingPlayers.Contains(id))
-                {
-                    pendingPlayers.Remove(id);
-                }
-            }
-            foreach (var id in _reservationStates.Values.SelectMany(r => r.UserIds))
-            {
-                if (pendingPlayers.Contains(id))
-                {
-                    pendingPlayers.Remove(id);
-                }
-            }
+            var reservationId = Guid.NewGuid();
 
-            if (!pendingPlayers.Any())
-            {
-                return new GameSessionReservation();
-            }
+
 
             await using var scope = _scene.CreateRequestScope();
 
-            if (!CanFit(pendingPlayers.Count, true))
-            {
-                return null;
-            }
 
-
-            var reservationState = new ReservationState();
-            var ctx = new CreatingReservationContext(this, _scene, _config, team, args, reservationState.ReservationId);
+            var ctx = new CreatingReservationContext(this, _scene, _config, parties, args, reservationId);
 
             await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
                 h => h.OnCreatingReservation(ctx),
@@ -1510,21 +1520,65 @@ namespace Stormancer.Server.Plugins.GameSession
 
             if (ctx.Accept)
             {
-
+                var expiresOn = DateTime.UtcNow + TimeSpan.FromSeconds(60);
+                var reservationRequests = parties.Select(p => p.Clone()).ToList();
                 lock (syncRoot)
                 {
-                    reservationState.UserIds.AddRange(pendingPlayers);
-                    reservationState.Parties = team.Parties;
 
-                    _reservationStates.TryAdd(reservationState.ReservationId, reservationState);
+                    
+
+                    // Remove from the request all players already in the game session.
+                    foreach (var id in _clients.Values.Select(t => t.Session?.User?.Id ?? string.Empty))
+                    {
+                        foreach(var party in reservationRequests)
+                        {
+                            if(party.Members.Remove(id))
+                            {
+                                if(!party.Members.Any())
+                                {
+                                    reservationRequests.Remove(party);
+                                }
+                                break;
+                            }
+                        }
+                       
+                    }
+
+                    // if players remaining in the reservation request, stop there.
+                    if (!reservationRequests.Any())
+                    {
+                        return new GameSessionReservation();
+                    }
+
+
+                    if (!CanFit(reservationRequests, true))
+                    {
+                        return null;
+                    }
+
+                    foreach (var (userId, partyId) in reservationRequests.SelectMany(p => p.Members.Select(userId=>(userId,p.Id))))
+                    {
+                        _reservationStates.AddOrUpdate(userId, id => new ReservationState
+                        {
+                            PartyId = partyId,
+                            UserId = userId,
+                            ReservationId = reservationId
+                        }, (id, old) => old with
+                        {
+                            PartyId = partyId,
+                            ReservationId = reservationId,
+                            ExpiresOn = expiresOn
+                        });
+                    }
+
                 }
-                var createdCtx = new CreatedReservationContext(team, args, reservationState.ReservationId);
+                var createdCtx = new CreatedReservationContext(reservationRequests, args, reservationId);
 
                 await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
                     h => h.OnCreatedReservation(createdCtx),
                     ex => _logger.Log(LogLevel.Error, "gameSession", "An error occurred while executing OnCreatedReservation event", ex));
 
-                return new GameSessionReservation { ReservationId = reservationState.ReservationId.ToString(), ExpiresOn = reservationState.ExpiresOn };
+                return new GameSessionReservation { ReservationId = reservationId.ToString(), ExpiresOn = expiresOn };
             }
             else
             {
@@ -1535,29 +1589,35 @@ namespace Stormancer.Server.Plugins.GameSession
         }
         public async Task CancelReservationAsync(string id, CancellationToken cancellationToken)
         {
-            if (_reservationStates.TryRemove(Guid.Parse(id), out var reservationState))
+            var reservationId = Guid.Parse(id);
+            var parties = new List<PartySummary>();
+            lock (syncRoot)
             {
-                var players = new List<(string TeamId, Player Player)>();
-                lock (syncRoot)
-                {
 
-                    foreach (var userId in reservationState.UserIds)
+                foreach (var (userId, reservation) in _reservationStates)
+                {
+                    if (reservation.ReservationId == reservationId)
                     {
-                        if (TryRemoveUserFromConfig(userId, out var teamId, out var player))
+                        _reservationStates.Remove(reservation.UserId, out _);
+                        var party = parties.FirstOrDefault(p => p.Id == reservation.PartyId);
+                        if (party == null)
                         {
-                            players.Add((teamId, player));
+                            party = new PartySummary { Id = reservation.PartyId, LeaderId = string.Empty };
+                            parties.Add(party);
                         }
+                        party.Members.Add(reservation.UserId);
                     }
                 }
+            }
 
+            if (parties.Any())
+            {
                 await using var scope = _scene.CreateRequestScope();
 
                 await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
-                   h => h.OnReservationCancelled(new ReservationCancelledContext(reservationState.ReservationId, players)),
+                   h => h.OnReservationCancelled(new ReservationCancelledContext(reservationId, parties)),
                    ex => _logger.Log(LogLevel.Error, "gameSession", "An error occurred while executing OnReservationCancelled event", ex));
-
             }
-
         }
 
         private bool _reservationCleanupRunning = false;
@@ -1572,28 +1632,51 @@ namespace Stormancer.Server.Plugins.GameSession
                 _reservationCleanupRunning = true;
                 try
                 {
-                    foreach (var reservationState in _reservationStates.Values)
+                    Dictionary<Guid, List<PartySummary>>? reservations = null;
+                    foreach (var (userId, reservationState) in _reservationStates)
                     {
-                        if (reservationState.ExpiresOn < DateTime.UtcNow)
+                        if (reservationState.ExpiresOn < DateTime.UtcNow && _reservationStates.TryRemove(userId, out _))
                         {
-                            var players = new List<(string TeamId, Player Player)>();
-                            foreach (var userId in reservationState.UserIds)
+                            if (reservations == null)
                             {
-                                if (TryRemoveUserFromConfig(userId, out var teamId, out var player))
-                                {
-                                    players.Add((teamId, player));
-                                }
+                                reservations = new Dictionary<Guid, List<PartySummary>>();
                             }
 
-                            await using var scope = _scene.CreateRequestScope();
+                            if (!reservations.TryGetValue(reservationState.ReservationId, out var parties))
+                            {
+                                parties = new List<PartySummary>();
+                                reservations.Add(reservationState.ReservationId, parties);
+                            }
 
-                            await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
-                               h => h.OnReservationCancelled(new ReservationCancelledContext(reservationState.ReservationId, players)),
-                               ex => _logger.Log(LogLevel.Error, "gameSession", "An error occurred while executing OnReservationCancelled event", ex));
+                            var party = parties.FirstOrDefault(p => p.Id == reservationState.PartyId);
+                            if (party == null)
+                            {
+                                party = new PartySummary { Id = reservationState.PartyId, LeaderId = string.Empty };
+                                parties.Add(party);
+                            }
+
+                            party.Members.Add(reservationState.UserId);
+
+
                         }
 
 
                     }
+
+                    if (reservations != null)
+                    {
+                        await using var scope = _scene.CreateRequestScope();
+                        foreach (var (id, parties) in reservations)
+                        {
+                            await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
+                                h => h.OnReservationCancelled(new ReservationCancelledContext(id, parties)),
+                                ex => _logger.Log(LogLevel.Error, "gameSession", "An error occurred while executing OnReservationCancelled event", ex));
+
+
+                        }
+                    }
+
+
 
                     if (!state.IsServerPersistent() && _playerConnectedOnce)
                     {
@@ -1691,60 +1774,21 @@ namespace Stormancer.Server.Plugins.GameSession
         }
 
 
-        private bool TryRemoveUserFromConfig(string userId, [NotNullWhen(true)] out string? teamId, [NotNullWhen(true)] out Player? player)
+
+
+        private record ReservationState
         {
-            if (!_clients.ContainsKey(userId) && _config != null)
-            {
-                foreach (var team in _config.Teams)
-                {
-                    foreach (var party in team.Parties)
-                    {
-                        if (party.Players.TryGetValue(userId, out player))
-                        {
-                            party.Players.Remove(userId);
-                            if (!party.Players.Any())
-                            {
-                                team.Parties.Remove(party);
-                            }
-                            if (!team.Parties.Any())
-                            {
-                                _config.Teams.Remove(team);
-                            }
-                            teamId = team.TeamId;
-                            return true;
-                        }
-
-                    }
-                }
-            }
-            teamId = null;
-            player = null;
-            return false;
-
-        }
-
-        private class ReservationState
-        {
-            public Guid ReservationId { get; } = Guid.NewGuid();
+            public Guid ReservationId { get; init; }
             public DateTime ExpiresOn { get; set; } = DateTime.UtcNow + TimeSpan.FromMinutes(1);
-            public List<string> UserIds { get; set; } = new List<string>();
-            public List<Party> Parties { get; internal set; } = new List<Party>();
+            public required string UserId { get; init; }
+            public required string PartyId { get; init; }
         }
 
-        private ConcurrentDictionary<Guid, ReservationState> _reservationStates = new ConcurrentDictionary<Guid, ReservationState>();
+        private ConcurrentDictionary<string, ReservationState> _reservationStates = new();
 
         private GameServer? _server;
         private DateTime _serverRequestedOn;
         private bool _isDedicatedServer;
-
-        private Team? FindPlayerTeam(string userId)
-        {
-            if (_config == null)
-            {
-                return null;
-            }
-            return _config.Teams.FirstOrDefault(t => t.AllPlayers.Any(p => p.UserId == userId));
-        }
 
         public Task<string> CreateP2PToken(SessionId callerSessionId, SessionId remotePeerSessionId)
         {

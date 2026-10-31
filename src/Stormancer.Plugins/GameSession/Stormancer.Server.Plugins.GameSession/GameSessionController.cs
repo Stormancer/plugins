@@ -157,10 +157,10 @@ namespace Stormancer.Server.Plugins.GameSession
         }
 
         [S2SApi]
-        public Task<GameSessionReservation?> CreateReservation(Team team, JObject args, CancellationToken cancellationToken)
+        public Task<GameSessionReservation?> CreateReservation(IEnumerable<PartySummary> parties, JObject args, CancellationToken cancellationToken)
         {
 
-            return _service.CreateReservationAsync(team, args, cancellationToken);
+            return _service.CreateReservationAsync(parties, args, cancellationToken);
         }
 
         [S2SApi]

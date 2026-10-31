@@ -14,6 +14,9 @@ Unreleased
 Changed
 ******
 - Use byte[] for party custom data.
+Added
+*****
+- Added PartySummary.
 
 4.0.0.9
 ----------

@@ -102,7 +102,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
         internal async Task<IEnumerable<Document<GamesessionDocumentSource>>> QueryGameSessions(ParametersGroup parameters)
         {
-            var docs = (await search.SearchGamesessions<JObject>(JObject.FromObject(new GamesessionsDocumentStoreFilter { AcceptSplit = true, PartySize = 1 }), 0, 20, CancellationToken.None)).Hits;
+            var docs = (await search.SearchGamesessions<JObject>(JObject.FromObject(new GamesessionsDocumentStoreFilter { AcceptSplit = true, PartiesToFit = [] }), 0, 20, CancellationToken.None)).Hits;
 
 
             return docs.Select(d =>
@@ -171,7 +171,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                                     }
                                     if (session.Source.PlayerCount + party.Players.Count < group.Key.TeamCount * group.Key.TeamSize)
                                     {
-                                        var reservation = await gameSessions.CreateReservation(session.Id, new Team(party), new JObject(), CancellationToken.None);
+                                        var reservation = await gameSessions.CreateReservation(session.Id, [PartySummary.Create(party)], new JObject(), CancellationToken.None);
 
                                         if (reservation == null)
                                         {

@@ -13,73 +13,74 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
-	/// <summary>
-	/// party settings for the server browser gamefinder.
-	/// </summary>
-	[MessagePackObject]
+    /// <summary>
+    /// party settings for the server browser gamefinder.
+    /// </summary>
+    [MessagePackObject]
     public class ServerBrowserGamefinderArgs
     {
-		/// <summary>
-		/// Gets or sets the id of the game session to join.
-		/// </summary>
-		[Key("gamesessionId")]
-		public string? GamesessionId { get; init; }
+        /// <summary>
+        /// Gets or sets the id of the game session to join.
+        /// </summary>
+        [Key("gamesessionId")]
+        public string? GamesessionId { get; init; }
     }
 
-	/// <summary>
-	/// Server browser gamefinder algorithm.
-	/// </summary>
+    /// <summary>
+    /// Server browser gamefinder algorithm.
+    /// </summary>
     public class ServerBrowserGameFinderAlgorithm : IGameFinderAlgorithm
-	{
-		/// <summary>
-		/// Creates a <see cref="ServerBrowserGameFinderAlgorithm"/> object.
-		/// </summary>
-		/// <param name="serializer"></param>
-		/// <param name="gamesessions"></param>
-		public ServerBrowserGameFinderAlgorithm(ISerializer serializer, IGameSessions gamesessions)
+    {
+        /// <summary>
+        /// Creates a <see cref="ServerBrowserGameFinderAlgorithm"/> object.
+        /// </summary>
+        /// <param name="serializer"></param>
+        /// <param name="gamesessions"></param>
+        public ServerBrowserGameFinderAlgorithm(ISerializer serializer, IGameSessions gamesessions)
         {
             _serializer = serializer;
             _gamesessions = gamesessions;
         }
         private static JObject _default = new();
         private static JObject _emptyDataAnalytics = new JObject();
-		private static Dictionary<string, int> _emptyMetrics = new Dictionary<string, int>();
+        private static Dictionary<string, int> _emptyMetrics = new Dictionary<string, int>();
         private readonly ISerializer _serializer;
         private readonly IGameSessions _gamesessions;
 
-		///<inheritdoc/>
+        ///<inheritdoc/>
         public JObject ComputeDataAnalytics(GameFinderContext gameFinderContext)
-		{
-		
-			return _emptyDataAnalytics;
-		}
+        {
+
+            return _emptyDataAnalytics;
+        }
         ///<inheritdoc/>
         public async Task<GameFinderResult> FindGames(GameFinderContext gameFinderContext)
-		{
-			var result = new GameFinderResult();
-			foreach(var party in gameFinderContext.WaitingParties)
-			{
-				var args = _serializer.Deserialize<ServerBrowserGamefinderArgs>(new MemoryStream(party.CustomData));
+        {
+            var result = new GameFinderResult();
+            foreach (var party in gameFinderContext.WaitingParties)
+            {
+                var args = _serializer.Deserialize<ServerBrowserGamefinderArgs>(new MemoryStream(party.CustomData));
 
-				if(string.IsNullOrEmpty(args.GamesessionId))
-				{
+                if (string.IsNullOrEmpty(args.GamesessionId))
+                {
                     gameFinderContext.SetFailed(party, "missingArgument?gamesessionId");
+                    break;
                 }
 
-				var reservation = await _gamesessions.CreateReservation(args.GamesessionId, new Models.Team(party), _default, default);
+                var reservation = await _gamesessions.CreateReservation(args.GamesessionId, [PartySummary.Create(party)], _default, default);
 
-				if (reservation is null)
-				{
-					gameFinderContext.SetFailed(party, "gameFull");
-				}
-				else
-				{
-					AddPartyToExistingGame(result, args.GamesessionId, party);
-				}
+                if (reservation is null)
+                {
+                    gameFinderContext.SetFailed(party, "gameFull");
+                }
+                else
+                {
+                    AddPartyToExistingGame(result, args.GamesessionId, party);
+                }
             }
 
-			return result;
-		}
+            return result;
+        }
         private void AddPartyToExistingGame(GameFinderResult results, string id, Stormancer.Server.Plugins.Models.Party party)
         {
             var game = results.Games.FirstOrDefault(g => g.Id == id);
@@ -102,38 +103,38 @@ namespace Stormancer.Server.Plugins.GameFinder
         }
         ///<inheritdoc/>
         public Dictionary<string, int> GetMetrics()
-		{
-			return _emptyMetrics;
-		}
+        {
+            return _emptyMetrics;
+        }
         ///<inheritdoc/>
         public void RefreshConfig(string id, dynamic config)
-		{
-			
-		}
-	}
+        {
 
-	/// <summary>
-	/// The gamefinder session resolver for the server browser game finder.
-	/// </summary>
-	public class ServerBrowserGameFinderResolver : IGameFinderResolver
-	{
+        }
+    }
+
+    /// <summary>
+    /// The gamefinder session resolver for the server browser game finder.
+    /// </summary>
+    public class ServerBrowserGameFinderResolver : IGameFinderResolver
+    {
         ///<inheritdoc/>
         public Task PrepareGameResolution(GameFinderResult gameFinderResult)
-		{
-			return Task.CompletedTask;
-		}
+        {
+            return Task.CompletedTask;
+        }
 
         ///<inheritdoc/>
         public void RefreshConfig(string id, dynamic config)
-		{
-			
-		}
+        {
+
+        }
 
         ///<inheritdoc/>
         public Task ResolveGame(IGameResolverContext gameCtx)
-		{
-			//Does not support creating games.
-			return Task.CompletedTask;
-		}
-	}
+        {
+            //Does not support creating games.
+            return Task.CompletedTask;
+        }
+    }
 }

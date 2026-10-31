@@ -109,11 +109,10 @@ namespace Stormancer.Server.Plugins.Party.JoinGame
 
             if (tuple != null && !tuple.party.Players.ContainsKey(session.User.Id))
             {
-                var team = new Team { TeamId = tuple.team.TeamId };
-                var partyArg = new Models.Party { PartyId = partyId, Players = new Dictionary<string, Player>(), CustomData = Array.Empty<byte>() };
-                partyArg.Players.Add(session.User.Id, new Player { SessionId = session.SessionId, UserId = session.User.Id });
-                team.Parties.Add(partyArg);
-                await gameSession.CreateReservationAsync(team, new Newtonsoft.Json.Linq.JObject { }, cancellationToken);
+                var partyArg = new Models.PartySummary { Id = partyId, LeaderId = tuple.party.PartyLeaderId };// new Models.Party { PartyId = partyId, Players = new Dictionary<string, Player>(), CustomData = Array.Empty<byte>() };
+                partyArg.Members.Add(session.User.Id);
+
+                await gameSession.CreateReservationAsync([partyArg], new Newtonsoft.Json.Linq.JObject { }, cancellationToken);
 
             }
 

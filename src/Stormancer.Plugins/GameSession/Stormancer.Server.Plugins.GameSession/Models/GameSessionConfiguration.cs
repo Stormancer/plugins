@@ -33,19 +33,23 @@ namespace Stormancer.Server.Plugins.GameSession
     /// <summary>
     /// Describes the 
     /// </summary>
+    [MessagePackObject]
     public class HostSelectionPolicyConfiguration
     {
         /// <summary>
         /// Gets or sets the type of host selection policy to use.
         /// </summary>
+        [Key(0)]
         public required string Type { get; set; }
 
         /// <summary>
         /// Gets a map of arguments passed to the host selection policy.
         /// </summary>
+        [Key(1)]
         public Dictionary<string,string> Arguments { get; } = new Dictionary<string,string>();
     }
 
+    
     /// <summary>
     /// Configuration of a game session
     /// </summary>
@@ -77,20 +81,15 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Group connected to gameSession
         /// </summary>
 
-        [IgnoreMember]
-        public IEnumerable<Team> TeamsList => Teams.ToList();
+       
 
         /// <summary>
-        /// The teams that are part of this game session.
+        /// Initial reservations in the game session.
         /// </summary>
         [Key(3)]
-        public List<Team> Teams { get; set; } = new List<Team>();
+        public IEnumerable<PartySummary> InitialReservations { get; set; } = Enumerable.Empty<PartySummary>();
 
-        /// <summary>
-        /// Get the User ID of every player in Teams
-        /// </summary>
-        [IgnoreMember]
-        public IEnumerable<string> UserIds { get => Teams.SelectMany(t => t.PlayerIds); }
+        
 
         /// <summary>
         /// Game session parameters like map to launch, gameType and everything can be useful to 
