@@ -133,7 +133,16 @@ namespace Stormancer.Server.Plugins.GameSession
         [Key(9)]
         public List<TeamConfigurationRecord> TeamsConfiguration { get; set; } = new List<TeamConfigurationRecord>();
 
+        /// <summary>
+        /// Is P2P host fallback allowed if dedicated server fails to start.
+        /// </summary>
         [Key(10)]
         public bool AllowP2PHostFallback { get; set; } = true;
+
+        /// <summary>
+        /// Name of the game session.
+        /// </summary>
+        [Key(11)]
+        public string? Name { get; set; }
     }
 }

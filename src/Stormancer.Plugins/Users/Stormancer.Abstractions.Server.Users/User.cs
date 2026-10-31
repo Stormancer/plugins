@@ -103,7 +103,7 @@ namespace Stormancer.Server.Plugins.Users
         /// Gets all identities linked to the user.
         /// </summary>
         [Key(8)]
-        public Dictionary<string, string> Identities { get; set; }
+        public Dictionary<string, string> Identities { get; } = new Dictionary<string, string>();
     }
 
     /// <summary>

@@ -23,6 +23,7 @@ Added
 - Enables complex game server image selection mechanisms through improved configuration and custom arguments.
 - Added IsDedicatedServer extension method to Session.
 - Added IGameSessionService.Scene property.
+- Added Gamesession Name property in configuration object.
 
 Fixed
 *****

@@ -127,7 +127,15 @@ namespace Stormancer.Server.Plugins.Users
 
                     await sessions.CreateSessionForPeer(peer, authResult.AuthenticatedUser, authResult.PlatformId, authResult.initialSessionData, s =>
                     {
-                        s.Identities[provider.Type] = authResult.PlatformId.ToString();
+                        if (authResult.AuthenticatedUser != null)
+                        {
+                            s.Identities = authResult.AuthenticatedUser.Identities;
+                        }
+                        else
+                        {
+                            s.Identities[provider.Type] = authResult.PlatformId.PlatformUserId;
+                        }
+                       
                         if (authResult.ExpirationDate.HasValue)
                         {
                             s.AuthenticationExpirationDates[provider.Type] = authResult.ExpirationDate.Value;
@@ -169,7 +177,7 @@ namespace Stormancer.Server.Plugins.Users
                 //return result;
             }
 
-            result.Authentications = session?.Identities.ToDictionary(entry => entry.Key, entry => entry.Value) ?? _emptyDictionary;
+            result.Authentications = session?.Identities?.ToDictionary(entry => entry.Key, entry => entry.Value) ?? _emptyDictionary;
             if (result.Metadata == null)
             {
                 result.Metadata = _emptyDictionary;
@@ -199,7 +207,6 @@ namespace Stormancer.Server.Plugins.Users
 
         }
 
-        [Api(ApiAccess.Public, ApiType.Rpc)]
         public async Task<Dictionary<string, string>> GetStatus(IScenePeerClient peer, CancellationToken cancellationToken)
         {
             var session = await _sessions.GetSession(peer, cancellationToken);

@@ -170,7 +170,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         /// </summary>
         public CrashReportConfiguration CrashReportConfiguration { get; set; } = new CrashReportConfiguration();
 
-    
+
 
     }
 
@@ -257,10 +257,16 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
         private Task<IEnumerable<X509Certificate2>> _certificates;
 
+
+
         private DateTime _lastAccessTokenRequest = DateTime.MinValue;
         private Task<string?>? _accessToken;
         private OAuthClientCredentials? _currentClientCredentials;
 
+        public Task<IEnumerable<X509Certificate2>> GetSigningCertificates()
+        {
+            return _certificates;
+        }
         /// <summary>
         /// Gets the certificate of the agent.
         /// </summary>
@@ -420,8 +426,8 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             var result = new Dictionary<string, DockerCredentials>();
             foreach (var repository in DockerConfiguration.Auth.Keys)
             {
-                var creds= await GetDockerCredentialsAsync(repository);
-                if(creds!=null)
+                var creds = await GetDockerCredentialsAsync(repository);
+                if (creds != null)
                 {
                     result.Add(repository, creds);
                 }
@@ -435,13 +441,15 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
     internal class GameServerAgentAuthenticationProvider : IAuthenticationProvider
     {
         private readonly GameServerAgentConfiguration _configuration;
+        private readonly ILogger _logger;
 
         public string Type => GameServerAgentConstants.AGENT_AUTH_TYPE;
 
 
-        public GameServerAgentAuthenticationProvider(GameServerAgentConfiguration configuration)
+        public GameServerAgentAuthenticationProvider(GameServerAgentConfiguration configuration, ILogger logger)
         {
             _configuration = configuration;
+            _logger = logger;
         }
         public void AddMetadata(Dictionary<string, string> result)
         {
@@ -468,6 +476,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
 
             if (certificate == null)
             {
+                _logger.Log(LogLevel.Warn, "gameservers.agents", "Failed to authenticate a game server agent.", new { thumbprint, acceptedTumbprints = (await _configuration.GetSigningCertificates()).Select(c => c.Thumbprint) });
                 return AuthenticationResult.CreateFailure($"'{thumbprint}' is not an authorized certificate", id, new Dictionary<string, string>());
             }
             var claims = Jose.JWT.Decode<Dictionary<string, string>>(jwt, certificate.GetRSAPublicKey());
@@ -753,10 +762,10 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                     lock (_syncRoot)
                     {
 
-                      
+
                         foreach (var (id, agent) in _agents)
                         {
-                            async Task UpdateImageList(string id,Dictionary<string,DockerCredentials> credentials,CancellationToken cancellationToken)
+                            async Task UpdateImageList(string id, Dictionary<string, DockerCredentials> credentials, CancellationToken cancellationToken)
                             {
                                 try
                                 {
@@ -764,7 +773,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                                     {
                                         Images = _configuration.DockerConfiguration.PreloadedImages.Keys,
                                         Credentials = credentials
-                                    },cancellationToken);
+                                    }, cancellationToken);
                                 }
                                 catch (Exception ex)
                                 {
@@ -1120,13 +1129,13 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
             return result.Success;
         }
 
-        private DockerContainerRequirements GetResourceRequirements(string image,string imageTemplate)
+        private DockerContainerRequirements GetResourceRequirements(string image, string imageTemplate)
         {
-            if(_configuration.DockerConfiguration.PreloadedImages.TryGetValue(image,out var imageConfiguration) && imageConfiguration.Requirements!=null)
+            if (_configuration.DockerConfiguration.PreloadedImages.TryGetValue(image, out var imageConfiguration) && imageConfiguration.Requirements != null)
             {
                 return imageConfiguration.Requirements;
             }
-            else if(_configuration.DockerConfiguration.Templates.TryGetValue(imageTemplate,out var config) && config.Requirements !=null)
+            else if (_configuration.DockerConfiguration.Templates.TryGetValue(imageTemplate, out var config) && config.Requirements != null)
             {
                 return config.Requirements;
             }
@@ -1138,11 +1147,11 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         private async Task<DockerCredentials?> GetCredentials(string image)
         {
             var index = image.IndexOf('/');
-            if(index <=0)
+            if (index <= 0)
             {
                 return null;
             }
-            var repository = image.Substring(0,index);
+            var repository = image.Substring(0, index);
             return await _configuration.GetDockerCredentialsAsync(repository);
         }
 
@@ -1153,7 +1162,7 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         public bool ShuttingDown { get; private set; }
 
         /// <inheritdoc/>
-        public async Task<StartGameServerResult> TryStartServer(string id, string authenticationToken, JObject config, IEnumerable<string> regions, string gameSessionTemplate, Dictionary<string,string> gameSessionArgs ,CancellationToken ct)
+        public async Task<StartGameServerResult> TryStartServer(string id, string authenticationToken, JObject config, IEnumerable<string> regions, string gameSessionTemplate, Dictionary<string, string> gameSessionArgs, CancellationToken ct)
         {
 
             var agentConfig = config.ToObject<AgentPoolConfigurationSection>() ?? new AgentPoolConfigurationSection();
@@ -1183,8 +1192,8 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
                 }
             }
             var imageTemplate = agentConfig.Image;
-           
-            if(imageTemplate == null)
+
+            if (imageTemplate == null)
             {
                 return new StartGameServerResult(false, null, null, $"'image' property not set in the configuration of pool '{this.Id}'.");
             }

@@ -28,7 +28,7 @@ namespace Stormancer.Server.Plugins.Users
         public static User? CreateUserFromRecord(UserRecord? record)
         {
             if (record == null) return null;
-            return new User()
+            var user= new User()
             {
                 Id = record.Id.ToString("N"),
                 Auth = JObject.Parse(record.Auth.RootElement.GetRawText()!),
@@ -38,9 +38,15 @@ namespace Stormancer.Server.Plugins.Users
                 CreatedOn = record.CreatedOn,
                 LastLogin = record.LastLogin,
                 LastPlatform = record.LastPlatform,
-                Identities = record.Identities.ToDictionary(identity=>identity.Provider,identity=>identity.Identity)
+                
 
             };
+            foreach(var identity in record.Identities)
+            {
+                user.Identities.Add(identity.Provider, identity.Identity);
+            }
+          
+            return user;
         }
 
 

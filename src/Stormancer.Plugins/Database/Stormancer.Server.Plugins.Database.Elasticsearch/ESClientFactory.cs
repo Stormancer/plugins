@@ -72,9 +72,9 @@ namespace Stormancer.Server.Plugins.Database
         public string? PasswordPath { get; set; }
 
         /// <summary>
-        /// Password.
+        /// Password obtained from the secret store at init.
         /// </summary>
-        public string? Password { get; set; }
+        internal string? Password { get; set; }
     }
 
     /// <summary>

@@ -1,10 +1,14 @@
 ﻿using Stormancer.Core;
+using Stormancer.Diagnostics;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Epic;
 using Stormancer.Server.Plugins.Friends;
 using Stormancer.Server.Plugins.Profile;
 using Stormancer.Server.Plugins.ServiceLocator;
 using Stormancer.Server.Plugins.Users;
+using Stormancer.Server.Plugins.Users.OAuth;
+using Stormancer.Server.Plugins.Voice;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Epic
@@ -30,6 +34,15 @@ namespace Stormancer.Server.Plugins.Epic
                 builder.Register(static r=>EpicServiceLocator.Instance).As<IServiceLocatorProvider>();
                 builder.Register<EpicFriendsEventHandler>().As<IFriendsEventHandler>().InstancePerRequest(); 
                 builder.Register<EpicAuthenticationProvider>().As<IAuthenticationProvider>();
+                builder.Register<ConfigurationMonitor<EOSConfigurationSection>>().AsSelf().As<IConfigurationChangedEventHandler>().SingleInstance();
+                builder.Register(dr => new EOSAuthenticationEventHandler(
+                    dr.Resolve<ConfigurationMonitor<EOSConfigurationSection>>(),
+                    dr.Resolve<OAuthService>(),
+                    dr.Resolve<IProfileService>(),
+                    dr.Resolve<IEOSService>(),
+                    dr.Resolve<IUserService>(),
+                    dr.Resolve<ILogger>())).As<IAuthenticationEventHandler>().InstancePerRequest();
+                builder.Register(dr => new EOSVoiceProvider()).As<IVoiceChatProvider>().InstancePerRequest();
             };
 
           

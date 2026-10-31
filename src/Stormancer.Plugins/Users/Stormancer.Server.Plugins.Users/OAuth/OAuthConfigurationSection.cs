@@ -13,7 +13,7 @@ namespace Stormancer.Server.Plugins.Users.OAuth
     public class OAuthConfigurationSection : IConfigurationSection<OAuthConfigurationSection>
     {
         /// <inheritdoc/>
-        public static string SectionPath => "auth.oauth";
+        public static string SectionPath => "oauth";
 
         /// <inheritdoc/>
         public static OAuthConfigurationSection Default { get; } = new OAuthConfigurationSection();

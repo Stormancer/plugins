@@ -226,8 +226,9 @@ namespace Stormancer.Server.Plugins.GameFinder
                                                 FixedSlots = party.Players.Select(p=>p.Value.SessionId).ToList() 
                                             }
                                         },
-                                        Settings = config.Args
-
+                                        Settings = config.Args,
+                                        Name = ""
+                                        
                                     };
                                     
                                     sessions.Add(new Document<GamesessionDocumentSource>(game.Id, data) { Version = 1 });

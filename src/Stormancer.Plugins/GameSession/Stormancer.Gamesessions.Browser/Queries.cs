@@ -116,6 +116,12 @@ namespace Stormancer.Gamesessions.Browser
         /// </summary>
         [Key(3)]
         public required DateTime CreatedOn { get; init; }
+
+        /// <summary>
+        /// Name of the game session.
+        /// </summary>
+        [Key(4)]
+        public required string Name { get; init; }
     }
 
     /// <summary>
@@ -160,7 +166,8 @@ namespace Stormancer.Gamesessions.Browser
                                 Settings = gs.GetSettings(),
                                 Teams = gs.GetTeamsConfiguration(),
                                 CreatedOn = gs.CreatedOn,
-                                PlayerCount = gs.PlayerCount
+                                PlayerCount = gs.PlayerCount,
+                                Name = gs.Name
                             }))
                             { Version = 1 });
                         }
@@ -172,13 +179,14 @@ namespace Stormancer.Gamesessions.Browser
             return result;
         }
 
+
         bool IServiceSearchProvider.Handles(string type)
         {
             return type == GAMESESSION_SEARCH_TYPE;
         }
 
         /// <summary>
-        /// Adds a <see cref="IGameSessionService"/> to the store.
+        /// Adds a gamesession represented by its <see cref="IGameSessionService"/> to the store.
         /// </summary>
         /// <param name="gameSession"></param>
         public void Add(IGameSessionService gameSession)
@@ -190,7 +198,7 @@ namespace Stormancer.Gamesessions.Browser
         }
 
         /// <summary>
-        /// Removes a <see cref="IGameSessionService"/> from the store.
+        /// Removes a previously added <see cref="IGameSessionService"/> from the store.
         /// </summary>
         /// <param name="gameSession"></param>
         public void Remove(IGameSessionService gameSession)
@@ -201,86 +209,18 @@ namespace Stormancer.Gamesessions.Browser
             }
         }
 
+        /// <summary>
+        /// Gets game sessions.
+        /// </summary>
+        public IEnumerable<IGameSessionService> GameSessions
+        {
+            get
+            {
+                lock (_syncRoot)
+                {
+                    return _store.Values.ToList();
+                }
+            }
+        }
     }
-
-    //internal class GamesessionLuceneDocumentStore : ILuceneDocumentStore
-    //{
-    //    public const string PARTY_LUCENE_INDEX = "stormancer.gamesessions";
-
-    //    private readonly ILucene lucene;
-    //    private Dictionary<string, (JObject, byte[])> _data = new Dictionary<string, (JObject, byte[])>();
-    //    private object syncRoot = new object();
-    //    public GamesessionLuceneDocumentStore(ILucene lucene)
-    //    {
-    //        this.lucene = lucene;
-    //    }
-    //    public IEnumerable<Document<JObject>> GetDocuments(IEnumerable<string> ids)
-    //    {
-
-    //        foreach (var id in ids)
-    //        {
-    //            lock (syncRoot)
-    //            {
-
-    //                if (_data.TryGetValue(id, out var doc))
-    //                {
-    //                    yield return new Document<JObject>(id, doc.Item1) { Version = 1 };
-    //                }
-    //                else
-    //                {
-    //                    yield return new Document<JObject>(id, default) { Version = 1 };
-    //                }
-    //            }
-    //        }
-    //    }
-
-    //    public bool Handles(string type)
-    //    {
-    //        return type == PARTY_LUCENE_INDEX;
-    //    }
-
-    //    public void Initialize()
-    //    {
-    //        lucene.TryCreateIndex(PARTY_LUCENE_INDEX, DefaultMapper.JsonMapper);
-    //    }
-
-    //    public void UpdateDocument<T>(string id, T? document, byte[] customData)
-    //    {
-    //        if (document != null)
-    //        {
-    //            var json = JObject.FromObject(document);
-    //            lock (syncRoot)
-    //            {
-
-    //                if (!_data.TryGetValue(id, out var current) || !JToken.DeepEquals(json, current.Item1))
-    //                {
-
-    //                    lucene.IndexDocument(PARTY_LUCENE_INDEX, id, json);
-    //                }
-    //                _data[id] = (json, customData);
-    //            }
-    //        }
-    //        else
-    //        {
-    //            DeleteDocument(id);
-
-    //        }
-    //    }
-
-    //    public void DeleteDocument(string id)
-    //    {
-    //        var mustRemove = false;
-    //        lock (syncRoot)
-    //        {
-    //            mustRemove = _data.Remove(id);
-
-    //        }
-    //        if (mustRemove)
-    //        {
-    //            lucene.DeleteDocument(PARTY_LUCENE_INDEX, id);
-    //        }
-
-
-    //    }
-    //}
 }

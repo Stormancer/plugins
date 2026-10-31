@@ -84,7 +84,7 @@ namespace Stormancer.Server.Plugins.Party
                      r.Resolve<Lazy<IEnumerable<IPartyPlatformSupport>>>(),
                      r.Resolve<Lazy<InvitationCodeService>>(),
                      r.Resolve<Lazy<PartyConfigurationService>>(),
-                     r.Resolve<Lazy<ISerializer>>(),
+                     r.Resolve<ISerializer>(),
                      r.Resolve<Lazy<CrossplayService>>());
         }
         public void Build(HostPluginBuildContext ctx)

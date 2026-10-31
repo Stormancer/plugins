@@ -9,6 +9,11 @@ Please use only reStructuredText in this file, no Markdown!
 
 This project adheres to semantic versioning.
 
+Unreleased
+----------
+Chanfed
+*******
+- Updated dependencies.
 
 3.2.0.2
 ----------

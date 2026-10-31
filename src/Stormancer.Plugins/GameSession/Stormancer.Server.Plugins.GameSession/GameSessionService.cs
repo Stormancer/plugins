@@ -655,7 +655,10 @@ namespace Stormancer.Server.Plugins.GameSession
             //await SendP2PToken(Enumerable.Repeat(sessionId, 1), true, "", default);
             if (state.DirectConnectionEnabled())
             {
-                UpdateTopology(sessionId, GameSessionHostState.Ready);
+                if (sessionId == HostSessionId)
+                {
+                    UpdateTopology(sessionId, GameSessionHostState.Ready);
+                }
             }
 
 
@@ -700,8 +703,10 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 return;
             }
-            _connectedSessions.Add(peer.SessionId, session);
-
+            lock (_hostSelectionSyncRoot)
+            {
+                _connectedSessions.Add(peer.SessionId, session);
+            }
             SendSnapshot(session.SessionId);
 
             var isDedicatedServer = session.IsDedicatedServer();
@@ -769,31 +774,42 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private void SelectHost()
         {
-            List<Session> candidates = new();
-            foreach (var (sessionId, session) in _connectedSessions)
+            lock (_hostSelectionSyncRoot)
             {
-                foreach (var provider in _hostSelectionPolicies)
+                
+                if (_currentTopology != null && _currentTopology.State != GameSessionHostState.Disconnected)
                 {
-                    if (provider.TryConfigure(_config?.HostSelectionConfiguration, this))
+                    if(_scene.TryGetPeer(_currentTopology.Host, out _))// The current host is connected.Do nothing
                     {
-                        if (provider.IsHostCandidate(session))
-                        {
-                            candidates.Add(session);
-                        }
+                        return;
                     }
+                    else // The current host is disconnected. First, send a disconnected event, then start the host selection process.
+                    {
+                        UpdateTopology(_currentTopology.Host, GameSessionHostState.Disconnected);
+                    }
+                }
+                List<Session> candidates = new();
+                foreach (var (sessionId, session) in _connectedSessions)
+                {
+                    foreach (var provider in _hostSelectionPolicies)
+                    {
+                        if (provider.TryConfigure(_config?.HostSelectionConfiguration, this))
+                        {
+                            if (provider.IsHostCandidate(session))
+                            {
+                                candidates.Add(session);
+                            }
+                        }
 
+                    }
+                }
+
+                if (candidates.Count > 0)
+                {
+                    var host = candidates.First();
+                    UpdateTopology(host.SessionId, GameSessionHostState.Connected);
                 }
             }
-            if (candidates.Count == 0 && _currentTopology != null && !_currentTopology.Host.IsEmpty())
-            {
-                UpdateTopology(_currentTopology.Host, GameSessionHostState.Disconnected);
-            }
-            if (candidates.Count > 0)
-            {
-                var host = candidates.First();
-                UpdateTopology(host.SessionId, GameSessionHostState.Connected);
-            }
-
 
         }
 
@@ -947,6 +963,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 if (_server == null && _config.AllowP2PHostFallback && _config.HostSelectionConfiguration?.Type == ServerHostSelectionPolicy.Type)
                 {
                     _config.HostSelectionConfiguration = AnyHostSelectionPolicy.CreateConfiguration();
+                    SelectHost();
                 }
             }
             return result;
@@ -967,9 +984,10 @@ namespace Stormancer.Server.Plugins.GameSession
         public async Task OnPeerDisconnecting(IScenePeerClient peer)
         {
             Debug.Assert(_config != null);
-
-            _connectedSessions.Remove(peer.SessionId);
-
+            lock (_hostSelectionSyncRoot)
+            {
+                _connectedSessions.Remove(peer.SessionId);
+            }
             SelectHost();
 
 
@@ -1055,21 +1073,12 @@ namespace Stormancer.Server.Plugins.GameSession
 
         private async ValueTask CloseGameServer()
         {
-            if (!HostSessionId.IsEmpty())
+            if (!HostSessionId.IsEmpty() && state.UseGameServer() && _server?.GameServerId != null)
             {
+                await using var scope = _scene.CreateRequestScope();
+                var pools = scope.Resolve<ServerPoolProxy>();
 
-                var poolId = state.GameServerPool();
-                Debug.Assert(poolId != null);
-
-                if (state.UseGameServer())
-                {
-                    await using var scope = _scene.CreateRequestScope();
-                    var pools = scope.Resolve<ServerPoolProxy>();
-                    if (_server != null)
-                    {
-                        await pools.CloseServer(_server.GameServerId, CancellationToken.None);
-                    }
-                }
+                await pools.CloseServer(_server.GameServerId, CancellationToken.None);
             }
         }
 
@@ -1156,9 +1165,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         }
 
-
-
-
+        public string Name => _config?.Name ?? $"Game {Scene.Id}";
 
 
         public string GameSessionId => _scene.Id;
@@ -1167,6 +1174,7 @@ namespace Stormancer.Server.Plugins.GameSession
         public int PlayerCount => _clients.Count + _reservationStates.Count();
 
         private object _syncRoot = new object();
+        private object _hostSelectionSyncRoot = new object();
         private Dictionary<string, string> _dimensions = new Dictionary<string, string>();
         private FrozenDictionary<string, string>? _frozenDimensions;
         public FrozenDictionary<string, string> Dimensions
@@ -1394,6 +1402,27 @@ namespace Stormancer.Server.Plugins.GameSession
         public IEnumerable<TeamConfigurationRecord> GetTeamsConfiguration()
         {
             return _currentGameSessionSettings?.Teams ?? Enumerable.Empty<TeamConfigurationRecord>();
+        }
+
+        public IEnumerable<Party> GetParties()
+        {
+            lock (_syncRoot)
+            {
+                var list = new List<Party>();
+                foreach (var reservation in _reservationStates.Values)
+                {
+                    list.AddRange(reservation.Parties);
+                }
+
+                list.AddRange(_clients.Values.GroupBy(c => c.PartyId).Select(group => new Party()
+                {
+                    PartyId = group.Key,
+                    Players = group.ToDictionary(c => c.Session.User!.Id, c => new Player(c.SessionId, c.Session.User!.Id)),
+                    CustomData = Array.Empty<byte>()
+                }));
+
+                return list;
+            }
         }
 
         private static Dictionary<string, string> _emptySettings = [];

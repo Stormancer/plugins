@@ -162,7 +162,7 @@ namespace Stormancer.Server.Plugins.GameSession
         bool CanFit(IEnumerable<PartySummary> parties, bool acceptSplit = false);
 
         /// <summary>
-        /// The configuration of teams in the game session.
+        /// Gets the current teams configuration of the game.
         /// </summary>
         /// <returns></returns>
         IEnumerable<TeamConfigurationRecord> GetTeamsConfiguration();
@@ -172,6 +172,12 @@ namespace Stormancer.Server.Plugins.GameSession
         /// </summary>
         /// <returns></returns>
         IReadOnlyDictionary<string, string> GetSettings();
+
+        /// <summary>
+        /// Gets the list of parties either connected or with reservations in this session. 
+        /// </summary>
+        /// <returns></returns>
+        IEnumerable<Stormancer.Server.Plugins.Models.Party> GetParties();
 
         /// <summary>
         /// Gets the time the session was created on.
@@ -252,5 +258,10 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Gets the scene of the game session.
         /// </summary>
         ISceneHost Scene { get; }
+
+        /// <summary>
+        /// Gets the name of the game session.
+        /// </summary>
+        string Name { get; }
     }
 }

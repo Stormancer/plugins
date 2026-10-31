@@ -77,7 +77,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 builder.Register(static r => new ServerPoolController(r.Resolve<ServerPools>(), r.Resolve<IUserSessions>(), r.Resolve<IGameSessions>(), r.Resolve<AgentBasedGameServerProvider>())).InstancePerRequest();
                 builder.Register(static r => new AgentServerController(r.Resolve<AgentBasedGameServerProvider>())).InstancePerRequest();
                 builder.Register(static r => new DedicatedServerAuthProvider(r.Resolve<IDataProtector>())).As<IAuthenticationProvider>();
-                builder.Register(static r => new GameServerAgentAuthenticationProvider(r.Resolve<GameServerAgentConfiguration>())).As<IAuthenticationProvider>();
+                builder.Register(static r => new GameServerAgentAuthenticationProvider(r.Resolve<GameServerAgentConfiguration>(), r.Resolve<ILogger>())).As<IAuthenticationProvider>();
                 builder.Register(static r => new GameServerAgentConfiguration(r.Resolve<IConfiguration>(), r.Resolve<ISecretsStore>(), r.Resolve<IHttpClientFactory>())).As<IConfigurationChangedEventHandler>().AsSelf().SingleInstance();
                 builder.Register(static r => new DevDedicatedServerAuthProvider()).As<IAuthenticationProvider>();
                 builder.Register(static r => new GameSessions(r.Resolve<Lazy<IScenesManager>>(), r.Resolve<Utilities.RecyclableMemoryStreamProvider>(), r.Resolve<IEnvironment>(), r.Resolve<Lazy<GameSessionProxy>>(), r.Resolve<Lazy<IUserSessions>>(), r.Resolve<ISerializer>(), r.Resolve<JsonSerializer>())).As<IGameSessions>();
