@@ -1404,23 +1404,33 @@ namespace Stormancer.Server.Plugins.GameSession
             return _currentGameSessionSettings?.Teams ?? Enumerable.Empty<TeamConfigurationRecord>();
         }
 
-        public IEnumerable<Party> GetParties()
+        public IEnumerable<PartySummary> GetParties()
         {
             lock (_syncRoot)
             {
-                var list = new List<Party>();
-                foreach (var reservation in _reservationStates.Values)
+                var list = new List<PartySummary>();
+               
+                foreach(var (userId,reservation) in _reservationStates)
                 {
-                    list.AddRange(reservation.Parties);
+                    var party = list.FirstOrDefault(p => p.Id == reservation.PartyId);
+                    if(party == null)
+                    {
+                        party = new PartySummary { Id = reservation.PartyId, LeaderId = string.Empty };
+                    }
+                    party.Members.Add(userId);
+                }
+                   
+                foreach(var (userId,client) in _clients)
+                {
+                    var party = list.FirstOrDefault(p => p.Id == client.PartyId);
+                    if (party == null)
+                    {
+                        party = new PartySummary { Id = client.PartyId, LeaderId = string.Empty };
+                    }
+                    party.Members.Add(userId);
                 }
 
-                list.AddRange(_clients.Values.GroupBy(c => c.PartyId).Select(group => new Party()
-                {
-                    PartyId = group.Key,
-                    Players = group.ToDictionary(c => c.Session.User!.Id, c => new Player(c.SessionId, c.Session.User!.Id)),
-                    CustomData = Array.Empty<byte>()
-                }));
-
+              
                 return list;
             }
         }

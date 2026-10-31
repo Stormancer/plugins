@@ -177,7 +177,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Gets the list of parties either connected or with reservations in this session. 
         /// </summary>
         /// <returns></returns>
-        IEnumerable<Stormancer.Server.Plugins.Models.Party> GetParties();
+        IEnumerable<PartySummary> GetParties();
 
         /// <summary>
         /// Gets the time the session was created on.
