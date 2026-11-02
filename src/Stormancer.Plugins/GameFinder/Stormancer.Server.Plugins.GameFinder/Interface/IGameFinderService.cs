@@ -64,16 +64,6 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <returns></returns>
         Task CancelGame(IScenePeerClient peer, bool playerRequest);
 
-      
-
-        /// <summary>
-        /// Advertises a game session in the gamefinder.
-        /// </summary>
-        /// <param name="data"></param>
-        /// <param name="request">Request the game session is linked with. The game session stays advertised as lon as the request is not cancelled by the game session.</param>
-        /// <returns></returns>
-        internal IAsyncEnumerable<IEnumerable<Team>> OpenGameSession(JObject data,IS2SRequestContext request);
-
         /// <summary>
         /// Check if each candidate is compatible with the others in its own collection.
         /// </summary>

@@ -31,6 +31,7 @@ using Stormancer.Gamesessions.Browser;
 using Stormancer.Server.Plugins.GameSession;
 using Stormancer.Server.Plugins.Models;
 using Stormancer.Server.Plugins.Queries;
+using Stormancer.Server.Plugins.Utilities.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -88,12 +89,26 @@ namespace Stormancer.Server.Plugins.GameFinder
         public JObject? CustomData { get; set; }
     }
 
-
+    /// <summary>
+    /// Base class for simple quick queue algorithms.
+    /// </summary>
     public abstract class QuickQueueGameFinderBase
     {
+        /// <summary>
+        /// Game session search service.
+        /// </summary>
         protected readonly Stormancer.Gamesessions.Browser.GamesessionSearchService search;
+
+        /// <summary>
+        /// Service providing methods to create and manage game sessions.
+        /// </summary>
         protected readonly IGameSessions gameSessions;
 
+        /// <summary>
+        /// Creates a new <see cref="QuickQueueGameFinderBase"/> object.
+        /// </summary>
+        /// <param name="search"></param>
+        /// <param name="gameSessions"></param>
         public QuickQueueGameFinderBase(Stormancer.Gamesessions.Browser.GamesessionSearchService search, IGameSessions gameSessions)
         {
             this.search = search;
@@ -107,8 +122,12 @@ namespace Stormancer.Server.Plugins.GameFinder
 
             return docs.Select(d =>
             {
-                return new Document<GamesessionDocumentSource>(d.Id, d?.Source?["matchmaking"]?.ToObject<GamesessionDocumentSource>()) { Version = d.Version };
-            });
+                if (d == null)
+                {
+                    return null;
+                }
+                return new Document<GamesessionDocumentSource>(d.Id, d.Source?["matchmaking"]?.ToObject<GamesessionDocumentSource>()) { Version = d.Version };
+            }).WhereNotNull();
         }
 
         abstract internal Task<IEnumerable<IGrouping<ParametersGroup, Party>>> GetGroups(IDependencyResolver resolver, IEnumerable<Party> parties);
@@ -127,7 +146,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="gameFinderContext"></param>
         /// <returns></returns>
-        protected async Task<GameFinderResult> FindGamesImpl(GameFinderContext gameFinderContext)
+        protected async Task<GameFinderResult> FindGamesImpl(IGameFinderContext gameFinderContext)
         {
             var results = new GameFinderResult();
             if (!gameFinderContext.WaitingParties.Any())
@@ -183,20 +202,13 @@ namespace Stormancer.Server.Plugins.GameFinder
                                         var game = results.Games.FirstOrDefault(g => g.Id == session.Id);
                                         if (game != null)
                                         {
-                                            var gameTeam = game.Teams.FirstOrDefault();
-                                            if (gameTeam != null)
-                                            {
-                                                gameTeam.Parties.Add(party);
-                                            }
-                                            else
-                                            {
-                                                game.Teams.Add(new Team(party));
-                                            }
+                                            game.Parties.Add(PartySummary.Create(party));
+
                                         }
                                         else
                                         {
                                             game = new ExistingGame(session.Id);
-                                            game.Teams.Add(new Team(party));
+                                            game.Parties.Add(PartySummary.Create(party));
                                             results.Games.Add(game);
                                         }
 
@@ -208,8 +220,8 @@ namespace Stormancer.Server.Plugins.GameFinder
                                     var game = new NewGame();
                                     var config = new QuickQueueGameSessionConfig { AllowJoinExistingGame = true, TeamCount = (int)teamCount, TeamSize = (int)teamSize };
 
-                                    var team = new Team(party);
-                                    game.Teams.Add(team);
+
+                                    game.Parties.Add(PartySummary.Create(party));
 
                                     OnCreatingGameSession(gameFinderContext.Scope, config, game);
 
@@ -223,14 +235,14 @@ namespace Stormancer.Server.Plugins.GameFinder
                                         Teams = new List<TeamConfigurationRecord> {
                                             new TeamConfigurationRecord {
                                                 Slots = (int)(teamCount*teamSize),
-                                                FixedSlots = party.Players.Select(p=>p.Key).ToList() 
+                                                FixedSlots = party.Players.Select(p=>p.Key).ToList()
                                             }
                                         },
                                         Settings = config.Args,
                                         Name = ""
-                                        
+
                                     };
-                                    
+
                                     sessions.Add(new Document<GamesessionDocumentSource>(game.Id, data) { Version = 1 });
                                     p.Remove(party);
                                     return sessions;
@@ -254,96 +266,40 @@ namespace Stormancer.Server.Plugins.GameFinder
                         changeOccured = false;
 
                         var game = new NewGame();
-                        for (int teamId = 0; teamId < teamCount; teamId++)
+
+                        var teams = new List<PartySummary>[teamCount];
+
+                        for (int i = 0; i < teams.Length; i++)
                         {
-                            var team = new Models.Team() { TeamId = teamId.ToString() };
-
-
-                            for (int pivotId = 0; pivotId < parties.Count; pivotId++)
-                            {
-                                var pivot = parties[pivotId];
-
-                                if (game.AllParties.Contains(pivot))
-                                {
-                                    continue;
-                                }
-                                foreach (var p in game.AllParties)
-                                {
-                                    if (!await CanPlayTogether(gameFinderContext.Scope, p, pivot))
-                                    {
-                                        continue;
-                                    }
-                                }
-
-                                var list = new List<Party>();
-
-
-                                list.Add(pivot);
-
-                                for (int id = pivotId + 1; id < parties.Count; id++)
-                                {
-                                    var candidate = parties[id];
-
-                                    if (game.AllParties.Contains(candidate))
-                                    {
-                                        continue;
-                                    }
-
-                                    if (list.Sum(p => p.Players.Count) + candidate.Players.Count <= teamSize)
-                                    {
-                                        list.Add(candidate);
-                                    }
-
-
-
-                                }
-
-                                if (list.Sum(p => p.Players.Count) == teamSize)
-                                {
-                                    foreach (var p in list)
-                                    {
-                                        team.Parties.Add(p);
-                                        break;
-                                    }
-                                }
-
-                                if (team.AllPlayers.Count() == teamSize)
-                                {
-                                    break;
-                                }
-                            }
-
-                            if (team.AllPlayers.Count() == teamSize)
-                            {
-                                game.Teams.Add(team);
-                            }
+                            teams[i] = new();
                         }
 
-                        if (game.Teams.Count == teamCount && game.Teams.All(t => t.AllPlayers.Count() == teamSize))
+                        foreach (var party in parties)
                         {
+                            var team = teams.OrderBy(t => t.Sum(p => p.Members.Count)).FirstOrDefault(t => t.Sum(p => p.Members.Count) + party.Players.Count <= teamSize);
+                            if (team != null)
+                            {
+                                team.Add(PartySummary.Create(party));
+                                
+                            }
+                        }
+                        parties.RemoveAll(p => teams.SelectMany(t => t).Any(p2 => p2.Id == p.PartyId));
 
+                        if (game.Parties.Any())
+                        {
                             results.Games.Add(game);
+                            foreach (var party in game.Parties)
+                            {
+                                parties.RemoveAll(p => game.Parties.Any(p2 => p2.Id == p.PartyId));
 
-                        }
-
-
-                        foreach (var party in game.AllParties)
-                        {
-                            parties.Remove(party);
-                            changeOccured = true;
+                                changeOccured = true;
+                            }
                         }
                     }
                     while (changeOccured);
                 }
 
             }
-
-
-            foreach (var party in results.Games.SelectMany(g => g.AllParties()))
-            {
-                gameFinderContext.WaitingParties.Remove(party);
-            }
-
             return results;
         }
 
@@ -383,7 +339,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="gameFinderContext"></param>
         /// <returns></returns>
-        public JObject ComputeDataAnalytics(GameFinderContext gameFinderContext)
+        public JObject ComputeDataAnalytics(IGameFinderContext gameFinderContext)
         {
             return new JObject();
         }
@@ -405,7 +361,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="gameFinderContext"></param>
         /// <returns></returns>
-        public Task<GameFinderResult> FindGames(GameFinderContext gameFinderContext)
+        public Task<GameFinderResult> FindGames(IGameFinderContext gameFinderContext)
         {
             return FindGamesImpl(gameFinderContext);
         }
@@ -486,7 +442,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="gameFinderContext"></param>
         /// <returns></returns>
-        public JObject ComputeDataAnalytics(GameFinderContext gameFinderContext)
+        public JObject ComputeDataAnalytics(IGameFinderContext gameFinderContext)
         {
             return new JObject();
         }
@@ -498,7 +454,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="gameFinderContext"></param>
         /// <returns></returns>
-        public Task<GameFinderResult> FindGames(GameFinderContext gameFinderContext)
+        public Task<GameFinderResult> FindGames(IGameFinderContext gameFinderContext)
         {
             return FindGamesImpl(gameFinderContext);
         }
@@ -521,6 +477,13 @@ namespace Stormancer.Server.Plugins.GameFinder
             return settings;
         }
 
+        /// <summary>
+        /// Returns a boolean indicating if 2 players can play together.
+        /// </summary>
+        /// <param name="scope"></param>
+        /// <param name="p"></param>
+        /// <param name="pivot"></param>
+        /// <returns></returns>
         override protected async Task<bool> CanPlayTogether(IDependencyResolver scope, Party p, Party pivot)
         {
             return canPlayTogether(scope, p, await GetOrCreateSettings(scope, p), p, await GetOrCreateSettings(scope, pivot));
@@ -574,26 +537,5 @@ namespace Stormancer.Server.Plugins.GameFinder
         }
     }
 
-    public class QuickQueueGameSessionTeamData
-    {
-        public string TeamId { get; set; }
-        public int PlayerCount { get; set; }
-    }
-    /// <summary>
-    /// Data associated with a gameSession
-    /// </summary>
-    [MessagePackObject]
-    public class QuickQueueGameSessionData
-    {
-        [Key(0)]
-        public DateTime CreatedOn { get; set; }
 
-        [Key(1)]
-        public List<QuickQueueGameSessionTeamData> Teams { get; set; }
-
-        [Key(2)]
-        public int TargetTeamCount { get; set; }
-        [Key(3)]
-        public int TargetTeamSize { get; set; }
-    }
 }

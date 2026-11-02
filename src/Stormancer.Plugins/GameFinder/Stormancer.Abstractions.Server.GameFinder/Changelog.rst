@@ -11,7 +11,9 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
-- Added more types to Abstraction library.
+Added
+*****
+- Added all required types to build custom gamefinders to the library.
 
 1.0.0
 ----------

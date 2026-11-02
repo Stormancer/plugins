@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Stormancer.Server.Plugins.AdminApi;
 using Stormancer.Server.Plugins.Models;
 using System.Threading.Tasks;
 
@@ -32,7 +33,18 @@ namespace Stormancer.Server.Plugins.GameFinder
             Party = party;
         }
 
-        public TaskCompletionSource<object?> Tcs { get; } = new TaskCompletionSource<object?>();
+        private TaskCompletionSource<FindGameResult> _tcs = new TaskCompletionSource<FindGameResult>();
+
+        public Task<FindGameResult> WhenCompleted=> _tcs.Task;
+
+        public void SetResult(FindGameResult result)
+        {
+            _tcs.TrySetResult(result);
+        }
+        public void SetCanceled()
+        {
+            _tcs.TrySetCanceled();
+        }
 
         public RequestState State { get; set; } = RequestState.NotStarted;
 

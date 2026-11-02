@@ -32,6 +32,7 @@ namespace Stormancer.Server.Plugins.Models
     /// A team in a party or game session.
     /// </summary>
     [MessagePackObject]
+    [Obsolete]
     public class Team
     {
         /// <summary>
@@ -93,5 +94,32 @@ namespace Stormancer.Server.Plugins.Models
         /// </summary>
         [IgnoreMember]
         public IEnumerable<Player> AllPlayers => Parties.SelectMany(g => g.Players.Values);
+    }
+
+
+    /// <summary>
+    /// Team configuration in a game session.
+    /// </summary>
+    [MessagePackObject]
+    public class TeamConfigurationRecord
+    {
+        /// <summary>
+        /// Total slots in the team.
+        /// </summary>
+        [Key(0)]
+        public int Slots { get; set; }
+
+        /// <summary>
+        /// Players declared in the team.
+        /// </summary>
+        [Key(1)]
+        public List<string> FixedSlots { get; set; } = new List<string>();
+
+
+        /// <summary>
+        /// Currently available slots in the team.
+        /// </summary>
+        [IgnoreMember]
+        public int AvailableSlots => Slots - FixedSlots.Count();
     }
 }

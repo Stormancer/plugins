@@ -31,12 +31,21 @@ namespace Stormancer.Server.Plugins.GameFinder
     public class JoinExistingGameContext
     {
         /// <summary>
-        /// The ticket to the open game session.
+        /// Description of the game session, including the new players.
         /// </summary>
         public ExistingGame Game { get; }
+
+        /// <summary>
+        /// Gets the id of the game finder on which the resolution has been triggered.
+        /// </summary>
         public string GameFinderId { get; }
 
-        internal JoinExistingGameContext(ExistingGame existingGame,string gameFinderId)
+        /// <summary>
+        /// Creates a new <see cref="JoinExistingGameContext"/> object.
+        /// </summary>
+        /// <param name="existingGame"></param>
+        /// <param name="gameFinderId"></param>
+        public JoinExistingGameContext(ExistingGame existingGame,string gameFinderId)
         {
             Game = existingGame;
             GameFinderId = gameFinderId;

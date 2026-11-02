@@ -49,20 +49,19 @@ namespace Stormancer.Server.Plugins.GameFinder
         public string Id { get; }
 
         /// <summary>
-        /// Gets or sets the list of teams added to the game.
-        /// </summary>
-        public List<Team> Teams { get; set; } = new List<Team>();
-
-        /// <summary>
         /// Gets or sets a custom context object that is not serialized but is passed to the <see cref="IGameFinderResolver"/>.
         /// </summary>
         public object? CustomContext { get; set; }
+
+        /// <summary>
+        /// Gets the parties added to the game.
+        /// </summary>
+        public List<PartySummary> Parties { get; } = new List<PartySummary>();
     }
 
     /// <summary>
     /// Use when the party(ies) are joining a new game session.
     /// </summary>
-    [MessagePackObject]
     public class NewGame : IGameCandidate
     {
         /// <summary>
@@ -73,52 +72,29 @@ namespace Stormancer.Server.Plugins.GameFinder
             Id = Guid.NewGuid().ToString();
         }
 
-
-
         /// <summary>
         /// Id of the game.
         /// </summary>
-        [Key(0)]
         public string Id { get; private set; }
 
         /// <summary>
         /// Public custom data associated with the game.
         /// </summary>
-        [Key(1)]
         public JObject PublicCustomData { get; set; } = new JObject();
 
-      
+        /// <summary>
+        /// List of parties added to the game by the game finder.
+        /// </summary>
+        public List<PartySummary> Parties { get; } = new List<PartySummary>();
+
         /// <summary>
         /// private custom data associated with the game.
         /// </summary>
-        [IgnoreMember]
         public JObject PrivateCustomData { get; set; } = new JObject();
-
-        /// <summary>
-        /// Gets or sets the teams of players in the game.
-        /// </summary>
-        [Key(2)]
-        public List<Team> Teams { get; set; } = new List<Team>();
-
-        /// <summary>
-        /// Gets a sequence of all parties in the game (whatever their team)
-        /// </summary>
-        [IgnoreMember]
-        public IEnumerable<Party> AllParties => Teams.SelectMany(team => team.Parties);
-
-        [IgnoreMember]
-        List<Team> IGameCandidate.Teams { get => Teams; }
-
-        /// <summary>
-        /// Gets a sequence of all players in the game.
-        /// </summary>
-        [IgnoreMember]
-        public IEnumerable<Player> AllPlayers => Teams.SelectMany(team => team.AllPlayers);
 
         /// <summary>
         /// Gets or sets a custom context object that is not serialized but is passed to the <see cref="IGameFinderResolver"/>.
         /// </summary>
-        [IgnoreMember]
         public object? CustomContext { get; set; }
     }
 }

@@ -26,6 +26,9 @@ using System.Linq;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
+    /// <summary>
+    /// Represents a game session a set of parties in matchmaking should join.
+    /// </summary>
     public interface IGameCandidate
     {
         /// <summary>
@@ -36,13 +39,13 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// Gets the list of teams in the game.
         /// </summary>
-        public List<Team> Teams { get; }
+        public List<PartySummary> Parties { get; }
+
+        /// <summary>
+        /// Gets all user ids associated with the game.
+        /// </summary>
+        IEnumerable<string> UserIds => Parties.SelectMany(p => p.Members);
+       
     }
 
-    public static class IGameCandidateExtensions
-    {
-        public static IEnumerable<Party> AllParties(this IGameCandidate game) => game.Teams.SelectMany(team => team.Parties);
-
-        public static IEnumerable<Player> AllPlayers(this IGameCandidate game) => game.Teams.SelectMany(team => team.AllPlayers);
-    }
 }

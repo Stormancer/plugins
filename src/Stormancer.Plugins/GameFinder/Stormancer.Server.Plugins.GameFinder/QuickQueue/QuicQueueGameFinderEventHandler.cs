@@ -14,7 +14,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         GamesessionsDocumentStore repository;
         private readonly IGameSessionService gs;
         private string? _id;
-        private QuickQueueGameSessionData? _gameSessionData;
+     
         private object _syncRoot = new object();
         public QuickQueueGameSessionEventHandler(GamesessionsDocumentStore repository, IGameSessionService gs)
         {
@@ -32,13 +32,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 if (config != null && config.AllowJoinExistingGame)
                 {
                     _id = ctx.Id;
-                    _gameSessionData = new QuickQueueGameSessionData()
-                    {
-                        CreatedOn = DateTime.UtcNow,
-                        TargetTeamSize = config.TeamSize,
-                        TargetTeamCount = config.TeamCount,
-                        Teams = new List<QuickQueueGameSessionTeamData>()
-                    };
+                    
 
                     repository.Add(ctx.Service);
                 }
@@ -55,7 +49,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
                     repository.Remove(ctx.Service);
                     _id = null;
-                    _gameSessionData = null;
+                   
                 }
             }
             return Task.CompletedTask;
@@ -118,7 +112,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 {
                     repository.Remove(gs);
                     _id = null;
-                    _gameSessionData = null;
+                  
                 }
             }
 

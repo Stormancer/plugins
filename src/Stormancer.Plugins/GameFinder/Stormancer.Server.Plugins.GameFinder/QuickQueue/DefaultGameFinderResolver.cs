@@ -84,7 +84,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 {
                     Public = false,
 
-                    InitialReservations = gameCtx.Game.Teams.SelectMany(t => t.Parties).Select(PartySummary.Create),
+                    InitialReservations = gameCtx.Game.Parties,
 
                     GameFinder = gameCtx.GameFinderName,
                     Parameters = gameCtx.Game.PrivateCustomData

@@ -85,16 +85,16 @@ namespace Stormancer.Server.Plugins.GameFinder
                 var config = new GameSessionConfiguration
                 {
                     Public = false,
-                    InitialReservations = gameCtx.Game.Teams.SelectMany(t => t.Parties).Select(PartySummary.Create),
+                    InitialReservations = gameCtx.Game.Parties,
                     Parameters = gameCtx.Game.PrivateCustomData,
                     GameFinder = gameCtx.GameFinderName
                 };
 
                 if (partyLeaderIsHost)
                 {
-                    var party = gameCtx.Game.AllParties.First();
-                    var leaderId = party.PartyLeaderId;
-                    var leader = party.Players[leaderId];
+                    var party = gameCtx.Game.Parties.First();
+                    var leaderId = party.LeaderId;
+                
                     config.HostSelectionConfiguration = FixedHostSelectionPolicy.CreateConfiguration(leaderId);
                 }
 

@@ -1999,31 +1999,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
     }
 
-    /// <summary>
-    /// Team configuration in a game session.
-    /// </summary>
-    [MessagePackObject]
-    public class TeamConfigurationRecord
-    {
-        /// <summary>
-        /// Total slots in the team.
-        /// </summary>
-        [Key(0)]
-        public int Slots { get; set; }
-
-        /// <summary>
-        /// Players declared in the team.
-        /// </summary>
-        [Key(1)]
-        public List<string> FixedSlots { get; set; } = new List<string>();
-
-
-        /// <summary>
-        /// Currently available slots in the team.
-        /// </summary>
-        [IgnoreMember]
-        public int AvailableSlots => Slots - FixedSlots.Count();
-    }
+    
     /// <summary>
     /// Public settings of the game session.
     /// </summary>

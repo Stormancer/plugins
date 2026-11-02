@@ -75,25 +75,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             return await _gameFinderService.GetStatus(true);
         }
 
-        /// <summary>
-        /// Make this game session open to new players.
-        /// </summary>
-        /// <param name="data">Custom data that will be passed to the gamefinder.</param>
-        /// <param name="request"></param>
-        /// <returns>
-        /// An async enumerable that yields every Team that is added to the game session.
-        /// It completes when the game session has been withdrawn from the gamefinder.
-        /// </returns>
-        /// <remarks>
-        /// When this method is called, the game session will be made available to the GameFinder.
-        /// From there, players in the target gamefinder will be able to join it, provided  the gamefinder supports it.
-        /// The game session stays open until the request is canceled.
-        /// </remarks>
-        [S2SApi]
-        public IAsyncEnumerable<IEnumerable<Team>> OpenGameSession(JObject data,[S2SContextUsage(S2SRequestContextUsage.None)] IS2SRequestContext request)
-        {
-            return _gameFinderService.OpenGameSession(data, request);
-        }
+       
 
 
         /// <summary>

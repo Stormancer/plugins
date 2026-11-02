@@ -17,6 +17,7 @@ Changed
 Added
 *****
 - Added PartySummary.
+- Added TeamConfigurationRecord
 
 4.0.0.9
 ----------

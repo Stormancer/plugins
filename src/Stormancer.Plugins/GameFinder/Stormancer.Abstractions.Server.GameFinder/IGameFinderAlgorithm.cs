@@ -21,11 +21,74 @@
 // SOFTWARE.
 
 using Newtonsoft.Json.Linq;
+using Stormancer.Server.Plugins.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
+    /// <summary>
+    /// Represents a list of parties.
+    /// </summary>
+    public readonly struct Parties
+    {
+        /// <summary>
+        /// Creates an instance of <see cref="Parties"/>
+        /// </summary>
+        /// <param name="parties"></param>
+        public Parties(IEnumerable<Party> parties)
+        {
+            Value = parties;
+        }
+
+        /// <summary>
+        /// Gets the list of parties.
+        /// </summary>
+        public IEnumerable<Party> Value { get; }
+    }
+
+    /// <summary>
+    /// Context passed to a <see cref="IGameFinderAlgorithm"/> as part of a game finding turn.
+    /// </summary>
+    public interface IGameFinderContext
+    {
+        /// <summary>
+        /// Gets the dependency scope of the current game finder scope.
+        /// </summary>
+        IDependencyResolver Scope { get; }
+
+        /// <summary>
+        /// Parties currently in the queue.
+        /// </summary>
+        List<Party> WaitingParties { get; }
+
+        /// <summary>
+        /// List of parties which failed matchmaking during this pass.
+        /// </summary>
+        List<(Party client, string reason)> FailedClients { get; }
+
+        /// <summary>
+        /// Sets a party as having failed matchmaking.
+        /// </summary>
+        /// <param name="party"></param>
+        /// <param name="reason"></param>
+        void SetFailed(Party party, string reason);
+
+        /// <summary>
+        /// Performs a batch test of <see cref="Parties"/> sets for compatibility.
+        /// </summary>
+        /// <param name="candidates"></param>
+        /// <returns></returns>
+        IAsyncEnumerable<bool> AreCompatibleAsync(IEnumerable<Parties> candidates);
+
+        /// <summary>
+        /// Test a set of <see cref="Parties"/> for compatibility (handles crossplay)
+        /// </summary>
+        /// <param name="candidate"></param>
+        /// <returns></returns>
+        ValueTask<bool> AreCompatibleAsync(Parties candidate);
+    }
+
     /// <summary>
     /// Classes implementing this interface provide game finder algorithms.
     /// </summary>
@@ -36,7 +99,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="gameFinderContext"></param>
         /// <returns></returns>
-        Task<GameFinderResult> FindGames(GameFinderContext gameFinderContext);
+        Task<GameFinderResult> FindGames(IGameFinderContext gameFinderContext);
 
         /// <summary>
         /// Gets public gamefinder metrics for the clients.
@@ -49,7 +112,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// </summary>
         /// <param name="gameFinderContext"></param>
         /// <returns></returns>
-        JObject ComputeDataAnalytics(GameFinderContext gameFinderContext);
+        JObject ComputeDataAnalytics(IGameFinderContext gameFinderContext);
 
         /// <summary>
         /// Called whenever the gamefinder config gets updated.

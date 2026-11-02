@@ -48,13 +48,13 @@ namespace Stormancer.Server.Plugins.GameFinder
         private readonly IGameSessions _gamesessions;
 
         ///<inheritdoc/>
-        public JObject ComputeDataAnalytics(GameFinderContext gameFinderContext)
+        public JObject ComputeDataAnalytics(IGameFinderContext gameFinderContext)
         {
 
             return _emptyDataAnalytics;
         }
         ///<inheritdoc/>
-        public async Task<GameFinderResult> FindGames(GameFinderContext gameFinderContext)
+        public async Task<GameFinderResult> FindGames(IGameFinderContext gameFinderContext)
         {
             var result = new GameFinderResult();
             foreach (var party in gameFinderContext.WaitingParties)
@@ -90,15 +90,8 @@ namespace Stormancer.Server.Plugins.GameFinder
                 results.Games.Add(game);
             }
 
-            var gameTeam = game.Teams.FirstOrDefault();
-            if (gameTeam != null)
-            {
-                gameTeam.Parties.Add(party);
-            }
-            else
-            {
-                game.Teams.Add(new Team(party) { TeamId = "0" });
-            }
+             game.Parties.Add(PartySummary.Create(party));
+            
 
         }
         ///<inheritdoc/>
