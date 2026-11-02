@@ -57,7 +57,7 @@ namespace Stormancer
             return this;
         }
 
-      
+
 
         /// <summary>
         /// Adds a pool of unauthenticated game servers that are started by the developers themselves without any authentication.
@@ -100,13 +100,13 @@ namespace Stormancer
             if (!Configuration.TryGetValue(poolId, out var sectionToken))
             {
                 section = new AgentPoolConfigurationSection();
-               
+
             }
             else
             {
-                section = sectionToken.ToObject<AgentPoolConfigurationSection>()?? new AgentPoolConfigurationSection();
+                section = sectionToken.ToObject<AgentPoolConfigurationSection>() ?? new AgentPoolConfigurationSection();
             }
-                    
+
 
             section = configurator(section);
             Configuration[poolId] = JObject.FromObject(section);
@@ -132,6 +132,9 @@ namespace Stormancer
     /// </summary>
     public class DevPoolConfiguration : PoolConfiguration
     {
+        /// <summary>
+        /// type id of a dev pool.
+        /// </summary>
         public override string type => "dev";
     }
 
@@ -140,6 +143,9 @@ namespace Stormancer
     /// </summary>
     public abstract class PoolConfiguration
     {
+        /// <summary>
+        /// Id identifying the type of pool.
+        /// </summary>
         public abstract string type { get; }
         /// <summary>
         /// number of server ready to accept game sessions to maintain.
@@ -244,6 +250,9 @@ namespace Stormancer
         /// </summary>
         public IEnumerable<string>? arguments { get; set; }
 
+        /// <summary>
+        /// Type id of a pool that starts a local process.
+        /// </summary>
         public override string type => "localProcess";
     }
 
@@ -311,8 +320,12 @@ namespace Stormancer
         /// </summary>
         public IEnumerable<string>? arguments { get; set; }
 
+        ///<inheritdoc/>
         public override string type => "fromProvider";
 
+        /// <summary>
+        /// type of the provider to use.
+        /// </summary>
         public string provider { get; set; } = "docker";
 
         /// <summary>
@@ -413,14 +426,14 @@ namespace Stormancer
                 throw new ArgumentNullException(nameof(configurator));
             }
             var configuration = host.DependencyResolver.Resolve<IConfiguration>();
-            var configSection = configuration.GetValue(ServerPoolsConstants.CONFIG_SECTION, new JObject());
-            var builder = new ServerPoolsConfigurationBuilder(host,configSection);
+            var configSection = configuration.GetValue(ServerPoolsConstants.CONFIG_SECTION, new JObject()) ?? new JObject();
+            var builder = new ServerPoolsConfigurationBuilder(host, configSection);
 
             builder = configurator(builder);
             host.ConfigureUsers(u =>
             {
                 u.Settings[DedicatedServerAuthProvider.PROVIDER_NAME] = JObject.FromObject(new { enabled = true });
-               
+
                 return u;
             });
             host.DependencyResolver.Resolve<IConfiguration>().SetDefaultValue(ServerPoolsConstants.CONFIG_SECTION, builder.Configuration);

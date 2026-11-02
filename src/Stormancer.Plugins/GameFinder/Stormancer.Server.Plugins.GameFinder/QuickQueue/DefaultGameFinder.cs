@@ -223,7 +223,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                                         Teams = new List<TeamConfigurationRecord> {
                                             new TeamConfigurationRecord {
                                                 Slots = (int)(teamCount*teamSize),
-                                                FixedSlots = party.Players.Select(p=>p.Value.SessionId).ToList() 
+                                                FixedSlots = party.Players.Select(p=>p.Key).ToList() 
                                             }
                                         },
                                         Settings = config.Args,

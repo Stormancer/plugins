@@ -10,7 +10,7 @@ namespace Stormancer.Plugins.Tests.ServerApp
     {
         Task IPartyEventHandler.OnCreatingParty(PartyCreationContext ctx)
         {
-            ctx.PartyRequest.ServerSettings.MaxMembers(4);
+            ctx.MaxMembers(4);
             return Task.CompletedTask;
         }
 

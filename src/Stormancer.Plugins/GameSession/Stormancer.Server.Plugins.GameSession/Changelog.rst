@@ -15,6 +15,7 @@ Changed
 *******
 - Don't try creating Game session monitoring events if Elasticsearch is disabled.
 - BREAKING: Use SessionId objects instead of strings for host sessionIds.
+- BREAKING: Use user ids instead of session ids for team configurations fixed slots in order to support reconnection.
 
 Added
 *****

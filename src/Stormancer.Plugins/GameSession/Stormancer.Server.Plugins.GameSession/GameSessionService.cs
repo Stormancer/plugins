@@ -1469,10 +1469,9 @@ namespace Stormancer.Server.Plugins.GameSession
             //if there are fixed slots in teamsConfig, remove the corresponding players from current players in the game.
             foreach (var team in teamsConfig)
             {
-                foreach (var sessionId in team.FixedSlots)
+                foreach (var userId in team.FixedSlots)
                 {
-                    var (userId, client) = _clients.FirstOrDefault(c => c.Value.SessionId == sessionId);
-                    if (userId != null)
+                    if (_clients.TryGetValue(userId,out var client))
                     {
                         foreach (var party in currentParties)
                         {
@@ -1829,10 +1828,6 @@ namespace Stormancer.Server.Plugins.GameSession
         private DateTime _serverRequestedOn;
         private bool _isDedicatedServer;
 
-        public Task<string> CreateP2PToken(SessionId callerSessionId, SessionId remotePeerSessionId)
-        {
-            return _scene.DependencyResolver.Resolve<IPeerInfosService>().CreateP2pToken(remotePeerSessionId, _scene.Id);
-        }
 
         public async Task<InspectLiveGameSessionResult> InspectAsync(CancellationToken cancellationToken)
         {
@@ -2020,7 +2015,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Players declared in the team.
         /// </summary>
         [Key(1)]
-        public List<SessionId> FixedSlots { get; set; } = new List<SessionId>();
+        public List<string> FixedSlots { get; set; } = new List<string>();
 
 
         /// <summary>

@@ -84,7 +84,7 @@ namespace Stormancer.Server.Plugins.Voice
         {
             if (TryGetVoiceChatProvider(out var voiceChat))
             {
-                var ticket = await voiceChat.AddUserToRoom(_scene.Id, peer.SessionId);
+                var ticket = await voiceChat.AddUserToRoom(_scene.Id,peer);
                 _scene.Send(new MatchPeerFilter(peer), "voice.addToRoom", (writer, ticket) => { _serializer.Serialize(ticket, writer); }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE, ticket);
             }
         }

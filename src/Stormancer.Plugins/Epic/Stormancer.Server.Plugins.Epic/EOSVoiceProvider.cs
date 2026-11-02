@@ -26,8 +26,8 @@ namespace Stormancer.Server.Plugins.Epic
 
         public Task<VoiceChatTicket> AddUserToRoom(string roomId, IScenePeerClient peer)
         {
-            peer.
-            _eos.CreateVoiceRoomToken(roomId, [new EosVoiceRoomParticipantRequest { ClientIp ="", ProductUserId =  }]);
+            throw new NotImplementedException();
+            //_eos.CreateVoiceRoomToken(roomId, [new EosVoiceRoomParticipantRequest { ClientIp ="", ProductUserId =  }]);
         }
 
         public Task RemoveUserFromRoom(string roomId, SessionId sessionId)
