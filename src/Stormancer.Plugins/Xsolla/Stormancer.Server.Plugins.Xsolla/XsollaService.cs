@@ -40,6 +40,37 @@ namespace Stormancer.Server.Plugins.Xsolla
         public string? ExternalId { get; init; }
 
     }
+
+    /// <summary>
+    /// An Xsolla group
+    /// </summary>
+    public record XsollaGroup
+    {
+        /// <summary>
+        /// Group ID.
+        /// </summary>
+        [JsonPropertyName("id")]
+        public required long Id { get; init; }
+
+        /// <summary>
+        /// Shows whether the group is default or not.
+        /// </summary>
+        [JsonPropertyName("is_default")]
+        public required bool IsDefault { get; init; }
+        
+        /// <summary>
+        /// Shows whether the group is deletable or not.
+        /// </summary>
+        [JsonPropertyName("is_deletable")]
+        public required bool Deletable { get; init; }
+
+        /// <summary>
+        /// Group name.
+        /// </summary>
+        [JsonPropertyName("name")]
+        public required string Name { get; init; }
+    }
+
     /// <summary>
     /// Xsolla project id.
     /// </summary>
@@ -137,6 +168,12 @@ namespace Stormancer.Server.Plugins.Xsolla
         private async Task<string> GetServerJWT()
         {
             var config = _configuration.Value;
+            
+            if(!config.Enabled)
+            {
+                throw new InvalidOperationException("Xsolla plugin is disabled.");
+            }
+
             if (config.ProjectId == null)
             {
                 throw new InvalidOperationException("Configuration key 'xsolla.projectId' not set.");
@@ -215,6 +252,12 @@ namespace Stormancer.Server.Plugins.Xsolla
         public async Task<string?> AuthByCustomId(string userId)
         {
             var config = _configuration.Value;
+
+            if(!config.Enabled)
+            {
+                throw new InvalidOperationException("Xsolla plugin is disabled.");
+            }
+
             if (config.ProjectId == null)
             {
                 throw new InvalidOperationException("Configuration key 'xsolla.projectId' not set.");
@@ -255,6 +298,19 @@ namespace Stormancer.Server.Plugins.Xsolla
         }
 
         /// <summary>
+        /// Gets all user's groups.
+        /// </summary>
+        /// <param name="userId">User ID.</param>
+        /// <returns></returns>
+        public async Task<List<XsollaGroup>> GetUserGroups(XsollaUserId userId)
+        {
+            var client = await CreateServerClient();
+            var httpResponse = await client.GetAsync(new Uri(LOGIN_API, $"api/projects/{_configuration.Value.ProjectId}/users/{userId.Value}/user_groups"));
+            httpResponse.EnsureSuccessStatusCode();
+            return (await httpResponse.Content.ReadFromJsonAsync<List<XsollaGroup>>())!;
+        }
+
+        /// <summary>
         /// Links a user from your game to a user from your Login project via an external ID. 
         /// </summary>
         /// <param name="userId"></param>
@@ -271,10 +327,21 @@ namespace Stormancer.Server.Plugins.Xsolla
 
             var httpResponse = await client.PostAsJsonAsync(new Uri(LOGIN_API, "api/users/account/link_external_id"), new { external_account_id = externalId, user_id = userId.Value });
             httpResponse.EnsureSuccessStatusCode();
+        }
 
-
-            //TODO: handle the case where the linking succeeds but the server_custom_id update fails
-            httpResponse = await client.PutAsJsonAsync(new Uri(LOGIN_API, $"api/projects/{_configuration.Value.ProjectId}/users/{userId.Value}/server_custom_id"), new { server_custom_id = externalId });
+        /// <summary>
+        /// Updates server custom ID for a user.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="customId"></param>
+        /// <remarks>
+        /// https://developers.xsolla.com/api/login/user-profile/put-user-custom-id?_xm=441883800033558542#user-profile/put-user-custom-id
+        /// </remarks>
+        /// <returns></returns>
+        public async Task UpdateServerCustomId(XsollaUserId userId, string customId)
+        {
+            var client = await CreateServerClient();
+            var httpResponse = await client.PutAsJsonAsync(new Uri(LOGIN_API, $"api/projects/{_configuration.Value.ProjectId}/users/{userId.Value}/server_custom_id"), new { server_custom_id = customId });
             httpResponse.EnsureSuccessStatusCode();
         }
 
