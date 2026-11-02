@@ -660,7 +660,7 @@ namespace Stormancer.Server.Plugins.Epic
             }
         }
 
-        public async Task<EosVoiceRoomToken> CreateVoiceRoomToken(string voiceRoomId, IEnumerable<EosRoomParticipantRequest> participants)
+        public async Task<EosVoiceRoomToken> CreateVoiceRoomToken(string voiceRoomId, IEnumerable<EosVoiceRoomParticipantRequest> participants)
         {
             var config = GetConfig();
             var deploymentId = config.deploymentId;

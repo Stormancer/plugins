@@ -44,7 +44,7 @@ namespace Stormancer.Server.Plugins.Epic
         /// Documentation on https://dev.epicgames.com/docs/web-api-ref/voice-web-api#creating-room-tokens
         /// </remarks>
         /// <returns></returns>
-        Task<EosVoiceRoomToken> CreateVoiceRoomToken(string voiceRoomId, IEnumerable<EosRoomParticipantRequest> participants);
+        Task<EosVoiceRoomToken> CreateVoiceRoomToken(string voiceRoomId, IEnumerable<EosVoiceRoomParticipantRequest> participants);
     
         /// <summary>
         /// Removes a participan from a voice room.
@@ -58,7 +58,7 @@ namespace Stormancer.Server.Plugins.Epic
     /// <summary>
     /// Request for a player to participate in a voice room.
     /// </summary>
-    public class EosRoomParticipantRequest
+    public class EosVoiceRoomParticipantRequest
     {
         /// <summary>
         /// Product user id of the participant.

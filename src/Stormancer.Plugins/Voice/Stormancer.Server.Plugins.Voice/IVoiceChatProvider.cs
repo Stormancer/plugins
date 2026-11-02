@@ -10,7 +10,7 @@ namespace Stormancer.Server.Plugins.Voice
     {
         string Type { get; }
 
-        Task<VoiceChatTicket> AddUserToRoom(string roomId, SessionId sessionId);
+        Task<VoiceChatTicket> AddUserToRoom(string roomId, IScenePeerClient peer);
         Task RemoveUserFromRoom(string roomId, SessionId sessionId);
     }
 }

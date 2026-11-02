@@ -39,6 +39,7 @@
 #include "stormancer/IPacketDispatcher.h"
 #include "stormancer/SceneImpl.h"
 #include "stormancer/ChannelUidStore.h"
+#include "msgpack.hpp"
 
 #pragma warning(disable: 4265) // Disable virtual destructor requirement warnings
 

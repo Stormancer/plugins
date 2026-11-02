@@ -23,6 +23,7 @@
 using MessagePack;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Stormancer.Server.Plugins.Models
 {
@@ -101,5 +102,14 @@ namespace Stormancer.Server.Plugins.Models
         /// </summary>
         [IgnoreMember]
         public Dictionary<string, object> CacheStorage { get; set; } = new Dictionary<string, object>();
+
+        /// <summary>
+        /// Clones the party
+        /// </summary>
+        /// <returns></returns>
+        public Party Clone()
+        {
+            return new Party { CustomData = CustomData, Players = Players.ToDictionary(kvp=>kvp.Key, kvp=>kvp.Value), CreationTimeUtc = CreationTimeUtc };
+        }
     }
 }
