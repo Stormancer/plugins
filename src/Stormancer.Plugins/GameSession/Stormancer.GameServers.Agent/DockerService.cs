@@ -703,14 +703,20 @@ namespace Stormancer.GameServers.Agent
 
         public void Report(Message value)
         {
+            // Docker API versions use either the legacy top-level id/status fields or
+            // the event fields actor.id and action.
+            var containerId = value.ID ?? value.Actor?.ID;
+            var status = value.Status ?? value.Action;
+
+            _logger.Log(LogLevel.Debug, "Received message for Docker container {id}. Status: {status}.", containerId, status);
 
             _monitorSince = DateTime.UtcNow;
-            if (value.Status == "die" || value.Status == "stop")
+            if (status == "die" || status == "stop")
             {
                 ServerContainer? server;
                 lock (_lock)
                 {
-                    server = _trackedContainers.FirstOrDefault(kvp => kvp.Value.DockerContainerId == value.ID).Value;
+                    server = _trackedContainers.FirstOrDefault(kvp => kvp.Value.DockerContainerId == containerId).Value;
                     if (server != null)
                     {
                         _trackedContainers.Remove(server.Name);
@@ -722,7 +728,7 @@ namespace Stormancer.GameServers.Agent
                     using (server)
                     {
 
-                        _logger.Log(LogLevel.Information, "Docker container {id} stopped: {status}.", value.ID, value.Status);
+                        _logger.Log(LogLevel.Information, "Docker container {id} stopped: {status}.", containerId, status);
 
 
                         _ = CreateCrashReportIfNecessary(server, CancellationToken.None);
@@ -732,9 +738,10 @@ namespace Stormancer.GameServers.Agent
                     }
                 }
             }
-            else if (value.Status == "start")
+            else if (status == "start")
             {
-                if (_trackedContainers.TryGetValue(value.ID, out var server))
+                var server = _trackedContainers.Values.FirstOrDefault(container => container.DockerContainerId == containerId);
+                if (server != null)
                 {
                     this.OnContainerStateChanged?.Invoke(new ServerContainerStateChange { Container = server, Status = ContainerEventType.Start });
                 }

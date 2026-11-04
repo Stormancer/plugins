@@ -26,6 +26,7 @@ Added
 Fixed
 *****
 - Do not dispose the DockerService when we lose connection to Stormancer
+- Correctly tracks container shutdown with newer versions of Docker
 
 0.5.1.2
 ----------
