@@ -50,6 +50,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
             Size = parent.Size;
             Skip = parent.Skip;
             Name = parent.Name;
+            Order = parent.Order;
             ScorePath = parent.ScorePath;
             FriendsOnly = parent.FriendsOnly;
             UserId = parent.UserId;

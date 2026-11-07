@@ -209,7 +209,7 @@ namespace Stormancer.Server.Plugins.Leaderboards.EntityFramework
                 if (isPreviousContinuation)
                 {
                     // descending : ( score > pivot.score) OR (score == pivot.score AND createdOn < pivot.createdOn) OR (score == pivot.score AND createdOn == pivot.CreatedOn AND Id < pivot.Id) 
-                    // ascending :  ( score < pivot.score) OR (score == pivot.score AND createdOn < pivot.createdOn) OR (score == pivot.score AND createdOn == pivot.CreatedOn AND Id > pivot.Id) 
+                    // ascending :  ( score < pivot.score) OR (score == pivot.score AND createdOn < pivot.createdOn) OR (score == pivot.score AND createdOn == pivot.CreatedOn AND Id < pivot.Id) 
                     if (leaderboardQuery.Order == LeaderboardOrdering.Descending)
                     {
                         query = query.Where(s => s.Scores.RootElement.GetProperty(leaderboardQuery.ScorePath).GetInt64() > startValue
@@ -227,7 +227,7 @@ namespace Stormancer.Server.Plugins.Leaderboards.EntityFramework
                 else
                 {
                     // descending : ( score < pivot.score) OR (score == pivot.score AND createdOn > pivot.createdOn) OR (score == pivot.score AND createdOn == pivot.CreatedOn AND Id > pivot.Id) 
-                    // ascending :  ( score < pivot.score) OR (score == pivot.score AND createdOn > pivot.createdOn) OR (score == pivot.score AND createdOn == pivot.CreatedOn AND Id > pivot.Id) 
+                    // ascending :  ( score > pivot.score) OR (score == pivot.score AND createdOn > pivot.createdOn) OR (score == pivot.score AND createdOn == pivot.CreatedOn AND Id > pivot.Id) 
                     if (leaderboardQuery.Order == LeaderboardOrdering.Descending)
                     {
                         query = query.Where(s => s.Scores.RootElement.GetProperty(leaderboardQuery.ScorePath).GetInt64() < startValue
@@ -243,7 +243,23 @@ namespace Stormancer.Server.Plugins.Leaderboards.EntityFramework
                 }
             }
 
-            if (leaderboardQuery.Order == LeaderboardOrdering.Descending)
+            if (isPreviousContinuation)
+            {
+                // Walk backwards from the pivot so the page just before it comes first; documents.Reverse() below restores the order
+                if (leaderboardQuery.Order == LeaderboardOrdering.Descending)
+                {
+                    query = query.OrderBy(s => s.Scores.RootElement.GetProperty(leaderboardQuery.ScorePath).GetInt64())
+                        .ThenByDescending(s => s.CreatedOn)
+                        .ThenByDescending(s => s.Id);
+                }
+                else
+                {
+                    query = query.OrderByDescending(s => s.Scores.RootElement.GetProperty(leaderboardQuery.ScorePath).GetInt64())
+                        .ThenByDescending(s => s.CreatedOn)
+                        .ThenByDescending(s => s.Id);
+                }
+            }
+            else if (leaderboardQuery.Order == LeaderboardOrdering.Descending)
             {
                 query = query.OrderByDescending(s => s.Scores.RootElement.GetProperty(leaderboardQuery.ScorePath).GetInt64())
                     .ThenBy(s => s.CreatedOn)
