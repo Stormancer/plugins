@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Users/ClientAPI.hpp"
-#include "Users/Users.hpp"
+#include "users/ClientAPI.hpp"
+#include "users/Users.hpp"
 #include "stormancer/StormancerTypes.h"
 #include "stormancer/msgpack_define.h"
 #include "stormancer/Event.h"
@@ -96,7 +96,7 @@ namespace Stormancer
 				return tryGetIdForPlatform(platform, pUserId);
 			}
 
-			MSGPACK_DEFINE(userIds, status, tags, customData)
+			STRM_MSGPACK_DEFINE(userIds, status, tags, customData)
 		};
 
 		enum class FriendListUpdateOperationInternal
@@ -114,7 +114,7 @@ namespace Stormancer
 
 			uint64 timestamp;
 
-			MSGPACK_DEFINE(operation, data, timestamp)
+			STRM_MSGPACK_DEFINE(operation, data, timestamp)
 		};
 
 		enum class FriendListUpdateOperation
@@ -270,8 +270,7 @@ namespace Stormancer
 					, _rpcService(scene->dependencyResolver().resolve<RpcService>())
 					, _serializer(serializer)
 					, _friendsEventHandlers(friendsEventHandlers)
-				{
-				}
+				{}
 
 				Event<FriendListUpdatedEvent> friendListChanged;
 				std::vector<std::shared_ptr<Friend>> friends;
@@ -279,7 +278,8 @@ namespace Stormancer
 				void initialize()
 				{
 					std::weak_ptr<FriendsService> wFriendsService = this->shared_from_this();
-					_scene.lock()->addRoute<std::vector<FriendListUpdateDto>>("friends.notification", [wFriendsService](std::vector<FriendListUpdateDto> friendUpdates)
+					auto scene = LockOrThrow(_scene, "scene.friends");
+					scene->addRoute<std::vector<FriendListUpdateDto>>("friends.notification", [wFriendsService](std::vector<FriendListUpdateDto> friendUpdates)
 						{
 							if (auto friendsService = wFriendsService.lock())
 							{
@@ -288,6 +288,7 @@ namespace Stormancer
 									friendsService->onFriendNotification(friendUpdate);
 								}
 								friendsService->_isLoaded = true;
+								friendsService->_readyTce.set();
 							}
 						});
 				}
@@ -416,13 +417,18 @@ namespace Stormancer
 				{
 					return _rpcService->rpc<std::vector<std::string>>("Friends.GetBlockedList", ct);
 				}
+				pplx::task<void> waitReady()
+				{
+					return pplx::create_task(_readyTce);
+				}
 
 			private:
 
 				void updateFriendList(std::vector<FriendListUpdateDto> updates)
 				{
 					auto serializer = this->_serializer;
-					_scene.lock()->send("Friends.UpdateFriendList", [serializer, updates](obytestream& s)
+					auto scene = LockOrThrow(_scene, "scene.friends");
+					scene->send("Friends.UpdateFriendList", [serializer, updates](BufferWriter& s)
 						{
 							serializer->serialize(s, updates);
 						});
@@ -445,7 +451,8 @@ namespace Stormancer
 						onFriendUpdateCustomData(update);
 						break;
 					default:
-						_logger->log(LogLevel::Error, "friends", "Unknown friends operation: " + std::to_string((int)update.operation));
+						int op = (int)update.operation;
+						_logger->log(LogLevel::Error, "friends", "Unknown friends operation. operation={}.", op);
 						break;
 					}
 				}
@@ -542,17 +549,18 @@ namespace Stormancer
 				std::vector<std::shared_ptr<IFriendsEventHandler>> _friendsEventHandlers;
 				std::vector<Subscription> _eventHandlerSubscriptions;
 				bool _isLoaded = false;
+				pplx::task_completion_event<void> _readyTce;
 			};
 
 			class Friends_Impl : public ClientAPI<Friends_Impl, FriendsService>, public ::Stormancer::Friends::FriendsApi, public ::Stormancer::Users::IAuthenticationEventHandler
 			{
 			public:
 
-				Friends_Impl(std::weak_ptr<Users::UsersApi> users, std::shared_ptr<ILogger> logger)
+				Friends_Impl(std::weak_ptr<Users::UsersApi> users, std::shared_ptr<ILogger> logger, std::shared_ptr<IActionDispatcher> dispatcher)
 					: ClientAPI(users, "stormancer.friends")
 					, _logger(logger)
-				{
-				}
+					, _dispatcher(dispatcher)
+				{}
 
 				FriendsResult friends() override
 				{
@@ -573,7 +581,7 @@ namespace Stormancer
 
 				pplx::task<void> connect()
 				{
-					return getFriendService().then([](std::shared_ptr<FriendsService>) {});
+					return getFriendService().then([](std::shared_ptr<FriendsService> s) {return s->waitReady(); }, _dispatcher);
 				}
 
 				bool isLoaded() override
@@ -620,22 +628,22 @@ namespace Stormancer
 
 				pplx::task<void> inviteFriend(const Stormancer::Users::UserId& userId) override
 				{
-					return getFriendService().then([userId](std::shared_ptr<FriendsService> s) { return s->inviteFriend(userId); });
+					return getFriendService().then([userId](std::shared_ptr<FriendsService> s) { return s->inviteFriend(userId); }, _dispatcher);
 				}
 
 				pplx::task<void> answerFriendInvitation(const Stormancer::Users::UserId& originId, bool accept = true) override
 				{
-					return getFriendService().then([originId, accept](std::shared_ptr<FriendsService> s) { return s->answerFriendInvitation(originId, accept); });
+					return getFriendService().then([originId, accept](std::shared_ptr<FriendsService> s) { return s->answerFriendInvitation(originId, accept); }, _dispatcher);
 				}
 
 				pplx::task<void> removeFriend(const Stormancer::Users::UserId& userId) override
 				{
-					return getFriendService().then([userId](std::shared_ptr<FriendsService> s) { return s->removeFriend(userId); });
+					return getFriendService().then([userId](std::shared_ptr<FriendsService> s) { return s->removeFriend(userId); }, _dispatcher);
 				}
 
 				pplx::task<void> setStatus(FriendListStatusConfig status, std::string details) override
 				{
-					return getFriendService().then([status, details](std::shared_ptr<FriendsService> s) { return s->setStatus(status, details); });
+					return getFriendService().then([status, details](std::shared_ptr<FriendsService> s) { return s->setStatus(status, details); }, _dispatcher);
 				}
 
 				virtual pplx::task<void> refresh() override
@@ -643,7 +651,7 @@ namespace Stormancer
 					return getFriendService().then([](std::shared_ptr<FriendsService> s)
 						{
 							return s->refresh();
-						});
+						}, _dispatcher);
 				}
 
 				Subscription subscribeFriendListUpdatedEvent(std::function<void(FriendListUpdatedEvent)> callback) override
@@ -653,17 +661,17 @@ namespace Stormancer
 
 				pplx::task<void> block(const Stormancer::Users::UserId& userIdToBlock, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
 				{
-					return getFriendService().then([userIdToBlock, ct](std::shared_ptr<FriendsService> s) { return s->block(userIdToBlock, ct); });
+					return getFriendService().then([userIdToBlock, ct](std::shared_ptr<FriendsService> s) { return s->block(userIdToBlock, ct); }, _dispatcher);
 				}
 
 				pplx::task<void> unblock(const Stormancer::Users::UserId& userIdToUnblock, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
 				{
-					return getFriendService().then([userIdToUnblock, ct](std::shared_ptr<FriendsService> s) { return s->unblock(userIdToUnblock, ct); });
+					return getFriendService().then([userIdToUnblock, ct](std::shared_ptr<FriendsService> s) { return s->unblock(userIdToUnblock, ct); }, _dispatcher);
 				}
 
 				pplx::task<std::vector<std::string>> getBlockedList(pplx::cancellation_token ct = pplx::cancellation_token::none()) override
 				{
-					return getFriendService().then([ct](std::shared_ptr<FriendsService> s) { return s->getBlockedList(ct); });
+					return getFriendService().then([ct](std::shared_ptr<FriendsService> s) { return s->getBlockedList(ct); }, _dispatcher);
 				}
 
 				Event<FriendListUpdatedEvent> friendListChanged;
@@ -704,7 +712,7 @@ namespace Stormancer
 							}
 							catch (const std::exception& ex)
 							{
-								logger->log(LogLevel::Debug, "friends", "Could not get friends service", ex.what());
+								logger->log(LogLevel::Debug, "friends", "Could not get friends service. error={}", ex);
 							}
 						});
 
@@ -714,6 +722,7 @@ namespace Stormancer
 				Event<FriendListUpdatedEvent>::Subscription _friendListChangedSubscription;
 
 				std::shared_ptr<ILogger> _logger;
+				std::shared_ptr<IActionDispatcher> _dispatcher;
 			};
 
 		}
@@ -735,7 +744,7 @@ namespace Stormancer
 
 			void registerClientDependencies(ContainerBuilder& builder) override
 			{
-				builder.registerDependency<details::Friends_Impl, Users::UsersApi, ILogger>().as<FriendsApi>().singleInstance();
+				builder.registerDependency<details::Friends_Impl, Users::UsersApi, ILogger, IActionDispatcher>().as<FriendsApi>().singleInstance();
 			}
 
 			void registerSceneDependencies(ContainerBuilder& builder, std::shared_ptr<Scene> scene) override
@@ -760,24 +769,14 @@ namespace Stormancer
 			{
 				auto name = scene->getHostMetadata(METADATA_KEY);
 				if (name.length() > 0)
-				{					
-					scene->dependencyResolver().resolve<details::FriendsService>()->subscribe().then([scene](pplx::task<void> task)
-						{
-							try
-							{
-								task.get();
-							}
-							catch (const std::exception& ex)
-							{
-								scene->dependencyResolver().resolve<ILogger>()->log(LogLevel::Error, "friends", "An error occurred when subscribing the the friend list changes", ex.what());
-							}
-						});;
+				{
+					scene->dependencyResolver().resolve<details::FriendsService>()->subscribe();
 				}
 			}
 		};
 	}
 }
 
-MSGPACK_ADD_ENUM(Stormancer::Friends::FriendListUpdateOperationInternal);
-MSGPACK_ADD_ENUM(Stormancer::Friends::FriendStatus);
-MSGPACK_ADD_ENUM(Stormancer::Friends::FriendListStatusConfig);
+STRM_MSGPACK_ADD_ENUM(Stormancer::Friends::FriendListUpdateOperationInternal);
+STRM_MSGPACK_ADD_ENUM(Stormancer::Friends::FriendStatus);
+STRM_MSGPACK_ADD_ENUM(Stormancer::Friends::FriendListStatusConfig);

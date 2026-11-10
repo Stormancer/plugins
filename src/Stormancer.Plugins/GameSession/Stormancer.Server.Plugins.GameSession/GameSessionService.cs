@@ -715,7 +715,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
             if (isDedicatedServer)
             {
-                SelectHost();
+                await SelectHostAsync();
             }
             else
             {
@@ -753,11 +753,11 @@ namespace Stormancer.Server.Plugins.GameSession
                 // If the host is not defined a P2P was sent with "" to notify client is host.
                 if (state.DirectConnectionEnabled() && state.GameServerPool() == null)
                 {
-                    SelectHost();
+                    await SelectHostAsync();
 
                 }
 
-                var playerConnectedCtx = new ClientConnectedContext(this, new PlayerPeer(peer.SessionId, new Player(peer.SessionId, userId)), HostSessionId == peer.SessionId);
+                var playerConnectedCtx = new ClientConnectedContext(this, new PlayerPeer(peer.SessionId, new Player(peer.SessionId, userId)),session, HostSessionId == peer.SessionId);
                 await using var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag);
 
                 await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
@@ -772,8 +772,9 @@ namespace Stormancer.Server.Plugins.GameSession
             }
         }
 
-        private void SelectHost()
+        private async Task SelectHostAsync()
         {
+            bool changed = false;
             lock (_hostSelectionSyncRoot)
             {
                 
@@ -785,6 +786,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     }
                     else // The current host is disconnected. First, send a disconnected event, then start the host selection process.
                     {
+                        changed = true;
                         UpdateTopology(_currentTopology.Host, GameSessionHostState.Disconnected);
                     }
                 }
@@ -807,8 +809,19 @@ namespace Stormancer.Server.Plugins.GameSession
                 if (candidates.Count > 0)
                 {
                     var host = candidates.First();
+                    changed = true;
                     UpdateTopology(host.SessionId, GameSessionHostState.Connected);
                 }
+            }
+
+            if(changed)
+            {
+                var ctx = new TopologyUpdatedContext(this);
+                await using var scope = _scene.DependencyResolver.CreateChild(API.Constants.ApiRequestTag);
+                await scope.ResolveAll<IGameSessionEventHandler>().RunEventHandler(
+                    h => h.OnTopologyUpdated(ctx),
+                    ex => _logger.Log(LogLevel.Error, "gameSession", "An error occurred while executing OnClientConnected event", ex));
+
             }
 
         }
@@ -963,7 +976,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 if (_server == null && _config.AllowP2PHostFallback && _config.HostSelectionConfiguration?.Type == ServerHostSelectionPolicy.Type)
                 {
                     _config.HostSelectionConfiguration = AnyHostSelectionPolicy.CreateConfiguration();
-                    SelectHost();
+                    await SelectHostAsync();
                 }
             }
             return result;
@@ -988,7 +1001,7 @@ namespace Stormancer.Server.Plugins.GameSession
             {
                 _connectedSessions.Remove(peer.SessionId);
             }
-            SelectHost();
+            await SelectHostAsync();
 
 
             if (peer == null)
@@ -1345,7 +1358,7 @@ namespace Stormancer.Server.Plugins.GameSession
             UpdateSettings(record.Settings, record.Teams);
         }
 
-        public void UpdateHostCandidates(IEnumerable<SessionId> sessionIds)
+        public async Task UpdateHostCandidates(IEnumerable<SessionId> sessionIds)
         {
             _hostCandidates.Clear();
             foreach (var sessionId in sessionIds)
@@ -1353,7 +1366,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 _hostCandidates.Add(sessionId);
             }
 
-            SelectHost();
+            await SelectHostAsync();
         }
 
         public IEnumerable<SessionId> GetHostCandidates()

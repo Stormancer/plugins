@@ -68,7 +68,8 @@ namespace Stormancer
 						if (auto that = wThat.lock())
 						{
 							Serializer serializer;
-							auto config = serializer.deserializeOne<std::string>(packet->stream);
+							size_t read;
+							auto config = serializer.deserializeOne<std::string>(packet->content(),read);
 							
 							that->raisePeerConfigurationReceived(config);
 						}
@@ -105,7 +106,7 @@ namespace Stormancer
 			}
 
 			/// <summary>
-			/// Subscribes to notifications.
+			/// Subscribes to configuration update notifications.
 			/// </summary>
 			/// <param name="callback"></param>
 			/// <param name="includeAlreadyReceived">Emit an event for already received notifications on subscription.</param>

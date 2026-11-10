@@ -44,6 +44,7 @@ namespace Stormancer.Server.Plugins.Epic
                     dr.Resolve<ILogger>())).As<IAuthenticationEventHandler>().InstancePerRequest();
                 builder.Register(dr => new EOSVoiceProvider(dr.Resolve<EOSService>(),dr.Resolve<EosVoiceRoomsState>())).As<IVoiceChatProvider>().InstancePerRequest();
                 builder.Register(dr => new EosVoiceRoomsState()).InstancePerScene();
+                builder.Register(dr => new EacController(dr.Resolve<IUserSessions>())).InstancePerRequest();
             };
 
           
@@ -61,6 +62,11 @@ namespace Stormancer.Server.Plugins.Epic
                 if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
                 {
                     scene.AddController<EpicController>();
+                }
+
+                if(scene.TemplateMetadata.ContainsKey("eac"))
+                {
+                    scene.AddController<EacController>();
                 }
             };
         }

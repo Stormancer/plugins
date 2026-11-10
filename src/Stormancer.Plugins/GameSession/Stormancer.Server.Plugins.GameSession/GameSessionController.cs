@@ -144,11 +144,12 @@ namespace Stormancer.Server.Plugins.GameSession
             
         }
 
-        public void UpdateHostCandidates(IEnumerable<SessionId> sessionIds, RequestContext<IScenePeerClient> ctx)
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public Task UpdateHostCandidates(IEnumerable<SessionId> sessionIds, RequestContext<IScenePeerClient> ctx)
         {
             if (_service.IsHost(ctx.RemotePeer.SessionId))
             {
-                _service.UpdateHostCandidates(sessionIds);
+                return _service.UpdateHostCandidates(sessionIds);
             }
             else
             {

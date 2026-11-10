@@ -21,6 +21,7 @@
 		<PackageIcon>icon.png</PackageIcon>
 	</PropertyGroup>
 	<ItemGroup>
+		<None Include="..\cpp\serverbrowser.hpp" Link="cpp\serverbrowser.hpp" />
 		<None Include="docs\Readme.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
@@ -31,8 +32,6 @@
 
 	<ItemGroup>
 		<None Include="../../../../res/stormancer_128x128.png" Pack="true" PackagePath="\icon.png" />
-		<None Include="..\cpp\GameSession.hpp" Link="cpp\GameSession.hpp" Pack="true" PackagePath="\client\cpp\GameSession.hpp" />
-		<None Include="..\cpp\ServerPools.hpp" Link="cpp\ServerPools.hpp" Pack="true" PackagePath="\client\cpp\ServerPools.hpp" />
 	</ItemGroup>
 	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
 		<Version>$(Version)-pre</Version>
@@ -62,6 +61,10 @@
 
 	<ItemGroup>
 		<NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="cpp\" />
 	</ItemGroup>
 
 	<Target Name="PostPack" AfterTargets="Pack">

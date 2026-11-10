@@ -701,7 +701,7 @@ namespace Stormancer.GameServers.Agent
             }
         }
 
-        public void Report(Message value)
+        void IProgress<Message>.Report(Message value)
         {
             // Docker API versions use either the legacy top-level id/status fields or
             // the event fields actor.id and action.

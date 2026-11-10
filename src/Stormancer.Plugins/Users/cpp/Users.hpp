@@ -76,8 +76,7 @@ namespace Stormancer
 
 			UnrecoverableException(const std::string& message)
 				: StormancerException(message)
-			{
-			}
+			{}
 		};
 
 		struct GameConnectionState
@@ -130,7 +129,7 @@ namespace Stormancer
 				return (int)state;
 			}
 
-			std::string to_string()
+			std::string to_string() const
 			{
 				switch (state)
 				{
@@ -213,15 +212,70 @@ namespace Stormancer
 			std::string userId;
 			std::string username;
 			std::unordered_map<std::string, std::string> authentications;
-			std::unordered_map<std::string, std::string> metadatas;
+			std::unordered_map<std::string, std::string> metadata;
 
-			MSGPACK_DEFINE(errorMsg, success, userId, username, authentications, metadatas);
+			STRM_MSGPACK_DEFINE(errorMsg, success, userId, username, authentications, metadata);
+		};
+
+		struct StormancerUserId
+		{
+			StormancerUserId()
+			{}
+
+			StormancerUserId(const char* uid) :userId(uid)
+			{
+
+			}
+			StormancerUserId(const std::string& uid) :userId(uid)
+			{
+
+			}
+			StormancerUserId(const StormancerUserId& uid) : userId(uid.userId)
+			{
+
+			}
+
+			bool operator==(const StormancerUserId& r) const noexcept
+			{
+				return userId == r.userId;
+			}
+
+			bool operator!=(const StormancerUserId& r)const noexcept
+			{
+				return !(*this == r);
+			}
+
+			std::string userId;
+
+			bool isValid() const
+			{
+				return userId.length() > 0;
+			}
+
+			bool isOffline() const
+			{
+				return userId == StormancerUserId::OfflineUserId().userId;
+			}
+
+			static const StormancerUserId& OfflineUserId()
+			{
+				static StormancerUserId offlineUserId("<unknown>");
+				return offlineUserId;
+			}
+
 		};
 		struct CrossPlayUserOptions
 		{
 			static constexpr const char* SECTION_KEY = "crossplay";
 			bool enabled = true;
-			MSGPACK_DEFINE_MAP(enabled)
+
+			template <typename Packer> void msgpack_pack(Packer& pk) const {
+				msgpack::type::make_define_map("enabled", enabled).msgpack_pack(pk);
+			} void msgpack_unpack(msgpack::object const& o) {
+				msgpack::type::make_define_map("enabled", enabled).msgpack_unpack(o);
+			} template <typename STRM_MSGPACK_OBJECT> void msgpack_object(STRM_MSGPACK_OBJECT* o, msgpack::zone& z) const {
+				msgpack::type::make_define_map("enabled", enabled).msgpack_object(o, z);
+			}
 		};
 
 		struct OperationCtx
@@ -236,14 +290,14 @@ namespace Stormancer
 			std::string type;
 			std::unordered_map<std::string, std::string> parameters;
 
-			MSGPACK_DEFINE(type, parameters);
+			STRM_MSGPACK_DEFINE(type, parameters);
 		};
 
 		struct RenewCredentialsParameters
 		{
 			std::unordered_map<std::string, std::string> parameters;
 
-			MSGPACK_DEFINE(parameters);
+			STRM_MSGPACK_DEFINE(parameters);
 		};
 
 		struct LoginCredentialsResult
@@ -252,7 +306,7 @@ namespace Stormancer
 
 			LoginResult loginResult;
 
-			MSGPACK_DEFINE(authParameters, loginResult);
+			STRM_MSGPACK_DEFINE(authParameters, loginResult);
 		};
 
 
@@ -294,7 +348,7 @@ namespace Stormancer
 				return platform == right.platform && userId == right.userId;
 			}
 
-			MSGPACK_DEFINE(platform, userId)
+			STRM_MSGPACK_DEFINE(platform, userId)
 		};
 
 		/// <summary>
@@ -400,8 +454,10 @@ namespace Stormancer
 			AuthParameters authParameters;
 
 			LoginResult loginResult;
-		};
 
+			bool requestRenew = false;
+		};
+		using OnLoggedInContext_ptr = std::shared_ptr<OnLoggedInContext>;
 		/// <summary>
 		/// Represents login information about the user
 		/// </summary>
@@ -432,8 +488,7 @@ namespace Stormancer
 
 			LoginFailureContext(std::string errorMessage)
 				: errorMessage(std::move(errorMessage))
-			{
-			}
+			{}
 		};
 
 		/// <summary>
@@ -451,6 +506,7 @@ namespace Stormancer
 		class IAuthenticationProvider
 		{
 		public:
+			virtual ~IAuthenticationProvider() {}
 			/// <summary>
 			/// Gets the authentication provider name.
 			/// </summary>
@@ -523,7 +579,7 @@ namespace Stormancer
 			/// <summary>
 			/// Function called after the user successfully logged in.
 			/// </summary>
-			virtual pplx::task<void> OnLoggedIn(OnLoggedInContext)
+			virtual pplx::task<void> OnLoggedIn(OnLoggedInContext_ptr)
 			{
 				return pplx::task_from_result();
 			}
@@ -534,6 +590,11 @@ namespace Stormancer
 			}
 
 			virtual pplx::task<void> OnRetrievedCredentials(const Users::CredentialsContext& context)
+			{
+				return pplx::task_from_result();
+			}
+
+			virtual pplx::task<void> OnLoggedIn(const LoginCredentialsResult& result)
 			{
 				return pplx::task_from_result();
 			}
@@ -560,13 +621,15 @@ namespace Stormancer
 			/// </remarks>
 			/// <param name="context">Information about the failure.</param>
 			virtual void onLoginFailed(LoginFailureContext&)
-			{
-			}
+			{}
 
 
 
 			virtual ~IAuthenticationEventHandler() = default;
 		};
+
+		using IAuthenticationEventHandler_ptr = std::shared_ptr<IAuthenticationEventHandler>;
+
 
 		/// <summary>
 		/// An exception denoting an error in retrieving user credentials from an <c>IAuthenticationEventHandler</c> instance.
@@ -577,8 +640,7 @@ namespace Stormancer
 			CredentialsException(const std::string& message, const std::exception_ptr& innerException)
 				: innerException(innerException)
 				, message(message)
-			{
-			}
+			{}
 
 			const char* what() const noexcept override
 			{
@@ -595,6 +657,42 @@ namespace Stormancer
 			std::string message;
 		};
 
+	}
+}
+namespace std
+{
+	template<>
+	struct std::formatter<Stormancer::Users::GameConnectionState>
+	{
+		constexpr auto parse(std::format_parse_context& ctx)
+		{
+			return ctx.begin(); // No custom format specifiers
+		}
+
+		auto format(const Stormancer::Users::GameConnectionState& p, std::format_context& ctx) const
+		{
+			return std::format_to(ctx.out(), "{}", p.to_string());
+		}
+	};
+
+	template<>
+	struct std::formatter<Stormancer::Users::UserId>
+	{
+		constexpr auto parse(std::format_parse_context& ctx)
+		{
+			return ctx.begin(); // No custom format specifiers
+		}
+
+		auto format(const Stormancer::Users::UserId& p, std::format_context& ctx) const
+		{
+			return std::format_to(ctx.out(), "{}", p.toString());
+		}
+	};
+}
+namespace Stormancer
+{
+	namespace Users
+	{
 		class UsersPlugin;
 		/// <summary>
 		/// Class that provides functions that interacts with the user and authentication systems. 
@@ -622,8 +720,7 @@ namespace Stormancer
 				, _authenticationProviders(authProviders)
 				, _authenticationEventHandlers(authEventHandlers)
 				, _userDispatcher(userDispatcher)
-			{
-			}
+			{}
 
 			~UsersApi()
 			{
@@ -633,9 +730,9 @@ namespace Stormancer
 			std::vector<std::string> getAuthenticationProviders() const
 			{
 				std::vector<std::string> result;
-				for (auto authProvider : _authenticationProviders)
+				for (auto provider : _authenticationProviders)
 				{
-					result.push_back(authProvider->getProviderName());
+					result.push_back(provider->getProviderName());
 				}
 				return result;
 			}
@@ -650,6 +747,35 @@ namespace Stormancer
 
 			/// @brief Gets the id of the application the client is connected to.
 			std::string appId;
+
+			/// <summary>
+			/// Get the identities of the connected user.
+			/// </summary>
+			/// <remarks>TO BE IMPLEMENTED</remarks>
+			/// <returns></returns>
+			std::vector<UserId> getPlayerIdentities()
+			{
+				auto strmUserId = this->userId();
+				if (!strmUserId.isOffline())
+				{
+					return { UserId{ "stormancer",strmUserId.userId } };
+				}
+				else
+				{
+					return {};
+				}
+			}
+
+			/// <summary>
+			/// Authenticates the currently logged in user with another auth provider to link their account.
+			/// </summary>
+			/// <param name="type"></param>
+			/// <param name="args"></param>
+			/// <returns></returns>
+			pplx::task<void> link(const std::string& type, const std::unordered_map<std::string, std::string>& args)
+			{
+				return pplx::task_from_exception<void>(std::runtime_error("notImplemented"));
+			}
 
 			/// <summary>
 			/// Set the platform-specific user that should be authenticated with Stormancer.
@@ -722,7 +848,7 @@ namespace Stormancer
 										}
 										catch (std::exception& ex)
 										{
-											logger->log(LogLevel::Error, "authentication", "Failed updating user options '" + key, ex.what());
+											logger->log(LogLevel::Error, "authentication", "Failed updating user options {}. error={}'", key, ex);
 											throw;
 										}
 									});
@@ -747,7 +873,7 @@ namespace Stormancer
 										}
 										catch (std::exception& ex)
 										{
-											logger->log(LogLevel::Error, "authentication", "Failed getting user options '" + key, ex.what());
+											logger->log(LogLevel::Error, "authentication", "Failed getting user options {}. error={}'", key, ex);
 											throw;
 										}
 									});
@@ -789,7 +915,7 @@ namespace Stormancer
 						});
 			}
 
-			Stormancer::SessionId getUserSessionId()
+			const Stormancer::SessionId getUserSessionId() const
 			{
 				if (auto client = this->_wClient.lock())
 				{
@@ -853,13 +979,16 @@ namespace Stormancer
 				}
 			}
 
+			bool requestRenew = false;
 			pplx::task<LoginCredentialsResult> renewLoginCredentials(pplx::cancellation_token ct = pplx::cancellation_token::none())
 			{
+
 				if (_currentConnectionState != GameConnectionState::Authenticated)
 				{
 					STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error("NotAuthenticated"), LoginCredentialsResult);
 				}
-
+				_loginInProgress = true;
+				requestRenew = false;
 				return sendCredentialsToServer(ct)
 					.then([](LoginCredentialsResult loginCredentialsResult)
 						{
@@ -879,7 +1008,7 @@ namespace Stormancer
 					.then([serviceType, serviceName, ct, logger](std::shared_ptr<Scene> authScene)
 						{
 							auto rpcService = authScene->dependencyResolver().resolve<RpcService>();
-							logger->log(LogLevel::Info, "authentication", "Getting token for service type '" + serviceType + "' and name '" + serviceName + "'");
+							logger->log(LogLevel::Info, "authentication", "Getting token for service type={}, name={}'", serviceType, serviceName);
 
 							return rpcService->rpc<std::string>("Locator.GetSceneConnectionToken", ct, serviceType, serviceName)
 								.then([logger, serviceType, serviceName](pplx::task<std::string> t)
@@ -887,12 +1016,12 @@ namespace Stormancer
 										try
 										{
 											auto token = t.get();
-											logger->log(LogLevel::Info, "authentication", "Got token for service type '" + serviceType + "' and name '" + serviceName + "'");
+											logger->log(LogLevel::Info, "authentication", "Got token for service type={}, name={}", serviceType, serviceName);
 											return token;
 										}
 										catch (std::exception& ex)
 										{
-											logger->log(LogLevel::Error, "authentication", "Failed getting token for service type '" + serviceType + "' and name '" + serviceName + "'", ex.what());
+											logger->log(LogLevel::Error, "authentication", "Failed getting token for service type={}, name={}. error={}", serviceType, serviceName, ex);
 											throw;
 										}
 									});
@@ -968,7 +1097,7 @@ namespace Stormancer
 
 								if (that)
 								{
-									that->_logger->log(LogLevel::Info, "authentication", "Retrieved scene connection token for service type '" + serviceType + "' and name '" + serviceName + "'");
+									that->_logger->log(LogLevel::Info, "authentication", "Retrieved scene connection token for service type={},name={}", serviceType, serviceName);
 
 									if (auto client = that->_wClient.lock())
 									{
@@ -982,7 +1111,7 @@ namespace Stormancer
 							{
 								if (auto that = wThat.lock())
 								{
-									that->_logger->log(LogLevel::Error, "authentication", "Failed to get scene connection token for service type '" + serviceType + "' and name '" + serviceName + "'", ex.what());
+									that->_logger->log(LogLevel::Error, "authentication", "Failed to get scene connection token for service type={},name={}. error=", serviceType, serviceName, ex);
 								}
 								throw;
 							}
@@ -1038,7 +1167,7 @@ namespace Stormancer
 										// error log
 										if (retry)
 										{
-											logger->log(LogLevel::Warn, "UsersApi::loginImpl", "Login failed with recoverable error, doing another attempt.", ex);
+											logger->log(LogLevel::Warn, "UsersApi::loginImpl", "Login failed with recoverable error, doing another attempt. error={}", ex);
 										}
 										return retry;
 									}
@@ -1066,7 +1195,7 @@ namespace Stormancer
 						{
 							if (auto that = wThat.lock())
 							{
-								that->_logger->log(LogLevel::Trace, "UsersApi::loginImpl", "Login failed with unrecoverable error", ex);
+								that->_logger->log(LogLevel::Trace, "UsersApi::loginImpl", "Login failed with unrecoverable error. error={}", ex);
 								that->_lastError = ex.what();
 								LoginFailureContext ctx(that->_lastError);
 								for (auto handler : that->_authenticationEventHandlers)
@@ -1105,7 +1234,19 @@ namespace Stormancer
 								}
 								tce.set_exception(std::current_exception());
 							}
-						});
+						})
+					.then([wThat]()
+						{
+							if (auto that = wThat.lock())
+							{
+								if (that->requestRenew)
+								{
+									return that->renewLoginCredentials().then([](LoginCredentialsResult) {});
+								}
+							}
+
+							return pplx::task_from_result();
+						}, _userDispatcher);
 
 				return pplx::create_task(tce, task_options(_userDispatcher, ct));
 			}
@@ -1115,9 +1256,16 @@ namespace Stormancer
 			/// </summary>
 			/// <remarks>Returns empty if not authenticated.</remarks>
 			/// <returns></returns>
-			const std::string& userId() const
+			const StormancerUserId& userId() const
 			{
-				return _userId;
+				if (connectionState() == GameConnectionState::Authenticated)
+				{
+					return  _userId;
+				}
+				else
+				{
+					return StormancerUserId::OfflineUserId();
+				}
 			}
 
 			/// <summary>
@@ -1198,7 +1346,14 @@ namespace Stormancer
 
 			Event<GameConnectionState> connectionStateChanged;
 
-
+			Subscription subscribeConnectionStateChanged(std::function<void(GameConnectionState)> callback, bool fireCallbackForCurrentState)
+			{
+				if (fireCallbackForCurrentState)
+				{
+					callback(connectionState());
+				}
+				return connectionStateChanged.subscribe(callback);
+			}
 
 			const std::unordered_map<std::string, std::string> currentAuthenticationStatus() const
 			{
@@ -1234,7 +1389,7 @@ namespace Stormancer
 			// Get the metadata for the authentication system, advertising what kind of authentication is available and which parameters it supports.
 			pplx::task<std::unordered_map<std::string, std::string>> getMetadata(pplx::cancellation_token ct = pplx::cancellation_token::none())
 			{
-				return getAuthenticationScene(ct)
+				return connectToAuthSceneAsync(ct)
 					.then([ct](std::shared_ptr<Scene> scene)
 						{
 							auto rpc = scene->dependencyResolver().resolve<RpcService>();
@@ -1333,7 +1488,7 @@ namespace Stormancer
 			{
 				if (_currentConnectionState != state)
 				{
-					this->_logger->log(LogLevel::Info, "connection", "Game connection state changed", state.to_string());
+					this->_logger->log(LogLevel::Info, "connection", "Game connection state changed to {}", state);
 
 					if (state == GameConnectionState::Disconnected)
 					{
@@ -1347,14 +1502,18 @@ namespace Stormancer
 								client->disconnect(); // Disconnect still connected scenes.
 							}
 						}
-						if (_loginInProgress && _autoReconnect && !_wClient.expired())
+						auto client = _wClient.lock();
+
+						if (_loginInProgress && _autoReconnect && client != nullptr && client->connectionState() != ConnectionState::Disconnecting)
 						{
+
 							setConnectionState(GameConnectionState::Reconnecting);
+
 						}
 						else
 						{
-							_currentConnectionState = state;
-							connectionStateChanged(state);
+							_loginInProgress = false;
+							_autoReconnect = false;
 						}
 					}
 					else if (state == GameConnectionState::Reconnecting && _currentConnectionState != GameConnectionState::Reconnecting)
@@ -1371,7 +1530,7 @@ namespace Stormancer
 									}
 									catch (const std::exception& ex)
 									{
-										logger->log(LogLevel::Error, "connection", "Reconnection failed due to an unrecoverable error", ex);
+										logger->log(LogLevel::Error, "connection", "Reconnection failed due to an unrecoverable error. error={}", ex);
 									}
 								});
 					}
@@ -1382,28 +1541,14 @@ namespace Stormancer
 					}
 				}
 			}
-
-			pplx::task<std::shared_ptr<Scene>> loginImpl(pplx::cancellation_token ct = pplx::cancellation_token::none())
+			pplx::task< std::shared_ptr<Scene>> connectToAuthSceneAsync(pplx::cancellation_token ct = pplx::cancellation_token::none())
 			{
-				setConnectionState(GameConnectionState::Connecting);
 				auto wThat = STORM_WEAK_FROM_THIS();
-
-				if (_authenticationEventHandlers.empty())
-				{
-					_loginInProgress = false;
-					_autoReconnect = false;
-					setConnectionState(GameConnectionState::Disconnected);
-					STORM_RETURN_TASK_FROM_EXCEPTION_OPT(std::runtime_error("No IAuthenticationEventHandler are present, and 'getCredentialsCallback' is not set. At least one IAuthenticationEventHandler should be available in the client's DependencyScope, or 'getCredentialsCallback' should be set."), _userDispatcher, std::shared_ptr<Scene>);
-				}
 				auto client = _wClient.lock();
 				if (!client)
 				{
-					_loginInProgress = false;
-					_autoReconnect = false;
-					setConnectionState(GameConnectionState::Disconnected);
 					STORM_RETURN_TASK_FROM_EXCEPTION_OPT(ObjectDeletedException("Client"), _userDispatcher, std::shared_ptr<Scene>);
 				}
-
 				return client->connectToPublicScene(SCENE_ID, [wThat](std::shared_ptr<Scene> scene)
 					{
 						auto that = wThat.lock();
@@ -1456,8 +1601,8 @@ namespace Stormancer
 							{
 								OperationCtx opCtx;
 								opCtx.request = ctx;
-								Serializer serializer;
-								serializer.deserialize(ctx->inputStream(), opCtx.originId, opCtx.operation);
+
+								ctx->readObjects(opCtx.originId, opCtx.operation);
 
 								auto that = LockOrThrow(wThat, "UsersApi");
 
@@ -1479,7 +1624,7 @@ namespace Stormancer
 								}
 
 								auto provider = ctx->readObject<std::string>();
-								that->_logger->log(LogLevel::Trace, "UsersApi", "Received a renewCredentials request for provider " + provider);
+								that->_logger->log(LogLevel::Trace, "UsersApi", "Received a renewCredentials request for provider {}.", provider);
 
 								auto logger = that->_logger;
 								return that->runCredentialsRenewalHandlers(provider)
@@ -1491,21 +1636,46 @@ namespace Stormancer
 											}
 											catch (const std::exception& ex)
 											{
-												logger->log(LogLevel::Error, "UsersApi", "An exception was thrown by a renewCredentials handler", ex);
+												logger->log(LogLevel::Error, "UsersApi", "An exception was thrown by a renewCredentials handler. error={}", ex);
 											}
 										});
 							});
-					}, ct)
+					}, ct);
+			}
+
+			pplx::task<std::shared_ptr<Scene>> loginImpl(pplx::cancellation_token ct = pplx::cancellation_token::none())
+			{
+				setConnectionState(GameConnectionState::Connecting);
+				auto wThat = STORM_WEAK_FROM_THIS();
+
+				if (_authenticationEventHandlers.empty())
+				{
+					_loginInProgress = false;
+					_autoReconnect = false;
+					setConnectionState(GameConnectionState::Disconnected);
+					STORM_RETURN_TASK_FROM_EXCEPTION_OPT(std::runtime_error("No IAuthenticationEventHandler are present, and 'getCredentialsCallback' is not set. At least one IAuthenticationEventHandler should be available in the client's DependencyScope, or 'getCredentialsCallback' should be set."), _userDispatcher, std::shared_ptr<Scene>);
+				}
+				auto client = _wClient.lock();
+				if (!client)
+				{
+					_loginInProgress = false;
+					_autoReconnect = false;
+					setConnectionState(GameConnectionState::Disconnected);
+					STORM_RETURN_TASK_FROM_EXCEPTION_OPT(ObjectDeletedException("Client"), _userDispatcher, std::shared_ptr<Scene>);
+				}
+
+
+				return connectToAuthSceneAsync(ct)
 					.then([wThat, ct](std::shared_ptr<Scene> scene)
 						{
 							auto that = LockOrThrow(wThat, "UsersApi");
 
 							return that->sendCredentialsToServerImpl(scene, ct)
-								.then([scene, wThat](LoginCredentialsResult loginCredentialsResult)
+								.then([scene, wThat, ct](LoginCredentialsResult loginCredentialsResult)
 									{
 										auto that = LockOrThrow(wThat, "UsersApi");
 
-										auto task = pplx::task_from_result();
+
 
 										if (!loginCredentialsResult.loginResult.success)
 										{
@@ -1518,28 +1688,30 @@ namespace Stormancer
 										else
 										{
 											that->_currentStatus = loginCredentialsResult.loginResult.authentications;
-											that->_userId = loginCredentialsResult.loginResult.userId;
+											that->_userId = StormancerUserId(loginCredentialsResult.loginResult.userId);
 											that->_username = loginCredentialsResult.loginResult.username;
 											that->setConnectionState(GameConnectionState::Authenticated);
 
-											OnLoggedInContext onLoggedInCtx;
+											OnLoggedInContext_ptr onLoggedInCtx = std::make_shared<OnLoggedInContext>();
 
-											onLoggedInCtx.authParameters = loginCredentialsResult.authParameters;
-											onLoggedInCtx.loginResult = loginCredentialsResult.loginResult;
+											onLoggedInCtx->authParameters = loginCredentialsResult.authParameters;
+											onLoggedInCtx->loginResult = loginCredentialsResult.loginResult;
 
-											for (auto h : that->_authenticationEventHandlers)
-											{
-												task = task.then([h, onLoggedInCtx]()
+
+											return runEventHandlers(that->_authenticationEventHandlers, [onLoggedInCtx](auto h) { return h->OnLoggedIn(onLoggedInCtx); }, [](auto ex) {})
+												.then([onLoggedInCtx, wThat, ct, scene]()
 													{
-														h->OnLoggedIn(onLoggedInCtx);
+														if (onLoggedInCtx->requestRenew)
+														{
+															auto that = LockOrThrow(wThat, "UsersApi");
+															that->requestRenew = true;
+
+														}
+														return scene;
 													});
-											}
+
 										}
 
-										return task.then([scene]()
-											{
-												return scene;
-											});
 									});
 						});
 			}
@@ -1565,7 +1737,7 @@ namespace Stormancer
 				}
 
 				return runCredentialsEventHandlers()
-					.then([scene, ct, wThat = STORM_WEAK_FROM_THIS()](pplx::task<AuthParameters> authParametersTask)
+					.then([scene, ct, wThat = weak_from_this()](pplx::task<AuthParameters> authParametersTask)
 						{
 							auto that = LockOrThrow(wThat, "UsersApi");
 
@@ -1607,6 +1779,7 @@ namespace Stormancer
 										return LoginCredentialsResult{ authParameters, loginResult };
 									});
 						});
+
 			}
 
 			pplx::task<std::shared_ptr<Scene>> reconnect()
@@ -1617,9 +1790,20 @@ namespace Stormancer
 
 			pplx::task<AuthParameters> runCredentialsEventHandlers()
 			{
+				bool found = false;
+				for (auto& provider : _authenticationProviders)
+				{
+					if (provider->getProviderName() == authProvider)
+					{
+						found = true;
+						break;
+					}
+				}
 
-
-
+				if (!found)
+				{
+					return pplx::task_from_exception< AuthParameters>(std::runtime_error(("authenticationFailed/unsupported?reason=clientProvider&provider=" + authProvider)));
+				}
 				CredentialsContext credentialsContext;
 				credentialsContext.authParameters = std::make_shared<AuthParameters>();
 				credentialsContext.authParameters->type = authProvider;
@@ -1658,7 +1842,7 @@ namespace Stormancer
 						return h->renewCredentials(context);
 					}, [logger = _logger](auto error)
 						{
-							logger->log(Stormancer::LogLevel::Error, "users", "An error occurred while running IAuthenticationProvider.renewCredentials", error);
+							logger->log(Stormancer::LogLevel::Error, "users", "An error occurred while running IAuthenticationProvider.renewCredentials. error={}", error);
 						})
 					.then([context]
 						{
@@ -1679,7 +1863,7 @@ namespace Stormancer
 			bool _autoReconnectEnabled = true;
 			bool _autoReconnect = true;
 
-			std::string _userId;
+			StormancerUserId _userId = StormancerUserId::OfflineUserId();
 			std::string _username;
 			std::weak_ptr<IClient> _wClient;
 			std::shared_ptr<Configuration> _configuration;

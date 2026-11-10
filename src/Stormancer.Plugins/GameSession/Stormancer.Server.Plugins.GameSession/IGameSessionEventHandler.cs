@@ -151,11 +151,30 @@ namespace Stormancer.Server.Plugins.GameSession
         /// <returns></returns>
         Task OnInspectingGameSession(InspectLiveGameSessionResult result) => Task.CompletedTask;
 
-
-       
+        /// <summary>
+        /// Event fired whenever the topology of the game session changes.
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
+        Task OnTopologyUpdated(TopologyUpdatedContext ctx) => Task.CompletedTask;
     }
 
-   
+    /// <summary>
+    /// Context object passed to <see cref="IGameSessionEventHandler.OnTopologyUpdated(TopologyUpdatedContext)"/>
+    /// </summary>
+    public class TopologyUpdatedContext
+    {
+        internal TopologyUpdatedContext(IGameSessionService gameSession)
+        {
+            GameSession = gameSession;
+        }
+        /// <summary>
+        /// The game session that triggered the event.
+        /// </summary>
+        public IGameSessionService GameSession { get; }
+    }
+
+
 
     /// <summary>
     /// Context object passed to <see cref="IGameSessionEventHandler.OnShuttingDown"/>.
@@ -584,16 +603,22 @@ namespace Stormancer.Server.Plugins.GameSession
     /// </summary>
     public class ClientConnectedContext
     {
-        internal ClientConnectedContext(IGameSessionService service, PlayerPeer player, bool isHost)
+        internal ClientConnectedContext(IGameSessionService service, PlayerPeer player,Session session, bool isHost)
         {
             GameSession = service;
             Player = player;
+            Session = session;
             IsHost = isHost;
         }
         /// <summary>
         /// Gets the player associated with the event.
         /// </summary>
         public PlayerPeer Player { get; }
+
+        /// <summary>
+        /// Gets the session of the newly connected player.
+        /// </summary>
+        public Session Session { get; }
 
         /// <summary>
         /// Gets a value indicating whether the client is the host of the game.

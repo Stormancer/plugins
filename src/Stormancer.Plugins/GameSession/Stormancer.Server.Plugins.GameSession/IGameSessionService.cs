@@ -245,7 +245,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Updates the list of peers that can host the game.
         /// </summary>
         /// <param name="sessionIds"></param>
-        void UpdateHostCandidates(IEnumerable<SessionId> sessionIds);
+        Task UpdateHostCandidates(IEnumerable<SessionId> sessionIds);
 
 
         /// <summary>
