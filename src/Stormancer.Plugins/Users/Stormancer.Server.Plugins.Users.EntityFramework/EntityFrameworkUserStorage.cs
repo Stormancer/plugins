@@ -66,29 +66,36 @@ namespace Stormancer.Server.Plugins.Users.EntityFramework
             var userId = Guid.Parse(user.Id);
             var record = c.Set<UserRecord>().Include(u => u.Identities).SingleOrDefault(u => u.Id == userId);
 
-            if(record == null)
+            if (record == null)
             {
                 return (user, false);
             }
 
-            var identity = record.Identities.FirstOrDefault(i=>i.Provider == provider);
+            var identity = record.Identities.FirstOrDefault(i => i.Provider == provider);
             var added = identity == null;
             if (identity == null)
             {
-                identity = new IdentityRecord { Provider = provider, Identity = identifier };
-                identity.Users = new List<UserRecord>
-                {
-                    record
-                };
+                identity = c.Set<IdentityRecord>().FirstOrDefault(r => r.Identity == identifier && r.Provider == provider);
 
-                await c.Set<IdentityRecord>().AddAsync(identity);
+                if (identity == null)
+                {
+                    identity = new IdentityRecord { Provider = provider, Identity = identifier };
+                    identity.Users.Add(record);
+
+                    await c.Set<IdentityRecord>().AddAsync(identity);
+                }
+                else
+                {
+                    identity.Users.Add(record);
+                }
+              
             }
             identity.MainUser = record;
             record.Auth = JsonDocument.Parse(user.Auth.ToString());
 
 
             await c.SaveChangesAsync();
-            return (user,added);
+            return (user, added);
         }
 
         public async Task<User?> GetUser(string uid)
@@ -235,9 +242,9 @@ namespace Stormancer.Server.Plugins.Users.EntityFramework
             var record = await dbContext.Set<UserRecord>().SingleOrDefaultAsync(u => u.Id == guid);
 
             var userData = JObject.Parse(record.UserData.RootElement.GetRawText()!);
-          
 
-            if (userHandleGenerator !=null)
+
+            if (userHandleGenerator != null)
             {
                 int tries = 0;
                 bool success = false;

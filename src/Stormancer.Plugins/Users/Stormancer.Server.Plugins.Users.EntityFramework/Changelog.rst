@@ -13,11 +13,13 @@ Unreleased
 ----------
 Added
 *****
-- Adds an implemenatation of IUserStorage.Enabled
+- Added an implemenatation of IUserStorage.Enabled
 - Added Identities in factory code for User objects.
+
 Fixed
 *****
 - Fixed an issue that would prevent multiple identities from being registered in an user.
+- Fixed an issue that would cause an error when trying to link an identity that was already linked with another user.
 
 1.0.0.6
 ----------
