@@ -14,9 +14,12 @@ Unreleased
 Added
 *****
 - Added IP2PEventHandler implementation to support SteamNetworking
+
 Changed
 *******
 - Return steamId as a string in the user profile part to simplify clientside deserialization.
+- Updated to dotnet 11.
+
 4.2.1.42
 ----------
 Changed

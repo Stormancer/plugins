@@ -101,7 +101,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                
 
                 
-                var gameFinderGameSessionConfig = config.Parameters.ToObject<BaseGameSessionConfig>();
+                var gameFinderGameSessionConfig = System.Text.Json.JsonSerializer.Deserialize< BaseGameSessionConfig>(config.Parameters);
                 if (gameFinderGameSessionConfig != null)
                 {
                     config.Settings = gameFinderGameSessionConfig.Args;

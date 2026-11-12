@@ -55,7 +55,7 @@ namespace Stormancer.Server.Plugins.Party
         /// Server settings set by client.
         /// </summary>
         [Key(3)]
-        public ServerPartySettings ServerSettings { get; set; } = new ServerPartySettings();
+        public Dictionary<string,string> ServerSettings { get; set; } = new ();
 
         /// <summary>
         /// Only leader can invite players in the party.

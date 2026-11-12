@@ -15,6 +15,7 @@ Changed
 ********
 - Removed dependency to Elasticsearch and moved storage specific code into different nuget packages.
 - Created a Storage backend for Postgresql.
+- Updated to dotne 11.
 
 5.0.2.6
 ----------

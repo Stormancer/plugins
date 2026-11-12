@@ -20,12 +20,14 @@ namespace Stormancer.Server.Plugins.Voice
         /// <summary>
         /// Type of the ticket.
         /// </summary>
+        [Key(0)]
         public required string Type { get; init; }
 
 
         /// <summary>
         /// Custom arguments.
         /// </summary>
+        [Key(1)]
         public required string Args { get; init; }
     }
     /// <summary>

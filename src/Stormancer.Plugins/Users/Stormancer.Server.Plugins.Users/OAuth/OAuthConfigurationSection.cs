@@ -23,13 +23,16 @@ namespace Stormancer.Server.Plugins.Users.OAuth
         /// Gets the secret store path storing the keys for the OAuth service.
         /// </summary>
         /// <remarks>
-        /// The file this path points is a json document deserialized into a <see cref="KeySets"/> object:
+        /// The file this path points is a json document deserialized into a <see cref="KeysSet"/> object:
         ///``` 
         /// {
         ///    "keys":[
-        ///         {jwk}
+        ///         {
+        ///             "createdOn":{dateTime}
+        ///             "key":{jwk}
+        ///       
+        ///       },
         ///         ....
-        ///       }
         ///    }
         /// }
         /// ```
@@ -37,9 +40,20 @@ namespace Stormancer.Server.Plugins.Users.OAuth
         public string? KeysPath { get; set; }
 
         /// <summary>
-        /// The Key id the app must use to sign JSON Web Tokens.
+        /// Time period a key should be kept in the keys set.
         /// </summary>
-        public string? ActiveKeyId { get; set; }
+        /// <remarks>
+        /// Expressed in the format `d.hh:mm:ss`, defaults to `3.00:00:00`
+        /// </remarks>
+        public TimeSpan KeysRetentionPeriod { get; set; } = TimeSpan.FromDays(3);
+
+        /// <summary>
+        /// The time period after which the system generates a new key automatically.
+        /// </summary>
+        /// <remarks>
+        /// Expressed in the format `d.hh:mm:ss`, defaults to `1.00:00:00`
+        /// </remarks>
+        public TimeSpan KeyRenewalPeriod { get; set; } = TimeSpan.FromDays(1);
 
         /// <summary>
         /// The issuer to use
@@ -50,5 +64,13 @@ namespace Stormancer.Server.Plugins.Users.OAuth
         /// List of accepted audiences.
         /// </summary>
         public IEnumerable<string> ValidAudiences { get; set; } = Enumerable.Empty<string>();
+
+        /// <summary>
+        /// Key size in bits to use when generating new keys.
+        /// </summary>
+        /// <remarks>
+        /// Defaults to 2048.
+        /// </remarks>
+        public int KeySize { get; set; } = 2048;
     }
 }

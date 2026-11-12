@@ -23,7 +23,7 @@ namespace Stormancer
         /// <remarks>Configuration settings can be overrided in the App configuration json file on the grid.</remarks>
         public static IConfiguration ConfigureUsers(this IConfiguration config, Func<UsersConfigurationBuilder, UsersConfigurationBuilder> builder)
         {
-            var settings = config.GetValue("auth",new Dictionary<string, JObject>());
+            var settings = config.GetValue("auth",new Dictionary<string, JObject>()) ?? new Dictionary<string, JObject>();
             var configBuilder = new UsersConfigurationBuilder(settings);
 
             configBuilder = builder(configBuilder);

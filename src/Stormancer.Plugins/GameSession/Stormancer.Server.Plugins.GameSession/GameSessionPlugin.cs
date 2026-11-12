@@ -80,7 +80,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 builder.Register(static r => new GameServerAgentAuthenticationProvider(r.Resolve<GameServerAgentConfiguration>(), r.Resolve<ILogger>())).As<IAuthenticationProvider>();
                 builder.Register(static r => new GameServerAgentConfiguration(r.Resolve<IConfiguration>(), r.Resolve<ISecretsStore>(), r.Resolve<IHttpClientFactory>())).As<IConfigurationChangedEventHandler>().AsSelf().SingleInstance();
                 builder.Register(static r => new DevDedicatedServerAuthProvider()).As<IAuthenticationProvider>();
-                builder.Register(static r => new GameSessions(r.Resolve<Lazy<IScenesManager>>(), r.Resolve<Utilities.RecyclableMemoryStreamProvider>(), r.Resolve<IEnvironment>(), r.Resolve<Lazy<GameSessionProxy>>(), r.Resolve<Lazy<IUserSessions>>(), r.Resolve<ISerializer>(), r.Resolve<JsonSerializer>())).As<IGameSessions>();
+                builder.Register(static r => new GameSessions(r.Resolve<Lazy<IScenesManager>>(), r.Resolve<Utilities.RecyclableMemoryStreamProvider>(), r.Resolve<IEnvironment>(), r.Resolve<Lazy<GameSessionProxy>>(), r.Resolve<Lazy<IUserSessions>>(), r.Resolve<ISerializer>())).As<IGameSessions>();
 
                 builder.Register(static r => GameSessionsServiceLocator.Instance).As<IServiceLocatorProvider>();
 
@@ -111,7 +111,6 @@ namespace Stormancer.Server.Plugins.GameSession
                         d.Resolve<GameSessionsRepository>(),
                         d.Resolve<ISerializer>(),
                         d.Resolve<GameSessionEventsRepository>(),
-                        d.Resolve<JsonSerializer>(),
                         d.ResolveAll<IHostSelectionPolicy>())
                 )
                 .As<IGameSessionService>()

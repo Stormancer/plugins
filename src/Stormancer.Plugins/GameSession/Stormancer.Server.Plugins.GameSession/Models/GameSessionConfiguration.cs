@@ -21,12 +21,11 @@
 // SOFTWARE.
 
 using MessagePack;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Models;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
@@ -46,6 +45,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// Gets a map of arguments passed to the host selection policy.
         /// </summary>
         [Key(1)]
+        [JsonObjectCreationHandling(JsonObjectCreationHandling.Populate)]
         public Dictionary<string,string> Arguments { get; } = new Dictionary<string,string>();
     }
 
@@ -89,14 +89,14 @@ namespace Stormancer.Server.Plugins.GameSession
         [Key(3)]
         public IEnumerable<PartySummary> InitialReservations { get; set; } = Enumerable.Empty<PartySummary>();
 
-        
+
 
         /// <summary>
         /// Game session parameters like map to launch, gameType and everything can be useful to 
         /// dedicated server.
         /// </summary>
         [Key(4)]
-        public JObject Parameters { get; set; } = new JObject();
+        public JsonObject Parameters { get; set; } = new JsonObject();
 
 
         /// <summary>

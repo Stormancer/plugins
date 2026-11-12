@@ -266,7 +266,7 @@ namespace Stormancer.Server.Plugins.GameSession
         private readonly GameSessionsRepository _repository;
         private readonly ISerializer _serializer;
         private readonly GameSessionEventsRepository _events;
-        private readonly JsonSerializer _jsonSerializer;
+      
         private readonly IEnumerable<IHostSelectionPolicy> _hostSelectionPolicies;
         private TimeSpan _gameSessionTimeout = TimeSpan.MaxValue;
         private GameSessionConfiguration? _config;
@@ -301,7 +301,6 @@ namespace Stormancer.Server.Plugins.GameSession
             GameSessionsRepository repository,
             ISerializer serializer,
             GameSessionEventsRepository events,
-            JsonSerializer jsonSerializer,
             IEnumerable<IHostSelectionPolicy> hostSelectionPolicies
             )
         {
@@ -316,7 +315,7 @@ namespace Stormancer.Server.Plugins.GameSession
             _repository = repository;
             _serializer = serializer;
             _events = events;
-            _jsonSerializer = jsonSerializer;
+           
             _hostSelectionPolicies = hostSelectionPolicies;
             ApplySettings();
 
@@ -558,9 +557,9 @@ namespace Stormancer.Server.Plugins.GameSession
             if (metadata.ContainsKey("gameSession"))
             {
                 var obj = metadata["gameSession"];
-                var str = JObject.FromObject(obj!, _jsonSerializer).ToString();
+                var str = System.Text.Json.JsonSerializer.SerializeToElement(obj);
 
-                _config = JsonConvert.DeserializeObject<GameSessionConfiguration>(str, _jsonSerializer.Converters.ToArray()) ?? new GameSessionConfiguration();
+                _config = System.Text.Json.JsonSerializer.Deserialize<GameSessionConfiguration>(str) ?? new GameSessionConfiguration();
 
                 UpdateSettings(_config.Settings, _config.TeamsConfiguration);
             }

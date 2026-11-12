@@ -11,9 +11,14 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Changed
+*******
+- Updated to dotnet 11.
+
 Added
 *****
 - Added admin API.
+
 Fixed
 *****
 - Ignore gamesession when their id is not a valid guid.

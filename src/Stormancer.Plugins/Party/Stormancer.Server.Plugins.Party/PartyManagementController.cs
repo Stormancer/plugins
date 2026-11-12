@@ -84,7 +84,7 @@ namespace Stormancer.Server.PartyManagement
                 PartyLeaderId = user.Id,
                 CustomData = partyArgs.CustomData,
                 GameFinderName = partyArgs.GameFinderName,
-                ServerSettings = partyArgs.ServerSettings,
+                ServerSettings = new ServerPartySettings(partyArgs.ServerSettings),
                 IsPublic = partyArgs.IsPublic,
                 OnlyLeaderCanInvite = partyArgs.OnlyLeaderCanInvite,
                 IsJoinable = partyArgs.IsJoinable

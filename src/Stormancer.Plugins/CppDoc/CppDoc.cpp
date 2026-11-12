@@ -1,6 +1,8 @@
 // CppDoc.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
-#define STORMANCERCORE_API 
+#define STORMANCERCORE_API
+#define STORMANCER_API
+
 #include "users/Users.hpp"
 #include "analytics/analytics.hpp"
 #include "configuration/PeerConfiguration.hpp"

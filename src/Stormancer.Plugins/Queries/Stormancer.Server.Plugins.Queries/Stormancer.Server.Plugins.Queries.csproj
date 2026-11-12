@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
@@ -27,16 +27,15 @@
 
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="jose-jwt" Version="4.1.0" />
+    <PackageReference Include="jose-jwt" Version="5.1.1" />
     <PackageReference Include="Lucene.Net" Version="4.8.0-beta00018" />
     <PackageReference Include="Lucene.Net.Analysis.Common" Version="4.8.0-beta00018" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="11.0.100">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="10.2.0.1-pre" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Stormancer.Filters" Version="0.2.0.2" />
+	  <PackageReference Include="Stormancer.Abstractions.Server" Version="10.2.1-pre" />
   </ItemGroup>
 
   <ItemGroup>

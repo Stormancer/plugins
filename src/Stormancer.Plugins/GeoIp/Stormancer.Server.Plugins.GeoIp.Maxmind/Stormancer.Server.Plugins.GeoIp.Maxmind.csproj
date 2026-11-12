@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net8.0</TargetFramework>
+		<TargetFramework>net11.0</TargetFramework>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>1.0.1.3</Version>
+		<Version>1.0.1.4</Version>
 		<EmbedAllSources>true</EmbedAllSources>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
@@ -14,6 +14,7 @@
 		<LangVersion>latest</LangVersion>
 		<Description>Maxmind GeoIP Stormancer server integration.</Description>
 		<Deterministic>true</Deterministic>
+		<Features>runtime-async=on</Features>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
 		<Version>$(Version)-pre</Version>
@@ -27,7 +28,6 @@
 
   <ItemGroup>
     <PackageReference Include="MaxMind.GeoIP2" Version="5.2.0" />
-    <PackageReference Include="Stormancer.Abstractions.Server" Version="10.2.0.1-pre" />
   </ItemGroup>
 
   <ItemGroup>

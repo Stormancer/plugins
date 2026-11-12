@@ -27,7 +27,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         {
             lock (_syncRoot)
             {
-                var config = ctx.Config.Parameters?.ToObject<QuickQueueGameSessionConfig>();
+                var config = ctx.Config.Parameters.GetValue<QuickQueueGameSessionConfig>();
 
                 if (config != null && config.AllowJoinExistingGame)
                 {

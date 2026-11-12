@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Newtonsoft.Json;
+
 using Newtonsoft.Json.Linq;
 using Stormancer.Abstractions.Server.Components;
 using Stormancer.Server.Components;
@@ -32,6 +32,8 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -117,7 +119,7 @@ namespace Stormancer.Server.Plugins.GameSession
         private readonly Lazy<GameSessionProxy> s2SProxy;
         private readonly Lazy<IUserSessions> sessions;
         private readonly ISerializer serializer;
-        private readonly JsonSerializer _jsonSerializer;
+
 
         public GameSessions(
             Lazy<IScenesManager> management,
@@ -125,8 +127,7 @@ namespace Stormancer.Server.Plugins.GameSession
             IEnvironment env,
             Lazy<GameSessionProxy> s2sProxy,
             Lazy<IUserSessions> sessions,
-            ISerializer serializer,
-            JsonSerializer jsonSerializer)
+            ISerializer serializer)
         {
             this.management = management;
             _memoryStreamProvider = memoryStreamProvider;
@@ -134,7 +135,7 @@ namespace Stormancer.Server.Plugins.GameSession
             s2SProxy = s2sProxy;
             this.sessions = sessions;
             this.serializer = serializer;
-            _jsonSerializer = jsonSerializer;
+         
         }
 
         public async Task Create(string template, string id, GameSessionConfiguration config, CancellationToken cancellationToken)
@@ -150,7 +151,7 @@ namespace Stormancer.Server.Plugins.GameSession
                 ShardGroup = Stormancer.Server.Cluster.Constants.SHARDGROUP_DEFAULT,
                 Public = false,
                 IsPersistent = false,
-                Metadata = JObject.FromObject(new { gameSession = config }, _jsonSerializer).ToDictionary()
+                Metadata = JsonSerializer.Deserialize<Dictionary<string, object?>>(JsonSerializer.Serialize(new { gameSession = config })) ?? new Dictionary<string, object?>()
 
             }, false, cancellationToken);
         }

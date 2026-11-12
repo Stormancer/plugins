@@ -23,21 +23,117 @@
 #pragma once
 
 #include "stormancer/Tasks.h"
-#include "stormancer/IPlugin.h"
-#include "stormancer/msgpack_define.h"
-#include "Users/Users.hpp"
-#include "Users/ClientAPI.hpp"
+#include <string>
 #include <unordered_map>
-#include <list>
+#include <stormancer/msgpack_define.h>
+
+
+#if !defined(STORM_PLUGIN_IMPL)
+#define STORM_PLUGIN_IMPL 0
+#endif
 
 namespace Stormancer
 {
 	namespace Profile
 	{
+		struct UserProfilePart
+		{
+			std::string userId;
+			std::string lastPlatform;
+			std::string pseudo;
+			std::string avatar;
+			std::unordered_map <std::string, std::string> identities;
+			/// <summary>
+			/// Platform specific information associated with the player
+			/// </summary>
+			/// <remarks>
+			/// For instance if the player is on Steam. For privacy reasons, this info might depend if the player is on the same platform as the calling player.
+			/// { 
+			///		"steam":{ "steamid": "xxxx" }
+			/// }
+			/// </remarks>
+			std::unordered_map < std::string, std::unordered_map < std::string, std::string>> platforms;
+
+			/// <summary>
+			/// Tries getting a platform id from the platforms object.
+			/// </summary>
+			/// <param name="platform"></param>
+			/// <param name="path"></param>
+			/// <param name="idOut"></param>
+			/// <remarks>
+			/// For instance, to get the steam id on a steam player:
+			/// 
+			/// `tryGetPlatformId("steam","steamid",output)`
+			/// </remarks>
+			/// <returns></returns>
+			bool tryGetPlatformId(const std::string& platform, const std::string& path, std::string& idOut)
+			{
+				auto platformIt = platforms.find(platform);
+
+				if (platformIt == platforms.end())
+				{
+					return false;
+				}
+				auto& platformData = platformIt->second;
+				auto idIt = platformData.find(path);
+				if (idIt == platformData.end())
+				{
+					return false;
+				}
+				idOut = idIt->second;
+				return true;
+			}
+
+			template <typename Packer> void msgpack_pack(Packer& pk) const {
+				msgpack::type::make_define_map("userId", userId, "lastPlatform", lastPlatform, "pseudo", pseudo, "platforms", platforms, "avatar", avatar, "identities", identities).msgpack_pack(pk);
+			}
+			void msgpack_unpack(msgpack::object const& o) {
+				msgpack::type::make_define_map("userId", userId, "lastPlatform", lastPlatform, "pseudo", pseudo, "platforms", platforms, "avatar", avatar, "identities", identities).msgpack_unpack(o);
+			}
+			template <typename STRM_MSGPACK_OBJECT> void msgpack_object(STRM_MSGPACK_OBJECT* o, msgpack::zone& z) const {
+				msgpack::type::make_define_map("userId", userId, "lastPlatform", lastPlatform, "pseudo", pseudo, "platforms", platforms, "avatar", avatar, "identities", identities).msgpack_object(o, z);
+			}
+		};
 		struct Profile
 		{
-			std::unordered_map<std::string, std::shared_ptr<std::string>> data;
+			std::unordered_map<std::string, std::vector<byte>> data;
+
+			template<typename TPart>
+			bool tryGetPartAs(std::string partId, TPart& part)
+			{
+				Serializer serializer;
+				auto it = data.find(partId);
+				if (it != data.end())
+				{
+					serializer.deserialize(std::span<byte>(it->second), part);
+					return true;
+				}
+				else
+				{
+					return false;
+				}
+			}
 		};
+
+		/// <summary>
+		/// Event handler providing extensibility to the profiles plugin.
+		/// </summary>
+		class IProfileEventHandler
+		{
+		public:
+
+			virtual ~IProfileEventHandler() = default;
+
+			virtual void onGetProfiles(std::unordered_map<std::string, Profile>&)
+			{}
+
+			virtual void onGetProfiles(std::unordered_map<SessionId, Profile>&)
+			{}
+
+			virtual void onGetLocalPlayerProfile(Profile& profile, const std::unordered_map<std::string, std::string>& displayOptions)
+			{}
+		};
+
 
 		class ProfileApi
 		{
@@ -52,7 +148,15 @@ namespace Stormancer
 			/// <param name="userIds"></param>
 			/// <param name="displayOptions"></param>
 			/// <returns></returns>
-			virtual pplx::task<std::unordered_map<std::string, Profile>> getProfiles(const std::list<std::string>& userIds, const std::unordered_map<std::string, std::string>& displayOptions = defaultDisplayOptions(), pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) = 0;
+			virtual pplx::task<std::unordered_map<std::string, Profile>> getProfiles(const std::vector<std::string>& userIds, const std::unordered_map<std::string, std::string>& displayOptions = defaultDisplayOptions(), pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) = 0;
+
+
+			/// <summary>
+			/// Get the local player profile synchronously
+			/// </summary>
+			/// <param name="displayOptions"></param>
+			/// <returns></returns>
+			virtual Profile getLocalPlayerProfile(const std::unordered_map<std::string, std::string>& displayOptions = defaultDisplayOptions()) = 0;
 
 			/// <summary>
 			/// Gets profiles for a list of users.
@@ -61,7 +165,7 @@ namespace Stormancer
 			/// <param name="sessionIds"></param>
 			/// <param name="displayOptions"></param>
 			/// <returns></returns>
-			virtual pplx::task<std::unordered_map<SessionId, Profile>> getProfiles(const std::list<SessionId>& sessionIds, const std::unordered_map<std::string, std::string>& displayOptions = defaultDisplayOptions(), pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) = 0;
+			virtual pplx::task<std::unordered_map<SessionId, Profile>> getProfiles(const std::vector<SessionId>& sessionIds, const std::unordered_map<std::string, std::string>& displayOptions = defaultDisplayOptions(), pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) = 0;
 
 			/// <summary>
 			/// Gets the user's profile.
@@ -104,7 +208,7 @@ namespace Stormancer
 
 			static const std::unordered_map<std::string, std::string>& defaultDisplayOptions()
 			{
-				static const std::unordered_map<std::string, std::string> options{ { "user", "details" } };
+				static const std::unordered_map<std::string, std::string> options{ { "user", "summary" } };
 				return options;
 			}
 
@@ -116,7 +220,7 @@ namespace Stormancer
 			/// <param name="version">Version of the part protocol. Version is made available to server side custom part handlers to enable data migration capabilities.</param>
 			/// <remarks></remarks>
 			/// <returns></returns>
-			virtual pplx::task<void> updateCustomProfilePart(const std::string& partId, const Stormancer::StreamWriter& profilePartWriter, const std::string& version, pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) = 0;
+			virtual pplx::task<void> updateCustomProfilePart(const std::string& partId, const std::function<void(BufferWriter&)>& profilePartWriter, const std::string& version, pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) = 0;
 
 			/// <summary>
 			/// Deletes a custom profile part associated with the user.
@@ -130,35 +234,34 @@ namespace Stormancer
 			{
 				std::string text;
 			};
-			
+
 			virtual void setMaskProfanityHandler(std::function<void(MaskProfanityContext&)> handler) = 0;
 
 			virtual std::function<void(MaskProfanityContext&)> getMaskProfanityHandler() const = 0;
 		};
+	}
+}
 
+#if STORM_PLUGIN_IMPL == 1
+#include "stormancer/IPlugin.h"
+#include "stormancer/msgpack_define.h"
+#include "stormancer/Logger/ILogger.h"
+#include "users/Users.hpp"
+#include "users/ClientAPI.hpp"
+namespace Stormancer
+{
+	namespace Profile
+	{
 		namespace details
 		{
 			struct ProfileDto
 			{
-				std::unordered_map<std::string, std::shared_ptr<std::string>> data;
-				MSGPACK_DEFINE(data);
+				std::unordered_map<std::string, std::vector<byte>> data;
+				STRM_MSGPACK_DEFINE(data);
 			};
 		}
 
-		class IProfileEventHandler
-		{
-		public:
 
-			virtual ~IProfileEventHandler() = default;
-
-			virtual void onGetProfiles(std::unordered_map<std::string, details::ProfileDto>&)
-			{
-			}
-
-			virtual void onGetProfiles(std::unordered_map<SessionId, details::ProfileDto>&)
-			{
-			}
-		};
 
 		namespace details
 		{
@@ -170,7 +273,7 @@ namespace Stormancer
 			struct ProfileDtoSessionId
 			{
 				std::unordered_map<SessionId, std::shared_ptr<std::string>> data;
-				MSGPACK_DEFINE(data);
+				STRM_MSGPACK_DEFINE(data);
 			};
 
 			struct ProfilesResultSessionId
@@ -188,73 +291,62 @@ namespace Stormancer
 					, _rpcService(scene->dependencyResolver().resolve<RpcService>())
 					, _serializer(scene->dependencyResolver().resolve<Serializer>())
 					, _logger(scene->dependencyResolver().resolve<ILogger>())
-				{
-				}
+				{}
 
 				~ProfileService()
-				{
-				}
+				{}
 
-				pplx::task<ProfilesResult> getProfiles(const std::list<std::string>& userIds, const std::unordered_map<std::string, std::string>& displayOptions, pplx::cancellation_token cancellationToken)
+				pplx::task<ProfilesResult> getProfiles(const std::vector<std::string>& userIds, const std::unordered_map<std::string, std::string>& displayOptions, pplx::cancellation_token cancellationToken)
 				{
 					return _rpcService->rpc<std::unordered_map<std::string, ProfileDto>>("Profile.GetProfiles", cancellationToken, userIds, displayOptions)
 						.then([wClient = _wClient](std::unordered_map<std::string, ProfileDto> result)
-					{
-						auto client = wClient.lock();
-						if (!client)
-						{
-							throw ObjectDeletedException("IClient");
-						}
+							{
+								auto client = wClient.lock();
+								if (!client)
+								{
+									throw ObjectDeletedException("IClient");
+								}
 
-						auto profileEventHandlers = client->dependencyResolver().resolveAll<IProfileEventHandler>();
-						for (auto& profileEventHandler : profileEventHandlers)
-						{
-							profileEventHandler->onGetProfiles(result);
-						}
 
-						ProfilesResult r;
-						r.profiles = result;
-						return r;
-					});
+
+								ProfilesResult r;
+								r.profiles = result;
+								return r;
+							});
 				}
 
-				pplx::task<ProfilesResultSessionId> getProfiles(const std::list<SessionId>& sessionIds, const std::unordered_map<std::string, std::string>& displayOptions, pplx::cancellation_token cancellationToken)
+				pplx::task<ProfilesResultSessionId> getProfiles(const std::vector<SessionId>& sessionIds, const std::unordered_map<std::string, std::string>& displayOptions, pplx::cancellation_token cancellationToken)
 				{
 					return _rpcService->rpc<std::unordered_map<SessionId, ProfileDto>>("Profile.GetProfilesBySessionIds", cancellationToken, sessionIds, displayOptions)
 						.then([wClient = _wClient](std::unordered_map<SessionId, ProfileDto> result)
-					{
-						auto client = wClient.lock();
-						if (!client)
-						{
-							throw ObjectDeletedException("IClient");
-						}
+							{
+								auto client = wClient.lock();
+								if (!client)
+								{
+									throw ObjectDeletedException("IClient");
+								}
 
-						auto profileEventHandlers = client->dependencyResolver().resolveAll<IProfileEventHandler>();
-						for (auto& profileEventHandler : profileEventHandlers)
-						{
-							profileEventHandler->onGetProfiles(result);
-						}
 
-						ProfilesResultSessionId r;
-						r.profiles = result;
-						return r;
-					});
+								ProfilesResultSessionId r;
+								r.profiles = result;
+								return r;
+							});
 				}
 
 				pplx::task<ProfileDto> getProfile(const std::string& userId, const std::unordered_map<std::string, std::string>& displayOptions, pplx::cancellation_token cancellationToken)
 				{
-					return getProfiles(std::list<std::string> { userId }, displayOptions, cancellationToken)
+					return getProfiles(std::vector<std::string> { userId }, displayOptions, cancellationToken)
 						.then([userId](ProfilesResult profiles)
-					{
-						if (profiles.profiles.size() == 1)
-						{
-							return profiles.profiles[userId];
-						}
-						else
-						{
-							throw std::runtime_error("No profile");
-						}
-					});
+							{
+								if (profiles.profiles.size() == 1)
+								{
+									return profiles.profiles[userId];
+								}
+								else
+								{
+									throw std::runtime_error("No profile");
+								}
+							});
 				}
 
 				pplx::task<std::string> updateUserHandle(const std::string& newHandle, pplx::cancellation_token cancellationToken)
@@ -266,21 +358,21 @@ namespace Stormancer
 				{
 					return _rpcService->rpc<std::unordered_map<std::string, ProfileDto>>("Profile.QueryProfiles", cancellationToken, pseudoPrefix, skip, take, displayOptions)
 						.then([](std::unordered_map<std::string, ProfileDto> result)
-					{
-						ProfilesResult r;
-						r.profiles = result;
-						return r;
-					});
+							{
+								ProfilesResult r;
+								r.profiles = result;
+								return r;
+							});
 				}
 
-				pplx::task<void> updateCustomProfilePart(const std::string& partId, const Stormancer::StreamWriter& profilePartWriter, const std::string& version, pplx::cancellation_token cancellationToken)
+				pplx::task<void> updateCustomProfilePart(const std::string& partId, const std::function<void(BufferWriter&)>& profilePartWriter, const std::string& version, pplx::cancellation_token cancellationToken)
 				{
 					auto serializer = _serializer;
-					return _rpcService->rpc("Profile.UpdateCustomProfilePart", cancellationToken, [serializer, partId, profilePartWriter, version](Stormancer::obytestream& s) {
+					return _rpcService->rpc("Profile.UpdateCustomProfilePart", cancellationToken, [serializer, partId, profilePartWriter, version](Stormancer::BufferWriter& s) {
 						serializer->serialize(s, partId);
 						serializer->serialize(s, version);
 						profilePartWriter(s);
-					});
+						});
 				}
 
 				pplx::task<void> deleteProfilePart(const std::string& partId)
@@ -302,64 +394,90 @@ namespace Stormancer
 			{
 			public:
 
-				Profiles_Impl(std::weak_ptr<Users::UsersApi> users)
+				Profiles_Impl(std::weak_ptr<Users::UsersApi> users, std::weak_ptr<IClient> client, std::shared_ptr<IActionDispatcher> dispatcher)
 					: ClientAPI(users, "stormancer.profile")
-				{
-				}
+					, _client(client)
+					, _dispatcher(dispatcher)
+				{}
 
-				pplx::task<std::unordered_map<std::string, Profile>> getProfiles(const std::list<std::string>& userIds, const std::unordered_map<std::string, std::string>& displayOptions, pplx::cancellation_token cancellationToken) override
+				pplx::task<std::unordered_map<std::string, Profile>> getProfiles(const std::vector<std::string>& userIds, const std::unordered_map<std::string, std::string>& displayOptions, pplx::cancellation_token cancellationToken) override
 				{
+					if (userIds.empty())
+					{
+						return pplx::task_from_result<std::unordered_map<std::string, Profile>>({});
+					}
 					return getProfileService(cancellationToken)
 						.then([userIds, displayOptions, cancellationToken](std::shared_ptr<ProfileService> gr)
-					{
-						return gr->getProfiles(userIds, displayOptions, cancellationToken);
-					})
-						.then([](ProfilesResult profiles)
-					{
-						std::unordered_map<std::string, Profile> result;
-						for (auto& dto : profiles.profiles)
-						{
-							Profile p;
-							p.data = dto.second.data;
-							result.emplace(dto.first, p);
-						}
-						return result;
-					});
+							{
+								return gr->getProfiles(userIds, displayOptions, cancellationToken);
+							})
+						.then([wClient = _client](ProfilesResult profiles)
+							{
+								std::unordered_map<std::string, Profile> result;
+								for (auto& dto : profiles.profiles)
+								{
+									Profile p;
+									p.data = dto.second.data;
+									result.emplace(dto.first, p);
+								}
+								if (auto client = wClient.lock())
+								{
+									auto profileEventHandlers = client->dependencyResolver().resolveAll<IProfileEventHandler>();
+									for (auto& profileEventHandler : profileEventHandlers)
+									{
+										profileEventHandler->onGetProfiles(result);
+									}
+								}
+								return result;
+							}, _dispatcher);
 				}
 
-				pplx::task<std::unordered_map<SessionId, Profile>> getProfiles(const std::list<SessionId>& sessionIds, const std::unordered_map<std::string, std::string>& displayOptions, pplx::cancellation_token cancellationToken) override
+				pplx::task<std::unordered_map<SessionId, Profile>> getProfiles(const std::vector<SessionId>& sessionIds, const std::unordered_map<std::string, std::string>& displayOptions, pplx::cancellation_token cancellationToken) override
 				{
+					if (sessionIds.empty())
+					{
+						return pplx::task_from_result<std::unordered_map<SessionId, Profile>>({});
+					}
 					return getProfileService(cancellationToken)
 						.then([sessionIds, displayOptions, cancellationToken](std::shared_ptr<ProfileService> gr)
-					{
-						return gr->getProfiles(sessionIds, displayOptions, cancellationToken);
-					})
-						.then([](ProfilesResultSessionId profiles)
-					{
-						std::unordered_map<SessionId, Profile> result;
-						for (auto& dto : profiles.profiles)
-						{
-							Profile p;
-							p.data = dto.second.data;
-							result.emplace(dto.first, p);
-						}
-						return result;
-					});
+							{
+								return gr->getProfiles(sessionIds, displayOptions, cancellationToken);
+							})
+						.then([wClient = _client](ProfilesResultSessionId profiles)
+							{
+								std::unordered_map<SessionId, Profile> result;
+								for (auto& dto : profiles.profiles)
+								{
+									Profile p;
+									p.data = dto.second.data;
+									result.emplace(dto.first, p);
+								}
+								if (auto client = wClient.lock())
+								{
+									auto profileEventHandlers = client->dependencyResolver().resolveAll<IProfileEventHandler>();
+									for (auto& profileEventHandler : profileEventHandlers)
+									{
+										profileEventHandler->onGetProfiles(result);
+									}
+								}
+								return result;
+							}, _dispatcher);
 				}
 
 				pplx::task<Profile> getProfile(const std::string& userId, const std::unordered_map<std::string, std::string>& displayOptions, pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) override
 				{
+
 					return getProfileService(cancellationToken)
 						.then([userId, displayOptions, cancellationToken](std::shared_ptr<ProfileService> gr)
-					{
-						return gr->getProfile(userId, displayOptions, cancellationToken);
-					})
+							{
+								return gr->getProfile(userId, displayOptions, cancellationToken);
+							})
 						.then([](ProfileDto profile)
-					{
-						Profile p;
-						p.data = profile.data;
-						return p;
-					});
+							{
+								Profile p;
+								p.data = profile.data;
+								return p;
+							}, _dispatcher);
 				}
 
 				pplx::task<std::string> updateUserHandle(const std::string& userIds, pplx::cancellation_token cancellationToken) override
@@ -368,17 +486,17 @@ namespace Stormancer
 					return getProfileService(cancellationToken)
 						.then([userIds, cancellationToken](std::shared_ptr<ProfileService> gr) {
 						return gr->updateUserHandle(userIds, cancellationToken);
-					})
+							})
 						.then([wUsers](pplx::task<std::string> t) {
 						auto users = wUsers.lock();
 						if (!users)
 						{
-							throw Stormancer::ObjectDeletedException("users destroyed.");
+							throw ::Stormancer::ObjectDeletedException("users destroyed.");
 						}
 						auto pseudo = t.get();
 						users->setPseudo(pseudo);
 						return pseudo;
-					});
+							}, _dispatcher);
 				}
 
 				pplx::task<std::unordered_map<std::string, Profile>> queryProfiles(const std::string& pseudoPrefix, const int& skip, const int& take, const std::unordered_map<std::string, std::string>& displayOptions, pplx::cancellation_token cancellationToken) override
@@ -394,20 +512,20 @@ namespace Stormancer
 							result.emplace(dto.first, p);
 						}
 						return result;
-					});
+							}, _dispatcher);
 				}
 
-				pplx::task<void> updateCustomProfilePart(const std::string& partId, const Stormancer::StreamWriter& profilePartWriter, const std::string& version = "1.0.0", pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) override
+				pplx::task<void> updateCustomProfilePart(const std::string& partId, const std::function<void(BufferWriter&)>& profilePartWriter, const std::string& version = "1.0.0", pplx::cancellation_token cancellationToken = pplx::cancellation_token::none()) override
 				{
 					return getProfileService(cancellationToken)
-						.then([partId, profilePartWriter, version, cancellationToken](std::shared_ptr<ProfileService> gr) {return gr->updateCustomProfilePart(partId, profilePartWriter, version, cancellationToken); });
+						.then([partId, profilePartWriter, version, cancellationToken](std::shared_ptr<ProfileService> gr) {return gr->updateCustomProfilePart(partId, profilePartWriter, version, cancellationToken); }, _dispatcher);
 
 				}
 
 				pplx::task<void> deleteProfilePart(const std::string& partId, pplx::cancellation_token cancellationToken) override
 				{
 					return getProfileService(cancellationToken)
-						.then([partId](std::shared_ptr<ProfileService> gr) {return gr->deleteProfilePart(partId); });
+						.then([partId](std::shared_ptr<ProfileService> gr) {return gr->deleteProfilePart(partId); }, _dispatcher);
 				}
 
 				void setMaskProfanityHandler(std::function<void(MaskProfanityContext&)> handler) override
@@ -420,6 +538,41 @@ namespace Stormancer
 					return _maskProfanityHandler;
 				}
 
+				Profile getLocalPlayerProfile(const std::unordered_map<std::string, std::string>& displayOptions = defaultDisplayOptions())
+				{
+
+					if (auto client = _client.lock())
+					{
+						Profile result;
+
+						auto profileEventHandlers = client->dependencyResolver().resolveAll<IProfileEventHandler>();
+						for (auto& h : profileEventHandlers)
+						{
+							h->onGetLocalPlayerProfile(result, displayOptions);
+						}
+
+						if (displayOptions.contains("user") && result.data.find("user") == result.data.end())
+						{
+							UserProfilePart part;
+							auto users = LockOrThrow(_wUsers, "scene.partyManagement");
+							part.pseudo = users->username();
+
+							Serializer serializer;
+							BufferWriter buffer;
+							serializer.serialize(buffer, part);
+							std::vector<byte> content;
+							content.resize(buffer.content().size());
+							std::memcpy(content.data(), buffer.content().data(), buffer.content().size());
+							result.data.emplace("user", content);
+						}
+						return result;
+					}
+					else
+					{
+						throw Stormancer::ObjectDeletedException("client");
+					}
+				}
+
 			private:
 
 				pplx::task<std::shared_ptr<ProfileService>> getProfileService(pplx::cancellation_token cancellationToken)
@@ -428,9 +581,12 @@ namespace Stormancer
 				}
 
 				std::function<void(MaskProfanityContext&)> _maskProfanityHandler = [](MaskProfanityContext& context)
-				{
-					context.text = "****";
-				};
+					{
+						context.text = "****";
+					};
+
+				std::weak_ptr<IClient> _client;
+				std::shared_ptr<IActionDispatcher> _dispatcher;
 			};
 		}
 
@@ -462,8 +618,10 @@ namespace Stormancer
 
 			void registerClientDependencies(ContainerBuilder& builder) override
 			{
-				builder.registerDependency<details::Profiles_Impl, Users::UsersApi>().as<ProfileApi>().singleInstance();
+				builder.registerDependency<details::Profiles_Impl, Users::UsersApi, IClient, IActionDispatcher>().as<ProfileApi>().singleInstance();
 			}
 		};
 	}
 }
+
+#endif

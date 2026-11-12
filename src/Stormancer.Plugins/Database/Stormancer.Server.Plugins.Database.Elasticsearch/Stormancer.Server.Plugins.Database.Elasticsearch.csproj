@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net8.0</TargetFramework>
+		<TargetFramework>net11.0</TargetFramework>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>2.3.2.2</Version>
+		<Version>2.3.2.3</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -13,6 +13,7 @@
 		<LangVersion>latest</LangVersion>
 		<Description>Provides an elasticsearch client configured with the server app configuration.</Description>
 		<Deterministic>true</Deterministic>
+		<Features>runtime-async=on</Features>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -27,12 +28,12 @@
 		<Version>$(Version)-pre</Version>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="11.0.100">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="NEST" Version="7.17.5" />
-		<PackageReference Include="SmartFormat.NET" Version="3.6.1" />
+		<PackageReference Include="SmartFormat.NET" Version="3.6.2" />
 	</ItemGroup>
 
 	<ItemGroup>

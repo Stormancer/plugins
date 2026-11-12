@@ -58,7 +58,7 @@ namespace Stormancer
 				{
 					auto rpc = _rpc.lock();
 					auto serializer = _serializer;
-					return rpc->rpc("Reports.CreateBugReport", [serializer, message, customContext, data, length](obytestream& stream)
+					return rpc->rpc("Reports.CreateBugReport", [serializer, message, customContext, data, length](BufferWriter& stream)
 						{
 							serializer->serialize(stream, message, customContext, length);
 							if (data != nullptr)

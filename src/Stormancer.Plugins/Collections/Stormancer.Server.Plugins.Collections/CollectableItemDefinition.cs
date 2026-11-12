@@ -18,6 +18,7 @@ namespace Stormancer.Server.Plugins.Collections
         /// <summary>
         /// map of item definitions, keyed by id.
         /// </summary>
+        [Key(0)]
         public Dictionary<string, CollectableItemDefinition> Items { get; set; } = new Dictionary<string, CollectableItemDefinition>();
     }
     /// <summary>

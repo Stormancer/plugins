@@ -15,6 +15,10 @@ Fixed
 *****
 - Fixed an issue that prevented disconnection from being notified to peers.
 
+Changed
+*******
+- Updated to dotnet 11.
+
 0.3.0.3
 ----------
 Changed

@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Company>Stormancer</Company>
     <Authors>Stormancer</Authors>
-    <Version>0.2.1</Version>
+    <Version>0.2.2</Version>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -14,6 +14,7 @@
     <Description>Limits CCU and concurrent requests on Stormancer server applications.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Deterministic>true</Deterministic>
+	  <Features>runtime-async=on</Features>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
     <Version>$(Version)-pre</Version>
@@ -32,7 +33,6 @@
   </ItemGroup>
 
   <ItemGroup>
-	<PackageReference Include="Stormancer.Abstractions.Server" Version="10.2.0.1-pre" />
     <ProjectReference Include="..\..\Admin\Stormancer.Server.Plugins.AdminApi\Stormancer.Server.Plugins.WebApi.csproj" />
     <ProjectReference Include="..\..\Api\Stormancer.Server.Plugins.Api\Stormancer.Server.Plugins.Api.csproj" />
     <ProjectReference Include="..\..\Configuration\Stormancer.Server.Plugins.Configuration\Stormancer.Server.Plugins.Configuration.csproj" />

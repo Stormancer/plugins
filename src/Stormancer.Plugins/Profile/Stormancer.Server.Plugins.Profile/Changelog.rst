@@ -15,6 +15,12 @@ Added
 *****
 - Added Get batch profiles in web API.
 - Added user identities to user default profile part.
+
+Changed
+*******
+- Use msgpack for serialization between client & server.
+- Updated to dotnet 11.
+
 4.1.2.4
 ----------
 Changed

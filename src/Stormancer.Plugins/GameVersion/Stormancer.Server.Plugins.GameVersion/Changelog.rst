@@ -11,12 +11,18 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Changed
+*******
+- Updated to dotnet 11.
+
 Fixed
 *****
 - Fixed possible null reference exception if the configuration was not set.
+
 Added
 *****
 - Added TryGetVersion extension method to get the version field from a session without knowing the field name.
+
 2.3.0
 ----------
 Changed
