@@ -27,6 +27,7 @@ Fixed
 *****
 - Do not dispose the DockerService when we lose connection to Stormancer
 - Correctly tracks container shutdown with newer versions of Docker
+- Fixed a serialization issue that prevented ContainerStatusUpdate from being processed by backend apps.
 
 0.5.1.2
 ----------

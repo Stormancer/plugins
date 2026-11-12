@@ -1,4 +1,5 @@
 ﻿using MessagePack;
+using MsgPack.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -318,11 +319,14 @@ namespace Stormancer.Server.Plugins.GameSession.ServerProviders
         [Key(0)]
         public bool Success { get; set; }
     }
-   
+
 
     /// <summary>
     /// Container status update type.
     /// </summary>
+#if MSGPACK_CLI
+    [MessagePackEnum(SerializationMethod = EnumSerializationMethod.ByUnderlyingValue)]
+#endif
     public enum ContainerStatusUpdateType
     {
         /// <summary>
