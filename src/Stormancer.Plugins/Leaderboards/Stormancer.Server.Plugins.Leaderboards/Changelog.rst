@@ -11,7 +11,10 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
-- Removed dependency to Elasticsearch
+Changed
+********
+- Removed dependency to Elasticsearch and moved storage specific code into different nuget packages.
+- Created a Storage backend for Postgresql.
 
 5.0.2.6
 ----------

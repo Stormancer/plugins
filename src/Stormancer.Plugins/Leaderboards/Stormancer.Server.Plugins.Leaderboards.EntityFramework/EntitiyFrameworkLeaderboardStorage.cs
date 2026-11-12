@@ -4,6 +4,7 @@ using Stormancer.Diagnostics;
 using Stormancer.Server.Plugins.Database;
 using Stormancer.Server.Plugins.Database.EntityFrameworkCore;
 using Stormancer.Server.Plugins.Leaderboards.EntityFramework.Storage;
+using Stormancer.Server.Plugins.Utilities.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -293,8 +294,11 @@ namespace Stormancer.Server.Plugins.Leaderboards.EntityFramework
                 documents.Reverse();
             }
 
-            var leaderboardResult = new LeaderboardResult<ScoreRecord>() { LeaderboardName = leaderboardQuery.Name };
-            leaderboardResult.Total = await GetTotal(leaderboardQuery.Name, leaderboardQuery, cancellationToken);
+            var leaderboardResult = new LeaderboardResult<ScoreRecord>
+            {
+                LeaderboardName = leaderboardQuery.Name,
+                Total = await GetTotal(leaderboardQuery.Name, leaderboardQuery, cancellationToken)
+            };
 
             if (documents.Any())
             {
@@ -313,7 +317,7 @@ namespace Stormancer.Server.Plugins.Leaderboards.EntityFramework
                 var lastRank = firstRank;
                 var results = new List<LeaderboardRanking<ScoreRecord>>();
 
-                foreach (var doc in documents.Take(leaderboardQuery.Size))
+                foreach (var doc in documents.Take(leaderboardQuery.Size).WhereNotNull())
                 {
                     if (enableExaequo)
                     {
@@ -385,7 +389,7 @@ namespace Stormancer.Server.Plugins.Leaderboards.EntityFramework
             await dbContext.SaveChangesAsync();
         }
 
-        public async Task UpdateScores(Dictionary<LeaderboardEntryId, bool> results, Func<IReadOnlyDictionary<LeaderboardEntryId, ScoreRecord>, Task<Dictionary<LeaderboardEntryId, ScoreUpdate>>> updateRecords)
+        public async Task UpdateScores(Dictionary<LeaderboardEntryId, bool> results, Func<IReadOnlyDictionary<LeaderboardEntryId, ScoreRecord?>, Task<Dictionary<LeaderboardEntryId, ScoreUpdate>>> updateRecords)
         {
             var dbContext = await _dbContext.GetDbContextAsync();
             await using var transaction = await dbContext.Database.BeginTransactionAsync();

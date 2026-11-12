@@ -21,6 +21,6 @@ namespace Stormancer.Server.Plugins.Leaderboards
         Task<LeaderboardResult<ScoreRecord>> Query(LeaderboardQuery leaderboardQuery, bool enableExaequo, CancellationToken cancellationToken);
         Task RemoveEntry(string leaderboardName, string entryId);
         Task RemoveQuickAccessLeaderboard(string leaderboardName);
-        Task UpdateScores(Dictionary<LeaderboardEntryId, bool> results, Func<IReadOnlyDictionary<LeaderboardEntryId, ScoreRecord>, Task<Dictionary<LeaderboardEntryId, ScoreUpdate>>> updateRecords);
+        Task UpdateScores(Dictionary<LeaderboardEntryId, bool> results, Func<IReadOnlyDictionary<LeaderboardEntryId, ScoreRecord?>, Task<Dictionary<LeaderboardEntryId, ScoreUpdate>>> updateRecords);
     }
 }
