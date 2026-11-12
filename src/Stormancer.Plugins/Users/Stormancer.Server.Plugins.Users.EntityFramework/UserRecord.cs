@@ -17,7 +17,7 @@ namespace Stormancer.Server.Plugins.Users
     /// <summary>
     /// User record in the database.
     /// </summary>
-    public partial class UserRecord : IDisposable
+    public class UserRecord : IDisposable
     {
         /// <summary>
         /// Creates a model from the record.
@@ -135,7 +135,7 @@ namespace Stormancer.Server.Plugins.Users
     }
 
     [PrimaryKey("Provider","Identity")]
-    public partial class IdentityRecord
+    public class IdentityRecord
     {
         /// <summary>
         /// Gets or sets the <see cref="UserRecord"/>  the <see cref="IdentityRecord"/> authenticates to.
