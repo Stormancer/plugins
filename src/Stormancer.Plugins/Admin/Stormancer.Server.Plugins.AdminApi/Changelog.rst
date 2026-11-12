@@ -14,7 +14,8 @@ Unreleased
 Added
 *****
 - Added OData support. The OData model can be configured by implementing IODataModelCOnfigurator
-- Add support for Admin and public web APIs.
+- Added support for Admin and public web APIs.
+- Added exception handler to emit error logs when a public web api call fails.
 
 3.2.0.4
 ----------
