@@ -62,7 +62,7 @@ namespace Stormancer.Server.Plugins.AdminApi
                             var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
                             if(exceptionHandlerPathFeature != null)
                             {
-                                logger.Log(LogLevel.Error, "webApi", $"An error occurred while processing a web request to {context.Request.Method}:{context.Request.Path}", exceptionHandlerPathFeature.Error);
+                                logger.Log(LogLevel.Error, "webApi.private", $"An error occurred while processing a web request to {context.Request.Method}:{context.Request.Path}", exceptionHandlerPathFeature.Error);
                             }
                             return Task.CompletedTask;
                         });
@@ -136,7 +136,20 @@ namespace Stormancer.Server.Plugins.AdminApi
                 host.AddWebApiConfiguration((app, env, scene) =>
                 {
                     app.Use(AppWebApiMiddleware.AsPublicApi);
-                   
+                    app.UseExceptionHandler(exceptionHandlerApp =>
+                    {
+                        exceptionHandlerApp.Run(context =>
+                        {
+                            var logger = context.RequestServices.GetRequiredService<ILogger>();
+                            var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
+                            if (exceptionHandlerPathFeature != null)
+                            {
+                                logger.Log(LogLevel.Error, "webApi.public", $"An error occurred while processing a web request to {context.Request.Method}:{context.Request.Path}", exceptionHandlerPathFeature.Error);
+                            }
+                            return Task.CompletedTask;
+                        });
+                    });
+
                     app.UseRouting();
 
                     app.UseCors(option => option
