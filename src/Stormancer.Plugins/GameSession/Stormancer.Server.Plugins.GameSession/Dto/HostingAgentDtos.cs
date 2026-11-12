@@ -1,5 +1,4 @@
 ﻿using MessagePack;
-using MsgPack.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -9,6 +8,8 @@ using System.Text;
 using System.Threading.Tasks;
 
 #if MSGPACK_CLI
+using MsgPack.Serialization;
+
 using Key = MsgPack.Serialization.MessagePackMemberAttribute;
 #endif
 
