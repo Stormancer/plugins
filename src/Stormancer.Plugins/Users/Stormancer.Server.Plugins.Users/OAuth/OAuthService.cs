@@ -70,7 +70,7 @@ namespace Stormancer.Server.Plugins.Users.OAuth
                 Issuer = config.Issuer,
                 Audience = audience,
                 Claims = claims,
-                SigningCredentials = new SigningCredentials(new RsaSecurityKey(GetRSAParametersFromJWK(jwk)) { KeyId = jwk.KeyId }, SecurityAlgorithms.RsaSsaPssSha512)
+                SigningCredentials = new SigningCredentials(new RsaSecurityKey(GetRSAParametersFromJWK(jwk)) { KeyId = jwk.KeyId }, SecurityAlgorithms.RsaSha256)
 
             };
             return tokenHandler.CreateToken(tokenDescriptor);
