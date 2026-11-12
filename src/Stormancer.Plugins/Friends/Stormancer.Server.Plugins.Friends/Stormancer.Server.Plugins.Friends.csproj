@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net8.0</TargetFramework>
+		<TargetFramework>net11.0</TargetFramework>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>5.1.0.8</Version>
+		<Version>5.1.1</Version>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<IncludeSymbols>true</IncludeSymbols>
 		<DebugType>embedded</DebugType>
@@ -15,6 +15,7 @@
 		<LangVersion>latest</LangVersion>
 		<Description>Provides a friend system to Stormancer applications.</Description>
 		<Deterministic>true</Deterministic>
+		<Features>runtime-async=on</Features>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -29,7 +30,7 @@
 		<Version>$(Version)-pre</Version>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="11.0.100">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
@@ -55,8 +56,8 @@
 	<ItemGroup>
 	  <Folder Include="cpp\" />
 	</ItemGroup>
-	<!--<Target Name="PostPack" AfterTargets="Pack">
+	<Target Name="PostPack" AfterTargets="Pack">
 		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
-	</Target>-->
+	</Target>
 
 </Project>

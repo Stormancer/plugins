@@ -4,14 +4,86 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
     /// <summary>
-    /// 
+    /// Extension methods for <see cref="JsonNode"/>.
     /// </summary>
-    public class PartyGameSessionConfig : BaseGameSessionConfig
+    public static class SystemTextJsonMergeExtensions
+    {
+        /// <summary>
+        /// Merges the specified Json Node into the base JsonNode for which this method is called.
+        /// </summary>
+        /// <remarks>
+        /// It is null safe and can be easily used with null-check & null coalesce operators for fluent calls.
+        /// NOTE: JsonNodes are context aware and track their parent relationships therefore to merge the values both JsonNode objects
+        ///         specified are mutated. The Base is mutated with new data while the source is mutated to remove reverences to all
+        ///         fields so that they can be added to the base.
+        ///       This is unfortunately an unavoidable behavior of System.Text.Json. Therefore, I've opted to keep the mutating
+        ///         behavior in place to optimize for performance as the default behavior. And, it can be easily resolved by the caller
+        ///         simply calling `jsonNode.DeepClone()` prior to the merge -- providing full control to the caller.
+        ///
+        /// Source taken directly from the open-source Gist here:
+        /// https://gist.github.com/cajuncoding/bf78bdcf790782090d231590cbc2438f
+        ///</remarks>
+        /// <param name="jsonBase"></param>
+        /// <param name="jsonMerge"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
+        public static JsonNode? Merge(this JsonNode? jsonBase, JsonNode? jsonMerge, bool mergeIfAlreadyExists = true)
+        {
+            if (jsonBase == null || jsonMerge == null)
+                return jsonBase;
+
+            switch (jsonBase)
+            {
+                case JsonObject jsonBaseObj when jsonMerge is JsonObject jsonMergeObj:
+                    {
+                        //NOTE: We must materialize the set (e.g. to an Array), and then clear the merge array so the node can then be 
+                        //      re-assigned to the target/base Json; clearing the Object seems to be the most efficient approach...
+                        var mergeNodesArray = jsonMergeObj.ToArray();
+                        jsonMergeObj.Clear();
+
+                        foreach (var prop in mergeNodesArray)
+                        {
+                            if (mergeIfAlreadyExists || !jsonBaseObj.ContainsKey(prop.Key))
+                                jsonBaseObj[prop.Key] = jsonBaseObj[prop.Key] switch
+                                {
+                                    JsonObject jsonBaseChildObj when prop.Value is JsonObject jsonMergeChildObj => jsonBaseChildObj.Merge(jsonMergeChildObj),
+                                    JsonArray jsonBaseChildArray when prop.Value is JsonArray jsonMergeChildArray => jsonBaseChildArray.Merge(jsonMergeChildArray),
+                                    _ => prop.Value
+                                };
+                        }
+                        break;
+                    }
+                case JsonArray jsonBaseArray when jsonMerge is JsonArray jsonMergeArray:
+                    {
+                        //NOTE: We must materialize the set (e.g. to an Array), and then clear the merge array,
+                        //      so they can then be re-assigned to the target/base Json...
+                        var mergeNodesArray = jsonMergeArray.ToArray();
+                        jsonMergeArray.Clear();
+                        foreach (var mergeNode in mergeNodesArray) jsonBaseArray.Add(mergeNode);
+                        break;
+                    }
+                default:
+                    throw new ArgumentException($"The JsonNode type [{jsonBase.GetType().Name}] is incompatible for merging with the target/base " +
+                                                $"type [{jsonMerge.GetType().Name}]; merge requires the types to be the same.");
+
+            }
+
+            return jsonBase;
+        }
+    }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public class PartyGameSessionConfig : BaseGameSessionConfig
     {
 
     }
@@ -39,10 +111,13 @@ namespace Stormancer.Server.Plugins.GameFinder
                 game.Parties.Add(PartySummary.Create(party));
 
                 var config = new PartyGameSessionConfig();
+                game.CustomContext = party;
                 onCreatingGame(gameFinderContext.Scope, config, game);
-                var json = JObject.FromObject(config);
+                var json = JsonSerializer.SerializeToNode(config);
                 game.PrivateCustomData.Merge(json);
+               
                 result.Games.Add(game);
+
             }
             return Task.FromResult(result);
         }

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net11.0</TargetFramework>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
         <LangVersion>latest</LangVersion>
@@ -11,10 +11,11 @@
         <EmbedAllSources>true</EmbedAllSources>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>1.2.2.10</Version>
+        <Version>1.2.2.12</Version>
         <Description>Provides Epic Games integration to Stormancer server applications.</Description>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
         <Deterministic>true</Deterministic>
+		<Features>runtime-async=on</Features>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)'=='Debug'">
@@ -45,11 +46,11 @@
 	
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="11.0.100">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="jose-jwt" Version="4.1.0" />
+		<PackageReference Include="jose-jwt" Version="5.1.1" />
 	</ItemGroup>
 
 	<ItemGroup>

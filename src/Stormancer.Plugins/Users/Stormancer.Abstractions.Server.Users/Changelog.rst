@@ -13,6 +13,7 @@ Unreleased
 Added
 *****
 - Added identities to User.
+
 1.1.0.8
 ----------
 Changed

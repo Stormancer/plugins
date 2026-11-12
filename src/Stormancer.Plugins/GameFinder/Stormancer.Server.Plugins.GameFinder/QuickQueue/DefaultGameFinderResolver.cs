@@ -89,11 +89,11 @@ namespace Stormancer.Server.Plugins.GameFinder
                     GameFinder = gameCtx.GameFinderName,
                     Parameters = gameCtx.Game.PrivateCustomData
                 };
-                var gameFinderGameSessionConfig = config.Parameters.ToObject<BaseGameSessionConfig>();
+                var gameFinderGameSessionConfig = System.Text.Json.JsonSerializer.Deserialize<BaseGameSessionConfig>(config.Parameters);
                 if (gameFinderGameSessionConfig != null)
                 {
                     config.Settings = gameFinderGameSessionConfig.Args;
-                    
+
                 }
 
                 await gameSessions.Create(template, gameCtx.GameSceneId, config);
@@ -101,7 +101,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 gameCtx.ResolutionAction = (writerCtx =>
                 {
 
-                    writerCtx.WriteObjectToStream(gameCtx.Game);
+                    //writerCtx.WriteObjectToStream(gameCtx.Game);
                     return Task.CompletedTask;
                 });
             }

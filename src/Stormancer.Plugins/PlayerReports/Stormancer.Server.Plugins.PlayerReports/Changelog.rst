@@ -18,6 +18,7 @@ Added
 Changed
 *******
 - Removed argument to send custom attachments from the bug report API. It should be handled through the independant blob upload API.
+- Updated to dotnet 11.
 
 0.1.0.33
 ----------

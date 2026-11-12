@@ -14,6 +14,7 @@ Unreleased
 Changed
 *******
 - Compatibility with latest game session plugin.
+- Updated to dotnet 11.
 
 0.1.0.13
 ----------

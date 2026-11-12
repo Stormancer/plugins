@@ -128,14 +128,17 @@ namespace Stormancer.Server.Plugins.Users.Web
     public class OAuthAdminController : ControllerBase
     {
         private readonly OAuthService _service;
+        private readonly JWKManager _jwkManager;
 
         /// <summary>
         /// Creates a new <see cref="OAuthAdminController"/> object.
         /// </summary>
         /// <param name="service"></param>
-        public OAuthAdminController(OAuthService service)
+        /// <param name="jwkManager"></param>
+        public OAuthAdminController(OAuthService service, JWKManager jwkManager)
         {
             _service = service;
+            _jwkManager = jwkManager;
         }
 
         /// <summary>
@@ -147,7 +150,7 @@ namespace Stormancer.Server.Plugins.Users.Web
         [Route("createKey")]
         public ActionResult<JsonWebKey> CreateKey([FromBody] CreateKeyArguments args)
         {
-            return _service.CreatePrivateKey(args.KeyId);
+            return _jwkManager.CreatePrivateKey(args.KeyId,args.KeySize);
         }
     }
 
@@ -159,6 +162,11 @@ namespace Stormancer.Server.Plugins.Users.Web
         /// <summary>
         /// Gets or sets the id of the key.
         /// </summary>
-        public string KeyId { get; set; }
+        public required string KeyId { get; set; }
+
+        /// <summary>
+        /// Key size in bits.
+        /// </summary>
+        public int KeySize { get; set; } = 2048;
     }
 }

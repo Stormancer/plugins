@@ -14,6 +14,7 @@ Unreleased
 Changed
 *******
 - Updated broken dependencies to Lucene & Stormancer.Server.Plugins.Queries.
+- Updated to dotnet 11.
 0.2.0.27
 ----------
 Changed

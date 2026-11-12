@@ -11,7 +11,10 @@ This project adheres to semantic versioning.
 
 Unreleased
 ----------
+Changed
+*******
 - Removed dependency to Elasticsearch
+- Updated to dotne 11.
 
 5.0.2.6
 ----------

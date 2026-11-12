@@ -15,6 +15,10 @@ Added
 *****
 - Added an overload to TryGetChildByPath for JObject that handles the conversion
 
+Changed
+*******
+- Updated to dotnet 11.
+
 0.1.1.2
 ----------
 Changed

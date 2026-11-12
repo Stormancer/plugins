@@ -26,6 +26,7 @@ using Stormancer.Server.Plugins.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace Stormancer.Server.Plugins.GameSession
 {
@@ -47,7 +48,7 @@ namespace Stormancer.Server.Plugins.GameSession
         /// dedicated server.
         /// </summary>
         [Key(1)]
-        public JObject Parameters { get; set; } = new JObject();
+        public JsonObject Parameters { get; set; } = new JsonObject();
 
         /// <summary>
         /// List of players expected in the game session.

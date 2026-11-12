@@ -79,6 +79,7 @@ namespace Stormancer.Gamesessions.Browser
         /// <summary>
         /// Gets or sets the id of the user whose reservations we want to request.
         /// </summary>
+        [Key(0)]
         public required string UserId { get; init; }
     }
 
@@ -91,6 +92,7 @@ namespace Stormancer.Gamesessions.Browser
         /// <summary>
         /// Gets the id of a gamesession containing a reservation.
         /// </summary>
+        [Key(0)]
         public string? GamesessionId { get; init; }
     }
 

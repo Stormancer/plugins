@@ -34,6 +34,7 @@ using Stormancer.Server.Plugins.Users.Analytics;
 using Stormancer.Server.Plugins.Users.OAuth;
 using Stormancer.Server.Plugins.Users.Web;
 using Stormancer.Server.Plugins.Utilities;
+using Stormancer.Server.Secrets;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -96,6 +97,13 @@ namespace Stormancer.Server.Plugins.Users
                         await using var scope = scene.CreateRequestScope();
                         var analytics = scope.Resolve<SessionsAnalyticsWorker>();
                         await analytics.Run(ct);
+                    });
+
+                    scene.RunTask(async ct =>
+                    {
+                        await using var scope = scene.CreateRequestScope();
+                        var keysWorker = scope.Resolve<KeysMaintenanceWorker>();
+                        await keysWorker.RunAsync(ct);
                     });
                     // Start periodic users credentials renewal
                     scene.RunTask(ct => scene.DependencyResolver.Resolve<CredentialsRenewer>().PeriodicRenewal(ct));
@@ -221,6 +229,9 @@ namespace Stormancer.Server.Plugins.Users
             b.Register(dr => new Analytics.AnalyticsEventHandler(
                 dr.Resolve<IAnalyticsService>())
             ).As<IUserSessionEventHandler>();
+
+            b.Register(dr => new KeysMaintenanceWorker(dr.Resolve<ConfigurationMonitor<OAuthConfigurationSection>>(), dr.Resolve<JWKManager>(), dr.Resolve<ILogger>())).SingleInstance();
+            b.Register(dr => new JWKManager(dr.Resolve<ConfigurationMonitor<OAuthConfigurationSection>>(), dr.Resolve<ISecretsStore>())).SingleInstance();
         }
 
         private void HostStarting(IHost host)

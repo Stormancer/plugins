@@ -1,5 +1,6 @@
 ﻿using Stormancer.Server.Plugins.Party.Model;
 using System;
+using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.Party
 {
@@ -29,7 +30,7 @@ namespace Stormancer.Server.Plugins.Party
         /// </summary>
         /// <param name="settings"></param>
         /// <returns></returns>
-        public static bool? ShouldCreatePlatformLobby(this ServerPartySettings settings)
+        public static bool? ShouldCreatePlatformLobby(this Dictionary<string,string> settings)
         {
             return settings.TryGetValue(SettingsConstants.ShouldCreatePlatformLobby, out var createPlatformLobby) ? (bool?)bool.Parse(createPlatformLobby) : null;
         }
@@ -40,7 +41,7 @@ namespace Stormancer.Server.Plugins.Party
         /// <param name="settings"></param>
         /// <param name="createPlatformLobby"></param>
         /// <returns></returns>
-        public static ServerPartySettings ShouldCreatePlatformLobby(this ServerPartySettings settings, bool? createPlatformLobby)
+        public static Dictionary<string, string> ShouldCreatePlatformLobby(this Dictionary<string, string> settings, bool? createPlatformLobby)
         {
             if (createPlatformLobby != null)
             {
@@ -58,7 +59,7 @@ namespace Stormancer.Server.Plugins.Party
         /// </summary>
         /// <param name="settings"></param>
         /// <returns></returns>
-        public static int? MaxMembers(this ServerPartySettings settings)
+        public static int? MaxMembers(this Dictionary<string, string> settings)
         {
             return settings.TryGetValue(SettingsConstants.MaxMembers, out var maxMembers) ? (int?)int.Parse(maxMembers) : null;
         }
@@ -69,7 +70,7 @@ namespace Stormancer.Server.Plugins.Party
         /// <param name="maxMembers"></param>
         /// <returns></returns>
         [Obsolete("Use extension method on PartyCreationContext")]
-        public static ServerPartySettings MaxMembers(this ServerPartySettings settings, int? maxMembers)
+        public static Dictionary<string, string> MaxMembers(this Dictionary<string, string> settings, int? maxMembers)
         {
             if (maxMembers != null)
             {

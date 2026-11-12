@@ -21,10 +21,7 @@
 // SOFTWARE.
 
 
-using Lucene.Net.Index;
 using MessagePack;
-using Nest;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Stormancer.Core;
 using Stormancer.Gamesessions.Browser;
@@ -36,6 +33,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -86,7 +85,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// Custom data associated with the game session.
         /// </summary>
-        public JObject? CustomData { get; set; }
+        public JsonObject? CustomData { get; set; }
     }
 
     /// <summary>
@@ -225,7 +224,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
                                     OnCreatingGameSession(gameFinderContext.Scope, config, game);
 
-                                    game.PrivateCustomData.Merge(JObject.FromObject(config));
+                                    game.PrivateCustomData.Merge(JsonSerializer.SerializeToNode(config));
 
                                     results.Games.Add(game);
                                     var data = new GamesessionDocumentSource

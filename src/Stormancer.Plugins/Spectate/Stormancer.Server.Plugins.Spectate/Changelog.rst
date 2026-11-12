@@ -10,6 +10,11 @@ Please use only reStructuredText in this file, no Markdown!
 This project adheres to semantic versioning.
 
 
+Unreleased
+----------
+Changed
+********
+- Updated to dotnet 11.
 
 0.3.2.4
 ----------

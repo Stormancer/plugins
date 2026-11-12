@@ -14,6 +14,7 @@ Unreleased
 Changed
 ******
 - Use byte[] for party custom data.
+- Updated to dotnet 11.
 Added
 *****
 - Added PartySummary.

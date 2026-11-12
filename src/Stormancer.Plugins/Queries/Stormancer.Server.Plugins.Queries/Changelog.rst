@@ -15,6 +15,10 @@ Fixed
 *****
 - Fixed a msgpack config issue that prevented documents from being serialized.
 
+Changed
+*******
+- Updated to dotnet 11.
+
 0.5.0.6
 ----------
 Changed

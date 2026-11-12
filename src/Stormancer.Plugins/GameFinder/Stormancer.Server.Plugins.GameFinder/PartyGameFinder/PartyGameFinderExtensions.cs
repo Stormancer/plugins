@@ -71,6 +71,9 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// Action executed when creating a game.
         /// </summary>
+        /// <remarks>
+        /// The party for which the game is being created is provided in <see cref="NewGame.CustomContext"/> as a <see cref="Party"/> object.
+        /// </remarks>
         public Action<IDependencyResolver,PartyGameSessionConfig, NewGame> onCreatingGame { get; set; } = (_,_,_) => { };
 
         /// <summary>

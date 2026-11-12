@@ -21,11 +21,11 @@
 // SOFTWARE.
 
 using MessagePack;
-using Newtonsoft.Json.Linq;
 using Stormancer.Server.Plugins.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace Stormancer.Server.Plugins.GameFinder
 {
@@ -80,7 +80,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// Public custom data associated with the game.
         /// </summary>
-        public JObject PublicCustomData { get; set; } = new JObject();
+        public JsonObject PublicCustomData { get; set; } = new JsonObject();
 
         /// <summary>
         /// List of parties added to the game by the game finder.
@@ -90,7 +90,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// private custom data associated with the game.
         /// </summary>
-        public JObject PrivateCustomData { get; set; } = new JObject();
+        public JsonObject PrivateCustomData { get; set; } = new JsonObject();
 
         /// <summary>
         /// Gets or sets a custom context object that is not serialized but is passed to the <see cref="IGameFinderResolver"/>.

@@ -16,6 +16,7 @@ Added
 - Added a property IsEnabled to IUserStorage to indicate if the storage is ready to use or not
 - Added OAuth identity provider capabilities.
 - Added Identities to user object.
+- Added maintenance worker to automatically generate keys for OAuth.
 
 Changed
 *******

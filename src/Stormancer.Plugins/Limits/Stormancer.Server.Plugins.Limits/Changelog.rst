@@ -13,7 +13,7 @@ Unreleased
 ----------
 Changed
 *******
-- Updated dependencies.
+- Updated to dotnet 11.
 
 0.2.0.11
 ----------
