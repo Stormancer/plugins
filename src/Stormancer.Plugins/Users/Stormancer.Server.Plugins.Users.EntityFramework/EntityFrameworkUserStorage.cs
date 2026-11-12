@@ -79,8 +79,7 @@ namespace Stormancer.Server.Plugins.Users.EntityFramework
 
                 if (identity == null)
                 {
-                    identity = new IdentityRecord { Provider = provider, Identity = identifier };
-                    identity.Users.Add(record);
+                    identity = new IdentityRecord { Provider = provider, Identity = identifier, Users = new List<UserRecord> { record } };
 
                     await c.Set<IdentityRecord>().AddAsync(identity);
                 }
@@ -88,7 +87,7 @@ namespace Stormancer.Server.Plugins.Users.EntityFramework
                 {
                     identity.Users.Add(record);
                 }
-              
+
             }
             identity.MainUser = record;
             record.Auth = JsonDocument.Parse(user.Auth.ToString());
