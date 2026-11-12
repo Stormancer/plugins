@@ -22,6 +22,7 @@
 
 using Microsoft.AspNetCore.Mvc;
 using Stormancer.Server.Plugins.Leaderboards.Admin.DTO;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -54,18 +55,17 @@ namespace Stormancer.Server.Plugins.Leaderboards
         /// <param name="scorePath"></param>
         /// <param name="cursor"></param>
         /// <param name="count"></param>
+        /// <param name="skip">Number of entries to jump over before the page starts (page N = (N - 1) * count). Ignored when a cursor is given.</param>
         /// <param name="ordering"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         [HttpGet("{boardName}/{scorePath}")]
-        public async Task<LeaderboardResultDTO> Get(string boardName, string scorePath, string? cursor = null, int count = 50, string ordering = "desc", CancellationToken cancellationToken = default)
+        public async Task<LeaderboardResultDTO> Get(string boardName, string scorePath, string? cursor = null, int count = 50, int skip = 0, string ordering = "desc", CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(cursor))
             {
                 var leaderboardOrdering = (ordering == "desc" ? LeaderboardOrdering.Descending : LeaderboardOrdering.Ascending);
-                var result = await _leaderboards.Query(new LeaderboardQuery { Name = boardName, Size = count, Order = leaderboardOrdering, ScorePath = scorePath  }, cancellationToken); 
-                var total = await _leaderboards.GetTotal(new LeaderboardQuery { Name = boardName }, boardName,cancellationToken);
-                result.Total = total;
+                var result = await _leaderboards.Query(new LeaderboardQuery { Name = boardName, Size = count, Skip = Math.Max(0, skip), Order = leaderboardOrdering, ScorePath = scorePath  }, cancellationToken); 
                 return LeaderboardResultDTO.FromLeaderboardResult(result);
             }
             else
