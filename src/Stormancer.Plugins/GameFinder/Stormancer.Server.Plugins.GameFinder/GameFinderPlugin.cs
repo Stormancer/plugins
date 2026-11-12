@@ -62,7 +62,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             {
                 builder.Register<GameFinderController>();
                 builder.Register<AdminApi.GameFinderAdminController>();
-                builder.Register<GameFinderData>().AsSelf().InstancePerScene();
+                builder.Register(dr=>new GameFinderData(dr.Resolve<ISceneHost>())).AsSelf().InstancePerScene();
                 builder.Register(r=>ServiceLocationProvider.Instance).As<IServiceLocatorProvider>();
                 builder.Register<QuickQueueGameSessionEventHandler>().As<GameSession.IGameSessionEventHandler>().InstancePerScene();
                 builder.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();

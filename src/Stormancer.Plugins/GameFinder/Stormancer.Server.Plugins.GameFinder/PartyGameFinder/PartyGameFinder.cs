@@ -36,6 +36,7 @@ namespace Stormancer.Server.Plugins.GameFinder
             foreach (var party in gameFinderContext.WaitingParties)
             {
                 var game = new NewGame();
+                game.CustomContext = party;
                 game.Parties.Add(PartySummary.Create(party));
 
                 var config = new PartyGameSessionConfig();
