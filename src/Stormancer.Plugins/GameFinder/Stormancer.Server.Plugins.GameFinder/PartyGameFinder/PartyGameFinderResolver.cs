@@ -112,12 +112,6 @@ namespace Stormancer.Server.Plugins.GameFinder
                
                 await gameSessions.Create(template, gameCtx.GameSceneId, config);
 
-                gameCtx.ResolutionAction = (writerCtx =>
-                {
-
-                    writerCtx.WriteObjectToStream(gameCtx.Game);
-                    return Task.CompletedTask;
-                });
             }
         }
     }
