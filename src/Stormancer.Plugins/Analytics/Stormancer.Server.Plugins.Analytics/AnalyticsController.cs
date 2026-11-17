@@ -18,6 +18,7 @@ namespace Stormancer.Server.Plugins.Analytics
     {
         private readonly IAnalyticsService _analytics;
         private readonly ILogger _logger;
+        private readonly IEnumerable<IAnalyticsEventHandler> _eventHandlers;
         private const string TypeRegex = "^[A-Za-z0-9_-]+$";
 
         /// <summary>
@@ -25,9 +26,11 @@ namespace Stormancer.Server.Plugins.Analytics
         /// </summary>
         /// <param name="analytics"></param>
         /// <param name="logger"></param>
-        public AnalyticsController(IAnalyticsService analytics, ILogger logger)
+        /// <param name="eventHandlers"></param>
+        public AnalyticsController(IAnalyticsService analytics, ILogger logger, IEnumerable<IAnalyticsEventHandler> eventHandlers)
         {
             _logger = logger;
+            _eventHandlers = eventHandlers;
             _analytics = analytics;
         }
 
@@ -37,21 +40,21 @@ namespace Stormancer.Server.Plugins.Analytics
         /// <param name="docs"></param>
         /// <returns></returns>
         [Api(ApiAccess.Public, ApiType.FireForget)]
-        public Task Push(IEnumerable<EventDto> docs)
+        public async Task Push(IEnumerable<EventDto> docs)
         {
 
-
+            await _eventHandlers.RunEventHandler(h => h.OnClientAnalyticsReceived(docs), ex => _logger.Log(LogLevel.Error, "analytics", $"An error occurred while running '{nameof(IAnalyticsEventHandler.OnClientAnalyticsReceived)}'.", ex));
             foreach (var doc in docs)
             {
+
                 if (!string.IsNullOrEmpty(doc.Type) && System.Text.RegularExpressions.Regex.IsMatch(doc.Type, TypeRegex))
                 {
-                    // Add some meta data for kibana
+                    // Add some metadata for kibana
                     try
                     {
                         Newtonsoft.Json.Linq.JObject content = Newtonsoft.Json.Linq.JObject.Parse(doc.Content);//Try parse document  
                         AnalyticsDocument document = new AnalyticsDocument { Category = doc.Category, Type = doc.Type, Content = content, CreationDate = doc.CreatedOn == 0 ? DateTime.UtcNow : DateTime.UnixEpoch.AddMilliseconds(doc.CreatedOn) };
                         _analytics.Push(document);
-                        //_logger.Log(LogLevel.Info, "analytics", $"Successfully pushed analytics document", doc.Content);
                     }
                     catch (Exception)
                     {
@@ -59,7 +62,7 @@ namespace Stormancer.Server.Plugins.Analytics
                     }
                 }
             }
-            return Task.CompletedTask;
+        
 
         }
     }
