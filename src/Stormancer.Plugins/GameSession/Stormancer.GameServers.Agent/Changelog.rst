@@ -18,7 +18,7 @@ Changed
 - Do not try downloading an image if the same image is already currently being downloaded.
 - Automatically delete latest tag when downloading a new image.
 - Logs locally when a container fails to start
-- Use Docker.Dotnet.Enhanced.
+- Use Docker.Dotnet.Enhanced instead of Docket.Dotnet because the latest is not maintained anymore.
 
 Added
 *****

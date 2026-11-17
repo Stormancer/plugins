@@ -708,7 +708,7 @@ namespace Stormancer.GameServers.Agent
             var containerId = value.Actor?.ID;
             var status = value.Action;
 
-            _logger.Log(LogLevel.Debug, "Received message for Docker container {id}. Status: {status}.", containerId, status);
+            _logger.Log(LogLevel.Information, "Received message for Docker container {id}. Status: {status}.", containerId, status);
 
             _monitorSince = DateTime.UtcNow;
             if (status == "die" || status == "stop")
