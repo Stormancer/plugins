@@ -677,7 +677,7 @@ namespace Stormancer.GameServers.Agent
         }
 
         private bool _shouldMonitorDocker = true;
-        private DateTime _monitorSince;
+        private DateTime _monitorSince = DateTime.UtcNow;
         private async Task StartMonitorDocker()
         {
             while (_docker != null)
