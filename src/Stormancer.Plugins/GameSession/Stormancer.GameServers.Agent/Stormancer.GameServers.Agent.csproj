@@ -5,7 +5,7 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>0.5.5.1</Version>
+		<Version>0.5.5.2</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<ToolCommandName>stormancer-gameservers-agent</ToolCommandName>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
@@ -51,7 +51,7 @@
 
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-		<PackageReference Include="Docker.DotNet" Version="3.125.15" />
+		<PackageReference Include="Docker.DotNet.Enhanced" Version="4.4.1" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.2" />
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
 			<PrivateAssets>all</PrivateAssets>
