@@ -131,7 +131,11 @@ namespace Stormancer.GameServers.Agent
                         }
                         catch (Exception) { }
 
-                        var serverContainer = new ServerContainer(0, name, container.Image, container.Created, reservedMemory, reservedCpu, crashReportConfiguration ?? new Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration(), expiresOn);
+                        var serverContainer = new ServerContainer(0, name, container.Image, container.Created, reservedMemory, reservedCpu, crashReportConfiguration ?? new Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration(), expiresOn)
+                        {
+                             DockerContainerId = container.ID
+                        };
+                        
                         foreach (var port in reservedPorts)
                         {
                             serverContainer.AddResource(_portsManager.AcquirePort(port));
