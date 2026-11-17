@@ -1429,8 +1429,10 @@ namespace Stormancer.Server.Plugins.GameSession
                     if(party == null)
                     {
                         party = new PartySummary { Id = reservation.PartyId, LeaderId = string.Empty };
+                        list.Add(party);
                     }
                     party.Members.Add(userId);
+
                 }
                    
                 foreach(var (userId,client) in _clients)
@@ -1439,6 +1441,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     if (party == null)
                     {
                         party = new PartySummary { Id = client.PartyId, LeaderId = string.Empty };
+                        list.Add(party);
                     }
                     party.Members.Add(userId);
                 }
