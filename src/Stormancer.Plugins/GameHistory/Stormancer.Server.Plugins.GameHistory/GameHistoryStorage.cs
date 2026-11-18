@@ -101,7 +101,7 @@ namespace Stormancer.Server.Plugins.GameHistory
         {
             var ctx = await _dbContextAccessor.GetDbContextAsync();
 
-            return await ctx.Set<GameHistoryRecord>().FindAsync(gameId);
+            return await ctx.Set<GameHistoryRecord>().Include(r=>r.Participants).FirstOrDefaultAsync(r=>r.Id == gameId);
         }
 
         public async Task UpdateGameHistoryRecordAsync(GameHistoryRecord historyRecord)
