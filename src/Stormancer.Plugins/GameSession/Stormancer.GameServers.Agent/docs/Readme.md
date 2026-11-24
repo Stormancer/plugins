@@ -1,19 +1,33 @@
 The Stormancer.GameServer.Agent tool provides a way to control a docker daemon to start, monitor and stop gameservers linked to Stormancer gamesessions.
 
+It's packaged as a dotnet tool to simplify installation and updates.
+
 # Installation
 
 ## Prerequisites
-- you need the to have the dotnet 6.0 SDK installed (https://learn.microsoft.com/en-us/dotnet/core/install/)
+- you need the to have the dotnet 11 SDK installed (https://learn.microsoft.com/en-us/dotnet/core/install/)
 - you need to have a docker service active
 > apt-get install docker.io
 
 ## Install the agent
 First create a tool manifest in the folder you want your agent to run from
+```
 > dotnet new tool-manifest
+```
 
 Then install the Stormancer.GameServer.Agent tool
-> dotnet tool install --local Stormancer.GameServers.Agent --version <current-version> 
+```
+> dotnet tool install --local Stormancer.GameServers.Agent --version <current-version>
+> dotnet tool restore
+```
 
+Updating the agent:
+```
+> dotnet tool update Stormancer.GameServers.Agent --version {targetVersion} 
+> dotnet tool restore
+```
+
+See [dotnet tool](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools) for more information.` 
 # Configuration
 
     "Agent": {
@@ -21,9 +35,17 @@ Then install the Stormancer.GameServer.Agent tool
       "StormancerAccount": "account",
       "StormancerApplication": "app",
       "PrivateKeyPassword": "password",
-      "PrivateKeyPath": "<path-to-the-private-key-authenticating-the-agent.pfx>"
+      "PrivateKeyPath": "<path-to-the-private-key-authenticating-the-agent.pfx>",
+      "MinPort": 40000,
+      "MaxPort": 40999
     }
 
+
+## Ports & Firewall
+
+When starting a container, the agent associates it with a port in the range provided in the config (defaults to `[40000,40999]`). The firewall of the server MUST be opened for UDP trafic, otherwise the Stormancer client library will need to switch to NAT traversal or relay to establish connectivity between the game server in the container and game clients.
+
+Remark: The agent is aggressive when reusing ports: Whenever a container is started, it tries to associates it with the smallest port available. Consequently the agent won't ever allocate a port higher than the total number of containers running concurrently.
 
 # Setting up core dumps
 
@@ -71,9 +93,14 @@ TimeoutStopSec=30
 WantedBy=multi-user.target
 ```
 
+Remark: for more robustness, we recommend using a batch script that restore then run the tool as the ExecStart command of the unit file.
+
 - Enable the service
+```
 > sudo systemctl daemon-reload
 > sudo systemctl enable gameservers-agent.service
-
+```
 - Start the service
+```
 > sudo systemctl start gameservers-agent.service
+```
