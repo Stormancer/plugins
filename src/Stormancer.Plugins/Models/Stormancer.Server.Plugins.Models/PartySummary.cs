@@ -29,7 +29,7 @@ namespace Stormancer.Server.Plugins.Models
         /// Gets the list of players in the party.
         /// </summary>
         [Key(2)]
-        public HashSet<string> Members { get; } = new();
+        public List<string> Members { get; set; } = new();
         
         /// <summary>
         /// Creates a new <see cref="PartySummary"/> from a <see cref="Party"/>.

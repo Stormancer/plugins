@@ -58,14 +58,6 @@
 		<NugetPackages Include="$(TargetDir)../$(ProjectName).$(Version).nupkg; $(TargetDir)../$(ProjectName).$(Version).snupkg" />
 	</ItemGroup>
 
-	<ItemGroup>
-		<None Remove="readme.md" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Content Include="Readme.md" />
-	</ItemGroup>
-
 	<Target Name="PostPack" AfterTargets="Pack">
 		<Copy SourceFiles="@(NugetPackages)" DestinationFolder="$(ProjectDir)../../../../output/packages" />
 		

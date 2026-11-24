@@ -14,7 +14,9 @@ Unreleased
 Removed
 *******
 - Moved Elasticsearch output to `Stormancer.Server.Plugins.Analytics.Outputs.Elasticsearch`. By default the analytics plugin do not stores the events.
-
+Added
+*****
+- Added `IAnalyticsEventHandler` to customize client analytics on the server before sending them to the analytics pipeline. This allows games to add secure context informations, like the user id, the platform, etc...
 2.1.1.3
 -----------
 Added

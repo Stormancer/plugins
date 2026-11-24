@@ -44,7 +44,7 @@ namespace Stormancer.Server.Plugins.Analytics
         {
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
               {
-                  builder.Register(static r=>new AnalyticsController(r.Resolve<IAnalyticsService>(),r.Resolve<ILogger>())).InstancePerRequest();
+                  builder.Register(static r=>new AnalyticsController(r.Resolve<IAnalyticsService>(),r.Resolve<ILogger>(),r.ResolveAll<IAnalyticsEventHandler>())).InstancePerRequest();
                   builder.Register(static r=>new AnalyticsService(r.Resolve<IEnvironment>(),r.Resolve<Lazy<IEnumerable<IAnalyticsOutput>>>())).As<IAnalyticsService>().SingleInstance();
                   builder.Register(static r=>new ApiAnalyticsEventHandler(r.Resolve<IAnalyticsService>(),r.Resolve<ConfigurationMonitor<InstrumentationConfig>>())).As<IApiHandler>().SingleInstance();
                   builder.Register(static r=> LocatorProvider.Instance).As<IServiceLocatorProvider>();

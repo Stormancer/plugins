@@ -57,10 +57,10 @@ namespace Stormancer.GameServers.Agent
             PortsManager portsManager,
             Messager messager)
         {
-            var dockerConfig = new DockerClientConfiguration();
+            var dockerConfig = new DockerClientBuilder();
 
 
-            _docker = dockerConfig.CreateClient();
+            _docker = dockerConfig.Build();
             _logger = logger;
             _configuration = configuration;
             _portsManager = portsManager;
@@ -131,7 +131,11 @@ namespace Stormancer.GameServers.Agent
                         }
                         catch (Exception) { }
 
-                        var serverContainer = new ServerContainer(0, name, container.Image, container.Created, reservedMemory, reservedCpu, crashReportConfiguration ?? new Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration(), expiresOn);
+                        var serverContainer = new ServerContainer(0, name, container.Image, container.Created, reservedMemory, reservedCpu, crashReportConfiguration ?? new Server.Plugins.GameSession.ServerProviders.CrashReportConfiguration(), expiresOn)
+                        {
+                             DockerContainerId = container.ID
+                        };
+                        
                         foreach (var port in reservedPorts)
                         {
                             serverContainer.AddResource(_portsManager.AcquirePort(port));
@@ -287,7 +291,7 @@ namespace Stormancer.GameServers.Agent
                         }
                         catch (Exception ex)
                         {
-                            _logger.Log(LogLevel.Error, ex, "An error occured while trying to downlad '{image}' : {ex}. Credentials={login}. passwordSet={passwordSet}", image,ex, credentials?.Login, !string.IsNullOrEmpty(credentials?.Password));
+                            _logger.Log(LogLevel.Error, ex, "An error occured while trying to downlad '{image}' : {ex}. Credentials={login}. passwordSet={passwordSet}", image, ex, credentials?.Login, !string.IsNullOrEmpty(credentials?.Password));
                         }
                         finally
                         {
@@ -660,7 +664,7 @@ namespace Stormancer.GameServers.Agent
                     args.Until = until.ToString();
                 }
 
-                return _docker.Containers.GetContainerLogsAsync(containerId, args, cancellationToken, progress);
+                return _docker.Containers.GetContainerLogsAsync(containerId, args, progress, cancellationToken);
             });
 
 
@@ -673,7 +677,7 @@ namespace Stormancer.GameServers.Agent
         }
 
         private bool _shouldMonitorDocker = true;
-        private DateTime _monitorSince;
+        private DateTime _monitorSince = DateTime.UtcNow;
         private async Task StartMonitorDocker()
         {
             while (_docker != null)
@@ -705,10 +709,10 @@ namespace Stormancer.GameServers.Agent
         {
             // Docker API versions use either the legacy top-level id/status fields or
             // the event fields actor.id and action.
-            var containerId = value.ID ?? value.Actor?.ID;
-            var status = value.Status ?? value.Action;
+            var containerId = value.Actor?.ID;
+            var status = value.Action;
 
-            _logger.Log(LogLevel.Debug, "Received message for Docker container {id}. Status: {status}.", containerId, status);
+            _logger.Log(LogLevel.Information, "Received message for Docker container {id}. Status: {status}.", containerId, status);
 
             _monitorSince = DateTime.UtcNow;
             if (status == "die" || status == "stop")
@@ -822,9 +826,9 @@ namespace Stormancer.GameServers.Agent
 
         }
 
-        public Task<GetArchiveFromContainerResponse> GetContainerFile(string containerId, string path, CancellationToken cancellationToken)
+        public Task<ContainerArchiveResponse> GetContainerFile(string containerId, string path, CancellationToken cancellationToken)
         {
-            return _docker.Containers.GetArchiveFromContainerAsync(containerId, new GetArchiveFromContainerParameters { Path = path }, false, cancellationToken);
+            return _docker.Containers.GetArchiveFromContainerAsync(containerId, new ContainerPathStatParameters { Path = path }, false, cancellationToken);
 
         }
         internal async Task<AgentStatus> GetStatus()
