@@ -25,6 +25,7 @@
 #include "Party/Party.hpp"
 #include "Users/Users.hpp"
 #include "Users/Environment.hpp"
+#include "profiles/Profile.hpp"
 
 #include "stormancer/Configuration.h"
 #include "stormancer/IPlugin.h"
@@ -39,7 +40,6 @@
 #include "stormancer/IPacketDispatcher.h"
 #include "stormancer/SceneImpl.h"
 #include "stormancer/ChannelUidStore.h"
-#include "msgpack.hpp"
 
 #pragma warning(disable: 4265) // Disable virtual destructor requirement warnings
 
@@ -101,6 +101,22 @@ namespace Stormancer
 			/// </summary>
 			constexpr const char* SteamApiRunCallbacks = "steam.steamApi.runCallbacks";
 		}
+
+		struct SteamDetailsProfilePart
+		{
+			std::string steamId;
+			std::string personaName;
+			std::string avatar;
+			std::string profileUrl;
+
+			template <typename Packer> void msgpack_pack(Packer& pk) const {
+				msgpack::type::make_define_map("steamId", steamId, "personaname", personaName, "avatar", avatar, "profileurl", profileUrl).msgpack_pack(pk);
+			} void msgpack_unpack(msgpack::object const& o) {
+				msgpack::type::make_define_map("steamId", steamId, "personaname", personaName, "avatar", avatar, "profileurl", profileUrl).msgpack_unpack(o);
+			} template <typename STRM_MSGPACK_OBJECT> void msgpack_object(STRM_MSGPACK_OBJECT* o, msgpack::zone& z) const {
+				msgpack::type::make_define_map("steamId", steamId, "personaname", personaName, "avatar", avatar, "profileurl", profileUrl).msgpack_object(o, z);
+			}
+		};
 
 		constexpr const char* PARTY_TYPE_STEAMIDLOBBY = "steamIDLobby";
 
@@ -168,6 +184,7 @@ namespace Stormancer
 
 			// Stormancer Api
 
+			virtual bool tryGetUserProfile(SteamDetailsProfilePart& part) = 0;
 
 			virtual pplx::task<std::unordered_map<std::string, PartyDataDto>> decodePartyDataBearerTokens(const std::unordered_map<std::string, std::string>& partyDataBearerToken, pplx::cancellation_token ct = pplx::cancellation_token::none()) = 0;
 
@@ -244,17 +261,12 @@ namespace Stormancer
 			private:
 				std::string _type = "steam";
 			public:
-				SteamNetworkingConnection(const std::string& account, const std::string& app, const SteamNetworkingIdentity& id, const SessionId& sessionId, DependencyScope& currentScope)
-					: _sessionId(sessionId)
+				SteamNetworkingConnection(const SteamNetworkingIdentity& id, const SessionId& sessionId, const DependencyScope& currentScope)
+					: IConnection(currentScope)
 					, _steamIdentity(id)
 				{
-					_dependencyResolver = currentScope.beginLifetimeScope("connection", [](ContainerBuilder& builder)
-						{
-							builder.registerDependency<ChannelUidStore>().singleInstance();
-							builder.registerDependency<std::vector<std::weak_ptr<Scene_Impl>>>([](const DependencyScope&) {
-								return std::make_shared<std::vector< std::weak_ptr<Scene_Impl>>>(150);
-								}).singleInstance();
-						});
+
+					setSessionId(sessionId);
 				}
 
 				const std::string& type() const override
@@ -262,56 +274,34 @@ namespace Stormancer
 					return _type;
 				}
 
-				void send(const StreamWriter& streamWriter, int channelUid, PacketPriority priority = PacketPriority::MEDIUM_PRIORITY, PacketReliability reliability = PacketReliability::RELIABLE_ORDERED, const TransformMetadata& transformMetadata = TransformMetadata()) override
+				void send(const std::function<void(BufferWriter&)>& streamWriter, int channelUid, PacketPriority priority = PacketPriority::MEDIUM_PRIORITY, PacketReliability reliability = PacketReliability::RELIABLE_ORDERED, const TransformMetadata& transformMetadata = TransformMetadata()) override
 				{
-					obytestream s;
+					BufferWriter s;
 					streamWriter(s);
-					size_t length = s.tellp();
-					s.seekp(0);
 
-					SteamNetworkingMessages()->SendMessageToUser(_steamIdentity, s.currentPtr(), length, getSendFlags(priority, reliability), 1);
-				}
-				void setApplication(const std::string& account, const std::string& application) override
-				{
-					_account = account;
-					_application = application;
-				}
-
-				void close(const std::string& reason) override
-				{
-					if (!_steamIdentity.IsInvalid())
-					{
-						SteamNetworkingMessages()->CloseSessionWithUser(_steamIdentity);
-					}
-				}
-
-				std::string ipAddress() const override
-				{
-					if (_steamIdentity.IsInvalid())
-					{
-						return "";
-					}
-					SteamNetConnectionInfo_t connectionInfo;
-					SteamNetConnectionRealTimeStatus_t realTimeStatus;
-					SteamNetworkingMessages()->GetSessionConnectionInfo(_steamIdentity, &connectionInfo, &realTimeStatus);
-
-					char  buf[connectionInfo.m_addrRemote.k_cchMaxString];
-					connectionInfo.m_addrRemote.ToString(buf, connectionInfo.m_addrRemote.k_cchMaxString, true);
-
-					return buf;
+					auto logger = dependencyResolver().resolve<ILogger>();
+					auto span = s.content();
+					//logger->log(LogLevel::Info, "steam", std::format("sending message to {} : length={}", _steamIdentity.GetSteamID64(),span.size()));
+					SteamNetworkingMessages()->SendMessageToUser(_steamIdentity, span.data(), span.size(), getSendFlags(priority, reliability), 1);
 				}
 
 				int ping() const override
 				{
 					if (_steamIdentity.IsInvalid())
 					{
-						return -1;
+						return 999999;
 					}
 					SteamNetConnectionInfo_t connectionInfo;
 					SteamNetConnectionRealTimeStatus_t realTimeStatus;
 					SteamNetworkingMessages()->GetSessionConnectionInfo(_steamIdentity, &connectionInfo, &realTimeStatus);
-
-					return realTimeStatus.m_nPing;
+					if (realTimeStatus.m_eState == ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_Connected)
+					{
+						return realTimeStatus.m_nPing;
+					}
+					else
+					{
+						return 999999;
+					}
 				}
 
 				std::string key() const override
@@ -323,68 +313,26 @@ namespace Stormancer
 
 				}
 
-				time_t connectionDate() const override
-				{
-					return _connectionDate;
-				}
 
-				const std::string& account() const override
+				void close(const std::string& reason) override
 				{
-					return _account;
-				}
-
-				const std::string& application() const override
-				{
-					return _application;
-				}
-
-				std::string metadata(const std::string& key) const override
-				{
-					auto it = _metadata.find(key);
-					if (it != _metadata.end())
+					if (getConnectionState() == ConnectionState::Disconnected || getConnectionState() == ConnectionState::Disconnecting)
 					{
-						return (*it).second;
+						return;
 					}
-					else
+
+					setConnectionState({ ConnectionState::Disconnecting, reason });
+					if (_steamIdentity.IsInvalid())
 					{
-						return std::string();
+						setConnectionState({ ConnectionState::Disconnected, reason });
+						return;
 					}
+					auto logger = dependencyResolver().resolve<ILogger>();
+					auto steamId = _steamIdentity.GetSteamID64();
+					logger->log(LogLevel::Info, "steam", "closing session with {}", steamId);
+					SteamNetworkingMessages()->CloseSessionWithUser(_steamIdentity);
 				}
 
-				const std::unordered_map<std::string, std::string>& metadata() const override
-				{
-					return _metadata;
-				}
-
-				void setMetadata(const std::unordered_map<std::string, std::string>& metadata) override
-				{
-					_metadata = metadata;
-				}
-
-				void setMetadata(const std::string& key, const std::string& value) override
-				{
-					_metadata[key] = value;
-				}
-
-
-				const DependencyScope& dependencyResolver() const override
-				{
-					return _dependencyResolver;
-				}
-
-				/// Returns the connection state.
-				ConnectionState getConnectionState() const override
-				{
-					return _connectionState;
-				}
-
-				rxcpp::observable<ConnectionState> getConnectionStateChangedObservable() const override
-				{
-					return _connectionStateObservable.get_observable();
-				}
-
-
-				const SessionId& sessionId() const override { return _sessionId; }
 
 				/// <summary>
 				/// Test-and-set whether this connection has already been used to connect to a scene.
@@ -427,38 +375,29 @@ namespace Stormancer
 
 					return flag;
 				}
-				void setSessionId(const SessionId& sessionId) override
-				{
-					_sessionId = sessionId;
-				}
 
-				void setConnectionState(ConnectionState connectionState) override
-				{
-					_connectionState = connectionState;
 
-					auto subscriber = _connectionStateObservable.get_subscriber();
-					subscriber.on_next(_connectionState);
-
-					if (_connectionState == ConnectionState::Disconnected)
-					{
-						_connectionStateObservable.get_subscriber().on_completed();
-					}
-				}
 
 			private:
-				std::string _account;
-				std::string _application;
-				std::unordered_map<std::string, std::string> _metadata;
-				time_t _connectionDate = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-				DependencyScope _dependencyResolver;
-				SessionId _sessionId;
+
 				SteamNetworkingIdentity _steamIdentity;
 
-				std::atomic_bool _isConnectedToAScene = { false };
+			};
+			enum class HandshakeStep
+			{
+				CONNECT = 0,
+				CONNECT_RESPONSE = 1,
+				CONFIRM = 2
+			};
 
-				rxcpp::subjects::subject<ConnectionState> _connectionStateObservable;
 
-				ConnectionState _connectionState = ConnectionState::Connecting;
+			struct P2PHandshakeMsg
+			{
+				SessionId originIdentity;
+
+				HandshakeStep step;
+
+				STRM_MSGPACK_DEFINE(originIdentity, step);
 			};
 			class SteamP2PConnectivityProvider : public IP2PConnectivityProvider, public ISteamTickEventHandler
 			{
@@ -474,43 +413,109 @@ namespace Stormancer
 
 				virtual ~SteamP2PConnectivityProvider() {}
 
+				virtual const std::string& getConnectionType() const override final
+				{
+					static std::string type = "steam";
+					return type;
+				}
+
+				std::shared_ptr<SteamNetworkingConnection> createConnection(const SteamNetworkingIdentity& origin, const SessionId& sessionId, Stormancer::Subscription& onCloseSubscription)
+				{
+					auto c = std::make_shared<SteamNetworkingConnection>(origin, sessionId, _client.lock()->dependencyResolver());
+					c->setConnectionState(ConnectionState::Connecting);
+					onCloseSubscription = c->onClose.subscribe(
+						[origin, logger = _logger](std::string reason)
+						{
+							if (!origin.IsInvalid())
+							{
+								auto steamId = origin.GetSteamID64();
+								logger->log(LogLevel::Info, "steam", "closing session with {}", steamId);
+
+								SteamNetworkingMessages()->CloseSessionWithUser(origin);
+
+							}
+						}
+					);
+
+
+					return c;
+
+				}
+
 				void processSystemMessage(const SteamNetworkingIdentity& origin, const void* buffer, const int length)
 				{
+					auto id = origin.GetSteamID64();
+					//_logger->log(LogLevel::Info, "steam.networking",  std::format("Received system message from  {}, length={}" ,origin.GetSteamID64(), length));
 					Serializer serializer;
-					ibytestream stream((byte*)buffer, length);
-					SessionId sessionId = serializer.deserializeOne<SessionId>(stream);
+					std::span<const byte> content((byte*)buffer, length);
 
-					auto c = std::make_shared<SteamNetworkingConnection>(std::string(), std::string(), origin, sessionId, _client.lock()->dependencyResolver());
-					if (!_connections->getConnection(sessionId))
+					size_t bytesRead;
+					auto  msg = serializer.deserializeOne<P2PHandshakeMsg>(content, bytesRead);
+					content = content.subspan(bytesRead);
+
+					auto step = (int)msg.step;
+					auto steamId = origin.GetSteamID64();
+					_logger->log(LogLevel::Info, "steam", "processing p2p handshake steamId={} sessionId={} step={}", steamId, msg.originIdentity, step);
+					switch (msg.step)
 					{
-						_connections->newConnection(c);
-						sendSessionIdtoPeer(origin);
+					case HandshakeStep::CONNECT:
+					{
 
-						auto it = _steamConnections.find(origin.GetSteamID64());
+						if (!_connections->isRouteActive(msg.originIdentity, "steam"))
+						{
+							auto it = _steamConnections.find(id);
+							if (it == _steamConnections.end())
+							{
+
+								SteamNetworkingConnectionContainer container(id);
+								container.connection =
+									createConnection(origin, msg.originIdentity, container.onCloseSubscription);
+								_steamConnections.emplace(id, container);
+								_connections->newConnection(container.connection);
+
+
+
+							}
+						}
+						sendHandshakeMsg(origin, HandshakeStep::CONNECT_RESPONSE);
+						break;
+					}
+					case HandshakeStep::CONNECT_RESPONSE:
+					{
+
+						auto it = _steamConnections.find(id);
 						if (it != _steamConnections.end())
 						{
-							it->second.tce.set(c);
-						}
-					}
+							it->second.setComplete();
 
+							sendHandshakeMsg(origin, HandshakeStep::CONFIRM);
+						}
+						break;
+					}
+					case HandshakeStep::CONFIRM:
+					{
+						auto it = _steamConnections.find(id);
+						if (it != _steamConnections.end())
+						{
+							it->second.setComplete();
+						}
+						break;
+					}
+					}
 				}
 
 				void processMessage(const SteamNetworkingIdentity& origin, const void* buffer, const size_t length)
 				{
+					//_logger->log(LogLevel::Info, "steam.networking",  std::format("Received message from  {}, length={}" ,origin.GetSteamID64(),length));
 					auto it = _steamConnections.find(origin.GetSteamID64());
-					if (it != _steamConnections.end() && it->second.connection.is_done())
+					if (it != _steamConnections.end())
 					{
-						auto connection = it->second.connection.get();
+						auto connection = it->second.connection;
 
 
-						byte* data = new byte[length];
-						std::memcpy(data, buffer, length);
+						std::span<const byte> data((const byte*)buffer, length);
+						Packet_ptr packet = std::make_shared<Packet<IConnection>>(std::static_pointer_cast<IConnection>(connection), data);
 
-						Packet_ptr packet(new Packet<>(connection, data, length), [data](Packet<>* packetPtr)
-							{
-								delete packetPtr;
-								delete[] data;
-							});
 
 						if (auto client = _client.lock())
 						{
@@ -525,9 +530,15 @@ namespace Stormancer
 
 				void tick() override
 				{
-					for (auto& kvp : _steamConnections)
+					if (!SteamNetworkingMessages())
 					{
-						if (kvp.second.connection.is_done())
+						return;
+					}
+					auto steamConnections = _steamConnections;
+					for (auto& kvp : steamConnections)
+					{
+
+						try
 						{
 							SteamNetConnectionInfo_t connectionInfo;
 							SteamNetConnectionRealTimeStatus_t realTimeStatus;
@@ -539,28 +550,37 @@ namespace Stormancer
 
 							auto c = kvp.second.connection.get();
 
-							switch (connectionInfo.m_eState)
+							if (kvp.second.currentState != connectionInfo.m_eState)
 							{
-							case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_Connected:
-								c->setConnectionState(ConnectionState::Connected);
-								break;
-							case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_Connecting:
-							case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_FindingRoute:
-								c->setConnectionState(ConnectionState::Connecting);
-								break;
-							case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_ClosedByPeer:
-							case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_Dead:
-							case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_FinWait:
-							case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_Linger:
-							case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_ProblemDetectedLocally:
-								c->setConnectionState(ConnectionState::Disconnected);
-								break;
-							default:
-								c->setConnectionState(ConnectionState::Disconnected);
-								break;
-							}
+								kvp.second.currentState = connectionInfo.m_eState;
+								//_logger->log(LogLevel::Info, "steam.networking", "Connection state "+std::to_string(identity.GetSteamID64()) + "updated to " + std::to_string(connectionInfo.m_eState));
+								switch (connectionInfo.m_eState)
+								{
+								case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_Connected:
+								case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_Connecting:
+								case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_FindingRoute:
+									if (c->getConnectionState() != ConnectionState::Connected)
+									{
+										c->setConnectionState(ConnectionState::Connecting);
+									}
+									break;
+								case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_Dead:
+								case ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_ClosedByPeer:
+									c->setConnectionState({ ConnectionState::Disconnected,"disconnected" });
 
+									break;
+
+								default:
+									break;
+								}
+							}
 						}
+						catch (std::exception&)
+						{
+							_steamConnections.erase(kvp.first);
+						}
+
+
 
 					}
 					// system messages related to the SteamNetworkingTransport are sent through the 
@@ -596,29 +616,12 @@ namespace Stormancer
 					uint64 toBeDeleted = 0;
 					for (auto& kvp : _steamConnections)
 					{
-						if (kvp.second.connection.is_done())
-						{
-							try
-							{
-								auto c = kvp.second.connection.get();
-
-								if (c->getConnectionState() == Stormancer::ConnectionState::Disconnected)
-								{
-									toBeDeleted = kvp.first;
-									_connections->closeConnection(c, "disconnected");
-								}
-
-							}
-							catch (std::exception&)
-							{
-							}
-						}
-						else
+						if (kvp.second.connection->getConnectionState() != ConnectionState::Connected)
 						{
 							using namespace std::chrono_literals;
 							if (kvp.second.createdOn < std::chrono::system_clock::now() - 30s)
 							{
-								kvp.second.tce.set_exception(std::runtime_error("connectionTimeout"));
+								kvp.second.setError(std::runtime_error("connectionTimeout"));
 								toBeDeleted = kvp.first;
 							}
 						}
@@ -629,17 +632,21 @@ namespace Stormancer
 					}
 
 				}
-				void sendSessionIdtoPeer(const SteamNetworkingIdentity& target)
+				void sendHandshakeMsg(const SteamNetworkingIdentity& target, HandshakeStep step)
 				{
-					obytestream stream;
-
-
+					BufferWriter stream;
+					P2PHandshakeMsg msg;
+					msg.originIdentity = this->_connections->currentSessionId;
+					msg.step = step;
 					Serializer serializer;
-					serializer.serialize(stream, this->_connections->currentSessionId);
-					size_t length = stream.tellp();
-					stream.seekp(0);
+					serializer.serialize(stream, msg);
 
-					SteamNetworkingMessages()->SendMessageToUser(target, stream.currentPtr(), length, k_nSteamNetworkingSend_Reliable, 0);
+					//_logger->log(LogLevel::Info, "steam.networking", "sending system message to  " + std::to_string(target.GetSteamID64()));
+					if (SteamNetworkingMessages()->SendMessageToUser(target, stream.content().data(), stream.content().size(), k_nSteamNetworkingSend_Reliable | k_nSteamNetworkingSend_AutoRestartBrokenSession, 0) != EResult::k_EResultOK)
+					{
+						auto steamId = target.GetSteamID64();
+						_logger->log(LogLevel::Error, "steam.networking", "failed to send message to {}", steamId);
+					}
 				}
 				void onSteamNetworkingMessagesSessionRequestCallback(uint64 steamID) override
 				{
@@ -648,9 +655,11 @@ namespace Stormancer
 					steamId.SetFromUint64(steamID);
 					identity.SetSteamID(steamId);
 					SteamNetworkingMessages()->AcceptSessionWithUser(identity);
+
+					_logger->log(LogLevel::Info, "steam.networking", "accepted P2P request from {}", steamID);
 				}
 
-				pplx::task<std::shared_ptr<IConnection>> openP2PConnectionAsync(const SceneAddress& sceneAddress, std::unordered_map<std::string, std::string>& metadata, pplx::cancellation_token ct) override
+				pplx::task<std::shared_ptr<IConnection>> openP2PConnectionAsync(const SceneAddress& sceneAddress, const SessionId& target, std::unordered_map<std::string, std::string>& metadata, pplx::cancellation_token ct) override
 				{
 					auto idIt = metadata.find("steam");
 					if (idIt != metadata.end())
@@ -666,14 +675,16 @@ namespace Stormancer
 						auto it = _steamConnections.find(id);
 						if (it != _steamConnections.end())
 						{
-							return it->second.connection.then([](std::shared_ptr<SteamNetworkingConnection> c) {return std::static_pointer_cast<IConnection>(c); });
+							return it->second.waitComplete(ct);
 						}
 
 						SteamNetworkingConnectionContainer container(id);
+						container.connection = createConnection(identity, target, container.onCloseSubscription);
 						_steamConnections.emplace(id, container);
-						sendSessionIdtoPeer(identity);
+						_connections->newConnection(container.connection);
+						sendHandshakeMsg(identity, HandshakeStep::CONNECT);
 
-						return container.connection.then([](std::shared_ptr<SteamNetworkingConnection> c) {return std::static_pointer_cast<IConnection>(c); });
+						return container.waitComplete(ct);
 					}
 					else
 					{
@@ -687,14 +698,32 @@ namespace Stormancer
 				{
 					SteamNetworkingConnectionContainer(uint64 steamId)
 						:steamId(steamId)
-					{
-						createdOn = std::chrono::system_clock::now();
-						connection = pplx::create_task(tce);
-					}
+						, createdOn(std::chrono::system_clock::now())
+					{}
+
 					uint64 steamId;
+					std::shared_ptr<SteamNetworkingConnection> connection;
 					std::chrono::time_point<std::chrono::system_clock> createdOn;
-					pplx::task_completion_event< std::shared_ptr<SteamNetworkingConnection>> tce;
-					pplx::task<std::shared_ptr<SteamNetworkingConnection>> connection;
+					pplx::task_completion_event<std::shared_ptr<IConnection>> tce;
+					Subscription onCloseSubscription;
+
+					void setComplete()
+					{
+						connection->setConnectionState(ConnectionState::Connected);
+						tce.set(connection);
+					}
+					void setError(const std::runtime_error& ex)
+					{
+						connection->close(ex.what());
+						tce.set_exception(ex);
+					}
+
+					pplx::task<std::shared_ptr<IConnection>> waitComplete(pplx::cancellation_token ct)
+					{
+						return pplx::create_task(tce, ct);
+					}
+
+					ESteamNetworkingConnectionState currentState = ESteamNetworkingConnectionState::k_ESteamNetworkingConnectionState_None;
 				};
 				std::shared_ptr<IConnectionManager> _connections;
 				std::weak_ptr< IClient> _client;
@@ -1337,7 +1366,7 @@ namespace Stormancer
 							SteamErrMsg error;
 							if (SteamAPI_InitEx(&error) != ESteamAPIInitResult::k_ESteamAPIInitResult_OK)
 							{
-								_logger->log(LogLevel::Error, "Steam", std::string("SteamAPI_Init failed : ") + error);
+								_logger->log(LogLevel::Error, "Steam", "SteamAPI_Init failed : ", error);
 
 								throw std::runtime_error(error);
 							}
@@ -1414,6 +1443,23 @@ namespace Stormancer
 					auto steamID = steamUser->GetSteamID();
 
 					return steamID.ConvertToUint64();
+				}
+
+				bool tryGetUserProfile(SteamDetailsProfilePart& part)
+				{
+					auto steamFriends = SteamFriends();
+					auto steamUser = SteamUser();
+					if (!steamFriends || !steamUser)
+					{
+						return false;
+					}
+					auto steamID = steamUser->GetSteamID();
+
+
+					part.personaName = steamFriends->GetPersonaName();
+					part.steamId = std::to_string(steamID.ConvertToUint64());
+					return true;
+
 				}
 
 				SteamID getLobbyLeader(SteamIDLobby lobbyId) override
@@ -1498,10 +1544,10 @@ namespace Stormancer
 					return pplx::create_task(*_lobbyCreatedTce, taskOptions)
 						.then([steamMatchmaking, joinable, metadata, wSteamApi = STORM_WEAK_FROM_THIS(), logger = _logger, ct](SteamIDLobby steamIDLobby)
 							{
-								auto steamApi = wSteamApi.lock();
+								auto steamApi = LockOrThrow(wSteamApi);
 
 								auto task = pplx::task_from_result();
-								logger->log(LogLevel::Info, "steam", "Steam lobby created", std::to_string(steamIDLobby));
+								logger->log(LogLevel::Info, "steam", "Steam lobby '{}' created", steamIDLobby);
 								if (!joinable)
 								{
 									steamApi->setLobbyJoinable(steamIDLobby, joinable, ct)
@@ -1552,7 +1598,7 @@ namespace Stormancer
 						STORM_RETURN_TASK_FROM_EXCEPTION_OPT(std::runtime_error("SteamMatchmaking() returned null"), actionDispatcher, void);
 					}
 
-					_logger->log(LogLevel::Info, "Steam", "Join lobby", std::to_string(steamIDLobby));
+					_logger->log(LogLevel::Info, "Steam", "Joining lobby {}", steamIDLobby);
 
 					std::lock_guard<std::recursive_mutex> lg(_mutex);
 
@@ -1598,11 +1644,11 @@ namespace Stormancer
 						STORM_RETURN_TASK_CANCELED_OPT(actionDispatcher, void);
 					}
 
-					_logger->log(LogLevel::Info, "Steam", "Leaving lobby", std::to_string(steamIDLobby));
+					_logger->log(LogLevel::Info, "Steam", "Leaving lobby {}", steamIDLobby);
 
 					steamMatchmaking->LeaveLobby(CSteamID(steamIDLobby));
 
-					_logger->log(LogLevel::Trace, "Steam", "Lobby left", std::to_string(steamIDLobby));
+
 
 					return pplx::task_from_result(taskOptions);
 				}
@@ -1989,7 +2035,7 @@ namespace Stormancer
 								}
 
 								auto myUserId = usersApi->userId();
-								return steamImpl->setLobbyMemberData(steamIDLobby, "stormancer.userId", myUserId, cancellationToken);
+								return steamImpl->setLobbyMemberData(steamIDLobby, "stormancer.userId", myUserId.userId, cancellationToken);
 							})
 						.then([](pplx::task<void> t)
 							{
@@ -2040,7 +2086,7 @@ namespace Stormancer
 
 								auto myUserId = usersApi->userId();
 
-								return steamImpl->setLobbyMemberData(steamIDLobby, "stormancer.userId", myUserId, cancellationToken)
+								return steamImpl->setLobbyMemberData(steamIDLobby, "stormancer.userId", myUserId.userId, cancellationToken)
 									.then([steamIDLobby]()
 										{
 											// Send back steamIDLobby to server
@@ -2081,14 +2127,14 @@ namespace Stormancer
 					{
 						if (failure || callback->m_EChatRoomEnterResponse != k_EChatRoomEnterResponseSuccess)
 						{
-							_logger->log(LogLevel::Info, "Steam", "Failed to join steam lobby " + std::to_string(callback->m_ulSteamIDLobby), convertEChatRoomEnterResponseToString(callback->m_EChatRoomEnterResponse));
+							_logger->log(LogLevel::Info, "Steam", "Failed to join steam lobby {} : {}", callback->m_ulSteamIDLobby, callback->m_EChatRoomEnterResponse);
 
-							it->second.tce.set_exception(std::runtime_error("steam.joinLobbyFailed(" + convertEChatRoomEnterResponseToString(callback->m_EChatRoomEnterResponse) + ")"));
+							it->second.tce.set_exception(std::runtime_error(std::format("steam.joinLobbyFailed: {}", toString((EChatRoomEnterResponse)callback->m_EChatRoomEnterResponse))));
 							return;
 						}
 						else
 						{
-							_logger->log(LogLevel::Info, "Steam", "Joined steam lobby", std::to_string(callback->m_ulSteamIDLobby));
+							_logger->log(LogLevel::Info, "Steam", "Joined steam lobby {}.", callback->m_ulSteamIDLobby);
 
 						}
 
@@ -2104,12 +2150,13 @@ namespace Stormancer
 
 					if (failure || callback->m_eResult != EResult::k_EResultOK)
 					{
-						_logger->log(LogLevel::Info, "Steam", "Lobby creation failed", convertEResultToString(callback->m_eResult));
+						std::string errorId = convertEResultToString(callback->m_eResult);
+						_logger->log(LogLevel::Info, "Steam", "Lobby creation failed. error={}", errorId);
 
 						_lobbyCreatedTce->set_exception(std::runtime_error("Create lobby failed (" + convertEResultToString(callback->m_eResult) + ")"));
 						return;
 					}
-					_logger->log(LogLevel::Info, "Steam", "Lobby created", std::to_string(callback->m_ulSteamIDLobby));
+					_logger->log(LogLevel::Info, "Steam", "Lobby {} created.", callback->m_ulSteamIDLobby);
 					_lobbyCreatedTce->set(callback->m_ulSteamIDLobby);
 				}
 				CCallResult<SteamImpl, LobbyCreated_t> _lobbyCreatedCallResult;
@@ -2183,7 +2230,7 @@ namespace Stormancer
 
 							if (!callback->m_bSuccess)
 							{
-								_logger->log(LogLevel::Error, "Steam", std::string() + "Update lobby data failed", "");
+								_logger->log(LogLevel::Error, "Steam", "Update lobby data failed");
 
 								requestLobbyDataTce.set_exception(std::runtime_error("Steam request lobby data failed (success == false)"));
 							}
@@ -2204,12 +2251,13 @@ namespace Stormancer
 							}
 							catch (const std::exception& ex)
 							{
-								_logger->log(LogLevel::Error, "Steam", std::string() + "Fill lobby data failed", ex.what());
+								_logger->log(LogLevel::Error, "Steam", "Fill lobby data failed : {}", ex);
 
 								requestLobbyDataTce.set_exception(ex);
 								return;
 							}
-							_logger->log(LogLevel::Info, "Steam", std::string() + "Lobby data updated", " islobby=" + std::to_string(callback->m_ulSteamIDLobby == callback->m_ulSteamIDMember) + " lobby=" + std::to_string(callback->m_ulSteamIDLobby) + " member=" + std::to_string(callback->m_ulSteamIDMember));
+							bool isLobby = callback->m_ulSteamIDLobby == callback->m_ulSteamIDMember;
+							_logger->log(LogLevel::Info, "Steam", "Lobby data updated", " islobby={} lobby={} member={}", isLobby, callback->m_ulSteamIDLobby, callback->m_ulSteamIDMember);
 
 							requestLobbyDataTce.set(lobby);
 						}
@@ -2226,13 +2274,13 @@ namespace Stormancer
 				{
 					if (!callback->m_steamIDLobby.IsValid())
 					{
-						_logger->log(LogLevel::Warn, "Steam", "onGameLobbyJoinRequestedCallback skipped", "SteamIDLobby invalid");
+						_logger->log(LogLevel::Warn, "Steam", "onGameLobbyJoinRequestedCallback skipped : SteamIDLobby invalid");
 						return;
 					}
 
 					SteamIDLobby steamIDLobby = callback->m_steamIDLobby.ConvertToUint64();
 
-					_logger->log(LogLevel::Trace, "Steam", "Game lobby join requested", std::to_string(steamIDLobby));
+					_logger->log(LogLevel::Trace, "Steam", "Game lobby {} : join requested", steamIDLobby);
 
 					SteamID senderId = callback->m_steamIDFriend.ConvertToUint64();
 
@@ -2244,7 +2292,7 @@ namespace Stormancer
 					auto invitationMessenger = _wInvitationMessenger.lock();
 					if (!invitationMessenger)
 					{
-						_logger->log(LogLevel::Warn, "Steam", "onGameLobbyJoinRequestedCallback skipped", "Invitation messenger deleted");
+						_logger->log(LogLevel::Warn, "Steam", "onGameLobbyJoinRequestedCallback skipped : Invitation messenger deleted");
 						return;
 					}
 
@@ -2318,7 +2366,7 @@ namespace Stormancer
 				void onLobbyInviteCallback(LobbyInvite_t* /*callback*/)
 				{}
 
-				std::string convertEChatRoomEnterResponseToString(uint32 chatRoomEnterResponse)
+				std::string toString(EChatRoomEnterResponse chatRoomEnterResponse)
 				{
 					switch (chatRoomEnterResponse)
 					{
@@ -2461,7 +2509,7 @@ namespace Stormancer
 
 			inline void SteamImpl::onRequestLobbyListCallResult(LobbyMatchList_t* callback, bool failure)
 			{
-				_logger->log(LogLevel::Trace, "Steam", "Lobby list requested", "failure=" + std::to_string(failure) + " m_nLobbiesMatching=" + std::to_string(callback->m_nLobbiesMatching));
+				_logger->log(LogLevel::Trace, "Steam", "Lobby list requested failed={}, matches={}", failure, callback->m_nLobbiesMatching);
 
 				std::lock_guard<std::recursive_mutex> lg(_mutex);
 
@@ -2529,9 +2577,10 @@ namespace Stormancer
 					, _wActionDispatcher(actionDispatcher)
 				{}
 
-				std::string getPlatformName() override
+				const std::string& getPlatformName() const override
 				{
-					return platformName;
+					static std::string pName = platformName;
+					return pName;
 				}
 
 				pplx::task<Party::PartyId> getPartyId(const Party::PartyId& partyId, pplx::cancellation_token ct = pplx::cancellation_token::none()) override
@@ -2542,7 +2591,7 @@ namespace Stormancer
 						STORM_RETURN_TASK_FROM_EXCEPTION(std::runtime_error("Unknown PartyId type"), Party::PartyId);
 					}
 
-					_logger->log(LogLevel::Trace, "SteamPartyProvider::getPartyId", "Retrieve partyId from Steam lobby metadata", partyId.id);
+					_logger->log(LogLevel::Trace, "SteamPartyProvider::getPartyId", "Retrieve partyId from Steam lobby metadata. partyId={}", partyId);
 
 					std::lock_guard<std::recursive_mutex> lg(_mutex);
 
@@ -2583,7 +2632,7 @@ namespace Stormancer
 												throw std::runtime_error("Invalid partyId");
 											}
 
-											logger->log(LogLevel::Trace, "SteamPartyProvider::getPartyId", "PartyId obtained", partyDataDto.partyId);
+											logger->log(LogLevel::Trace, "SteamPartyProvider::getPartyId", "PartyId obtained: {}", partyDataDto.partyId);
 
 											Party::PartyId partyId;
 											partyId.id = partyDataDto.partyId;
@@ -2622,11 +2671,6 @@ namespace Stormancer
 					steamApi->_partySteamIDLobby = 0;
 
 					return steamApi->leaveLobby(partySteamIDLobby);
-				}
-
-				pplx::task<void> kickPlayer(const std::string&) override
-				{
-					return pplx::task_from_result();
 				}
 
 				pplx::task<void> updateSessionMembers(const Party::MembersUpdate& update) override
@@ -2671,9 +2715,8 @@ namespace Stormancer
 											throw std::runtime_error("Not lobby owner");
 										}
 
-										auto scene = update.partyApi->getPartyScene();
-
-										if (!scene)
+										std::shared_ptr<Scene> scene;
+										if (!update.partyApi->tryGetPartyScene(scene))
 										{
 											throw std::runtime_error("Party scene is null");
 										}
@@ -2699,7 +2742,7 @@ namespace Stormancer
 													}
 													catch (const std::exception& ex)
 													{
-														logger->log(LogLevel::Error, "Steam", ex.what());
+														logger->log(LogLevel::Error, "Steam", "An error occurred while getting the party bearer token. error={}", ex);
 													}
 												});
 									});
@@ -2726,12 +2769,12 @@ namespace Stormancer
 							auto steamIDLobby = std::stoull(steamIDLobbyIt->second);
 							if (steamIDLobby != 0)
 							{
-								_logger->log(LogLevel::Debug, "Steam", std::string() + "Setting lobby " + (settings.isJoinable ? "" : "not ") + "joinable", std::to_string(steamIDLobby));
+								_logger->log(LogLevel::Debug, "Steam", "Setting lobby {} joinable={}", steamIDLobby, settings.isJoinable);
 
 								return steamApi->setLobbyJoinable(steamIDLobby, settings.isJoinable)
 									.then([settings, steamIDLobby, logger = _logger]
 										{
-											logger->log(LogLevel::Debug, "Steam", std::string() + "Lobby " + (settings.isJoinable ? "" : "not ") + "joinable set", std::to_string(steamIDLobby));
+											logger->log(LogLevel::Debug, "Steam", "Lobby {} joinable updated  {}", steamIDLobby, settings.isJoinable);
 										});
 							}
 						}
@@ -2787,7 +2830,7 @@ namespace Stormancer
 									}
 									catch (const std::exception& ex)
 									{
-										logger->log(LogLevel::Error, "Steam", "Request lobby data failed", ex);
+										logger->log(LogLevel::Error, "Steam", "Request lobby data failed. error={}", ex);
 									}
 								});
 						}
@@ -2923,7 +2966,52 @@ namespace Stormancer
 #pragma endregion
 			};
 
+			class SteamProfileEventHandler : public Stormancer::Profile::IProfileEventHandler
+			{
+			public:
+				SteamProfileEventHandler(std::shared_ptr<SteamApi> steam)
+					:_steam(steam)
+				{
 
+				}
+				void onGetLocalPlayerProfile(Stormancer::Profile::Profile& profile, const std::unordered_map<std::string, std::string>& displayOptions) override
+				{
+					Serializer serializer;
+					SteamDetailsProfilePart p;
+					if (_steam->tryGetUserProfile(p))
+					{
+						if (displayOptions.contains("steam"))
+						{
+							SteamDetailsProfilePart part = p;
+							BufferWriter writer;
+							serializer.serialize(writer, part);
+
+							std::vector<byte> data;
+							data.resize(writer.content().size());
+							std::memcpy(data.data(), writer.content().data(), writer.content().size());
+							profile.data.emplace("steam", data);
+
+						}
+						if (displayOptions.contains("user"))
+						{
+							Profile::UserProfilePart part;
+							part.pseudo = p.personaName;
+							part.platforms.emplace("steam", std::unordered_map<std::string, std::string> { { "steamid", p.steamId } });
+							BufferWriter writer;
+							serializer.serialize(writer, part);
+
+							std::vector<byte> data;
+							data.resize(writer.content().size());
+							std::memcpy(data.data(), writer.content().data(), writer.content().size());
+							profile.data.emplace("user", data);
+						}
+
+					}
+				}
+
+			private:
+				std::shared_ptr<SteamApi> _steam;
+			};
 
 
 			// https://partner.steamgames.com/doc/features/auth#client_to_backend_webapi
@@ -3010,7 +3098,7 @@ namespace Stormancer
 					auto steamUser = SteamUser();
 					if (!steamUser)
 					{
-						return pplx::task_from_exception<void>(Stormancer::ObjectDeletedException("ISteamUser null"));
+						return pplx::task_from_exception<void>(Stormancer::ObjectDeletedException("ISteamUser"));
 					}
 
 					if (_steamState->getBackendIdentity().empty())
@@ -3025,7 +3113,7 @@ namespace Stormancer
 
 					if (hAuthTicket == k_HAuthTicketInvalid)
 					{
-						throw std::runtime_error("Steam : invalid user authentication ticket");
+						throw std::runtime_error("steam.authenticationFailed");
 					}
 
 
@@ -3073,6 +3161,7 @@ namespace Stormancer
 				builder.registerDependency<details::SteamState, Configuration, ILogger>().singleInstance();
 				builder.registerDependency<details::SteamImpl, Users::UsersApi, details::SteamState, Configuration, IScheduler, ILogger, Party::PartyApi, Party::Platform::InvitationMessenger, ContainerBuilder::All<ISteamTickEventHandler>>().asSelf().as<SteamApi>().as<Friends::IFriendsEventHandler>().singleInstance();
 				builder.registerDependency<details::SteamPartyProvider, Party::Platform::InvitationMessenger, Users::UsersApi, details::SteamImpl, ILogger, Party::PartyApi, IActionDispatcher>().as<Party::Platform::IPlatformSupportProvider>();
+				builder.registerDependency<details::SteamProfileEventHandler, SteamApi>().as<Profile::IProfileEventHandler>();
 				builder.registerDependency<details::SteamAuthenticationEventHandler, details::SteamState >().as<Users::IAuthenticationProvider>();
 				builder.registerDependency<details::SteamProjectEnvironmentEventHandler, SteamApi>().as<IProjectEnvironmentEventsHandler>();
 				builder.registerDependency<details::SteamP2PConnectivityEventHandler, details::SteamP2PConnectivityProvider, SteamApi>().as<IP2PConnectivityEventHandler>();
@@ -3094,7 +3183,7 @@ namespace Stormancer
 					builder.registerDependency<details::SteamService, Scene>();
 				}
 
-				if (scene->getHostMetadata(Party::details::PartyService::METADATA_KEY).length() > 0)
+				if (scene->getHostMetadata(Party::PartyConstants::METADATA_KEY).length() > 0)
 				{
 					builder.registerDependency<details::SteamPartyService, Scene>();
 				}
@@ -3102,7 +3191,7 @@ namespace Stormancer
 
 			void sceneCreated(std::shared_ptr<Scene> scene)
 			{
-				if (scene->getHostMetadata(Party::details::PartyService::METADATA_KEY).length() > 0)
+				if (scene->getHostMetadata(Party::PartyConstants::METADATA_KEY).length() > 0)
 				{
 					auto service = scene->dependencyResolver().resolve<details::SteamImpl>();
 					service->initializePartyScene(scene);
@@ -3118,3 +3207,4 @@ namespace Stormancer
 }
 
 STRM_MSGPACK_ADD_ENUM(ELobbyType);
+STRM_MSGPACK_ADD_ENUM(Stormancer::Steam::details::HandshakeStep);
