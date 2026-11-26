@@ -29,6 +29,7 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Leaderboards
 {
+
     /// <summary>
     /// Provides Admin web APIs for controllers.
     /// </summary>
@@ -47,6 +48,33 @@ namespace Stormancer.Server.Plugins.Leaderboards
             _leaderboards = leaderboards;
         }
 
+        /// <summary>
+        /// search the leaderboard.
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        [HttpPost("_search")]
+        public async Task<LeaderboardResultDTO> Search([FromBody] LeaderboardQuery query, CancellationToken cancellationToken = default)
+        {
+
+            var result = await _leaderboards.Query(query, cancellationToken);
+            return LeaderboardResultDTO.FromLeaderboardResult(result);
+
+        }
+
+        /// <summary>
+        /// Gets another page from a search result using a cursor.
+        /// </summary>
+        /// <param name="cursor"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        [HttpGet("_next")]
+        public async Task<LeaderboardResultDTO> GetFromCursor([FromQuery] string cursor, CancellationToken cancellationToken = default)
+        {
+            var result = await _leaderboards.QueryCursor(cursor, cancellationToken);
+            return LeaderboardResultDTO.FromLeaderboardResult(result);
+        }
 
         /// <summary>
         /// Queries a leaderboard.
@@ -65,12 +93,12 @@ namespace Stormancer.Server.Plugins.Leaderboards
             if (string.IsNullOrWhiteSpace(cursor))
             {
                 var leaderboardOrdering = (ordering == "desc" ? LeaderboardOrdering.Descending : LeaderboardOrdering.Ascending);
-                var result = await _leaderboards.Query(new LeaderboardQuery { Name = boardName, Size = count, Skip = Math.Max(0, skip), Order = leaderboardOrdering, ScorePath = scorePath  }, cancellationToken); 
+                var result = await _leaderboards.Query(new LeaderboardQuery { Name = boardName, Size = count, Skip = Math.Max(0, skip), Order = leaderboardOrdering, ScorePath = scorePath }, cancellationToken);
                 return LeaderboardResultDTO.FromLeaderboardResult(result);
             }
             else
             {
-                var result = await _leaderboards.QueryCursor(cursor,cancellationToken);
+                var result = await _leaderboards.QueryCursor(cursor, cancellationToken);
                 return LeaderboardResultDTO.FromLeaderboardResult(result);
             }
         }
@@ -82,7 +110,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
         /// <param name="record"></param>
         /// <returns></returns>
         [HttpPost("{boardName}")]
-        public Task Post(string boardName, [FromBody]ScoreRecord record)
+        public Task Post(string boardName, [FromBody] ScoreRecord record)
         {
             return _leaderboards.UpdateScore(record.Id, boardName, old => Task.FromResult(record));
         }
@@ -155,7 +183,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
         /// <param name="leaderboard"></param>
         /// <returns></returns>
         [HttpPost("quickaccess")]
-        public Task PostQuickAccess([FromBody]QuickAccessLeaderboard leaderboard)
+        public Task PostQuickAccess([FromBody] QuickAccessLeaderboard leaderboard)
         {
             return _leaderboards.AddQuickAccessLeaderboard(leaderboard);
         }

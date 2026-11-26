@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 using MessagePack;
+using Newtonsoft.Json;
 using System.Collections.Generic;
 
 namespace Stormancer.Server.Plugins.Leaderboards
@@ -85,7 +86,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
         /// Name of the leaderboard to query.
         /// </summary>
         [Key(5)]
-        public string Name { get; set; } = default!;
+        public required string Name { get; set; }
 
         /// <summary>
         /// 
@@ -103,7 +104,7 @@ namespace Stormancer.Server.Plugins.Leaderboards
         /// Path to the score metric used to order the leaderboard query.
         /// </summary>
         [Key(8)]
-        public string ScorePath { get; set; } = default!;
+        public required string ScorePath { get; set; }
 
         /// <summary>
         /// If sets, the query returns a leaderboard made only of a player friends.
@@ -124,12 +125,16 @@ namespace Stormancer.Server.Plugins.Leaderboards
         public string? UserId { get; set; }
 
         [IgnoreMember]
+        [JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
         internal bool Adjusted { get; set; }
 
         /// <summary>
         /// List of user ids generated from the intersection of FriendIds if not null or empty and the list of friends FriendsOnly is set.
         /// </summary>
         [IgnoreMember]
+        [JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
         public IEnumerable<string>? FilteredUserIds { get; set; }
     }
 }
