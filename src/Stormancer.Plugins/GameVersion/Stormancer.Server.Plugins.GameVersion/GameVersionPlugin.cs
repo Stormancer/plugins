@@ -33,14 +33,14 @@ namespace Stormancer.Server.Plugins.GameVersion
 
         public void Build(HostPluginBuildContext ctx)
         {
-            ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
+            ctx.ConfigureSceneDependencies((IDependencyBuilder builder, ISceneHost scene) =>
             {
                 if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
                 {
                     builder.Register(static r=> new GameVersionService(r.Resolve<IConfiguration>(),r.Resolve<Components.IEnvironment>(),r.Resolve<ISceneHost>())).AsSelf().As<IConfigurationChangedEventHandler>().SingleInstance();
                     builder.Register(static r=> new AuthenticationEventHandler(r.Resolve<GameVersionService>(),r.Resolve<IUserSessions>(),r.Resolve<Diagnostics.ILogger>())).As<IAuthenticationEventHandler>().InstancePerRequest();
                 }
-            };
+            });
 
             ctx.SceneCreated += (ISceneHost scene) =>
             {

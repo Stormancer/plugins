@@ -83,8 +83,8 @@ namespace Stormancer.Server.Plugins.Users
         {
             ctx.HostStarting += HostStarting;
             ctx.HostStarted += HostStarted;
-            ctx.HostDependenciesRegistration += RegisterDependencies;
-            ctx.SceneDependenciesRegistration += RegisterSceneDependencies;
+            ctx.ConfigureHostDependencies(RegisterDependencies);
+            ctx.ConfigureSceneDependencies(RegisterSceneDependencies);
            
             ctx.SceneCreated += SceneCreated;
             ctx.SceneStarted += (ISceneHost scene) =>

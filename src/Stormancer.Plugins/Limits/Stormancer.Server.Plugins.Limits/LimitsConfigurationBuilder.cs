@@ -8,9 +8,9 @@
         /// <summary>
         /// Gets the configuration.
         /// </summary>
-        public LimitsConfiguration Config { get;  }
+        public LimitsConfigurationSection Config { get;  }
 
-        internal LimitsConfigurationBuilder(LimitsConfiguration config)
+        internal LimitsConfigurationBuilder(LimitsConfigurationSection config)
         {
             this.Config = config;
         }

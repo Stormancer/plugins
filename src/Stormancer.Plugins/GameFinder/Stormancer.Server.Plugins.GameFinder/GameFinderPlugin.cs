@@ -57,23 +57,23 @@ namespace Stormancer.Server.Plugins.GameFinder
         public void Build(HostPluginBuildContext ctx)
         {
             //ctx.HostStarting += HostStarting;
-            ctx.SceneDependenciesRegistration += SceneDependenciesRegistration;
+            ctx.ConfigureSceneDependencies(SceneDependenciesRegistration);
             ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
             {
                 builder.Register<GameFinderController>();
                 builder.Register<AdminApi.GameFinderAdminController>();
-                builder.Register(dr=> new GameFinderData(dr.Resolve<ISceneHost>())).AsSelf().InstancePerScene();
-                builder.Register(r=>ServiceLocationProvider.Instance).As<IServiceLocatorProvider>();
+                builder.Register(dr => new GameFinderData(dr.Resolve<ISceneHost>())).AsSelf().InstancePerScene();
+                builder.Register(r => ServiceLocationProvider.Instance).As<IServiceLocatorProvider>();
                 builder.Register<QuickQueueGameSessionEventHandler>().As<GameSession.IGameSessionEventHandler>().InstancePerScene();
                 builder.Register<AdminWebApiConfig>().As<IAdminWebApiConfig>();
-               
+
 
             };
 
-            
+
             ctx.SceneCreated += SceneCreated;
 
-         
+
 
             ctx.HostStarted += (IHost host) =>
             {
@@ -102,7 +102,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 builder.Register<GameFinderService>().As<IGameFinderService>().As<IConfigurationChangedEventHandler>().InstancePerScene();
                 if (Configs.TryGetValue(scene.Id, out var config))
                 {
-                    
+
                     config.RegisterDependencies(builder);
                 }
             }
@@ -122,7 +122,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 {
                     var gameFinderService = scene.DependencyResolver.Resolve<IGameFinderService>();
 
-                    
+
                     //Start gameFinder
                     scene.RunTask(gameFinderService.Run);
 

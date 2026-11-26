@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using CommunityToolkit.HighPerformance;
 using Jose;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
@@ -776,7 +777,7 @@ namespace Stormancer.Server.Plugins.Users
                         {
                             peer.Serializer().Serialize(senderUserId, s);
                             peer.Serializer().Serialize(operationName, s);
-                            stream.CopyTo(s);
+                            stream.CopyTo(s.AsStream());
 
                         }
                         finally

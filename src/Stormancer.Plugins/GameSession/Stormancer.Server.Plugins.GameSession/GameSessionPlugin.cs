@@ -42,6 +42,8 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
+using System.IO;
+using System.IO.Pipelines;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -162,26 +164,40 @@ namespace Stormancer.Server.Plugins.GameSession
                 }
                 if (scene.TemplateMetadata.ContainsKey(P2PMESH_METADATA_KEY))
                 {
+                    var serializer = scene.DependencyResolver.Resolve<ISerializer>();
                     scene.AddRoute("p2pmesh.relay", (message, origin) =>
                     {
                         if (SessionId.TryRead(message, out var sessionId, out var length) && scene.TryGetPeer(sessionId, out var peer))
                         {
                             var reliability = (PacketReliability)(message.Slice(length, 1).FirstSpan[0]);
 
-                            var reader = new MessagePack.MessagePackReader(message.Slice(length + 1));
+                            var reader = PipeReader.Create(message.Slice(length + 1));
 
-                            var route = reader.ReadString();
+
+                            // The reader is filled before calling deserialize, so we are sure all data is already available.
+                            var route = serializer.DeserializeAsync<string>(reader).Result; 
                             if (route != null)
                             {
-                                scene.Send(peer.MatchPeerFilter, route, (writer, ctx) =>
+                                scene.Send(peer.MatchPeerFilter, route, static (writer, ctx) =>
                                 {
-                                    var (data, origin) = ctx;
+                                    var (reader, origin) = ctx;
 
-                                    var span = writer.GetSpan((int)data.Length + origin.SessionId.Length);
+                                    var span = writer.GetSpan(origin.SessionId.Length);
                                     origin.SessionId.TryWriteBytes(span.Slice(0, origin.SessionId.Length));
-                                    data.CopyTo(span.Slice(origin.SessionId.Length));
-                                    writer.Advance((int)data.Length + origin.SessionId.Length);
-                                }, PacketPriority.IMMEDIATE_PRIORITY, reliability, (message.Slice(length + 1 + reader.Consumed), origin));
+                                    writer.Advance(origin.SessionId.Length);
+                                    while(reader.TryRead(out var result))
+                                    {
+                                        if(result.Buffer.Length == 0)
+                                        {
+                                            break;
+                                        }
+                                        span = writer.GetSpan((int)result.Buffer.Length);
+                                        result.Buffer.CopyTo(span);
+                                        writer.Advance((int)result.Buffer.Length);
+                                        reader.AdvanceTo(result.Buffer.End);
+                                    }
+                                   
+                                }, PacketPriority.IMMEDIATE_PRIORITY, reliability, (reader, origin));
                             }
 
 
@@ -191,14 +207,14 @@ namespace Stormancer.Server.Plugins.GameSession
                     
                 }
             };
-            ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
+            ctx.ConfigureSceneDependencies((IDependencyBuilder builder, ISceneHost scene) =>
             {
                 if (scene.Id == POOL_SCENEID)
                 {
                     builder.Register<AgentBasedGameServerProvider>().As<IGameServerProvider>().AsSelf().InstancePerScene();
                     builder.Register<ServerPools>().As<IServerPools>().AsSelf().As<IConfigurationChangedEventHandler>().InstancePerScene();
                 }
-            };
+            });
         }
     }
 

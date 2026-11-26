@@ -33,12 +33,12 @@ namespace Stormancer
     {
         public void Build(HostPluginBuildContext ctx)
         {
-            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
+            ctx.ConfigureHostDependencies(builder =>
             {
 
                 builder.Register(static r => new ConfigurationMonitor<FeaturesConfigurationSection>(r.Resolve<IConfiguration>())).AsSelf().As<IConfigurationChangedEventHandler>().SingleInstance();
                 builder.Register(static r => new FeaturesService(r.Resolve<ConfigurationMonitor<FeaturesConfigurationSection>>())).SingleInstance();
-            };
+            });
         }
     }
 

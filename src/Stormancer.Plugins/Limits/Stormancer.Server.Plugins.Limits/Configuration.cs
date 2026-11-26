@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Stormancer.Server.Plugins.Configuration;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,8 +10,14 @@ namespace Stormancer.Server.Plugins.Limits
     /// <summary>
     /// Limits plugin configuration section.
     /// </summary>
-    public class LimitsConfiguration
+    public class LimitsConfigurationSection : IConfigurationSection<LimitsConfigurationSection>
     {
+        /// <inheritdoc/>
+        public static string SectionPath => "limits";
+
+        /// <inheritdoc/>
+        public static LimitsConfigurationSection Default { get; } = new LimitsConfigurationSection();
+
         /// <summary>
         /// Configuration related to CCU limits.
         /// </summary>

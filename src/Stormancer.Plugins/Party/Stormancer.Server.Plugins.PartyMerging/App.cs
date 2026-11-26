@@ -62,14 +62,14 @@ namespace Stormancer.Server.Plugins.PartyMerging
                 }
             };
 
-            ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
+            ctx.ConfigureSceneDependencies((IDependencyBuilder builder, ISceneHost scene) =>
             {
                 if (scene.TemplateMetadata.TryGetValue(PartyMergingConstants.MERGER_METADATA_KEY, out var _) && configs != null)
                 {
 
                     configs.ConfigureDependencyResolver(scene, builder);
                 }
-            };
+            });
             ctx.SceneCreating += (ISceneHost scene) =>
             {
                 if (scene.TemplateMetadata.TryGetValue(PartyConstants.METADATA_KEY, out _))

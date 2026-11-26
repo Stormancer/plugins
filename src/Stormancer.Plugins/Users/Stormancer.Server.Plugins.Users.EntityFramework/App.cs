@@ -27,11 +27,11 @@ namespace Stormancer.Server.Plugins.Users.EntityFramework
     {
         public void Build(HostPluginBuildContext ctx)
         {
-            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
+            ctx.ConfigureHostDependencies(builder =>
             {
                 builder.Register<UserDbModelBuilder>().As<IDbModelBuilder>();
                 builder.Register<EntityFrameworkUserStorage>().As<IUserStorage>().InstancePerRequest();
-            };
+            });
         }
     }
 }

@@ -32,7 +32,7 @@
 		<Version>$(Version)-pre</Version>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="jose-jwt" Version="5.1.1" />
+		<PackageReference Include="jose-jwt" Version="5.3.0" />
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="11.0.100">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

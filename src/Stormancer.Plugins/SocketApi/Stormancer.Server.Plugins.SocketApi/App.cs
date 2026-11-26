@@ -25,10 +25,10 @@ namespace Stormancer.Server.Plugins.SocketApi
         public const string METADATA_KEY = "stormancer.socketApi";
         public void Build(HostPluginBuildContext ctx)
         {
-            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
+            ctx.ConfigureHostDependencies(builder =>
             {
                 builder.Register<SocketController>();
-            };
+            });
 
             ctx.SceneCreated += (ISceneHost scene) =>
             {

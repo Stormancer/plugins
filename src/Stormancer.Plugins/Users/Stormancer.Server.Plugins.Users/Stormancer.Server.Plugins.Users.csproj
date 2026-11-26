@@ -5,7 +5,7 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Company>Stormancer</Company>
 		<Authors>Stormancer</Authors>
-		<Version>10.0.4</Version>
+		<Version>10.0.4.1</Version>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -36,9 +36,10 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-		<PackageReference Include="jose-jwt" Version="5.1.1" />
-		<PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="7.1.2" />
-		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="7.1.2" />
+		<PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.2" />
+		<PackageReference Include="jose-jwt" Version="5.3.0" />
+		<PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.23.0" />
+		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.23.0" />
 		<PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="4.0.1" />
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="11.0.100">
 			<PrivateAssets>all</PrivateAssets>
@@ -68,8 +69,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<Compile Remove="Data\**" />
 		<Compile Remove="Extensions\**" />
+		<EmbeddedResource Remove="Data\**" />
 		<EmbeddedResource Remove="Extensions\**" />
+		<None Remove="Data\**" />
 		<None Remove="Extensions\**" />
 	</ItemGroup>
 
@@ -79,7 +83,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="Data\" />
 	  <Folder Include="cpp\" />
 	</ItemGroup>
 

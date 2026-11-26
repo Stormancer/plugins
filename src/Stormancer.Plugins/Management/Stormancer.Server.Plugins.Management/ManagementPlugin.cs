@@ -53,10 +53,10 @@ namespace Stormancer.Server.Plugins.Management
     {
         public void Build(HostPluginBuildContext ctx)
         {
-            ctx.HostDependenciesRegistration += (IDependencyBuilder b) =>
+            ctx.ConfigureHostDependencies(b =>
             {
                 b.Register<ManagementClientProvider>().SingleInstance();
-            };
+            });
         }
     }
 

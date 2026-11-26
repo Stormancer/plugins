@@ -48,12 +48,12 @@ namespace Stormancer.Server.Plugins.Replication
     {
         public void Build(HostPluginBuildContext ctx)
         {
-            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
+            ctx.ConfigureHostDependencies((IDependencyBuilder builder) =>
             {
                 builder.Register<ReplicationController>();
                 builder.Register<LockstepController>();
                 builder.Register<LockstepState>().InstancePerScene();
-            };
+            });
 
             ctx.SceneCreated += (ISceneHost scene) =>
             {

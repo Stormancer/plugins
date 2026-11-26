@@ -57,6 +57,6 @@ namespace Stormancer.Server.Plugins.Configuration
         /// <summary>
         /// Event fired whenever the configuration changes.
         /// </summary>
-        public Action<T> OnConfigurationChanged { get; }
+        public Action<T>? OnConfigurationChanged { get; }
     }
 }

@@ -28,11 +28,11 @@ namespace Stormancer.Server.Plugins.Configuration
     {
         public void Build(HostPluginBuildContext ctx)
         {
-            ctx.HostDependenciesRegistration += builder =>
+            ctx.ConfigureHostDependencies(builder =>
             {
                 builder.Register<DefaultConfiguration>().As<IConfiguration>().SingleInstance();
                 builder.Register<ConfigurationNotifier>().SingleInstance();
-            };
+            });
 
             ctx.HostStarting += (IHost host) =>
             {

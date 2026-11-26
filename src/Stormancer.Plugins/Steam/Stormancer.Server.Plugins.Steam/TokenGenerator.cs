@@ -158,7 +158,7 @@ namespace Stormancer.Server.Plugins.Steam
 
         public static byte[] ComputeSignature(ArraySegment<byte> data, byte[] key)
         {
-            using (var sha = SHA256CryptoServiceProvider.Create())
+            using (var sha = SHA256.Create())
             {
                 sha.Initialize();
                 var buffer = new byte[data.Count + key.Length];

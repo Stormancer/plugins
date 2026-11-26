@@ -46,14 +46,14 @@ namespace Stormancer.Server.Plugins.PeerConfiguration
                     scene.TemplateMetadata["stormancer.peerConfig"] = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? string.Empty;
                 }
             };
-            ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
+            ctx.ConfigureSceneDependencies((IDependencyBuilder builder, ISceneHost scene) =>
               {
                   if (scene.Template == Users.Constants.SCENE_TEMPLATE)
                   {
                       builder.Register<PeerConfigurationService>().AsSelf().As<IConfigurationChangedEventHandler>().InstancePerScene();
                       builder.Register<UsersEventHandler>().As<IUserSessionEventHandler>().InstancePerRequest();
                   }
-              };
+              });
         }
     }
 

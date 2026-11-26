@@ -53,7 +53,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
                     
                 });
             };
-            ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
+            ctx.ConfigureSceneDependencies((IDependencyBuilder builder, ISceneHost scene) =>
               {
                   if (scene.Template == Users.Constants.SCENE_TEMPLATE)
                   {
@@ -65,8 +65,8 @@ namespace Stormancer.Server.Plugins.ServiceLocator
 
 
                   }
-              };
-            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
+              });
+            ctx.ConfigureHostDependencies((IDependencyBuilder builder) =>
               {
                   builder.Register(static r => new ServiceLocatorConfiguration(r.Resolve<IConfiguration>())).AsSelf().As<IConfigurationChangedEventHandler>().SingleInstance();
                   builder.Register(static r => new ServiceLocatorProviderRepository(r.ResolveAll<IServiceLocatorProvider>())).SingleInstance();
@@ -88,7 +88,7 @@ namespace Stormancer.Server.Plugins.ServiceLocator
                   ).As<IApiHandler>();
 
                   builder.Register(static r=>new ServiceLocatorHostDatabase()).SingleInstance();
-              };
+              });
             ctx.SceneCreated += (ISceneHost scene) =>
             {
                 if (scene.Template == Users.Constants.SCENE_TEMPLATE)

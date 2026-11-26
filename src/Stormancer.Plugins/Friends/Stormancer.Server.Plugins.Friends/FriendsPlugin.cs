@@ -63,7 +63,7 @@ namespace Stormancer.Server.Plugins.Friends
 
         public void Build(HostPluginBuildContext ctx)
         {
-            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
+            ctx.ConfigureHostDependencies((IDependencyBuilder builder) =>
             {
                 builder.Register<FriendsPartyCompatibilityPolicy>().As<IPartyCompatibilityPolicy>().As<IPartyEventHandler>().InstancePerRequest();
                 builder.Register<FriendsController>().InstancePerRequest();
@@ -72,16 +72,16 @@ namespace Stormancer.Server.Plugins.Friends
                 builder.Register<FriendsDbModelBuilder>().As<IDbModelBuilder>();
                 builder.Register<MembersStorageService>();
                 builder.Register(dr => new FriendsServiceProxy(dr.Resolve<FriendsProxy>())).As<IFriendsService>().InstancePerRequest();
-            };
+            });
             
-            ctx.SceneDependenciesRegistration+=(IDependencyBuilder builder, ISceneHost scene) =>
+            ctx.ConfigureSceneDependencies((IDependencyBuilder builder, ISceneHost scene) =>
             {
                 if (scene.TemplateMetadata.ContainsKey(FriendsConstants.METADATA_KEY))
                 {
                     builder.Register<FriendsService>().As<IFriendsService>().InstancePerRequest();
                 }
                
-            };
+            });
 
             ctx.HostStarting += (IHost host) =>
             {

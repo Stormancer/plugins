@@ -55,13 +55,13 @@ namespace Stormancer.Server.Plugins.Notification
                 builder.Register<NotificationLocator>().As<IServiceLocatorProvider>();
             };
 
-            ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
+            ctx.ConfigureSceneDependencies((IDependencyBuilder builder, ISceneHost scene) =>
             {
                 if (scene.TemplateMetadata.ContainsKey(METADATA_KEY))
                 {
                     builder.Register<NotificationChannel>(dr => new NotificationChannel(dr.Resolve<Func<IEnumerable<INotificationProvider>>>())).As<INotificationChannel>().InstancePerDependency();
                 }
-            };
+            });
 
             ctx.SceneCreated += (ISceneHost scene) =>
             {

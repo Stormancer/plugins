@@ -29,8 +29,15 @@ using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.DataProtection
 {
+    /// <summary>
+    /// Plugin entry point.
+    /// </summary>
     public class App
     {
+        /// <summary>
+        /// Entry point.
+        /// </summary>
+        /// <param name="builder"></param>
         public void Run(IAppBuilder builder)
         {
             builder.AddPlugin(new DataProtectionPlugin());
@@ -41,10 +48,11 @@ namespace Stormancer.Server.Plugins.DataProtection
     {
         public void Build(HostPluginBuildContext ctx)
         {
-            ctx.HostDependenciesRegistration +=(IDependencyBuilder builder) => {
+            ctx.ConfigureHostDependencies(builder =>
+            { 
                 builder.Register<DataProtector>().As<IDataProtector>();
                 builder.Register<AesGcmProtectionProvider>().As<IDataProtectionProvider>();
-            };
+            });
         }
     }
 }

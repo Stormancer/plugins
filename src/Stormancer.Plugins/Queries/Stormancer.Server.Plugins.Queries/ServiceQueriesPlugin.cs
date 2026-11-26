@@ -11,16 +11,16 @@ namespace Stormancer.Server.Plugins.Queries
     {
         public void Build(HostPluginBuildContext ctx)
         {
-            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
-              {
-                  builder.Register<SearchEngine>().SingleInstance();
-                  builder.Register<LuceneSearchProvider>().As<IServiceSearchProvider>().As<ILucene>().SingleInstance();
-              };
+            ctx.ConfigureHostDependencies(builder =>
+            {
+                builder.Register<SearchEngine>().SingleInstance();
+                builder.Register<LuceneSearchProvider>().As<IServiceSearchProvider>().As<ILucene>().SingleInstance();
+            });
 
             ctx.HostStarting += (IHost host) =>
-              {
-                  host.DependencyResolver.Resolve<SearchEngine>().Initialize();
-              };
+            {
+                host.DependencyResolver.Resolve<SearchEngine>().Initialize();
+            };
         }
     }
 }

@@ -31,7 +31,7 @@
 	<ItemGroup>
 		<PackageReference Include="AWSSDK.IAMRolesAnywhere" Version="4.0.101" />
 		<PackageReference Include="AWSSDK.S3" Version="4.0.101.5" />
-		<PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.0" />
+		<PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.2" />
 	</ItemGroup>
 	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
 		<Version>$(Version)-pre</Version>

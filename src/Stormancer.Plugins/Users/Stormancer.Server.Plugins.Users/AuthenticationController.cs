@@ -30,6 +30,9 @@ using System.Text;
 using System.Threading.Tasks;
 using Stormancer.Diagnostics;
 using System.Reactive.Linq;
+using System.Buffers;
+using System.IO.Pipelines;
+using CommunityToolkit.HighPerformance;
 
 namespace Stormancer.Server.Plugins.Users
 {
@@ -131,7 +134,8 @@ namespace Stormancer.Server.Plugins.Users
             var disposable = rpc.Rpc("sendRequest", peer, s =>
             {
                 peer.Serializer().Serialize(sender.Id, s);
-                ctx.InputStream.CopyTo(s);
+                
+                ctx.InputStream.CopyTo(s.AsStream());
             }, PacketPriority.MEDIUM_PRIORITY)
                 .Select(packet => Observable.FromAsync(async () => await ctx.SendValue(s => packet.Stream.CopyTo(s))))
                 .Concat()

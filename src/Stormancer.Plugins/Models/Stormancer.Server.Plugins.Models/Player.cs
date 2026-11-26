@@ -88,13 +88,17 @@ namespace Stormancer.Server.Plugins.Models
         /// Gets or sets the platform of the player.
         /// </summary>
         [Key(0)]
-        public string Platform { get; set; } = default!;
+        public required string Platform { get; set; } 
 
+
+        /// <summary>
+        /// The user id of the player.
+        /// </summary>
         [Key(1)]
-        public string StormancerUserId { get; set; } = default!;
+        public required string StormancerUserId { get; set; }
 
-        [Key    (2)]
-        public string Pseudo { get; set; } = default!;
+        [Key(2)]
+        public required string Pseudo { get; set; } 
 
         [Key(3)]
         public string PlatformId { get; set; } = default!;

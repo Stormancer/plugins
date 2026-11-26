@@ -41,10 +41,10 @@ namespace Stormancer.Server.Plugins.AdminApi
     {
         public void Build(HostPluginBuildContext ctx)
         {
-            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
+            ctx.ConfigureHostDependencies(builder =>
             {
                 builder.Register<WebApiContainerBuilder>().As<IWebApiContainerBuilder>().SingleInstance();
-            };
+            });
 
             ctx.HostStarting += (Stormancer.Server.IHost host) =>
             {

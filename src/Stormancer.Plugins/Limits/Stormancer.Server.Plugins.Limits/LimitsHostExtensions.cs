@@ -23,7 +23,7 @@ namespace Stormancer
         public static IHost ConfigureLimits(this IHost host,Func<LimitsConfigurationBuilder,LimitsConfigurationBuilder> configurator)
         {
             var config = host.DependencyResolver.Resolve<IConfiguration>();
-            var limitsConfig = new LimitsConfiguration();
+            var limitsConfig = new LimitsConfigurationSection();
 
             var builder = new LimitsConfigurationBuilder(limitsConfig);
             configurator(builder);

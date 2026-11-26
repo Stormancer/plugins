@@ -61,7 +61,7 @@ namespace Stormancer.Server.Plugins.Limits
         public double AvgEntryInterval { get; init; }
     }
 
-    internal class Limits : ILimits, IConfigurationChangedEventHandler
+    internal class Limits : ILimits
     {
         private class WaitingQueueRecord
         {
@@ -79,24 +79,16 @@ namespace Stormancer.Server.Plugins.Limits
 
         private object syncRoot = new object();
 
-        private readonly IConfiguration configService;
-        private readonly ISerializer serializer;
+        private readonly ConfigurationMonitor<LimitsConfigurationSection> _config;
+        private readonly ISerializer _serializer;
 
-        public LimitsConfiguration Config { get; private set; }
+        public LimitsConfigurationSection Config => _config.Value;
 
-        public Limits(IConfiguration config, ISerializer serializer)
+        public Limits(ConfigurationMonitor<LimitsConfigurationSection> config, ISerializer serializer)
         {
-            this.configService = config;
-            this.serializer = serializer;
-            OnConfigurationChanged();
-
-            Debug.Assert(Config != null);
+            _config = config;
+            _serializer = serializer;
         }
-        public void OnConfigurationChanged()
-        {
-            Config = configService.GetValue("limits", new LimitsConfiguration());
-        }
-
 
         internal async Task<bool> WaitForEntryAsync(IScenePeerClient peer, string? userId, CancellationToken cancellationToken)
         {
@@ -190,23 +182,24 @@ namespace Stormancer.Server.Plugins.Limits
                 }
                 var rank = 0;
                 sendTasks = _waitQueue
-                    .Select(r => {
+                    .Select(r =>
+                    {
                         var result = (rank, r);
                         rank++;
                         return result;
-                        })
+                    })
                     .Where(r => r.Item2.IsDirty)
                     .Select(async t =>
                     {
                         t.r.IsDirty = false;
-                        await t.r.Peer.Send("Queue.UpdateRank", s => serializer.Serialize(rank, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_SEQUENCED);
+                        await t.r.Peer.Send("Queue.UpdateRank", s => _serializer.Serialize(rank, s), PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE_SEQUENCED);
                     })
                     .ToList();
 
 
             }
 
-            
+
 
         }
 
@@ -245,14 +238,14 @@ namespace Stormancer.Server.Plugins.Limits
                         current.Value.TaskCompletionSource.SetCanceled();
                         found = true;
                     }
-                   
-                        
+
+
                     current = current.Next;
-                    if(found && current!=null)
+                    if (found && current != null)
                     {
                         current.Value.IsDirty = true;
                     }
-                    
+
                 }
             }
 

@@ -30,14 +30,16 @@ namespace Stormancer.Server.Plugins.Limits
     {
         public void Build(HostPluginBuildContext ctx)
         {
-            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
-             {
-                 builder.Register<LimitsClientCache>().SingleInstance();
-                 builder.Register<LimitsAdminWebApiConfig>().As<IAdminWebApiConfig>();
-                 builder.Register<LimitsClient>().InstancePerRequest();
-                 builder.Register<LimitsAuthenticationEventHandler>().As<IAuthenticationEventHandler>().As<IUserSessionEventHandler>().InstancePerRequest();
-                 builder.Register<LimitsLocator>().As<IServiceLocatorProvider>();
-             };
+            ctx.ConfigureHostDependencies((IDependencyBuilder builder) =>
+            {
+                builder.Register<LimitsClientCache>().SingleInstance();
+                builder.Register<LimitsAdminWebApiConfig>().As<IAdminWebApiConfig>();
+                builder.Register<LimitsClient>().InstancePerRequest();
+                builder.Register<LimitsAuthenticationEventHandler>().As<IAuthenticationEventHandler>().As<IUserSessionEventHandler>().InstancePerRequest();
+                builder.Register<LimitsLocator>().As<IServiceLocatorProvider>();
+                builder.Register<ConfigurationMonitor<LimitsConfigurationSection>>().AsSelf().As<IConfigurationChangedEventHandler>().SingleInstance();
+            });
+
             ctx.SceneCreated += (ISceneHost scene) =>
             {
                 if (scene.Template == Users.Constants.SCENE_TEMPLATE)
@@ -54,14 +56,14 @@ namespace Stormancer.Server.Plugins.Limits
                     _ = scene.RunTask(limits.RunQueueAsync);
                 }
             };
-            ctx.SceneDependenciesRegistration += (builder, scene) =>
+            ctx.ConfigureSceneDependencies((builder, scene) =>
             {
                 if (scene.Template == Users.Constants.SCENE_TEMPLATE)
                 {
-                    builder.Register<Limits>().As<ILimits>().As<IConfigurationChangedEventHandler>().AsSelf().InstancePerScene();
+                    builder.Register<Limits>().As<ILimits>().AsSelf().InstancePerScene();
                     builder.Register<LimitsController>();
                 }
-            };
+            });
         }
     }
 

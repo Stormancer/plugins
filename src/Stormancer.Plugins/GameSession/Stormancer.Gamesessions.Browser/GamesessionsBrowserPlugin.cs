@@ -14,22 +14,22 @@ namespace Stormancer.Gamesessions.Browser
     {
         public void Build(HostPluginBuildContext ctx)
         {
-            ctx.HostDependenciesRegistration += (IDependencyBuilder builder) =>
+            ctx.ConfigureHostDependencies((IDependencyBuilder builder) =>
             {
                 builder.Register(dr => new GamesessionBrowserController(dr.Resolve<GamesessionSearchService>())).InstancePerRequest();
                 builder.Register(dr => LocatorProvider.Instance).As<IServiceLocatorProvider>();
                 builder.Register(dr => new GamesessionSearchService(dr.Resolve<SearchEngine>())).InstancePerRequest();
                 builder.Register(dr => new GamesessionsDocumentStore()).As<IServiceSearchProvider>().AsSelf().SingleInstance();
                 builder.Register(dr => new GameSessionReservations(dr.Resolve<IHost>(), dr.Resolve<GameSessionsRepository>(), dr.Resolve<IClusterSerializer>())).SingleInstance();
-            };
+            });
 
-            ctx.SceneDependenciesRegistration += (IDependencyBuilder builder, ISceneHost scene) =>
+            ctx.ConfigureSceneDependencies((IDependencyBuilder builder, ISceneHost scene) =>
             {
                 if(scene.TemplateMetadata.ContainsKey(GameSessionConstants.METADATA_KEY))
                 {
                     builder.Register(dr => new ReservationsState()).SingleInstance();
                 }
-            };
+            });
 
             ctx.HostStarting += (IHost host) =>
             {

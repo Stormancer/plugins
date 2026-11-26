@@ -1,8 +1,10 @@
-﻿using Stormancer.Core;
+﻿using CommunityToolkit.HighPerformance;
+using Stormancer.Core;
 using Stormancer.Plugins;
 using Stormancer.Server.Components;
 using Stormancer.Server.Plugins.API;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -172,7 +174,7 @@ namespace Stormancer.Server.Plugins.Replication
                 {
                     var serializer = ctx.RemotePeer.Serializer();
                     serializer.Serialize(ctx.RemotePeer.SessionId, s);
-                    ctx.InputStream.CopyTo(s);
+                    ctx.InputStream.CopyTo(s.AsStream());
                 }
                 , PacketPriority.MEDIUM_PRIORITY).ToAsyncEnumerable())
             {

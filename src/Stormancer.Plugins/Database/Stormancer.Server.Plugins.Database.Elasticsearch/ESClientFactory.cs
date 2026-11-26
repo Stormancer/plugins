@@ -195,12 +195,12 @@ namespace Stormancer.Server.Plugins.Database
 
         public void Build(HostPluginBuildContext ctx)
         {
-            ctx.HostDependenciesRegistration += (IDependencyBuilder b) =>
+            ctx.ConfigureHostDependencies( b =>
             {
                 b.Register<ESClientFactory>().As<IESClientFactory>().As<IConfigurationChangedEventHandler>().SingleInstance();
                 b.Register<ElasticsearchExceptionHandler>().As<IApiHandler>().SingleInstance();
                 SmartFormat.Smart.Default.AddExtensions(new TimeIntervalFormatter());
-            };
+            });
 
             ctx.HostStarted += (IHost host) =>
              {
@@ -210,13 +210,35 @@ namespace Stormancer.Server.Plugins.Database
         }
     }
 
+    /// <summary>
+    /// Configuration of en Elasticsearch conneciton.
+    /// </summary>
     public class ConnectionParameters
     {
-        public string ConnectionPool { get; set; }
-        public string IndexName { get; set; }
-        public int maxRetries { get; set; }
-        public int retryTimeout { get; set; }
-        public double PingTimeout { get; set; }
+        /// <summary>
+        /// Gets or sets the connection pool to use.
+        /// </summary>
+        public required string ConnectionPool { get; set; }
+
+        /// <summary>
+        /// Gets or sets the default index.
+        /// </summary>
+        public required string IndexName { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maximum number of retries.
+        /// </summary>
+        public required int maxRetries { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Retry timeout used with Elasticsearch clusters.
+        /// </summary>
+        public required int retryTimeout { get; set; }
+
+        /// <summary>
+        /// Gets or sets the timeout to use when pinging an Elasticsearch cluster.
+        /// </summary>
+        public required double PingTimeout { get; set; }
 
       
     }
