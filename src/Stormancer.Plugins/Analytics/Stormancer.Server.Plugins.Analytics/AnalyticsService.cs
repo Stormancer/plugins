@@ -21,15 +21,17 @@
 // SOFTWARE.
 
 using Newtonsoft.Json.Linq;
-using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Diagnostics;
 using Stormancer.Server.Components;
+using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Server.Plugins.Database;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Analytics
@@ -112,7 +114,7 @@ namespace Stormancer.Server.Plugins.Analytics
         /// <param name="group">Index type where the data will be store</param>
         /// <param name="category">category of analytics document, for search purpose</param>
         /// <param name="content">Json object to store</param>
-        public void Push(string group,string category, JObject content)
+        public void Push(string group,string category, JsonElement content)
         {
             AnalyticsDocument document = new AnalyticsDocument { Content = content, Type = group, Category = category };
             Push(document);

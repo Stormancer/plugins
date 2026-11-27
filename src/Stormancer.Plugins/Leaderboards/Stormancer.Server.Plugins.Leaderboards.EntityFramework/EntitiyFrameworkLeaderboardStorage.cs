@@ -354,7 +354,9 @@ namespace Stormancer.Server.Plugins.Leaderboards.EntityFramework
                         Skip = 0,
                         Size = leaderboardQuery.Size,
                         IsPrevious = true,
-                        StartId = results.First().Document.Id
+                        StartId = results.First().Document.Id,
+                        Name = leaderboardQuery.Name,
+                        ScorePath = leaderboardQuery.ScorePath
                     };
                     leaderboardResult.Previous = previousQuery.SerializeContinuationQuery();
                 }
@@ -366,7 +368,9 @@ namespace Stormancer.Server.Plugins.Leaderboards.EntityFramework
                         Skip = 0,
                         Size = leaderboardQuery.Size,
                         IsPrevious = false,
-                        StartId = results.Last().Document.Id
+                        StartId = results.Last().Document.Id,
+                        Name = leaderboardQuery.Name,
+                        ScorePath = leaderboardQuery.ScorePath
                     };
 
                     leaderboardResult.Next = nextQuery.SerializeContinuationQuery();

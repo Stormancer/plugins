@@ -41,6 +41,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reactive.Subjects;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -250,7 +251,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                     if (_data.TryCompletePartyError(state.Party.PartyId, ex.Message))
                     {
                         _logger.Log(LogLevel.Error, "gamefinder", $"Matchmaking failed : {ex}", ex);
-                        _analytics.Push("gameFinder", "end", JObject.FromObject(new { partySize = party.Players.Count, duration = (DateTime.UtcNow - startTime).TotalMilliseconds, type = "failed" }));
+                        _analytics.Push("gameFinder", "end", JsonSerializer.SerializeToElement(new { partySize = party.Players.Count, duration = (DateTime.UtcNow - startTime).TotalMilliseconds, type = "failed" }));
                         BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) =>
                         {
                             var span = s.GetSpan(1);
@@ -264,12 +265,12 @@ namespace Stormancer.Server.Plugins.GameFinder
                 try
                 {
                     result = await state.WhenCompleted;
-                    _analytics.Push("gameFinder", "end", JObject.FromObject(new { partySize = party.Players.Count, duration = (DateTime.UtcNow - startTime).TotalMilliseconds, type = "success" }));
+                    _analytics.Push("gameFinder", "end", JsonSerializer.SerializeToElement(new { partySize = party.Players.Count, duration = (DateTime.UtcNow - startTime).TotalMilliseconds, type = "success" }));
 
                 }
                 catch (TaskCanceledException)
                 {
-                    _analytics.Push("gameFinder", "end", JObject.FromObject(new { partySize = party.Players.Count, duration = (DateTime.UtcNow - startTime).TotalMilliseconds, type = "cancelled" }));
+                    _analytics.Push("gameFinder", "end", JsonSerializer.SerializeToElement(new { partySize = party.Players.Count, duration = (DateTime.UtcNow - startTime).TotalMilliseconds, type = "cancelled" }));
                     BroadcastToPlayers(party, UPDATE_NOTIFICATION_ROUTE, (s, sz) =>
                     {
                         var span = s.GetSpan(1);
@@ -355,7 +356,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                         return;
                     }
 
-                    _analytics.Push("gameFinder", "pass", JObject.FromObject(new
+                    _analytics.Push("gameFinder", "pass", JsonSerializer.SerializeToElement(new
                     {
                         type = _data.kind,
                         playersWaiting = waitingParties.SelectMany(kvp => kvp.Value.Party.Players).Count(),

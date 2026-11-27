@@ -25,6 +25,8 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.Analytics
@@ -40,7 +42,7 @@ namespace Stormancer.Server.Plugins.Analytics
         /// <param name="type"></param>
         /// <param name="category"></param>
         /// <param name="document"></param>
-        void Push(string type,string category, JObject document);
+        void Push(string type,string category, JsonElement document);
 
         /// <summary>
         /// Pushes a document in the analytics system.

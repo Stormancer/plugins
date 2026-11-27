@@ -67,7 +67,7 @@ namespace Stormancer.Server.Plugins.Models
         public required string UserId { get; set; }
 
         [Key(3)]
-        public List<LocalPlayerInfos>? LocalPlayers { get; set; } 
+        public List<LocalPlayerInfos>? LocalPlayers { get; set; }
 
 
         /// <summary>
@@ -75,7 +75,7 @@ namespace Stormancer.Server.Plugins.Models
         /// </summary>
         [IgnoreMember]
         public Dictionary<string, object> CacheStorage { get; } = new Dictionary<string, object>();
-       
+
     }
 
     /// <summary>
@@ -88,7 +88,7 @@ namespace Stormancer.Server.Plugins.Models
         /// Gets or sets the platform of the player.
         /// </summary>
         [Key(0)]
-        public required string Platform { get; set; } 
+        public required string Platform { get; set; }
 
 
         /// <summary>
@@ -97,23 +97,37 @@ namespace Stormancer.Server.Plugins.Models
         [Key(1)]
         public required string StormancerUserId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the pseudo of the local player.
+        /// </summary>
         [Key(2)]
-        public required string Pseudo { get; set; } 
+        public required string Pseudo { get; set; }
 
+        /// <summary>
+        /// Id of the player in the platform they use to connect.
+        /// </summary>
         [Key(3)]
-        public string PlatformId { get; set; } = default!;
+        public required string PlatformId { get; set; }
 
+        /// <summary>
+        /// Gets or sets custom data associated with the player.
+        /// </summary>
         [Key(4)]
-        public string CustomData { get; set; } = default!;
+        public string? CustomData { get; set; }
 
+        /// <summary>
+        /// Index of the player in the local system.
+        /// </summary>
         [Key(5)]
         public int LocalPlayerIndex { get; set; }
 
+        ///<inheritdoc/>
         public override bool Equals(object? obj)
         {
             return Equals(obj as LocalPlayerInfos);
         }
 
+        ///<inheritdoc/>
         public bool Equals(LocalPlayerInfos? other)
         {
             return other is not null &&
@@ -124,17 +138,18 @@ namespace Stormancer.Server.Plugins.Models
                    CustomData == other.CustomData &&
                    LocalPlayerIndex == other.LocalPlayerIndex;
         }
-
+        ///<inheritdoc/>
         public override int GetHashCode()
         {
             return HashCode.Combine(Platform, StormancerUserId, Pseudo, PlatformId, CustomData, LocalPlayerIndex);
         }
 
+        ///<inheritdoc/>
         public static bool operator ==(LocalPlayerInfos? left, LocalPlayerInfos? right)
         {
             return EqualityComparer<LocalPlayerInfos>.Default.Equals(left, right);
         }
-
+        ///<inheritdoc/>
         public static bool operator !=(LocalPlayerInfos? left, LocalPlayerInfos? right)
         {
             return !(left == right);

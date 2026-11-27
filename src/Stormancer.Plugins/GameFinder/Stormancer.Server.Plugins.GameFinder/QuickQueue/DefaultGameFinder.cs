@@ -54,7 +54,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         /// <summary>
         /// Game launch arguments, passed to the game session.
         /// </summary>
-        public Dictionary<string, string> Args { get; } = new Dictionary<string, string>();
+        public Dictionary<string, string> Args { get; set; } = new Dictionary<string, string>();
 
         /// <summary>
         /// Initial team configuration

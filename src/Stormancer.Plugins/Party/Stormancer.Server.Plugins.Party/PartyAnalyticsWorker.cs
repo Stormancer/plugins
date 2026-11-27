@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -54,7 +55,7 @@ namespace Stormancer.Server.Plugins.Party
                     }
                     if (count > 0)
                     {
-                        _analytics.Push("party", "party-stats", JObject.FromObject(new
+                        _analytics.Push("party", "party-stats", JsonSerializer.SerializeToElement(new
                         {
                             parties = count,
                             playersInParties = players

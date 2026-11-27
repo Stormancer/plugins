@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -67,7 +68,7 @@ namespace Stormancer.Server.Plugins.PartyMerging
                             var analytics = scope.Resolve<IAnalyticsService>();
                             var data = merger.GetAnalytics();
                             
-                            analytics.Push("merger", merger.MergerId, JObject.FromObject(data));
+                            analytics.Push("merger", merger.MergerId, JsonSerializer.SerializeToElement(data));
 
                             if(data.LastPlayerCount>0)
                             {

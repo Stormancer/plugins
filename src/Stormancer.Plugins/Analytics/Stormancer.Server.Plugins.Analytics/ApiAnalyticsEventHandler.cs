@@ -20,17 +20,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using Nest;
 using Newtonsoft.Json.Linq;
-using Stormancer.Server.Plugins.API;
-using Stormancer.Server.Plugins.Configuration;
 using Stormancer.Core;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
+using Stormancer.Server.Plugins.API;
+using Stormancer.Server.Plugins.Configuration;
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
-using Nest;
 
 namespace Stormancer.Server.Plugins.Analytics
 {
@@ -124,7 +125,7 @@ namespace Stormancer.Server.Plugins.Analytics
                 {
                     var start = watch.ElapsedMilliseconds;
                     await next(ctx);
-                    analytics.Push("api", "rpc.cs", JObject.FromObject(new
+                    analytics.Push("api", "rpc.cs", JsonSerializer.SerializeToElement(new
                     {
                         type = "RPC",
                         scope = "ClientServer",
@@ -152,7 +153,7 @@ namespace Stormancer.Server.Plugins.Analytics
                 {
                     var start = watch.ElapsedMilliseconds;
                     await next(ctx);
-                    analytics.Push("api", "rpc.s2s", JObject.FromObject(new
+                    analytics.Push("api", "rpc.s2s", JsonSerializer.SerializeToElement(new
                     {
                         type = "RPC",
                         scope = "S2S",
@@ -178,7 +179,7 @@ namespace Stormancer.Server.Plugins.Analytics
                 {
                     var start = watch.ElapsedMilliseconds;
                     await next(ctx);
-                    analytics.Push("api", "ff.s2s", JObject.FromObject(new
+                    analytics.Push("api", "ff.s2s", JsonSerializer.SerializeToElement(new
                     {
                         type = "FireForget",
                         scope = "S2S",
@@ -204,7 +205,7 @@ namespace Stormancer.Server.Plugins.Analytics
                 {
                     var start = watch.ElapsedMilliseconds;
                     await next(ctx);
-                    analytics.Push("api", "ff.cs", JObject.FromObject(new
+                    analytics.Push("api", "ff.cs", JsonSerializer.SerializeToElement(new
                     {
                         type = "FireForget",
                         scope = "ClientServer",
@@ -226,7 +227,7 @@ namespace Stormancer.Server.Plugins.Analytics
         {
             if(_config.Value.EnableSceneEventsInstrumentation)
             {
-                _analytics.Push("api", "scene", JObject.FromObject(new
+                _analytics.Push("api", "scene", JsonSerializer.SerializeToElement(new
                 {
                     type = "scene.connect",
                     
@@ -239,7 +240,7 @@ namespace Stormancer.Server.Plugins.Analytics
         {
             if (_config.Value.EnableSceneEventsInstrumentation)
             {
-                _analytics.Push("api", "ff.cs", JObject.FromObject(new
+                _analytics.Push("api", "ff.cs", JsonSerializer.SerializeToElement(new
                 {
                     type = "scene.disconnect",
                 }));
@@ -254,7 +255,7 @@ namespace Stormancer.Server.Plugins.Analytics
             {
                 var start = _watch.ElapsedMilliseconds;
                 await next(ctx);
-                _analytics.Push("api", "ff.req", JObject.FromObject(new
+                _analytics.Push("api", "ff.req", JsonSerializer.SerializeToElement(new
                 {
                     type = "Request",
                     scope = "S2S",

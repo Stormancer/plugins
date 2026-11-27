@@ -8,6 +8,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Text.Json.Nodes;
+using System.Text.Json;
 
 namespace Stormancer.Server.Plugins.Analytics
 {
@@ -52,7 +54,7 @@ namespace Stormancer.Server.Plugins.Analytics
                     // Add some metadata for kibana
                     try
                     {
-                        Newtonsoft.Json.Linq.JObject content = Newtonsoft.Json.Linq.JObject.Parse(doc.Content);//Try parse document  
+                        var content = JsonElement.Parse(doc.Content);//Try parse document  
                         AnalyticsDocument document = new AnalyticsDocument { Category = doc.Category, Type = doc.Type, Content = content, CreationDate = doc.CreatedOn == 0 ? DateTime.UtcNow : DateTime.UnixEpoch.AddMilliseconds(doc.CreatedOn) };
                         _analytics.Push(document);
                     }

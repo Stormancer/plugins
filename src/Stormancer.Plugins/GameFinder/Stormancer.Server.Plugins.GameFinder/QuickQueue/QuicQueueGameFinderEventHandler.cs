@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.Plugins.GameFinder
@@ -14,7 +15,7 @@ namespace Stormancer.Server.Plugins.GameFinder
         GamesessionsDocumentStore repository;
         private readonly IGameSessionService gs;
         private string? _id;
-     
+
         private object _syncRoot = new object();
         public QuickQueueGameSessionEventHandler(GamesessionsDocumentStore repository, IGameSessionService gs)
         {
@@ -27,12 +28,12 @@ namespace Stormancer.Server.Plugins.GameFinder
         {
             lock (_syncRoot)
             {
-                var config = ctx.Config.Parameters.GetValue<QuickQueueGameSessionConfig>();
+                var config = JsonSerializer.Deserialize<QuickQueueGameSessionConfig>(ctx.Config.Parameters);
 
                 if (config != null && config.AllowJoinExistingGame)
                 {
                     _id = ctx.Id;
-                    
+
 
                     repository.Add(ctx.Service);
                 }
@@ -49,7 +50,7 @@ namespace Stormancer.Server.Plugins.GameFinder
 
                     repository.Remove(ctx.Service);
                     _id = null;
-                   
+
                 }
             }
             return Task.CompletedTask;
@@ -112,7 +113,7 @@ namespace Stormancer.Server.Plugins.GameFinder
                 {
                     repository.Remove(gs);
                     _id = null;
-                  
+
                 }
             }
 

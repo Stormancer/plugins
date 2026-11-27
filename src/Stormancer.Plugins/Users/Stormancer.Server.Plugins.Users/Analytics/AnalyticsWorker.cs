@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -40,7 +41,7 @@ namespace Stormancer.Server.Plugins.Users.Analytics
                     foreach (var group in groups)
                     {
                         _analytics.Push("user", "sessions",
-                            JObject.FromObject(group)
+                            JsonSerializer.SerializeToElement(group)
                             );
                     }
                 }

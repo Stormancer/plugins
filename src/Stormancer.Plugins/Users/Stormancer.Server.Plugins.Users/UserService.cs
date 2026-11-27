@@ -32,6 +32,7 @@ using Stormancer.Server.Plugins.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -157,7 +158,7 @@ namespace Stormancer.Server.Plugins.Users
             }
 
 
-            _analytics.Push("user", "create", JObject.FromObject(new { UserId = user.Id, Platform = currentPlatform, createdOn = DateTime.UtcNow }));
+            _analytics.Push("user", "create", JsonSerializer.SerializeToElement(new { UserId = user.Id, Platform = currentPlatform, createdOn = DateTime.UtcNow }));
             return user;
         }
 

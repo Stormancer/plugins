@@ -480,21 +480,30 @@ namespace Stormancer.Server.Plugins.Leaderboards.Elasticsearch
 
                 if (firstRank > 1) // There are scores before the first in the list
                 {
-                    var previousQuery = new LeaderboardContinuationQuery(leaderboardQuery);
-                    previousQuery.Skip = 0;
-                    previousQuery.Size = leaderboardQuery.Size;
-                    previousQuery.IsPrevious = true;
-                    previousQuery.StartId = results.First().Document.Id;
+                    var previousQuery = new LeaderboardContinuationQuery(leaderboardQuery)
+                    {
+                        Skip = 0,
+                        Size = leaderboardQuery.Size,
+                        IsPrevious = true,
+                        StartId = results.First().Document.Id,
+                        Name = leaderboardQuery.Name,
+                        ScorePath = leaderboardQuery.ScorePath
+                    };
+
                     leaderboardResult.Previous = previousQuery.SerializeContinuationQuery();
                 }
 
                 if (documents.Count > leaderboardQuery.Size || (leaderboardQuery as LeaderboardContinuationQuery)?.IsPrevious == true) // There are scores after the last in the list.
                 {
-                    var nextQuery = new LeaderboardContinuationQuery(leaderboardQuery);
-                    nextQuery.Skip = 0;
-                    nextQuery.Size = leaderboardQuery.Size;
-                    nextQuery.IsPrevious = false;
-                    nextQuery.StartId = results.Last().Document.Id;
+                    var nextQuery = new LeaderboardContinuationQuery(leaderboardQuery)
+                    {
+                        Skip = 0,
+                        Size = leaderboardQuery.Size,
+                        IsPrevious = false,
+                        StartId = results.Last().Document.Id,
+                        Name = leaderboardQuery.Name,
+                        ScorePath = leaderboardQuery.ScorePath
+                    };
 
                     leaderboardResult.Next = nextQuery.SerializeContinuationQuery();
                 }               
@@ -527,7 +536,7 @@ namespace Stormancer.Server.Plugins.Leaderboards.Elasticsearch
             return new LeaderboardEntryId(els[0], els[1]);
         }
 
-        public async Task UpdateScores(Dictionary<LeaderboardEntryId, bool> results, Func<IReadOnlyDictionary<LeaderboardEntryId, ScoreRecord>, Task<Dictionary<LeaderboardEntryId, ScoreUpdate>>> updateRecords)
+        public async Task UpdateScores(Dictionary<LeaderboardEntryId, bool> results, Func<IReadOnlyDictionary<LeaderboardEntryId, ScoreRecord?>, Task<Dictionary<LeaderboardEntryId, ScoreUpdate>>> updateRecords)
         {
             var client = await CreateESClient<ScoreRecord>("");
 

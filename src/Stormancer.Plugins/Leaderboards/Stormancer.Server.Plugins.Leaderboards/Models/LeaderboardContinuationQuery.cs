@@ -20,9 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using Newtonsoft.Json;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 
 namespace Stormancer.Server.Plugins.Leaderboards
 {
@@ -41,6 +42,10 @@ namespace Stormancer.Server.Plugins.Leaderboards
         {
         }
 
+        /// <summary>
+        /// Creates a new <see cref="LeaderboardContinuationQuery"/>.
+        /// </summary>
+        /// <param name="parent"></param>
         public LeaderboardContinuationQuery(LeaderboardQuery parent)
         {
             StartId = parent.StartId;
@@ -64,17 +69,30 @@ namespace Stormancer.Server.Plugins.Leaderboards
         /// </remarks>
         public bool IsPrevious { get; set; }
 
+        /// <summary>
+        /// Creates a cursor string from a continuation query.
+        /// </summary>
+        /// <returns></returns>
         public string SerializeContinuationQuery()
         {
             Debug.Assert(Key != null);
-            return System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(this)));
+            return Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(JsonSerializer.Serialize(this)));
             //return JWT.Encode(query, _key.Value, JwsAlgorithm.HS256);
         }
 
+        /// <summary>
+        /// Parses a continuation query from a cursor string.
+        /// </summary>
+        /// <param name="continuation"></param>
+        /// <returns></returns>
         public static LeaderboardContinuationQuery DeserializeContinuationQuery(string continuation)
         {
             Debug.Assert(Key != null);
-            return JsonConvert.DeserializeObject<LeaderboardContinuationQuery>(System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(continuation)));
+            var result = JsonSerializer.Deserialize<LeaderboardContinuationQuery>(System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(continuation)));
+
+            ArgumentNullException.ThrowIfNull(result);
+
+            return result;
             //return JWT.Decode<LeaderboardContinuationQuery>(continuation, _key.Value);
         }
     }

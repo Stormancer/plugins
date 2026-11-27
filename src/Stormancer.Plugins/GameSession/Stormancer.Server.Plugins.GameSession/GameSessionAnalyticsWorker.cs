@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -120,7 +121,7 @@ namespace Stormancer.Server.Plugins.GameSession
                     foreach (var group in groups)
                     {
                         _analytics.Push("gamesession", "gamesession-stats",
-                            JObject.FromObject(new GameSessionsStatistics(group.Key, group.Count()))
+                            JsonSerializer.SerializeToElement(new GameSessionsStatistics(group.Key, group.Count()))
                             );
                     }
                 }
@@ -132,7 +133,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         internal void AddGameSession(GameSessionService gameSessionService)
         {
-            _analytics.Push("gamesession", "gamesession-created", JObject.FromObject(new
+            _analytics.Push("gamesession", "gamesession-created", JsonSerializer.SerializeToElement(new
             {
                 gameFinder = gameSessionService.GetGameSessionConfig()?.GameFinder,
                 parameters = gameSessionService.GetGameSessionConfig()?.Parameters,
@@ -143,7 +144,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         internal void PlayerJoined(string userId, string sessionId, string gamesessionId)
         {
-            _analytics.Push("gamesession", "playerJoined", JObject.FromObject(new
+            _analytics.Push("gamesession", "playerJoined", JsonSerializer.SerializeToElement(new
             {
                 userId,
                 gameSessionId = gamesessionId,
@@ -153,7 +154,7 @@ namespace Stormancer.Server.Plugins.GameSession
 
         internal void PlayerLeft(string sessionId, string gameSessionId)
         {
-            _analytics.Push("gamesession", "playerLeft", JObject.FromObject(new
+            _analytics.Push("gamesession", "playerLeft", JsonSerializer.SerializeToElement(new
             {
                 sessionId = sessionId,
                 gameSessionId = gameSessionId
@@ -163,7 +164,7 @@ namespace Stormancer.Server.Plugins.GameSession
         internal void RemoveGameSession(GameSessionService gameSessionService)
         {
 
-            _analytics.Push("gamesession", "gamesession-closed", JObject.FromObject(new
+            _analytics.Push("gamesession", "gamesession-closed", JsonSerializer.SerializeToElement(new
             {
                 gameSessionId = gameSessionService.GameSessionId,
                 sessionDuration = (gameSessionService.CreatedOn - DateTime.UtcNow).TotalMilliseconds,
@@ -178,7 +179,7 @@ namespace Stormancer.Server.Plugins.GameSession
         internal void StartGamesession(GameSessionService gameSessionService)
         {
 
-            _analytics.Push("gamesession", "gamesession-started", JObject.FromObject(new
+            _analytics.Push("gamesession", "gamesession-started", JsonSerializer.SerializeToElement(new
             {
                 gamesessionId = gameSessionService.GameSessionId,
                 gameFinder = gameSessionService.GetGameSessionConfig()?.GameFinder,

@@ -25,15 +25,27 @@ using MessagePack;
 
 namespace Stormancer.Server.Plugins.Leaderboards
 {
+    /// <summary>
+    /// A leaderboard query filter.
+    /// </summary>
     [MessagePackObject]
     public class ScoreFilter
     {
+        /// <summary>
+        /// Gets or sets the type of the filter.
+        /// </summary>
         [Key(0)]
         public ScoreFilterType Type { get; set; }
 
+        /// <summary>
+        /// Gets or sets the path to the field to filter.
+        /// </summary>
         [Key(1)]
-        public string Path { get; set; }
+        public required string Path { get; set; }
 
+        /// <summary>
+        /// Gets or sets the filter value.
+        /// </summary>
         [Key(2)]
         public long Value { get; set; }
     }

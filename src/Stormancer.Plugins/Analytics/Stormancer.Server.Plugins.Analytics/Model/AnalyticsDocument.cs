@@ -1,5 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Stormancer.Server.Plugins.Analytics
 {
@@ -26,7 +28,7 @@ namespace Stormancer.Server.Plugins.Analytics
         /// <summary>
         /// Gets or sets the json data of the document.
         /// </summary>
-        public JObject Content { get; set; } = default!;
+        public JsonElement Content { get; set; } = default!;
 
         /// <summary>
         /// Gets or sets the deployment id that produced the document.
